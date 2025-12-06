@@ -95,14 +95,24 @@ private fun SkillList(
     skills: List<SkillEntity>,
     onSkillClick: (SkillEntity) -> Unit
 ) {
+    var expandedSkillIds by remember { mutableStateOf(setOf<Long>()) }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(skills) { skill ->
+            val isExpanded = expandedSkillIds.contains(skill.id)
             SkillRow(
                 skill = skill,
+                isExpanded = isExpanded,
+                onToggleExpand = {
+                    expandedSkillIds = if (isExpanded) {
+                        expandedSkillIds - skill.id
+                    } else {
+                        expandedSkillIds + skill.id
+                    }
+                },
                 onClick = { onSkillClick(skill) }
             )
         }
@@ -112,15 +122,16 @@ private fun SkillList(
 @Composable
 private fun SkillRow(
     skill: SkillEntity,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
     onClick: () -> Unit
 ) {
-    var isExpanded by remember { mutableStateOf(false) }
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
                 // toggle expanded state when card is clicked
-                isExpanded = !isExpanded
+                onToggleExpand()
             }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
