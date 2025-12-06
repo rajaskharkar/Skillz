@@ -5,11 +5,15 @@ import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+
+val GryffindorRed =  Color(0xFF7F0909)
+val GryffindorGold = Color(0xFFD3A625)     // Gold
+val GryffindorOffWhite = Color(0xFFF2EBDD) // Parchment
+val GryffindorBlack = Color(0xFF000000)
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -33,6 +37,35 @@ private val LightColorScheme = lightColorScheme(
     */
 )
 
+private val LightGryffindorColors = lightColorScheme(
+    primary = GryffindorRed,
+    onPrimary = GryffindorOffWhite,
+
+    secondary = GryffindorGold,
+    onSecondary = GryffindorBlack,
+
+    background = GryffindorOffWhite,      // #F2EBDD
+    onBackground = GryffindorBlack,
+
+    surface = Color(0xFFE4D8BB),          // darker parchment for cards
+    onSurface = GryffindorBlack
+)
+
+private val DarkGryffindorColors = darkColorScheme(
+    primary = GryffindorRed,
+    onPrimary = GryffindorOffWhite,
+
+    secondary = GryffindorGold,
+    onSecondary = GryffindorBlack,
+
+    background = Color(0xFF1A1412),      // warm dark brown/red-black
+    onBackground = Color(0xFFEDEDED),    // soft warm white text
+
+    surface = Color(0xFF221C19),         // lighter, warm card surface
+    onSurface = Color(0xFFF5F5F5)        // readable warm white text
+)
+
+
 @Composable
 fun SkillzTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -43,11 +76,11 @@ fun SkillzTheme(
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (darkTheme) DarkGryffindorColors else LightGryffindorColors
         }
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        darkTheme -> DarkGryffindorColors
+        else -> LightGryffindorColors
     }
 
     MaterialTheme(
