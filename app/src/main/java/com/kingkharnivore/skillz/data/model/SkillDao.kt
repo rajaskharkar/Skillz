@@ -16,7 +16,7 @@ interface SkillDao {
     @Update
     suspend fun updateSkill(skill: SkillEntity)
 
-    @Query("SELECT * FROM skills ORDER BY name")
+    @Query("SELECT * FROM skills ORDER BY createdAt ASC")
     fun getAllSkills(): Flow<List<SkillEntity>>
 
     @Query("SELECT * FROM skills WHERE id = :id")
