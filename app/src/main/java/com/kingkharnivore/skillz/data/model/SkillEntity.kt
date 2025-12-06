@@ -8,7 +8,8 @@ data class SkillEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val description: String,
-    val totalTimeMs: Long = 0L
+    val totalTimeMs: Long = 0L,
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 data class SkillListUiState(
