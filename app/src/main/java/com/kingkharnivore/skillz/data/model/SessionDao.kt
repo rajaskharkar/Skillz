@@ -31,4 +31,12 @@ interface SessionDao {
 
     @Query("DELETE FROM sessions WHERE id = :sessionId")
     suspend fun deleteSessionById(sessionId: Long)
+
+    // 👇 NEW: get one session by id (to know its tag)
+    @Query("SELECT * FROM sessions WHERE id = :sessionId LIMIT 1")
+    suspend fun getSessionById(sessionId: Long): SessionEntity?
+
+    // 👇 NEW: count sessions for a given tag
+    @Query("SELECT COUNT(*) FROM sessions WHERE tagId = :tagId")
+    suspend fun getSessionCountForTag(tagId: Long): Int
 }

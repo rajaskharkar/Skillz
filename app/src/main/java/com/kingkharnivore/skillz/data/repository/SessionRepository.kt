@@ -2,11 +2,13 @@ package com.kingkharnivore.skillz.data.repository
 
 import com.kingkharnivore.skillz.data.model.SessionDao
 import com.kingkharnivore.skillz.data.model.SessionEntity
+import com.kingkharnivore.skillz.data.model.TagDao
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class SessionRepository @Inject constructor(
-    private val sessionDao: SessionDao
+    private val sessionDao: SessionDao,
+    private val tagDao: TagDao
 ) {
 
     fun getAllSessions(): Flow<List<SessionEntity>> =
@@ -34,7 +36,16 @@ class SessionRepository @Inject constructor(
         return sessionDao.insertSession(session)
     }
 
-    suspend fun deleteSession(sessionId: Long) {
+    suspend fun deleteSessionAndCleanupTag(sessionId: Long): Long? {
+        val session = sessionDao.getSessionById(sessionId) ?: return null
+        val tagId = session.tagId
         sessionDao.deleteSessionById(sessionId)
+        val remaining = sessionDao.getSessionCountForTag(tagId)
+        return if (remaining == 0) {
+            tagDao.deleteTagById(tagId)
+            tagId
+        } else {
+            null
+        }
     }
 }

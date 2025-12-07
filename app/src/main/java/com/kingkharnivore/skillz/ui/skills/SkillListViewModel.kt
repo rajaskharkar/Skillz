@@ -105,11 +105,20 @@ class SkillListViewModel @Inject constructor(
     fun deleteSession(sessionId: Long) {
         viewModelScope.launch {
             try {
-                sessionRepository.deleteSession(sessionId)
-                // Flows from Room will auto-update uiState
+                val removedTagId = sessionRepository.deleteSessionAndCleanupTag(sessionId)
+
+                // If the tag that just got emptied/deleted is currently selected,
+                // reset to "All" (null)
+                if (removedTagId != null && selectedTagId.value == removedTagId) {
+                    selectedTagId.value = null
+                }
+
+                // Flows from Room will take care of updating sessions + tags
             } catch (e: Exception) {
-                // Optional: surface error in uiState if you want
+                // optionally set an error in uiState
             }
         }
     }
+
+
 }
