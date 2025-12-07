@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.data.model.TagEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +36,7 @@ fun AddSkillScreen(
     var tagName by remember { mutableStateOf("") }
     val isSaving by viewModel.isSaving.collectAsState()
     val error by viewModel.error.collectAsState()
+    val tags by viewModel.tags.collectAsState()
 
     Scaffold(
         topBar = {
@@ -55,6 +58,14 @@ fun AddSkillScreen(
                 label = { Text("Session title") },
                 modifier = Modifier.fillMaxWidth()
             )
+            if (tags.isNotEmpty()) {
+                TagSuggestionRow(
+                    tags = tags,
+                    onTagClicked = { tag ->
+                        tagName = tag.name
+                    }
+                )
+            }
 
             OutlinedTextField(
                 value = description,
@@ -101,6 +112,31 @@ fun AddSkillScreen(
                 Button(onClick = onCancel, enabled = !isSaving) {
                     Text("Cancel")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TagSuggestionRow(
+    tags: List<TagEntity>,
+    onTagClicked: (TagEntity) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Tap to insert into title:",
+            style = MaterialTheme.typography.labelSmall
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            tags.forEach { tag ->
+                AssistChip(
+                    onClick = { onTagClicked(tag) },
+                    label = { Text(tag.name) }
+                )
             }
         }
     }
