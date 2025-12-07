@@ -1,6 +1,12 @@
 package com.kingkharnivore.skillz.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -9,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.createGraph
 import com.kingkharnivore.skillz.ui.skills.AddSessionViewModel
 import com.kingkharnivore.skillz.ui.skills.AddSkillScreen
+import com.kingkharnivore.skillz.ui.skills.FocusSessionViewModel
 import com.kingkharnivore.skillz.ui.skills.SkillListScreen
 import com.kingkharnivore.skillz.ui.skills.SkillListViewModel
 
@@ -22,7 +29,28 @@ fun SkillzNavHost(
     ) {
         // --- Skills List Screen ---
         composable(route = SkillzDestinations.SKILLS_LIST) {
+            val focusVm: FocusSessionViewModel = hiltViewModel()
+            val ongoing = focusVm.ongoingSession.collectAsState().value
             val viewModel: SkillListViewModel = hiltViewModel()
+
+            var hasNavigatedToOngoing by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) {
+                focusVm.ongoingSession.collect { ongoing ->
+                    val isOnAddSkill =
+                        navController.currentBackStackEntry?.destination?.route == SkillzDestinations.ADD_SKILL
+                    if (
+                        ongoing?.isInFocusMode == true &&
+                        !hasNavigatedToOngoing &&
+                        !isOnAddSkill
+                    ) {
+                        hasNavigatedToOngoing = true
+                        navController.navigate(SkillzDestinations.ADD_SKILL)
+                    }
+                    if (ongoing == null || !ongoing.isInFocusMode) {
+                        hasNavigatedToOngoing = false
+                    }
+                }
+            }
 
             SkillListScreen(
                 viewModel = viewModel,

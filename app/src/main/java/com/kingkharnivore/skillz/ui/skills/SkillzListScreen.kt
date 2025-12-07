@@ -58,7 +58,7 @@ fun SkillListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Skillz Sessions") },
+                title = { Text("Skillz") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
