@@ -15,7 +15,7 @@ data class SessionListItemUiModel(
     val title: String,
     val description: String,
     val tagName: String,
-    val durationMinutes: Long,
+    val durationMs: Long,
     val createdAt: Long
 )
 
@@ -24,6 +24,7 @@ data class SkillListUiState(
     val sessions: List<SessionListItemUiModel> = emptyList(),
     val tags: List<TagEntity> = emptyList(),   // available Skills (tags)
     val selectedTagId: Long? = null,          // null = "All"
+    val totalDurationMs: Long = 0L,
     val errorMessage: String? = null
 )
 

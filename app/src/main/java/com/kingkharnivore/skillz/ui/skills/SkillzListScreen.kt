@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.data.model.SessionListItemUiModel
 import com.kingkharnivore.skillz.data.model.TagEntity
+import com.kingkharnivore.skillz.utils.formatDuration
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,7 +115,6 @@ fun SkillListScreen(
                             .fillMaxSize()
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
-                        // Tag filter row at the top
                         TagFilterRow(
                             tags = uiState.tags,
                             selectedTagId = uiState.selectedTagId,
@@ -122,6 +122,14 @@ fun SkillListScreen(
                                 viewModel.selectTag(tagId)
                             }
                         )
+
+                        if (uiState.selectedTagId != null && uiState.sessions.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Total time: ${formatDuration(uiState.totalDurationMs)}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -277,7 +285,7 @@ private fun SessionRowCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Duration: ${session.durationMinutes} min",
+                text = "Duration: ${formatDuration(session.durationMs)}",
                 style = MaterialTheme.typography.bodySmall
             )
         }
