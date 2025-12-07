@@ -58,10 +58,13 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.material3)
+    implementation("androidx.compose.animation:animation")
 
     implementation(libs.androidx.navigation.compose)
 
     implementation(libs.hilt.android)
+    implementation(libs.androidx.compose.animation.core)
+    implementation(libs.androidx.compose.foundation)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 

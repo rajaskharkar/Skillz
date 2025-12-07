@@ -1,5 +1,12 @@
 package com.kingkharnivore.skillz.ui.skills
 
+import androidx.compose.animation.animateColor
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -347,16 +354,32 @@ private fun SessionRowCard(
     onToggleExpand: () -> Unit,
     onClick: () -> Unit
 ) {
+    // 🔮 Animated border color between secondary (gold) and primary (maroon)
+    val infiniteTransition = rememberInfiniteTransition(label = "border")
+    val animatedBorderColor by infiniteTransition.animateColor(
+        initialValue = MaterialTheme.colorScheme.secondary,           // gold
+        targetValue = MaterialTheme.colorScheme.primary,             // maroon
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 1500,
+                easing = FastOutSlowInEasing
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "borderColor"
+    )
+
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface
         ),
+        border = BorderStroke(1.5.dp, animatedBorderColor),
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                // toggle expand; you can also call onClick here if you want nav + expand
                 onToggleExpand()
+                // if you also want nav, call onClick() here or from an icon
             }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -394,7 +417,6 @@ private fun SessionRowCard(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Duration + created time (for now just duration minutes)
             Text(
                 text = "Duration: ${session.durationMinutes} min",
                 style = MaterialTheme.typography.bodySmall
