@@ -19,7 +19,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
@@ -61,6 +64,8 @@ fun SkillListScreen(
 
     val uiState by viewModel.uiState.collectAsState()
 
+    val listState = rememberLazyListState()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -80,8 +85,7 @@ fun SkillListScreen(
                 Text("+") // you can swap to an Icon if you prefer
             }
         }
-    ) {
-            innerPadding ->
+    ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -141,6 +145,7 @@ fun SkillListScreen(
 
                         SessionList(
                             sessions = uiState.sessions,
+                            listState = listState,
                             onSessionClick = onSessionClick,
                             onDeleteSession = { sessionId ->
                                 viewModel.deleteSession(sessionId)
@@ -154,37 +159,47 @@ fun SkillListScreen(
 }
 
 @Composable
-private fun TagFilterRow(
+fun TagFilterRow(
     tags: List<TagEntity>,
     selectedTagId: Long?,
     onTagSelected: (Long?) -> Unit
 ) {
-    if (tags.isEmpty()) {
-        // No tags yet, just show "All"
-        FilterChip(
-            selected = true,
-            onClick = { onTagSelected(null) },
-            label = { Text("All") }
-        )
-        return
-    }
+    if (tags.isEmpty()) return
 
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        FilterChip(
-            selected = selectedTagId == null,
-            onClick = { onTagSelected(null) },
-            label = { Text("All") }
+        Text(
+            text = "Filter by skill:",
+            style = MaterialTheme.typography.labelSmall
         )
 
-        tags.forEach { tag ->
-            FilterChip(
-                selected = selectedTagId == tag.id,
-                onClick = { onTagSelected(tag.id) },
-                label = { Text(tag.name) }
-            )
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp)
+        ) {
+            // "All" chip
+            item {
+                FilterChip(
+                    selected = selectedTagId == null,
+                    onClick = { onTagSelected(null) },
+                    label = { Text("All") }
+                )
+            }
+
+            // One chip per tag
+            items(
+                items = tags,
+                key = { it.id }
+            ) { tag ->
+                FilterChip(
+                    selected = selectedTagId == tag.id,
+                    onClick = { onTagSelected(tag.id) },
+                    label = { Text(tag.name) }
+                )
+            }
         }
     }
 }
@@ -192,12 +207,14 @@ private fun TagFilterRow(
 @Composable
 private fun SessionList(
     sessions: List<SessionListItemUiModel>,
+    listState: LazyListState,
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit
 ) {
     var expandedSessionIds by remember { mutableStateOf(setOf<Long>()) }
 
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)

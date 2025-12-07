@@ -3,12 +3,15 @@ package com.kingkharnivore.skillz.ui.skills
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -216,21 +219,31 @@ fun AddSkillScreen(
 }
 
 @Composable
-private fun TagSuggestionRow(
+fun TagSuggestionRow(
     tags: List<TagEntity>,
     onTagClicked: (TagEntity) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    if (tags.isEmpty()) return
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Text(
-            text = "Tap to select skill, or enter a new one:",
+            text = "Tap a skill:",
             style = MaterialTheme.typography.labelSmall
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        LazyRow(
+            modifier = Modifier
+                .fillMaxWidth(),                  // 👈 important
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp)
         ) {
-            tags.forEach { tag ->
+            items(
+                items = tags,
+                key = { it.id }                  // 👈 good practice
+            ) { tag ->
                 AssistChip(
                     onClick = { onTagClicked(tag) },
                     label = { Text(tag.name) }
@@ -239,6 +252,7 @@ private fun TagSuggestionRow(
         }
     }
 }
+
 
 @Composable
 private fun StopwatchSection(
