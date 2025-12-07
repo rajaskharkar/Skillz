@@ -38,7 +38,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.kingkharnivore.skillz.data.model.TagEntity
+import com.kingkharnivore.skillz.data.model.entity.TagEntity
+import com.kingkharnivore.skillz.ui.viewmodel.AddSessionViewModel
+import com.kingkharnivore.skillz.ui.viewmodel.StopwatchState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -1,9 +1,9 @@
-package com.kingkharnivore.skillz.ui.skills
+package com.kingkharnivore.skillz.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kingkharnivore.skillz.data.model.OngoingSessionEntity
-import com.kingkharnivore.skillz.data.model.TagEntity
+import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
+import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.repository.FocusSessionRepository
 import com.kingkharnivore.skillz.data.repository.SessionRepository
 import com.kingkharnivore.skillz.data.repository.TagRepository

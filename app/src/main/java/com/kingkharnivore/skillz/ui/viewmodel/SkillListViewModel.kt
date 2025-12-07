@@ -1,11 +1,11 @@
-package com.kingkharnivore.skillz.ui.skills
+package com.kingkharnivore.skillz.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kingkharnivore.skillz.data.model.SessionEntity
-import com.kingkharnivore.skillz.data.model.SessionListItemUiModel
-import com.kingkharnivore.skillz.data.model.SkillListUiState
-import com.kingkharnivore.skillz.data.model.TagEntity
+import com.kingkharnivore.skillz.data.model.entity.SessionEntity
+import com.kingkharnivore.skillz.data.model.entity.SessionListItemUiModel
+import com.kingkharnivore.skillz.data.model.entity.SkillListUiState
+import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.repository.SessionRepository
 import com.kingkharnivore.skillz.data.repository.TagRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -66,7 +66,7 @@ class SkillListViewModel @Inject constructor(
             }
             .stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
+                started = SharingStarted.Companion.WhileSubscribed(5_000),
                 initialValue = SkillListUiState()
             )
 

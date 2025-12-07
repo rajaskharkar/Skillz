@@ -1,7 +1,7 @@
 package com.kingkharnivore.skillz.data.repository
 
-import com.kingkharnivore.skillz.data.model.TagDao
-import com.kingkharnivore.skillz.data.model.TagEntity
+import com.kingkharnivore.skillz.data.model.dao.TagDao
+import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
