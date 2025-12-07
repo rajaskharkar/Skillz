@@ -9,27 +9,27 @@ class SessionRepository @Inject constructor(
     private val sessionDao: SessionDao
 ) {
 
-    fun getSessionsForSkill(skillId: Long): Flow<List<SessionEntity>> {
-        return sessionDao.getSessionsForSkill(skillId)
-    }
+    fun getAllSessions(): Flow<List<SessionEntity>> =
+        sessionDao.getAllSessions()
 
-    fun getTotalTimeForSkill(skillId: Long): Flow<Long?> {
-        return sessionDao.getTotalTimeForSkill(skillId)
-    }
+    fun getSessionsForTag(tagId: Long): Flow<List<SessionEntity>> =
+        sessionDao.getSessionsForTag(tagId)
 
     suspend fun addSession(
-        skillId: Long,
-        startTime: Long,
-        endTime: Long,
-        durationMs: Long,
-        notes: String?
+        title: String,
+        description: String,
+        tagId: Long,
+        startTime: Long = System.currentTimeMillis(),
+        endTime: Long = System.currentTimeMillis(),
+        durationMs: Long = 0L          // TODO: wire stopwatch here
     ): Long {
         val session = SessionEntity(
-            skillId = skillId,
+            title = title,
+            description = description,
+            tagId = tagId,
             startTime = startTime,
             endTime = endTime,
-            durationMs = durationMs,
-            notes = notes
+            durationMs = durationMs
         )
         return sessionDao.insertSession(session)
     }

@@ -1,0 +1,24 @@
+package com.kingkharnivore.skillz.data.repository
+
+import com.kingkharnivore.skillz.data.model.TagDao
+import com.kingkharnivore.skillz.data.model.TagEntity
+import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class TagRepository @Inject constructor(
+    private val tagDao: TagDao
+){
+    fun getAllTags(): Flow<List<TagEntity>> = tagDao.getAllTags()
+
+    suspend fun getOrCreateTagId(name: String): Long {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) error("Tag name cannot be empty")
+
+        val existing = tagDao.getTagByName(trimmed)
+        if (existing != null) return existing.id
+
+        return tagDao.insertTag(TagEntity(name = trimmed))
+    }
+}

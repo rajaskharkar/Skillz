@@ -2,64 +2,101 @@ package com.kingkharnivore.skillz.ui.skills
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kingkharnivore.skillz.data.model.SessionEntity
+import com.kingkharnivore.skillz.data.model.SessionListItemUiModel
 import com.kingkharnivore.skillz.data.model.SkillListUiState
-import com.kingkharnivore.skillz.data.repository.SkillRepository
+import com.kingkharnivore.skillz.data.model.TagEntity
+import com.kingkharnivore.skillz.data.repository.SessionRepository
+import com.kingkharnivore.skillz.data.repository.TagRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class SkillListViewModel @Inject constructor(
-    private val skillRepository: SkillRepository
+    private val sessionRepository: SessionRepository,
+    private val tagRepository: TagRepository
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(SkillListUiState())
-    val uiState: StateFlow<SkillListUiState> = _uiState.asStateFlow()
+    // null = "All skills", non-null = filter by that tag/skill
+    private val selectedTagId = MutableStateFlow<Long?>(null)
 
-    init {
-        observeSkills()
-    }
-
-    private fun observeSkills() {
-        viewModelScope.launch {
-            skillRepository.getAllSkills()
-                .onStart {
-                    _uiState.value = _uiState.value.copy(isLoading = true)
-                }
-                .catch { e ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = e.message ?: "Unknown error"
-                    )
-                }
-                .collect { skills ->
-                    _uiState.value = SkillListUiState(
-                        isLoading = false,
-                        skills = skills,
-                        errorMessage = null
-                    )
-                }
-        }
-    }
-
-    fun addSkill(name: String, description: String) {
-        viewModelScope.launch {
-            try {
-                skillRepository.addSkill(name, description)
-                // Flow will emit the updated list automatically
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    errorMessage = e.message ?: "Failed to add skill"
-                )
+    // stream of sessions depending on selected tag
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val sessionsFlow: Flow<List<SessionEntity>> =
+        selectedTagId.flatMapLatest { tagId ->
+            if (tagId == null) {
+                sessionRepository.getAllSessions()
+            } else {
+                sessionRepository.getSessionsForTag(tagId)
             }
         }
+
+    // all tags = all skills
+    private val tagsFlow: Flow<List<TagEntity>> = tagRepository.getAllTags()
+
+    // public UI state
+    val uiState: StateFlow<SkillListUiState> =
+        combine(sessionsFlow, tagsFlow, selectedTagId) { sessions, tags, currentTagId ->
+            SkillListUiState(
+                isLoading = false,
+                sessions = sessions.toUiModels(tags),
+                tags = tags,
+                selectedTagId = currentTagId,
+                errorMessage = null
+            )
+        }
+            .catch { e ->
+                emit(
+                    SkillListUiState(
+                        isLoading = false,
+                        errorMessage = e.message ?: "Something went wrong"
+                    )
+                )
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = SkillListUiState()
+            )
+
+    /** User chose a tag/skill chip – null means "All". */
+    fun selectTag(tagId: Long?) {
+        selectedTagId.value = tagId
     }
 
+    /** If you still want to surface errors (optional). */
     fun clearError() {
-        _uiState.value = _uiState.value.copy(errorMessage = null)
+        viewModelScope.launch {
+            // just emit a copy with errorMessage = null
+            val current = uiState.value
+            selectedTagId.value = current.selectedTagId // no-op for sessionsFlow, but keeps pattern
+        }
+    }
+
+    // --- Private mapping helpers ---
+
+    private fun List<SessionEntity>.toUiModels(tags: List<TagEntity>): List<SessionListItemUiModel> {
+        val tagsById = tags.associateBy { it.id }
+
+        return this.map { session ->
+            val tagName = tagsById[session.tagId]?.name ?: "Unknown skill"
+            SessionListItemUiModel(
+                sessionId = session.id,
+                title = session.title.ifBlank { "(Untitled session)" },
+                description = session.description,
+                tagName = tagName,
+                durationMinutes = (session.durationMs / 1000L / 60L),
+                createdAt = session.createdAt
+            )
+        }
     }
 }
