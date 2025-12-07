@@ -9,15 +9,10 @@ import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.repository.SessionRepository
 import com.kingkharnivore.skillz.data.repository.TagRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -30,45 +25,30 @@ class SkillListViewModel @Inject constructor(
     private val selectedTagId = MutableStateFlow<Long?>(null)
 
     // stream of sessions depending on selected tag
-    @OptIn(ExperimentalCoroutinesApi::class)
+    // Source flows
     private val sessionsFlow: Flow<List<SessionEntity>> =
-        selectedTagId.flatMapLatest { tagId ->
-            if (tagId == null) {
-                sessionRepository.getAllSessions()
-            } else {
-                sessionRepository.getSessionsForTag(tagId)
-            }
-        }
+        sessionRepository.getAllSessions()         // Flow<List<SessionEntity>>
 
-    // all tags = all skills
-    private val tagsFlow: Flow<List<TagEntity>> = tagRepository.getAllTags()
+    private val tagsFlow: Flow<List<TagEntity>> =
+        tagRepository.getAllTags()                 // Flow<List<TagEntity>> (skills)
 
-    // public UI state
-    val uiState: StateFlow<SkillListUiState> =
-        combine(sessionsFlow, tagsFlow, selectedTagId) { sessions, tags, currentTagId ->
-            val totalDurationMs = sessions.sumOf { it.durationMs }
-            SkillListUiState(
-                isLoading = false,
-                sessions = sessions.toUiModels(tags),
-                tags = tags,
-                selectedTagId = currentTagId,
-                totalDurationMs = totalDurationMs,
-                errorMessage = null
-            )
+    val uiState = MutableStateFlow(SkillListUiState())
+
+    init {
+        observeSessions()
+    }
+
+    fun onTagSelected(tagId: Long?) {
+        selectedTagId.value = tagId
+    }
+
+    // edit description fn you already have:
+    fun updateSessionDescription(sessionId: Long, description: String) {
+        viewModelScope.launch {
+            sessionRepository.updateSessionDescription(sessionId, description)
+            // sessionsFlow emits updated list, observeSessions() will update uiState
         }
-            .catch { e ->
-                emit(
-                    SkillListUiState(
-                        isLoading = false,
-                        errorMessage = e.message ?: "Something went wrong"
-                    )
-                )
-            }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.Companion.WhileSubscribed(5_000),
-                initialValue = SkillListUiState()
-            )
+    }
 
     /** User chose a tag/skill chip – null means "All". */
     fun selectTag(tagId: Long?) {
@@ -86,21 +66,68 @@ class SkillListViewModel @Inject constructor(
 
     // --- Private mapping helpers ---
 
-    private fun List<SessionEntity>.toUiModels(tags: List<TagEntity>): List<SessionListItemUiModel> {
-        val tagsById = tags.associateBy { it.id }
+    fun List<SessionEntity>.toUiModels(tags: List<TagEntity>): List<SessionListItemUiModel> {
+        val tagNameById: Map<Long, String> = tags.associate { tag ->
+            tag.id to tag.name    // adjust if your tag fields are different
+        }
 
-        return this.map { session ->
-            val tagName = tagsById[session.tagId]?.name ?: "Unknown skill"
+        return map { session ->
             SessionListItemUiModel(
                 sessionId = session.id,
-                title = session.title.ifBlank { "(Untitled session)" },
+                title = session.title,
                 description = session.description,
-                tagName = tagName,
+                tagName = tagNameById[session.tagId].orEmpty(),
                 durationMs = session.durationMs,
                 createdAt = session.createdAt
             )
         }
     }
+
+    private fun observeSessions() {
+        viewModelScope.launch {
+            // optional: show loading until first combined emission
+            uiState.value = uiState.value.copy(isLoading = true, errorMessage = null)
+
+            combine(
+                sessionsFlow,   // Flow<List<SessionEntity>>
+                tagsFlow,       // Flow<List<TagEntity>>
+                selectedTagId   // StateFlow<Long?>
+            ) { sessions, tags, currentTagId ->
+
+                // 1) Filter sessions if a tag is selected
+                val filteredSessions = currentTagId?.let { tagId ->
+                    sessions.filter { it.tagId == tagId }
+                } ?: sessions
+
+                // 2) Total duration for visible sessions
+                val totalDurationMs = filteredSessions.sumOf { it.durationMs }
+
+                // 3) Map to UI models, attaching tagName
+                val sessionUiModels = filteredSessions.toUiModels(tags)
+
+                Triple(sessionUiModels, tags, totalDurationMs to currentTagId)
+            }
+                .catch { e ->
+                    uiState.value = uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = e.message ?: "Something went wrong"
+                    )
+                }
+                .collect { (sessionUiModels, tags, durationAndTag) ->
+                    val (totalDurationMs, currentTagId) = durationAndTag
+
+                    uiState.value = uiState.value.copy(
+                        isLoading = false,
+                        sessions = sessionUiModels,
+                        tags = tags,
+                        selectedTagId = currentTagId,
+                        totalDurationMs = totalDurationMs,
+                        errorMessage = null
+                    )
+                }
+        }
+    }
+
 
     fun deleteSession(sessionId: Long) {
         viewModelScope.launch {

@@ -21,4 +21,8 @@ class TagRepository @Inject constructor(
 
         return tagDao.insertTag(TagEntity(name = trimmed))
     }
+
+    suspend fun insertTag(tag: TagEntity) {
+        tagDao.insertTag(tag)
+    }
 }

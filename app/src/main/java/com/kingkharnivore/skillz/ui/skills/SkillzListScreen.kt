@@ -6,7 +6,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +34,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -63,7 +64,6 @@ fun SkillListScreen(
 ) {
 
     val uiState by viewModel.uiState.collectAsState()
-
     val listState = rememberLazyListState()
 
     Scaffold(
@@ -149,6 +149,9 @@ fun SkillListScreen(
                             onSessionClick = onSessionClick,
                             onDeleteSession = { sessionId ->
                                 viewModel.deleteSession(sessionId)
+                            },
+                            onUpdateSessionDescription = { id, description ->
+                                viewModel.updateSessionDescription(id, description)
                             }
                         )
                     }
@@ -209,9 +212,54 @@ private fun SessionList(
     sessions: List<SessionListItemUiModel>,
     listState: LazyListState,
     onSessionClick: (Long) -> Unit,
-    onDeleteSession: (Long) -> Unit
+    onDeleteSession: (Long) -> Unit,
+    onUpdateSessionDescription: (Long, String) -> Unit
 ) {
     var expandedSessionIds by remember { mutableStateOf(setOf<Long>()) }
+
+    var editingSession by remember { mutableStateOf<SessionListItemUiModel?>(null) }
+    var editText by remember { mutableStateOf("") }
+
+    // ─── Edit Description Dialog ─────────────────────
+    if (editingSession != null) {
+        AlertDialog(
+            onDismissRequest = { editingSession = null },
+            title = { Text("Edit description") },
+            text = {
+                Column {
+                    Text(
+                        text = editingSession!!.title,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = editText,
+                        onValueChange = { editText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3,
+                        maxLines = 5,
+                        placeholder = { Text("Add notes about this session") }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val session = editingSession
+                        if (session != null) {
+                            onUpdateSessionDescription(session.sessionId, editText)
+                        }
+                        editingSession = null
+                    }
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingSession = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     LazyColumn(
         state = listState,
@@ -236,7 +284,11 @@ private fun SessionList(
                     }
                 },
                 onClick = { onSessionClick(session.sessionId) },
-                onDeleteSession = { onDeleteSession(session.sessionId) }
+                onDeleteSession = { onDeleteSession(session.sessionId) },
+                onLongPress = {
+                    editingSession = session
+                    editText = session.description
+                }
             )
         }
     }
@@ -248,7 +300,8 @@ private fun SessionRowCard(
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
     onClick: () -> Unit,
-    onDeleteSession: () -> Unit
+    onDeleteSession: () -> Unit,
+    onLongPress: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     // 🔮 Animated border color between secondary (gold) and primary (maroon)
@@ -273,9 +326,10 @@ private fun SessionRowCard(
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
-                onToggleExpand()
-            }
+            .combinedClickable(
+            onClick = { onToggleExpand() },
+            onLongClick = onLongPress
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 

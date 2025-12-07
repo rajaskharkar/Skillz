@@ -48,4 +48,16 @@ class SessionRepository @Inject constructor(
             null
         }
     }
+
+    suspend fun updateSessionDescription(sessionId: Long, description: String) {
+        sessionDao.updateSessionDescription(sessionId, description)
+    }
+
+    suspend fun deleteSession(sessionId: Long) {
+        sessionDao.deleteSession(sessionId)
+    }
+
+    suspend fun insertSession(session: SessionEntity) {
+        sessionDao.insertSession(session)
+    }
 }
