@@ -46,11 +46,13 @@ class SkillListViewModel @Inject constructor(
     // public UI state
     val uiState: StateFlow<SkillListUiState> =
         combine(sessionsFlow, tagsFlow, selectedTagId) { sessions, tags, currentTagId ->
+            val totalDurationMs = sessions.sumOf { it.durationMs }
             SkillListUiState(
                 isLoading = false,
                 sessions = sessions.toUiModels(tags),
                 tags = tags,
                 selectedTagId = currentTagId,
+                totalDurationMs = totalDurationMs,
                 errorMessage = null
             )
         }
@@ -94,7 +96,7 @@ class SkillListViewModel @Inject constructor(
                 title = session.title.ifBlank { "(Untitled session)" },
                 description = session.description,
                 tagName = tagName,
-                durationMinutes = (session.durationMs / 1000L / 60L),
+                durationMs = session.durationMs,
                 createdAt = session.createdAt
             )
         }
