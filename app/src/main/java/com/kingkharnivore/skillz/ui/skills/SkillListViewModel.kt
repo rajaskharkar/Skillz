@@ -101,4 +101,15 @@ class SkillListViewModel @Inject constructor(
             )
         }
     }
+
+    fun deleteSession(sessionId: Long) {
+        viewModelScope.launch {
+            try {
+                sessionRepository.deleteSession(sessionId)
+                // Flows from Room will auto-update uiState
+            } catch (e: Exception) {
+                // Optional: surface error in uiState if you want
+            }
+        }
+    }
 }
