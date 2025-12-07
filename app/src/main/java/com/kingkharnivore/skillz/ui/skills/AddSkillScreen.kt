@@ -262,20 +262,6 @@ private fun StopwatchSection(
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (!state.isRunning && state.elapsedMs == 0L) {
-                Button(onClick = onStartOrResume) {
-                    Text("Start")
-                }
-            } else if (state.isRunning) {
-                Button(onClick = onPause) {
-                    Text("Pause")
-                }
-            } else {
-                Button(onClick = onStartOrResume) {
-                    Text("Resume")
-                }
-            }
-
             OutlinedButton(
                 onClick = onReset,
                 enabled = state.elapsedMs > 0L && !state.isRunning
