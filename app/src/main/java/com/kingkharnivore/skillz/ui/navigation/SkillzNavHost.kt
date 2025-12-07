@@ -7,6 +7,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.createGraph
+import com.kingkharnivore.skillz.ui.skills.AddSessionViewModel
 import com.kingkharnivore.skillz.ui.skills.AddSkillScreen
 import com.kingkharnivore.skillz.ui.skills.SkillListScreen
 import com.kingkharnivore.skillz.ui.skills.SkillListViewModel
@@ -25,24 +26,25 @@ fun SkillzNavHost(
 
             SkillListScreen(
                 viewModel = viewModel,
-                onAddSkillClick = {
+                onAddSessionClick = {
                     navController.navigate(SkillzDestinations.ADD_SKILL)
+                },
+                onSessionClick = { sessionId ->
+                    println("Clicked session: $sessionId")
+
+                    // Later you might do:
+                    // navController.navigate(SkillzDestinations.sessionDetailRoute(sessionId))
                 }
             )
         }
 
         // --- Add Skill Screen ---
         composable(route = SkillzDestinations.ADD_SKILL) {
-            val viewModel: SkillListViewModel = hiltViewModel()
-
+            val addSessionViewModel: AddSessionViewModel = hiltViewModel()
             AddSkillScreen(
-                onSaveSkill = { name, description ->
-                    viewModel.addSkill(name, description)
-                    navController.popBackStack()
-                },
-                onCancel = {
-                    navController.popBackStack()
-                }
+                viewModel = addSessionViewModel,
+                onDone = { navController.popBackStack() },
+                onCancel = { navController.popBackStack() }
             )
         }
     }

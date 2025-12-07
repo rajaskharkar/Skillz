@@ -3,8 +3,8 @@ package com.kingkharnivore.skillz.di
 import android.content.Context
 import androidx.room.Room
 import com.kingkharnivore.skillz.data.model.SessionDao
-import com.kingkharnivore.skillz.data.model.SkillDao
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
+import com.kingkharnivore.skillz.data.model.TagDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,7 +29,7 @@ object DatabaseModule {
     }
 
     @Provides
-    fun provideSkillDao(db: SkillzDatabase): SkillDao = db.skillDao()
+    fun provideTagDao(db: SkillzDatabase): TagDao = db.tagDao()
 
     @Provides
     fun provideSessionDao(db: SkillzDatabase): SessionDao = db.sessionDao()

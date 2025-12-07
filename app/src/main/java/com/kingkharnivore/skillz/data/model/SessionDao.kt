@@ -12,9 +12,20 @@ interface SessionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSession(session: SessionEntity): Long
 
-    @Query("SELECT * FROM sessions WHERE skillId = :skillId ORDER BY startTime DESC")
-    fun getSessionsForSkill(skillId: Long): Flow<List<SessionEntity>>
+    @Query(
+        """
+        SELECT * FROM sessions
+        WHERE tagId = :tagId
+        ORDER BY createdAt DESC
+        """
+    )
+    fun getSessionsForTag(tagId: Long): Flow<List<SessionEntity>>
 
-    @Query("SELECT SUM(durationMs) FROM sessions WHERE skillId = :skillId")
-    fun getTotalTimeForSkill(skillId: Long): Flow<Long?>
+    @Query(
+        """
+        SELECT * FROM sessions
+        ORDER BY createdAt DESC
+        """
+    )
+    fun getAllSessions(): Flow<List<SessionEntity>>
 }
