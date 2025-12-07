@@ -71,8 +71,9 @@ fun SkillzNavHost(
             val addSessionViewModel: AddSessionViewModel = hiltViewModel()
             AddSkillScreen(
                 viewModel = addSessionViewModel,
-                onDone = { navController.popBackStack() },
-                onCancel = { navController.popBackStack() }
+                // Pop everything above SKILLS_LIST (all ADD_SKILL screens), land on SKILLS_LIST
+                onDone = { popToSkillsList(navController) },
+                onCancel = { popToSkillsList(navController) }
             )
         }
     }
@@ -81,5 +82,12 @@ fun SkillzNavHost(
         navController = navController,
         graph = graph,
         modifier = modifier
+    )
+}
+
+private fun popToSkillsList(navController: NavHostController) {
+    navController.popBackStack(
+        route = SkillzDestinations.SKILLS_LIST,
+        inclusive = false
     )
 }
