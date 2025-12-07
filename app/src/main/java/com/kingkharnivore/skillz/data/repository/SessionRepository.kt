@@ -33,4 +33,8 @@ class SessionRepository @Inject constructor(
         )
         return sessionDao.insertSession(session)
     }
+
+    suspend fun deleteSession(sessionId: Long) {
+        sessionDao.deleteSessionById(sessionId)
+    }
 }

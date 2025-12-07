@@ -20,15 +20,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -135,7 +141,10 @@ fun SkillListScreen(
 
                         SessionList(
                             sessions = uiState.sessions,
-                            onSessionClick = onSessionClick
+                            onSessionClick = onSessionClick,
+                            onDeleteSession = { sessionId ->
+                                viewModel.deleteSession(sessionId)
+                            }
                         )
                     }
                 }
@@ -183,7 +192,8 @@ private fun TagFilterRow(
 @Composable
 private fun SessionList(
     sessions: List<SessionListItemUiModel>,
-    onSessionClick: (Long) -> Unit
+    onSessionClick: (Long) -> Unit,
+    onDeleteSession: (Long) -> Unit
 ) {
     var expandedSessionIds by remember { mutableStateOf(setOf<Long>()) }
 
@@ -208,7 +218,8 @@ private fun SessionList(
                         expandedSessionIds + session.sessionId
                     }
                 },
-                onClick = { onSessionClick(session.sessionId) }
+                onClick = { onSessionClick(session.sessionId) },
+                onDeleteSession = { onDeleteSession(session.sessionId) }
             )
         }
     }
@@ -219,8 +230,10 @@ private fun SessionRowCard(
     session: SessionListItemUiModel,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDeleteSession: () -> Unit
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
     // 🔮 Animated border color between secondary (gold) and primary (maroon)
     val infiniteTransition = rememberInfiniteTransition(label = "border")
     val animatedBorderColor by infiniteTransition.animateColor(
@@ -241,28 +254,47 @@ private fun SessionRowCard(
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface
         ),
-        border = BorderStroke(1.5.dp, animatedBorderColor),
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
                 onToggleExpand()
-                // if you also want nav, call onClick() here or from an icon
             }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Skill / Tag name
-            Text(
-                text = session.tagName,
-                style = MaterialTheme.typography.labelMedium
-            )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    // Skill / Tag name
+                    Text(
+                        text = session.tagName,
+                        style = MaterialTheme.typography.labelMedium
+                    )
 
-            // Title
-            Text(
-                text = session.title,
-                style = MaterialTheme.typography.titleMedium
-            )
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Title
+                    Text(
+                        text = session.title,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+
+                // 🗑 Show delete icon ONLY when expanded
+                if (isExpanded) {
+                    IconButton(
+                        onClick = { showDeleteDialog = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete session"
+                        )
+                    }
+                }
+            }
 
             if (session.description.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -289,6 +321,31 @@ private fun SessionRowCard(
                 style = MaterialTheme.typography.bodySmall
             )
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete session?") },
+            text = { Text("Are you sure you want to delete this session? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteSession()
+                    }
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

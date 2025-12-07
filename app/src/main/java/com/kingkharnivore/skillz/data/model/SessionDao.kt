@@ -28,4 +28,7 @@ interface SessionDao {
         """
     )
     fun getAllSessions(): Flow<List<SessionEntity>>
+
+    @Query("DELETE FROM sessions WHERE id = :sessionId")
+    suspend fun deleteSessionById(sessionId: Long)
 }
