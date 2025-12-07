@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -42,13 +43,13 @@ fun AddSkillScreen(
     onDone: () -> Unit,
     onCancel: () -> Unit
 ) {
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var tagName by remember { mutableStateOf("") }
+    val uiState by viewModel.uiState.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
     val error by viewModel.error.collectAsState()
     val tags by viewModel.tags.collectAsState()
-    val stopwatchState by viewModel.stopwatchState.collectAsState()
+
+    val stopwatchState = uiState.stopwatch
+    val isInFocusMode = uiState.isInFocusMode
 
     var showEndDialog by remember { mutableStateOf(false) }
 
@@ -88,8 +89,8 @@ fun AddSkillScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
+                value = uiState.title,
+                onValueChange = viewModel::onTitleChange,
                 label = { Text("What's going on?") },
                 modifier = Modifier.fillMaxWidth()
             )
@@ -97,32 +98,57 @@ fun AddSkillScreen(
                 TagSuggestionRow(
                     tags = tags,
                     onTagClicked = { tag ->
-                        tagName = tag.name
+                        viewModel.onTagNameChange(tag.name)
                     }
                 )
             }
 
             OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Notes / Description") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3
-            )
-
-            OutlinedTextField(
-                value = tagName,
-                onValueChange = { tagName = it },
+                value = uiState.tagName,
+                onValueChange = viewModel::onTagNameChange,
                 label = { Text("Skill (tag)") },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // --- ⏱ Distraction Free Stopwatch Section ---
             StopwatchSection(
                 state = stopwatchState,
                 onStartOrResume = { viewModel.startOrResumeStopwatch() },
                 onPause = { viewModel.pauseStopwatch() },
                 onReset = { viewModel.resetStopwatch() }
+            )
+
+            Button(
+                onClick = {
+                    if (isInFocusMode) {
+                        viewModel.exitFocusMode()
+                    } else {
+                        viewModel.enterFocusMode()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp)
+            ) {
+                Text(
+                    text = if (isInFocusMode) "Exit Focus Mode" else "Enter Focus Mode",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+
+            if (isInFocusMode) {
+                Text(
+                    text = "Focus Mode active. Your session is being recorded.\n" +
+                            "You may turn off the screen — the timer continues.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            OutlinedTextField(
+                value = uiState.description,
+                onValueChange = viewModel::onDescriptionChange,
+                label = { Text("Notes / Description") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3
             )
 
             if (error != null) {
@@ -140,15 +166,8 @@ fun AddSkillScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
-                    enabled = title.isNotBlank() && tagName.isNotBlank() && !isSaving,
-                    onClick = {
-                        viewModel.saveSession(
-                            title = title.trim(),
-                            description = description.trim(),
-                            tagName = tagName.trim(),
-                            onDone = onDone
-                        )
-                    },
+                    enabled = uiState.title.isNotBlank() && uiState.tagName.isNotBlank() && !isSaving,
+                    onClick = { viewModel.saveSession(onDone) },
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(if (isSaving) "Saving..." else "Save")
@@ -169,7 +188,7 @@ fun AddSkillScreen(
     if (showEndDialog) {
         AlertDialog(
             onDismissRequest = { showEndDialog = false },
-            title = { Text("End distraction-free session?") },
+            title = { Text("End Focus Session?") },
             text = { Text("The stopwatch is still running. Are you sure you want to end and leave this screen?") },
             confirmButton = {
                 TextButton(
@@ -177,6 +196,7 @@ fun AddSkillScreen(
                         // Stop timer and leave
                         viewModel.pauseStopwatch()
                         viewModel.resetStopwatch()
+                        viewModel.exitFocusMode()
                         showEndDialog = false
                         onCancel() // navigate back to list
                     }
@@ -229,7 +249,7 @@ private fun StopwatchSection(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "Distraction Free mode",
+            text = "Focus mode",
             style = MaterialTheme.typography.titleSmall
         )
 
