@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.data.model
+package com.kingkharnivore.skillz.data.model.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

@@ -2,10 +2,10 @@ package com.kingkharnivore.skillz.di
 
 import android.content.Context
 import androidx.room.Room
-import com.kingkharnivore.skillz.data.model.OngoingSessionDao
-import com.kingkharnivore.skillz.data.model.SessionDao
+import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
+import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
-import com.kingkharnivore.skillz.data.model.TagDao
+import com.kingkharnivore.skillz.data.model.dao.TagDao
 import com.kingkharnivore.skillz.data.repository.FocusSessionRepository
 import dagger.Module
 import dagger.Provides

@@ -1,15 +1,16 @@
-package com.kingkharnivore.skillz.data.model
+package com.kingkharnivore.skillz.data.model.dao
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SessionDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
     suspend fun insertSession(session: SessionEntity): Long
 
     @Query(

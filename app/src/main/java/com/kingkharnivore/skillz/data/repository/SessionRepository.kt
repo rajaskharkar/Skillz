@@ -1,8 +1,8 @@
 package com.kingkharnivore.skillz.data.repository
 
-import com.kingkharnivore.skillz.data.model.SessionDao
-import com.kingkharnivore.skillz.data.model.SessionEntity
-import com.kingkharnivore.skillz.data.model.TagDao
+import com.kingkharnivore.skillz.data.model.dao.SessionDao
+import com.kingkharnivore.skillz.data.model.entity.SessionEntity
+import com.kingkharnivore.skillz.data.model.dao.TagDao
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 

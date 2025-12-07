@@ -13,11 +13,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.createGraph
-import com.kingkharnivore.skillz.ui.skills.AddSessionViewModel
+import com.kingkharnivore.skillz.ui.viewmodel.AddSessionViewModel
 import com.kingkharnivore.skillz.ui.skills.AddSkillScreen
-import com.kingkharnivore.skillz.ui.skills.FocusSessionViewModel
+import com.kingkharnivore.skillz.ui.viewmodel.FocusSessionViewModel
 import com.kingkharnivore.skillz.ui.skills.SkillListScreen
-import com.kingkharnivore.skillz.ui.skills.SkillListViewModel
+import com.kingkharnivore.skillz.ui.viewmodel.SkillListViewModel
 
 @Composable
 fun SkillzNavHost(

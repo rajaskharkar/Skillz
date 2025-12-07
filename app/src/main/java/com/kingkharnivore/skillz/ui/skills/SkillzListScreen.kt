@@ -6,7 +6,6 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,8 +49,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.kingkharnivore.skillz.data.model.SessionListItemUiModel
-import com.kingkharnivore.skillz.data.model.TagEntity
+import com.kingkharnivore.skillz.data.model.entity.SessionListItemUiModel
+import com.kingkharnivore.skillz.data.model.entity.TagEntity
+import com.kingkharnivore.skillz.ui.viewmodel.SkillListViewModel
 import com.kingkharnivore.skillz.utils.formatDuration
 
 @OptIn(ExperimentalMaterial3Api::class)

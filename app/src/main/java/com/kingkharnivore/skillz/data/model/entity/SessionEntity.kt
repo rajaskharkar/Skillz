@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.data.model
+package com.kingkharnivore.skillz.data.model.entity
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -12,7 +12,7 @@ import androidx.room.PrimaryKey
             entity = TagEntity::class,
             parentColumns = ["id"],
             childColumns = ["tagId"],
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.Companion.CASCADE
         )
     ],
     indices = [Index("tagId")]
