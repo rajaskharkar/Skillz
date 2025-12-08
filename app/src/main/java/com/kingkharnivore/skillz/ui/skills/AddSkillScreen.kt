@@ -173,7 +173,7 @@ fun AddSkillScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
-                    enabled = uiState.title.isNotBlank() && uiState.tagName.isNotBlank() && !isSaving,
+                    enabled = uiState.title.isNotBlank() && uiState.tagName.isNotBlank() && !isSaving && !isInFocusMode,
                     onClick = { viewModel.saveSession(onDone) },
                     modifier = Modifier.weight(1f)
                 ) {
