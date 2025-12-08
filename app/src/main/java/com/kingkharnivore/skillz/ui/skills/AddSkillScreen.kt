@@ -37,10 +37,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.ui.viewmodel.AddSessionViewModel
 import com.kingkharnivore.skillz.ui.viewmodel.StopwatchState
+import com.kingkharnivore.skillz.utils.score.ScoreBreakdown
+import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +61,9 @@ fun AddSkillScreen(
     val isInFocusMode = uiState.isInFocusMode
 
     var showEndDialog by remember { mutableStateOf(false) }
+
+    var showPointsDialog by remember { mutableStateOf(false) }
+    var lastBreakdown by remember { mutableStateOf<ScoreBreakdown?>(null) }
 
     BackHandler(enabled = stopwatchState.isRunning) {
         showEndDialog = true
@@ -175,7 +181,20 @@ fun AddSkillScreen(
             ) {
                 Button(
                     enabled = uiState.title.isNotBlank() && uiState.tagName.isNotBlank() && !isSaving && !isInFocusMode,
-                    onClick = { viewModel.saveSession(onDone) },
+                    onClick = {
+                        val durationMs = stopwatchState.elapsedMs.coerceAtLeast(0L)
+                        val tenMinutesMs = 5 * 1_000L
+
+                        if (durationMs >= tenMinutesMs) {
+                            // Long session → compute and show points summary
+                            val breakdown = ScoreCalculator.breakdownFromDuration(durationMs)
+                            lastBreakdown = breakdown
+                            showPointsDialog = true
+                        } else {
+                            // Short session → behave as before
+                            viewModel.saveSession(onDone)
+                        }
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(if (isSaving) "Saving..." else "Save")
@@ -217,6 +236,52 @@ fun AddSkillScreen(
                     Text("Continue")
                 }
             }
+        )
+    }
+
+    // 🟢 "Points earned" popup for sessions >= 10 minutes
+    if (showPointsDialog && lastBreakdown != null) {
+        val breakdown = lastBreakdown!!
+
+        AlertDialog(
+            // 🔒 No way to dismiss: back + outside taps are intercepted,
+            // onDismissRequest does NOT change state
+            onDismissRequest = {
+                // Do nothing: keep dialog shown until user taps "Nice!"
+            },
+            title = { Text("Session complete!") },
+            text = {
+                Column {
+                    Text("Here’s what you earned this session:")
+                    Spacer(Modifier.height(8.dp))
+
+                    Text("Time: ${breakdown.minutes} min")
+                    Text("10-min bonuses: ${breakdown.tenMinuteBonuses}")
+                    Text("30-min bonuses: ${breakdown.thirtyMinuteBonuses}")
+                    Text("60-min bonuses: ${breakdown.sixtyMinuteBonuses}")
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Text(
+                        text = "Total points: ${breakdown.totalPoints}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        // user acknowledges → save and exit
+                        showPointsDialog = false
+                        viewModel.saveSession(onDone)
+                    }
+                ) {
+                    Text("End")
+                }
+            },
+            // 🔒 No dismiss button = no "cancel" path
+            dismissButton = {}
         )
     }
 }
