@@ -121,7 +121,8 @@ fun AddSkillScreen(
                 state = stopwatchState,
                 onStartOrResume = { viewModel.startOrResumeStopwatch() },
                 onPause = { viewModel.pauseStopwatch() },
-                onReset = { viewModel.resetStopwatch() }
+                onReset = { viewModel.resetStopwatch() },
+                viewModel
             )
 
             Button(
@@ -261,8 +262,10 @@ private fun StopwatchSection(
     state: StopwatchState,
     onStartOrResume: () -> Unit,
     onPause: () -> Unit,
-    onReset: () -> Unit
+    onReset: () -> Unit,
+    viewModel: AddSessionViewModel
 ) {
+    var showResetConfirm by remember { mutableStateOf(false) }
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -279,11 +282,48 @@ private fun StopwatchSection(
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
-                onClick = onReset,
+                onClick = {
+                    val threshold = 2 * 60_000L // 2 minutes in ms
+                    if (state.elapsedMs >= threshold) {
+                        // More than 2 minutes → ask "Are you sure?"
+                        showResetConfirm = true
+                    } else {
+                        // Under 2 minutes → reset directly
+                        viewModel.resetStopwatch()
+                    }
+                },
                 enabled = state.elapsedMs > 0L && !state.isRunning
             ) {
                 Text("Reset")
             }
+        }
+
+        if (showResetConfirm) {
+            val minutes = (state.elapsedMs / 60_000L).toInt()
+            AlertDialog(
+                onDismissRequest = { showResetConfirm = false },
+                title = { Text("Reset session?") },
+                text = {
+                    Text("You've already focused for $minutes minute${if (minutes != 1) "s" else ""}. Are you sure you want to reset and lose this progress?")
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showResetConfirm = false
+                            viewModel.resetStopwatch()
+                        }
+                    ) {
+                        Text("Yes, reset")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showResetConfirm = false }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }
