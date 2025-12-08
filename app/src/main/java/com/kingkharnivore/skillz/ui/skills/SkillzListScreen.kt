@@ -1,11 +1,5 @@
 package com.kingkharnivore.skillz.ui.skills
 
-import androidx.compose.animation.animateColor
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -30,10 +24,10 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +38,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -170,27 +166,9 @@ fun SkillListScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                             )
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "${uiState.currentScore} pts",
-                                    style = MaterialTheme.typography.headlineLarge,
-                                    textAlign = TextAlign.Center
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = when (uiState.scoreFilter) {
-                                        ScoreFilter.LAST_24_HOURS -> "Last 24 hours"
-                                        ScoreFilter.LAST_7_DAYS   -> "Last 7 days"
-                                        ScoreFilter.LAST_30_DAYS  -> "Last 30 days"
-                                        ScoreFilter.ALL_TIME      -> "All time"
-                                    },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
                         }
 
-                        Divider()
+                        HorizontalDivider()
 
                         SessionList(
                             sessions = uiState.sessions,
@@ -289,15 +267,18 @@ fun ScoreDisplay(
 ) {
     Box(
         modifier = modifier
-            .padding(32.dp),
+            .padding(80.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
             // Big number
             Text(
-                text = "$score pts",
-                style = MaterialTheme.typography.headlineLarge,
+                text = "$score",
+                style = MaterialTheme.typography.displayLarge.copy(
+                    fontSize = 70.sp,
+                    fontWeight = FontWeight.Normal
+                ),
                 textAlign = TextAlign.Center
             )
 
@@ -416,20 +397,6 @@ private fun SessionRowCard(
     onLongPress: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
-    // 🔮 Animated border color between secondary (gold) and primary (maroon)
-    val infiniteTransition = rememberInfiniteTransition(label = "border")
-    val animatedBorderColor by infiniteTransition.animateColor(
-        initialValue = MaterialTheme.colorScheme.secondary,           // gold
-        targetValue = MaterialTheme.colorScheme.primary,             // maroon
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 1500,
-                easing = FastOutSlowInEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "borderColor"
-    )
 
     Card(
         colors = CardDefaults.cardColors(
