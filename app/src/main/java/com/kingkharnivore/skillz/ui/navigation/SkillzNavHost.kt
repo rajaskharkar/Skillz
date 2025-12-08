@@ -16,7 +16,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.createGraph
 import com.kingkharnivore.skillz.ui.viewmodel.AddSessionViewModel
 import com.kingkharnivore.skillz.ui.skills.AddSkillScreen
-import com.kingkharnivore.skillz.ui.viewmodel.FocusSessionViewModel
 import com.kingkharnivore.skillz.ui.skills.SkillListScreen
 import com.kingkharnivore.skillz.ui.viewmodel.SkillListViewModel
 
@@ -31,7 +30,7 @@ fun SkillzNavHost(
         // --- Skills List Screen ---
         composable(route = SkillzDestinations.SKILLS_LIST) {
             val skillListVm: SkillListViewModel = hiltViewModel()
-            val focusVm: FocusSessionViewModel = hiltViewModel()
+            val focusVm: AddSessionViewModel = hiltViewModel()
             val ongoing by focusVm.ongoingSession.collectAsState()
 
             // Track current route

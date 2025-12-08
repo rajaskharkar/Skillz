@@ -41,6 +41,14 @@ class AddSessionViewModel @Inject constructor(
     private val focusSessionRepository: FocusSessionRepository
 ) : ViewModel() {
 
+    val ongoingSession: StateFlow<OngoingSessionEntity?> =
+        focusSessionRepository.getOngoingSession()
+            .stateIn(
+                viewModelScope,
+                SharingStarted.Companion.WhileSubscribed(5_000),
+                null
+            )
+
     private val _uiState = MutableStateFlow(AddSessionUiState())
     val uiState: StateFlow<AddSessionUiState> = _uiState.asStateFlow()
 
