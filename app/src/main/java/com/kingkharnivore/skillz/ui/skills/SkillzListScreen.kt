@@ -1,12 +1,7 @@
 package com.kingkharnivore.skillz.ui.skills
 
-import androidx.compose.animation.animateColor
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
@@ -31,6 +27,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +38,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,12 +46,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kingkharnivore.skillz.data.model.entity.SessionListItemUiModel
-import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.ui.viewmodel.SkillListViewModel
+import com.kingkharnivore.skillz.ui.viewmodel.TagUiModel
 import com.kingkharnivore.skillz.utils.formatDuration
+import com.kingkharnivore.skillz.utils.score.ScoreFilter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +67,12 @@ fun SkillListScreen(
 
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
+
+    LaunchedEffect(uiState.sessions.size) {
+        if (uiState.sessions.isNotEmpty()) {
+            listState.animateScrollToItem(0)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -143,6 +151,31 @@ fun SkillListScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
+                        // 🔹 Score filter chips (24h / 7d / 30d / all)
+                        ScoreFilterChips(
+                            selectedFilter = uiState.scoreFilter,
+                            onFilterSelected = viewModel::onScoreFilterSelected
+                        )
+
+
+                        Spacer(Modifier.height(16.dp))
+
+                        // 🔹 Score in the middle of the screen
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            ScoreDisplay(
+                                score = uiState.currentScore,
+                                scoreFilter = uiState.scoreFilter,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                            )
+                        }
+
+                        HorizontalDivider()
+
                         SessionList(
                             sessions = uiState.sessions,
                             listState = listState,
@@ -161,9 +194,32 @@ fun SkillListScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ScoreFilterChips(
+    selectedFilter: ScoreFilter,
+    onFilterSelected: (ScoreFilter) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+    ) {
+        ScoreFilter.values().forEach { filter ->
+            FilterChip(
+                selected = filter == selectedFilter,
+                onClick = { onFilterSelected(filter) },
+                label = { Text(filter.label) },
+                modifier = Modifier.padding(end = 8.dp)
+            )
+        }
+    }
+}
+
+
 @Composable
 fun TagFilterRow(
-    tags: List<TagEntity>,
+    tags: List<TagUiModel>,
     selectedTagId: Long?,
     onTagSelected: (Long?) -> Unit
 ) {
@@ -188,7 +244,8 @@ fun TagFilterRow(
                 FilterChip(
                     selected = selectedTagId == null,
                     onClick = { onTagSelected(null) },
-                    label = { Text("All") }
+                    label = { Text("All") },
+                    modifier = Modifier.padding(end = 8.dp)
                 )
             }
 
@@ -200,12 +257,54 @@ fun TagFilterRow(
                 FilterChip(
                     selected = selectedTagId == tag.id,
                     onClick = { onTagSelected(tag.id) },
-                    label = { Text(tag.name) }
+                    label = { Text(tag.name) },
+                    modifier = Modifier.padding(end = 8.dp)
                 )
             }
         }
     }
 }
+
+@Composable
+fun ScoreDisplay(
+    score: Int,
+    scoreFilter: ScoreFilter,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .padding(80.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+            // Big number
+            Text(
+                text = "$score",
+                style = MaterialTheme.typography.displayLarge.copy(
+                    fontSize = 70.sp,
+                    fontWeight = FontWeight.Normal
+                ),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            // Label for selected window
+            Text(
+                text = when (scoreFilter) {
+                    ScoreFilter.LAST_24_HOURS -> "Last 24 hours"
+                    ScoreFilter.LAST_7_DAYS   -> "Last 7 days"
+                    ScoreFilter.LAST_30_DAYS  -> "Last 30 days"
+                    ScoreFilter.ALL_TIME      -> "All time"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
 
 @Composable
 private fun SessionList(
@@ -304,20 +403,6 @@ private fun SessionRowCard(
     onLongPress: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
-    // 🔮 Animated border color between secondary (gold) and primary (maroon)
-    val infiniteTransition = rememberInfiniteTransition(label = "border")
-    val animatedBorderColor by infiniteTransition.animateColor(
-        initialValue = MaterialTheme.colorScheme.secondary,           // gold
-        targetValue = MaterialTheme.colorScheme.primary,             // maroon
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = 1500,
-                easing = FastOutSlowInEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "borderColor"
-    )
 
     Card(
         colors = CardDefaults.cardColors(
@@ -418,8 +503,4 @@ private fun SessionRowCard(
             }
         )
     }
-}
-
-private fun formatDurationMinutes(durationMs: Long): Long {
-    return durationMs / 1000L / 60L
 }

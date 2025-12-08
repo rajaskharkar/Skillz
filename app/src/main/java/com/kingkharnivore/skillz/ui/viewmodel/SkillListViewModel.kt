@@ -6,8 +6,11 @@ import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.entity.SessionListItemUiModel
 import com.kingkharnivore.skillz.data.model.entity.SkillListUiState
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
+import com.kingkharnivore.skillz.data.model.entity.isInScoreWindow
 import com.kingkharnivore.skillz.data.repository.SessionRepository
 import com.kingkharnivore.skillz.data.repository.TagRepository
+import com.kingkharnivore.skillz.utils.score.ScoreCalculator
+import com.kingkharnivore.skillz.utils.score.ScoreFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +19,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+data class TagUiModel(
+    val id: Long,
+    val name: String
+)
+
 @HiltViewModel
 class SkillListViewModel @Inject constructor(
     private val sessionRepository: SessionRepository,
@@ -23,6 +31,8 @@ class SkillListViewModel @Inject constructor(
 ) : ViewModel() {
     // null = "All skills", non-null = filter by that tag/skill
     private val selectedTagId = MutableStateFlow<Long?>(null)
+
+    private val scoreFilter = MutableStateFlow(ScoreFilter.LAST_7_DAYS)
 
     // stream of sessions depending on selected tag
     // Source flows
@@ -50,6 +60,10 @@ class SkillListViewModel @Inject constructor(
         }
     }
 
+    fun onScoreFilterSelected(filter: ScoreFilter) {
+        scoreFilter.value = filter
+    }
+
     /** User chose a tag/skill chip – null means "All". */
     fun selectTag(tagId: Long?) {
         selectedTagId.value = tagId
@@ -66,9 +80,11 @@ class SkillListViewModel @Inject constructor(
 
     // --- Private mapping helpers ---
 
-    fun List<SessionEntity>.toUiModels(tags: List<TagEntity>): List<SessionListItemUiModel> {
+    private fun List<SessionEntity>.toUiModels(
+        tags: List<TagEntity>
+    ): List<SessionListItemUiModel> {
         val tagNameById: Map<Long, String> = tags.associate { tag ->
-            tag.id to tag.name    // adjust if your tag fields are different
+            tag.id to tag.name  // adjust field names if needed
         }
 
         return map { session ->
@@ -76,36 +92,65 @@ class SkillListViewModel @Inject constructor(
                 sessionId = session.id,
                 title = session.title,
                 description = session.description,
-                tagName = tagNameById[session.tagId].orEmpty(),
+                tagName = session.tagId?.let { tagNameById[it] }.orEmpty(),
                 durationMs = session.durationMs,
                 createdAt = session.createdAt
             )
         }
     }
 
+    private fun List<TagEntity>.toUiModels(): List<TagUiModel> {
+        return map { tag ->
+            TagUiModel(
+                id = tag.id,
+                name = tag.name
+            )
+        }
+    }
+
     private fun observeSessions() {
         viewModelScope.launch {
-            // optional: show loading until first combined emission
-            uiState.value = uiState.value.copy(isLoading = true, errorMessage = null)
-
+            // show loading till first emission
+            uiState.value = uiState.value.copy(
+                isLoading = true,
+                errorMessage = null
+            )
             combine(
                 sessionsFlow,   // Flow<List<SessionEntity>>
                 tagsFlow,       // Flow<List<TagEntity>>
-                selectedTagId   // StateFlow<Long?>
-            ) { sessions, tags, currentTagId ->
+                selectedTagId,  // StateFlow<Long?>
+                scoreFilter     // StateFlow<ScoreFilter>
+            ) { sessions, tags, currentTagId, currentScoreFilter ->
 
-                // 1) Filter sessions if a tag is selected
-                val filteredSessions = currentTagId?.let { tagId ->
+                val nowMs = System.currentTimeMillis()
+
+                // 1) Filter sessions by selected tag (for the LIST)
+                val visibleSessions: List<SessionEntity> = currentTagId?.let { tagId ->
                     sessions.filter { it.tagId == tagId }
                 } ?: sessions
 
-                // 2) Total duration for visible sessions
-                val totalDurationMs = filteredSessions.sumOf { it.durationMs }
+                // 2) Total duration for *visible* sessions
+                val totalDurationMs = visibleSessions.sumOf { it.durationMs }
 
-                // 3) Map to UI models, attaching tagName
-                val sessionUiModels = filteredSessions.toUiModels(tags)
+                // 3) Score uses ALL sessions within the score window
+                val sessionsForScore = sessions.filter { session ->
+                    session.isInScoreWindow(
+                        nowMs = nowMs,
+                        filter = currentScoreFilter
+                    )
+                }
+                val totalScore = ScoreCalculator.totalScoreForSessions(sessionsForScore)
 
-                Triple(sessionUiModels, tags, totalDurationMs to currentTagId)
+                SkillListUiState(
+                    isLoading = false,
+                    sessions = visibleSessions.toUiModels(tags),
+                    tags = tags.toUiModels(),
+                    selectedTagId = currentTagId,
+                    totalDurationMs = totalDurationMs,
+                    errorMessage = null,
+                    scoreFilter = currentScoreFilter,
+                    currentScore = totalScore
+                )
             }
                 .catch { e ->
                     uiState.value = uiState.value.copy(
@@ -113,17 +158,8 @@ class SkillListViewModel @Inject constructor(
                         errorMessage = e.message ?: "Something went wrong"
                     )
                 }
-                .collect { (sessionUiModels, tags, durationAndTag) ->
-                    val (totalDurationMs, currentTagId) = durationAndTag
-
-                    uiState.value = uiState.value.copy(
-                        isLoading = false,
-                        sessions = sessionUiModels,
-                        tags = tags,
-                        selectedTagId = currentTagId,
-                        totalDurationMs = totalDurationMs,
-                        errorMessage = null
-                    )
+                .collect { newState ->
+                    uiState.value = newState
                 }
         }
     }

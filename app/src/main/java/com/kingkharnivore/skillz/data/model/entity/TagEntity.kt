@@ -2,6 +2,8 @@ package com.kingkharnivore.skillz.data.model.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.kingkharnivore.skillz.ui.viewmodel.TagUiModel
+import com.kingkharnivore.skillz.utils.score.ScoreFilter
 
 @Entity(tableName = "tags")
 data class TagEntity(
@@ -22,9 +24,11 @@ data class SessionListItemUiModel(
 data class SkillListUiState(
     val isLoading: Boolean = true,
     val sessions: List<SessionListItemUiModel> = emptyList(),
-    val tags: List<TagEntity> = emptyList(),   // available Skills (tags)
+    val tags: List<TagUiModel> = emptyList(),   // available Skills (tags)
     val selectedTagId: Long? = null,          // null = "All"
     val totalDurationMs: Long = 0L,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val scoreFilter: ScoreFilter = ScoreFilter.LAST_7_DAYS,
+    val currentScore: Int = 0
 )
 
