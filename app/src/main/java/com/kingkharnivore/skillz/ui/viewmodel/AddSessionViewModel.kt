@@ -211,7 +211,6 @@ class AddSessionViewModel @Inject constructor(
                 accumulatedBeforeStartMs = accumulatedBeforeStartMs
             )
             focusSessionRepository.saveOngoingSession(entity)
-            focusSessionRepository.clearOngoingSession()
         }
     }
 
