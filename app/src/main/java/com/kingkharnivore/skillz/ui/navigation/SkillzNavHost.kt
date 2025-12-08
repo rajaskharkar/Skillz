@@ -12,6 +12,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.createGraph
 import com.kingkharnivore.skillz.ui.viewmodel.AddSessionViewModel
 import com.kingkharnivore.skillz.ui.skills.AddSkillScreen
@@ -29,31 +30,28 @@ fun SkillzNavHost(
     ) {
         // --- Skills List Screen ---
         composable(route = SkillzDestinations.SKILLS_LIST) {
+            val skillListVm: SkillListViewModel = hiltViewModel()
             val focusVm: FocusSessionViewModel = hiltViewModel()
-            val ongoing = focusVm.ongoingSession.collectAsState().value
-            val viewModel: SkillListViewModel = hiltViewModel()
+            val ongoing by focusVm.ongoingSession.collectAsState()
 
-            var hasNavigatedToOngoing by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) {
-                focusVm.ongoingSession.collect { ongoing ->
-                    val isOnAddSkill =
-                        navController.currentBackStackEntry?.destination?.route == SkillzDestinations.ADD_SKILL
-                    if (
-                        ongoing?.isInFocusMode == true &&
-                        !hasNavigatedToOngoing &&
-                        !isOnAddSkill
-                    ) {
-                        hasNavigatedToOngoing = true
-                        navController.navigate(SkillzDestinations.ADD_SKILL)
-                    }
-                    if (ongoing == null || !ongoing.isInFocusMode) {
-                        hasNavigatedToOngoing = false
+            // Track current route
+            val backStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = backStackEntry?.destination?.route
+
+            // 🔑 Single effect that owns "go to ADD_SKILL if focus mode is active"
+            LaunchedEffect(ongoing?.isInFocusMode, currentRoute) {
+                if (
+                    ongoing?.isInFocusMode == true               // must be in focus mode
+                ) {
+                    navController.navigate(SkillzDestinations.ADD_SKILL) {
+                        restoreState = true
                     }
                 }
+                // If not in focus mode: do nothing; user can be wherever.
             }
 
             SkillListScreen(
-                viewModel = viewModel,
+                viewModel = skillListVm,
                 onAddSessionClick = {
                     navController.navigate(SkillzDestinations.ADD_SKILL)
                 },
