@@ -183,7 +183,7 @@ fun AddSkillScreen(
                     enabled = uiState.title.isNotBlank() && uiState.tagName.isNotBlank() && !isSaving && !isInFocusMode,
                     onClick = {
                         val durationMs = stopwatchState.elapsedMs.coerceAtLeast(0L)
-                        val tenMinutesMs = 5 * 1_000L
+                        val tenMinutesMs = 10 * 60_000L
 
                         if (durationMs >= tenMinutesMs) {
                             // Long session → compute and show points summary
