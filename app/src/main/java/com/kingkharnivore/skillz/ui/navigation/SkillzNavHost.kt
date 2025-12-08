@@ -62,12 +62,7 @@ fun SkillzNavHost(
                 onAddSessionClick = {
                     navController.navigate(SkillzDestinations.ADD_SKILL)
                 },
-                onSessionClick = { sessionId ->
-                    println("Clicked session: $sessionId")
-
-                    // Later you might do:
-                    // navController.navigate(SkillzDestinations.sessionDetailRoute(sessionId))
-                }
+                onSessionClick = { sessionId -> println("Clicked session: $sessionId") }
             )
         }
 
