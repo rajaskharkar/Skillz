@@ -68,6 +68,12 @@ fun SkillListScreen(
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
 
+    LaunchedEffect(uiState.sessions.size) {
+        if (uiState.sessions.isNotEmpty()) {
+            listState.animateScrollToItem(0)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
