@@ -179,12 +179,14 @@ fun SkillListScreen(
                         SessionList(
                             sessions = uiState.sessions,
                             listState = listState,
-                            onSessionClick = onSessionClick,
-                            onDeleteSession = { sessionId ->
-                                viewModel.deleteSession(sessionId)
+                            onSessionClick = { item ->
+                                onSessionClick(item.sessionId)
                             },
-                            onUpdateSessionDescription = { id, description ->
-                                viewModel.updateSessionDescription(id, description)
+                            onDeleteSession = { item ->
+                                viewModel.deleteSession(item.sessionId)   // use the id from the UiModel
+                            },
+                            onUpdateSessionDescription = { item, description ->
+                                viewModel.updateSessionDescription(item.sessionId, description)
                             }
                         )
                     }
@@ -305,15 +307,15 @@ fun ScoreDisplay(
     }
 }
 
-
 @Composable
-private fun SessionList(
+fun SessionList(
     sessions: List<SessionListItemUiModel>,
     listState: LazyListState,
-    onSessionClick: (Long) -> Unit,
-    onDeleteSession: (Long) -> Unit,
-    onUpdateSessionDescription: (Long, String) -> Unit
-) {
+    onSessionClick: (SessionListItemUiModel) -> Unit,
+    onDeleteSession: (SessionListItemUiModel) -> Unit,
+    onUpdateSessionDescription: (SessionListItemUiModel, String) -> Unit
+)
+{
     var expandedSessionIds by remember { mutableStateOf(setOf<Long>()) }
 
     var editingSession by remember { mutableStateOf<SessionListItemUiModel?>(null) }
@@ -346,7 +348,7 @@ private fun SessionList(
                     onClick = {
                         val session = editingSession
                         if (session != null) {
-                            onUpdateSessionDescription(session.sessionId, editText)
+                            onUpdateSessionDescription(session, editText)
                         }
                         editingSession = null
                     }
@@ -382,8 +384,8 @@ private fun SessionList(
                         expandedSessionIds + session.sessionId
                     }
                 },
-                onClick = { onSessionClick(session.sessionId) },
-                onDeleteSession = { onDeleteSession(session.sessionId) },
+                onClick = { onSessionClick(session) },
+                onDeleteSession = { onDeleteSession(session) },
                 onLongPress = {
                     editingSession = session
                     editText = session.description

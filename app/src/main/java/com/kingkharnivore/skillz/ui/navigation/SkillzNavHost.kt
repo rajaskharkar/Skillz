@@ -12,29 +12,26 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.createGraph
 import com.kingkharnivore.skillz.ui.viewmodel.AddSessionViewModel
 import com.kingkharnivore.skillz.ui.skills.AddSkillScreen
-import com.kingkharnivore.skillz.ui.skills.SkillListScreen
-import com.kingkharnivore.skillz.ui.viewmodel.SkillListViewModel
+import com.kingkharnivore.skillz.ui.skills.SkillzHomeScreen
 
 @Composable
 fun SkillzNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    val graph = navController.createGraph(
-        startDestination = SkillzDestinations.SKILLS_LIST
+    NavHost(
+        navController = navController,
+        startDestination = SkillzDestinations.HOME_SCREEN,
+        modifier = modifier
     ) {
-        // --- Skills List Screen ---
-        composable(route = SkillzDestinations.SKILLS_LIST) {
-            val skillListVm: SkillListViewModel = hiltViewModel()
+
+        // --- HOME (SkillzHomeScreen: SessionList + Notepad pager) ---
+        composable(SkillzDestinations.HOME_SCREEN) {
             val focusVm: AddSessionViewModel = hiltViewModel()
             val ongoing by focusVm.ongoingSession.collectAsState()
 
-            val navBackStackEntry by navController.currentBackStackEntryAsState()
-            val currentRoute = navBackStackEntry?.destination?.route
             val sessionId = ongoing?.id
             var hasNavigatedForSession by rememberSaveable(sessionId) {
                 mutableStateOf(false)
@@ -42,12 +39,13 @@ fun SkillzNavHost(
 
             LaunchedEffect(sessionId, ongoing?.isInFocusMode) {
                 val inFocus = ongoing?.isInFocusMode == true
-                if (!inFocus || sessionId == null) {
-                    // Not in focus mode (or no session): reset so that next focus session can navigate again
+                if (!inFocus) {
+                    // Not in focus mode (or no session): reset so next focus session can navigate again
                     hasNavigatedForSession = false
                     return@LaunchedEffect
                 }
-                // Only navigate ONCE per session, no matter how many times we recompose / resume
+
+                // Only navigate ONCE per session
                 if (!hasNavigatedForSession) {
                     hasNavigatedForSession = true
                     navController.navigate(SkillzDestinations.ADD_SKILL) {
@@ -57,37 +55,30 @@ fun SkillzNavHost(
                 }
             }
 
-            SkillListScreen(
-                viewModel = skillListVm,
+            SkillzHomeScreen(
+                onSessionClick = { /* you can hook this up later if you add details */ },
                 onAddSessionClick = {
                     navController.navigate(SkillzDestinations.ADD_SKILL)
-                },
-                onSessionClick = { sessionId -> println("Clicked session: $sessionId") }
+                }
             )
         }
 
         // --- Add Skill Screen ---
-        composable(route = SkillzDestinations.ADD_SKILL) {
+        composable(SkillzDestinations.ADD_SKILL) {
             val addSessionViewModel: AddSessionViewModel = hiltViewModel()
             AddSkillScreen(
                 viewModel = addSessionViewModel,
-                // Pop everything above SKILLS_LIST (all ADD_SKILL screens), land on SKILLS_LIST
-                onDone = { popToSkillsList(navController) },
-                onCancel = { popToSkillsList(navController) }
+                onDone = { popToHome(navController) },
+                onCancel = { popToHome(navController) }
             )
         }
     }
-
-    NavHost(
-        navController = navController,
-        graph = graph,
-        modifier = modifier
-    )
 }
 
-private fun popToSkillsList(navController: NavHostController) {
+private fun popToHome(navController: NavHostController) {
     navController.popBackStack(
-        route = SkillzDestinations.SKILLS_LIST,
+        route = SkillzDestinations.HOME_SCREEN,
         inclusive = false
     )
 }
+

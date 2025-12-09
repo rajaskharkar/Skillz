@@ -1,12 +1,14 @@
 package com.kingkharnivore.skillz.di
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.dao.TagDao
-import com.kingkharnivore.skillz.data.repository.FocusSessionRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -39,4 +41,14 @@ object DatabaseModule {
     @Provides
     fun provideOngoingSessionDao(db: SkillzDatabase): OngoingSessionDao =
         db.ongoingSessionDao()
+
+    private val Context.skillzDataStore: DataStore<Preferences> by preferencesDataStore(
+        name = "skillz_prefs"
+    )
+
+    @Provides
+    @Singleton
+    fun providePreferencesDataStore(
+        @ApplicationContext context: Context
+    ): DataStore<Preferences> = context.skillzDataStore
 }
