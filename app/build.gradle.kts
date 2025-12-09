@@ -40,6 +40,29 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+
+    flavorDimensions += "mode"
+
+    productFlavors {
+        create("aera") {
+            dimension = "mode"
+            applicationIdSuffix = ".aera"
+            versionNameSuffix = "-aera"
+            resValue("string", "app_name", "Aera")
+            buildConfigField("boolean", "SHOW_SCORE", "false")
+            buildConfigField("String", "PRIMARY_COLOR", "\"#2F4F6F\"") // RavenclawBlue
+        }
+
+        create("scyra") {
+            dimension = "mode"
+            applicationIdSuffix = ".scyra"
+            versionNameSuffix = "-scyra"
+            resValue("string", "app_name", "Scyra")
+            buildConfigField("boolean", "SHOW_SCORE", "true")
+            buildConfigField("String", "PRIMARY_COLOR", "\"#991B1B\"") // GryffindorRed
+        }
     }
 }
 

@@ -51,7 +51,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.SessionListItemUiModel
+import com.kingkharnivore.skillz.ui.components.SkillzTopAppBar
 import com.kingkharnivore.skillz.ui.viewmodel.SkillListViewModel
 import com.kingkharnivore.skillz.ui.viewmodel.TagUiModel
 import com.kingkharnivore.skillz.utils.formatDuration
@@ -74,16 +76,14 @@ fun SkillListScreen(
         }
     }
 
+    val title = when (BuildConfig.FLAVOR) {
+        "aera" -> "Aera"
+        "scyra" -> "Scyra"
+        else -> "Skillz"
+    }
+
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Skillz") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        },
+        topBar = { SkillzTopAppBar() },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddSessionClick,
@@ -149,32 +149,34 @@ fun SkillListScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        if (BuildConfig.SHOW_SCORE) {
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                        // 🔹 Score filter chips (24h / 7d / 30d / all)
-                        ScoreFilterChips(
-                            selectedFilter = uiState.scoreFilter,
-                            onFilterSelected = viewModel::onScoreFilterSelected
-                        )
-
-
-                        Spacer(Modifier.height(16.dp))
-
-                        // 🔹 Score in the middle of the screen
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            ScoreDisplay(
-                                score = uiState.currentScore,
-                                scoreFilter = uiState.scoreFilter,
-                                modifier = Modifier
-                                    .fillMaxWidth()
+                            // 🔹 Score filter chips (24h / 7d / 30d / all)
+                            ScoreFilterChips(
+                                selectedFilter = uiState.scoreFilter,
+                                onFilterSelected = viewModel::onScoreFilterSelected
                             )
-                        }
 
-                        HorizontalDivider()
+
+                            Spacer(Modifier.height(16.dp))
+
+                            // 🔹 Score in the middle of the screen
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                ScoreDisplay(
+                                    score = uiState.currentScore,
+                                    scoreFilter = uiState.scoreFilter,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                )
+                            }
+
+                            HorizontalDivider()
+                        }
 
                         SessionList(
                             sessions = uiState.sessions,
