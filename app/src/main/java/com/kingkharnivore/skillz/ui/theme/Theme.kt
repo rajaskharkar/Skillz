@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 val GryffindorRed =  Color(0xFF7F0909)
+val RavenclawBlue =  Color(0xFF1F4E79)
 val GryffindorGold = Color(0xFFD3A625)     // Gold
 val GryffindorOffWhite = Color(0xFFF2EBDD) // Parchment
 val GryffindorBlack = Color(0xFF000000)

@@ -5,7 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -16,7 +16,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.createGraph
 import com.kingkharnivore.skillz.ui.viewmodel.AddSessionViewModel
 import com.kingkharnivore.skillz.ui.skills.AddSkillScreen
-import com.kingkharnivore.skillz.ui.viewmodel.FocusSessionViewModel
 import com.kingkharnivore.skillz.ui.skills.SkillListScreen
 import com.kingkharnivore.skillz.ui.viewmodel.SkillListViewModel
 
@@ -31,23 +30,31 @@ fun SkillzNavHost(
         // --- Skills List Screen ---
         composable(route = SkillzDestinations.SKILLS_LIST) {
             val skillListVm: SkillListViewModel = hiltViewModel()
-            val focusVm: FocusSessionViewModel = hiltViewModel()
+            val focusVm: AddSessionViewModel = hiltViewModel()
             val ongoing by focusVm.ongoingSession.collectAsState()
 
-            // Track current route
-            val backStackEntry by navController.currentBackStackEntryAsState()
-            val currentRoute = backStackEntry?.destination?.route
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry?.destination?.route
+            val sessionId = ongoing?.id
+            var hasNavigatedForSession by rememberSaveable(sessionId) {
+                mutableStateOf(false)
+            }
 
-            // 🔑 Single effect that owns "go to ADD_SKILL if focus mode is active"
-            LaunchedEffect(ongoing?.isInFocusMode, currentRoute) {
-                if (
-                    ongoing?.isInFocusMode == true               // must be in focus mode
-                ) {
+            LaunchedEffect(sessionId, ongoing?.isInFocusMode) {
+                val inFocus = ongoing?.isInFocusMode == true
+                if (!inFocus || sessionId == null) {
+                    // Not in focus mode (or no session): reset so that next focus session can navigate again
+                    hasNavigatedForSession = false
+                    return@LaunchedEffect
+                }
+                // Only navigate ONCE per session, no matter how many times we recompose / resume
+                if (!hasNavigatedForSession) {
+                    hasNavigatedForSession = true
                     navController.navigate(SkillzDestinations.ADD_SKILL) {
+                        launchSingleTop = true
                         restoreState = true
                     }
                 }
-                // If not in focus mode: do nothing; user can be wherever.
             }
 
             SkillListScreen(
@@ -55,12 +62,7 @@ fun SkillzNavHost(
                 onAddSessionClick = {
                     navController.navigate(SkillzDestinations.ADD_SKILL)
                 },
-                onSessionClick = { sessionId ->
-                    println("Clicked session: $sessionId")
-
-                    // Later you might do:
-                    // navController.navigate(SkillzDestinations.sessionDetailRoute(sessionId))
-                }
+                onSessionClick = { sessionId -> println("Clicked session: $sessionId") }
             )
         }
 
