@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.entity.SessionListItemUiModel
-import com.kingkharnivore.skillz.data.model.entity.SkillListUiState
+import com.kingkharnivore.skillz.data.model.entity.SessionListUiState
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.model.entity.isInScoreWindow
 import com.kingkharnivore.skillz.data.repository.SessionRepository
@@ -42,7 +42,7 @@ class SkillListViewModel @Inject constructor(
     private val tagsFlow: Flow<List<TagEntity>> =
         tagRepository.getAllTags()                 // Flow<List<TagEntity>> (skills)
 
-    val uiState = MutableStateFlow(SkillListUiState())
+    val uiState = MutableStateFlow(SessionListUiState())
 
     init {
         observeSessions()
@@ -141,7 +141,7 @@ class SkillListViewModel @Inject constructor(
                 }
                 val totalScore = ScoreCalculator.totalScoreForSessions(sessionsForScore)
 
-                SkillListUiState(
+                SessionListUiState(
                     isLoading = false,
                     sessions = visibleSessions.toUiModels(tags),
                     tags = tags.toUiModels(),

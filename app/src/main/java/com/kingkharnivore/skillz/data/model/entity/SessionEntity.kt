@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.kingkharnivore.skillz.ui.viewmodel.TagUiModel
 import com.kingkharnivore.skillz.utils.score.ScoreFilter
 
 @Entity(
@@ -45,3 +46,23 @@ fun SessionEntity.isInScoreWindow(
     // We use endTimestamp so only *finished* sessions are counted
     return createdAt >= windowStart
 }
+
+data class SessionListUiState(
+    val isLoading: Boolean = true,
+    val sessions: List<SessionListItemUiModel> = emptyList(),
+    val tags: List<TagUiModel> = emptyList(),   // available Skills (tags)
+    val selectedTagId: Long? = null,          // null = "All"
+    val totalDurationMs: Long = 0L,
+    val errorMessage: String? = null,
+    val scoreFilter: ScoreFilter = ScoreFilter.LAST_7_DAYS,
+    val currentScore: Int = 0
+)
+
+data class SessionListItemUiModel(
+    val sessionId: Long,
+    val title: String,
+    val description: String,
+    val tagName: String,
+    val durationMs: Long,
+    val createdAt: Long
+)

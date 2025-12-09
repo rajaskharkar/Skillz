@@ -26,7 +26,7 @@ data class StopwatchState(
     val elapsedMs: Long = 0L
 )
 
-data class AddSessionUiState(
+data class FocusOnUiState(
     val title: String = "",
     val description: String = "",
     val tagName: String = "",
@@ -35,7 +35,7 @@ data class AddSessionUiState(
 )
 
 @HiltViewModel
-class AddSessionViewModel @Inject constructor(
+class FocusOnViewModel @Inject constructor(
     private val tagRepository: TagRepository,
     private val sessionRepository: SessionRepository,
     private val focusSessionRepository: FocusSessionRepository
@@ -49,8 +49,8 @@ class AddSessionViewModel @Inject constructor(
                 null
             )
 
-    private val _uiState = MutableStateFlow(AddSessionUiState())
-    val uiState: StateFlow<AddSessionUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(FocusOnUiState())
+    val uiState: StateFlow<FocusOnUiState> = _uiState.asStateFlow()
 
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving
@@ -83,7 +83,7 @@ class AddSessionViewModel @Inject constructor(
                         accumulatedBeforeStartMs
                     }
 
-                    _uiState.value = AddSessionUiState(
+                    _uiState.value = FocusOnUiState(
                         title = entity.title,
                         description = entity.description,
                         tagName = entity.tagName,
@@ -256,7 +256,7 @@ class AddSessionViewModel @Inject constructor(
                 )
 
                 resetStopwatch()
-                _uiState.value = AddSessionUiState()
+                _uiState.value = FocusOnUiState()
                 clearOngoing()
                 onDone()
             } catch (e: Exception) {

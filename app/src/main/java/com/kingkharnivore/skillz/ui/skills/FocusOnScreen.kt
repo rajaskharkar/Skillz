@@ -40,15 +40,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
-import com.kingkharnivore.skillz.ui.viewmodel.AddSessionViewModel
+import com.kingkharnivore.skillz.ui.viewmodel.FocusOnViewModel
 import com.kingkharnivore.skillz.ui.viewmodel.StopwatchState
 import com.kingkharnivore.skillz.utils.score.ScoreBreakdown
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddSkillScreen(
-    viewModel: AddSessionViewModel,
+fun FocusOnScreen(
+    viewModel: FocusOnViewModel,
     onDone: () -> Unit,
     onCancel: () -> Unit
 ) {
@@ -72,7 +72,7 @@ fun AddSkillScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Log Session") },
+                title = { Text("Focus On") },
                 navigationIcon = {
                     IconButton(
                         onClick = {
@@ -328,7 +328,7 @@ private fun StopwatchSection(
     onStartOrResume: () -> Unit,
     onPause: () -> Unit,
     onReset: () -> Unit,
-    viewModel: AddSessionViewModel
+    viewModel: FocusOnViewModel
 ) {
     var showResetConfirm by remember { mutableStateOf(false) }
     Column(
