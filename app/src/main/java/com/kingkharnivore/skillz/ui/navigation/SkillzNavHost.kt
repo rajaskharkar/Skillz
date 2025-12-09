@@ -37,21 +37,14 @@ fun SkillzNavHost(
                 mutableStateOf(false)
             }
 
-            LaunchedEffect(sessionId, ongoing?.isInFocusMode) {
-                val inFocus = ongoing?.isInFocusMode == true
-                if (!inFocus) {
-                    // Not in focus mode (or no session): reset so next focus session can navigate again
-                    hasNavigatedForSession = false
-                    return@LaunchedEffect
-                }
+            val shouldNavigate =
+                ongoing?.isInFocusMode == true &&
+                        hasNavigatedForSession.not()
 
-                // Only navigate ONCE per session
-                if (!hasNavigatedForSession) {
+            LaunchedEffect(shouldNavigate) {
+                if (shouldNavigate) {
                     hasNavigatedForSession = true
-                    navController.navigate(SkillzDestinations.ADD_SKILL) {
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                    navController.navigate(SkillzDestinations.ADD_SKILL)
                 }
             }
 
