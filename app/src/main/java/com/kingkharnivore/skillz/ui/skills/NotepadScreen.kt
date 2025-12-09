@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.ui.components.SkillzTopAppBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,15 +69,7 @@ fun NotepadScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Skillz") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        }
+        topBar = { SkillzTopAppBar() }
     ) { innerPadding ->
         Box(
             modifier = modifier

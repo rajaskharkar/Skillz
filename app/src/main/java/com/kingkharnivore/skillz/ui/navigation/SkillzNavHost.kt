@@ -12,9 +12,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.kingkharnivore.skillz.ui.viewmodel.AddSessionViewModel
-import com.kingkharnivore.skillz.ui.skills.AddSkillScreen
+import com.kingkharnivore.skillz.ui.skills.FocusOnScreen
 import com.kingkharnivore.skillz.ui.skills.SkillzHomeScreen
+import com.kingkharnivore.skillz.ui.viewmodel.FocusOnViewModel
 
 @Composable
 fun SkillzNavHost(
@@ -29,7 +29,7 @@ fun SkillzNavHost(
 
         // --- HOME (SkillzHomeScreen: SessionList + Notepad pager) ---
         composable(SkillzDestinations.HOME_SCREEN) {
-            val focusVm: AddSessionViewModel = hiltViewModel()
+            val focusVm: FocusOnViewModel = hiltViewModel()
             val ongoing by focusVm.ongoingSession.collectAsState()
 
             val sessionId = ongoing?.id
@@ -37,21 +37,14 @@ fun SkillzNavHost(
                 mutableStateOf(false)
             }
 
-            LaunchedEffect(sessionId, ongoing?.isInFocusMode) {
-                val inFocus = ongoing?.isInFocusMode == true
-                if (!inFocus) {
-                    // Not in focus mode (or no session): reset so next focus session can navigate again
-                    hasNavigatedForSession = false
-                    return@LaunchedEffect
-                }
+            val shouldNavigate =
+                ongoing?.isInFocusMode == true &&
+                        hasNavigatedForSession.not()
 
-                // Only navigate ONCE per session
-                if (!hasNavigatedForSession) {
+            LaunchedEffect(shouldNavigate) {
+                if (shouldNavigate) {
                     hasNavigatedForSession = true
-                    navController.navigate(SkillzDestinations.ADD_SKILL) {
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                    navController.navigate(SkillzDestinations.ADD_SKILL)
                 }
             }
 
@@ -65,8 +58,8 @@ fun SkillzNavHost(
 
         // --- Add Skill Screen ---
         composable(SkillzDestinations.ADD_SKILL) {
-            val addSessionViewModel: AddSessionViewModel = hiltViewModel()
-            AddSkillScreen(
+            val addSessionViewModel: FocusOnViewModel = hiltViewModel()
+            FocusOnScreen(
                 viewModel = addSessionViewModel,
                 onDone = { popToHome(navController) },
                 onCancel = { popToHome(navController) }

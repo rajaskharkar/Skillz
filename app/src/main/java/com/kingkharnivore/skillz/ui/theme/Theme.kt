@@ -8,12 +8,17 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.kingkharnivore.skillz.BuildConfig
 
 val GryffindorRed =  Color(0xFF7F0909)
-val RavenclawBlue =  Color(0xFF1F4E79)
+val RavenclawBlue =  Color(0xFF2F4F6F)
+val SteelGrey =  Color(0xFF3A4652)
+val SageMist = Color(0xFF7E9B8B)
+val SlytherinButNiceTeal = Color(0xFF3F8F8B)
 val GryffindorGold = Color(0xFFD3A625)     // Gold
 val GryffindorOffWhite = Color(0xFFF2EBDD) // Parchment
 val GryffindorBlack = Color(0xFF000000)
+val color = if (BuildConfig.SHOW_SCORE) RavenclawBlue else SlytherinButNiceTeal
 
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
@@ -28,7 +33,7 @@ private val LightColorScheme = lightColorScheme(
 )
 
 private val LightGryffindorColors = lightColorScheme(
-    primary = GryffindorRed,
+    primary = color,
     onPrimary = GryffindorOffWhite,
 
     secondary = GryffindorGold,
@@ -42,7 +47,7 @@ private val LightGryffindorColors = lightColorScheme(
 )
 
 private val DarkGryffindorColors = darkColorScheme(
-    primary = GryffindorRed,
+    primary = color,
     onPrimary = GryffindorOffWhite,
 
     secondary = GryffindorGold,
