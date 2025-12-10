@@ -33,9 +33,11 @@ object ScoreCalculator {
         )
     }
 
+    fun sessionScore(session: SessionEntity): Int {
+        return breakdownFromDuration(session.durationMs).totalPoints
+    }
+
     fun totalScoreForSessions(sessions: List<SessionEntity>): Int {
-        return sessions.sumOf { session ->
-            breakdownFromDuration(session.durationMs).totalPoints
-        }
+        return sessions.sumOf { sessionScore(it) }
     }
 }

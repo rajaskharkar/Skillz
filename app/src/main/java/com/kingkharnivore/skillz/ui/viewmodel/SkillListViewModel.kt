@@ -94,7 +94,8 @@ class SkillListViewModel @Inject constructor(
                 description = session.description,
                 tagName = session.tagId?.let { tagNameById[it] }.orEmpty(),
                 durationMs = session.durationMs,
-                createdAt = session.createdAt
+                createdAt = session.createdAt,
+                score = ScoreCalculator.sessionScore(session)
             )
         }
     }
