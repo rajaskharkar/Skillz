@@ -480,6 +480,16 @@ private fun SessionRowCard(
                 text = "Duration: ${formatDuration(session.durationMs)}",
                 style = MaterialTheme.typography.bodySmall
             )
+
+            if (BuildConfig.SHOW_SCORE) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "Points earned: ${session.score}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
         }
     }
 

@@ -64,5 +64,6 @@ data class SessionListItemUiModel(
     val description: String,
     val tagName: String,
     val durationMs: Long,
-    val createdAt: Long
+    val createdAt: Long,
+    val score: Int
 )
