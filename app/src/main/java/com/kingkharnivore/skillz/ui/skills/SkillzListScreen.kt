@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.ui.skills
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -12,8 +13,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -51,11 +54,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.SessionListItemUiModel
 import com.kingkharnivore.skillz.ui.components.SkillzTopAppBar
@@ -135,164 +141,326 @@ fun SkillListScreen(
                 }
 
                 else -> {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
+                    if (isFocusModeOn) {
+                        // ─────────────────────────────────────────────
+                        // FOCUS MODE ON → whole screen scrolls,
+                        // plus mini floating bar when scrolled
+                        // ─────────────────────────────────────────────
 
-                        TagFilterRow(
-                            tags = uiState.tags,
-                            selectedTagId = uiState.selectedTagId,
-                            onTagSelected = { tagId ->
-                                viewModel.selectTag(tagId)
-                            }
+                        // For score + sessions expansion/edit
+                        var expandedSessionIds by remember { mutableStateOf(setOf<Long>()) }
+                        var editingSession by remember { mutableStateOf<SessionListItemUiModel?>(null) }
+                        var editText by remember { mutableStateOf("") }
+
+                        // Smooth fade-in for the mini bar based on scroll offset
+                        val density = LocalDensity.current
+                        val thresholdStartPx = with(density) { 180.dp.toPx() }
+                        val thresholdEndPx = with(density) { 300.dp.toPx() }
+
+                        val rawScrollOffset = if (listState.firstVisibleItemIndex > 0) {
+                            thresholdEndPx
+                        } else {
+                            listState.firstVisibleItemScrollOffset.toFloat()
+                        }
+
+                        val miniBarAlpha by animateFloatAsState(
+                            targetValue = when {
+                                rawScrollOffset < thresholdStartPx -> 0f
+                                rawScrollOffset >= thresholdEndPx -> 1f
+                                else -> (rawScrollOffset - thresholdStartPx) / (thresholdEndPx - thresholdStartPx)
+                            },
+                            label = "miniBarAlpha"
                         )
 
-                        if (isFocusModeOn) {
-                            Spacer(modifier = Modifier.height(16.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                        ) {
 
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 12.dp),
-                                shape = RoundedCornerShape(24.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.95f),
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
-                                ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 28.dp),
-                                    verticalArrangement = Arrangement.spacedBy(20.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-
-                                    // 🔹 Icon
-                                    Box(
-                                        modifier = Modifier
-                                            .size(52.dp)
-                                            .background(
-                                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
-                                                shape = CircleShape
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Timer,
-                                            contentDescription = "Focus mode active",
-                                            modifier = Modifier.size(28.dp)
-                                        )
+                            // Edit Description Dialog (same behavior as SessionList)
+                            if (editingSession != null) {
+                                AlertDialog(
+                                    onDismissRequest = { editingSession = null },
+                                    title = { Text("Edit description") },
+                                    text = {
+                                        Column {
+                                            Text(
+                                                text = editingSession!!.title,
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                            Spacer(Modifier.height(8.dp))
+                                            OutlinedTextField(
+                                                value = editText,
+                                                onValueChange = { editText = it },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                minLines = 3,
+                                                maxLines = 5,
+                                                placeholder = { Text("Add notes about this session") }
+                                            )
+                                        }
+                                    },
+                                    confirmButton = {
+                                        TextButton(
+                                            onClick = {
+                                                val session = editingSession
+                                                if (session != null) {
+                                                    viewModel.updateSessionDescription(session.sessionId, editText)
+                                                }
+                                                editingSession = null
+                                            }
+                                        ) { Text("Save") }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { editingSession = null }) {
+                                            Text("Cancel")
+                                        }
                                     }
-
-                                    // 🔹 Text content
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(
-                                            text = "FOCUS MODE",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            letterSpacing = 1.5.sp,
-                                            textAlign = TextAlign.Center
-                                        )
-
-                                        Text(
-                                            text = "Active session in progress",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            textAlign = TextAlign.Center
-                                        )
-
-                                        Text(
-                                            text = "Jump back in!",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            textAlign = TextAlign.Center
-                                        )
-                                    }
-
-                                    // 🔹 BIG CENTERED BUTTON
-                                    // 🔥 ELEVATED, POPPING CTA BUTTON
-                                    Button(
-                                        onClick = onGoToActiveSession,
-                                        modifier = Modifier
-                                            .fillMaxWidth(0.75f)
-                                            .height(56.dp)
-                                            .padding(top = 4.dp),
-                                        elevation = ButtonDefaults.buttonElevation(
-                                            defaultElevation = 8.dp,
-                                            pressedElevation = 12.dp,
-                                            focusedElevation = 10.dp
-                                        ),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.onPrimary,     // bright contrasting
-                                            contentColor = MaterialTheme.colorScheme.primary          // Scyra color text
-                                        ),
-                                        contentPadding = PaddingValues(vertical = 12.dp)
-                                    ) {
-                                        Text(
-                                            text = "Resume Session",
-                                            style = MaterialTheme.typography.titleMedium
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        if (uiState.selectedTagId != null && uiState.sessions.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Total time: ${formatDuration(uiState.totalDurationMs)}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-
-                        if (BuildConfig.SHOW_SCORE) {
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // 🔹 Score filter chips (24h / 7d / 30d / all)
-                            ScoreFilterChips(
-                                selectedFilter = uiState.scoreFilter,
-                                onFilterSelected = viewModel::onScoreFilterSelected
-                            )
-
-
-                            Spacer(Modifier.height(16.dp))
-
-                            // 🔹 Score in the middle of the screen
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                ScoreDisplay(
-                                    score = uiState.currentScore,
-                                    scoreFilter = uiState.scoreFilter,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
                                 )
                             }
 
-                            HorizontalDivider()
-                        }
+                            // 🔹 Main scrollable content: focus card + total + score + sessions
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                contentPadding = PaddingValues(vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                // Header: Tag filters + Focus card + total + score
+                                item {
+                                    TagFilterRow(
+                                        tags = uiState.tags,
+                                        selectedTagId = uiState.selectedTagId,
+                                        onTagSelected = { tagId ->
+                                            viewModel.selectTag(tagId)
+                                        }
+                                    )
 
-                        SessionList(
-                            sessions = uiState.sessions,
-                            listState = listState,
-                            onSessionClick = { item ->
-                                onSessionClick(item.sessionId)
-                            },
-                            onDeleteSession = { item ->
-                                viewModel.deleteSession(item.sessionId)   // use the id from the UiModel
-                            },
-                            onUpdateSessionDescription = { item, description ->
-                                viewModel.updateSessionDescription(item.sessionId, description)
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    // Focus Mode card (big)
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(bottom = 12.dp),
+                                        shape = RoundedCornerShape(24.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.95f),
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        ),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 16.dp, vertical = 28.dp),
+                                            verticalArrangement = Arrangement.spacedBy(20.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(52.dp)
+                                                    .background(
+                                                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
+                                                        shape = CircleShape
+                                                    ),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Timer,
+                                                    contentDescription = "Focus mode active",
+                                                    modifier = Modifier.size(28.dp)
+                                                )
+                                            }
+
+                                            Column(
+                                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                                Text(
+                                                    text = "FOCUS MODE",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    letterSpacing = 1.5.sp,
+                                                    textAlign = TextAlign.Center
+                                                )
+
+                                                Text(
+                                                    text = "Active session in progress",
+                                                    style = MaterialTheme.typography.titleMedium,
+                                                    textAlign = TextAlign.Center
+                                                )
+
+                                                Text(
+                                                    text = "Jump back in!",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    textAlign = TextAlign.Center
+                                                )
+                                            }
+
+                                            Button(
+                                                onClick = onGoToActiveSession,
+                                                modifier = Modifier
+                                                    .fillMaxWidth(0.75f)
+                                                    .height(56.dp)
+                                                    .padding(top = 4.dp),
+                                                elevation = ButtonDefaults.buttonElevation(
+                                                    defaultElevation = 8.dp,
+                                                    pressedElevation = 12.dp,
+                                                    focusedElevation = 10.dp
+                                                ),
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = MaterialTheme.colorScheme.onPrimary,
+                                                    contentColor = MaterialTheme.colorScheme.primary
+                                                ),
+                                                contentPadding = PaddingValues(vertical = 12.dp)
+                                            ) {
+                                                Text(
+                                                    text = "Resume Session",
+                                                    style = MaterialTheme.typography.titleMedium
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    if (uiState.selectedTagId != null && uiState.sessions.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Total time: ${formatDuration(uiState.totalDurationMs)}",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+
+                                    if (BuildConfig.SHOW_SCORE) {
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        ScoreFilterChips(
+                                            selectedFilter = uiState.scoreFilter,
+                                            onFilterSelected = viewModel::onScoreFilterSelected
+                                        )
+
+                                        Spacer(Modifier.height(16.dp))
+
+                                        Box(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            ScoreDisplay(
+                                                score = uiState.currentScore,
+                                                scoreFilter = uiState.scoreFilter,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+
+                                        HorizontalDivider()
+                                    }
+                                }
+
+                                // Sessions (same behavior as SessionList, but in this LazyColumn)
+                                items(
+                                    items = uiState.sessions,
+                                    key = { it.sessionId }
+                                ) { session ->
+                                    val isExpanded = expandedSessionIds.contains(session.sessionId)
+
+                                    SessionRowCard(
+                                        session = session,
+                                        isExpanded = isExpanded,
+                                        onToggleExpand = {
+                                            expandedSessionIds = if (isExpanded) {
+                                                expandedSessionIds - session.sessionId
+                                            } else {
+                                                expandedSessionIds + session.sessionId
+                                            }
+                                        },
+                                        onClick = { onSessionClick(session.sessionId) },
+                                        onDeleteSession = { viewModel.deleteSession(session.sessionId) },
+                                        onLongPress = {
+                                            editingSession = session
+                                            editText = session.description
+                                        }
+                                    )
+                                }
                             }
-                        )
+
+                            // 🔹 Floating mini-bar once header has scrolled a bit
+                            if (miniBarAlpha > 0f) {
+                                FocusModeFloatingMiniBar(
+                                    modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .padding(top = 20.dp)           // 👈 move it down from the app bar
+                                        .graphicsLayer { alpha = miniBarAlpha }
+                                        .zIndex(10f),
+                                    onClick = onGoToActiveSession
+                                )
+                            }
+                        }
+                    } else {
+                        // ─────────────────────────────────────────────
+                        // FOCUS MODE OFF → original behavior
+                        // header + score static, only sessions scroll
+                        // ─────────────────────────────────────────────
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+
+                            TagFilterRow(
+                                tags = uiState.tags,
+                                selectedTagId = uiState.selectedTagId,
+                                onTagSelected = { tagId ->
+                                    viewModel.selectTag(tagId)
+                                }
+                            )
+
+                            if (uiState.selectedTagId != null && uiState.sessions.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Total time: ${formatDuration(uiState.totalDurationMs)}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+
+                            if (BuildConfig.SHOW_SCORE) {
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                ScoreFilterChips(
+                                    selectedFilter = uiState.scoreFilter,
+                                    onFilterSelected = viewModel::onScoreFilterSelected
+                                )
+
+                                Spacer(Modifier.height(16.dp))
+
+                                Box(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    ScoreDisplay(
+                                        score = uiState.currentScore,
+                                        scoreFilter = uiState.scoreFilter,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+
+                                HorizontalDivider()
+                            }
+
+                            SessionList(
+                                sessions = uiState.sessions,
+                                listState = listState,
+                                onSessionClick = { item -> onSessionClick(item.sessionId) },
+                                onDeleteSession = { item -> viewModel.deleteSession(item.sessionId) },
+                                onUpdateSessionDescription = { item, description ->
+                                    viewModel.updateSessionDescription(item.sessionId, description)
+                                }
+                            )
+                        }
                     }
                 }
+
+
             }
         }
     }
@@ -618,3 +786,62 @@ private fun SessionRowCard(
         )
     }
 }
+
+@Composable
+private fun FocusModeFloatingMiniBar(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .padding(horizontal = 24.dp)
+            .fillMaxWidth()
+            .heightIn(min = 56.dp),
+        shape = RoundedCornerShape(50),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+
+            Icon(
+                imageVector = Icons.Default.Timer,
+                contentDescription = "Focus Mode",
+                modifier = Modifier.size(22.dp)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            Text(
+                text = "Focus Mode Active",
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(end = 12.dp)
+            )
+
+            Button(
+                onClick = onClick,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.onPrimary,
+                    contentColor = MaterialTheme.colorScheme.primary
+                ),
+                modifier = Modifier.height(38.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+            ) {
+                Text(
+                    "Resume",
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
+        }
+    }
+}
+
+
