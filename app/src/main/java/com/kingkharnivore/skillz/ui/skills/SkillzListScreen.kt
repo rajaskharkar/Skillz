@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.ui.skills
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -12,15 +13,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,8 +42,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -64,7 +69,9 @@ import com.kingkharnivore.skillz.utils.score.ScoreFilter
 fun SkillListScreen(
     viewModel: SkillListViewModel,
     onAddSessionClick: () -> Unit,
-    onSessionClick: (Long) -> Unit // sessionId
+    onSessionClick: (Long) -> Unit,
+    onGoToActiveSession: () -> Unit,
+    isFocusModeOn: Boolean
 ) {
 
     val uiState by viewModel.uiState.collectAsState()
@@ -133,6 +140,7 @@ fun SkillListScreen(
                             .fillMaxSize()
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
+
                         TagFilterRow(
                             tags = uiState.tags,
                             selectedTagId = uiState.selectedTagId,
@@ -140,6 +148,98 @@ fun SkillListScreen(
                                 viewModel.selectTag(tagId)
                             }
                         )
+
+                        if (isFocusModeOn) {
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 12.dp),
+                                shape = RoundedCornerShape(24.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.95f),
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 28.dp),
+                                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+
+                                    // 🔹 Icon
+                                    Box(
+                                        modifier = Modifier
+                                            .size(52.dp)
+                                            .background(
+                                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
+                                                shape = CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Timer,
+                                            contentDescription = "Focus mode active",
+                                            modifier = Modifier.size(28.dp)
+                                        )
+                                    }
+
+                                    // 🔹 Text content
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = "FOCUS MODE",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            letterSpacing = 1.5.sp,
+                                            textAlign = TextAlign.Center
+                                        )
+
+                                        Text(
+                                            text = "Active session in progress",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            textAlign = TextAlign.Center
+                                        )
+
+                                        Text(
+                                            text = "Jump back in!",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+
+                                    // 🔹 BIG CENTERED BUTTON
+                                    // 🔥 ELEVATED, POPPING CTA BUTTON
+                                    Button(
+                                        onClick = onGoToActiveSession,
+                                        modifier = Modifier
+                                            .fillMaxWidth(0.75f)
+                                            .height(56.dp)
+                                            .padding(top = 4.dp),
+                                        elevation = ButtonDefaults.buttonElevation(
+                                            defaultElevation = 8.dp,
+                                            pressedElevation = 12.dp,
+                                            focusedElevation = 10.dp
+                                        ),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.onPrimary,     // bright contrasting
+                                            contentColor = MaterialTheme.colorScheme.primary          // Scyra color text
+                                        ),
+                                        contentPadding = PaddingValues(vertical = 12.dp)
+                                    ) {
+                                        Text(
+                                            text = "Resume Session",
+                                            style = MaterialTheme.typography.titleMedium
+                                        )
+                                    }
+                                }
+                            }
+                        }
 
                         if (uiState.selectedTagId != null && uiState.sessions.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(8.dp))

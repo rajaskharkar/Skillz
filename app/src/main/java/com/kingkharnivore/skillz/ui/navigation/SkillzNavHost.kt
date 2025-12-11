@@ -1,12 +1,8 @@
 package com.kingkharnivore.skillz.ui.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -21,38 +17,27 @@ fun SkillzNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
+    val focusVm: FocusOnViewModel = hiltViewModel()
+    val ongoing by focusVm.ongoingSession.collectAsState()
+    val isFocusModeOn = ongoing?.isInFocusMode == true
+
     NavHost(
         navController = navController,
         startDestination = SkillzDestinations.HOME_SCREEN,
         modifier = modifier
     ) {
-
         // --- HOME (SkillzHomeScreen: SessionList + Notepad pager) ---
         composable(SkillzDestinations.HOME_SCREEN) {
-            val focusVm: FocusOnViewModel = hiltViewModel()
-            val ongoing by focusVm.ongoingSession.collectAsState()
-
-            val sessionId = ongoing?.id
-            var hasNavigatedForSession by rememberSaveable(sessionId) {
-                mutableStateOf(false)
-            }
-
-            val shouldNavigate =
-                ongoing?.isInFocusMode == true &&
-                        hasNavigatedForSession.not()
-
-            LaunchedEffect(shouldNavigate) {
-                if (shouldNavigate) {
-                    hasNavigatedForSession = true
-                    navController.navigate(SkillzDestinations.ADD_SKILL)
-                }
-            }
 
             SkillzHomeScreen(
                 onSessionClick = { /* you can hook this up later if you add details */ },
                 onAddSessionClick = {
                     navController.navigate(SkillzDestinations.ADD_SKILL)
-                }
+                },
+                onGoToActiveSession = {
+                    navController.navigate(SkillzDestinations.ADD_SKILL)
+                },
+                isFocusModeOn = isFocusModeOn
             )
         }
 

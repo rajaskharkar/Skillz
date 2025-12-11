@@ -1,6 +1,5 @@
 package com.kingkharnivore.skillz.ui.skills
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -65,10 +64,6 @@ fun FocusOnScreen(
     var showPointsDialog by remember { mutableStateOf(false) }
     var lastBreakdown by remember { mutableStateOf<ScoreBreakdown?>(null) }
 
-    BackHandler(enabled = stopwatchState.isRunning) {
-        showEndDialog = true
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -76,11 +71,7 @@ fun FocusOnScreen(
                 navigationIcon = {
                     IconButton(
                         onClick = {
-                            if (stopwatchState.isRunning) {
-                                showEndDialog = true
-                            } else {
-                                onCancel()
-                            }
+                            onCancel()
                         }
                     ) {
                         Icon(
@@ -151,7 +142,7 @@ fun FocusOnScreen(
 
             if (isInFocusMode) {
                 Text(
-                    text = "Focus Mode active. Your session is being recorded.\n" +
+                    text = "Focus Mode active. You may use other parts oft this app.\n" +
                             "You may turn off the screen — the timer continues.",
                     style = MaterialTheme.typography.bodySmall
                 )
