@@ -89,12 +89,6 @@ fun SkillListScreen(
         }
     }
 
-    val title = when (BuildConfig.FLAVOR) {
-        "aera" -> "Aera"
-        "scyra" -> "Scyra"
-        else -> "Skillz"
-    }
-
     Scaffold(
         topBar = { SkillzTopAppBar() },
         floatingActionButton = {
