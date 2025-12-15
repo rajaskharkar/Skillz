@@ -1,22 +1,12 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.kingkharnivore.skillz.ui.skills
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -28,30 +18,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -64,13 +32,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.SessionListItemUiModel
+import com.kingkharnivore.skillz.data.model.entity.SessionListUiState
 import com.kingkharnivore.skillz.ui.components.SkillzTopAppBar
 import com.kingkharnivore.skillz.ui.viewmodel.SkillListViewModel
 import com.kingkharnivore.skillz.ui.viewmodel.TagUiModel
 import com.kingkharnivore.skillz.utils.formatDuration
 import com.kingkharnivore.skillz.utils.score.ScoreFilter
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SkillListScreen(
     viewModel: SkillListViewModel,
@@ -79,7 +47,6 @@ fun SkillListScreen(
     onGoToActiveSession: () -> Unit,
     isFocusModeOn: Boolean
 ) {
-
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
 
@@ -91,376 +58,520 @@ fun SkillListScreen(
 
     Scaffold(
         topBar = { SkillzTopAppBar() },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddSessionClick,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Text("+") // you can swap to an Icon if you prefer
-            }
-        }
+        floatingActionButton = { SkillListFab(onClick = onAddSessionClick) }
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            when {
-                uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
+            SkillListBody(
+                uiState = uiState,
+                listState = listState,
+                isFocusModeOn = isFocusModeOn,
+                onTagSelected = viewModel::selectTag,
+                onScoreFilterSelected = viewModel::onScoreFilterSelected,
+                onGoToActiveSession = onGoToActiveSession,
+                onSessionClick = onSessionClick,
+                onDeleteSession = viewModel::deleteSession,
+                onUpdateSessionDescription = viewModel::updateSessionDescription
+            )
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
+ * Body: loading / error / empty / content
+ * ────────────────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun SkillListBody(
+    uiState: SessionListUiState,
+    listState: LazyListState,
+    isFocusModeOn: Boolean,
+    onTagSelected: (Long?) -> Unit,
+    onScoreFilterSelected: (ScoreFilter) -> Unit,
+    onGoToActiveSession: () -> Unit,
+    onSessionClick: (Long) -> Unit,
+    onDeleteSession: (Long) -> Unit,
+    onUpdateSessionDescription: (Long, String) -> Unit
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        when {
+            uiState.isLoading -> {
+                LoadingState(modifier = Modifier.align(Alignment.Center))
+            }
+
+            uiState.errorMessage != null -> {
+                ErrorState(
+                    message = uiState.errorMessage,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
+            uiState.sessions.isEmpty() -> {
+                EmptyState(modifier = Modifier.align(Alignment.Center))
+            }
+
+            else -> {
+                if (isFocusModeOn) {
+                    FocusModeContent(
+                        uiState = uiState,
+                        listState = listState,
+                        onTagSelected = onTagSelected,
+                        onScoreFilterSelected = onScoreFilterSelected,
+                        onGoToActiveSession = onGoToActiveSession,
+                        onSessionClick = onSessionClick,
+                        onDeleteSession = onDeleteSession,
+                        onUpdateSessionDescription = onUpdateSessionDescription
+                    )
+                } else {
+                    NormalModeContent(
+                        uiState = uiState,
+                        listState = listState,
+                        onTagSelected = onTagSelected,
+                        onScoreFilterSelected = onScoreFilterSelected,
+                        onSessionClick = onSessionClick,
+                        onDeleteSession = onDeleteSession,
+                        onUpdateSessionDescription = onUpdateSessionDescription
                     )
                 }
-
-                uiState.errorMessage != null -> {
-                    Text(
-                        text = uiState.errorMessage ?: "Error",
-                        modifier = Modifier.align(Alignment.Center),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-
-                uiState.sessions.isEmpty() -> {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("No sessions yet.")
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Tap + to log your first session.")
-                    }
-                }
-
-                else -> {
-                    if (isFocusModeOn) {
-                        // ─────────────────────────────────────────────
-                        // FOCUS MODE ON → whole screen scrolls,
-                        // plus mini floating bar when scrolled
-                        // ─────────────────────────────────────────────
-
-                        // For score + sessions expansion/edit
-                        var expandedSessionIds by remember { mutableStateOf(setOf<Long>()) }
-                        var editingSession by remember { mutableStateOf<SessionListItemUiModel?>(null) }
-                        var editText by remember { mutableStateOf("") }
-
-                        // Smooth fade-in for the mini bar based on scroll offset
-                        val density = LocalDensity.current
-                        val thresholdStartPx = with(density) { 180.dp.toPx() }
-                        val thresholdEndPx = with(density) { 300.dp.toPx() }
-
-                        val rawScrollOffset = if (listState.firstVisibleItemIndex > 0) {
-                            thresholdEndPx
-                        } else {
-                            listState.firstVisibleItemScrollOffset.toFloat()
-                        }
-
-                        val miniBarAlpha by animateFloatAsState(
-                            targetValue = when {
-                                rawScrollOffset < thresholdStartPx -> 0f
-                                rawScrollOffset >= thresholdEndPx -> 1f
-                                else -> (rawScrollOffset - thresholdStartPx) / (thresholdEndPx - thresholdStartPx)
-                            },
-                            label = "miniBarAlpha"
-                        )
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                        ) {
-
-                            // Edit Description Dialog (same behavior as SessionList)
-                            if (editingSession != null) {
-                                AlertDialog(
-                                    onDismissRequest = { editingSession = null },
-                                    title = { Text("Edit description") },
-                                    text = {
-                                        Column {
-                                            Text(
-                                                text = editingSession!!.title,
-                                                style = MaterialTheme.typography.bodyMedium
-                                            )
-                                            Spacer(Modifier.height(8.dp))
-                                            OutlinedTextField(
-                                                value = editText,
-                                                onValueChange = { editText = it },
-                                                modifier = Modifier.fillMaxWidth(),
-                                                minLines = 3,
-                                                maxLines = 5,
-                                                placeholder = { Text("Add notes about this session") }
-                                            )
-                                        }
-                                    },
-                                    confirmButton = {
-                                        TextButton(
-                                            onClick = {
-                                                val session = editingSession
-                                                if (session != null) {
-                                                    viewModel.updateSessionDescription(session.sessionId, editText)
-                                                }
-                                                editingSession = null
-                                            }
-                                        ) { Text("Save") }
-                                    },
-                                    dismissButton = {
-                                        TextButton(onClick = { editingSession = null }) {
-                                            Text("Cancel")
-                                        }
-                                    }
-                                )
-                            }
-
-                            // 🔹 Main scrollable content: focus card + total + score + sessions
-                            LazyColumn(
-                                state = listState,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                contentPadding = PaddingValues(vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                // Header: Tag filters + Focus card + total + score
-                                item {
-                                    TagFilterRow(
-                                        tags = uiState.tags,
-                                        selectedTagId = uiState.selectedTagId,
-                                        onTagSelected = { tagId ->
-                                            viewModel.selectTag(tagId)
-                                        }
-                                    )
-
-                                    Spacer(modifier = Modifier.height(16.dp))
-
-                                    // Focus Mode card (big)
-                                    Card(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(bottom = 12.dp),
-                                        shape = RoundedCornerShape(24.dp),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.95f),
-                                            contentColor = MaterialTheme.colorScheme.onPrimary
-                                        ),
-                                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                                    ) {
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 16.dp, vertical = 28.dp),
-                                            verticalArrangement = Arrangement.spacedBy(20.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally
-                                        ) {
-
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(52.dp)
-                                                    .background(
-                                                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
-                                                        shape = CircleShape
-                                                    ),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Timer,
-                                                    contentDescription = "Focus mode active",
-                                                    modifier = Modifier.size(28.dp)
-                                                )
-                                            }
-
-                                            Column(
-                                                verticalArrangement = Arrangement.spacedBy(4.dp),
-                                                horizontalAlignment = Alignment.CenterHorizontally
-                                            ) {
-                                                Text(
-                                                    text = "FOCUS MODE",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    letterSpacing = 1.5.sp,
-                                                    textAlign = TextAlign.Center
-                                                )
-
-                                                Text(
-                                                    text = "Active session in progress",
-                                                    style = MaterialTheme.typography.titleMedium,
-                                                    textAlign = TextAlign.Center
-                                                )
-
-                                                Text(
-                                                    text = "Jump back in!",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    textAlign = TextAlign.Center
-                                                )
-                                            }
-
-                                            Button(
-                                                onClick = onGoToActiveSession,
-                                                modifier = Modifier
-                                                    .fillMaxWidth(0.75f)
-                                                    .height(56.dp)
-                                                    .padding(top = 4.dp),
-                                                elevation = ButtonDefaults.buttonElevation(
-                                                    defaultElevation = 8.dp,
-                                                    pressedElevation = 12.dp,
-                                                    focusedElevation = 10.dp
-                                                ),
-                                                colors = ButtonDefaults.buttonColors(
-                                                    containerColor = MaterialTheme.colorScheme.onPrimary,
-                                                    contentColor = MaterialTheme.colorScheme.primary
-                                                ),
-                                                contentPadding = PaddingValues(vertical = 12.dp)
-                                            ) {
-                                                Text(
-                                                    text = "Resume Session",
-                                                    style = MaterialTheme.typography.titleMedium
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    if (uiState.selectedTagId != null && uiState.sessions.isNotEmpty()) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = "Total time: ${formatDuration(uiState.totalDurationMs)}",
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                    }
-
-                                    if (BuildConfig.SHOW_SCORE) {
-                                        Spacer(modifier = Modifier.height(12.dp))
-
-                                        ScoreFilterChips(
-                                            selectedFilter = uiState.scoreFilter,
-                                            onFilterSelected = viewModel::onScoreFilterSelected
-                                        )
-
-                                        Spacer(Modifier.height(16.dp))
-
-                                        Box(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            ScoreDisplay(
-                                                score = uiState.currentScore,
-                                                scoreFilter = uiState.scoreFilter,
-                                                modifier = Modifier.fillMaxWidth()
-                                            )
-                                        }
-
-                                        HorizontalDivider()
-                                    }
-                                }
-
-                                // Sessions (same behavior as SessionList, but in this LazyColumn)
-                                items(
-                                    items = uiState.sessions,
-                                    key = { it.sessionId }
-                                ) { session ->
-                                    val isExpanded = expandedSessionIds.contains(session.sessionId)
-
-                                    SessionRowCard(
-                                        session = session,
-                                        isExpanded = isExpanded,
-                                        onToggleExpand = {
-                                            expandedSessionIds = if (isExpanded) {
-                                                expandedSessionIds - session.sessionId
-                                            } else {
-                                                expandedSessionIds + session.sessionId
-                                            }
-                                        },
-                                        onClick = { onSessionClick(session.sessionId) },
-                                        onDeleteSession = { viewModel.deleteSession(session.sessionId) },
-                                        onLongPress = {
-                                            editingSession = session
-                                            editText = session.description
-                                        }
-                                    )
-                                }
-                            }
-
-                            // 🔹 Floating mini-bar once header has scrolled a bit
-                            if (miniBarAlpha > 0f) {
-                                FocusModeFloatingMiniBar(
-                                    modifier = Modifier
-                                        .align(Alignment.TopCenter)
-                                        .padding(top = 20.dp)           // 👈 move it down from the app bar
-                                        .graphicsLayer { alpha = miniBarAlpha }
-                                        .zIndex(10f),
-                                    onClick = onGoToActiveSession
-                                )
-                            }
-                        }
-                    } else {
-                        // ─────────────────────────────────────────────
-                        // FOCUS MODE OFF → original behavior
-                        // header + score static, only sessions scroll
-                        // ─────────────────────────────────────────────
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-
-                            TagFilterRow(
-                                tags = uiState.tags,
-                                selectedTagId = uiState.selectedTagId,
-                                onTagSelected = { tagId ->
-                                    viewModel.selectTag(tagId)
-                                }
-                            )
-
-                            if (uiState.selectedTagId != null && uiState.sessions.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Total time: ${formatDuration(uiState.totalDurationMs)}",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-
-                            if (BuildConfig.SHOW_SCORE) {
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                ScoreFilterChips(
-                                    selectedFilter = uiState.scoreFilter,
-                                    onFilterSelected = viewModel::onScoreFilterSelected
-                                )
-
-                                Spacer(Modifier.height(16.dp))
-
-                                Box(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    ScoreDisplay(
-                                        score = uiState.currentScore,
-                                        scoreFilter = uiState.scoreFilter,
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-
-                                HorizontalDivider()
-                            }
-
-                            SessionList(
-                                sessions = uiState.sessions,
-                                listState = listState,
-                                onSessionClick = { item -> onSessionClick(item.sessionId) },
-                                onDeleteSession = { item -> viewModel.deleteSession(item.sessionId) },
-                                onUpdateSessionDescription = { item, description ->
-                                    viewModel.updateSessionDescription(item.sessionId, description)
-                                }
-                            )
-                        }
-                    }
-                }
-
-
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/* ──────────────────────────────────────────────────────────────────────────────
+ * Focus Mode: Entire screen scrolls + floating mini bar
+ * ────────────────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun FocusModeContent(
+    uiState: SessionListUiState,
+    listState: LazyListState,
+    onTagSelected: (Long?) -> Unit,
+    onScoreFilterSelected: (ScoreFilter) -> Unit,
+    onGoToActiveSession: () -> Unit,
+    onSessionClick: (Long) -> Unit,
+    onDeleteSession: (Long) -> Unit,
+    onUpdateSessionDescription: (Long, String) -> Unit
+) {
+    val expandedState = rememberExpandedSessionIdsState()
+    val editState = rememberSessionEditState()
+
+    val miniBarAlpha by rememberMiniBarAlpha(listState)
+
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        SessionEditDialog(
+            editState = editState,
+            onSave = { sessionId, newText ->
+                onUpdateSessionDescription(sessionId, newText)
+            }
+        )
+
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                SkillListHeader(
+                    uiState = uiState,
+                    onTagSelected = onTagSelected,
+                    onScoreFilterSelected = onScoreFilterSelected,
+                    extraTopContent = {
+                        FocusModeHeroCard(onGoToActiveSession = onGoToActiveSession)
+                    }
+                )
+            }
+
+            items(
+                items = uiState.sessions,
+                key = { it.sessionId }
+            ) { session ->
+                SessionRowCard(
+                    session = session,
+                    isExpanded = expandedState.isExpanded(session.sessionId),
+                    onToggleExpand = { expandedState.toggle(session.sessionId) },
+                    onDeleteSession = { onDeleteSession(session.sessionId) },
+                    onLongPress = { editState.startEditing(session) },
+                    onClick = { onSessionClick(session.sessionId) }
+                )
+            }
+        }
+
+        if (miniBarAlpha > 0f) {
+            FocusModeFloatingMiniBar(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 20.dp)
+                    .graphicsLayer { alpha = miniBarAlpha }
+                    .zIndex(10f),
+                onClick = onGoToActiveSession
+            )
+        }
+    }
+}
+
+@Composable
+private fun FocusModeHeroCard(
+    onGoToActiveSession: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.95f),
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Timer,
+                    contentDescription = "Focus mode active",
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "FOCUS MODE",
+                    style = MaterialTheme.typography.labelSmall,
+                    letterSpacing = 1.5.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Text(
+                    text = "Active session in progress",
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center
+                )
+
+                Text(
+                    text = "Jump back in!",
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Button(
+                onClick = onGoToActiveSession,
+                modifier = Modifier
+                    .fillMaxWidth(0.75f)
+                    .height(56.dp)
+                    .padding(top = 4.dp),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 8.dp,
+                    pressedElevation = 12.dp,
+                    focusedElevation = 10.dp
+                ),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.onPrimary,
+                    contentColor = MaterialTheme.colorScheme.primary
+                ),
+                contentPadding = PaddingValues(vertical = 12.dp)
+            ) {
+                Text(
+                    text = "Resume Session",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
+ * Normal Mode: Header static, sessions scroll
+ * ────────────────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun NormalModeContent(
+    uiState: SessionListUiState,
+    listState: LazyListState,
+    onTagSelected: (Long?) -> Unit,
+    onScoreFilterSelected: (ScoreFilter) -> Unit,
+    onSessionClick: (Long) -> Unit,
+    onDeleteSession: (Long) -> Unit,
+    onUpdateSessionDescription: (Long, String) -> Unit
+) {
+    val expandedState = rememberExpandedSessionIdsState()
+    val editState = rememberSessionEditState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        SkillListHeader(
+            uiState = uiState,
+            onTagSelected = onTagSelected,
+            onScoreFilterSelected = onScoreFilterSelected
+        )
+
+        SessionEditDialog(
+            editState = editState,
+            onSave = { sessionId, newText -> onUpdateSessionDescription(sessionId, newText) }
+        )
+
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(
+                items = uiState.sessions,
+                key = { it.sessionId }
+            ) { session ->
+                SessionRowCard(
+                    session = session,
+                    isExpanded = expandedState.isExpanded(session.sessionId),
+                    onToggleExpand = { expandedState.toggle(session.sessionId) },
+                    onDeleteSession = { onDeleteSession(session.sessionId) },
+                    onLongPress = { editState.startEditing(session) },
+                    onClick = { onSessionClick(session.sessionId) }
+                )
+            }
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
+ * Header: tags + total time + score + optional focus card
+ * ────────────────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun SkillListHeader(
+    uiState: SessionListUiState,
+    onTagSelected: (Long?) -> Unit,
+    onScoreFilterSelected: (ScoreFilter) -> Unit,
+    extraTopContent: (@Composable () -> Unit)? = null
+) {
+    TagFilterRow(
+        tags = uiState.tags,
+        selectedTagId = uiState.selectedTagId,
+        onTagSelected = onTagSelected
+    )
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    extraTopContent?.invoke()
+
+    if (uiState.selectedTagId != null && uiState.sessions.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Total time: ${formatDuration(uiState.totalDurationMs)}",
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+
+    if (BuildConfig.SHOW_SCORE) {
+        Spacer(modifier = Modifier.height(12.dp))
+
+        ScoreFilterChips(
+            selectedFilter = uiState.scoreFilter,
+            onFilterSelected = onScoreFilterSelected
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            ScoreDisplay(
+                score = uiState.currentScore,
+                scoreFilter = uiState.scoreFilter,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        HorizontalDivider()
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
+ * Small UI states
+ * ────────────────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun LoadingState(modifier: Modifier = Modifier) {
+    CircularProgressIndicator(modifier = modifier)
+}
+
+@Composable
+private fun ErrorState(message: String?, modifier: Modifier = Modifier) {
+    Text(
+        text = message ?: "Error",
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.error
+    )
+}
+
+@Composable
+private fun EmptyState(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("No sessions yet.")
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("Tap + to log your first session.")
+    }
+}
+
+@Composable
+private fun SkillListFab(onClick: () -> Unit) {
+    FloatingActionButton(
+        onClick = onClick,
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary
+    ) {
+        Text("+")
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
+ * Edit dialog state (shared by both modes)
+ * ────────────────────────────────────────────────────────────────────────────── */
+
+private class SessionEditState(
+    val editingSession: MutableState<SessionListItemUiModel?>,
+    val editText: MutableState<String>
+) {
+    fun startEditing(session: SessionListItemUiModel) {
+        editingSession.value = session
+        editText.value = session.description
+    }
+
+    fun stopEditing() {
+        editingSession.value = null
+    }
+}
+
+@Composable
+private fun rememberSessionEditState(): SessionEditState {
+    val editingSession = remember { mutableStateOf<SessionListItemUiModel?>(null) }
+    val editText = remember { mutableStateOf("") }
+    return remember { SessionEditState(editingSession, editText) }
+}
+
+@Composable
+private fun SessionEditDialog(
+    editState: SessionEditState,
+    onSave: (sessionId: Long, newText: String) -> Unit
+) {
+    val session = editState.editingSession.value ?: return
+
+    AlertDialog(
+        onDismissRequest = { editState.stopEditing() },
+        title = { Text("Edit description") },
+        text = {
+            Column {
+                Text(
+                    text = session.title,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = editState.editText.value,
+                    onValueChange = { editState.editText.value = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 5,
+                    placeholder = { Text("Add notes about this session") }
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onSave(session.sessionId, editState.editText.value)
+                    editState.stopEditing()
+                }
+            ) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = { editState.stopEditing() }) { Text("Cancel") }
+        }
+    )
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
+ * Expand/collapse state
+ * ────────────────────────────────────────────────────────────────────────────── */
+
+private class ExpandedSessionIdsState(
+    private val ids: MutableState<Set<Long>>
+) {
+    fun isExpanded(id: Long): Boolean = ids.value.contains(id)
+
+    fun toggle(id: Long) {
+        ids.value = if (ids.value.contains(id)) ids.value - id else ids.value + id
+    }
+}
+
+@Composable
+private fun rememberExpandedSessionIdsState(): ExpandedSessionIdsState {
+    val ids = remember { mutableStateOf(setOf<Long>()) }
+    return remember { ExpandedSessionIdsState(ids) }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
+ * Mini bar alpha computation (extracted)
+ * ────────────────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun rememberMiniBarAlpha(listState: LazyListState): State<Float> {
+    val density = LocalDensity.current
+    val thresholdStartPx = remember(density) { with(density) { 180.dp.toPx() } }
+    val thresholdEndPx = remember(density) { with(density) { 300.dp.toPx() } }
+
+    val rawScrollOffset = if (listState.firstVisibleItemIndex > 0) {
+        thresholdEndPx
+    } else {
+        listState.firstVisibleItemScrollOffset.toFloat()
+    }
+
+    return animateFloatAsState(
+        targetValue = when {
+            rawScrollOffset < thresholdStartPx -> 0f
+            rawScrollOffset >= thresholdEndPx -> 1f
+            else -> (rawScrollOffset - thresholdStartPx) / (thresholdEndPx - thresholdStartPx)
+        },
+        label = "miniBarAlpha"
+    )
+}
+
+/* ──────────────────────────────────────────────────────────────────────────────
+ * Existing reusable components (kept)
+ * ────────────────────────────────────────────────────────────────────────────── */
+
 @Composable
 fun ScoreFilterChips(
     selectedFilter: ScoreFilter,
@@ -481,7 +592,6 @@ fun ScoreFilterChips(
         }
     }
 }
-
 
 @Composable
 fun TagFilterRow(
@@ -505,7 +615,6 @@ fun TagFilterRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 8.dp)
         ) {
-            // "All" chip
             item {
                 FilterChip(
                     selected = selectedTagId == null,
@@ -515,7 +624,6 @@ fun TagFilterRow(
                 )
             }
 
-            // One chip per tag
             items(
                 items = tags,
                 key = { it.id }
@@ -538,13 +646,10 @@ fun ScoreDisplay(
     modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = modifier
-            .padding(80.dp),
+        modifier = modifier.padding(80.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-
-            // Big number
             Text(
                 text = "$score",
                 style = MaterialTheme.typography.displayLarge.copy(
@@ -556,104 +661,15 @@ fun ScoreDisplay(
 
             Spacer(Modifier.height(4.dp))
 
-            // Label for selected window
             Text(
                 text = when (scoreFilter) {
                     ScoreFilter.LAST_24_HOURS -> "Last 24 hours"
-                    ScoreFilter.LAST_7_DAYS   -> "Last 7 days"
-                    ScoreFilter.LAST_30_DAYS  -> "Last 30 days"
-                    ScoreFilter.ALL_TIME      -> "All time"
+                    ScoreFilter.LAST_7_DAYS -> "Last 7 days"
+                    ScoreFilter.LAST_30_DAYS -> "Last 30 days"
+                    ScoreFilter.ALL_TIME -> "All time"
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-fun SessionList(
-    sessions: List<SessionListItemUiModel>,
-    listState: LazyListState,
-    onSessionClick: (SessionListItemUiModel) -> Unit,
-    onDeleteSession: (SessionListItemUiModel) -> Unit,
-    onUpdateSessionDescription: (SessionListItemUiModel, String) -> Unit
-)
-{
-    var expandedSessionIds by remember { mutableStateOf(setOf<Long>()) }
-
-    var editingSession by remember { mutableStateOf<SessionListItemUiModel?>(null) }
-    var editText by remember { mutableStateOf("") }
-
-    // ─── Edit Description Dialog ─────────────────────
-    if (editingSession != null) {
-        AlertDialog(
-            onDismissRequest = { editingSession = null },
-            title = { Text("Edit description") },
-            text = {
-                Column {
-                    Text(
-                        text = editingSession!!.title,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = editText,
-                        onValueChange = { editText = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3,
-                        maxLines = 5,
-                        placeholder = { Text("Add notes about this session") }
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val session = editingSession
-                        if (session != null) {
-                            onUpdateSessionDescription(session, editText)
-                        }
-                        editingSession = null
-                    }
-                ) { Text("Save") }
-            },
-            dismissButton = {
-                TextButton(onClick = { editingSession = null }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    LazyColumn(
-        state = listState,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(
-            items = sessions,
-            key = { it.sessionId }
-        ) { session ->
-            val isExpanded = expandedSessionIds.contains(session.sessionId)
-
-            SessionRowCard(
-                session = session,
-                isExpanded = isExpanded,
-                onToggleExpand = {
-                    expandedSessionIds = if (isExpanded) {
-                        expandedSessionIds - session.sessionId
-                    } else {
-                        expandedSessionIds + session.sessionId
-                    }
-                },
-                onClick = { onSessionClick(session) },
-                onDeleteSession = { onDeleteSession(session) },
-                onLongPress = {
-                    editingSession = session
-                    editText = session.description
-                }
             )
         }
     }
@@ -664,9 +680,9 @@ private fun SessionRowCard(
     session: SessionListItemUiModel,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
-    onClick: () -> Unit,
     onDeleteSession: () -> Unit,
-    onLongPress: () -> Unit
+    onLongPress: () -> Unit,
+    onClick: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -678,9 +694,12 @@ private fun SessionRowCard(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
-            onClick = { onToggleExpand() },
-            onLongClick = onLongPress
-        )
+                onClick = {
+                    onToggleExpand()
+                    onClick()
+                },
+                onLongClick = onLongPress
+            )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
@@ -690,7 +709,6 @@ private fun SessionRowCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    // Skill / Tag name
                     Text(
                         text = session.tagName,
                         style = MaterialTheme.typography.labelMedium
@@ -698,18 +716,14 @@ private fun SessionRowCard(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // Title
                     Text(
                         text = session.title,
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
 
-                // 🗑 Show delete icon ONLY when expanded
                 if (isExpanded) {
-                    IconButton(
-                        onClick = { showDeleteDialog = true }
-                    ) {
+                    IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
                             contentDescription = "Delete session"
@@ -751,7 +765,6 @@ private fun SessionRowCard(
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-
         }
     }
 
@@ -766,16 +779,10 @@ private fun SessionRowCard(
                         showDeleteDialog = false
                         onDeleteSession()
                     }
-                ) {
-                    Text("Delete")
-                }
+                ) { Text("Delete") }
             },
             dismissButton = {
-                TextButton(
-                    onClick = { showDeleteDialog = false }
-                ) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
             }
         )
     }
@@ -805,7 +812,6 @@ private fun FocusModeFloatingMiniBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-
             Icon(
                 imageVector = Icons.Default.Timer,
                 contentDescription = "Focus Mode",
@@ -829,13 +835,8 @@ private fun FocusModeFloatingMiniBar(
                 modifier = Modifier.height(38.dp),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
             ) {
-                Text(
-                    "Resume",
-                    style = MaterialTheme.typography.labelMedium
-                )
+                Text("Resume", style = MaterialTheme.typography.labelMedium)
             }
         }
     }
 }
-
-
