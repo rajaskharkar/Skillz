@@ -19,7 +19,9 @@ fun SkillzHomeScreen(
     onSessionClick: (Long) -> Unit,
     skillzViewModel: SkillListViewModel = hiltViewModel(),
     notepadViewModel: NotepadViewModel = hiltViewModel(),
-    onAddSessionClick: () -> Unit
+    onAddSessionClick: () -> Unit,
+    onGoToActiveSession: () -> Unit,
+    isFocusModeOn: Boolean
 ) {
     val uiState by skillzViewModel.uiState.collectAsState()
     val notepadText by notepadViewModel.notepadText.collectAsState()
@@ -41,7 +43,9 @@ fun SkillzHomeScreen(
                 SkillListScreen(
                     viewModel = skillzViewModel,
                     onAddSessionClick = onAddSessionClick,
-                    onSessionClick = { sessionId -> println("Clicked session: $sessionId") }
+                    onSessionClick = { sessionId -> println("Clicked session: $sessionId") },
+                    onGoToActiveSession = onGoToActiveSession,
+                    isFocusModeOn
                 )
             }
 
