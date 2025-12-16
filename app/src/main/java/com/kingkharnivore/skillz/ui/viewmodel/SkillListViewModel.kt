@@ -117,30 +117,42 @@ class SkillListViewModel @Inject constructor(
                 errorMessage = null
             )
             combine(
-                sessionsFlow,   // Flow<List<SessionEntity>>
-                tagsFlow,       // Flow<List<TagEntity>>
-                selectedTagId,  // StateFlow<Long?>
-                scoreFilter     // StateFlow<ScoreFilter>
+                sessionsFlow,
+                tagsFlow,
+                selectedTagId,
+                scoreFilter
             ) { sessions, tags, currentTagId, currentScoreFilter ->
 
                 val nowMs = System.currentTimeMillis()
 
-                // 1) Filter sessions by selected tag (for the LIST)
-                val visibleSessions: List<SessionEntity> = currentTagId?.let { tagId ->
+                // 1) Filter by selected tag
+                val sessionsForTag: List<SessionEntity> = currentTagId?.let { tagId ->
                     sessions.filter { it.tagId == tagId }
                 } ?: sessions
 
-                // 2) Total duration for *visible* sessions
-                val totalDurationMs = visibleSessions.sumOf { it.durationMs }
-
-                // 3) Score uses ALL sessions within the score window
-                val sessionsForScore = sessions.filter { session ->
-                    session.isInScoreWindow(
-                        nowMs = nowMs,
-                        filter = currentScoreFilter
-                    )
+                val availableFilters: Set<ScoreFilter> = ScoreFilter.values().filterTo(mutableSetOf()) { filter ->
+                    when (filter) {
+                        ScoreFilter.ALL_TIME -> sessionsForTag.isNotEmpty()
+                        else -> sessionsForTag.any { it.isInScoreWindow(nowMs = nowMs, filter = filter) }
+                    }
                 }
-                val totalScore = ScoreCalculator.totalScoreForSessions(sessionsForScore)
+
+                val effectiveScoreFilter =
+                    if (availableFilters.contains(currentScoreFilter)) currentScoreFilter
+                    else availableFilters.firstOrNull() ?: ScoreFilter.ALL_TIME
+
+
+                // 2) Filter by selected time window (applied ON TOP of tag filter)
+                val visibleSessions: List<SessionEntity> = when (effectiveScoreFilter) {
+                    ScoreFilter.ALL_TIME -> sessionsForTag
+                    else -> sessionsForTag.filter { session ->
+                        session.isInScoreWindow(nowMs = nowMs, filter = effectiveScoreFilter)
+                    }
+                }
+
+                // 3) Total time + score should reflect exactly what’s visible
+                val totalDurationMs = visibleSessions.sumOf { it.durationMs }
+                val totalScore = ScoreCalculator.totalScoreForSessions(visibleSessions)
 
                 SessionListUiState(
                     isLoading = false,
@@ -149,19 +161,18 @@ class SkillListViewModel @Inject constructor(
                     selectedTagId = currentTagId,
                     totalDurationMs = totalDurationMs,
                     errorMessage = null,
-                    scoreFilter = currentScoreFilter,
-                    currentScore = totalScore
+                    scoreFilter = effectiveScoreFilter,
+                    currentScore = totalScore,
+                    availableScoreFilters = availableFilters
                 )
+            }.catch { e ->
+                uiState.value = uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.message ?: "Something went wrong"
+                )
+            }.collect { newState ->
+                uiState.value = newState
             }
-                .catch { e ->
-                    uiState.value = uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = e.message ?: "Something went wrong"
-                    )
-                }
-                .collect { newState ->
-                    uiState.value = newState
-                }
         }
     }
 

@@ -55,7 +55,8 @@ data class SessionListUiState(
     val totalDurationMs: Long = 0L,
     val errorMessage: String? = null,
     val scoreFilter: ScoreFilter = ScoreFilter.LAST_7_DAYS,
-    val currentScore: Int = 0
+    val currentScore: Int = 0,
+    val availableScoreFilters: Set<ScoreFilter> = ScoreFilter.values().toSet()
 )
 
 data class SessionListItemUiModel(
