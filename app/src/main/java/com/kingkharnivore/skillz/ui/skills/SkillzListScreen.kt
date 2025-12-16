@@ -443,6 +443,7 @@ private fun SkillListHeader(
 
         ScoreFilterChips(
             selectedFilter = uiState.scoreFilter,
+            availableFilters = uiState.availableScoreFilters,
             onFilterSelected = onScoreFilterSelected
         )
 
@@ -623,6 +624,7 @@ private fun rememberMiniBarAlpha(listState: LazyListState): State<Float> {
 @Composable
 fun ScoreFilterChips(
     selectedFilter: ScoreFilter,
+    availableFilters: Set<ScoreFilter>,
     onFilterSelected: (ScoreFilter) -> Unit
 ) {
     Row(
@@ -630,14 +632,16 @@ fun ScoreFilterChips(
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
     ) {
-        ScoreFilter.values().forEach { filter ->
-            FilterChip(
-                selected = filter == selectedFilter,
-                onClick = { onFilterSelected(filter) },
-                label = { Text(filter.label) },
-                modifier = Modifier.padding(end = 8.dp)
-            )
-        }
+        ScoreFilter.values()
+            .filter { it in availableFilters }
+            .forEach { filter ->
+                FilterChip(
+                    selected = filter == selectedFilter,
+                    onClick = { onFilterSelected(filter) },
+                    label = { Text(filter.label) },
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+            }
     }
 }
 
