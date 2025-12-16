@@ -117,10 +117,10 @@ class SkillListViewModel @Inject constructor(
                 errorMessage = null
             )
             combine(
-                sessionsFlow,   // Flow<List<SessionEntity>>
-                tagsFlow,       // Flow<List<TagEntity>>
-                selectedTagId,  // StateFlow<Long?>
-                scoreFilter     // StateFlow<ScoreFilter>
+                sessionsFlow,
+                tagsFlow,
+                selectedTagId,
+                scoreFilter
             ) { sessions, tags, currentTagId, currentScoreFilter ->
 
                 val nowMs = System.currentTimeMillis()
@@ -130,17 +130,22 @@ class SkillListViewModel @Inject constructor(
                     sessions.filter { it.tagId == tagId }
                 } ?: sessions
 
-                // 2) Total duration for *visible* sessions
-                val totalDurationMs = visibleSessions.sumOf { it.durationMs }
-
-                // 3) Score uses ALL sessions within the score window
-                val sessionsForScore = sessions.filter { session ->
-                    session.isInScoreWindow(
-                        nowMs = nowMs,
-                        filter = currentScoreFilter
-                    )
+                // 2) Apply the TIME filter on top of the tag-filtered set (for SCORE + TOTAL TIME)
+                val sessionsInWindow: List<SessionEntity> = when (currentScoreFilter) {
+                    ScoreFilter.ALL_TIME -> visibleSessions
+                    else -> visibleSessions.filter { session ->
+                        session.isInScoreWindow(
+                            nowMs = nowMs,
+                            filter = currentScoreFilter
+                        )
+                    }
                 }
-                val totalScore = ScoreCalculator.totalScoreForSessions(sessionsForScore)
+
+                // 3) Total duration should reflect BOTH tag + time window
+                val totalDurationMs = sessionsInWindow.sumOf { it.durationMs }
+
+                // 4) Score should reflect BOTH tag + time window
+                val totalScore = ScoreCalculator.totalScoreForSessions(sessionsInWindow)
 
                 SessionListUiState(
                     isLoading = false,
@@ -152,16 +157,14 @@ class SkillListViewModel @Inject constructor(
                     scoreFilter = currentScoreFilter,
                     currentScore = totalScore
                 )
+            }.catch { e ->
+                uiState.value = uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.message ?: "Something went wrong"
+                )
+            }.collect { newState ->
+                uiState.value = newState
             }
-                .catch { e ->
-                    uiState.value = uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = e.message ?: "Something went wrong"
-                    )
-                }
-                .collect { newState ->
-                    uiState.value = newState
-                }
         }
     }
 

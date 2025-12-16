@@ -361,6 +361,52 @@ private fun NormalModeContent(
     }
 }
 
+@Composable
+fun TotalTimeHighlight(
+    totalDurationMs: Long,
+    scoreFilterLabel: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.secondary,
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = "TOTAL TIME",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+
+                Spacer(Modifier.height(4.dp))
+
+                Text(
+                    text = scoreFilterLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
+                )
+            }
+
+            Text(
+                text = formatDuration(totalDurationMs),
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}
+
 /* ──────────────────────────────────────────────────────────────────────────────
  * Header: tags + total time + score + optional focus card
  * ────────────────────────────────────────────────────────────────────────────── */
@@ -384,10 +430,12 @@ private fun SkillListHeader(
 
     if (uiState.selectedTagId != null && uiState.sessions.isNotEmpty()) {
         Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Total time: ${formatDuration(uiState.totalDurationMs)}",
-            style = MaterialTheme.typography.bodyMedium
+        TotalTimeHighlight(
+            totalDurationMs = uiState.totalDurationMs,
+            scoreFilterLabel = uiState.scoreFilter.label
         )
+
+        Spacer(Modifier.height(12.dp))
     }
 
     if (BuildConfig.SHOW_SCORE) {

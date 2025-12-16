@@ -15,7 +15,9 @@ val RavenclawBlue =  Color(0xFF2F4F6F)
 val SteelGrey =  Color(0xFF3A4652)
 val SageMist = Color(0xFF7E9B8B)
 val SlytherinButNiceTeal = Color(0xFF3F8F8B)
-val GryffindorGold = Color(0xFFD3A625)     // Gold
+val AntiqueGold = Color(0xFFB8A56A)     // Gold
+val Bronze = Color(0xFFB7893A)
+
 val GryffindorOffWhite = Color(0xFFF2EBDD) // Parchment
 val GryffindorBlack = Color(0xFF000000)
 val color = if (BuildConfig.SHOW_SCORE) RavenclawBlue else SlytherinButNiceTeal
@@ -36,7 +38,7 @@ private val LightGryffindorColors = lightColorScheme(
     primary = color,
     onPrimary = GryffindorOffWhite,
 
-    secondary = GryffindorGold,
+    secondary = AntiqueGold,
     onSecondary = GryffindorBlack,
 
     background = GryffindorOffWhite,      // #F2EBDD
@@ -50,7 +52,7 @@ private val DarkGryffindorColors = darkColorScheme(
     primary = color,
     onPrimary = GryffindorOffWhite,
 
-    secondary = GryffindorGold,
+    secondary = Bronze,
     onSecondary = GryffindorBlack,
 
     background = Color(0xFF1A1412),      // warm dark brown/red-black
