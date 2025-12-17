@@ -52,7 +52,7 @@ android {
             versionNameSuffix = "-aera"
             resValue("string", "app_name", "Aera")
             buildConfigField("boolean", "SHOW_SCORE", "false")
-            buildConfigField("String", "PRIMARY_COLOR", "\"#2F4F6F\"") // RavenclawBlue
+            buildConfigField("int", "PRIMARY_COLOR", "0xFF3F8F8B") // RavenclawBlue
         }
 
         create("scyra") {
@@ -61,7 +61,7 @@ android {
             versionNameSuffix = "-scyra"
             resValue("string", "app_name", "Scyra")
             buildConfigField("boolean", "SHOW_SCORE", "true")
-            buildConfigField("String", "PRIMARY_COLOR", "\"#991B1B\"") // GryffindorRed
+            buildConfigField("int", "PRIMARY_COLOR", "0xFF2F4F6F") // GryffindorRed
         }
     }
 }
@@ -84,6 +84,7 @@ dependencies {
     implementation("androidx.compose.animation:animation")
 
     implementation(libs.androidx.navigation.compose)
+    implementation("androidx.lifecycle:lifecycle-service:2.10.0")
 
     implementation(libs.hilt.android)
     implementation(libs.androidx.compose.animation.core)

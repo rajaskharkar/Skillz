@@ -7,6 +7,7 @@ import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
+import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -38,7 +39,8 @@ data class FlowUiState(
 class FlowViewModel @Inject constructor(
     private val tagRepository: JourneyRepository,
     private val sessionRepository: FlowRepository,
-    private val focusSessionRepository: AliveFlowRepository
+    private val focusSessionRepository: AliveFlowRepository,
+    private val aliveFlowServiceController: AliveFlowServiceController
 ) : ViewModel() {
 
     val ongoingSession: StateFlow<OngoingSessionEntity?> =
@@ -187,13 +189,13 @@ class FlowViewModel @Inject constructor(
     }
 
     // Focus mode toggle
-
     fun enterFocusMode() {
         if (!_uiState.value.stopwatch.isRunning) {
             startOrResumeStopwatch()
         }
         _uiState.update { it.copy(isInFlowMode = true) }
         saveOngoing()
+        aliveFlowServiceController.start()
     }
 
     fun exitFocusMode() {
@@ -202,6 +204,7 @@ class FlowViewModel @Inject constructor(
         }
         _uiState.update { it.copy(isInFlowMode = false) }
         saveOngoing()
+        aliveFlowServiceController.stop()
     }
 
     // Persist current state to DB
@@ -258,6 +261,7 @@ class FlowViewModel @Inject constructor(
                 resetStopwatch()
                 _uiState.value = FlowUiState()
                 clearOngoing()
+                aliveFlowServiceController.stop()
                 onDone()
             } catch (e: Exception) {
                 _error.value = e.message ?: "Failed to save session"
