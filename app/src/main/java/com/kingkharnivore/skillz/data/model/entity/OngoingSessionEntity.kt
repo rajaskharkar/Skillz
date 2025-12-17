@@ -9,7 +9,7 @@ data class OngoingSessionEntity(
     val title: String,
     val description: String,
     val tagName: String,
-    val isInFocusMode: Boolean,
+    val isInFlowMode: Boolean,
     val isRunning: Boolean,
     val baseStartTimeMs: Long?,          // last start/resume timestamp
     val accumulatedBeforeStartMs: Long,  // elapsed before baseStartTimeMs

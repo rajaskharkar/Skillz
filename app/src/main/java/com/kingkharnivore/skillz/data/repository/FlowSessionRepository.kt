@@ -7,7 +7,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class FocusSessionRepository @Inject constructor(
+class FlowSessionRepository @Inject constructor(
     private val ongoingSessionDao: OngoingSessionDao
 ){
     fun getOngoingSession(): Flow<OngoingSessionEntity?> =

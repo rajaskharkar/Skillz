@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
-import com.kingkharnivore.skillz.data.repository.FocusSessionRepository
+import com.kingkharnivore.skillz.data.repository.FlowSessionRepository
 import com.kingkharnivore.skillz.data.repository.SessionRepository
 import com.kingkharnivore.skillz.data.repository.TagRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,19 +26,19 @@ data class StopwatchState(
     val elapsedMs: Long = 0L
 )
 
-data class FocusOnUiState(
+data class FlowUiState(
     val title: String = "",
     val description: String = "",
     val tagName: String = "",
     val stopwatch: StopwatchState = StopwatchState(),
-    val isInFocusMode: Boolean = false
+    val isInFlowMode: Boolean = false
 )
 
 @HiltViewModel
-class FocusOnViewModel @Inject constructor(
+class FlowViewModel @Inject constructor(
     private val tagRepository: TagRepository,
     private val sessionRepository: SessionRepository,
-    private val focusSessionRepository: FocusSessionRepository
+    private val focusSessionRepository: FlowSessionRepository
 ) : ViewModel() {
 
     val ongoingSession: StateFlow<OngoingSessionEntity?> =
@@ -49,8 +49,8 @@ class FocusOnViewModel @Inject constructor(
                 null
             )
 
-    private val _uiState = MutableStateFlow(FocusOnUiState())
-    val uiState: StateFlow<FocusOnUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(FlowUiState())
+    val uiState: StateFlow<FlowUiState> = _uiState.asStateFlow()
 
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving
@@ -83,7 +83,7 @@ class FocusOnViewModel @Inject constructor(
                         accumulatedBeforeStartMs
                     }
 
-                    _uiState.value = FocusOnUiState(
+                    _uiState.value = FlowUiState(
                         title = entity.title,
                         description = entity.description,
                         tagName = entity.tagName,
@@ -91,7 +91,7 @@ class FocusOnViewModel @Inject constructor(
                             isRunning = entity.isRunning,
                             elapsedMs = elapsed
                         ),
-                        isInFocusMode = entity.isInFocusMode
+                        isInFlowMode = entity.isInFlowMode
                     )
 
                     if (entity.isRunning) {
@@ -192,7 +192,7 @@ class FocusOnViewModel @Inject constructor(
         if (!_uiState.value.stopwatch.isRunning) {
             startOrResumeStopwatch()
         }
-        _uiState.update { it.copy(isInFocusMode = true) }
+        _uiState.update { it.copy(isInFlowMode = true) }
         saveOngoing()
     }
 
@@ -200,7 +200,7 @@ class FocusOnViewModel @Inject constructor(
         if (uiState.value.stopwatch.isRunning) {
             pauseStopwatch()
         }
-        _uiState.update { it.copy(isInFocusMode = false) }
+        _uiState.update { it.copy(isInFlowMode = false) }
         saveOngoing()
     }
 
@@ -213,7 +213,7 @@ class FocusOnViewModel @Inject constructor(
                 title = state.title,
                 description = state.description,
                 tagName = state.tagName,
-                isInFocusMode = state.isInFocusMode,
+                isInFlowMode = state.isInFlowMode,
                 isRunning = state.stopwatch.isRunning,
                 baseStartTimeMs = baseStartTimeMs,
                 accumulatedBeforeStartMs = accumulatedBeforeStartMs
@@ -256,7 +256,7 @@ class FocusOnViewModel @Inject constructor(
                 )
 
                 resetStopwatch()
-                _uiState.value = FocusOnUiState()
+                _uiState.value = FlowUiState()
                 clearOngoing()
                 onDone()
             } catch (e: Exception) {
