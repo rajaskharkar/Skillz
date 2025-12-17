@@ -8,18 +8,18 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.kingkharnivore.skillz.ui.skills.FocusOnScreen
+import com.kingkharnivore.skillz.ui.skills.FlowScreen
 import com.kingkharnivore.skillz.ui.skills.SkillzHomeScreen
-import com.kingkharnivore.skillz.ui.viewmodel.FocusOnViewModel
+import com.kingkharnivore.skillz.ui.viewmodel.FlowViewModel
 
 @Composable
 fun SkillzNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    val focusVm: FocusOnViewModel = hiltViewModel()
+    val focusVm: FlowViewModel = hiltViewModel()
     val ongoing by focusVm.ongoingSession.collectAsState()
-    val isFocusModeOn = ongoing?.isInFocusMode == true
+    val isFocusModeOn = ongoing?.isInFlowMode == true
 
     NavHost(
         navController = navController,
@@ -37,14 +37,14 @@ fun SkillzNavHost(
                 onGoToActiveSession = {
                     navController.navigate(SkillzDestinations.ADD_SKILL)
                 },
-                isFocusModeOn = isFocusModeOn
+                isFlowModeOn = isFocusModeOn
             )
         }
 
         // --- Add Skill Screen ---
         composable(SkillzDestinations.ADD_SKILL) {
-            val addSessionViewModel: FocusOnViewModel = hiltViewModel()
-            FocusOnScreen(
+            val addSessionViewModel: FlowViewModel = hiltViewModel()
+            FlowScreen(
                 viewModel = addSessionViewModel,
                 onDone = { popToHome(navController) },
                 onCancel = { popToHome(navController) }

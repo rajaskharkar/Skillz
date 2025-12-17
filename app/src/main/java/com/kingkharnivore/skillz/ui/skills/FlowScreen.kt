@@ -39,15 +39,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
-import com.kingkharnivore.skillz.ui.viewmodel.FocusOnViewModel
+import com.kingkharnivore.skillz.ui.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.ui.viewmodel.StopwatchState
 import com.kingkharnivore.skillz.utils.score.ScoreBreakdown
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FocusOnScreen(
-    viewModel: FocusOnViewModel,
+fun FlowScreen(
+    viewModel: FlowViewModel,
     onDone: () -> Unit,
     onCancel: () -> Unit
 ) {
@@ -57,7 +57,7 @@ fun FocusOnScreen(
     val tags by viewModel.tags.collectAsState()
 
     val stopwatchState = uiState.stopwatch
-    val isInFocusMode = uiState.isInFocusMode
+    val isInFlowState = uiState.isInFlowMode
 
     var showEndDialog by remember { mutableStateOf(false) }
 
@@ -95,7 +95,7 @@ fun FocusOnScreen(
             OutlinedTextField(
                 value = uiState.title,
                 onValueChange = viewModel::onTitleChange,
-                label = { Text("What's going on?") },
+                label = { Text("Dive in") },
                 modifier = Modifier.fillMaxWidth()
             )
             if (tags.isNotEmpty()) {
@@ -110,7 +110,7 @@ fun FocusOnScreen(
             OutlinedTextField(
                 value = uiState.tagName,
                 onValueChange = viewModel::onTagNameChange,
-                label = { Text("Skill (tag)") },
+                label = { Text("Start a new journey") },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -124,7 +124,7 @@ fun FocusOnScreen(
 
             Button(
                 onClick = {
-                    if (isInFocusMode) {
+                    if (isInFlowState) {
                         viewModel.exitFocusMode()
                     } else {
                         viewModel.enterFocusMode()
@@ -135,14 +135,14 @@ fun FocusOnScreen(
                     .height(60.dp)
             ) {
                 Text(
-                    text = if (isInFocusMode) "Exit Focus Mode" else "Enter Focus Mode",
+                    text = if (isInFlowState) "Exit Flow" else "Enter Flow",
                     style = MaterialTheme.typography.titleMedium
                 )
             }
 
-            if (isInFocusMode) {
+            if (isInFlowState) {
                 Text(
-                    text = "Focus Mode active. You may use other parts oft this app.\n" +
+                    text = "You\'re in Flow. You may use other parts of this app.\n" +
                             "You may turn off the screen — the timer continues.",
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -151,7 +151,7 @@ fun FocusOnScreen(
             OutlinedTextField(
                 value = uiState.description,
                 onValueChange = viewModel::onDescriptionChange,
-                label = { Text("Notes / Description") },
+                label = { Text("Write your story") },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
@@ -171,7 +171,7 @@ fun FocusOnScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
-                    enabled = uiState.title.isNotBlank() && uiState.tagName.isNotBlank() && !isSaving && !isInFocusMode,
+                    enabled = uiState.title.isNotBlank() && uiState.tagName.isNotBlank() && !isSaving && !isInFlowState,
                     onClick = {
                         val durationMs = stopwatchState.elapsedMs.coerceAtLeast(0L)
                         val tenMinutesMs = 10 * 60_000L
@@ -240,7 +240,7 @@ fun FocusOnScreen(
             onDismissRequest = {
                 // Do nothing: keep dialog shown until user taps "Nice!"
             },
-            title = { Text("Session complete!") },
+            title = { Text("Flow complete!") },
             text = {
                 Column {
                     Text("Here’s what you earned this session:")
@@ -289,7 +289,7 @@ fun TagSuggestionRow(
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            text = "Tap a skill:",
+            text = "Continue an existing journey",
             style = MaterialTheme.typography.labelSmall
         )
 
@@ -319,7 +319,7 @@ private fun StopwatchSection(
     onStartOrResume: () -> Unit,
     onPause: () -> Unit,
     onReset: () -> Unit,
-    viewModel: FocusOnViewModel
+    viewModel: FlowViewModel
 ) {
     var showResetConfirm by remember { mutableStateOf(false) }
     Column(
@@ -327,7 +327,7 @@ private fun StopwatchSection(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Focus mode",
+            text = "In Flow",
             style = MaterialTheme.typography.titleSmall
         )
 

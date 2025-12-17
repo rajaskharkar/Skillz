@@ -11,17 +11,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.kingkharnivore.skillz.ui.viewmodel.NotepadViewModel
-import com.kingkharnivore.skillz.ui.viewmodel.SkillListViewModel
+import com.kingkharnivore.skillz.ui.viewmodel.StoryViewModel
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SkillzHomeScreen(
     onSessionClick: (Long) -> Unit,
-    skillzViewModel: SkillListViewModel = hiltViewModel(),
+    skillzViewModel: StoryViewModel = hiltViewModel(),
     notepadViewModel: NotepadViewModel = hiltViewModel(),
     onAddSessionClick: () -> Unit,
     onGoToActiveSession: () -> Unit,
-    isFocusModeOn: Boolean
+    isFlowModeOn: Boolean
 ) {
     val uiState by skillzViewModel.uiState.collectAsState()
     val notepadText by notepadViewModel.notepadText.collectAsState()
@@ -40,12 +40,12 @@ fun SkillzHomeScreen(
         when (page) {
             // HOME page → Session list
             0 -> {
-                SkillListScreen(
+                StoryScreen(
                     viewModel = skillzViewModel,
                     onAddSessionClick = onAddSessionClick,
                     onSessionClick = { sessionId -> println("Clicked session: $sessionId") },
                     onGoToActiveSession = onGoToActiveSession,
-                    isFocusModeOn
+                    isFlowModeOn
                 )
             }
 

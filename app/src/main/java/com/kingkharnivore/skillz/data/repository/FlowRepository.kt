@@ -6,7 +6,7 @@ import com.kingkharnivore.skillz.data.model.dao.TagDao
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-class SessionRepository @Inject constructor(
+class FlowRepository @Inject constructor(
     private val sessionDao: SessionDao,
     private val tagDao: TagDao
 ) {

@@ -3,12 +3,12 @@ package com.kingkharnivore.skillz.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
-import com.kingkharnivore.skillz.data.model.entity.SessionListItemUiModel
-import com.kingkharnivore.skillz.data.model.entity.SessionListUiState
+import com.kingkharnivore.skillz.data.model.entity.FlowListItemUiModel
+import com.kingkharnivore.skillz.data.model.entity.FlowListUiState
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.model.entity.isInScoreWindow
-import com.kingkharnivore.skillz.data.repository.SessionRepository
-import com.kingkharnivore.skillz.data.repository.TagRepository
+import com.kingkharnivore.skillz.data.repository.FlowRepository
+import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 import com.kingkharnivore.skillz.utils.score.ScoreFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,9 +25,9 @@ data class TagUiModel(
 )
 
 @HiltViewModel
-class SkillListViewModel @Inject constructor(
-    private val sessionRepository: SessionRepository,
-    private val tagRepository: TagRepository
+class StoryViewModel @Inject constructor(
+    private val sessionRepository: FlowRepository,
+    private val tagRepository: JourneyRepository
 ) : ViewModel() {
     // null = "All skills", non-null = filter by that tag/skill
     private val selectedTagId = MutableStateFlow<Long?>(null)
@@ -42,7 +42,7 @@ class SkillListViewModel @Inject constructor(
     private val tagsFlow: Flow<List<TagEntity>> =
         tagRepository.getAllTags()                 // Flow<List<TagEntity>> (skills)
 
-    val uiState = MutableStateFlow(SessionListUiState())
+    val uiState = MutableStateFlow(FlowListUiState())
 
     init {
         observeSessions()
@@ -82,13 +82,13 @@ class SkillListViewModel @Inject constructor(
 
     private fun List<SessionEntity>.toUiModels(
         tags: List<TagEntity>
-    ): List<SessionListItemUiModel> {
+    ): List<FlowListItemUiModel> {
         val tagNameById: Map<Long, String> = tags.associate { tag ->
             tag.id to tag.name  // adjust field names if needed
         }
 
         return map { session ->
-            SessionListItemUiModel(
+            FlowListItemUiModel(
                 sessionId = session.id,
                 title = session.title,
                 description = session.description,
@@ -154,7 +154,7 @@ class SkillListViewModel @Inject constructor(
                 val totalDurationMs = visibleSessions.sumOf { it.durationMs }
                 val totalScore = ScoreCalculator.totalScoreForSessions(visibleSessions)
 
-                SessionListUiState(
+                FlowListUiState(
                     isLoading = false,
                     sessions = visibleSessions.toUiModels(tags),
                     tags = tags.toUiModels(),

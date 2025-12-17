@@ -47,9 +47,9 @@ fun SessionEntity.isInScoreWindow(
     return createdAt >= windowStart
 }
 
-data class SessionListUiState(
+data class FlowListUiState(
     val isLoading: Boolean = true,
-    val sessions: List<SessionListItemUiModel> = emptyList(),
+    val sessions: List<FlowListItemUiModel> = emptyList(),
     val tags: List<TagUiModel> = emptyList(),   // available Skills (tags)
     val selectedTagId: Long? = null,          // null = "All"
     val totalDurationMs: Long = 0L,
@@ -59,7 +59,7 @@ data class SessionListUiState(
     val availableScoreFilters: Set<ScoreFilter> = ScoreFilter.values().toSet()
 )
 
-data class SessionListItemUiModel(
+data class FlowListItemUiModel(
     val sessionId: Long,
     val title: String,
     val description: String,
