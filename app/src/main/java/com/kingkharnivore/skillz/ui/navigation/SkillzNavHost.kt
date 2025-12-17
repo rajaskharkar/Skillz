@@ -8,6 +8,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navDeepLink
 import com.kingkharnivore.skillz.ui.skills.FlowScreen
 import com.kingkharnivore.skillz.ui.skills.SkillzHomeScreen
 import com.kingkharnivore.skillz.ui.viewmodel.FlowViewModel
@@ -42,7 +43,10 @@ fun SkillzNavHost(
         }
 
         // --- Add Skill Screen ---
-        composable(SkillzDestinations.ADD_SKILL) {
+        composable(
+            SkillzDestinations.ADD_SKILL,
+            deepLinks = listOf(navDeepLink { uriPattern = "skillz://flow" })
+        ) {
             val addSessionViewModel: FlowViewModel = hiltViewModel()
             FlowScreen(
                 viewModel = addSessionViewModel,
