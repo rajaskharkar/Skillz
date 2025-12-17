@@ -31,17 +31,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.kingkharnivore.skillz.BuildConfig
-import com.kingkharnivore.skillz.data.model.entity.SessionListItemUiModel
-import com.kingkharnivore.skillz.data.model.entity.SessionListUiState
+import com.kingkharnivore.skillz.data.model.entity.FlowListItemUiModel
+import com.kingkharnivore.skillz.data.model.entity.FlowListUiState
 import com.kingkharnivore.skillz.ui.components.SkillzTopAppBar
-import com.kingkharnivore.skillz.ui.viewmodel.SkillListViewModel
+import com.kingkharnivore.skillz.ui.viewmodel.StoryViewModel
 import com.kingkharnivore.skillz.ui.viewmodel.TagUiModel
 import com.kingkharnivore.skillz.utils.formatDuration
 import com.kingkharnivore.skillz.utils.score.ScoreFilter
 
 @Composable
-fun SkillListScreen(
-    viewModel: SkillListViewModel,
+fun StoryScreen(
+    viewModel: StoryViewModel,
     onAddSessionClick: () -> Unit,
     onSessionClick: (Long) -> Unit,
     onGoToActiveSession: () -> Unit,
@@ -65,7 +65,7 @@ fun SkillListScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            SkillListBody(
+            StoryBody(
                 uiState = uiState,
                 listState = listState,
                 isFocusModeOn = isFocusModeOn,
@@ -85,8 +85,8 @@ fun SkillListScreen(
  * ────────────────────────────────────────────────────────────────────────────── */
 
 @Composable
-private fun SkillListBody(
-    uiState: SessionListUiState,
+private fun StoryBody(
+    uiState: FlowListUiState,
     listState: LazyListState,
     isFocusModeOn: Boolean,
     onTagSelected: (Long?) -> Unit,
@@ -115,7 +115,7 @@ private fun SkillListBody(
 
             else -> {
                 if (isFocusModeOn) {
-                    FocusModeContent(
+                    FlowStateActiveContent(
                         uiState = uiState,
                         listState = listState,
                         onTagSelected = onTagSelected,
@@ -126,7 +126,7 @@ private fun SkillListBody(
                         onUpdateSessionDescription = onUpdateSessionDescription
                     )
                 } else {
-                    NormalModeContent(
+                    FlowStateInactiveContent(
                         uiState = uiState,
                         listState = listState,
                         onTagSelected = onTagSelected,
@@ -146,8 +146,8 @@ private fun SkillListBody(
  * ────────────────────────────────────────────────────────────────────────────── */
 
 @Composable
-private fun FocusModeContent(
-    uiState: SessionListUiState,
+private fun FlowStateActiveContent(
+    uiState: FlowListUiState,
     listState: LazyListState,
     onTagSelected: (Long?) -> Unit,
     onScoreFilterSelected: (ScoreFilter) -> Unit,
@@ -163,7 +163,7 @@ private fun FocusModeContent(
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        SessionEditDialog(
+        FlowEditDialog(
             editState = editState,
             onSave = { sessionId, newText ->
                 onUpdateSessionDescription(sessionId, newText)
@@ -179,12 +179,12 @@ private fun FocusModeContent(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                SkillListHeader(
+                StoryHeader(
                     uiState = uiState,
                     onTagSelected = onTagSelected,
                     onScoreFilterSelected = onScoreFilterSelected,
                     extraTopContent = {
-                        FocusModeHeroCard(onGoToActiveSession = onGoToActiveSession)
+                        FlowModeHeroCard(onGoToActiveSession = onGoToActiveSession)
                     }
                 )
             }
@@ -193,7 +193,7 @@ private fun FocusModeContent(
                 items = uiState.sessions,
                 key = { it.sessionId }
             ) { session ->
-                SessionRowCard(
+                FlowCard(
                     session = session,
                     isExpanded = expandedState.isExpanded(session.sessionId),
                     onToggleExpand = { expandedState.toggle(session.sessionId) },
@@ -218,7 +218,7 @@ private fun FocusModeContent(
 }
 
 @Composable
-private fun FocusModeHeroCard(
+private fun FlowModeHeroCard(
     onGoToActiveSession: () -> Unit
 ) {
     Card(
@@ -260,14 +260,14 @@ private fun FocusModeHeroCard(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "FOCUS MODE",
+                    text = "IN FLOW",
                     style = MaterialTheme.typography.labelSmall,
                     letterSpacing = 1.5.sp,
                     textAlign = TextAlign.Center
                 )
 
                 Text(
-                    text = "Active session in progress",
+                    text = "Your story is unfolding now",
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center
                 )
@@ -297,7 +297,7 @@ private fun FocusModeHeroCard(
                 contentPadding = PaddingValues(vertical = 12.dp)
             ) {
                 Text(
-                    text = "Resume Session",
+                    text = "View Active Flow",
                     style = MaterialTheme.typography.titleMedium
                 )
             }
@@ -310,8 +310,8 @@ private fun FocusModeHeroCard(
  * ────────────────────────────────────────────────────────────────────────────── */
 
 @Composable
-private fun NormalModeContent(
-    uiState: SessionListUiState,
+private fun FlowStateInactiveContent(
+    uiState: FlowListUiState,
     listState: LazyListState,
     onTagSelected: (Long?) -> Unit,
     onScoreFilterSelected: (ScoreFilter) -> Unit,
@@ -327,13 +327,13 @@ private fun NormalModeContent(
             .fillMaxSize()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        SkillListHeader(
+        StoryHeader(
             uiState = uiState,
             onTagSelected = onTagSelected,
             onScoreFilterSelected = onScoreFilterSelected
         )
 
-        SessionEditDialog(
+        FlowEditDialog(
             editState = editState,
             onSave = { sessionId, newText -> onUpdateSessionDescription(sessionId, newText) }
         )
@@ -348,7 +348,7 @@ private fun NormalModeContent(
                 items = uiState.sessions,
                 key = { it.sessionId }
             ) { session ->
-                SessionRowCard(
+                FlowCard(
                     session = session,
                     isExpanded = expandedState.isExpanded(session.sessionId),
                     onToggleExpand = { expandedState.toggle(session.sessionId) },
@@ -412,8 +412,8 @@ fun TotalTimeHighlight(
  * ────────────────────────────────────────────────────────────────────────────── */
 
 @Composable
-private fun SkillListHeader(
-    uiState: SessionListUiState,
+private fun StoryHeader(
+    uiState: FlowListUiState,
     onTagSelected: (Long?) -> Unit,
     onScoreFilterSelected: (ScoreFilter) -> Unit,
     extraTopContent: (@Composable () -> Unit)? = null
@@ -510,10 +510,10 @@ private fun SkillListFab(onClick: () -> Unit) {
  * ────────────────────────────────────────────────────────────────────────────── */
 
 private class SessionEditState(
-    val editingSession: MutableState<SessionListItemUiModel?>,
+    val editingSession: MutableState<FlowListItemUiModel?>,
     val editText: MutableState<String>
 ) {
-    fun startEditing(session: SessionListItemUiModel) {
+    fun startEditing(session: FlowListItemUiModel) {
         editingSession.value = session
         editText.value = session.description
     }
@@ -525,13 +525,13 @@ private class SessionEditState(
 
 @Composable
 private fun rememberSessionEditState(): SessionEditState {
-    val editingSession = remember { mutableStateOf<SessionListItemUiModel?>(null) }
+    val editingSession = remember { mutableStateOf<FlowListItemUiModel?>(null) }
     val editText = remember { mutableStateOf("") }
     return remember { SessionEditState(editingSession, editText) }
 }
 
 @Composable
-private fun SessionEditDialog(
+private fun FlowEditDialog(
     editState: SessionEditState,
     onSave: (sessionId: Long, newText: String) -> Unit
 ) {
@@ -658,7 +658,7 @@ fun TagFilterRow(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "Filter by skill:",
+            text = "Observe a journey:",
             style = MaterialTheme.typography.labelSmall
         )
 
@@ -728,8 +728,8 @@ fun ScoreDisplay(
 }
 
 @Composable
-private fun SessionRowCard(
-    session: SessionListItemUiModel,
+private fun FlowCard(
+    session: FlowListItemUiModel,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
     onDeleteSession: () -> Unit,
@@ -812,7 +812,7 @@ private fun SessionRowCard(
             if (BuildConfig.SHOW_SCORE) {
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Points earned: ${session.score}",
+                    text = "Scyra Score: ${session.score}",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -823,8 +823,8 @@ private fun SessionRowCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete session?") },
-            text = { Text("Are you sure you want to delete this session? This action cannot be undone.") },
+            title = { Text("Delete flow?") },
+            text = { Text("Are you sure you want to delete this flow? This action cannot be undone.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -866,7 +866,7 @@ private fun FocusModeFloatingMiniBar(
         ) {
             Icon(
                 imageVector = Icons.Default.Timer,
-                contentDescription = "Focus Mode",
+                contentDescription = "Flow State",
                 modifier = Modifier.size(22.dp)
             )
 

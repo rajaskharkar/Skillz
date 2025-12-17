@@ -4,9 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
-import com.kingkharnivore.skillz.data.repository.FlowSessionRepository
-import com.kingkharnivore.skillz.data.repository.SessionRepository
-import com.kingkharnivore.skillz.data.repository.TagRepository
+import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
+import com.kingkharnivore.skillz.data.repository.FlowRepository
+import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -36,9 +36,9 @@ data class FlowUiState(
 
 @HiltViewModel
 class FlowViewModel @Inject constructor(
-    private val tagRepository: TagRepository,
-    private val sessionRepository: SessionRepository,
-    private val focusSessionRepository: FlowSessionRepository
+    private val tagRepository: JourneyRepository,
+    private val sessionRepository: FlowRepository,
+    private val focusSessionRepository: AliveFlowRepository
 ) : ViewModel() {
 
     val ongoingSession: StateFlow<OngoingSessionEntity?> =

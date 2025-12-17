@@ -7,7 +7,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class TagRepository @Inject constructor(
+class JourneyRepository @Inject constructor(
     private val tagDao: TagDao
 ){
     fun getAllTags(): Flow<List<TagEntity>> = tagDao.getAllTags()
