@@ -68,7 +68,7 @@ fun StoryScreen(
             StoryBody(
                 uiState = uiState,
                 listState = listState,
-                isFocusModeOn = isFocusModeOn,
+                isFlowStateActive = isFocusModeOn,
                 onTagSelected = viewModel::selectTag,
                 onScoreFilterSelected = viewModel::onScoreFilterSelected,
                 onGoToActiveSession = onGoToActiveSession,
@@ -88,7 +88,7 @@ fun StoryScreen(
 private fun StoryBody(
     uiState: FlowListUiState,
     listState: LazyListState,
-    isFocusModeOn: Boolean,
+    isFlowStateActive: Boolean,
     onTagSelected: (Long?) -> Unit,
     onScoreFilterSelected: (ScoreFilter) -> Unit,
     onGoToActiveSession: () -> Unit,
@@ -110,11 +110,27 @@ private fun StoryBody(
             }
 
             uiState.sessions.isEmpty() -> {
+                if (isFlowStateActive) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp, vertical = 24.dp)
+                    ) {
+                        StoryHeader(
+                            uiState = uiState,
+                            onTagSelected = onTagSelected,
+                            onScoreFilterSelected = onScoreFilterSelected,
+                            extraTopContent = {
+                                FlowModeHeroCard(onGoToActiveSession = onGoToActiveSession)
+                            }
+                        )
+                    }
+                }
                 EmptyState(modifier = Modifier.align(Alignment.Center))
             }
 
             else -> {
-                if (isFocusModeOn) {
+                if (isFlowStateActive) {
                     FlowStateActiveContent(
                         uiState = uiState,
                         listState = listState,
