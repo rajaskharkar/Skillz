@@ -1,6 +1,9 @@
 package com.kingkharnivore.skillz.utils.score
 
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
+import kotlin.math.abs
+import kotlin.math.exp
+import kotlin.math.roundToInt
 
 object ScoreCalculator {
 
@@ -38,13 +41,17 @@ object ScoreCalculator {
         actualDurationMs: Long
     ): Int {
         val plannedMs = surgePlannedMs ?: return 0
-        val actualMs = actualDurationMs.coerceAtLeast(0L)
+        val n = (plannedMs.toDouble() / MILLIS_PER_MINUTE).coerceAtLeast(1.0)
+        val a = (actualDurationMs.toDouble() / MILLIS_PER_MINUTE).coerceAtLeast(1.0)
 
-        val savedMs = plannedMs - actualMs
-        if (savedMs <= 0L) return 0
+        val error = abs(a - n) / n
+        val maxBonus = 0.35
+        val sharpness = 5.0
+        val multiplier = 1.0 + (maxBonus * exp(-sharpness * error))
 
-        // Round UP to full minutes
-        return ((savedMs + MILLIS_PER_MINUTE - 1) / MILLIS_PER_MINUTE).toInt()
+        val raw = (a * multiplier).roundToInt()
+
+        return if (a <= n) raw else raw.coerceAtMost(n.toInt())
     }
 
     fun sessionScore(session: SessionEntity): Int {

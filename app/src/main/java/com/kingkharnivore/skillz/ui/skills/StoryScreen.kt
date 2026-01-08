@@ -471,6 +471,7 @@ private fun StoryHeader(
         ) {
             ScoreDisplay(
                 score = uiState.currentScore,
+                surgeScore = uiState.currentSurgeScore,
                 scoreFilter = uiState.scoreFilter,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -710,6 +711,7 @@ fun TagFilterRow(
 @Composable
 fun ScoreDisplay(
     score: Int,
+    surgeScore: Int,
     scoreFilter: ScoreFilter,
     modifier: Modifier = Modifier
 ) {
@@ -718,16 +720,26 @@ fun ScoreDisplay(
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+            // Primary score
             Text(
                 text = "$score",
                 style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = 70.sp,
-                    fontWeight = FontWeight.Normal
-                ),
-                textAlign = TextAlign.Center
+                    fontSize = 70.sp
+                )
             )
 
-            Spacer(Modifier.height(4.dp))
+            // Surge score (only if > 0)
+            if (surgeScore > 0) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "+$surgeScore Surge",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+
+            Spacer(Modifier.height(6.dp))
 
             Text(
                 text = when (scoreFilter) {
@@ -753,10 +765,15 @@ private fun FlowCard(
     onClick: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val container = if (session.isSurge) {
+        MaterialTheme.colorScheme.surfaceVariant
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
 
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = container,
             contentColor = MaterialTheme.colorScheme.onSurface
         ),
         modifier = Modifier
@@ -827,6 +844,9 @@ private fun FlowCard(
 
             if (BuildConfig.SHOW_SCORE) {
                 Spacer(modifier = Modifier.height(2.dp))
+                if (session.isSurge) {
+                    Text("Surge: +${session.surgePoints}")
+                }
                 Text(
                     text = "Scyra Score: ${session.score}",
                     style = MaterialTheme.typography.labelMedium,

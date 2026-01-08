@@ -235,7 +235,6 @@ class FlowViewModel @Inject constructor(
     fun setSurgePlannedMinutes(minutes: Int) {
         val mins = minutes.coerceAtLeast(1)
         val plannedMs = mins * 60_000L
-
         _uiState.update {
             it.copy(
                 isSurgeOn = true,
@@ -283,8 +282,10 @@ class FlowViewModel @Inject constructor(
 
                 val tagId = tagRepository.getOrCreateTagId(state.tagName.trim())
                 val durationMs = state.stopwatch.elapsedMs.coerceAtLeast(0L)
-                val surgePoints =
-                    ScoreCalculator.surgePoints(state.surgePlannedMs, durationMs)
+
+                val surgePoints = ScoreCalculator.surgePoints(
+                    state.surgePlannedMs, durationMs
+                )
 
                 val endTime = System.currentTimeMillis()
                 val startTime = (endTime - durationMs).coerceAtLeast(0L)
