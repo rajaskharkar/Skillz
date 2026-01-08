@@ -56,6 +56,9 @@ fun FlowScreen(
     val error by viewModel.error.collectAsState()
     val tags by viewModel.tags.collectAsState()
 
+    var showSurgeDialog by remember { mutableStateOf(false) }
+    var surgeMinutesInput by remember { mutableStateOf("") }
+
     val stopwatchState = uiState.stopwatch
     val isInFlowState = uiState.isInFlowMode
 
@@ -67,7 +70,7 @@ fun FlowScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Focus On") },
+                title = { Text("Flow") },
                 navigationIcon = {
                     IconButton(
                         onClick = {
@@ -92,6 +95,29 @@ fun FlowScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
+            Button(
+                onClick = { showSurgeDialog = true },
+                enabled = !uiState.isInFlowMode && (!uiState.isSurgeOn || !viewModel.isSurgeLocked()),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp)
+            ) {
+                val surgePlannedMs = uiState.surgePlannedMs
+
+                val label = when {
+                    uiState.isSurgeOn && surgePlannedMs != null -> {
+                        val mins = (surgePlannedMs / 60_000L).toInt()
+                        if (viewModel.isSurgeLocked()) "Surge: $mins min (Locked)"
+                        else "Surge: $mins min"
+                    }
+                    else -> "Turn on Surge"
+                }
+
+
+                Text(label, style = MaterialTheme.typography.titleMedium)
+            }
+
             OutlinedTextField(
                 value = uiState.title,
                 onValueChange = viewModel::onTitleChange,
@@ -173,18 +199,19 @@ fun FlowScreen(
                 Button(
                     enabled = uiState.title.isNotBlank() && uiState.tagName.isNotBlank() && !isSaving && !isInFlowState,
                     onClick = {
-                        val durationMs = stopwatchState.elapsedMs.coerceAtLeast(0L)
+                        val durationMs = uiState.stopwatch.elapsedMs.coerceAtLeast(0L)
                         val tenMinutesMs = 10 * 60_000L
 
-                        if (durationMs >= tenMinutesMs) {
-                            // Long session → compute and show points summary
-                            val breakdown = ScoreCalculator.breakdownFromDuration(durationMs)
-                            lastBreakdown = breakdown
+                        val surgePoints = ScoreCalculator.surgePoints(uiState.surgePlannedMs, durationMs)
+                        val shouldShowDialog = durationMs >= tenMinutesMs || surgePoints > 0
+
+                        if (shouldShowDialog) {
+                            lastBreakdown = ScoreCalculator.breakdownFromDuration(durationMs)
                             showPointsDialog = true
                         } else {
-                            // Short session → behave as before
                             viewModel.saveSession(onDone)
                         }
+
                     },
                     modifier = Modifier.weight(1f)
                 ) {
@@ -233,6 +260,8 @@ fun FlowScreen(
     // 🟢 "Points earned" popup for sessions >= 10 minutes
     if (showPointsDialog && lastBreakdown != null) {
         val breakdown = lastBreakdown!!
+        val durationMs = uiState.stopwatch.elapsedMs.coerceAtLeast(0L)
+        val surgePoints = ScoreCalculator.surgePoints(uiState.surgePlannedMs, durationMs)
 
         AlertDialog(
             // 🔒 No way to dismiss: back + outside taps are intercepted,
@@ -240,7 +269,9 @@ fun FlowScreen(
             onDismissRequest = {
                 // Do nothing: keep dialog shown until user taps "Nice!"
             },
-            title = { Text("Flow complete!") },
+            title = {
+                Text(if (surgePoints > 0) "Surge complete!" else "Flow complete!")
+            },
             text = {
                 Column {
                     Text("Here’s what you earned this session:")
@@ -250,6 +281,15 @@ fun FlowScreen(
                     Text("10-min bonuses: ${breakdown.tenMinuteBonuses}")
                     Text("30-min bonuses: ${breakdown.thirtyMinuteBonuses}")
                     Text("60-min bonuses: ${breakdown.sixtyMinuteBonuses}")
+                    if (surgePoints > 0) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "Surge Points: +$surgePoints",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
 
                     Spacer(Modifier.height(8.dp))
 
@@ -273,6 +313,67 @@ fun FlowScreen(
             },
             // 🔒 No dismiss button = no "cancel" path
             dismissButton = {}
+        )
+    }
+
+    if (showSurgeDialog) {
+        val locked = viewModel.isSurgeLocked()
+        val currentMinutes = (uiState.surgePlannedMs ?: 0L) / 60_000L
+
+        AlertDialog(
+            onDismissRequest = { showSurgeDialog = false },
+            title = { Text("Surge") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (locked) {
+                        Text("Surge is locked on once time starts.")
+                        Text("Planned: ${currentMinutes} min")
+                    } else {
+                        Text("Set a planned time limit. Finish early to earn Surge Points.")
+
+                        OutlinedTextField(
+                            value = surgeMinutesInput,
+                            onValueChange = {
+                                surgeMinutesInput = it.filter(Char::isDigit)
+                            },
+                            label = { Text("Surge Time (minutes)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        if (uiState.isSurgeOn) {
+                            Text("Current: ${currentMinutes} min")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (!locked) {
+                            val mins = surgeMinutesInput.toIntOrNull()
+                            if (mins != null && mins > 0) {
+                                viewModel.setSurgePlannedMinutes(mins)
+                            }
+                        }
+                        showSurgeDialog = false
+                    }
+                ) {
+                    Text(if (locked) "OK" else "Set")
+                }
+            },
+            dismissButton = {
+                if (!locked && uiState.isSurgeOn) {
+                    TextButton(
+                        onClick = {
+                            viewModel.clearSurgeIfAllowed()
+                            showSurgeDialog = false
+                        }
+                    ) {
+                        Text("Turn Off")
+                    }
+                }
+            }
         )
     }
 }

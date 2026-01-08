@@ -27,6 +27,8 @@ data class SessionEntity(
     val startTime: Long,                    // will be from stopwatch later
     val endTime: Long,
     val durationMs: Long,
+    val surgePlannedMs: Long? = null,
+    val surgePoints: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 )
 

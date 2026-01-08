@@ -8,6 +8,7 @@ import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
+import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -32,7 +33,9 @@ data class FlowUiState(
     val description: String = "",
     val tagName: String = "",
     val stopwatch: StopwatchState = StopwatchState(),
-    val isInFlowMode: Boolean = false
+    val isInFlowMode: Boolean = false,
+    val isSurgeOn: Boolean = false,
+    val surgePlannedMs: Long? = null
 )
 
 @HiltViewModel
@@ -93,7 +96,9 @@ class FlowViewModel @Inject constructor(
                             isRunning = entity.isRunning,
                             elapsedMs = elapsed
                         ),
-                        isInFlowMode = entity.isInFlowMode
+                        isInFlowMode = entity.isInFlowMode,
+                        isSurgeOn = entity.isSurgeOn,
+                        surgePlannedMs = entity.surgePlannedMs
                     )
 
                     if (entity.isRunning) {
@@ -219,10 +224,42 @@ class FlowViewModel @Inject constructor(
                 isInFlowMode = state.isInFlowMode,
                 isRunning = state.stopwatch.isRunning,
                 baseStartTimeMs = baseStartTimeMs,
-                accumulatedBeforeStartMs = accumulatedBeforeStartMs
+                accumulatedBeforeStartMs = accumulatedBeforeStartMs,
+                isSurgeOn = state.isSurgeOn,
+                surgePlannedMs = state.surgePlannedMs
             )
             focusSessionRepository.saveOngoingSession(entity)
         }
+    }
+
+    fun setSurgePlannedMinutes(minutes: Int) {
+        val mins = minutes.coerceAtLeast(1)
+        val plannedMs = mins * 60_000L
+
+        _uiState.update {
+            it.copy(
+                isSurgeOn = true,
+                surgePlannedMs = plannedMs
+            )
+        }
+        saveOngoing()
+    }
+
+    fun clearSurgeIfAllowed() {
+        val elapsed = _uiState.value.stopwatch.elapsedMs
+        if (elapsed > 0L) return // 🔒 locked once time starts
+
+        _uiState.update {
+            it.copy(
+                isSurgeOn = false,
+                surgePlannedMs = null
+            )
+        }
+        saveOngoing()
+    }
+
+    fun isSurgeLocked(): Boolean {
+        return _uiState.value.stopwatch.elapsedMs > 0L
     }
 
     // Clear persisted focus session (after saving real session or aborting)
@@ -246,6 +283,9 @@ class FlowViewModel @Inject constructor(
 
                 val tagId = tagRepository.getOrCreateTagId(state.tagName.trim())
                 val durationMs = state.stopwatch.elapsedMs.coerceAtLeast(0L)
+                val surgePoints =
+                    ScoreCalculator.surgePoints(state.surgePlannedMs, durationMs)
+
                 val endTime = System.currentTimeMillis()
                 val startTime = (endTime - durationMs).coerceAtLeast(0L)
 
@@ -255,7 +295,9 @@ class FlowViewModel @Inject constructor(
                     tagId = tagId,
                     startTime = startTime,
                     endTime = endTime,
-                    durationMs = durationMs
+                    durationMs = durationMs,
+                    surgePlannedMs = state.surgePlannedMs,
+                    surgePoints = surgePoints
                 )
 
                 resetStopwatch()

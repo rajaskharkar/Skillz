@@ -13,5 +13,7 @@ data class OngoingSessionEntity(
     val isRunning: Boolean,
     val baseStartTimeMs: Long?,          // last start/resume timestamp
     val accumulatedBeforeStartMs: Long,  // elapsed before baseStartTimeMs
+    val isSurgeOn: Boolean = false,
+    val surgePlannedMs: Long? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

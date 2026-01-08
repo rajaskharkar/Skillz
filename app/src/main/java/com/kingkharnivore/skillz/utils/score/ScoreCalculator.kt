@@ -33,6 +33,20 @@ object ScoreCalculator {
         )
     }
 
+    fun surgePoints(
+        surgePlannedMs: Long?,
+        actualDurationMs: Long
+    ): Int {
+        val plannedMs = surgePlannedMs ?: return 0
+        val actualMs = actualDurationMs.coerceAtLeast(0L)
+
+        val savedMs = plannedMs - actualMs
+        if (savedMs <= 0L) return 0
+
+        // Round UP to full minutes
+        return ((savedMs + MILLIS_PER_MINUTE - 1) / MILLIS_PER_MINUTE).toInt()
+    }
+
     fun sessionScore(session: SessionEntity): Int {
         return breakdownFromDuration(session.durationMs).totalPoints
     }
