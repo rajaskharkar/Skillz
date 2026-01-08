@@ -34,8 +34,8 @@ import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.FlowListItemUiModel
 import com.kingkharnivore.skillz.data.model.entity.FlowListUiState
 import com.kingkharnivore.skillz.ui.components.SkillzTopAppBar
-import com.kingkharnivore.skillz.ui.viewmodel.StoryViewModel
-import com.kingkharnivore.skillz.ui.viewmodel.TagUiModel
+import com.kingkharnivore.skillz.viewmodel.StoryViewModel
+import com.kingkharnivore.skillz.viewmodel.TagUiModel
 import com.kingkharnivore.skillz.utils.formatDuration
 import com.kingkharnivore.skillz.utils.score.ScoreFilter
 

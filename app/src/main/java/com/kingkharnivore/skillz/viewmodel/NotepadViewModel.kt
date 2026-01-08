@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.ui.viewmodel
+package com.kingkharnivore.skillz.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

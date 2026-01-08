@@ -39,8 +39,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
-import com.kingkharnivore.skillz.ui.viewmodel.FlowViewModel
-import com.kingkharnivore.skillz.ui.viewmodel.StopwatchState
+import com.kingkharnivore.skillz.viewmodel.FlowViewModel
+import com.kingkharnivore.skillz.viewmodel.StopwatchState
 import com.kingkharnivore.skillz.utils.score.ScoreBreakdown
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 

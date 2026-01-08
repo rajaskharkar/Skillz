@@ -1,7 +1,6 @@
 package com.kingkharnivore.skillz
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle

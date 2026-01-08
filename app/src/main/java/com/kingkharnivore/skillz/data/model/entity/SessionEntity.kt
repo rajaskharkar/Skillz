@@ -4,7 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.kingkharnivore.skillz.ui.viewmodel.TagUiModel
+import com.kingkharnivore.skillz.viewmodel.TagUiModel
 import com.kingkharnivore.skillz.utils.score.ScoreFilter
 
 @Entity(

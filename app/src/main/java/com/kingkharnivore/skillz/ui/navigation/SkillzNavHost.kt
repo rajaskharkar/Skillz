@@ -11,7 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navDeepLink
 import com.kingkharnivore.skillz.ui.skills.FlowScreen
 import com.kingkharnivore.skillz.ui.skills.SkillzHomeScreen
-import com.kingkharnivore.skillz.ui.viewmodel.FlowViewModel
+import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 
 @Composable
 fun SkillzNavHost(
