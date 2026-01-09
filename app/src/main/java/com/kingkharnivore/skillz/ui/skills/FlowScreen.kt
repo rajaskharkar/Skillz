@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.viewmodel.StopwatchState
@@ -95,27 +96,26 @@ fun FlowScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            if(BuildConfig.FLAVOR != "aera") {
+                Button(
+                    onClick = { showSurgeDialog = true },
+                    enabled = !uiState.isInFlowMode && (!uiState.isSurgeOn || !viewModel.isSurgeLocked()),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp)
+                ) {
+                    val surgePlannedMs = uiState.surgePlannedMs
 
-            Button(
-                onClick = { showSurgeDialog = true },
-                enabled = !uiState.isInFlowMode && (!uiState.isSurgeOn || !viewModel.isSurgeLocked()),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp)
-            ) {
-                val surgePlannedMs = uiState.surgePlannedMs
-
-                val label = when {
-                    uiState.isSurgeOn && surgePlannedMs != null -> {
-                        val mins = (surgePlannedMs / 60_000L).toInt()
-                        if (viewModel.isSurgeLocked()) "Surge: $mins min (Locked)"
-                        else "Surge: $mins min"
+                    val label = when {
+                        uiState.isSurgeOn && surgePlannedMs != null -> {
+                            val mins = (surgePlannedMs / 60_000L).toInt()
+                            if (viewModel.isSurgeLocked()) "Surge: $mins min (Locked)"
+                            else "Surge: $mins min"
+                        }
+                        else -> "Turn on Surge"
                     }
-                    else -> "Turn on Surge"
+                    Text(label, style = MaterialTheme.typography.titleMedium)
                 }
-
-
-                Text(label, style = MaterialTheme.typography.titleMedium)
             }
 
             OutlinedTextField(
