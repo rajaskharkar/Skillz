@@ -2,6 +2,7 @@
 
 package com.kingkharnivore.skillz.ui.skills
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -22,7 +23,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -765,11 +768,41 @@ private fun FlowCard(
     onClick: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+
     val container = if (session.isSurge) {
         MaterialTheme.colorScheme.surfaceVariant
     } else {
         MaterialTheme.colorScheme.surface
     }
+
+    val showSurgeStat = session.isSurge && session.surgePoints > 0
+
+    // Surge “ink” that reads well in both light & dark without relying on primary
+    val isLightTheme = MaterialTheme.colorScheme.background.luminance() > 0.5f
+    val surgeInk = if (isLightTheme) {
+        Color(0xFF7B2D2A) // oxide crimson (light)
+    } else {
+        Color(0xFFFFC56A) // molten gold (dark)
+    }
+
+    // ── Keep layout stable so Surge stat never shifts on expand/collapse ──
+    val deleteSlotWidth = 48.dp // IconButton touch target width
+    val surgeSlotMinWidth = 92.dp // room for +999 + label
+    val rightRailMinWidth = (if (showSurgeStat) surgeSlotMinWidth else 0.dp) + deleteSlotWidth
+
+    // ── Subtle expand/collapse feedback even if description is empty ──
+    val extraPad by animateDpAsState(
+        targetValue = if (isExpanded) 6.dp else 2.dp,
+        label = "flowCardExtraPad"
+    )
+    val dividerAlpha by animateFloatAsState(
+        targetValue = if (isExpanded) 1f else 0f,
+        label = "flowCardDividerAlpha"
+    )
+    val cardScale by animateFloatAsState(
+        targetValue = if (isExpanded) 1.0f else 0.995f,
+        label = "flowCardScale"
+    )
 
     Card(
         colors = CardDefaults.cardColors(
@@ -778,6 +811,10 @@ private fun FlowCard(
         ),
         modifier = Modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = cardScale
+                scaleY = cardScale
+            }
             .combinedClickable(
                 onClick = {
                     onToggleExpand()
@@ -788,12 +825,12 @@ private fun FlowCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
+            // ── Header: left content + stable right rail ───────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = session.tagName,
                         style = MaterialTheme.typography.labelMedium
@@ -807,19 +844,75 @@ private fun FlowCard(
                     )
                 }
 
-                if (isExpanded) {
-                    IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete session"
-                        )
+                Box(
+                    modifier = Modifier
+                        .widthIn(min = rightRailMinWidth)
+                        .heightIn(min = 48.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        // Surge stat slot (reserved)
+                        Box(
+                            modifier = Modifier
+                                .widthIn(min = if (showSurgeStat) surgeSlotMinWidth else 0.dp),
+                            contentAlignment = Alignment.CenterEnd
+                        ) {
+                            if (showSurgeStat) {
+                                Column(
+                                    horizontalAlignment = Alignment.End,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = "+${session.surgePoints}",
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = surgeInk
+                                    )
+                                    Text(
+                                        text = "Surge",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        letterSpacing = 1.5.sp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Delete slot (always reserved so nothing shifts)
+                        Box(
+                            modifier = Modifier.width(deleteSlotWidth),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isExpanded) {
+                                IconButton(onClick = { showDeleteDialog = true }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete session"
+                                    )
+                                }
+                            } else {
+                                Spacer(Modifier.size(24.dp)) // invisible placeholder
+                            }
+                        }
                     }
                 }
             }
 
-            if (session.description.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
+            // ── Micro “open/close” cue that always exists ───────────────────────────
+            Spacer(modifier = Modifier.height(10.dp))
 
+            HorizontalDivider(
+                modifier = Modifier.graphicsLayer { alpha = dividerAlpha },
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+            )
+
+            Spacer(modifier = Modifier.height(extraPad))
+
+            // ── Description (if present) ───────────────────────────────────────────
+            if (session.description.isNotBlank()) {
                 Text(
                     text = session.description,
                     style = MaterialTheme.typography.bodyMedium,
@@ -827,15 +920,15 @@ private fun FlowCard(
                     overflow = if (isExpanded) TextOverflow.Visible else TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
                     text = if (isExpanded) "Tap to collapse" else "Tap to view more",
                     style = MaterialTheme.typography.labelSmall
                 )
-            }
 
-            Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             Text(
                 text = "Duration: ${formatDuration(session.durationMs)}",
@@ -843,14 +936,11 @@ private fun FlowCard(
             )
 
             if (BuildConfig.SHOW_SCORE) {
-                Spacer(modifier = Modifier.height(2.dp))
-                if (session.isSurge) {
-                    Text("Surge: +${session.surgePoints}")
-                }
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = "Scyra Score: ${session.score}",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
                 )
             }
         }
