@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -25,6 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -200,7 +202,7 @@ fun FlowScreen(
                     enabled = uiState.title.isNotBlank() && uiState.tagName.isNotBlank() && !isSaving && !isInFlowState,
                     onClick = {
                         val durationMs = uiState.stopwatch.elapsedMs.coerceAtLeast(0L)
-                        val tenMinutesMs = 10 * 60_000L
+                        val tenMinutesMs = 1 * 60_000L
 
                         val surgePoints = ScoreCalculator.surgePoints(uiState.surgePlannedMs, durationMs)
                         val shouldShowDialog = durationMs >= tenMinutesMs || surgePoints > 0
@@ -270,34 +272,105 @@ fun FlowScreen(
                 // Do nothing: keep dialog shown until user taps "Nice!"
             },
             title = {
-                Text(if (surgePoints > 0) "Surge complete!" else "Flow complete!")
+                Text("You did it!")
             },
             text = {
-                Column {
-                    Text("Here’s what you earned this session:")
-                    Spacer(Modifier.height(8.dp))
-
-                    Text("Time: ${breakdown.minutes} min")
-                    Text("10-min bonuses: ${breakdown.tenMinuteBonuses}")
-                    Text("30-min bonuses: ${breakdown.thirtyMinuteBonuses}")
-                    Text("60-min bonuses: ${breakdown.sixtyMinuteBonuses}")
-                    if (surgePoints > 0) {
-                        Spacer(Modifier.height(8.dp))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // ── Header ────────────────────────────────────────────────────────────────
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "Surge Points: +$surgePoints",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            text = if (surgePoints > 0) "Surge complete" else "Flow complete",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "Captured and sealed into your story.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
                         )
                     }
 
+                    // ── Summary chips row (time + (optional) surge) ───────────────────────────
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        StatText("⏱ ${breakdown.minutes} min")
 
-                    Spacer(Modifier.height(8.dp))
+                        if (surgePoints > 0) {
+                            StatText("⚡ +$surgePoints Surge")
+                        }
+                    }
 
-                    Text(
-                        text = "Total points: ${breakdown.totalPoints}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    // ── Bonus breakdown card (only show rows that matter) ─────────────────────
+                    val hasAnyBonus =
+                        breakdown.tenMinuteBonuses > 0 || breakdown.thirtyMinuteBonuses > 0 || breakdown.sixtyMinuteBonuses > 0
+
+                    if (hasAnyBonus) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            tonalElevation = 2.dp,
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "Bonuses",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
+                                )
+
+                                if (breakdown.tenMinuteBonuses > 0) BonusRow("10-minute streaks", breakdown.tenMinuteBonuses)
+                                if (breakdown.thirtyMinuteBonuses > 0) BonusRow("30-minute streaks", breakdown.thirtyMinuteBonuses)
+                                if (breakdown.sixtyMinuteBonuses > 0) BonusRow("60-minute streaks", breakdown.sixtyMinuteBonuses)
+                            }
+                        }
+                    }
+
+                    // ── Final score strip (big + in-theme) ────────────────────────────────────
+                    if (BuildConfig.FLAVOR != "aera") {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(22.dp),
+                            tonalElevation = 3.dp,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(
+                                        text = "Scyra Score",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
+                                    )
+                                    Text(
+                                        text = "This session",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                                    )
+                                }
+
+                                Text(
+                                    text = "+${breakdown.totalPoints}",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -376,6 +449,15 @@ fun FlowScreen(
             }
         )
     }
+}
+
+@Composable
+private fun StatText(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+    )
 }
 
 @Composable
@@ -482,6 +564,27 @@ private fun StopwatchSection(
                 }
             )
         }
+    }
+}
+
+@Composable
+fun BonusRow(label: String, value: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+        )
+        Text(
+            text = "×$value",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 
