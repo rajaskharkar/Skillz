@@ -23,7 +23,9 @@ class FlowRepository @Inject constructor(
         tagId: Long,
         startTime: Long = System.currentTimeMillis(),
         endTime: Long = System.currentTimeMillis(),
-        durationMs: Long = 0L          // TODO: wire stopwatch here
+        durationMs: Long = 0L,          // TODO: wire stopwatch here
+        surgePlannedMs: Long? = null,
+        surgePoints: Int = 0
     ): Long {
         val session = SessionEntity(
             title = title,
@@ -31,7 +33,9 @@ class FlowRepository @Inject constructor(
             tagId = tagId,
             startTime = startTime,
             endTime = endTime,
-            durationMs = durationMs
+            durationMs = durationMs,
+            surgePlannedMs = surgePlannedMs,
+            surgePoints = surgePoints
         )
         return sessionDao.insertSession(session)
     }

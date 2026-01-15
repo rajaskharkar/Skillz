@@ -27,6 +27,8 @@ data class SessionEntity(
     val startTime: Long,                    // will be from stopwatch later
     val endTime: Long,
     val durationMs: Long,
+    val surgePlannedMs: Long? = null,
+    val surgePoints: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 )
 
@@ -56,7 +58,8 @@ data class FlowListUiState(
     val errorMessage: String? = null,
     val scoreFilter: ScoreFilter = ScoreFilter.LAST_7_DAYS,
     val currentScore: Int = 0,
-    val availableScoreFilters: Set<ScoreFilter> = ScoreFilter.values().toSet()
+    val availableScoreFilters: Set<ScoreFilter> = ScoreFilter.values().toSet(),
+    val currentSurgeScore: Int = 0
 )
 
 data class FlowListItemUiModel(
@@ -66,5 +69,7 @@ data class FlowListItemUiModel(
     val tagName: String,
     val durationMs: Long,
     val createdAt: Long,
-    val score: Int
+    val score: Int,
+    val isSurge: Boolean,
+    val surgePoints: Int
 )

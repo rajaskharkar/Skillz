@@ -95,7 +95,9 @@ class StoryViewModel @Inject constructor(
                 tagName = session.tagId?.let { tagNameById[it] }.orEmpty(),
                 durationMs = session.durationMs,
                 createdAt = session.createdAt,
-                score = ScoreCalculator.sessionScore(session)
+                score = ScoreCalculator.sessionScore(session),
+                isSurge = session.surgePlannedMs != null,
+                surgePoints = session.surgePoints
             )
         }
     }
@@ -150,6 +152,8 @@ class StoryViewModel @Inject constructor(
                     }
                 }
 
+                val currentSurgeScore = visibleSessions.sumOf { it.surgePoints }
+
                 // 3) Total time + score should reflect exactly what’s visible
                 val totalDurationMs = visibleSessions.sumOf { it.durationMs }
                 val totalScore = ScoreCalculator.totalScoreForSessions(visibleSessions)
@@ -163,7 +167,8 @@ class StoryViewModel @Inject constructor(
                     errorMessage = null,
                     scoreFilter = effectiveScoreFilter,
                     currentScore = totalScore,
-                    availableScoreFilters = availableFilters
+                    availableScoreFilters = availableFilters,
+                    currentSurgeScore = currentSurgeScore,
                 )
             }.catch { e ->
                 uiState.value = uiState.value.copy(
