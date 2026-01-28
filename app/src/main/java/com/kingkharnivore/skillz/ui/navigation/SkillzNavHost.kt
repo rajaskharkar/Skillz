@@ -9,10 +9,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navDeepLink
+import com.kingkharnivore.skillz.ui.beams.ScheduleBeamScreen
 import com.kingkharnivore.skillz.ui.skills.FlowScreen
-import com.kingkharnivore.skillz.ui.skills.ScheduleBeamScreen
 import com.kingkharnivore.skillz.ui.skills.SkillzHomeScreen
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
+import com.kingkharnivore.skillz.viewmodel.ScheduleBeamViewModel
 
 @Composable
 fun SkillzNavHost(
@@ -51,11 +52,14 @@ fun SkillzNavHost(
         }
 
         composable(SkillzDestinations.SCHEDULE_BEAM) {
+            val vm: ScheduleBeamViewModel = hiltViewModel()
             ScheduleBeamScreen(
+                vm = vm,
                 onDone = { popToHome(navController) },
                 onCancel = { navController.popBackStack() }
             )
         }
+
     }
 }
 

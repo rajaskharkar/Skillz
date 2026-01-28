@@ -82,4 +82,6 @@ class BeamRepository @Inject constructor(
 
     fun observeUpcomingBeams(nowMs: Long): Flow<List<BeamEntity>> =
         beamDao.observeUpcomingBeams(nowMs)
+
+    fun observeAllBeams(): Flow<List<BeamEntity>> = beamDao.observeAllBeams()
 }

@@ -10,6 +10,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.kingkharnivore.skillz.ui.beams.DailyBeamDataScreen
+import com.kingkharnivore.skillz.viewmodel.DailyBeamViewModel
 import com.kingkharnivore.skillz.viewmodel.NotepadViewModel
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
 
@@ -19,6 +21,7 @@ fun SkillzHomeScreen(
     onSessionClick: (Long) -> Unit,
     skillzViewModel: StoryViewModel = hiltViewModel(),
     notepadViewModel: NotepadViewModel = hiltViewModel(),
+    dailyBeamViewModel: DailyBeamViewModel = hiltViewModel(),
     onAddSessionClick: () -> Unit,
     onScheduleBeamClick: () -> Unit,
     onGoToActiveSession: () -> Unit,
@@ -26,12 +29,15 @@ fun SkillzHomeScreen(
 ) {
     val uiState by skillzViewModel.uiState.collectAsState()
     val notepadText by notepadViewModel.notepadText.collectAsState()
-    val listState = rememberLazyListState()
+    val beams by dailyBeamViewModel.beams.collectAsState()
 
-    // 0 = Sessions (default), 1 = Notepad
+    // Pages:
+    // 0 = DailyBeamData
+    // 1 = Story (landing)
+    // 2 = Notepad
     val pagerState = rememberPagerState(
-        initialPage = 0,
-        pageCount = { 2 }
+        initialPage = 1,
+        pageCount = { 3 }
     )
 
     HorizontalPager(
@@ -39,25 +45,25 @@ fun SkillzHomeScreen(
         modifier = Modifier.fillMaxSize()
     ) { page ->
         when (page) {
-            // HOME page → Session list
             0 -> {
+                DailyBeamDataScreen(beams = beams)
+            }
+
+            1 -> {
                 StoryScreen(
                     viewModel = skillzViewModel,
                     onAddSessionClick = onAddSessionClick,
-                    onScheduleBeamClick = onScheduleBeamClick, // ✅ pass through
-                    onSessionClick = { sessionId -> println("Clicked session: $sessionId") },
+                    onScheduleBeamClick = onScheduleBeamClick,
+                    onSessionClick = onSessionClick,
                     onGoToActiveSession = onGoToActiveSession,
                     isFocusModeOn = isFlowModeOn
                 )
             }
 
-            // Swipe LEFT → Notepad (Skratchpad)
-            1 -> {
+            2 -> {
                 NotepadScreen(
                     text = notepadText,
-                    onTextChange = { newText ->
-                        notepadViewModel.onTextChanged(newText)
-                    },
+                    onTextChange = notepadViewModel::onTextChanged,
                     modifier = Modifier.fillMaxSize()
                 )
             }
