@@ -16,9 +16,10 @@ object ScoreCalculator {
 
         val basePoints = minutes
 
-        val tenMinuteBonuses = minutes / 10
-        val thirtyMinuteBonuses = minutes / 30
+        // ✅ Exclusive milestone bonuses:
         val sixtyMinuteBonuses = minutes / 60
+        val thirtyMinuteBonuses = (minutes / 30) - (minutes / 60)
+        val tenMinuteBonuses = (minutes / 10) - (minutes / 30)
 
         val totalPoints =
             basePoints +
@@ -35,6 +36,7 @@ object ScoreCalculator {
             totalPoints = totalPoints
         )
     }
+
 
     fun surgePoints(
         surgePlannedMs: Long?,

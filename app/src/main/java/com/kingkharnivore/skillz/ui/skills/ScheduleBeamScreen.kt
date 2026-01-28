@@ -275,10 +275,11 @@ fun ScheduleBeamScreen(
 }
 
 private fun formatDate(epochMs: Long): String {
-    val zone = ZoneId.systemDefault()
-    val dt = Instant.ofEpochMilli(epochMs).atZone(zone)
+    val utcDate = Instant.ofEpochMilli(epochMs)
+        .atZone(java.time.ZoneOffset.UTC)
+        .toLocalDate()
     val fmt = DateTimeFormatter.ofPattern("EEE, MMM d")
-    return dt.format(fmt)
+    return utcDate.format(fmt)
 }
 
 private fun formatTime(hour: Int?, minute: Int?): String {
@@ -297,7 +298,9 @@ private fun formatStartPreview(
     val now = java.time.ZonedDateTime.now(zone)
 
     val date = if (selectedDateMillis != null) {
-        Instant.ofEpochMilli(selectedDateMillis).atZone(zone).toLocalDate()
+        Instant.ofEpochMilli(selectedDateMillis)
+            .atZone(java.time.ZoneOffset.UTC)
+            .toLocalDate()
     } else {
         now.toLocalDate()
     }

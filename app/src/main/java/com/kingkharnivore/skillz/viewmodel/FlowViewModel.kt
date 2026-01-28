@@ -11,6 +11,7 @@ import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
 import com.kingkharnivore.skillz.utils.score.BeamScoreCalculator
+import com.kingkharnivore.skillz.utils.score.BeamScoreCalculator.overlapMs
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -61,6 +62,14 @@ data class FlowRewardUiModel(
     val surgePoints: Int
 )
 
+private data class BeamOutcome(
+    val beamId: Long? = null,
+    val bonusPoints: Int = 0,
+    val multiplier: Double? = null,
+    val eligibleMs: Long = 0L
+)
+
+private const val BEAM_MIN_ELIGIBLE_MS = 60_000L // 1 minute
 
 @HiltViewModel
 class FlowViewModel @Inject constructor(
@@ -268,41 +277,35 @@ class FlowViewModel @Inject constructor(
 
     private suspend fun computeRewardPreview(): FlowRewardUiModel {
         val state = _uiState.value
-
         val durationMs = state.stopwatch.elapsedMs.coerceAtLeast(0L)
+
         val endTime = System.currentTimeMillis()
         val startTime = (endTime - durationMs).coerceAtLeast(0L)
 
-        // Surge is independent
         val surgePoints = ScoreCalculator.surgePoints(state.surgePlannedMs, durationMs)
 
-        // Base Scyra points (duration bonuses etc.)
         val breakdown = ScoreCalculator.breakdownFromDuration(durationMs)
         val baseScyra = breakdown.totalPoints
 
-        // Beam
-        val beamResult = computeBeamForPreview(
-            tagName = state.tagName,
+        val tagId = tagRepository.getOrCreateTagId(state.tagName.trim())
+        val beam = computeBeamOutcomeForSession(
+            tagId = tagId,
             sessionStart = startTime,
             sessionEnd = endTime,
             sessionDurationMs = durationMs
         )
 
-        val finalScyra = baseScyra + beamResult.bonusPoints
+        val finalScyra = baseScyra + beam.bonusPoints
 
         return FlowRewardUiModel(
             minutes = breakdown.minutes,
             baseScyraPoints = baseScyra,
-
             tenMinuteBonuses = breakdown.tenMinuteBonuses,
             thirtyMinuteBonuses = breakdown.thirtyMinuteBonuses,
             sixtyMinuteBonuses = breakdown.sixtyMinuteBonuses,
-
-            beamBonusPoints = beamResult.bonusPoints,
-            beamMultiplier = beamResult.multiplier,
-
+            beamBonusPoints = beam.bonusPoints,
+            beamMultiplier = beam.multiplier,
             finalScyraPoints = finalScyra,
-
             surgePoints = surgePoints
         )
     }
@@ -334,12 +337,8 @@ class FlowViewModel @Inject constructor(
 
         val matchingBeam = overlapping.firstOrNull { it.tagId == tagId } ?: return BeamPreviewResult()
 
-        val eligibleMs = BeamScoreCalculator.overlapMs(
-            aStart = maxOf(sessionStart, matchingBeam.startTime),
-            aEnd = sessionEnd,
-            bStart = matchingBeam.startTime,
-            bEnd = matchingBeam.endTime
-        )
+        val eligibleMs = overlapMs(sessionStart, sessionEnd, matchingBeam.startTime, matchingBeam.endTime)
+
 
         if (eligibleMs <= 0L) return BeamPreviewResult(beamId = matchingBeam.id)
 
@@ -424,7 +423,7 @@ class FlowViewModel @Inject constructor(
                     actualDurationMs = durationMs
                 )
 
-                val (beamId, beamBonusPoints, beamMultiplier) = computeBeamOutcome(
+                val beam = computeBeamOutcomeForSession(
                     tagId = tagId,
                     sessionStart = startTime,
                     sessionEnd = endTime,
@@ -440,9 +439,9 @@ class FlowViewModel @Inject constructor(
                     durationMs = durationMs,
                     surgePlannedMs = state.surgePlannedMs,
                     surgePoints = surgePoints,
-                    beamId = beamId,
-                    beamBonusPoints = beamBonusPoints,
-                    beamMultiplier = beamMultiplier
+                    beamId = beam.beamId,
+                    beamBonusPoints = beam.bonusPoints,
+                    beamMultiplier = beam.multiplier
                 )
 
                 resetStopwatch()
@@ -458,25 +457,32 @@ class FlowViewModel @Inject constructor(
         }
     }
 
-    private suspend fun computeBeamOutcome(
+    private suspend fun computeBeamOutcomeForSession(
         tagId: Long,
         sessionStart: Long,
         sessionEnd: Long,
         sessionDurationMs: Long
-    ): Triple<Long?, Int, Double?> {
+    ): BeamOutcome {
         val beams = beamRepository.getBeamsOverlappingWindow(sessionStart, sessionEnd)
+
+        // deterministic: earliest starting beam for this tag
         val matchingBeam = beams
+            .asSequence()
             .filter { it.tagId == tagId }
-            .minByOrNull { it.startTime } // deterministic
-            ?: return Triple(null, 0, null)
+            .minByOrNull { it.startTime }
+            ?: return BeamOutcome()
 
         val eligibleMs = BeamScoreCalculator.overlapMs(
-            aStart = maxOf(sessionStart, matchingBeam.startTime),
+            aStart = sessionStart,
             aEnd = sessionEnd,
             bStart = matchingBeam.startTime,
             bEnd = matchingBeam.endTime
         )
-        if (eligibleMs <= 0L) return Triple(matchingBeam.id, 0, null)
+
+        // ✅ enforce your minimum-overlap rule
+        if (eligibleMs < BEAM_MIN_ELIGIBLE_MS) {
+            return BeamOutcome(beamId = matchingBeam.id, eligibleMs = eligibleMs)
+        }
 
         val res = BeamScoreCalculator.scoreWithBeam(
             sessionStart = sessionStart,
@@ -485,10 +491,64 @@ class FlowViewModel @Inject constructor(
             beamStart = matchingBeam.startTime,
             beamEnd = matchingBeam.endTime,
             beamDurationMs = matchingBeam.durationMs,
-            continuousEngagedMsInThisSession = eligibleMs
+            continuousEngagedMsInThisSession = eligibleMs // current design: treat overlap as engaged
         )
-        if (res.beamBonusPoints <= 0) return Triple(null, 0, null)
-        return Triple(matchingBeam.id, res.beamBonusPoints, res.appliedMultiplier)
+
+        // ✅ keep beamId even if bonusPoints ends up 0 (for debugging/telemetry)
+        return BeamOutcome(
+            beamId = matchingBeam.id,
+            bonusPoints = res.beamBonusPoints,
+            multiplier = res.appliedMultiplier,
+            eligibleMs = eligibleMs
+        )
+    }
+
+    private suspend fun computeBeamOutcome(
+        tagId: Long,
+        sessionStart: Long,
+        sessionEnd: Long,
+        sessionDurationMs: Long,
+        clampRampToBeamStart: Boolean = true,
+        keepBeamIdEvenIfZeroBonus: Boolean = true
+    ): BeamOutcome {
+        val beams = beamRepository.getBeamsOverlappingWindow(sessionStart, sessionEnd)
+
+        val matchingBeam = beams
+            .asSequence()
+            .filter { it.tagId == tagId }
+            .minByOrNull { it.startTime }
+            ?: return BeamOutcome()
+
+        // Eligibility (true overlap) is handled in scoreWithBeam() too,
+        // but we still compute rampEngagedMs for multiplier behavior.
+        val rampStart = if (clampRampToBeamStart) maxOf(sessionStart, matchingBeam.startTime) else sessionStart
+
+        val rampEngagedMs = BeamScoreCalculator.overlapMs(
+            aStart = rampStart,
+            aEnd = sessionEnd,
+            bStart = matchingBeam.startTime,
+            bEnd = matchingBeam.endTime
+        )
+
+        val res = BeamScoreCalculator.scoreWithBeam(
+            sessionStart = sessionStart,
+            sessionEnd = sessionEnd,
+            sessionDurationMs = sessionDurationMs,
+            beamStart = matchingBeam.startTime,
+            beamEnd = matchingBeam.endTime,
+            beamDurationMs = matchingBeam.durationMs,
+            continuousEngagedMsInThisSession = rampEngagedMs
+        )
+
+        // If there was no eligible overlap, res.bonus will be 0 anyway.
+        val bonus = res.beamBonusPoints.coerceAtLeast(0)
+        val hasBonus = bonus > 0
+
+        return when {
+            hasBonus -> BeamOutcome(matchingBeam.id, bonus, res.appliedMultiplier)
+            keepBeamIdEvenIfZeroBonus -> BeamOutcome(matchingBeam.id, 0, null)
+            else -> BeamOutcome()
+        }
     }
 
     fun prefillFromBeam(tagName: String) {

@@ -7,7 +7,9 @@ import kotlin.math.roundToInt
 
 object BeamScoreCalculator {
 
-    private const val MILLIS_PER_MINUTE = 60_000.0
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Overlap
+    // ─────────────────────────────────────────────────────────────────────────────
 
     /** half-open overlap duration in ms: [aStart,aEnd) with [bStart,bEnd) */
     fun overlapMs(aStart: Long, aEnd: Long, bStart: Long, bEnd: Long): Long {
@@ -16,13 +18,24 @@ object BeamScoreCalculator {
         return (end - start).coerceAtLeast(0L)
     }
 
-    /**
-     * ✅ Your rule:
-     * - multiplier starts at 2x at the beginning of the beam
-     * - ramps up to 5x as engaged time approaches the beam's scheduled duration
-     * - NO duration buckets, NO 60-min caps
-     */
-    private fun capMultiplier(): Double = 5.0
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Multiplier (Hybrid Model A + B)
+    // - starts gently (showing up)
+    // - grows smoothly with continuous engagement
+    // - hard-capped by progress tiers
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    private const val MIN_MULTIPLIER = 1.3
+
+    private data class Tier(val startP: Double, val endP: Double, val cap: Double)
+
+    // Progress is p = engaged / beamDuration, clamped to [0..1]
+    private val tiers = listOf(
+        Tier(0.00, 0.25, 1.30),
+        Tier(0.25, 0.50, 1.50),
+        Tier(0.50, 0.75, 1.75),
+        Tier(0.75, 1.00, 2.00)
+    )
 
     /** Ease-out cubic curve [0..1] -> [0..1] */
     private fun easeOutCubic(t: Double): Double {
@@ -31,44 +44,55 @@ object BeamScoreCalculator {
     }
 
     /**
-     * Multiplier starts at 2x and ramps toward 5x based on:
-     * continuousEngagedMs / beamDurationMs
-     *
-     * - If beamDurationMs is 120 mins, it ramps across 120 mins.
-     * - If beamDurationMs is 20 mins, it ramps across 20 mins.
+     * Multiplier:
+     * - based on continuousEngagedMs / beamDurationMs
+     * - increases smoothly
+     * - cannot exceed the tier cap for the current progress bucket
      */
     fun multiplier(
         continuousEngagedMs: Long,
         beamDurationMs: Long
     ): Double {
-        if (beamDurationMs <= 0L) return 2.0
+        if (beamDurationMs <= 0L) return MIN_MULTIPLIER
 
         val p = (continuousEngagedMs.toDouble() / beamDurationMs.toDouble())
             .coerceIn(0.0, 1.0)
 
-        val eased = easeOutCubic(p)
-        val cap = capMultiplier()
+        val tier = tiers.firstOrNull { p < it.endP } ?: tiers.last()
 
-        val m = 2.0 + (cap - 2.0) * eased
-        return m.coerceIn(2.0, cap)
+        // normalize p to [0..1] within this tier range
+        val localT = if (tier.endP - tier.startP <= 0.0) {
+            1.0
+        } else {
+            ((p - tier.startP) / (tier.endP - tier.startP)).coerceIn(0.0, 1.0)
+        }
+
+        val eased = easeOutCubic(localT)
+
+        // We ramp from MIN_MULTIPLIER up to the tier cap, but never exceed it.
+        val m = MIN_MULTIPLIER + (tier.cap - MIN_MULTIPLIER) * eased
+        return m.coerceIn(MIN_MULTIPLIER, tier.cap)
     }
 
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Result + Scoring
+    // ─────────────────────────────────────────────────────────────────────────────
+
     data class BeamScoreResult(
-        val sessionTotalPointsBase: Int,          // base total points for full duration (for reference)
+        val sessionTotalPointsBase: Int,   // base total points for full duration (for reference)
         val eligibleMs: Long,
-        val eligiblePointsBase: Int,              // base points for eligible overlap time (recomputed)
-        val eligiblePointsBoosted: Int,           // boosted eligible points
-        val beamBonusPoints: Int,                 // ✅ guaranteed non-negative
-        val appliedMultiplier: Double,
+        val eligiblePointsBase: Int,       // base points for eligible overlap time (recomputed)
+        val eligiblePointsBoosted: Int,    // boosted eligible points
+        val beamBonusPoints: Int,          // guaranteed non-negative
+        val appliedMultiplier: Double
     )
 
     /**
-     * ✅ Correct beam bonus math:
-     * - Compute eligiblePoints from eligibleMs
-     * - Boost only eligiblePoints with multiplier
-     * - Bonus is ONLY (boostedEligible - eligibleBase)
-     *
-     * This avoids negative "bonus" due to ScoreCalculator thresholds being non-linear.
+     * Beam bonus rules:
+     * - Eligible time = overlap(session, beam)
+     * - Recompute base points for eligibleMs
+     * - Boost ONLY eligiblePointsBase using multiplier(continuousEngagedMs, beamDurationMs)
+     * - Beam bonus = boostedEligible - eligibleBase (never negative)
      */
     fun scoreWithBeam(
         sessionStart: Long,
@@ -79,7 +103,6 @@ object BeamScoreCalculator {
         beamDurationMs: Long,
         continuousEngagedMsInThisSession: Long
     ): BeamScoreResult {
-
         val sessionTotalBase = ScoreCalculator.breakdownFromDuration(sessionDurationMs).totalPoints
 
         val eligibleMs = overlapMs(sessionStart, sessionEnd, beamStart, beamEnd)
@@ -96,21 +119,19 @@ object BeamScoreCalculator {
 
         val eligiblePointsBase = ScoreCalculator.breakdownFromDuration(eligibleMs).totalPoints
 
-        // Continuous engaged time cannot exceed eligibleMs.
+        // Continuous engagement can't exceed eligible region.
         val contMs = continuousEngagedMsInThisSession.coerceIn(0L, eligibleMs)
 
         val m = multiplier(contMs, beamDurationMs)
 
-        val eligibleBoosted = (eligiblePointsBase * m).roundToInt()
-
-        // ✅ Beam bonus only comes from eligible region's boost.
-        val bonus = (eligibleBoosted - eligiblePointsBase).coerceAtLeast(0)
+        val boostedEligible = (eligiblePointsBase * m).roundToInt()
+        val bonus = (boostedEligible - eligiblePointsBase).coerceAtLeast(0)
 
         return BeamScoreResult(
             sessionTotalPointsBase = sessionTotalBase,
             eligibleMs = eligibleMs,
             eligiblePointsBase = eligiblePointsBase,
-            eligiblePointsBoosted = eligibleBoosted,
+            eligiblePointsBoosted = boostedEligible,
             beamBonusPoints = bonus,
             appliedMultiplier = m
         )

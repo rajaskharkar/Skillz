@@ -133,7 +133,9 @@ class ScheduleBeamViewModel @Inject constructor(
         val now = ZonedDateTime.now(zone)
 
         val date = if (selectedDateMillis != null) {
-            Instant.ofEpochMilli(selectedDateMillis).atZone(zone).toLocalDate()
+            Instant.ofEpochMilli(selectedDateMillis)
+                .atZone(java.time.ZoneOffset.UTC)
+                .toLocalDate()
         } else {
             now.toLocalDate()
         }

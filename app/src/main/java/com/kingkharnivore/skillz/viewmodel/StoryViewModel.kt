@@ -97,7 +97,8 @@ class StoryViewModel @Inject constructor(
                 createdAt = session.createdAt,
                 score = ScoreCalculator.sessionScore(session),
                 isSurge = session.surgePlannedMs != null,
-                surgePoints = session.surgePoints
+                surgePoints = session.surgePoints,
+                beamBonusPoints = session.beamBonusPoints
             )
         }
     }

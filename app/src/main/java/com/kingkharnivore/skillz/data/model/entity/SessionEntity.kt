@@ -74,5 +74,6 @@ data class FlowListItemUiModel(
     val createdAt: Long,
     val score: Int,
     val isSurge: Boolean,
-    val surgePoints: Int
+    val surgePoints: Int,
+    val beamBonusPoints: Int
 )
