@@ -55,7 +55,8 @@ object ScoreCalculator {
     }
 
     fun sessionScore(session: SessionEntity): Int {
-        return breakdownFromDuration(session.durationMs).totalPoints
+        val base = breakdownFromDuration(session.durationMs).totalPoints
+        return base + session.beamBonusPoints
     }
 
     fun totalScoreForSessions(sessions: List<SessionEntity>): Int {

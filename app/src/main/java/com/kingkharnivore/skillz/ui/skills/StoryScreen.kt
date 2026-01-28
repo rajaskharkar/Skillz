@@ -46,6 +46,7 @@ import com.kingkharnivore.skillz.utils.score.ScoreFilter
 fun StoryScreen(
     viewModel: StoryViewModel,
     onAddSessionClick: () -> Unit,
+    onScheduleBeamClick: () -> Unit,  // ✅ add
     onSessionClick: (Long) -> Unit,
     onGoToActiveSession: () -> Unit,
     isFocusModeOn: Boolean
@@ -61,7 +62,22 @@ fun StoryScreen(
 
     Scaffold(
         topBar = { SkillzTopAppBar() },
-        floatingActionButton = { SkillListFab(onClick = onAddSessionClick) }
+        floatingActionButton = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.End
+            ) {
+                FloatingActionButton(
+                    onClick = onScheduleBeamClick,
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
+                ) {
+                    Text("⏰")
+                }
+
+                SkillListFab(onClick = onAddSessionClick)
+            }
+        }
     ) { innerPadding ->
         Box(
             modifier = Modifier

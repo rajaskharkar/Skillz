@@ -23,12 +23,15 @@ data class SessionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
     val description: String,
-    val tagId: Long,                        // <- which Skill this session belongs to
-    val startTime: Long,                    // will be from stopwatch later
+    val tagId: Long,
+    val startTime: Long,
     val endTime: Long,
     val durationMs: Long,
     val surgePlannedMs: Long? = null,
     val surgePoints: Int = 0,
+    val beamId: Long? = null,
+    val beamBonusPoints: Int = 0,
+    val beamMultiplier: Double? = null,
     val createdAt: Long = System.currentTimeMillis()
 )
 

@@ -21,12 +21,15 @@ class FlowRepository @Inject constructor(
         title: String,
         description: String,
         tagId: Long,
-        startTime: Long = System.currentTimeMillis(),
-        endTime: Long = System.currentTimeMillis(),
-        durationMs: Long = 0L,          // TODO: wire stopwatch here
-        surgePlannedMs: Long? = null,
-        surgePoints: Int = 0
-    ): Long {
+        startTime: Long,
+        endTime: Long,
+        durationMs: Long,
+        surgePlannedMs: Long?,
+        surgePoints: Int,
+        beamId: Long?,
+        beamBonusPoints: Int,
+        beamMultiplier: Double?
+    ) : Long {
         val session = SessionEntity(
             title = title,
             description = description,
@@ -35,7 +38,10 @@ class FlowRepository @Inject constructor(
             endTime = endTime,
             durationMs = durationMs,
             surgePlannedMs = surgePlannedMs,
-            surgePoints = surgePoints
+            surgePoints = surgePoints,
+            beamId = beamId,
+            beamBonusPoints = beamBonusPoints,
+            beamMultiplier = beamMultiplier
         )
         return sessionDao.insertSession(session)
     }

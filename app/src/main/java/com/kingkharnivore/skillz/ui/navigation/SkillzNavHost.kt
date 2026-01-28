@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navDeepLink
 import com.kingkharnivore.skillz.ui.skills.FlowScreen
+import com.kingkharnivore.skillz.ui.skills.ScheduleBeamScreen
 import com.kingkharnivore.skillz.ui.skills.SkillzHomeScreen
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 
@@ -27,22 +28,16 @@ fun SkillzNavHost(
         startDestination = SkillzDestinations.HOME_SCREEN,
         modifier = modifier
     ) {
-        // --- HOME (SkillzHomeScreen: SessionList + Notepad pager) ---
         composable(SkillzDestinations.HOME_SCREEN) {
-
             SkillzHomeScreen(
-                onSessionClick = { /* you can hook this up later if you add details */ },
-                onAddSessionClick = {
-                    navController.navigate(SkillzDestinations.ADD_SKILL)
-                },
-                onGoToActiveSession = {
-                    navController.navigate(SkillzDestinations.ADD_SKILL)
-                },
+                onSessionClick = { /* later */ },
+                onAddSessionClick = { navController.navigate(SkillzDestinations.ADD_SKILL) },
+                onScheduleBeamClick = { navController.navigate(SkillzDestinations.SCHEDULE_BEAM) },
+                onGoToActiveSession = { navController.navigate(SkillzDestinations.ADD_SKILL) },
                 isFlowModeOn = isFocusModeOn
             )
         }
 
-        // --- Add Skill Screen ---
         composable(
             SkillzDestinations.ADD_SKILL,
             deepLinks = listOf(navDeepLink { uriPattern = "skillz://flow" })
@@ -54,8 +49,16 @@ fun SkillzNavHost(
                 onCancel = { popToHome(navController) }
             )
         }
+
+        composable(SkillzDestinations.SCHEDULE_BEAM) {
+            ScheduleBeamScreen(
+                onDone = { popToHome(navController) },
+                onCancel = { navController.popBackStack() }
+            )
+        }
     }
 }
+
 
 private fun popToHome(navController: NavHostController) {
     navController.popBackStack(

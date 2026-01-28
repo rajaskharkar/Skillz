@@ -2,12 +2,15 @@ package com.kingkharnivore.skillz.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kingkharnivore.skillz.data.model.entity.BeamEntity
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
+import com.kingkharnivore.skillz.data.repository.BeamRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
+import com.kingkharnivore.skillz.utils.score.BeamScoreCalculator
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -38,12 +41,34 @@ data class FlowUiState(
     val surgePlannedMs: Long? = null
 )
 
+data class FlowRewardUiModel(
+    val minutes: Int,
+    val baseScyraPoints: Int,
+
+    // Bonuses from core engine breakdown
+    val tenMinuteBonuses: Int,
+    val thirtyMinuteBonuses: Int,
+    val sixtyMinuteBonuses: Int,
+
+    // Beam
+    val beamBonusPoints: Int,
+    val beamMultiplier: Double?,      // null if no beam applied
+
+    // Final
+    val finalScyraPoints: Int,
+
+    // Surge (independent)
+    val surgePoints: Int
+)
+
+
 @HiltViewModel
 class FlowViewModel @Inject constructor(
     private val tagRepository: JourneyRepository,
     private val sessionRepository: FlowRepository,
     private val focusSessionRepository: AliveFlowRepository,
-    private val aliveFlowServiceController: AliveFlowServiceController
+    private val aliveFlowServiceController: AliveFlowServiceController,
+    private val beamRepository: BeamRepository
 ) : ViewModel() {
 
     val ongoingSession: StateFlow<OngoingSessionEntity?> =
@@ -59,6 +84,9 @@ class FlowViewModel @Inject constructor(
 
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving
+
+    private val _lastReward = MutableStateFlow<FlowRewardUiModel?>(null)
+    val lastReward: StateFlow<FlowRewardUiModel?> = _lastReward.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
@@ -232,6 +260,107 @@ class FlowViewModel @Inject constructor(
         }
     }
 
+    fun prepareRewardPreview() {
+        viewModelScope.launch {
+            _lastReward.value = computeRewardPreview()
+        }
+    }
+
+    private suspend fun computeRewardPreview(): FlowRewardUiModel {
+        val state = _uiState.value
+
+        val durationMs = state.stopwatch.elapsedMs.coerceAtLeast(0L)
+        val endTime = System.currentTimeMillis()
+        val startTime = (endTime - durationMs).coerceAtLeast(0L)
+
+        // Surge is independent
+        val surgePoints = ScoreCalculator.surgePoints(state.surgePlannedMs, durationMs)
+
+        // Base Scyra points (duration bonuses etc.)
+        val breakdown = ScoreCalculator.breakdownFromDuration(durationMs)
+        val baseScyra = breakdown.totalPoints
+
+        // Beam
+        val beamResult = computeBeamForPreview(
+            tagName = state.tagName,
+            sessionStart = startTime,
+            sessionEnd = endTime,
+            sessionDurationMs = durationMs
+        )
+
+        val finalScyra = baseScyra + beamResult.bonusPoints
+
+        return FlowRewardUiModel(
+            minutes = breakdown.minutes,
+            baseScyraPoints = baseScyra,
+
+            tenMinuteBonuses = breakdown.tenMinuteBonuses,
+            thirtyMinuteBonuses = breakdown.thirtyMinuteBonuses,
+            sixtyMinuteBonuses = breakdown.sixtyMinuteBonuses,
+
+            beamBonusPoints = beamResult.bonusPoints,
+            beamMultiplier = beamResult.multiplier,
+
+            finalScyraPoints = finalScyra,
+
+            surgePoints = surgePoints
+        )
+    }
+
+    private data class BeamPreviewResult(
+        val beamId: Long? = null,
+        val bonusPoints: Int = 0,
+        val multiplier: Double? = null
+    )
+
+    /**
+     * Preview is allowed to be “best effort”.
+     * NOTE: this will create the tag if it doesn't exist because you're using getOrCreateTagId.
+     * If you want to avoid that side effect, add a JourneyRepository.getTagIdIfExists(name) later.
+     */
+    private suspend fun computeBeamForPreview(
+        tagName: String,
+        sessionStart: Long,
+        sessionEnd: Long,
+        sessionDurationMs: Long
+    ): BeamPreviewResult {
+        val trimmed = tagName.trim()
+        if (trimmed.isBlank()) return BeamPreviewResult()
+
+        val tagId = tagRepository.getOrCreateTagId(trimmed)
+
+        val overlapping: List<BeamEntity> =
+            beamRepository.getBeamsOverlappingWindow(sessionStart, sessionEnd)
+
+        val matchingBeam = overlapping.firstOrNull { it.tagId == tagId } ?: return BeamPreviewResult()
+
+        val eligibleMs = BeamScoreCalculator.overlapMs(
+            aStart = maxOf(sessionStart, matchingBeam.startTime),
+            aEnd = sessionEnd,
+            bStart = matchingBeam.startTime,
+            bEnd = matchingBeam.endTime
+        )
+
+        if (eligibleMs <= 0L) return BeamPreviewResult(beamId = matchingBeam.id)
+
+        val res = BeamScoreCalculator.scoreWithBeam(
+            sessionStart = sessionStart,
+            sessionEnd = sessionEnd,
+            sessionDurationMs = sessionDurationMs,
+            beamStart = matchingBeam.startTime,
+            beamEnd = matchingBeam.endTime,
+            beamDurationMs = matchingBeam.durationMs,
+            continuousEngagedMsInThisSession = eligibleMs
+        )
+
+
+        return BeamPreviewResult(
+            beamId = matchingBeam.id,
+            bonusPoints = res.beamBonusPoints,
+            multiplier = res.appliedMultiplier
+        )
+    }
+
     fun setSurgePlannedMinutes(minutes: Int) {
         val mins = minutes.coerceAtLeast(1)
         val plannedMs = mins * 60_000L
@@ -270,35 +399,50 @@ class FlowViewModel @Inject constructor(
 
     fun saveSession(onDone: () -> Unit) {
         val state = _uiState.value
-        if (state.title.isBlank() || state.tagName.isBlank()) {
+        val title = state.title.trim()
+        val tagName = state.tagName.trim()
+        val description = state.description.trim()
+
+        if (title.isBlank() || tagName.isBlank()) {
             _error.value = "Title and Skill are required"
             return
         }
 
         viewModelScope.launch {
+            _isSaving.value = true
+            _error.value = null
+
             try {
-                _isSaving.value = true
-                _error.value = null
-
-                val tagId = tagRepository.getOrCreateTagId(state.tagName.trim())
                 val durationMs = state.stopwatch.elapsedMs.coerceAtLeast(0L)
-
-                val surgePoints = ScoreCalculator.surgePoints(
-                    state.surgePlannedMs, durationMs
-                )
-
                 val endTime = System.currentTimeMillis()
                 val startTime = (endTime - durationMs).coerceAtLeast(0L)
 
+                val tagId = tagRepository.getOrCreateTagId(tagName)
+
+                val surgePoints = ScoreCalculator.surgePoints(
+                    surgePlannedMs = state.surgePlannedMs,
+                    actualDurationMs = durationMs
+                )
+
+                val (beamId, beamBonusPoints, beamMultiplier) = computeBeamOutcome(
+                    tagId = tagId,
+                    sessionStart = startTime,
+                    sessionEnd = endTime,
+                    sessionDurationMs = durationMs
+                )
+
                 sessionRepository.addSession(
-                    title = state.title.trim(),
-                    description = state.description.trim(),
+                    title = title,
+                    description = description,
                     tagId = tagId,
                     startTime = startTime,
                     endTime = endTime,
                     durationMs = durationMs,
                     surgePlannedMs = state.surgePlannedMs,
-                    surgePoints = surgePoints
+                    surgePoints = surgePoints,
+                    beamId = beamId,
+                    beamBonusPoints = beamBonusPoints,
+                    beamMultiplier = beamMultiplier
                 )
 
                 resetStopwatch()
@@ -312,5 +456,43 @@ class FlowViewModel @Inject constructor(
                 _isSaving.value = false
             }
         }
+    }
+
+    private suspend fun computeBeamOutcome(
+        tagId: Long,
+        sessionStart: Long,
+        sessionEnd: Long,
+        sessionDurationMs: Long
+    ): Triple<Long?, Int, Double?> {
+        val beams = beamRepository.getBeamsOverlappingWindow(sessionStart, sessionEnd)
+        val matchingBeam = beams
+            .filter { it.tagId == tagId }
+            .minByOrNull { it.startTime } // deterministic
+            ?: return Triple(null, 0, null)
+
+        val eligibleMs = BeamScoreCalculator.overlapMs(
+            aStart = maxOf(sessionStart, matchingBeam.startTime),
+            aEnd = sessionEnd,
+            bStart = matchingBeam.startTime,
+            bEnd = matchingBeam.endTime
+        )
+        if (eligibleMs <= 0L) return Triple(matchingBeam.id, 0, null)
+
+        val res = BeamScoreCalculator.scoreWithBeam(
+            sessionStart = sessionStart,
+            sessionEnd = sessionEnd,
+            sessionDurationMs = sessionDurationMs,
+            beamStart = matchingBeam.startTime,
+            beamEnd = matchingBeam.endTime,
+            beamDurationMs = matchingBeam.durationMs,
+            continuousEngagedMsInThisSession = eligibleMs
+        )
+        if (res.beamBonusPoints <= 0) return Triple(null, 0, null)
+        return Triple(matchingBeam.id, res.beamBonusPoints, res.appliedMultiplier)
+    }
+
+    fun prefillFromBeam(tagName: String) {
+        _uiState.update { it.copy(tagName = tagName) }
+        saveOngoing()
     }
 }

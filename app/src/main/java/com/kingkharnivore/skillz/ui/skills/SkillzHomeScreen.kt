@@ -20,6 +20,7 @@ fun SkillzHomeScreen(
     skillzViewModel: StoryViewModel = hiltViewModel(),
     notepadViewModel: NotepadViewModel = hiltViewModel(),
     onAddSessionClick: () -> Unit,
+    onScheduleBeamClick: () -> Unit,
     onGoToActiveSession: () -> Unit,
     isFlowModeOn: Boolean
 ) {
@@ -43,9 +44,10 @@ fun SkillzHomeScreen(
                 StoryScreen(
                     viewModel = skillzViewModel,
                     onAddSessionClick = onAddSessionClick,
+                    onScheduleBeamClick = onScheduleBeamClick, // ✅ pass through
                     onSessionClick = { sessionId -> println("Clicked session: $sessionId") },
                     onGoToActiveSession = onGoToActiveSession,
-                    isFlowModeOn
+                    isFocusModeOn = isFlowModeOn
                 )
             }
 

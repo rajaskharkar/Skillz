@@ -8,6 +8,7 @@ import androidx.room.Room
 import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
+import com.kingkharnivore.skillz.data.model.dao.BeamDao
 import com.kingkharnivore.skillz.data.model.dao.TagDao
 import dagger.Module
 import dagger.Provides
@@ -41,6 +42,9 @@ object DatabaseModule {
     @Provides
     fun provideOngoingSessionDao(db: SkillzDatabase): OngoingSessionDao =
         db.ongoingSessionDao()
+
+    @Provides
+    fun provideBeamDao(db: SkillzDatabase): BeamDao = db.beamDao()
 
     private val Context.skillzDataStore: DataStore<Preferences> by preferencesDataStore(
         name = "skillz_prefs"

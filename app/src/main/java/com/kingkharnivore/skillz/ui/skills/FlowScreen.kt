@@ -58,6 +58,7 @@ fun FlowScreen(
     val isSaving by viewModel.isSaving.collectAsState()
     val error by viewModel.error.collectAsState()
     val tags by viewModel.tags.collectAsState()
+    val reward by viewModel.lastReward.collectAsState()
 
     var showSurgeDialog by remember { mutableStateOf(false) }
     var surgeMinutesInput by remember { mutableStateOf("") }
@@ -68,7 +69,6 @@ fun FlowScreen(
     var showEndDialog by remember { mutableStateOf(false) }
 
     var showPointsDialog by remember { mutableStateOf(false) }
-    var lastBreakdown by remember { mutableStateOf<ScoreBreakdown?>(null) }
 
     Scaffold(
         topBar = {
@@ -203,17 +203,15 @@ fun FlowScreen(
                     onClick = {
                         val durationMs = uiState.stopwatch.elapsedMs.coerceAtLeast(0L)
                         val tenMinutesMs = 1 * 60_000L
-
                         val surgePoints = ScoreCalculator.surgePoints(uiState.surgePlannedMs, durationMs)
                         val shouldShowDialog = durationMs >= tenMinutesMs || surgePoints > 0
 
                         if (shouldShowDialog) {
-                            lastBreakdown = ScoreCalculator.breakdownFromDuration(durationMs)
+                            viewModel.prepareRewardPreview()
                             showPointsDialog = true
                         } else {
                             viewModel.saveSession(onDone)
                         }
-
                     },
                     modifier = Modifier.weight(1f)
                 ) {
@@ -260,29 +258,21 @@ fun FlowScreen(
     }
 
     // 🟢 "Points earned" popup for sessions >= 10 minutes
-    if (showPointsDialog && lastBreakdown != null) {
-        val breakdown = lastBreakdown!!
-        val durationMs = uiState.stopwatch.elapsedMs.coerceAtLeast(0L)
-        val surgePoints = ScoreCalculator.surgePoints(uiState.surgePlannedMs, durationMs)
+    if (showPointsDialog && reward != null) {
+        val r = reward!!
 
         AlertDialog(
-            // 🔒 No way to dismiss: back + outside taps are intercepted,
-            // onDismissRequest does NOT change state
-            onDismissRequest = {
-                // Do nothing: keep dialog shown until user taps "Nice!"
-            },
-            title = {
-                Text("You did it!")
-            },
+            onDismissRequest = { /* locked */ },
+            title = { Text("You did it!") },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // ── Header ────────────────────────────────────────────────────────────────
+                    // Header
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = if (surgePoints > 0) "Surge complete" else "Flow complete",
+                            text = if (r.surgePoints > 0) "Surge complete" else "Flow complete",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -293,22 +283,33 @@ fun FlowScreen(
                         )
                     }
 
-                    // ── Summary chips row (time + (optional) surge) ───────────────────────────
+                    // Summary chips row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        StatText("⏱ ${breakdown.minutes} min")
+                        StatText("⏱ ${r.minutes} min")
 
-                        if (surgePoints > 0) {
-                            StatText("⚡ +$surgePoints Surge")
-                        }
+                        if (r.surgePoints > 0) StatText("⚡ +${r.surgePoints} Surge")
+                        if (r.beamBonusPoints > 0) StatText("🌟 +${r.beamBonusPoints} Beam")
                     }
 
-                    // ── Bonus breakdown card (only show rows that matter) ─────────────────────
+                    // Beam multiplier (optional)
+                    val showBeamMultiplier = r.beamBonusPoints > 0 && r.beamMultiplier != null
+                    if (showBeamMultiplier) {
+                        Text(
+                            text = "Beam multiplier: ×${"%.2f".format(r.beamMultiplier)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
+                        )
+                    }
+
+                    // Bonuses breakdown (core engine)
                     val hasAnyBonus =
-                        breakdown.tenMinuteBonuses > 0 || breakdown.thirtyMinuteBonuses > 0 || breakdown.sixtyMinuteBonuses > 0
+                        r.tenMinuteBonuses > 0 ||
+                                r.thirtyMinuteBonuses > 0 ||
+                                r.sixtyMinuteBonuses > 0
 
                     if (hasAnyBonus) {
                         Surface(
@@ -327,14 +328,14 @@ fun FlowScreen(
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
                                 )
 
-                                if (breakdown.tenMinuteBonuses > 0) BonusRow("10-minute streaks", breakdown.tenMinuteBonuses)
-                                if (breakdown.thirtyMinuteBonuses > 0) BonusRow("30-minute streaks", breakdown.thirtyMinuteBonuses)
-                                if (breakdown.sixtyMinuteBonuses > 0) BonusRow("60-minute streaks", breakdown.sixtyMinuteBonuses)
+                                if (r.tenMinuteBonuses > 0) BonusRow("10-minute streaks", r.tenMinuteBonuses)
+                                if (r.thirtyMinuteBonuses > 0) BonusRow("30-minute streaks", r.thirtyMinuteBonuses)
+                                if (r.sixtyMinuteBonuses > 0) BonusRow("60-minute streaks", r.sixtyMinuteBonuses)
                             }
                         }
                     }
 
-                    // ── Final score strip (big + in-theme) ────────────────────────────────────
+                    // Final Scyra Score strip — uses finalScyraPoints
                     if (BuildConfig.FLAVOR != "aera") {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
@@ -363,7 +364,7 @@ fun FlowScreen(
                                 }
 
                                 Text(
-                                    text = "+${breakdown.totalPoints}",
+                                    text = "+${r.finalScyraPoints}",
                                     style = MaterialTheme.typography.headlineMedium,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.primary
@@ -376,15 +377,11 @@ fun FlowScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        // user acknowledges → save and exit
                         showPointsDialog = false
                         viewModel.saveSession(onDone)
                     }
-                ) {
-                    Text("End")
-                }
+                ) { Text("End") }
             },
-            // 🔒 No dismiss button = no "cancel" path
             dismissButton = {}
         )
     }
