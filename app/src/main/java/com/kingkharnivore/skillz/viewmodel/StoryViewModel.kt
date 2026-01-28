@@ -92,10 +92,10 @@ class StoryViewModel @Inject constructor(
                 sessionId = session.id,
                 title = session.title,
                 description = session.description,
-                tagName = session.tagId?.let { tagNameById[it] }.orEmpty(),
+                tagName = tagNameById[session.tagId].orEmpty(),
                 durationMs = session.durationMs,
                 createdAt = session.createdAt,
-                score = ScoreCalculator.sessionScore(session),
+                score = session.scyraPoints,
                 isSurge = session.surgePlannedMs != null,
                 surgePoints = session.surgePoints,
                 beamBonusPoints = session.beamBonusPoints
@@ -157,7 +157,7 @@ class StoryViewModel @Inject constructor(
 
                 // 3) Total time + score should reflect exactly what’s visible
                 val totalDurationMs = visibleSessions.sumOf { it.durationMs }
-                val totalScore = ScoreCalculator.totalScoreForSessions(visibleSessions)
+                val totalScore = visibleSessions.sumOf { it.scyraPoints }
 
                 FlowListUiState(
                     isLoading = false,

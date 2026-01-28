@@ -32,9 +32,9 @@ object BeamScoreCalculator {
     // Progress is p = engaged / beamDuration, clamped to [0..1]
     private val tiers = listOf(
         Tier(0.00, 0.25, 1.30),
-        Tier(0.25, 0.50, 1.50),
-        Tier(0.50, 0.75, 1.75),
-        Tier(0.75, 1.00, 2.00)
+        Tier(0.25, 0.50, 1.55),
+        Tier(0.50, 0.70, 1.85),
+        Tier(0.70, 1.00, 2.00)
     )
 
     /** Ease-out cubic curve [0..1] -> [0..1] */

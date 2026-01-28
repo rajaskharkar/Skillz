@@ -40,6 +40,7 @@ import com.kingkharnivore.skillz.ui.components.SkillzTopAppBar
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
 import com.kingkharnivore.skillz.viewmodel.TagUiModel
 import com.kingkharnivore.skillz.utils.formatDuration
+import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 import com.kingkharnivore.skillz.utils.score.ScoreFilter
 
 @Composable

@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.ui.skills
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -44,8 +45,8 @@ import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.viewmodel.StopwatchState
-import com.kingkharnivore.skillz.utils.score.ScoreBreakdown
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
+import com.kingkharnivore.skillz.viewmodel.BEAM_MIN_ELIGIBLE_MS
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,7 +99,7 @@ fun FlowScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if(BuildConfig.FLAVOR != "aera") {
+            if (BuildConfig.FLAVOR != "aera") {
                 Button(
                     onClick = { showSurgeDialog = true },
                     enabled = !uiState.isInFlowMode && (!uiState.isSurgeOn || !viewModel.isSurgeLocked()),
@@ -114,6 +115,7 @@ fun FlowScreen(
                             if (viewModel.isSurgeLocked()) "Surge: $mins min (Locked)"
                             else "Surge: $mins min"
                         }
+
                         else -> "Turn on Surge"
                     }
                     Text(label, style = MaterialTheme.typography.titleMedium)
@@ -203,7 +205,8 @@ fun FlowScreen(
                     onClick = {
                         val durationMs = uiState.stopwatch.elapsedMs.coerceAtLeast(0L)
                         val tenMinutesMs = 1 * 60_000L
-                        val surgePoints = ScoreCalculator.surgePoints(uiState.surgePlannedMs, durationMs)
+                        val surgePoints =
+                            ScoreCalculator.surgePoints(uiState.surgePlannedMs, durationMs)
                         val shouldShowDialog = durationMs >= tenMinutesMs || surgePoints > 0
 
                         if (shouldShowDialog) {
@@ -259,118 +262,154 @@ fun FlowScreen(
 
     // 🟢 "Points earned" popup for sessions >= 10 minutes
     if (showPointsDialog && reward != null) {
-        val r = reward!!
+        val r = reward ?: return
 
         AlertDialog(
             onDismissRequest = { /* locked */ },
             title = { Text("You did it!") },
             text = {
+                val isAera = BuildConfig.FLAVOR == "aera"
+                val hadBeamOverlap = r.beamEligibleMs >= BEAM_MIN_ELIGIBLE_MS
+
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // ─────────────────────────────────────────────
                     // Header
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    // ─────────────────────────────────────────────
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = if (r.surgePoints > 0) "Surge complete" else "Flow complete",
+                            text = if (r.surgePoints > 0) "Surge completed." else "Flow completed.",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Captured and sealed into your story.",
+                            text = "Logged into your story.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
                         )
                     }
 
-                    // Summary chips row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    // ─────────────────────────────────────────────
+                    // Chips row: Total Scyra, Beam time, Surge
+                    // (Aera-safe: it will show time-only chip set)
+                    // ─────────────────────────────────────────────
+                    RewardChipRowV2(
+                        isAera = isAera,
+                        totalMinutes = r.minutes,
+                        totalScyra = r.finalScyraPoints,
+                        beamBonusPoints = r.beamBonusPoints,
+                        hadBeamOverlap = hadBeamOverlap,
+                        surgePoints = r.surgePoints
+                    )
+
+                    if (isAera) {
+                        // AERA: no scores, no breakdown math
+                        RewardCard(
+                            title = "Session details",
+                            subtitle = "Time only"
+                        ) {
+                            MetricLine(
+                                label = "Total time",
+                                value = "${r.minutes} min",
+                                tone = MetricTone.Neutral
+                            )
+
+                            MetricLine(
+                                label = "Time in Beam",
+                                value = if (hadBeamOverlap) formatMsAsMmSs(r.beamEligibleMs) else "—",
+                                tone = if (hadBeamOverlap) MetricTone.Glow else MetricTone.Muted
+                            )
+                        }
+                        return@Column
+                    }
+
+                    // ─────────────────────────────────────────────
+                    // Total Scyra Score hero card
+                    // ─────────────────────────────────────────────
+                    RewardTotalCard(
+                        title = "Total Scyra Score",
+                        value = r.finalScyraPoints,
+                        footnote = "This Flow"
+                    )
+
+                    // ─────────────────────────────────────────────
+                    // Breakdown: how total was built (NO surge here)
+                    // ─────────────────────────────────────────────
+                    RewardCard(
+                        title = "Breakdown",
+                        subtitle = "How your score was built"
                     ) {
-                        StatText("⏱ ${r.minutes} min")
-
-                        if (r.surgePoints > 0) StatText("⚡ +${r.surgePoints} Surge")
-                        if (r.beamBonusPoints > 0) StatText("🌟 +${r.beamBonusPoints} Beam")
-                    }
-
-                    // Beam multiplier (optional)
-                    val showBeamMultiplier = r.beamBonusPoints > 0 && r.beamMultiplier != null
-                    if (showBeamMultiplier) {
-                        Text(
-                            text = "Beam multiplier: ×${"%.2f".format(r.beamMultiplier)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
+                        // Base Scyra score (big)
+                        HighlightMetric(
+                            label = "Base Scyra score",
+                            value = "+${r.baseScyraPoints}"
                         )
-                    }
 
-                    // Bonuses breakdown (core engine)
-                    val hasAnyBonus =
-                        r.tenMinuteBonuses > 0 ||
-                                r.thirtyMinuteBonuses > 0 ||
-                                r.sixtyMinuteBonuses > 0
+                        DividerSoft()
 
-                    if (hasAnyBonus) {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            tonalElevation = 2.dp,
-                            color = MaterialTheme.colorScheme.surface
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(14.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = "Bonuses",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
-                                )
+                        // Time bonuses
+                        val hasAnyBonus =
+                            r.tenMinuteBonuses > 0 || r.thirtyMinuteBonuses > 0 || r.sixtyMinuteBonuses > 0
 
-                                if (r.tenMinuteBonuses > 0) BonusRow("10-minute streaks", r.tenMinuteBonuses)
-                                if (r.thirtyMinuteBonuses > 0) BonusRow("30-minute streaks", r.thirtyMinuteBonuses)
-                                if (r.sixtyMinuteBonuses > 0) BonusRow("60-minute streaks", r.sixtyMinuteBonuses)
-                            }
-                        }
-                    }
+                        if (hasAnyBonus) {
+                            Text(
+                                text = "Time bonuses",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
+                            )
 
-                    // Final Scyra Score strip — uses finalScyraPoints
-                    if (BuildConfig.FLAVOR != "aera") {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(22.dp),
-                            tonalElevation = 3.dp,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    Text(
-                                        text = "Scyra Score",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
-                                    )
-                                    Text(
-                                        text = "This session",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-                                    )
-                                }
-
-                                Text(
-                                    text = "+${r.finalScyraPoints}",
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary
+                            if (r.tenMinuteBonuses > 0) {
+                                BonusLine(
+                                    label = "10-minute bonus",
+                                    count = r.tenMinuteBonuses,
+                                    pointsEach = 5
                                 )
                             }
+                            if (r.thirtyMinuteBonuses > 0) {
+                                BonusLine(
+                                    label = "30-minute bonus",
+                                    count = r.thirtyMinuteBonuses,
+                                    pointsEach = 15
+                                )
+                            }
+                            if (r.sixtyMinuteBonuses > 0) {
+                                BonusLine(
+                                    label = "60-minute bonus",
+                                    count = r.sixtyMinuteBonuses,
+                                    pointsEach = 50
+                                )
+                            }
+
+                            DividerSoft()
                         }
+
+                        // Beam section
+                        Text(
+                            text = "Beam",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
+                        )
+
+                        MetricLine(
+                            label = "Time in Beam",
+                            value = if (hadBeamOverlap) formatMsAsMmSs(r.beamEligibleMs) else "—",
+                            tone = if (hadBeamOverlap) MetricTone.Glow else MetricTone.Muted
+                        )
+
+                        MetricLine(
+                            label = "Beam multiplier",
+                            value = if (hadBeamOverlap && r.beamMultiplier != null) "×${"%.2f".format(r.beamMultiplier)}" else "—",
+                            tone = if (hadBeamOverlap && r.beamMultiplier != null) MetricTone.Glow else MetricTone.Muted
+                        )
+
+                        // Beam points (big)
+                        HighlightMetric(
+                            label = "Beam points gained",
+                            value = "+${r.beamBonusPoints}",
+                            glow = hadBeamOverlap && r.beamBonusPoints > 0
+                        )
                     }
                 }
             },
@@ -596,4 +635,262 @@ private fun formatElapsed(elapsedMs: Long): String {
     } else {
         String.format("%02d:%02d", minutes, seconds)
     }
+}
+
+private enum class MetricTone { Neutral, Glow, Muted }
+
+@Composable
+private fun RewardChipRowV2(
+    isAera: Boolean,
+    totalMinutes: Int,
+    totalScyra: Int,
+    beamBonusPoints: Int,
+    hadBeamOverlap: Boolean,
+    surgePoints: Int
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (isAera) {
+            // Aera: time-only, no scores
+            RewardChip(text = "⏱ $totalMinutes min")
+            return
+        }
+
+        // Scyra
+        RewardChip(text = "🔥 +$totalScyra")
+
+        if (hadBeamOverlap) {
+            if (beamBonusPoints > 0) {
+                RewardChip(text = "⭐ +$beamBonusPoints")
+            } else {
+                // optional reassurance chip (can remove if you want it stricter)
+                RewardChip(text = "⭐ Beam")
+            }
+        }
+
+        if (surgePoints > 0) {
+            RewardChip(text = "⚡ +$surgePoints")
+        }
+    }
+
+}
+
+@Composable
+private fun RewardChip(text: String) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        tonalElevation = 2.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 9.dp)
+        )
+    }
+}
+
+@Composable
+private fun RewardTotalCard(
+    title: String,
+    value: Int,
+    footnote: String
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        tonalElevation = 4.dp,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
+                    )
+                    Text(
+                        text = footnote,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                    )
+                }
+
+                Text(
+                    text = "+$value",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RewardCard(
+    title: String,
+    subtitle: String? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 2.dp,
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                    )
+                }
+            }
+
+            content()
+        }
+    }
+}
+
+@Composable
+private fun MetricLine(
+    label: String,
+    value: String,
+    tone: MetricTone
+) {
+    val valueColor = when (tone) {
+        MetricTone.Neutral -> MaterialTheme.colorScheme.onSurface
+        MetricTone.Glow -> MaterialTheme.colorScheme.primary
+        MetricTone.Muted -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f)
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = valueColor
+        )
+    }
+}
+
+@Composable
+private fun HighlightMetric(
+    label: String,
+    value: String,
+    glow: Boolean = true
+) {
+    val valueColor =
+        if (glow) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.onSurface
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = valueColor
+            )
+        }
+    }
+}
+
+@Composable
+private fun BonusLine(
+    label: String,
+    count: Int,
+    pointsEach: Int
+) {
+    val total = count * pointsEach
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+            )
+            Text(
+                text = "×$count",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+            )
+        }
+
+        Text(
+            text = "+$total",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+private fun DividerSoft() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp),
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+        content = {}
+    )
+}
+
+private fun formatMsAsMmSs(ms: Long): String {
+    val totalSeconds = (ms.coerceAtLeast(0L) / 1000L)
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format("%d:%02d", minutes, seconds)
 }

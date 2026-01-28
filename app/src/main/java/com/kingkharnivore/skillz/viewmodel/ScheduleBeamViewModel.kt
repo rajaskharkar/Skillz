@@ -132,9 +132,11 @@ class ScheduleBeamViewModel @Inject constructor(
         val zone = ZoneId.systemDefault()
         val now = ZonedDateTime.now(zone)
 
-        val date = if (selectedDateMillis != null) {
+        // ✅ IMPORTANT: DatePicker millis represent a UTC date boundary.
+        // Convert to LocalDate in UTC to avoid "previous day" bug in negative offsets (e.g., Chicago).
+        val date: LocalDate = if (selectedDateMillis != null) {
             Instant.ofEpochMilli(selectedDateMillis)
-                .atZone(java.time.ZoneOffset.UTC)
+                .atZone(ZoneOffset.UTC)
                 .toLocalDate()
         } else {
             now.toLocalDate()
@@ -143,12 +145,10 @@ class ScheduleBeamViewModel @Inject constructor(
         val hour = selectedHour ?: now.hour
         val minute = selectedMinute ?: now.minute
 
-        val start = ZonedDateTime.of(
+        return ZonedDateTime.of(
             date,
             LocalTime.of(hour, minute, 0, 0),
             zone
-        )
-
-        return start.toInstant().toEpochMilli()
+        ).toInstant().toEpochMilli()
     }
 }

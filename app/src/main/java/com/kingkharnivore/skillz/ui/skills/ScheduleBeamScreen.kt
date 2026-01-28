@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.viewmodel.ScheduleBeamViewModel
 import java.time.Instant
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,7 +29,7 @@ fun ScheduleBeamScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
-    val now = remember { java.time.LocalTime.now() }
+    val now = java.time.LocalTime.now()
     val defaultHour = ui.selectedHour ?: now.hour
     val defaultMinute = ui.selectedMinute ?: now.minute
 
@@ -65,7 +66,9 @@ fun ScheduleBeamScreen(
     }
 
     if (showDatePicker) {
-        val pickerState = rememberDatePickerState()
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = ui.selectedDateEpochMs
+        )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
@@ -276,7 +279,7 @@ fun ScheduleBeamScreen(
 
 private fun formatDate(epochMs: Long): String {
     val utcDate = Instant.ofEpochMilli(epochMs)
-        .atZone(java.time.ZoneOffset.UTC)
+        .atZone(ZoneOffset.UTC)
         .toLocalDate()
     val fmt = DateTimeFormatter.ofPattern("EEE, MMM d")
     return utcDate.format(fmt)

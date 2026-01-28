@@ -27,9 +27,11 @@ class FlowRepository @Inject constructor(
         surgePlannedMs: Long?,
         surgePoints: Int,
         beamId: Long?,
+        beamEligibleMs: Long,
         beamBonusPoints: Int,
-        beamMultiplier: Double?
-    ) : Long {
+        beamMultiplier: Double?,
+        scyraPoints: Int
+    ): Long {
         val session = SessionEntity(
             title = title,
             description = description,
@@ -40,11 +42,14 @@ class FlowRepository @Inject constructor(
             surgePlannedMs = surgePlannedMs,
             surgePoints = surgePoints,
             beamId = beamId,
+            beamEligibleMs = beamEligibleMs,
             beamBonusPoints = beamBonusPoints,
-            beamMultiplier = beamMultiplier
+            beamMultiplier = beamMultiplier,
+            scyraPoints = scyraPoints
         )
         return sessionDao.insertSession(session)
     }
+
 
     suspend fun deleteSessionAndCleanupTag(sessionId: Long): Long? {
         val session = sessionDao.getSessionById(sessionId) ?: return null

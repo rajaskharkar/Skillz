@@ -30,8 +30,10 @@ data class SessionEntity(
     val surgePlannedMs: Long? = null,
     val surgePoints: Int = 0,
     val beamId: Long? = null,
+    val beamEligibleMs: Long = 0L,
     val beamBonusPoints: Int = 0,
     val beamMultiplier: Double? = null,
+    val scyraPoints: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 )
 
