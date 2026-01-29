@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.ui.atlas.model.*
@@ -122,51 +122,44 @@ fun HorizonTimeline(
 
                     val colors = beamColors(b)
 
+                    val journeyColor = Color(b.journeyColorArgb)
+                    val bg = journeyColor.copy(alpha = 0.16f)          // subtle fill
+                    val accent = journeyColor.copy(alpha = 0.90f)      // strong rail
+
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = railWidth + 8.dp, end = 4.dp)
+                            .padding(start = railWidth)
                             .offset(y = top)
                             .height(h),
-                        shape = MaterialTheme.shapes.large,
                         colors = CardDefaults.cardColors(
-                            containerColor = colors.container,
-                            contentColor = colors.content
-                        ),
-                        elevation = CardDefaults.cardElevation(
-                            defaultElevation = if (b.status == BeamStatus.ACTIVE) 10.dp else 2.dp
+                            containerColor = bg,
+                            contentColor = MaterialTheme.colorScheme.onSurface
                         )
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = b.tagName,
-                                style = MaterialTheme.typography.titleSmall,
-                                maxLines = 1
+                        Row(Modifier.fillMaxSize()) {
+
+                            // left accent rail
+                            Box(
+                                modifier = Modifier
+                                    .width(6.dp)
+                                    .fillMaxHeight()
+                                    .background(accent)
                             )
 
-                            val clipPrefix = if (b.clippedTop) "↥ " else ""
-                            val clipSuffix = if (b.clippedBottom) " ↧" else ""
-                            Text(
-                                text = formatBeamTimeRange(b.startMs, b.endMs),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = colors.content.copy(alpha = 0.85f)
-                            )
+                            Column(Modifier.padding(10.dp)) {
+                                Text(text = b.tagName, style = MaterialTheme.typography.titleSmall)
 
-                            if (b.status == BeamStatus.ACTIVE) {
-                                Spacer(Modifier.height(4.dp))
-                                LinearProgressIndicator(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(6.dp)
-                                        .clip(MaterialTheme.shapes.small),
-                                    progress = { 1f },
-                                    color = MaterialTheme.colorScheme.onSecondary,
-                                    trackColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.25f)
+                                // We'll fix your time text soon (proper HH:mm)
+                                val clipPrefix = if (b.clippedTop) "↥ " else ""
+                                val clipSuffix = if (b.clippedBottom) " ↧" else ""
+
+                                val mins = ((b.endMs - b.startMs) / 60_000L).coerceAtLeast(1)
+
+                                Text(
+                                    text = clipPrefix + "${formatRange(b.startMs, b.endMs)} • ${mins}m" + clipSuffix,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
                                 )
                             }
                         }
@@ -175,6 +168,20 @@ fun HorizonTimeline(
             }
         }
     }
+}
+
+private val HORIZON_TIME_FMT: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("h:mm a")
+
+private fun formatTime(ms: Long, zone: ZoneId = ZoneId.systemDefault()): String {
+    return Instant.ofEpochMilli(ms).atZone(zone).format(HORIZON_TIME_FMT)
+}
+
+private fun formatRange(startMs: Long, endMs: Long): String {
+    val zone = ZoneId.systemDefault()
+    val s = formatTime(startMs, zone)
+    val e = formatTime(endMs, zone)
+    return "$s — $e"
 }
 
 private data class BeamPalette(

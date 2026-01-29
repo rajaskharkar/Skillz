@@ -108,16 +108,12 @@ data class BeamBlockUi(
     val durationMs: Long,
     val status: BeamStatus,
     val readiness: ReadinessLevel,
-
-    // minutes relative to Horizon start
     val startMin: Int,
     val endMin: Int,
-
-    // clipping (beam extends outside the visible horizon)
     val clippedTop: Boolean = false,
     val clippedBottom: Boolean = false,
-
-    val completionRatio: Float = 0f
+    val completionRatio: Float = 0f,
+    val journeyColorArgb: Int = 0
 )
 
 fun computeBeamStatus(

@@ -11,6 +11,7 @@ val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
 val GryffindorRed =  Color(0xFF7F0909)
+val ColdSteel: Int = 0xFF6B7C8A.toInt()
 val RavenclawBlue =  Color(0xFF2F4F6F)
 val SteelGrey =  Color(0xFF3A4652)
 val SageMist = Color(0xFF7E9B8B)

@@ -1,16 +1,27 @@
-package com.kingkharnivore.skillz.ui.atlas
+package com.kingkharnivore.skillz.ui.skills
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.kingkharnivore.skillz.ui.atlas.components.HorizonAnchorUi
 import com.kingkharnivore.skillz.ui.atlas.components.HorizonControlsRow
 import com.kingkharnivore.skillz.ui.atlas.components.HorizonTimeline
 import com.kingkharnivore.skillz.ui.atlas.components.JourneyFilterRow
 import com.kingkharnivore.skillz.ui.atlas.model.*
 import com.kingkharnivore.skillz.ui.components.SkillzTopAppBar
+import kotlinx.coroutines.delay
 import kotlin.math.max
 
 @Composable
@@ -69,62 +80,153 @@ private fun NowZone(
     onStartFlow: () -> Unit,
     onGoToActiveFlow: () -> Unit
 ) {
-    if (now.isBeamActive && now.activeBeam != null) {
-        Text(
-            text = "Beam is active!",
-            style = MaterialTheme.typography.titleMedium
-        )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
 
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondary
-            ),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+        if (now.isBeamActive && now.activeBeam != null) {
+
+            Text(
+                text = "Beam is active",
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center
+            )
+
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
+                ),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = now.activeBeam.tagName,
-                    style = MaterialTheme.typography.titleLarge
-                )
-
-                now.activeBeamRemainingMs?.let { ms ->
+                Column(
+                    modifier = Modifier
+                        .padding(20.dp)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     Text(
-                        text = "Remaining: ${max(0L, ms) / 60_000L} min",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = now.activeBeam.tagName,
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center
                     )
-                }
 
-                now.activeBeamProgress?.let { p ->
-                    LinearProgressIndicator(
-                        progress = { p.coerceIn(0f, 1f) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                    now.activeBeamRemainingMs?.let { ms ->
+                        Text(
+                            text = "Remaining · ${max(0L, ms) / 60_000L} min",
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center
+                        )
+                    }
 
-                // You can swap to onGoToActiveFlow if you have a separate "active flow exists" signal.
-                Button(onClick = onStartFlow) {
-                    Text("Enter Flow")
+                    now.activeBeamProgress?.let { p ->
+                        LinearProgressIndicator(
+                            progress = { p.coerceIn(0f, 1f) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp),
+                            trackColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.25f)
+                        )
+                    }
+
+                    Button(
+                        onClick = onStartFlow,
+                        modifier = Modifier.fillMaxWidth(0.7f)
+                    ) {
+                        Text("Enter Flow")
+                    }
                 }
             }
-        }
-    } else {
-        Text(text = "Atlas", style = MaterialTheme.typography.titleLarge)
+        } else {
 
-        now.nextBeam?.let {
             Text(
-                text = "Next Beam: ${it.tagName}",
-                style = MaterialTheme.typography.bodyMedium
+                text = "Atlas",
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center
             )
-        } ?: Text(
-            text = "No upcoming Beams.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
+
+            now.nextBeam?.let { beam ->
+                CountdownText(
+                    targetTimeMs = beam.startMs,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } ?: Text(
+                text = "No upcoming Beams",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
+
+@Composable
+private fun CountdownText(
+    targetTimeMs: Long,
+    modifier: Modifier = Modifier
+) {
+    var remainingMs by remember(targetTimeMs) {
+        mutableStateOf(targetTimeMs - System.currentTimeMillis())
+    }
+
+    LaunchedEffect(targetTimeMs) {
+        while (remainingMs > 0) {
+            delay(1_000L)
+            remainingMs = targetTimeMs - System.currentTimeMillis()
+        }
+    }
+
+    val totalSeconds = (remainingMs / 1_000L).coerceAtLeast(0)
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+
+    val headline = when {
+        totalSeconds <= 0 -> "BEAM IMMINENT"
+        else -> "NEXT BEAM"
+    }
+
+    val countdown = when {
+        totalSeconds <= 0 -> "Prepare: ${seconds}s"
+        minutes > 0 -> "${minutes}m ${seconds}s"
+        else -> "${seconds}s"
+    }
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = headline,
+            style = MaterialTheme.typography.labelSmall,
+            letterSpacing = 1.4.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+            textAlign = TextAlign.Center
+        )
+
+        Text(
+            text = countdown,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center
+        )
+
+        if (totalSeconds > 0) {
+            Text(
+                text = "Until Beam Begins",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+
+}
+
 
 @Composable
 private fun HorizonZone(
@@ -140,14 +242,18 @@ private fun HorizonZone(
         style = MaterialTheme.typography.titleMedium
     )
 
+    var anchor by remember { mutableStateOf(HorizonAnchorUi.NOW) }
+
     HorizonControlsRow(
         title = uiState.horizon.title(),
         selectedHours = uiState.horizon.hours,
+        selectedAnchor = anchor,
         onZoomHours = onZoomHours,
-        onEarlier = { onShiftHours(-2) },
-        onNow = onResetToNow,
-        onLater = { onShiftHours(2) }
+        onEarlier = { anchor = HorizonAnchorUi.EARLIER; onShiftHours(-2) },
+        onNow = { anchor = HorizonAnchorUi.NOW; onResetToNow() },
+        onLater = { anchor = HorizonAnchorUi.LATER; onShiftHours(2) }
     )
+
 
     JourneyFilterRow(
         journeys = uiState.availableJourneys,

@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.viewmodel.atlas
+package com.kingkharnivore.skillz.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -6,6 +6,8 @@ import com.kingkharnivore.skillz.data.model.entity.BeamEntity
 import com.kingkharnivore.skillz.data.repository.BeamRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.ui.atlas.model.*
+import com.kingkharnivore.skillz.ui.theme.ColdSteel
+import com.kingkharnivore.skillz.viewmodel.atlas.tickerFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -13,6 +15,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+import kotlin.math.abs
 import kotlin.math.max
 
 @HiltViewModel
@@ -52,7 +55,7 @@ class AtlasViewModel @Inject constructor(
     }
 
     private val nowTicker: Flow<Long> =
-        tickerFlow(periodMs = 30_000L).onStart { emit(System.currentTimeMillis()) }
+        tickerFlow(periodMs = 500L).onStart { emit(System.currentTimeMillis()) }
 
     private val tagsFlow: Flow<Pair<Map<Long, String>, List<JourneyChipUi>>> =
         journeyRepository.getAllTags()
@@ -92,8 +95,14 @@ class AtlasViewModel @Inject constructor(
     ): AtlasUiState {
         val (tagMap, tagChips) = tagData
 
-        val start = horizonStart
         val hours = horizonHours.coerceIn(2, 12)
+
+        // ✅ Adaptive "history" buffer:
+        // - 2h view: show NO past buffer (otherwise you lose the future entirely)
+        // - 4h/6h/8h/12h: show up to 2h of past for context
+        val pastBufferHours = minOf(2, maxOf(0, hours - 2))
+
+        val start = horizonStart - pastBufferHours * 60L * 60L * 1000L
         val end = start + hours * 60L * 60L * 1000L
         val rangeMinutes = hours * 60
 
@@ -131,8 +140,8 @@ class AtlasViewModel @Inject constructor(
                     status = raw.status,
                     readiness = raw.readiness,
                     horizonStartMs = start,
-                    horizonEndMs = end,
-                    rangeMinutes = rangeMinutes
+                    rangeMinutes = rangeMinutes,
+                    nowMs = nowMs
                 )
             }
 
@@ -143,15 +152,14 @@ class AtlasViewModel @Inject constructor(
             availableJourneys = tagChips,
             now = NowState(
                 activeBeam = activeRaw?.let {
-                    // project active beam into horizon for consistency (optional)
                     projectIntoHorizon(
                         beam = it.beam,
                         tagName = it.tagName,
                         status = it.status,
                         readiness = it.readiness,
                         horizonStartMs = start,
-                        horizonEndMs = end,
-                        rangeMinutes = rangeMinutes
+                        rangeMinutes = rangeMinutes,
+                        nowMs = nowMs
                     )
                 },
                 nextBeam = nextRaw?.let {
@@ -161,8 +169,8 @@ class AtlasViewModel @Inject constructor(
                         status = it.status,
                         readiness = it.readiness,
                         horizonStartMs = start,
-                        horizonEndMs = end,
-                        rangeMinutes = rangeMinutes
+                        rangeMinutes = rangeMinutes,
+                        nowMs = nowMs
                     )
                 },
                 activeBeamRemainingMs = activeRaw?.let { max(0L, it.beam.endTime - nowMs) },
@@ -194,8 +202,8 @@ class AtlasViewModel @Inject constructor(
         status: BeamStatus,
         readiness: ReadinessLevel,
         horizonStartMs: Long,
-        horizonEndMs: Long,
-        rangeMinutes: Int
+        rangeMinutes: Int,
+        nowMs: Long
     ): BeamBlockUi {
         val startMinRaw = ((beam.startTime - horizonStartMs) / 60_000L).toInt()
         val endMinRaw = ((beam.endTime - horizonStartMs) / 60_000L).toInt()
@@ -205,6 +213,10 @@ class AtlasViewModel @Inject constructor(
 
         val clampedStart = startMinRaw.coerceIn(0, rangeMinutes)
         val clampedEnd = max(clampedStart + 1, endMinRaw.coerceIn(0, rangeMinutes))
+
+        // Past beams always Cold Steel (ARGB int)
+        val isPast = beam.endTime <= nowMs
+        val journeyColorArgb = if (isPast) ColdSteel else colorForTagId(beam.tagId)
 
         return BeamBlockUi(
             beamId = beam.id,
@@ -219,7 +231,8 @@ class AtlasViewModel @Inject constructor(
             endMin = clampedEnd,
             clippedTop = clippedTop,
             clippedBottom = clippedBottom,
-            completionRatio = 0f
+            completionRatio = 0f,
+            journeyColorArgb = journeyColorArgb
         )
     }
 
@@ -245,6 +258,24 @@ class AtlasViewModel @Inject constructor(
             m += step
         }
         return ticks
+    }
+
+    private val ATLAS_JOURNEY_PALETTE: List<Int> = listOf(
+        0xFF8B1E1E.toInt(), // Crimson Ink (strong Gryffindor)
+        0xFF3A5F8C.toInt(), // Scholar Blue (Ravenclaw, readable on black)
+        0xFF2F8F86.toInt(), // Verdigris Teal (clean, modern Slytherin)
+        0xFF6F9E91.toInt(), // Tempered Sage (never disappears)
+        0xFFD1B45A.toInt(), // Warm Antique Gold (glows on dark)
+        0xFFCC8A3E.toInt(), // Burnished Bronze (high contrast)
+        0xFF7A4A32.toInt(), // Leather Umber (rich, readable)
+        0xFF8C6AA8.toInt(), // Arcane Amethyst (pops on black)
+        0xFF3E8F6B.toInt()  // Forest Emerald (deep but alive)
+    )
+
+    private fun colorForTagId(tagId: Long): Int {
+        val palette = ATLAS_JOURNEY_PALETTE
+        val idx = abs((tagId % palette.size).toInt())
+        return palette[idx]
     }
 }
 

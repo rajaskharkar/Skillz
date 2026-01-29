@@ -9,11 +9,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.kingkharnivore.skillz.ui.atlas.AtlasScreen
 import com.kingkharnivore.skillz.ui.atlas.model.JourneyFilter
 import com.kingkharnivore.skillz.viewmodel.NotepadViewModel
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
-import com.kingkharnivore.skillz.viewmodel.atlas.AtlasViewModel
+import com.kingkharnivore.skillz.viewmodel.AtlasViewModel
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
