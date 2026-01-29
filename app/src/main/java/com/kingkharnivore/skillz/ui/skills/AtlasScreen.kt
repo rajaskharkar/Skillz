@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.ui.skills
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -22,6 +23,9 @@ import com.kingkharnivore.skillz.ui.atlas.components.JourneyFilterRow
 import com.kingkharnivore.skillz.ui.atlas.model.*
 import com.kingkharnivore.skillz.ui.components.SkillzTopAppBar
 import kotlinx.coroutines.delay
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.math.max
 
 @Composable
@@ -65,8 +69,8 @@ fun AtlasScreen(
             }
 
             // Aftermath later (kept but empty)
-            item { AftermathZone(uiState.aftermath) }
-            item { Spacer(Modifier.height(16.dp)) }
+//            item { AftermathZone(uiState.aftermath) }
+//            item { Spacer(Modifier.height(16.dp)) }
         }
     }
 }
@@ -138,23 +142,51 @@ private fun NowZone(
             }
         } else {
 
-            Text(
-                text = "Atlas",
-                style = MaterialTheme.typography.titleLarge,
-                textAlign = TextAlign.Center
-            )
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.95f),
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 28.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
 
-            now.nextBeam?.let { beam ->
-                CountdownText(
-                    targetTimeMs = beam.startMs,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            } ?: Text(
-                text = "No upcoming Beams",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
-            )
+                    Text(
+                        text = "ATLAS",
+                        style = MaterialTheme.typography.labelSmall,
+                        letterSpacing = 2.sp,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Text(
+                        text = "Your journeys await",
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center
+                    )
+
+                    now.nextBeam?.let { beam ->
+                        CountdownText(
+                            targetTimeMs = beam.startMs,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } ?: Text(
+                        text = "No upcoming Beams scheduled",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
+                    )
+                }
+            }
         }
     }
 }
@@ -176,19 +208,11 @@ private fun CountdownText(
     }
 
     val totalSeconds = (remainingMs / 1_000L).coerceAtLeast(0)
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
 
-    val headline = when {
-        totalSeconds <= 0 -> "BEAM IMMINENT"
-        else -> "NEXT BEAM"
-    }
-
-    val countdown = when {
-        totalSeconds <= 0 -> "Prepare: ${seconds}s"
-        minutes > 0 -> "${minutes}m ${seconds}s"
-        else -> "${seconds}s"
-    }
+    val (headline, countdown) = formatBeamCountdown(
+        remainingMs = remainingMs,
+        targetTimeMs = targetTimeMs
+    )
 
     Column(
         modifier = modifier,
@@ -300,4 +324,43 @@ private fun AftermathZone(aftermath: AftermathModel) {
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
         )
     }
+}
+
+private fun formatBeamCountdown(
+    remainingMs: Long,
+    targetTimeMs: Long,
+    zoneId: ZoneId = ZoneId.systemDefault()
+): Pair<String, String> {
+    val totalSeconds = (remainingMs / 1_000L).coerceAtLeast(0)
+
+    val days = totalSeconds / 86_400
+    val hours = (totalSeconds % 86_400) / 3_600
+    val minutes = (totalSeconds % 3_600) / 60
+    val seconds = totalSeconds % 60
+
+    val headline = if (totalSeconds <= 0) "BEAM IMMINENT" else "NEXT BEAM"
+
+    // If it's far out, show "DAY + TIME" vibe
+    if (days >= 3) {
+        val dayFmt = DateTimeFormatter.ofPattern("EEE, MMM d")   // "Fri, Feb 2"
+        val timeFmt = DateTimeFormatter.ofPattern("h:mm a")      // "7:30 PM"
+        val zdt = Instant.ofEpochMilli(targetTimeMs).atZone(zoneId)
+
+        val whenText = "${zdt.format(dayFmt)} · ${zdt.format(timeFmt)}"
+        val countdownText = "${days}d ${hours}h ${minutes}m"
+        // You asked: "If more than two days, along with above mention Day and time"
+        // So we include day+time AND still show the countdown.
+        return headline to "$countdownText\n$whenText"
+    }
+
+    // Otherwise, normal countdown ladder
+    val countdown = when {
+        totalSeconds <= 0 -> "Starting now"
+        days > 0 -> "${days}d ${hours}h ${minutes}m"
+        hours > 0 -> "${hours}h ${minutes}m ${seconds}s"
+        minutes > 0 -> "${minutes}m ${seconds}s"
+        else -> "${seconds}s"
+    }
+
+    return headline to countdown
 }
