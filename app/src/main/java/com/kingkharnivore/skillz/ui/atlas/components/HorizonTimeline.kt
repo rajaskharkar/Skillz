@@ -42,7 +42,6 @@ fun HorizonTimeline(
                     .fillMaxWidth()
                     .height(canvasHeight)
             ) {
-                // ── Rail + ticks ───────────────────────────────────────────────
                 ticks.forEach { t ->
                     val topFrac = t.minuteFromStart.coerceIn(0, rangeMinutes) / rangeMinutes.toFloat()
                     val y = canvasHeight * topFrac
@@ -111,7 +110,6 @@ fun HorizonTimeline(
                     }
                 }
 
-                // ── Beam blocks ────────────────────────────────────────────────
                 blocks.forEach { b ->
                     val topFrac = b.startMin.coerceIn(0, rangeMinutes) / rangeMinutes.toFloat()
                     val endMin = max(b.endMin, b.startMin + 1)

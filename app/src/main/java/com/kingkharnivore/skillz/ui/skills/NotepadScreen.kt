@@ -79,11 +79,36 @@ fun NotepadScreen(
             BasicTextField(
                 value = fieldValue,
                 onValueChange = { newValue ->
-                    // always keep cursor at end
-                    fieldValue = newValue.copy(
-                        selection = TextRange(newValue.text.length)
+
+                    val text = newValue.text
+
+                    // Auto-capitalize ONLY the first character of the first line
+                    val updatedText =
+                        if (text.isNotEmpty() && text.first().isLowerCase()) {
+                            text.replaceFirstChar { it.uppercase() }
+                        } else {
+                            text
+                        }
+
+                    // Adjust selection ONLY if we modified text
+                    val updatedSelection =
+                        if (updatedText != text) {
+                            val delta = updatedText.length - text.length
+                            TextRange(
+                                start = (newValue.selection.start + delta).coerceAtLeast(0),
+                                end = (newValue.selection.end + delta).coerceAtLeast(0)
+                            )
+                        } else {
+                            newValue.selection
+                        }
+
+                    val updatedValue = newValue.copy(
+                        text = updatedText,
+                        selection = updatedSelection
                     )
-                    onTextChange(newValue.text)
+
+                    fieldValue = updatedValue
+                    onTextChange(updatedValue.text)
                 },
                 modifier = Modifier
                     .fillMaxSize()

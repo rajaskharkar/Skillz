@@ -50,7 +50,6 @@ class FlowRepository @Inject constructor(
         return sessionDao.insertSession(session)
     }
 
-
     suspend fun deleteSessionAndCleanupTag(sessionId: Long): Long? {
         val session = sessionDao.getSessionById(sessionId) ?: return null
         val tagId = session.tagId

@@ -31,8 +31,6 @@ fun AtlasScreen(
     onFilterJourney: (Long) -> Unit,
     onStartFlow: () -> Unit,
     onGoToActiveFlow: () -> Unit,
-
-    // Horizon actions
     onZoomHours: (Int) -> Unit,
     onShiftHours: (Int) -> Unit,
     onResetToNow: () -> Unit
@@ -68,7 +66,6 @@ fun AtlasScreen(
 
             // Aftermath later (kept but empty)
             item { AftermathZone(uiState.aftermath) }
-
             item { Spacer(Modifier.height(16.dp)) }
         }
     }
@@ -114,7 +111,6 @@ private fun NowZone(
                         style = MaterialTheme.typography.titleLarge,
                         textAlign = TextAlign.Center
                     )
-
                     now.activeBeamRemainingMs?.let { ms ->
                         Text(
                             text = "Remaining · ${max(0L, ms) / 60_000L} min",
@@ -122,7 +118,6 @@ private fun NowZone(
                             textAlign = TextAlign.Center
                         )
                     }
-
                     now.activeBeamProgress?.let { p ->
                         LinearProgressIndicator(
                             progress = { p.coerceIn(0f, 1f) },
@@ -224,9 +219,7 @@ private fun CountdownText(
             )
         }
     }
-
 }
-
 
 @Composable
 private fun HorizonZone(
@@ -243,7 +236,6 @@ private fun HorizonZone(
     )
 
     var anchor by remember { mutableStateOf(HorizonAnchorUi.NOW) }
-
     HorizonControlsRow(
         title = uiState.horizon.title(),
         selectedHours = uiState.horizon.hours,

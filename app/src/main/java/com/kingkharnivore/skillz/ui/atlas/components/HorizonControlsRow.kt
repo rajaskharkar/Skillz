@@ -28,7 +28,6 @@ fun HorizonControlsRow(
     onLater: () -> Unit
 ) {
     val cs = MaterialTheme.colorScheme
-
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -39,7 +38,6 @@ fun HorizonControlsRow(
             color = cs.onSurface.copy(alpha = 0.8f)
         )
 
-        // ✅ Replace AssistChip with FilterChip so selection can be highlighted
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = selectedAnchor == HorizonAnchorUi.EARLIER,
