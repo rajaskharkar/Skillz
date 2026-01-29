@@ -23,6 +23,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
@@ -30,6 +31,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -37,10 +39,11 @@ import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.FlowListItemUiModel
 import com.kingkharnivore.skillz.data.model.entity.FlowListUiState
 import com.kingkharnivore.skillz.ui.components.SkillzTopAppBar
+import com.kingkharnivore.skillz.ui.theme.AntiqueGold
+import com.kingkharnivore.skillz.ui.theme.RavenclawBlue
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
 import com.kingkharnivore.skillz.viewmodel.TagUiModel
 import com.kingkharnivore.skillz.utils.formatDuration
-import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 import com.kingkharnivore.skillz.utils.score.ScoreFilter
 
 @Composable
@@ -786,16 +789,31 @@ private fun FlowCard(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    val container = if (session.isSurge) {
+    val baseContainer = if (session.isSurge) {
         MaterialTheme.colorScheme.surfaceVariant
     } else {
         MaterialTheme.colorScheme.surface
     }
 
+    val isBeamed = session.beamBonusPoints > 0
+    // If beamed, tint the base container slightly (doesn't break theme)
+    val container = if (isBeamed) {
+        baseContainer.copy(alpha = 1f) // keep base solid
+    } else baseContainer
+
     val showSurgeStat = session.isSurge && session.surgePoints > 0
+
 
     // Surge “ink” that reads well in both light & dark without relying on primary
     val isLightTheme = MaterialTheme.colorScheme.background.luminance() > 0.5f
+
+    // Ravenclaw tinge (use your constant if you have it globally)
+    val ravenclaw = RavenclawBlue
+
+    // Beam visuals (subtle in dark/light)
+    val beamOutline = ravenclaw.copy(alpha = if (isLightTheme) 0.35f else 0.55f)
+    val beamRail = ravenclaw.copy(alpha = if (isLightTheme) 0.90f else 0.95f)
+    val beamTint = ravenclaw.copy(alpha = if (isLightTheme) 0.06f else 0.12f)
     val surgeInk = if (isLightTheme) {
         Color(0xFF7B2D2A) // oxide crimson (light)
     } else {
@@ -821,12 +839,21 @@ private fun FlowCard(
         label = "flowCardScale"
     )
 
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = container,
-            contentColor = MaterialTheme.colorScheme.onSurface
-        ),
-        modifier = Modifier
+    Box(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // ✅ Beam tint overlay behind the card (subtle)
+        if (isBeamed) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(beamTint)
+            )
+        }
+
+        // ✅ Use OutlinedCard when beamed (cleanest “special” cue)
+        val cardModifier = Modifier
             .fillMaxWidth()
             .graphicsLayer {
                 scaleX = cardScale
@@ -839,129 +866,71 @@ private fun FlowCard(
                 },
                 onLongClick = onLongPress
             )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
 
-            // ── Header: left content + stable right rail ───────────────────────────
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+        if (isBeamed) {
+            OutlinedCard(
+                modifier = cardModifier,
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.outlinedCardColors(
+                    containerColor = container,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                border = CardDefaults.outlinedCardBorder(enabled = true)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = session.tagName,
-                        style = MaterialTheme.typography.labelMedium
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = session.title,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .widthIn(min = rightRailMinWidth)
-                        .heightIn(min = 48.dp),
-                    contentAlignment = Alignment.CenterEnd
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        // Surge stat slot (reserved)
-                        Box(
-                            modifier = Modifier
-                                .widthIn(min = if (showSurgeStat) surgeSlotMinWidth else 0.dp),
-                            contentAlignment = Alignment.CenterEnd
-                        ) {
-                            if (showSurgeStat) {
-                                Column(
-                                    horizontalAlignment = Alignment.End,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Text(
-                                        text = "+${session.surgePoints}",
-                                        style = MaterialTheme.typography.headlineMedium,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = surgeInk
-                                    )
-                                    Text(
-                                        text = "Surge",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        letterSpacing = 1.5.sp,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f)
-                                    )
-                                }
-                            }
-                        }
-
-                        // Delete slot (always reserved so nothing shifts)
-                        Box(
-                            modifier = Modifier.width(deleteSlotWidth),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isExpanded) {
-                                IconButton(onClick = { showDeleteDialog = true }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Delete session"
-                                    )
-                                }
-                            } else {
-                                Spacer(Modifier.size(24.dp)) // invisible placeholder
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ── Micro “open/close” cue that always exists ───────────────────────────
-            Spacer(modifier = Modifier.height(10.dp))
-
-            HorizontalDivider(
-                modifier = Modifier.graphicsLayer { alpha = dividerAlpha },
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
-            )
-
-            Spacer(modifier = Modifier.height(extraPad))
-
-            // ── Description (if present) ───────────────────────────────────────────
-            if (session.description.isNotBlank()) {
-                Text(
-                    text = session.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = if (isExpanded) Int.MAX_VALUE else 2,
-                    overflow = if (isExpanded) TextOverflow.Visible else TextOverflow.Ellipsis
+                FlowCardContent(
+                    session = session,
+                    isExpanded = isExpanded,
+                    showSurgeStat = showSurgeStat,
+                    surgeInk = surgeInk,
+                    deleteSlotWidth = deleteSlotWidth,
+                    surgeSlotMinWidth = surgeSlotMinWidth,
+                    rightRailMinWidth = rightRailMinWidth,
+                    dividerAlpha = dividerAlpha,
+                    extraPad = extraPad,
+                    isBeamed = isBeamed,
+                    beamRail = beamRail,
+                    onDeleteClick = { showDeleteDialog = true }
                 )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = if (isExpanded) "Tap to collapse" else "Tap to view more",
-                    style = MaterialTheme.typography.labelSmall
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
             }
-
-            Text(
-                text = "Duration: ${formatDuration(session.durationMs)}",
-                style = MaterialTheme.typography.bodySmall
-            )
-
-            if (BuildConfig.SHOW_SCORE) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "Scyra Score: ${session.score}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+        } else {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = container,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = cardModifier
+            ) {
+                FlowCardContent(
+                    session = session,
+                    isExpanded = isExpanded,
+                    showSurgeStat = showSurgeStat,
+                    surgeInk = surgeInk,
+                    deleteSlotWidth = deleteSlotWidth,
+                    surgeSlotMinWidth = surgeSlotMinWidth,
+                    rightRailMinWidth = rightRailMinWidth,
+                    dividerAlpha = dividerAlpha,
+                    extraPad = extraPad,
+                    isBeamed = false,
+                    beamRail = beamRail,
+                    onDeleteClick = { showDeleteDialog = true }
                 )
             }
         }
+
+        // ✅ Extra: draw a thin left rail for beamed flows
+        if (isBeamed) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 8.dp, top = 10.dp, bottom = 10.dp)
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(beamRail)
+            )
+        }
     }
+
 
     if (showDeleteDialog) {
         AlertDialog(
@@ -980,6 +949,169 @@ private fun FlowCard(
                 TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
             }
         )
+    }
+}
+
+@Composable
+private fun FlowCardContent(
+    session: FlowListItemUiModel,
+    isExpanded: Boolean,
+    showSurgeStat: Boolean,
+    surgeInk: Color,
+    deleteSlotWidth: Dp,
+    surgeSlotMinWidth: Dp,
+    rightRailMinWidth: Dp,
+    dividerAlpha: Float,
+    extraPad: Dp,
+    isBeamed: Boolean,
+    beamRail: Color,
+    onDeleteClick: () -> Unit
+) {
+    Column(modifier = Modifier.padding(16.dp)) {
+
+        // ── Header row ───────────────────────────────────────────────────────
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = session.tagName,
+                    style = MaterialTheme.typography.labelMedium
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = session.title,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+
+            // ── Right rail (your existing stable rail) ────────────────────────
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .widthIn(min = rightRailMinWidth)
+                    .heightIn(min = 48.dp)
+            ) {
+
+                // ⭐ Beam bonus (top priority)
+                if (isBeamed) {
+                    val isLightThemeColors: Boolean =
+                        MaterialTheme.colorScheme.background.luminance() > 0.5f
+                    BeamBonusChip(
+                        bonusPoints = session.beamBonusPoints,
+                        starColor = if (isLightThemeColors) RavenclawBlue else AntiqueGold
+                    )
+                    Spacer(Modifier.height(6.dp))
+                }
+
+                // ⚡ Surge stat
+                if (showSurgeStat) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "+${session.surgePoints}",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = surgeInk
+                        )
+                        Text(
+                            text = "Surge",
+                            style = MaterialTheme.typography.labelSmall,
+                            letterSpacing = 1.5.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f)
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                }
+
+                // 🗑 Delete slot — ALWAYS RESERVED
+                Box(
+                    modifier = Modifier
+                        .width(deleteSlotWidth)
+                        .height(48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isExpanded) {
+                        IconButton(onClick = onDeleteClick) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete session"
+                            )
+                        }
+                    } else {
+                        Spacer(Modifier.size(24.dp)) // invisible placeholder
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        HorizontalDivider(
+            modifier = Modifier.graphicsLayer { alpha = dividerAlpha },
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+        )
+
+        Spacer(modifier = Modifier.height(extraPad))
+
+        if (session.description.isNotBlank()) {
+            Text(
+                text = session.description,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = if (isExpanded) Int.MAX_VALUE else 2,
+                overflow = if (isExpanded) TextOverflow.Visible else TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        Text(
+            text = "Duration: ${formatDuration(session.durationMs)}",
+            style = MaterialTheme.typography.bodySmall
+        )
+
+        if (BuildConfig.SHOW_SCORE) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Scyra Score: ${session.score}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun BeamBonusChip(
+    bonusPoints: Int,
+    starColor: Color
+) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = starColor.copy(alpha = 0.14f),
+        contentColor = starColor,
+        tonalElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "★", // gold star
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Black
+            )
+
+            Spacer(Modifier.width(6.dp))
+
+            Text(
+                text = "+$bonusPoints",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
 
