@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.sp
 import com.kingkharnivore.skillz.ui.atlas.components.HorizonAnchorUi
 import com.kingkharnivore.skillz.ui.atlas.components.HorizonControlsRow
 import com.kingkharnivore.skillz.ui.atlas.components.HorizonTimeline
-import com.kingkharnivore.skillz.ui.atlas.components.JourneyFilterRow
 import com.kingkharnivore.skillz.ui.atlas.model.*
 import com.kingkharnivore.skillz.ui.components.SkillzTopAppBar
 import kotlinx.coroutines.delay
@@ -268,14 +267,6 @@ private fun HorizonZone(
         onEarlier = { anchor = HorizonAnchorUi.EARLIER; onShiftHours(-2) },
         onNow = { anchor = HorizonAnchorUi.NOW; onResetToNow() },
         onLater = { anchor = HorizonAnchorUi.LATER; onShiftHours(2) }
-    )
-
-
-    JourneyFilterRow(
-        journeys = uiState.availableJourneys,
-        selected = uiState.journeyFilter,
-        onSelectAll = onFilterAll,
-        onSelect = onFilterJourney
     )
 
     if (uiState.timeline.blocks.isEmpty()) {

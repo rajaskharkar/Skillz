@@ -55,7 +55,7 @@ class AtlasViewModel @Inject constructor(
     }
 
     private val nowTicker: Flow<Long> =
-        tickerFlow(periodMs = 500L).onStart { emit(System.currentTimeMillis()) }
+        tickerFlow(periodMs = 1000L).onStart { emit(System.currentTimeMillis()) }
 
     private val tagsFlow: Flow<Pair<Map<Long, String>, List<JourneyChipUi>>> =
         journeyRepository.getAllTags()
