@@ -253,15 +253,8 @@ fun HorizonZone(
 
     var anchor by remember { mutableStateOf(HorizonAnchorUi.NOW) }
 
-    // ✅ Selected block for quick details
     var selectedBlock by remember { mutableStateOf<BeamBlockUi?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    // ✅ Quick details sheet (tinted with journey color)
-    // ✅ DROP-IN replacement for your selectedBlock ModalBottomSheet block
-// - Sheet background is the Beam’s journey color
-// - Content uses on-journey-color text for readability
-// - Keeps your note logic + close button
 
     if (selectedBlock != null) {
         val b = selectedBlock!!

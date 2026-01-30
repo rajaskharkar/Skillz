@@ -21,13 +21,20 @@ enum class HorizonAnchorUi { EARLIER, NOW, LATER }
 fun HorizonControlsRow(
     title: String,
     selectedHours: Int,
-    selectedAnchor: HorizonAnchorUi,          // ✅ NEW
+    selectedAnchor: HorizonAnchorUi,
     onZoomHours: (Int) -> Unit,
     onEarlier: () -> Unit,
     onNow: () -> Unit,
     onLater: () -> Unit
 ) {
     val cs = MaterialTheme.colorScheme
+
+    val selectedContainer = cs.primary
+    val selectedLabel = cs.onPrimary
+
+    val unselectedContainer = cs.surfaceVariant
+    val unselectedLabel = cs.onSurfaceVariant
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -38,82 +45,78 @@ fun HorizonControlsRow(
             color = cs.onSurface.copy(alpha = 0.8f)
         )
 
+        // Anchor chips
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
+            HorizonChip(
+                text = "Earlier",
                 selected = selectedAnchor == HorizonAnchorUi.EARLIER,
                 onClick = onEarlier,
-                label = {
-                    Text(
-                        text = "Earlier"
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = cs.secondaryContainer,
-                    selectedLabelColor = cs.onSecondaryContainer
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = selectedAnchor == HorizonAnchorUi.EARLIER
-                )
+                selectedContainer = selectedContainer,
+                selectedLabel = selectedLabel,
+                unselectedContainer = unselectedContainer,
+                unselectedLabel = unselectedLabel
             )
-
-            FilterChip(
+            HorizonChip(
+                text = "Now",
                 selected = selectedAnchor == HorizonAnchorUi.NOW,
                 onClick = onNow,
-                label = {
-                    Text(
-                        text = "Now"
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = cs.secondaryContainer,
-                    selectedLabelColor = cs.onSecondaryContainer
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = selectedAnchor == HorizonAnchorUi.NOW
-                )
+                selectedContainer = selectedContainer,
+                selectedLabel = selectedLabel,
+                unselectedContainer = unselectedContainer,
+                unselectedLabel = unselectedLabel
             )
-
-            FilterChip(
+            HorizonChip(
+                text = "Later",
                 selected = selectedAnchor == HorizonAnchorUi.LATER,
                 onClick = onLater,
-                label = {
-                    Text(
-                        text = "Later"
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = cs.secondaryContainer,
-                    selectedLabelColor = cs.onSecondaryContainer
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = selectedAnchor == HorizonAnchorUi.LATER
-                )
+                selectedContainer = selectedContainer,
+                selectedLabel = selectedLabel,
+                unselectedContainer = unselectedContainer,
+                unselectedLabel = unselectedLabel
             )
         }
 
-        // ✅ Zoom chips: make selected state punchier
+        // Zoom chips
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(2, 4, 6, 8, 12).forEach { h ->
-                val selected = h == selectedHours
-
-                FilterChip(
-                    selected = selected,
+                HorizonChip(
+                    text = "${h}h",
+                    selected = (h == selectedHours),
                     onClick = { onZoomHours(h) },
-                    label = { Text(text = "${h}h") },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = cs.primaryContainer,
-                        selectedLabelColor = cs.onPrimaryContainer
-                    ),
-                    border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
-                        selected = selected
-                    ),
+                    selectedContainer = selectedContainer,
+                    selectedLabel = selectedLabel,
+                    unselectedContainer = unselectedContainer,
+                    unselectedLabel = unselectedLabel,
                     modifier = Modifier.padding(end = 0.dp)
                 )
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HorizonChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    selectedContainer: androidx.compose.ui.graphics.Color,
+    selectedLabel: androidx.compose.ui.graphics.Color,
+    unselectedContainer: androidx.compose.ui.graphics.Color,
+    unselectedLabel: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(text = text) },
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = unselectedContainer,
+            labelColor = unselectedLabel,
+            selectedContainerColor = selectedContainer,
+            selectedLabelColor = selectedLabel
+        ),
+        border = null, // ✅ lighter/cleaner
+        modifier = modifier
+    )
 }
