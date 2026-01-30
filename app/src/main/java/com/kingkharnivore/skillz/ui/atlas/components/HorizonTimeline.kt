@@ -1,6 +1,7 @@
 package com.kingkharnivore.skillz.ui.atlas.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
@@ -22,8 +23,9 @@ fun HorizonTimeline(
     horizon: HorizonState,
     ticks: List<HorizonTickUi>,
     blocks: List<BeamBlockUi>,
-    height: Dp = 520.dp,          // visible viewport height
-    canvasHeight: Dp = 1000.dp    // “map” height you scroll through
+    height: Dp = 520.dp,
+    canvasHeight: Dp = 1000.dp,
+    onBlockClick: (BeamBlockUi) -> Unit = {}
 ) {
     val rangeMinutes = max(1, horizon.rangeMinutes)
     val railWidth = 64.dp
@@ -118,47 +120,57 @@ fun HorizonTimeline(
                     val top = canvasHeight * topFrac
                     val h = canvasHeight * heightFrac
 
-                    val colors = beamColors(b)
-
                     val journeyColor = Color(b.journeyColorArgb)
                     val bg = journeyColor.copy(alpha = 0.16f)          // subtle fill
                     val accent = journeyColor.copy(alpha = 0.90f)      // strong rail
 
-                    Card(
+                    val minHit = 48.dp
+
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(start = railWidth)
                             .offset(y = top)
-                            .height(h),
-                        colors = CardDefaults.cardColors(
-                            containerColor = bg,
-                            contentColor = MaterialTheme.colorScheme.onSurface
-                        )
+                            .height(maxOf(h, minHit)) // ✅ tap target
+                            .clickable { onBlockClick(b) } // ✅ always clickable
                     ) {
-                        Row(Modifier.fillMaxSize()) {
-
-                            // left accent rail
-                            Box(
-                                modifier = Modifier
-                                    .width(6.dp)
-                                    .fillMaxHeight()
-                                    .background(accent)
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(h.coerceAtLeast(8.dp)), // keep visuals, avoid 0dp weirdness
+                            colors = CardDefaults.cardColors(
+                                containerColor = bg,
+                                contentColor = MaterialTheme.colorScheme.onSurface
                             )
-
-                            Column(Modifier.padding(10.dp)) {
-                                Text(text = b.tagName, style = MaterialTheme.typography.titleSmall)
-
-                                // We'll fix your time text soon (proper HH:mm)
-                                val clipPrefix = if (b.clippedTop) "↥ " else ""
-                                val clipSuffix = if (b.clippedBottom) " ↧" else ""
-
-                                val mins = ((b.endMs - b.startMs) / 60_000L).coerceAtLeast(1)
-
-                                Text(
-                                    text = clipPrefix + "${formatRange(b.startMs, b.endMs)} • ${mins}m" + clipSuffix,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                        ) {
+                            Row(Modifier.fillMaxSize()) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(6.dp)
+                                        .fillMaxHeight()
+                                        .background(accent)
                                 )
+
+                                Column(Modifier.padding(10.dp)) {
+                                    Text(
+                                        text = b.tagName,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+
+                                    val clipPrefix = if (b.clippedTop) "↥ " else ""
+                                    val clipSuffix = if (b.clippedBottom) " ↧" else ""
+                                    val mins = ((b.endMs - b.startMs) / 60_000L).coerceAtLeast(1)
+
+                                    Text(
+                                        text = clipPrefix + "${formatRange(b.startMs, b.endMs)} • ${mins}m" + clipSuffix,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                         }
                     }
@@ -175,7 +187,7 @@ private fun formatTime(ms: Long, zone: ZoneId = ZoneId.systemDefault()): String 
     return Instant.ofEpochMilli(ms).atZone(zone).format(HORIZON_TIME_FMT)
 }
 
-private fun formatRange(startMs: Long, endMs: Long): String {
+fun formatRange(startMs: Long, endMs: Long): String {
     val zone = ZoneId.systemDefault()
     val s = formatTime(startMs, zone)
     val e = formatTime(endMs, zone)
@@ -186,46 +198,6 @@ private data class BeamPalette(
     val container: androidx.compose.ui.graphics.Color,
     val content: androidx.compose.ui.graphics.Color
 )
-
-@Composable
-private fun beamColors(b: BeamBlockUi): BeamPalette {
-    return when (b.status) {
-        BeamStatus.ACTIVE -> BeamPalette(
-            container = MaterialTheme.colorScheme.secondary,
-            content = MaterialTheme.colorScheme.onSecondary
-        )
-
-        BeamStatus.UPCOMING -> when (b.readiness) {
-            ReadinessLevel.IMMINENT -> BeamPalette(
-                container = MaterialTheme.colorScheme.secondaryContainer,
-                content = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-            ReadinessLevel.NEAR -> BeamPalette(
-                container = MaterialTheme.colorScheme.primaryContainer,
-                content = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            ReadinessLevel.SOON -> BeamPalette(
-                container = MaterialTheme.colorScheme.surfaceVariant,
-                content = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            ReadinessLevel.FAR -> BeamPalette(
-                container = MaterialTheme.colorScheme.surface,
-                content = MaterialTheme.colorScheme.onSurface
-            )
-            ReadinessLevel.ACTIVE -> BeamPalette(
-                container = MaterialTheme.colorScheme.secondary,
-                content = MaterialTheme.colorScheme.onSecondary
-            )
-        }
-
-        BeamStatus.MISSED,
-        BeamStatus.COMPLETED_PARTIAL,
-        BeamStatus.COMPLETED_SUCCESS -> BeamPalette(
-            container = MaterialTheme.colorScheme.surfaceVariant,
-            content = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
 
 private fun formatBeamTimeRange(startMs: Long, endMs: Long): String {
     val zone = ZoneId.systemDefault()

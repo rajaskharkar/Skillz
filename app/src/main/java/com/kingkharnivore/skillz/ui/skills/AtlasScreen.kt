@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.ui.skills
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -19,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.kingkharnivore.skillz.ui.atlas.components.HorizonAnchorUi
 import com.kingkharnivore.skillz.ui.atlas.components.HorizonControlsRow
 import com.kingkharnivore.skillz.ui.atlas.components.HorizonTimeline
+import com.kingkharnivore.skillz.ui.atlas.components.formatRange
 import com.kingkharnivore.skillz.ui.atlas.model.*
 import kotlinx.coroutines.delay
 import java.time.Instant
@@ -233,6 +236,7 @@ private fun CountdownText(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HorizonZone(
     uiState: AtlasUiState,
@@ -248,6 +252,103 @@ fun HorizonZone(
     )
 
     var anchor by remember { mutableStateOf(HorizonAnchorUi.NOW) }
+
+    // ✅ Selected block for quick details
+    var selectedBlock by remember { mutableStateOf<BeamBlockUi?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // ✅ Quick details sheet (tinted with journey color)
+    // ✅ DROP-IN replacement for your selectedBlock ModalBottomSheet block
+// - Sheet background is the Beam’s journey color
+// - Content uses on-journey-color text for readability
+// - Keeps your note logic + close button
+
+    if (selectedBlock != null) {
+        val b = selectedBlock!!
+        val journeyColor = androidx.compose.ui.graphics.Color(b.journeyColorArgb)
+
+        // Darken the journey color slightly (keeps hue intact)
+        val sheetBase = journeyColor.copy(alpha = 0.88f)
+
+        // Foreground color tuned for darker surface
+        val onJourney = androidx.compose.ui.graphics.Color.White
+
+        ModalBottomSheet(
+            sheetState = sheetState,
+            onDismissRequest = { selectedBlock = null },
+            containerColor = sheetBase,
+            contentColor = onJourney,
+            dragHandle = {
+                BottomSheetDefaults.DragHandle(
+                    color = onJourney.copy(alpha = 0.45f)
+                )
+            }
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.18f), // darker top
+                                androidx.compose.ui.graphics.Color.Transparent
+                            )
+                        )
+                    )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = b.tagName,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = onJourney
+                    )
+
+                    val mins = ((b.endMs - b.startMs) / 60_000L).coerceAtLeast(1)
+
+                    Text(
+                        text = "${formatRange(b.startMs, b.endMs)} • ${mins}m",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = onJourney.copy(alpha = 0.85f)
+                    )
+
+                    if (b.clippedTop || b.clippedBottom) {
+                        val note = buildString {
+                            if (b.clippedTop) append("Starts earlier (outside view). ")
+                            if (b.clippedBottom) append("Ends later (outside view).")
+                        }.trim()
+
+                        Text(
+                            text = note,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = onJourney.copy(alpha = 0.72f)
+                        )
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Button(
+                        onClick = { selectedBlock = null },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = onJourney.copy(alpha = 0.16f),
+                            contentColor = onJourney
+                        )
+                    ) {
+                        Text("Close")
+                    }
+
+                    Spacer(Modifier.height(6.dp))
+                }
+            }
+        }
+    }
+
     HorizonControlsRow(
         title = uiState.horizon.title(),
         selectedHours = uiState.horizon.hours,
@@ -286,7 +387,8 @@ fun HorizonZone(
         ticks = uiState.timeline.ticks,
         blocks = uiState.timeline.blocks,
         height = 540.dp,
-        canvasHeight = 1100.dp
+        canvasHeight = 1100.dp,
+        onBlockClick = { b -> selectedBlock = b } // ✅ THIS is the missing change
     )
 }
 
