@@ -30,7 +30,7 @@ object DatabaseModule {
             context,
             SkillzDatabase::class.java,
             "skillz_db"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     @Provides
