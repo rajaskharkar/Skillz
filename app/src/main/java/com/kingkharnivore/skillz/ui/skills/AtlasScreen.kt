@@ -20,7 +20,6 @@ import com.kingkharnivore.skillz.ui.atlas.components.HorizonAnchorUi
 import com.kingkharnivore.skillz.ui.atlas.components.HorizonControlsRow
 import com.kingkharnivore.skillz.ui.atlas.components.HorizonTimeline
 import com.kingkharnivore.skillz.ui.atlas.model.*
-import com.kingkharnivore.skillz.ui.components.SkillzTopAppBar
 import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
@@ -38,38 +37,28 @@ fun AtlasScreen(
     onShiftHours: (Int) -> Unit,
     onResetToNow: () -> Unit
 ) {
-    Scaffold(
-        topBar = { SkillzTopAppBar() }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item {
-                NowZone(
-                    now = uiState.now,
-                    onStartFlow = onStartFlow,
-                    onGoToActiveFlow = onGoToActiveFlow
-                )
-            }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            NowZone(
+                now = uiState.now,
+                onStartFlow = onStartFlow,
+                onGoToActiveFlow = onGoToActiveFlow
+            )
+        }
 
-            item {
-                HorizonZone(
-                    uiState = uiState,
-                    onFilterAll = onFilterAll,
-                    onFilterJourney = onFilterJourney,
-                    onZoomHours = onZoomHours,
-                    onShiftHours = onShiftHours,
-                    onResetToNow = onResetToNow
-                )
-            }
-
-            // Aftermath later (kept but empty)
-//            item { AftermathZone(uiState.aftermath) }
-//            item { Spacer(Modifier.height(16.dp)) }
+        item {
+            HorizonZone(
+                uiState = uiState,
+                onFilterAll = onFilterAll,
+                onFilterJourney = onFilterJourney,
+                onZoomHours = onZoomHours,
+                onShiftHours = onShiftHours,
+                onResetToNow = onResetToNow
+            )
         }
     }
 }
@@ -245,7 +234,7 @@ private fun CountdownText(
 }
 
 @Composable
-private fun HorizonZone(
+fun HorizonZone(
     uiState: AtlasUiState,
     onFilterAll: () -> Unit,
     onFilterJourney: (Long) -> Unit,
@@ -352,6 +341,5 @@ private fun formatBeamCountdown(
         minutes > 0 -> "${minutes}m ${seconds}s"
         else -> "${seconds}s"
     }
-
     return headline to countdown
 }

@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,7 +37,6 @@ import androidx.compose.ui.zIndex
 import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.FlowListItemUiModel
 import com.kingkharnivore.skillz.data.model.entity.FlowListUiState
-import com.kingkharnivore.skillz.ui.components.SkillzTopAppBar
 import com.kingkharnivore.skillz.ui.theme.AntiqueGold
 import com.kingkharnivore.skillz.ui.theme.RavenclawBlue
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
@@ -50,22 +48,21 @@ import com.kingkharnivore.skillz.utils.score.ScoreFilter
 fun StoryScreen(
     viewModel: StoryViewModel,
     onAddSessionClick: () -> Unit,
-    onScheduleBeamClick: () -> Unit,  // ✅ add
+    onScheduleBeamClick: () -> Unit,
     onSessionClick: (Long) -> Unit,
     onGoToActiveSession: () -> Unit,
     isFocusModeOn: Boolean
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val listState = rememberLazyListState()
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
 
-    LaunchedEffect(uiState.sessions.size) {
+    androidx.compose.runtime.LaunchedEffect(uiState.sessions.size) {
         if (uiState.sessions.isNotEmpty()) {
             listState.animateScrollToItem(0)
         }
     }
 
     Scaffold(
-        topBar = { SkillzTopAppBar() },
         floatingActionButton = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -75,9 +72,7 @@ fun StoryScreen(
                     onClick = onScheduleBeamClick,
                     containerColor = MaterialTheme.colorScheme.secondary,
                     contentColor = MaterialTheme.colorScheme.onSecondary
-                ) {
-                    Text("⏰")
-                }
+                ) { Text("⏰") }
 
                 SkillListFab(onClick = onAddSessionClick)
             }
@@ -103,12 +98,8 @@ fun StoryScreen(
     }
 }
 
-/* ──────────────────────────────────────────────────────────────────────────────
- * Body: loading / error / empty / content
- * ────────────────────────────────────────────────────────────────────────────── */
-
 @Composable
-private fun StoryBody(
+fun StoryBody(
     uiState: FlowListUiState,
     listState: LazyListState,
     isFlowStateActive: Boolean,
@@ -179,10 +170,6 @@ private fun StoryBody(
         }
     }
 }
-
-/* ──────────────────────────────────────────────────────────────────────────────
- * Focus Mode: Entire screen scrolls + floating mini bar
- * ────────────────────────────────────────────────────────────────────────────── */
 
 @Composable
 private fun FlowStateActiveContent(
@@ -344,10 +331,6 @@ private fun FlowModeHeroCard(
     }
 }
 
-/* ──────────────────────────────────────────────────────────────────────────────
- * Normal Mode: Header static, sessions scroll
- * ────────────────────────────────────────────────────────────────────────────── */
-
 @Composable
 private fun FlowStateInactiveContent(
     uiState: FlowListUiState,
@@ -446,10 +429,6 @@ fun TotalTimeHighlight(
     }
 }
 
-/* ──────────────────────────────────────────────────────────────────────────────
- * Header: tags + total time + score + optional focus card
- * ────────────────────────────────────────────────────────────────────────────── */
-
 @Composable
 private fun StoryHeader(
     uiState: FlowListUiState,
@@ -504,10 +483,6 @@ private fun StoryHeader(
     }
 }
 
-/* ──────────────────────────────────────────────────────────────────────────────
- * Small UI states
- * ────────────────────────────────────────────────────────────────────────────── */
-
 @Composable
 private fun LoadingState(modifier: Modifier = Modifier) {
     CircularProgressIndicator(modifier = modifier)
@@ -544,10 +519,6 @@ private fun SkillListFab(onClick: () -> Unit) {
         Text("+")
     }
 }
-
-/* ──────────────────────────────────────────────────────────────────────────────
- * Edit dialog state (shared by both modes)
- * ────────────────────────────────────────────────────────────────────────────── */
 
 private class SessionEditState(
     val editingSession: MutableState<FlowListItemUiModel?>,
@@ -611,10 +582,6 @@ private fun FlowEditDialog(
     )
 }
 
-/* ──────────────────────────────────────────────────────────────────────────────
- * Expand/collapse state
- * ────────────────────────────────────────────────────────────────────────────── */
-
 private class ExpandedSessionIdsState(
     private val ids: MutableState<Set<Long>>
 ) {
@@ -630,10 +597,6 @@ private fun rememberExpandedSessionIdsState(): ExpandedSessionIdsState {
     val ids = remember { mutableStateOf(setOf<Long>()) }
     return remember { ExpandedSessionIdsState(ids) }
 }
-
-/* ──────────────────────────────────────────────────────────────────────────────
- * Mini bar alpha computation (extracted)
- * ────────────────────────────────────────────────────────────────────────────── */
 
 @Composable
 private fun rememberMiniBarAlpha(listState: LazyListState): State<Float> {
@@ -656,10 +619,6 @@ private fun rememberMiniBarAlpha(listState: LazyListState): State<Float> {
         label = "miniBarAlpha"
     )
 }
-
-/* ──────────────────────────────────────────────────────────────────────────────
- * Existing reusable components (kept)
- * ────────────────────────────────────────────────────────────────────────────── */
 
 @Composable
 fun ScoreFilterChips(
