@@ -58,7 +58,7 @@ fun FlowScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
     val error by viewModel.error.collectAsState()
-    val tags by viewModel.tags.collectAsState()
+    val tags by viewModel.suggestedTags.collectAsState()
     val reward by viewModel.lastReward.collectAsState()
 
     var showSurgeDialog by remember { mutableStateOf(false) }
@@ -269,7 +269,8 @@ fun FlowScreen(
             title = { Text("You did it!") },
             text = {
                 val isAera = BuildConfig.FLAVOR == "aera"
-                val hadBeamOverlap = r.beamEligibleMs >= BEAM_MIN_ELIGIBLE_MS
+                val hasBeamPoints = r.beamBonusPoints > 0
+                val showBeamUi = hasBeamPoints
 
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -300,7 +301,7 @@ fun FlowScreen(
                         totalMinutes = r.minutes,
                         totalScyra = r.finalScyraPoints,
                         beamBonusPoints = r.beamBonusPoints,
-                        hadBeamOverlap = hadBeamOverlap,
+                        showBeamUi = showBeamUi,
                         surgePoints = r.surgePoints
                     )
 
@@ -316,11 +317,13 @@ fun FlowScreen(
                                 tone = MetricTone.Neutral
                             )
 
-                            MetricLine(
-                                label = "Time in Beam",
-                                value = if (hadBeamOverlap) formatMsAsMmSs(r.beamEligibleMs) else "—",
-                                tone = if (hadBeamOverlap) MetricTone.Glow else MetricTone.Muted
-                            )
+                            if (showBeamUi) {
+                                MetricLine(
+                                    label = "Time in Beam",
+                                    value = formatMsAsMmSs(r.beamEligibleMs),
+                                    tone = MetricTone.Glow
+                                )
+                            }
                         }
                         return@Column
                     }
@@ -347,13 +350,12 @@ fun FlowScreen(
                             value = "+${r.baseScyraPoints}"
                         )
 
-                        DividerSoft()
-
                         // Time bonuses
                         val hasAnyBonus =
                             r.tenMinuteBonuses > 0 || r.thirtyMinuteBonuses > 0 || r.sixtyMinuteBonuses > 0
 
                         if (hasAnyBonus) {
+                            DividerSoft()
                             Text(
                                 text = "Time bonuses",
                                 style = MaterialTheme.typography.labelLarge,
@@ -385,31 +387,32 @@ fun FlowScreen(
                             DividerSoft()
                         }
 
-                        // Beam section
-                        Text(
-                            text = "Beam",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
-                        )
+                        if (showBeamUi) {
+                            DividerSoft()
+                            Text(
+                                text = "Beam",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
+                            )
 
-                        MetricLine(
-                            label = "Time in Beam",
-                            value = if (hadBeamOverlap) formatMsAsMmSs(r.beamEligibleMs) else "—",
-                            tone = if (hadBeamOverlap) MetricTone.Glow else MetricTone.Muted
-                        )
+                            MetricLine(
+                                label = "Time in Beam",
+                                value = formatMsAsMmSs(r.beamEligibleMs),
+                                tone = MetricTone.Glow
+                            )
 
-                        MetricLine(
-                            label = "Beam multiplier",
-                            value = if (hadBeamOverlap && r.beamMultiplier != null) "×${"%.2f".format(r.beamMultiplier)}" else "—",
-                            tone = if (hadBeamOverlap && r.beamMultiplier != null) MetricTone.Glow else MetricTone.Muted
-                        )
+                            MetricLine(
+                                label = "Beam multiplier",
+                                value = r.beamMultiplier?.let { "×${"%.2f".format(it)}" } ?: "—",
+                                tone = if (r.beamMultiplier != null) MetricTone.Glow else MetricTone.Muted
+                            )
 
-                        // Beam points (big)
-                        HighlightMetric(
-                            label = "Beam points gained",
-                            value = "+${r.beamBonusPoints}",
-                            glow = hadBeamOverlap && r.beamBonusPoints > 0
-                        )
+                            HighlightMetric(
+                                label = "Beam points gained",
+                                value = "+${r.beamBonusPoints}",
+                                glow = true
+                            )
+                        }
                     }
                 }
             },
@@ -501,7 +504,9 @@ fun TagSuggestionRow(
     tags: List<TagEntity>,
     onTagClicked: (TagEntity) -> Unit
 ) {
-    if (tags.isEmpty()) return
+    // ✅ defensive: ignore broken/empty names just in case
+    val cleanTags = remember(tags) { tags.filter { it.name.isNotBlank() } }
+    if (cleanTags.isEmpty()) return
 
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -513,14 +518,13 @@ fun TagSuggestionRow(
         )
 
         LazyRow(
-            modifier = Modifier
-                .fillMaxWidth(),                  // 👈 important
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 8.dp)
         ) {
             items(
-                items = tags,
-                key = { it.id }                  // 👈 good practice
+                items = cleanTags,
+                key = { it.id }
             ) { tag ->
                 AssistChip(
                     onClick = { onTagClicked(tag) },
@@ -645,7 +649,7 @@ private fun RewardChipRowV2(
     totalMinutes: Int,
     totalScyra: Int,
     beamBonusPoints: Int,
-    hadBeamOverlap: Boolean,
+    showBeamUi: Boolean,
     surgePoints: Int
 ) {
     Row(
@@ -654,29 +658,23 @@ private fun RewardChipRowV2(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (isAera) {
-            // Aera: time-only, no scores
             RewardChip(text = "⏱ $totalMinutes min")
             return
         }
 
-        // Scyra
         RewardChip(text = "🔥 +$totalScyra")
 
-        if (hadBeamOverlap) {
-            if (beamBonusPoints > 0) {
-                RewardChip(text = "⭐ +$beamBonusPoints")
-            } else {
-                // optional reassurance chip (can remove if you want it stricter)
-                RewardChip(text = "⭐ Beam")
-            }
+        // ✅ strict: only show Beam chip if points > 0
+        if (showBeamUi) {
+            RewardChip(text = "⭐ +$beamBonusPoints")
         }
 
         if (surgePoints > 0) {
             RewardChip(text = "⚡ +$surgePoints")
         }
     }
-
 }
+
 
 @Composable
 private fun RewardChip(text: String) {

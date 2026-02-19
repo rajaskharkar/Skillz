@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -96,6 +97,18 @@ class FlowViewModel @Inject constructor(
     val tags: StateFlow<List<TagEntity>> =
         tagRepository.getAllTags()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val suggestedTags = combine(
+        tagRepository.getAllTags(),
+        sessionRepository.getAllSessions()
+    ) { tags, sessions ->
+        val usedTagIds: Set<Long> = sessions.mapTo(mutableSetOf()) { it.tagId }
+        tags.filter { it.id in usedTagIds }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList()
+    )
 
     // Stopwatch internal fields for correct elapsed computation
     private var baseStartTimeMs: Long? = null
@@ -309,12 +322,6 @@ class FlowViewModel @Inject constructor(
             surgePoints = surgePoints
         )
     }
-
-    private data class BeamPreviewResult(
-        val beamId: Long? = null,
-        val bonusPoints: Int = 0,
-        val multiplier: Double? = null
-    )
 
     fun setSurgePlannedMinutes(minutes: Int) {
         val mins = minutes.coerceAtLeast(1)

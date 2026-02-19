@@ -9,7 +9,6 @@ import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.model.entity.isInScoreWindow
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
-import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 import com.kingkharnivore.skillz.utils.score.ScoreFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -125,45 +124,48 @@ class StoryViewModel @Inject constructor(
                 selectedTagId,
                 scoreFilter
             ) { sessions, tags, currentTagId, currentScoreFilter ->
-
                 val nowMs = System.currentTimeMillis()
 
-                // 1) Filter by selected tag
-                val sessionsForTag: List<SessionEntity> = currentTagId?.let { tagId ->
-                    sessions.filter { it.tagId == tagId }
-                } ?: sessions
-
-                val availableFilters: Set<ScoreFilter> = ScoreFilter.values().filterTo(mutableSetOf()) { filter ->
-                    when (filter) {
-                        ScoreFilter.ALL_TIME -> sessionsForTag.isNotEmpty()
-                        else -> sessionsForTag.any { it.isInScoreWindow(nowMs = nowMs, filter = filter) }
-                    }
+                val tagUsageCount: Map<Long, Int> = sessions
+                    .groupingBy { it.tagId }
+                    .eachCount()
+                val visibleTags: List<TagEntity> = tags.filter { tag ->
+                    (tagUsageCount[tag.id] ?: 0) > 0
+                }
+                val effectiveTagId: Long? = currentTagId?.takeIf { tagId ->
+                    (tagUsageCount[tagId] ?: 0) > 0
                 }
 
+                // 1) Filter by selected tag (using effectiveTagId)
+                val sessionsForTag: List<SessionEntity> = effectiveTagId?.let { tagId ->
+                    sessions.filter { it.tagId == tagId }
+                } ?: sessions
+                val availableFilters: Set<ScoreFilter> =
+                    ScoreFilter.entries.filterTo(mutableSetOf()) { filter ->
+                        when (filter) {
+                            ScoreFilter.ALL_TIME -> sessionsForTag.isNotEmpty()
+                            else -> sessionsForTag.any { it.isInScoreWindow(nowMs = nowMs, filter = filter) }
+                        }
+                    }
                 val effectiveScoreFilter =
                     if (availableFilters.contains(currentScoreFilter)) currentScoreFilter
                     else availableFilters.firstOrNull() ?: ScoreFilter.ALL_TIME
 
-
-                // 2) Filter by selected time window (applied ON TOP of tag filter)
+                // 2) Apply score window filter ON TOP of tag filter
                 val visibleSessions: List<SessionEntity> = when (effectiveScoreFilter) {
                     ScoreFilter.ALL_TIME -> sessionsForTag
-                    else -> sessionsForTag.filter { session ->
-                        session.isInScoreWindow(nowMs = nowMs, filter = effectiveScoreFilter)
-                    }
+                    else -> sessionsForTag.filter { it.isInScoreWindow(nowMs = nowMs, filter = effectiveScoreFilter) }
                 }
 
                 val currentSurgeScore = visibleSessions.sumOf { it.surgePoints }
-
-                // 3) Total time + score should reflect exactly what’s visible
                 val totalDurationMs = visibleSessions.sumOf { it.durationMs }
                 val totalScore = visibleSessions.sumOf { it.scyraPoints }
 
                 FlowListUiState(
                     isLoading = false,
                     sessions = visibleSessions.toUiModels(tags),
-                    tags = tags.toUiModels(),
-                    selectedTagId = currentTagId,
+                    tags = visibleTags.toUiModels(),
+                    selectedTagId = effectiveTagId,
                     totalDurationMs = totalDurationMs,
                     errorMessage = null,
                     scoreFilter = effectiveScoreFilter,
@@ -182,24 +184,17 @@ class StoryViewModel @Inject constructor(
         }
     }
 
-
     fun deleteSession(sessionId: Long) {
         viewModelScope.launch {
             try {
                 val removedTagId = sessionRepository.deleteSessionAndCleanupTag(sessionId)
-
-                // If the tag that just got emptied/deleted is currently selected,
-                // reset to "All" (null)
                 if (removedTagId != null && selectedTagId.value == removedTagId) {
                     selectedTagId.value = null
                 }
-
                 // Flows from Room will take care of updating sessions + tags
             } catch (e: Exception) {
                 // optionally set an error in uiState
             }
         }
     }
-
-
 }

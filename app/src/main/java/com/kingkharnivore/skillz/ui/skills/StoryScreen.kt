@@ -125,7 +125,7 @@ fun StoryBody(
 
             uiState.sessions.isEmpty() -> {
                 if (isFlowStateActive) {
-                    Box(
+                    Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp, vertical = 24.dp)
@@ -134,13 +134,18 @@ fun StoryBody(
                             uiState = uiState,
                             onTagSelected = onTagSelected,
                             onScoreFilterSelected = onScoreFilterSelected,
-                            extraTopContent = {
-                                FlowModeHeroCard(onGoToActiveSession = onGoToActiveSession)
+                            extraTopContent = run {
+                                { FlowModeHeroCard(onGoToActiveSession = onGoToActiveSession) }
                             }
                         )
                     }
+                } else {
+                    EmptyState(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .wrapContentSize(Alignment.Center)
+                    )
                 }
-                EmptyState(modifier = Modifier.align(Alignment.Center))
             }
 
             else -> {
@@ -456,31 +461,29 @@ private fun StoryHeader(
         Spacer(Modifier.height(12.dp))
     }
 
-    if (BuildConfig.SHOW_SCORE) {
-        Spacer(modifier = Modifier.height(12.dp))
+    Spacer(modifier = Modifier.height(12.dp))
 
-        ScoreFilterChips(
-            selectedFilter = uiState.scoreFilter,
-            availableFilters = uiState.availableScoreFilters,
-            onFilterSelected = onScoreFilterSelected
+    ScoreFilterChips(
+        selectedFilter = uiState.scoreFilter,
+        availableFilters = uiState.availableScoreFilters,
+        onFilterSelected = onScoreFilterSelected
+    )
+
+    Spacer(Modifier.height(16.dp))
+
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        ScoreDisplay(
+            score = uiState.currentScore,
+            surgeScore = uiState.currentSurgeScore,
+            scoreFilter = uiState.scoreFilter,
+            modifier = Modifier.fillMaxWidth()
         )
-
-        Spacer(Modifier.height(16.dp))
-
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            ScoreDisplay(
-                score = uiState.currentScore,
-                surgeScore = uiState.currentSurgeScore,
-                scoreFilter = uiState.scoreFilter,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        HorizontalDivider()
     }
+
+    HorizontalDivider()
 }
 
 @Composable
