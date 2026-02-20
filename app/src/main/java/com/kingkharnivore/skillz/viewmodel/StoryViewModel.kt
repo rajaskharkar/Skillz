@@ -262,7 +262,6 @@ class StoryViewModel @Inject constructor(
                     if (isCurrentPeriod) {
                         val sevenDaysMs = 7L * 24L * 60L * 60L * 1000L
                         val last7dStart = nowMs - sevenDaysMs
-
                         sessions.asSequence()
                             .filter { it.createdAt >= last7dStart }
                             .groupBy { it.tagId }

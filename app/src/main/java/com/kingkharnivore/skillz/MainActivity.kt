@@ -18,7 +18,7 @@ import androidx.navigation.compose.rememberNavController
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.ui.navigation.SkillzNavHost
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
-import com.kingkharnivore.skillz.ui.skills.NotificationPermissionGate
+import com.kingkharnivore.skillz.ui.screen.NotificationPermissionGate
 import com.kingkharnivore.skillz.ui.theme.SkillzTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.firstOrNull

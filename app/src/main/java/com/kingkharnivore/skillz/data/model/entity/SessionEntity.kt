@@ -5,7 +5,6 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.kingkharnivore.skillz.viewmodel.TagUiModel
-import com.kingkharnivore.skillz.utils.score.ScoreFilter
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 
 @Entity(
@@ -37,23 +36,6 @@ data class SessionEntity(
     val scyraPoints: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 )
-
-fun SessionEntity.isInScoreWindow(
-    nowMs: Long,
-    filter: ScoreFilter
-): Boolean {
-    // All-time: include everything
-    if (filter == ScoreFilter.ALL_TIME) return true
-
-    // For non-all-time filters, durationMs is non-null by design
-    val windowLengthMs = filter.durationMs
-        ?: return true // defensive fallback, should never hit
-
-    val windowStart = nowMs - windowLengthMs
-
-    // We use endTimestamp so only *finished* sessions are counted
-    return createdAt >= windowStart
-}
 
 data class Journey7dStatUiModel(
     val tagId: Long,

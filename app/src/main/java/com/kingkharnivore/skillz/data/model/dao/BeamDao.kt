@@ -84,5 +84,4 @@ interface BeamDao {
     ORDER BY startTime ASC
     """)
     fun observeAllBeams(): Flow<List<BeamEntity>>
-
 }

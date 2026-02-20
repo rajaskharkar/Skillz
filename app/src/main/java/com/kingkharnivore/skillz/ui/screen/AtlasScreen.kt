@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.ui.skills
+package com.kingkharnivore.skillz.ui.screen
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -9,7 +9,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -27,8 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kingkharnivore.skillz.ui.atlas.components.AtlasHeader
-import com.kingkharnivore.skillz.ui.atlas.components.DayAgendaTimeline
+import com.kingkharnivore.skillz.ui.screen.components.atlas.AtlasHeader
+import com.kingkharnivore.skillz.ui.screen.components.atlas.DayAgendaTimeline
 import com.kingkharnivore.skillz.ui.atlas.model.*
 import com.kingkharnivore.skillz.ui.theme.Bronze
 import com.kingkharnivore.skillz.ui.theme.GryffindorRed
@@ -174,7 +173,7 @@ private fun BeamDetailsSheetContent(
 
         if (b.clippedTop || b.clippedBottom) {
             val note = buildString {
-                if (b.clippedTop) append("Starts earlier (outside day). ")
+                if (b.clippedTop) append("Starts earlier (outside day).")
                 if (b.clippedBottom) append("Ends later (outside day).")
             }.trim()
 

@@ -10,8 +10,6 @@ import com.kingkharnivore.skillz.data.repository.BeamRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
-import com.kingkharnivore.skillz.utils.score.BeamScoreCalculator
-import com.kingkharnivore.skillz.utils.score.BeamScoreCalculator.overlapMs
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -446,7 +444,7 @@ class FlowViewModel @Inject constructor(
             ?: return BeamOutcome()
 
         // ✅ TRUE ELIGIBILITY = overlap(session, beam)
-        val eligibleMs = BeamScoreCalculator.overlapMs(
+        val eligibleMs = ScoreCalculator.overlapMs(
             aStart = sessionStart,
             aEnd = sessionEnd,
             bStart = matchingBeam.startTime,
@@ -463,7 +461,7 @@ class FlowViewModel @Inject constructor(
             )
         }
 
-        val res = BeamScoreCalculator.scoreWithBeam(
+        val res = ScoreCalculator.scoreWithBeam(
             sessionStart = sessionStart,
             sessionEnd = sessionEnd,
             sessionDurationMs = sessionDurationMs,

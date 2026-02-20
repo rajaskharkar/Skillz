@@ -9,9 +9,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navDeepLink
-import com.kingkharnivore.skillz.ui.skills.ScheduleBeamScreen
-import com.kingkharnivore.skillz.ui.skills.FlowScreen
-import com.kingkharnivore.skillz.ui.skills.SkillzHomeScreen
+import com.kingkharnivore.skillz.ui.screen.ScheduleBeamScreen
+import com.kingkharnivore.skillz.ui.screen.FlowScreen
+import com.kingkharnivore.skillz.ui.screen.SkillzHomeScreen
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.viewmodel.ScheduleBeamViewModel
 

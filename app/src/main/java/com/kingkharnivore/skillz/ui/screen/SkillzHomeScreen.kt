@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.ui.skills
+package com.kingkharnivore.skillz.ui.screen
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
@@ -62,7 +62,7 @@ fun SkillzHomeScreen(
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
-                    userScrollEnabled = true // ✅ swipe between pages again
+                    userScrollEnabled = true
                 ) { page ->
                     when (page) {
                         0 -> AtlasScreen(
@@ -71,8 +71,6 @@ fun SkillzHomeScreen(
                         onFilterJourney = { tagId -> atlasViewModel.setJourneyFilter(JourneyFilter.Only(tagId)) },
                         onStartFlow = onAddSessionClick,
                         onGoToActiveFlow = onGoToActiveSession,
-
-                        // ✅ new
                         onSelectMode = atlasViewModel::setViewMode,
                         onPrevDay = { atlasViewModel.shiftSelectedDay(-1) },
                         onNextDay = { atlasViewModel.shiftSelectedDay(+1) },

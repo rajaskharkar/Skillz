@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.ui.skills
+package com.kingkharnivore.skillz.ui.screen
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background

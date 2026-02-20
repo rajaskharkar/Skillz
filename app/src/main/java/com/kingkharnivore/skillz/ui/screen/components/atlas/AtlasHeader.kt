@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.ui.atlas.components
+package com.kingkharnivore.skillz.ui.screen.components.atlas
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
@@ -8,6 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.ui.atlas.model.AtlasViewMode
+import com.kingkharnivore.skillz.utils.time.floorToDay
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -32,7 +33,7 @@ fun AtlasHeader(
         if (dayStartMs > 0L) Instant.ofEpochMilli(dayStartMs).atZone(zone).format(DAY_FMT) else "Atlas"
 
     // ✅ Determine if we're already on today's dayStart
-    val nowDayStart = com.kingkharnivore.skillz.utils.time.floorToDay(System.currentTimeMillis())
+    val nowDayStart = floorToDay(System.currentTimeMillis())
     val isOnToday = dayStartMs == nowDayStart
 
     Column(

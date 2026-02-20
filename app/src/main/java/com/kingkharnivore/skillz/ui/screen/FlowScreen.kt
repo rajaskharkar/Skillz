@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.ui.skills
+package com.kingkharnivore.skillz.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -46,7 +46,6 @@ import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.viewmodel.StopwatchState
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
-import com.kingkharnivore.skillz.viewmodel.BEAM_MIN_ELIGIBLE_MS
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
