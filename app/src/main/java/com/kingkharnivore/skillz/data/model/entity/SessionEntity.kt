@@ -75,7 +75,12 @@ data class FlowListUiState(
     val currentScore: Int = 0,
     val currentSurgeScore: Int = 0,
     val topJourneysLast7d: List<Journey7dStatUiModel> = emptyList(),
-    val firstSessionStartMs: Long? = null
+    val firstSessionStartMs: Long? = null,
+    val isCurrentPeriod: Boolean = true,
+    val sagasInView: List<Journey7dStatUiModel> = emptyList(), // reuse your stat model
+    val isViewJourneysOpen: Boolean = false,
+    val viewJourneysTitle: String = "",
+    val viewJourneysSessions: List<FlowListItemUiModel> = emptyList(),
 )
 
 data class FlowListItemUiModel(

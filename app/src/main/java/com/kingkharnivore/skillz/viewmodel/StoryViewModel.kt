@@ -33,8 +33,32 @@ class StoryViewModel @Inject constructor(
     // null = "All skills", non-null = filter by that tag/skill
     private val selectedTagId = MutableStateFlow<Long?>(null)
 
-    private val period = MutableStateFlow(StoryPeriod.DAY)
-    private val anchorDayStartMs = MutableStateFlow(TimeWindowUtils.startOfTodayMs())
+    private val period = MutableStateFlow(StoryPeriod.WEEK)
+    private val anchorDayStartMs = MutableStateFlow(
+        TimeWindowUtils.startOfPeriodMs(System.currentTimeMillis(), StoryPeriod.WEEK)
+    )
+
+    private val viewJourneysTagId = MutableStateFlow<Long?>(null)
+    private val isViewJourneysOpen = MutableStateFlow(false)
+
+    fun openViewJourneys(tagId: Long) {
+        viewJourneysTagId.value = tagId
+        isViewJourneysOpen.value = true
+    }
+
+    fun closeViewJourneys() {
+        isViewJourneysOpen.value = false
+        viewJourneysTagId.value = null
+    }
+
+    private fun setAnchorClamped(anchorCandidateMs: Long, periodValue: StoryPeriod, nowMs: Long = System.currentTimeMillis()) {
+        anchorDayStartMs.value = TimeWindowUtils.clampToFirstAndToday(
+            anchorStartMs = TimeWindowUtils.normalizeAnchor(anchorCandidateMs, periodValue),
+            period = periodValue,
+            firstSessionStartMs = uiState.value.firstSessionStartMs,
+            nowMs = nowMs
+        )
+    }
 
     // Source flows
     private val sessionsFlow: Flow<List<SessionEntity>> =
@@ -90,24 +114,45 @@ class StoryViewModel @Inject constructor(
     }
 
     fun onPeriodSelected(newPeriod: StoryPeriod) {
+        val nowMs = System.currentTimeMillis()
+
+        // 1) update period
         period.value = newPeriod
 
-        val snapped = TimeWindowUtils.normalizeAnchor(anchorDayStartMs.value, newPeriod)
-        setClampedAnchor(period = newPeriod, anchorStartMs = snapped)
+        // 2) default anchor to "today" for the selected period:
+        // DAY -> today start
+        // WEEK -> Monday of this week
+        // MONTH -> 1st of this month
+        val todayAnchor = TimeWindowUtils.startOfPeriodMs(nowMs, newPeriod)
+
+        // 3) clamp to [first session .. today] (keeps arrows consistent)
+        anchorDayStartMs.value = TimeWindowUtils.clampToFirstAndToday(
+            anchorStartMs = todayAnchor,
+            period = newPeriod,
+            firstSessionStartMs = uiState.value.firstSessionStartMs,
+            nowMs = nowMs
+        )
     }
 
-    fun goPrev() = navigatePeriod(dir = -1)
+    fun goPrev() {
+        val p = period.value
+        val current = TimeWindowUtils.normalizeAnchor(anchorDayStartMs.value, p)
+        val candidate = TimeWindowUtils.shiftAnchor(current, p, -1)
+        setAnchorClamped(candidate, p)
+    }
 
-    fun goNext() = navigatePeriod(dir = +1)
+    fun goNext() {
+        val p = period.value
+        val current = TimeWindowUtils.normalizeAnchor(anchorDayStartMs.value, p)
+        val candidate = TimeWindowUtils.shiftAnchor(current, p, +1)
+        setAnchorClamped(candidate, p)
+    }
 
     fun goToday() {
         val p = period.value
-        val todayStart = TimeWindowUtils.startOfTodayMs()
-        val snappedToday = TimeWindowUtils.normalizeAnchor(todayStart, p)
-
-        setClampedAnchor(period = p, anchorStartMs = snappedToday)
+        val todayAnchor = TimeWindowUtils.startOfPeriodMs(System.currentTimeMillis(), p)
+        setAnchorClamped(todayAnchor, p)
     }
-
 
     fun updateSessionDescription(sessionId: Long, description: String) {
         viewModelScope.launch {
@@ -159,81 +204,134 @@ class StoryViewModel @Inject constructor(
                 tagsFlow,
                 selectedTagId,
                 period,
-                anchorDayStartMs
-            ) { sessions, tags, currentTagId, currentPeriod, anchorStartMs ->
+                anchorDayStartMs,
+                viewJourneysTagId,     // StateFlow<Long?>
+                isViewJourneysOpen     // StateFlow<Boolean>
+            ) { arr: Array<Any?> ->
+
+                // ✅ strongly-typed unpack (this is the key fix)
+                val sessions = arr[0] as List<SessionEntity>
+                val tags = arr[1] as List<TagEntity>
+                val currentTagId = arr[2] as Long?
+                val currentPeriod = arr[3] as StoryPeriod
+                val anchorStartMs = arr[4] as Long
+                val viewTagId = arr[5] as Long?
+                val viewOpen = arr[6] as Boolean
 
                 val nowMs = System.currentTimeMillis()
 
-                // Map tag names
+                // --- Tag map ---
                 val tagNameById: Map<Long, String> = tags.associate { it.id to it.name }
 
-                // ✅ FIRST SESSION should be based on time the session actually happened
-                // Use startTime (not createdAt)
-                val firstSessionStartMs: Long? = sessions.minOfOrNull { it.startTime }
+                // --- First session boundary (used for clamping + nav disable) ---
+                val firstSessionStartMs: Long? = sessions.minOfOrNull { it.createdAt }
 
-                // ✅ Normalize & clamp anchor to valid range (first session .. today) for this period
-                val normalizedAnchor = TimeWindowUtils.normalizeAnchor(anchorStartMs, currentPeriod)
-                val clampedAnchor = TimeWindowUtils.clampToFirstAndToday(
-                    anchorStartMs = normalizedAnchor,
-                    period = currentPeriod,
-                    firstSessionStartMs = firstSessionStartMs,
-                    nowMs = nowMs
-                )
-
-                // Visible tags are ones used at least once
+                // --- Visible tags ---
                 val tagUsageCount: Map<Long, Int> = sessions.groupingBy { it.tagId }.eachCount()
                 val visibleTags: List<TagEntity> = tags.filter { (tagUsageCount[it.id] ?: 0) > 0 }
 
-                val effectiveTagId: Long? = currentTagId?.takeIf { (tagUsageCount[it] ?: 0) > 0 }
+                val effectiveTagId: Long? =
+                    currentTagId?.takeIf { (tagUsageCount[it] ?: 0) > 0 }
 
-                // 1) Apply tag filter (or all)
-                val sessionsForTag: List<SessionEntity> = effectiveTagId?.let { tagId ->
-                    sessions.filter { it.tagId == tagId }
-                } ?: sessions
+                // 1) Apply tag filter
+                val sessionsForTag: List<SessionEntity> =
+                    effectiveTagId?.let { tagId -> sessions.filter { it.tagId == tagId } } ?: sessions
 
-                // 2) ✅ Apply period window filter using OVERLAP (startTime/endTime), NOT createdAt
-                val window = TimeWindowUtils.windowFor(clampedAnchor, currentPeriod)
+                // 2) Normalize anchor + compute window
+                val normalizedAnchor =
+                    TimeWindowUtils.normalizeAnchor(anchorStartMs, currentPeriod)
 
-                // session overlaps [window.start, window.end) if:
-                // endTime > start AND startTime < end
-                val visibleSessions: List<SessionEntity> = sessionsForTag.filter { s ->
-                    s.endTime > window.startMs && s.startTime < window.endMs
-                }
+                val window =
+                    TimeWindowUtils.windowFor(normalizedAnchor, currentPeriod)
 
-                // 3) ✅ Empty-day motivator analytics (ALWAYS computed from ALL sessions, last 7 days)
-                val sevenDaysMs = 7L * 24L * 60L * 60L * 1000L
-                val last7dStart = nowMs - sevenDaysMs
+                // 3) Apply time window (your “view”)
+                val visibleSessions: List<SessionEntity> =
+                    sessionsForTag.filter { it.createdAt in window.startMs until window.endMs }
 
-                val topJourneysLast7d = sessions
-                    .asSequence()
-                    // count sessions that ended in the last 7 days (or you can use startTime)
-                    .filter { it.endTime >= last7dStart }
-                    .groupBy { it.tagId }
-                    .map { (tagId, ss) ->
-                        val score = ss.sumOf { it.scyraPoints }
-                        val dur = ss.sumOf { it.durationMs }
-                        val name = tagNameById[tagId].orEmpty()
-                        Journey7dStatUiModel(
-                            tagId = tagId,
-                            tagName = name,
-                            totalScore = score,
-                            totalDurationMs = dur,
-                            sessionsCount = ss.size
+                // --- Is current period? ---
+                val todayAnchor =
+                    TimeWindowUtils.startOfPeriodMs(nowMs, currentPeriod)
+
+                val isCurrentPeriod: Boolean =
+                    normalizedAnchor == todayAnchor
+
+                // ============================================================
+                // 7-day summary (ONLY for current period)
+                // ============================================================
+                val topJourneysLast7d: List<Journey7dStatUiModel> =
+                    if (isCurrentPeriod) {
+                        val sevenDaysMs = 7L * 24L * 60L * 60L * 1000L
+                        val last7dStart = nowMs - sevenDaysMs
+
+                        sessions.asSequence()
+                            .filter { it.createdAt >= last7dStart }
+                            .groupBy { it.tagId }
+                            .map { (tagId, ss) ->
+                                Journey7dStatUiModel(
+                                    tagId = tagId,
+                                    tagName = tagNameById[tagId].orEmpty(),
+                                    totalScore = ss.sumOf { it.scyraPoints },
+                                    totalDurationMs = ss.sumOf { it.durationMs },
+                                    sessionsCount = ss.size
+                                )
+                            }
+                            .filter { it.tagName.isNotBlank() }
+                            .sortedWith(
+                                compareByDescending<Journey7dStatUiModel> { it.totalScore }
+                                    .thenByDescending { it.totalDurationMs }
+                                    .thenByDescending { it.sessionsCount }
+                            )
+                            .take(5)
+                            .toList()
+                    } else emptyList()
+
+                // ============================================================
+                // Sagas (ONLY for past periods)
+                // ============================================================
+                val sagasInView: List<Journey7dStatUiModel> =
+                    sessions.asSequence()
+                        .filter { it.createdAt in window.startMs until window.endMs }
+                        .groupBy { it.tagId }
+                        .map { (tagId, ss) ->
+                            Journey7dStatUiModel(
+                                tagId = tagId,
+                                tagName = tagNameById[tagId].orEmpty(),
+                                totalScore = ss.sumOf { it.scyraPoints },
+                                totalDurationMs = ss.sumOf { it.durationMs },
+                                sessionsCount = ss.size
+                            )
+                        }
+                        .filter { it.tagName.isNotBlank() }
+                        .sortedWith(
+                            compareByDescending<Journey7dStatUiModel> { it.totalScore }
+                                .thenByDescending { it.totalDurationMs }
+                                .thenByDescending { it.sessionsCount }
                         )
-                    }
-                    .filter { it.tagName.isNotBlank() }
-                    .sortedWith(
-                        compareByDescending<Journey7dStatUiModel> { it.totalScore }
-                            .thenByDescending { it.totalDurationMs }
-                            .thenByDescending { it.sessionsCount }
-                    )
-                    .take(5)
-                    .toList()
+                        .take(6)
+                        .toList()
 
-                val currentSurgeScore = visibleSessions.sumOf { it.surgePoints }
+                // ============================================================
+                // View Journeys sheet (session list for a chosen journey inside current window)
+                // ============================================================
+                val viewJourneysSessions: List<FlowListItemUiModel> =
+                    if (viewOpen && viewTagId != null) {
+                        sessions.asSequence()
+                            .filter { it.tagId == viewTagId }
+                            .filter { it.createdAt in window.startMs until window.endMs }
+                            .sortedByDescending { it.createdAt }
+                            .toList()
+                            .toUiModels(tags)
+                    } else emptyList()
+
+                val viewJourneysTitle: String =
+                    if (viewOpen && viewTagId != null) tagNameById[viewTagId].orEmpty() else ""
+
+                // --- Totals from visible sessions ---
                 val totalDurationMs = visibleSessions.sumOf { it.durationMs }
                 val totalScore = visibleSessions.sumOf { it.scyraPoints }
+                val currentSurgeScore = visibleSessions.sumOf { it.surgePoints }
 
+                // Build state
                 FlowListUiState(
                     isLoading = false,
                     sessions = visibleSessions.toUiModels(tags),
@@ -242,20 +340,27 @@ class StoryViewModel @Inject constructor(
                     totalDurationMs = totalDurationMs,
                     errorMessage = null,
                     period = currentPeriod,
-                    anchorDayStartMs = clampedAnchor, // ✅ IMPORTANT: use clamped anchor
+                    anchorDayStartMs = normalizedAnchor,
                     currentScore = totalScore,
                     currentSurgeScore = currentSurgeScore,
                     topJourneysLast7d = topJourneysLast7d,
-                    firstSessionStartMs = firstSessionStartMs
+                    firstSessionStartMs = firstSessionStartMs,
+                    isCurrentPeriod = isCurrentPeriod,
+                    sagasInView = sagasInView,
+                    isViewJourneysOpen = viewOpen,
+                    viewJourneysTitle = viewJourneysTitle,
+                    viewJourneysSessions = viewJourneysSessions
                 )
-            }.catch { e ->
-                uiState.value = uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = e.message ?: "Something went wrong"
-                )
-            }.collect { newState ->
-                uiState.value = newState
             }
+                .catch { e ->
+                    uiState.value = uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = e.message ?: "Something went wrong"
+                    )
+                }
+                .collect { newState ->
+                    uiState.value = newState
+                }
         }
     }
 

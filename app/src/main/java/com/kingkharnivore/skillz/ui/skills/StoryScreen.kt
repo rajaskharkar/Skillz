@@ -3,7 +3,6 @@
 package com.kingkharnivore.skillz.ui.skills
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -16,24 +15,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -41,8 +39,6 @@ import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.FlowListItemUiModel
 import com.kingkharnivore.skillz.data.model.entity.FlowListUiState
 import com.kingkharnivore.skillz.data.model.entity.Journey7dStatUiModel
-import com.kingkharnivore.skillz.ui.theme.AntiqueGold
-import com.kingkharnivore.skillz.ui.theme.RavenclawBlue
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 import com.kingkharnivore.skillz.utils.time.TimeWindowUtils
 import com.kingkharnivore.skillz.utils.time.formatDuration
@@ -104,7 +100,14 @@ fun StoryScreen(
                 onAddSessionClick = onAddSessionClick,
                 onSessionClick = onSessionClick,
                 onDeleteSession = viewModel::deleteSession,
-                onUpdateSessionDescription = viewModel::updateSessionDescription
+                onUpdateSessionDescription = viewModel::updateSessionDescription,
+                onOpenViewJourneys = viewModel::openViewJourneys
+            )
+
+            ViewJourneysBottomSheet(
+                uiState = uiState,
+                onClose = viewModel::closeViewJourneys,
+                onSessionClick = onSessionClick
             )
         }
     }
@@ -124,7 +127,8 @@ fun StoryBody(
     onAddSessionClick: () -> Unit,
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
-    onUpdateSessionDescription: (Long, String) -> Unit
+    onUpdateSessionDescription: (Long, String) -> Unit,
+    onOpenViewJourneys: (Long) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         when {
@@ -153,6 +157,7 @@ fun StoryBody(
                             onPrev = onPrev,
                             onNext = onNext,
                             onToday = onToday,
+                            onOpenViewJourneys = onOpenViewJourneys,
                             extraTopContent = { FlowModeHeroCard(onGoToActiveSession = onGoToActiveSession) }
                         )
                     }
@@ -173,13 +178,13 @@ fun StoryBody(
                                 onPeriodSelected = onPeriodSelected,
                                 onPrev = onPrev,
                                 onNext = onNext,
-                                onToday = onToday
+                                onToday = onToday,
+                                onOpenViewJourneys = onOpenViewJourneys
                             )
                         }
 
                         item {
-                            EmptyDayMotivation(
-                                uiState = uiState,
+                            FirstTimeUser(
                                 onAddSessionClick = onAddSessionClick
                             )
                         }
@@ -200,6 +205,7 @@ fun StoryBody(
                         onGoToActiveSession = onGoToActiveSession,
                         onSessionClick = onSessionClick,
                         onDeleteSession = onDeleteSession,
+                        onOpenViewJourneys = onOpenViewJourneys,
                         onUpdateSessionDescription = onUpdateSessionDescription
                     )
                 } else {
@@ -213,6 +219,7 @@ fun StoryBody(
                         onToday = onToday,
                         onSessionClick = onSessionClick,
                         onDeleteSession = onDeleteSession,
+                        onOpenViewJourneys = onOpenViewJourneys,
                         onUpdateSessionDescription = onUpdateSessionDescription
                     )
                 }
@@ -222,8 +229,7 @@ fun StoryBody(
 }
 
 @Composable
-private fun EmptyDayMotivation(
-    uiState: FlowListUiState,
+private fun FirstTimeUser(
     onAddSessionClick: () -> Unit
 ) {
     Column(
@@ -233,36 +239,41 @@ private fun EmptyDayMotivation(
         verticalArrangement = Arrangement.spacedBy(18.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // ✅ AERA CTA
-        if (BuildConfig.FLAVOR == "aera") {
-            Button(
-                onClick = onAddSessionClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Text(
-                    text = "Start your Story!",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
+        Button(
+            onClick = onAddSessionClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(18.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
+        ) {
+            Text(
+                text = "Start your Story!",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
         }
-
-        // ✅ 7 day motivation summary
-        TopJourneysLast7DaysCard(stats = uiState.topJourneysLast7d)
     }
 }
 
 @Composable
-private fun TopJourneysLast7DaysCard(
-    stats: List<Journey7dStatUiModel>
+private fun SagasCard(
+    period: StoryPeriod,
+    anchorDayStartMs: Long,
+    stats: List<Journey7dStatUiModel>,
+    onOpenViewJourneys: (tagId: Long) -> Unit
 ) {
+    val totalFlows = remember(stats) { stats.sumOf { it.sessionsCount } }
+    val totalDuration = remember(stats) { stats.sumOf { it.totalDurationMs } }
+    val totalScore = remember(stats) { stats.sumOf { it.totalScore } }
+
+    var isSagasExpanded by rememberSaveable(period, anchorDayStartMs) {
+        mutableStateOf(false)
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
@@ -273,43 +284,62 @@ private fun TopJourneysLast7DaysCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // ── Header (not a button anymore) ──────────────────────────
+            SagaHeader(
+                title = "Your Saga",
+                subtitle = sagaSubtitle(period, anchorDayStartMs),
+                periodLabel = period.label,
+                totalFlows = totalFlows,
+                totalDurationMs = totalDuration,
+                totalScore = totalScore
+            )
+
+            // ── Delicate action BELOW-RIGHT ───────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
+                horizontalArrangement = Arrangement.End
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                TextButton(
+                    onClick = { isSagasExpanded = !isSagasExpanded },
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                ) {
                     Text(
-                        text = "Last 7 days",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = "Most active journeys",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                        text = if (isSagasExpanded) "Hide" else "View",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
                     )
                 }
             }
 
-            if (stats.isEmpty()) {
-                Text(
-                    text = "No recent journeys yet.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
-                )
-                return@Column
-            }
-
-            // ✅ IMPORTANT: NO LazyColumn here (prevents nested vertical scroll crash)
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                stats.forEach { s ->
-                    JourneyStatRow(stat = s)
+            // ── Expanded content ──────────────────────────────────────
+            AnimatedVisibility(visible = isSagasExpanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (stats.isEmpty()) {
+                        Text(
+                            text = "No flows in this view.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                        )
+                    } else {
+                        val scrollState = rememberScrollState()
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 320.dp)
+                                .verticalScroll(scrollState),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            stats.forEachIndexed { index, stat ->
+                                SagaJourneyRow(
+                                    rank = index + 1,
+                                    stat = stat,
+                                    onClick = { onOpenViewJourneys(stat.tagId) }
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -317,13 +347,110 @@ private fun TopJourneysLast7DaysCard(
 }
 
 @Composable
-private fun JourneyStatRow(
-    stat: Journey7dStatUiModel
+private fun SagaHeader(
+    title: String,
+    subtitle: String,
+    periodLabel: String,
+    totalFlows: Int,
+    totalDurationMs: Long,
+    totalScore: Int
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Title row + period pill
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left: icon + title/subtitle
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("📜", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                )
+            }
+
+            // Right: small period chip
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                tonalElevation = 1.dp
+            ) {
+                Text(
+                    text = periodLabel,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
+                )
+            }
+        }
+
+        // Stats row (flows / duration / score)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            tonalElevation = 1.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SagaHeaderStat(label = "Flows", value = totalFlows.toString())
+                SagaHeaderStat(label = "Duration", value = formatDuration(totalDurationMs))
+                SagaHeaderStat(label = "Score", value = "🔥 $totalScore", alignEnd = true)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SagaHeaderStat(
+    label: String,
+    value: String,
+    alignEnd: Boolean = false
+) {
+    Column(
+        horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+private fun SagaSummaryStrip(
+    flows: Int,
+    durationMs: Long,
+    score: Int
 ) {
     Surface(
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        tonalElevation = 1.dp,
-        color = MaterialTheme.colorScheme.surfaceVariant
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 1.dp
     ) {
         Row(
             modifier = Modifier
@@ -332,35 +459,155 @@ private fun JourneyStatRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = stat.tagName,
+                    text = "$flows flow${if (flows == 1) "" else "s"}",
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "${stat.sessionsCount} flow${if (stat.sessionsCount == 1) "" else "s"}",
+                    text = "⏱ ${formatDuration(durationMs)}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
                 )
             }
 
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("🔥", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.width(6.dp))
                 Text(
-                    text = "🔥 ${stat.totalScore}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = "⏱ ${formatDuration(stat.totalDurationMs)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
+                    text = score.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SagaJourneyRow(
+    rank: Int,
+    stat: Journey7dStatUiModel,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(18.dp),
+        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Rank badge
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+            ) {
+                Text(
+                    text = "#$rank",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
+                )
+            }
+
+            Spacer(Modifier.width(10.dp))
+
+            // Left: journey info
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = stat.tagName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = "${stat.sessionsCount} flow${if (stat.sessionsCount == 1) "" else "s"} • ${formatDuration(stat.totalDurationMs)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            // Right: score + hint
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🔥", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = stat.totalScore.toString(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Scry journeys",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.Default.ArrowForwardIos,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Subtitle under “Sagas”
+ * You can keep this minimal; it reuses your existing date formatting utilities if you want,
+ * but this is drop-in and safe.
+ */
+private fun sagaSubtitle(
+    period: StoryPeriod,
+    anchorDayStartMs: Long
+): String {
+
+    val nowMs = System.currentTimeMillis()
+
+    // Normalize anchor and current period start
+    val normalizedAnchor = TimeWindowUtils.normalizeAnchor(anchorDayStartMs, period)
+    val currentPeriodStart = TimeWindowUtils.startOfPeriodMs(nowMs, period)
+
+    val isCurrent = normalizedAnchor == currentPeriodStart
+
+    return when (period) {
+        StoryPeriod.DAY ->
+            if (isCurrent) "Record for today"
+            else "Record for this day"
+
+        StoryPeriod.WEEK ->
+            if (isCurrent) "Record for this week"
+            else "Record for the week"
+
+        StoryPeriod.MONTH ->
+            if (isCurrent) "Record for this month"
+            else "Record for the month"
     }
 }
 
@@ -580,6 +827,7 @@ private fun FlowStateActiveContent(
     onGoToActiveSession: () -> Unit,
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
+    onOpenViewJourneys: (Long) -> Unit,
     onUpdateSessionDescription: (Long, String) -> Unit
 ) {
     val expandedState = rememberExpandedSessionIdsState()
@@ -610,6 +858,7 @@ private fun FlowStateActiveContent(
                     onPrev = onPrev,
                     onNext = onNext,
                     onToday = onToday,
+                    onOpenViewJourneys = onOpenViewJourneys,
                     extraTopContent = { FlowModeHeroCard(onGoToActiveSession = onGoToActiveSession) }
                 )
             }
@@ -878,49 +1127,49 @@ private fun FlowStateInactiveContent(
     onToday: () -> Unit,
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
+    onOpenViewJourneys: (Long) -> Unit,
     onUpdateSessionDescription: (Long, String) -> Unit
 ) {
     val expandedState = rememberExpandedSessionIdsState()
     val editState = rememberSessionEditState()
 
-    Column(
+    FlowEditDialog(
+        editState = editState,
+        onSave = { sessionId, newText -> onUpdateSessionDescription(sessionId, newText) }
+    )
+
+    LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        StoryHeader(
-            uiState = uiState,
-            onTagSelected = onTagSelected,
-            onPeriodSelected = onPeriodSelected,
-            onPrev = onPrev,
-            onNext = onNext,
-            onToday = onToday
-        )
+        item {
+            StoryHeader(
+                uiState = uiState,
+                onTagSelected = onTagSelected,
+                onPeriodSelected = onPeriodSelected,
+                onPrev = onPrev,
+                onNext = onNext,
+                onToday = onToday,
+                onOpenViewJourneys = onOpenViewJourneys
+            )
+        }
 
-        FlowEditDialog(
-            editState = editState,
-            onSave = { sessionId, newText -> onUpdateSessionDescription(sessionId, newText) }
-        )
-
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(
-                items = uiState.sessions,
-                key = { it.sessionId }
-            ) { session ->
-                FlowCard(
-                    session = session,
-                    isExpanded = expandedState.isExpanded(session.sessionId),
-                    onToggleExpand = { expandedState.toggle(session.sessionId) },
-                    onDeleteSession = { onDeleteSession(session.sessionId) },
-                    onLongPress = { editState.startEditing(session) },
-                    onClick = { onSessionClick(session.sessionId) }
-                )
-            }
+        items(
+            items = uiState.sessions,
+            key = { it.sessionId }
+        ) { session ->
+            FlowCard(
+                session = session,
+                isExpanded = expandedState.isExpanded(session.sessionId),
+                onToggleExpand = { expandedState.toggle(session.sessionId) },
+                onDeleteSession = { onDeleteSession(session.sessionId) },
+                onLongPress = { editState.startEditing(session) },
+                onClick = { onSessionClick(session.sessionId) }
+            )
         }
     }
 }
@@ -933,6 +1182,7 @@ private fun StoryHeader(
     onPrev: () -> Unit,
     onNext: () -> Unit,
     onToday: () -> Unit,
+    onOpenViewJourneys: (Long) -> Unit,
     extraTopContent: (@Composable () -> Unit)? = null
 ) {
     TagFilterRow(
@@ -957,13 +1207,11 @@ private fun StoryHeader(
 
     extraTopContent?.invoke()
 
-    if (uiState.selectedTagId != null && uiState.sessions.isNotEmpty()) {
-        Spacer(modifier = Modifier.height(8.dp))
+    if (uiState.selectedTagId != null) {
         TotalTimeHighlight(
             totalDurationMs = uiState.totalDurationMs,
             subtitle = "Time in view"
         )
-        Spacer(Modifier.height(12.dp))
     }
 
     Spacer(modifier = Modifier.height(12.dp))
@@ -981,6 +1229,30 @@ private fun StoryHeader(
     }
 
     HorizontalDivider()
+
+    HorizontalDivider()
+
+    Spacer(Modifier.height(12.dp))
+
+    StorySummaryCardSection(
+        uiState = uiState,
+        onOpenViewJourneys = onOpenViewJourneys
+    )
+}
+
+@Composable
+private fun StorySummaryCardSection(
+    uiState: FlowListUiState,
+    onOpenViewJourneys: (Long) -> Unit
+) {
+    if (uiState.sagasInView.isEmpty()) return
+
+    SagasCard(
+        period = uiState.period,
+        anchorDayStartMs = uiState.anchorDayStartMs,
+        stats = uiState.sagasInView,
+        onOpenViewJourneys = onOpenViewJourneys
+    )
 }
 
 @Composable
@@ -993,7 +1265,7 @@ private fun PeriodAndDateNavigator(
     onNext: () -> Unit,
     onToday: () -> Unit
 ) {
-    val nowMs = remember { System.currentTimeMillis() }
+    val nowMs = System.currentTimeMillis()
 
     // Normalize anchors for correct comparisons (esp when switching period)
     val normalizedAnchor = remember(period, anchorDayStartMs) {
@@ -1339,5 +1611,395 @@ private fun SkillListFab(onClick: () -> Unit) {
         contentColor = MaterialTheme.colorScheme.onPrimary
     ) {
         Text("+")
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ViewJourneysBottomSheet(
+    uiState: FlowListUiState,
+    onClose: () -> Unit,
+    onSessionClick: (Long) -> Unit
+) {
+    if (!uiState.isViewJourneysOpen) return
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // Internal "navigation" inside sheet
+    var selectedSessionId by remember(uiState.isViewJourneysOpen, uiState.viewJourneysTitle) {
+        mutableStateOf<Long?>(null)
+    }
+
+    val sessions = uiState.viewJourneysSessions
+    val selected = remember(selectedSessionId, sessions) {
+        selectedSessionId?.let { id -> sessions.firstOrNull { it.sessionId == id } }
+    }
+
+    val windowTitle = remember(uiState.anchorDayStartMs, uiState.period) {
+        formatPeriodTitle(uiState.period, uiState.anchorDayStartMs)
+    }
+    val windowSubtitle = remember(uiState.anchorDayStartMs, uiState.period) {
+        formatPeriodSubtitle(uiState.period, uiState.anchorDayStartMs)
+    }
+
+    val totalDuration = remember(sessions) { sessions.sumOf { it.durationMs } }
+    val totalScyraScore = remember(sessions) { sessions.sumOf { it.score } }
+    val totalBeamBonus = remember(sessions) { sessions.sumOf { it.beamBonusPoints } }
+    val totalBaseScore = remember(totalScyraScore, totalBeamBonus) { totalScyraScore - totalBeamBonus }
+    val totalSurge = remember(sessions) { sessions.sumOf { it.surgePoints } } // separate
+
+    ModalBottomSheet(
+        onDismissRequest = onClose,
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // ── Top bar ───────────────────────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (selected != null) {
+                    TextButton(onClick = { selectedSessionId = null }) { Text("Back") }
+                } else {
+                    Spacer(Modifier.width(8.dp))
+                }
+
+                Spacer(Modifier.width(8.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = uiState.viewJourneysTitle.ifBlank { "Journey" },
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "$windowTitle • $windowSubtitle",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                TextButton(onClick = onClose) { Text("Close") }
+            }
+
+            if (selected == null) {
+                // ── LIST MODE ──────────────────────────────────────────
+                JourneyViewSummary(
+                    flowsCount = sessions.size,
+                    totalDurationMs = totalDuration,
+                    totalBaseScore = totalBaseScore,
+                    totalBeamBonus = totalBeamBonus,
+                    totalScyraScore = totalScyraScore,
+                    totalSurge = totalSurge
+                )
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f))
+
+                if (sessions.isEmpty()) {
+                    Text(
+                        text = "No flows for this journey in this view.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(vertical = 10.dp)
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 520.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        contentPadding = PaddingValues(bottom = 6.dp)
+                    ) {
+                        items(
+                            items = sessions,
+                            key = { it.sessionId }
+                        ) { s ->
+                            JourneySessionRow(
+                                session = s,
+                                onExpand = { selectedSessionId = s.sessionId },
+                                onScry = { selectedSessionId = s.sessionId } // ✅ always works
+                            )
+                        }
+                    }
+                }
+            } else {
+                // ── DETAIL MODE ───────────────────────────────────────
+                JourneySessionDetail(
+                    session = selected,
+                    onOpenFull = null // until you actually have a full screen
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun JourneyViewSummary(
+    flowsCount: Int,
+    totalDurationMs: Long,
+    totalBaseScore: Int,
+    totalBeamBonus: Int,
+    totalScyraScore: Int,
+    totalSurge: Int
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        tonalElevation = 1.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Row 1: counts + time
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "$flowsCount flow${if (flowsCount == 1) "" else "s"}",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "⏱ ${formatDuration(totalDurationMs)}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                )
+            }
+
+            // Row 2: Scoring breakdown (no background pills)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                ScoreBreakdownRow(label = "Base", value = totalBaseScore.toString())
+                if (totalBeamBonus > 0) ScoreBreakdownRow(label = "Beam bonus", value = "+$totalBeamBonus")
+                ScoreBreakdownRow(label = "Scyra Score", value = "🔥 $totalScyraScore", strong = true)
+
+                if (totalSurge > 0) {
+                    ScoreBreakdownRow(label = "Surge", value = "+$totalSurge", strong = false)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScoreBreakdownRow(
+    label: String,
+    value: String,
+    strong: Boolean = false
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+        )
+        Text(
+            text = value,
+            style = if (strong) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge,
+            fontWeight = if (strong) FontWeight.SemiBold else FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+private fun JourneySessionDetail(
+    session: FlowListItemUiModel,
+    onOpenFull: (() -> Unit)? = null // optional
+) {
+    val baseScore = remember(session.score, session.beamBonusPoints) {
+        (session.score - session.beamBonusPoints).coerceAtLeast(0)
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = session.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            // If you want: show tag name too (optional)
+            if (session.tagName.isNotBlank()) {
+                Text(
+                    text = session.tagName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                )
+            }
+
+            if (session.description.isNotBlank()) {
+                Text(text = session.description, style = MaterialTheme.typography.bodyMedium)
+            } else {
+                Text(
+                    text = "No description yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                )
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f))
+
+            // Core stats
+            DetailStatRow(label = "Duration", value = formatDuration(session.durationMs))
+
+            // Score breakdown
+            DetailStatRow(label = "Base score", value = baseScore.toString())
+            if (session.beamBonusPoints > 0) DetailStatRow(label = "Beam bonus", value = "+${session.beamBonusPoints}")
+            DetailStatRow(label = "Scyra Score", value = "🔥 ${session.score}", strong = true)
+
+            if (session.isSurge && session.surgePoints > 0) {
+                DetailStatRow(label = "Surge", value = "+${session.surgePoints}")
+            }
+
+            if (onOpenFull != null) {
+                Spacer(Modifier.height(4.dp))
+                Button(
+                    onClick = onOpenFull,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("Open full flow")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailStatRow(
+    label: String,
+    value: String,
+    strong: Boolean = false
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+        )
+        Text(
+            text = value,
+            style = if (strong) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge,
+            fontWeight = if (strong) FontWeight.SemiBold else FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+private fun JourneySessionRow(
+    session: FlowListItemUiModel,
+    onExpand: () -> Unit,
+    onScry: () -> Unit
+) {
+    Surface(
+        onClick = onExpand,
+        shape = RoundedCornerShape(18.dp),
+        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = session.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = journeySessionMeta(session),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🔥", style = MaterialTheme.typography.bodyLarge)
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = session.score.toString(),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                TextButton(
+                    onClick = onScry,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                ) {
+                    Text("Scry", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+    }
+}
+
+private fun journeySessionMeta(session: FlowListItemUiModel): String {
+    return buildString {
+        append("⏱ ")
+        append(formatDuration(session.durationMs))
+
+        if (session.beamBonusPoints > 0) {
+            append("  •  ★ +")
+            append(session.beamBonusPoints)
+        }
+        if (session.isSurge && session.surgePoints > 0) {
+            append("  •  Surge +")
+            append(session.surgePoints)
+        }
     }
 }
