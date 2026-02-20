@@ -191,7 +191,7 @@ fun ScheduleBeamScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Schedule Beam") },
+                title = { Text("Schedule Beam ⭐") },
                 navigationIcon = {
                     IconButton(onClick = onCancel) {
                         Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")

@@ -4,6 +4,19 @@ import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+
+private val TIME_FMT = DateTimeFormatter.ofPattern("h:mm a")
+
+fun formatRange(
+    startMs: Long,
+    endMs: Long,
+    zoneId: ZoneId = ZoneId.systemDefault()
+): String {
+    val s = Instant.ofEpochMilli(startMs).atZone(zoneId).format(TIME_FMT)
+    val e = Instant.ofEpochMilli(endMs).atZone(zoneId).format(TIME_FMT)
+    return "$s – $e"
+}
 
 fun formatDuration(durationMs: Long): String {
     val totalSeconds = (durationMs / 1000).coerceAtLeast(0)

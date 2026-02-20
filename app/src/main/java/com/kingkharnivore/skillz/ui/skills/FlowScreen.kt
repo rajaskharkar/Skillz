@@ -319,7 +319,7 @@ fun FlowScreen(
 
                             if (showBeamUi) {
                                 MetricLine(
-                                    label = "Time in Beam",
+                                    label = "Time in Beam ⭐",
                                     value = formatMsAsMmSs(r.beamEligibleMs),
                                     tone = MetricTone.Glow
                                 )
@@ -390,7 +390,7 @@ fun FlowScreen(
                         if (showBeamUi) {
                             DividerSoft()
                             Text(
-                                text = "Beam",
+                                text = "Beam ⭐",
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
                             )

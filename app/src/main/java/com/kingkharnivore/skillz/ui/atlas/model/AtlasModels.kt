@@ -17,11 +17,17 @@ enum class ReadinessLevel {
     FAR, SOON, NEAR, IMMINENT, ACTIVE
 }
 
+
+enum class AtlasViewMode { DAY, WEEK, MONTH }
+
 data class AtlasUiState(
     val journeyFilter: JourneyFilter = JourneyFilter.All,
     val availableJourneys: List<JourneyChipUi> = emptyList(),
-
     val now: NowState = NowState(),
+    val viewMode: AtlasViewMode = AtlasViewMode.DAY,
+    val selectedDayStartMs: Long = 0L,
+    val dayPlan: DayPlanUi = DayPlanUi(0L, 0L),
+    val minSelectableDayStartMs: Long? = null,
     val horizon: HorizonState = HorizonState(),
     val timeline: HorizonTimelineModel = HorizonTimelineModel(),
     val aftermath: AftermathModel = AftermathModel()

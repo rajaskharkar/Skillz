@@ -1,8 +1,16 @@
 package com.kingkharnivore.skillz.ui.skills
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -13,22 +21,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kingkharnivore.skillz.ui.atlas.components.HorizonAnchorUi
-import com.kingkharnivore.skillz.ui.atlas.components.HorizonControlsRow
-import com.kingkharnivore.skillz.ui.atlas.components.HorizonTimeline
-import com.kingkharnivore.skillz.ui.atlas.components.formatRange
+import com.kingkharnivore.skillz.ui.atlas.components.AtlasHeader
+import com.kingkharnivore.skillz.ui.atlas.components.DayAgendaTimeline
 import com.kingkharnivore.skillz.ui.atlas.model.*
+import com.kingkharnivore.skillz.ui.theme.Bronze
+import com.kingkharnivore.skillz.ui.theme.GryffindorRed
+import com.kingkharnivore.skillz.ui.theme.RavenclawBlue
+import com.kingkharnivore.skillz.utils.time.formatRange
 import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.max
+import kotlin.math.roundToInt
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AtlasScreen(
     uiState: AtlasUiState,
@@ -36,35 +49,165 @@ fun AtlasScreen(
     onFilterJourney: (Long) -> Unit,
     onStartFlow: () -> Unit,
     onGoToActiveFlow: () -> Unit,
-    onZoomHours: (Int) -> Unit,
-    onShiftHours: (Int) -> Unit,
-    onResetToNow: () -> Unit
+    onSelectMode: (AtlasViewMode) -> Unit,
+    onPrevDay: () -> Unit,
+    onNextDay: () -> Unit,
+    onToday: () -> Unit,
+    onAdvanceDay: (Long) -> Unit
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            NowZone(
-                now = uiState.now,
-                onStartFlow = onStartFlow,
-                onGoToActiveFlow = onGoToActiveFlow
-            )
-        }
+    var selectedBeam by remember { mutableStateOf<BeamBlockUi?>(null) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var suppressDayAdvance by remember { mutableStateOf(false) }
+    var lastAdvanceAtMs by remember { mutableStateOf(0L) }
 
-        item {
-            HorizonZone(
-                uiState = uiState,
-                onFilterAll = onFilterAll,
-                onFilterJourney = onFilterJourney,
-                onZoomHours = onZoomHours,
-                onShiftHours = onShiftHours,
-                onResetToNow = onResetToNow
+    if (selectedBeam != null) {
+        val b = selectedBeam!!
+        val journeyColor = Color(b.journeyColorArgb)
+        val sheetBase = journeyColor.copy(alpha = 0.88f)
+        val onJourney = Color.White
+
+        ModalBottomSheet(
+            sheetState = sheetState,
+            onDismissRequest = { selectedBeam = null },
+            containerColor = sheetBase,
+            contentColor = onJourney,
+            dragHandle = {
+                BottomSheetDefaults.DragHandle(
+                    color = onJourney.copy(alpha = 0.45f)
+                )
+            }
+        ) {
+            BeamDetailsSheetContent(
+                b = b,
+                onClose = { selectedBeam = null }
             )
         }
     }
+
+    Column(Modifier.fillMaxSize()) {
+
+        // Keep NowZone if you want it — but slim later.
+        // For now we can keep it; it's not scroll-nested anymore.
+        NowZone(
+            now = uiState.now,
+            onStartFlow = onStartFlow,
+            onGoToActiveFlow = onGoToActiveFlow
+        )
+
+        val beamsCountLabel = when (uiState.viewMode) {
+            AtlasViewMode.DAY -> {
+                val n = uiState.dayPlan.beamsCount
+                if (n == 1) "1 beam ⭐" else "$n beams ⭐"
+            }
+            AtlasViewMode.WEEK -> "Week"
+            AtlasViewMode.MONTH -> "Month"
+        }
+
+        val canGoPrev = uiState.minSelectableDayStartMs?.let { uiState.selectedDayStartMs > it } ?: true
+
+        AtlasHeader(
+            mode = uiState.viewMode,
+            dayStartMs = uiState.selectedDayStartMs,
+            beamsCountLabel = beamsCountLabel,
+            canGoPrev = canGoPrev,
+            onSelectMode = onSelectMode,
+            onPrev = onPrevDay,
+            onNext = onNextDay,
+            onToday = onToday
+        )
+
+        // Content
+        // Content
+        when (uiState.viewMode) {
+            AtlasViewMode.DAY -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)           // ✅ prevents overlap with NowZone
+                ) {
+                    DayAgendaTimeline(
+                        dayPlan = uiState.dayPlan,
+                        onAdvanceDay = { delta -> onAdvanceDay(delta) }, // whatever you already do
+                        onBeamClick = { beam -> selectedBeam = beam }    // ✅ add this
+                    )
+                }
+            }
+            AtlasViewMode.WEEK -> { /* ... */ }
+            AtlasViewMode.MONTH -> { /* ... */ }
+        }
+    }
 }
+
+@Composable
+private fun BeamDetailsSheetContent(
+    b: BeamBlockUi,
+    onClose: () -> Unit
+) {
+    val onJourney = Color.White
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text(
+            text = b.tagName,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = onJourney
+        )
+
+        val mins = ((b.endMs - b.startMs) / 60_000L).coerceAtLeast(1)
+
+        Text(
+            text = "${formatRange(b.startMs, b.endMs)} • ${mins}m",
+            style = MaterialTheme.typography.bodyMedium,
+            color = onJourney.copy(alpha = 0.85f)
+        )
+
+        Text(
+            text = "${b.status} • ${b.readiness}",
+            style = MaterialTheme.typography.labelMedium,
+            color = onJourney.copy(alpha = 0.72f)
+        )
+
+        if (b.clippedTop || b.clippedBottom) {
+            val note = buildString {
+                if (b.clippedTop) append("Starts earlier (outside day). ")
+                if (b.clippedBottom) append("Ends later (outside day).")
+            }.trim()
+
+            Text(
+                text = note,
+                style = MaterialTheme.typography.bodySmall,
+                color = onJourney.copy(alpha = 0.72f)
+            )
+        }
+
+        Spacer(Modifier.height(6.dp))
+
+        Button(
+            onClick = onClose,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = onJourney.copy(alpha = 0.16f),
+                contentColor = onJourney
+            )
+        ) {
+            Text("Close")
+        }
+
+        Spacer(Modifier.height(6.dp))
+    }
+}
+
+// Use your existing theme hue: RavenclawBlue is ScyraBlue
+private val SCYRA_BLUE = RavenclawBlue
+
+// “Scyra red” = ink/crimson (not candy red)
+private val SCYRA_RED_LIGHT = Color(0xFFB43A3A)   // ember crimson (lighter)
+private val SCYRA_RED_DARK  = Color(0xFF4A0B0B)   // blood ink (darker)
 
 @Composable
 private fun NowZone(
@@ -72,97 +215,180 @@ private fun NowZone(
     onStartFlow: () -> Unit,
     onGoToActiveFlow: () -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+    val b = now.activeBeam
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        if (now.isBeamActive && b != null) {
 
-        if (now.isBeamActive && now.activeBeam != null) {
+            val durationMs = max(1L, b.endMs - b.startMs)
+            val remainingMs = max(0L, b.endMs - System.currentTimeMillis())
+            val remainingFracRaw =
+                (remainingMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
 
-            Text(
-                text = "Beam is active",
-                style = MaterialTheme.typography.titleMedium,
-                textAlign = TextAlign.Center
+            val remainingFrac by animateFloatAsState(
+                targetValue = remainingFracRaw,
+                animationSpec = tween(900, easing = FastOutSlowInEasing),
+                label = "remainingFrac"
             )
 
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                ),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(20.dp)
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = now.activeBeam.tagName,
-                        style = MaterialTheme.typography.titleLarge,
-                        textAlign = TextAlign.Center
-                    )
-                    now.activeBeamRemainingMs?.let { ms ->
-                        Text(
-                            text = "Remaining · ${max(0L, ms) / 60_000L} min",
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                    now.activeBeamProgress?.let { p ->
-                        LinearProgressIndicator(
-                            progress = { p.coerceIn(0f, 1f) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp),
-                            trackColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.25f)
-                        )
-                    }
+            val ringColor = remainingToColor(remainingFracRaw)
 
-                    Button(
-                        onClick = onStartFlow,
-                        modifier = Modifier.fillMaxWidth(0.7f)
-                    ) {
-                        Text("Enter Flow")
-                    }
-                }
-            }
-        } else {
+            // 🔥 Visible but classy pulse when <= 30% left
+            val lowPulseAlpha: Float = if (remainingFracRaw <= 0.30f) {
+                val transition = rememberInfiniteTransition(label = "lowPulse")
+                val alpha by transition.animateFloat(
+                    initialValue = 0.72f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(900, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "pulseAlpha"
+                )
+                alpha
+            } else 1f
+
+            val minsLeft = (remainingMs / 60_000L).coerceAtLeast(0L)
+            val pctLeft = (remainingFrac * 100f).roundToInt()
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                shape = RoundedCornerShape(24.dp),
+                    .padding(top = 2.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.95f),
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = cs.secondary,
+                    contentColor = cs.onSecondary
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 28.dp),
+                        .padding(horizontal = 20.dp, vertical = 18.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+
+                    // Status label
+                    Text(
+                        text = "⭐ BEAM ACTIVE",
+                        style = MaterialTheme.typography.labelMedium,
+                        letterSpacing = 1.4.sp,
+                        color = cs.onSurfaceVariant.copy(alpha = 0.78f)
+                    )
+
+                    // Circular Energy Core
+                    Box(
+                        modifier = Modifier.size(150.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+
+                        // Halo pulse when low
+                        if (remainingFracRaw <= 0.30f) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        color = ringColor.copy(alpha = 0.10f * lowPulseAlpha),
+                                        shape = CircleShape
+                                    )
+                            )
+                        }
+
+                        // Track
+                        CircularProgressIndicator(
+                            strokeWidth = 12.dp,
+                            color = Color.Transparent,
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        // Remaining arc
+                        CircularProgressIndicator(
+                            progress = { remainingFrac },
+                            strokeWidth = 12.dp,
+                            color = ringColor.copy(alpha = lowPulseAlpha),
+                            trackColor = Color.Transparent,
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+                            Text(
+                                text = "$pctLeft%",
+                                style = MaterialTheme.typography.headlineMedium,
+                                textAlign = TextAlign.Center
+                            )
+
+                            Text(
+                                text = "$minsLeft min left",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = cs.onSurfaceVariant.copy(alpha = 0.70f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    // Beam name
+                    Text(
+                        text = b.tagName,
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2
+                    )
+
+                    // CTA 60% width
+                    Button(
+                        onClick = onStartFlow,
+                        modifier = Modifier.fillMaxWidth(0.6f),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = cs.primary,
+                            contentColor = cs.onPrimary
+                        )
+                    ) {
+                        Text(
+                            text = "Enter flow!",
+                            letterSpacing = 1.sp
+                        )
+                    }
+                }
+            }
+
+        } else {
+            // No active beam
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = cs.surfaceVariant,
+                    contentColor = cs.onSurfaceVariant
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 18.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
 
                     Text(
                         text = "ATLAS",
-                        style = MaterialTheme.typography.labelSmall,
-                        letterSpacing = 2.sp,
-                        textAlign = TextAlign.Center
+                        style = MaterialTheme.typography.labelMedium,
+                        letterSpacing = 1.6.sp,
+                        color = cs.onSurfaceVariant.copy(alpha = 0.75f)
                     )
 
                     Text(
                         text = "Your journeys await",
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center
+                        style = MaterialTheme.typography.titleMedium
                     )
 
                     now.nextBeam?.let { beam ->
@@ -173,13 +399,44 @@ private fun NowZone(
                     } ?: Text(
                         text = "No upcoming Beams scheduled",
                         style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f)
+                        color = cs.onSurfaceVariant.copy(alpha = 0.80f)
                     )
                 }
             }
         }
     }
+}
+
+/**
+ * remainingFrac = fraction of time LEFT (1.0 at start, 0.0 at end).
+ *
+ * Rules:
+ * - Start of beam is Scyra Blue.
+ * - When remaining < 30%, it becomes red and gets increasingly darker as it approaches 0.
+ * - Between 30%..100% we ease from Scyra Blue toward a warm red (not harsh), then hand off to darkening reds.
+ */
+private fun remainingToColor(remainingFrac: Float): Color {
+    val r = remainingFrac.coerceIn(0f, 1f)
+
+    // <= 30% left → deepen into crimson
+    if (r <= 0.30f) {
+        val t = (r / 0.30f).coerceIn(0f, 1f)
+        return lerp(
+            Color(0xFF3A050B),     // dark ink red
+            GryffindorRed,         // your theme red
+            t
+        )
+    }
+
+    // 30%–70% left → Bronze transition
+    if (r <= 0.70f) {
+        val t = ((r - 0.30f) / 0.40f).coerceIn(0f, 1f)
+        return lerp(GryffindorRed, Bronze, t)
+    }
+
+    // 70%–100% left → RavenclawBlue to Bronze
+    val t = ((r - 0.70f) / 0.30f).coerceIn(0f, 1f)
+    return lerp(Bronze, RavenclawBlue, t)
 }
 
 @Composable
@@ -233,171 +490,6 @@ private fun CountdownText(
                 textAlign = TextAlign.Center
             )
         }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun HorizonZone(
-    uiState: AtlasUiState,
-    onFilterAll: () -> Unit,
-    onFilterJourney: (Long) -> Unit,
-    onZoomHours: (Int) -> Unit,
-    onShiftHours: (Int) -> Unit,
-    onResetToNow: () -> Unit
-) {
-    Text(
-        text = "Horizon",
-        style = MaterialTheme.typography.titleMedium
-    )
-
-    var anchor by remember { mutableStateOf(HorizonAnchorUi.NOW) }
-
-    var selectedBlock by remember { mutableStateOf<BeamBlockUi?>(null) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    if (selectedBlock != null) {
-        val b = selectedBlock!!
-        val journeyColor = androidx.compose.ui.graphics.Color(b.journeyColorArgb)
-
-        // Darken the journey color slightly (keeps hue intact)
-        val sheetBase = journeyColor.copy(alpha = 0.88f)
-
-        // Foreground color tuned for darker surface
-        val onJourney = androidx.compose.ui.graphics.Color.White
-
-        ModalBottomSheet(
-            sheetState = sheetState,
-            onDismissRequest = { selectedBlock = null },
-            containerColor = sheetBase,
-            contentColor = onJourney,
-            dragHandle = {
-                BottomSheetDefaults.DragHandle(
-                    color = onJourney.copy(alpha = 0.45f)
-                )
-            }
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.18f), // darker top
-                                androidx.compose.ui.graphics.Color.Transparent
-                            )
-                        )
-                    )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        text = b.tagName,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = onJourney
-                    )
-
-                    val mins = ((b.endMs - b.startMs) / 60_000L).coerceAtLeast(1)
-
-                    Text(
-                        text = "${formatRange(b.startMs, b.endMs)} • ${mins}m",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = onJourney.copy(alpha = 0.85f)
-                    )
-
-                    if (b.clippedTop || b.clippedBottom) {
-                        val note = buildString {
-                            if (b.clippedTop) append("Starts earlier (outside view). ")
-                            if (b.clippedBottom) append("Ends later (outside view).")
-                        }.trim()
-
-                        Text(
-                            text = note,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = onJourney.copy(alpha = 0.72f)
-                        )
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-
-                    Button(
-                        onClick = { selectedBlock = null },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = onJourney.copy(alpha = 0.16f),
-                            contentColor = onJourney
-                        )
-                    ) {
-                        Text("Close")
-                    }
-
-                    Spacer(Modifier.height(6.dp))
-                }
-            }
-        }
-    }
-
-    HorizonControlsRow(
-        title = uiState.horizon.title(),
-        selectedHours = uiState.horizon.hours,
-        selectedAnchor = anchor,
-        onZoomHours = onZoomHours,
-        onEarlier = { anchor = HorizonAnchorUi.EARLIER; onShiftHours(-2) },
-        onNow = { anchor = HorizonAnchorUi.NOW; onResetToNow() },
-        onLater = { anchor = HorizonAnchorUi.LATER; onShiftHours(2) }
-    )
-
-    if (uiState.timeline.blocks.isEmpty()) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
-                modifier = Modifier.padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = "Nothing on the horizon",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "Schedule a Beam to see your timeblocks here.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-            }
-        }
-        return
-    }
-
-    HorizonTimeline(
-        horizon = uiState.horizon,
-        ticks = uiState.timeline.ticks,
-        blocks = uiState.timeline.blocks,
-        height = 540.dp,
-        canvasHeight = 1100.dp,
-        onBlockClick = { b -> selectedBlock = b } // ✅ THIS is the missing change
-    )
-}
-
-@Composable
-private fun AftermathZone(aftermath: AftermathModel) {
-    Text(
-        text = "Aftermath",
-        style = MaterialTheme.typography.titleMedium
-    )
-
-    if (aftermath.completed.isEmpty()) {
-        Text(
-            text = "No completed Beams yet.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
     }
 }
 

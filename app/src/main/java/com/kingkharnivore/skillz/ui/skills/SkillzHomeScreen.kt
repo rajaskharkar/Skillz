@@ -66,15 +66,19 @@ fun SkillzHomeScreen(
                 ) { page ->
                     when (page) {
                         0 -> AtlasScreen(
-                            uiState = atlasState,
-                            onFilterAll = { atlasViewModel.setJourneyFilter(JourneyFilter.All) },
-                            onFilterJourney = { tagId -> atlasViewModel.setJourneyFilter(JourneyFilter.Only(tagId)) },
-                            onStartFlow = onAddSessionClick,
-                            onGoToActiveFlow = onGoToActiveSession,
-                            onZoomHours = { h -> atlasViewModel.setHorizonHours(h) },
-                            onShiftHours = { delta -> atlasViewModel.shiftHorizonByHours(delta) },
-                            onResetToNow = { atlasViewModel.resetHorizonToNow() }
-                        )
+                        uiState = atlasState,
+                        onFilterAll = { atlasViewModel.setJourneyFilter(JourneyFilter.All) },
+                        onFilterJourney = { tagId -> atlasViewModel.setJourneyFilter(JourneyFilter.Only(tagId)) },
+                        onStartFlow = onAddSessionClick,
+                        onGoToActiveFlow = onGoToActiveSession,
+
+                        // ✅ new
+                        onSelectMode = atlasViewModel::setViewMode,
+                        onPrevDay = { atlasViewModel.shiftSelectedDay(-1) },
+                        onNextDay = { atlasViewModel.shiftSelectedDay(+1) },
+                        onToday = { atlasViewModel.goToToday() },
+                        onAdvanceDay = { delta -> atlasViewModel.shiftSelectedDay(delta) }
+                    )
 
                         1 -> StoryScreen(
                             viewModel = skillzViewModel,
