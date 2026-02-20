@@ -6,6 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.kingkharnivore.skillz.viewmodel.TagUiModel
 import com.kingkharnivore.skillz.utils.score.ScoreFilter
+import com.kingkharnivore.skillz.utils.time.StoryPeriod
 
 @Entity(
     tableName = "sessions",
@@ -54,17 +55,32 @@ fun SessionEntity.isInScoreWindow(
     return createdAt >= windowStart
 }
 
+data class Journey7dStatUiModel(
+    val tagId: Long,
+    val tagName: String,
+    val totalScore: Int,
+    val totalDurationMs: Long,
+    val sessionsCount: Int
+)
+
 data class FlowListUiState(
     val isLoading: Boolean = true,
     val sessions: List<FlowListItemUiModel> = emptyList(),
-    val tags: List<TagUiModel> = emptyList(),   // available Skills (tags)
-    val selectedTagId: Long? = null,          // null = "All"
+    val tags: List<TagUiModel> = emptyList(),
+    val selectedTagId: Long? = null,
     val totalDurationMs: Long = 0L,
     val errorMessage: String? = null,
-    val scoreFilter: ScoreFilter = ScoreFilter.LAST_7_DAYS,
+    val period: StoryPeriod = StoryPeriod.DAY,
+    val anchorDayStartMs: Long = 0L,
     val currentScore: Int = 0,
-    val availableScoreFilters: Set<ScoreFilter> = ScoreFilter.values().toSet(),
-    val currentSurgeScore: Int = 0
+    val currentSurgeScore: Int = 0,
+    val topJourneysLast7d: List<Journey7dStatUiModel> = emptyList(),
+    val firstSessionStartMs: Long? = null,
+    val isCurrentPeriod: Boolean = true,
+    val sagasInView: List<Journey7dStatUiModel> = emptyList(), // reuse your stat model
+    val isViewJourneysOpen: Boolean = false,
+    val viewJourneysTitle: String = "",
+    val viewJourneysSessions: List<FlowListItemUiModel> = emptyList(),
 )
 
 data class FlowListItemUiModel(
