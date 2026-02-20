@@ -167,7 +167,7 @@ private fun BeamDetailsSheetContent(
         )
 
         Text(
-            text = "${b.status} • ${b.readiness}",
+            text = "${b.status} • ${b.readiness.displayLabel}",
             style = MaterialTheme.typography.labelMedium,
             color = onJourney.copy(alpha = 0.72f)
         )

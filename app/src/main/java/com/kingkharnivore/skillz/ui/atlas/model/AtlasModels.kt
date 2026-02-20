@@ -13,8 +13,27 @@ enum class BeamStatus {
     MISSED
 }
 
-enum class ReadinessLevel {
-    FAR, SOON, NEAR, IMMINENT, ACTIVE
+enum class ReadinessLevel(
+    val displayLabel: String
+) {
+    // Future
+    DISTANT("DISTANT"),
+    PLANNED("PLANNED"),
+    LATER_TODAY("LATER TODAY"),
+    COMING_UP("COMING UP"),
+
+    // Approaching
+    ON_DECK("ON DECK"),
+    APPROACHING("APPROACHING"),
+    GET_READY("GET READY"),
+    SOON("SOON"),
+    PREP("PREP"),
+    NOW("NOW"),
+
+    // State
+    ACTIVE("ACTIVE"),
+    MISSED("MISSED"),
+    EXPIRED("EXPIRED");
 }
 
 
@@ -122,32 +141,80 @@ data class BeamBlockUi(
     val journeyColorArgb: Int = 0
 )
 
-fun computeBeamStatus(
-    nowMs: Long,
-    startMs: Long,
-    endMs: Long,
-    completionRatio: Float
-): BeamStatus =
-    when {
-        nowMs in startMs until endMs -> BeamStatus.ACTIVE
-        nowMs < startMs -> BeamStatus.UPCOMING
-        completionRatio <= 0f -> BeamStatus.MISSED
-        completionRatio >= 1f -> BeamStatus.COMPLETED_SUCCESS
-        else -> BeamStatus.COMPLETED_PARTIAL
+fun computeBeamStatus(nowMs: Long, startMs: Long, endMs: Long, completionRatio: Float): BeamStatus {
+    if (nowMs < startMs) return BeamStatus.UPCOMING
+    if (nowMs in startMs until endMs) return BeamStatus.ACTIVE
+
+    val r = completionRatio.coerceIn(0f, 1f)
+    val eps = 0.01f
+
+    return when {
+        r >= 1f - eps -> BeamStatus.COMPLETED_SUCCESS
+        r > eps       -> BeamStatus.COMPLETED_PARTIAL
+        else          -> BeamStatus.MISSED
     }
+}
+
+private fun overlapMs(aStart: Long, aEnd: Long, bStart: Long, bEnd: Long): Long {
+    val s = maxOf(aStart, bStart)
+    val e = minOf(aEnd, bEnd)
+    return (e - s).coerceAtLeast(0L)
+}
+
+fun computeCompletionRatio(
+    beamStart: Long,
+    beamEnd: Long,
+    flows: List<FlowInBeamUi> // or your FlowEntity
+): Float {
+    val beamDur = (beamEnd - beamStart).coerceAtLeast(1L)
+    val completed = flows.sumOf { f ->
+        overlapMs(f.startMs, f.endMs, beamStart, beamEnd)
+    }.coerceAtMost(beamDur)
+
+    return completed.toFloat() / beamDur.toFloat()
+}
 
 fun computeReadiness(
     nowMs: Long,
     startMs: Long,
     status: BeamStatus
 ): ReadinessLevel {
+
+    // Active beam
     if (status == BeamStatus.ACTIVE) return ReadinessLevel.ACTIVE
-    val diff = startMs - nowMs
+
+    // Past beams
+    if (status == BeamStatus.MISSED) return ReadinessLevel.MISSED
+
+    if (
+        status == BeamStatus.COMPLETED_SUCCESS ||
+        status == BeamStatus.COMPLETED_PARTIAL
+    ) return ReadinessLevel.EXPIRED
+
+    // Upcoming only below
+    val msUntilStart = (startMs - nowMs).coerceAtLeast(0L)
+
+    val minutes = msUntilStart / 60_000L
+
+    // High-resolution logic under 3 hours
+    if (minutes <= 180) {
+        return when {
+            minutes <= 3   -> ReadinessLevel.NOW
+            minutes <= 10  -> ReadinessLevel.PREP
+            minutes <= 20  -> ReadinessLevel.SOON
+            minutes <= 45  -> ReadinessLevel.GET_READY
+            minutes <= 90  -> ReadinessLevel.APPROACHING
+            else           -> ReadinessLevel.ON_DECK
+        }
+    }
+
+    val hours = msUntilStart / 3_600_000L
+
     return when {
-        diff <= 60 * 60 * 1000L -> ReadinessLevel.IMMINENT
-        diff <= 6 * 60 * 60 * 1000L -> ReadinessLevel.NEAR
-        diff <= 24 * 60 * 60 * 1000L -> ReadinessLevel.SOON
-        else -> ReadinessLevel.FAR
+        hours < 6   -> ReadinessLevel.COMING_UP
+        hours < 12  -> ReadinessLevel.LATER_TODAY
+        hours < 24  -> ReadinessLevel.PLANNED
+        else        -> ReadinessLevel.DISTANT
     }
 }
 
