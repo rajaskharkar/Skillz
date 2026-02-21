@@ -12,18 +12,6 @@ import com.kingkharnivore.skillz.BuildConfig
 
 val color = if (BuildConfig.SHOW_SCORE) RavenclawBlue else SlytherinButNiceTeal
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-)
-
 private val LightGryffindorColors = lightColorScheme(
     primary = color,
     onPrimary = GryffindorOffWhite,
