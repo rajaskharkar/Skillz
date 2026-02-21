@@ -44,10 +44,7 @@ import kotlin.math.roundToInt
 @Composable
 fun AtlasScreen(
     uiState: AtlasUiState,
-    onFilterAll: () -> Unit,
-    onFilterJourney: (Long) -> Unit,
     onStartFlow: () -> Unit,
-    onGoToActiveFlow: () -> Unit,
     onSelectMode: (AtlasViewMode) -> Unit,
     onPrevDay: () -> Unit,
     onNextDay: () -> Unit,
@@ -56,9 +53,6 @@ fun AtlasScreen(
 ) {
     var selectedBeam by remember { mutableStateOf<BeamBlockUi?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var suppressDayAdvance by remember { mutableStateOf(false) }
-    var lastAdvanceAtMs by remember { mutableStateOf(0L) }
-
     if (selectedBeam != null) {
         val b = selectedBeam!!
         val journeyColor = Color(b.journeyColorArgb)
@@ -84,13 +78,11 @@ fun AtlasScreen(
     }
 
     Column(Modifier.fillMaxSize()) {
-
         // Keep NowZone if you want it — but slim later.
         // For now we can keep it; it's not scroll-nested anymore.
         NowZone(
             now = uiState.now,
-            onStartFlow = onStartFlow,
-            onGoToActiveFlow = onGoToActiveFlow
+            onStartFlow = onStartFlow
         )
 
         val beamsCountLabel = when (uiState.viewMode) {
@@ -101,7 +93,6 @@ fun AtlasScreen(
             AtlasViewMode.WEEK -> "Week"
             AtlasViewMode.MONTH -> "Month"
         }
-
         val canGoPrev = uiState.minSelectableDayStartMs?.let { uiState.selectedDayStartMs > it } ?: true
 
         AtlasHeader(
@@ -143,7 +134,6 @@ private fun BeamDetailsSheetContent(
     onClose: () -> Unit
 ) {
     val onJourney = Color.White
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -201,18 +191,10 @@ private fun BeamDetailsSheetContent(
     }
 }
 
-// Use your existing theme hue: RavenclawBlue is ScyraBlue
-private val SCYRA_BLUE = RavenclawBlue
-
-// “Scyra red” = ink/crimson (not candy red)
-private val SCYRA_RED_LIGHT = Color(0xFFB43A3A)   // ember crimson (lighter)
-private val SCYRA_RED_DARK  = Color(0xFF4A0B0B)   // blood ink (darker)
-
 @Composable
 private fun NowZone(
     now: NowState,
-    onStartFlow: () -> Unit,
-    onGoToActiveFlow: () -> Unit
+    onStartFlow: () -> Unit
 ) {
     val cs = MaterialTheme.colorScheme
     val b = now.activeBeam
@@ -224,20 +206,16 @@ private fun NowZone(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (now.isBeamActive && b != null) {
-
             val durationMs = max(1L, b.endMs - b.startMs)
             val remainingMs = max(0L, b.endMs - System.currentTimeMillis())
             val remainingFracRaw =
                 (remainingMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
-
             val remainingFrac by animateFloatAsState(
                 targetValue = remainingFracRaw,
                 animationSpec = tween(900, easing = FastOutSlowInEasing),
                 label = "remainingFrac"
             )
-
             val ringColor = remainingToColor(remainingFracRaw)
-
             // 🔥 Visible but classy pulse when <= 30% left
             val lowPulseAlpha: Float = if (remainingFracRaw <= 0.30f) {
                 val transition = rememberInfiniteTransition(label = "lowPulse")
@@ -252,7 +230,6 @@ private fun NowZone(
                 )
                 alpha
             } else 1f
-
             val minsLeft = (remainingMs / 60_000L).coerceAtLeast(0L)
             val pctLeft = (remainingFrac * 100f).roundToInt()
 
@@ -288,7 +265,6 @@ private fun NowZone(
                         modifier = Modifier.size(150.dp),
                         contentAlignment = Alignment.Center
                     ) {
-
                         // Halo pulse when low
                         if (remainingFracRaw <= 0.30f) {
                             Box(
@@ -359,7 +335,6 @@ private fun NowZone(
                     }
                 }
             }
-
         } else {
             // No active beam
             Card(
@@ -416,7 +391,6 @@ private fun NowZone(
  */
 private fun remainingToColor(remainingFrac: Float): Color {
     val r = remainingFrac.coerceIn(0f, 1f)
-
     // <= 30% left → deepen into crimson
     if (r <= 0.30f) {
         val t = (r / 0.30f).coerceIn(0f, 1f)
@@ -426,13 +400,11 @@ private fun remainingToColor(remainingFrac: Float): Color {
             t
         )
     }
-
     // 30%–70% left → Bronze transition
     if (r <= 0.70f) {
         val t = ((r - 0.30f) / 0.40f).coerceIn(0f, 1f)
         return lerp(GryffindorRed, Bronze, t)
     }
-
     // 70%–100% left → RavenclawBlue to Bronze
     val t = ((r - 0.70f) / 0.30f).coerceIn(0f, 1f)
     return lerp(Bronze, RavenclawBlue, t)
@@ -455,7 +427,6 @@ private fun CountdownText(
     }
 
     val totalSeconds = (remainingMs / 1_000L).coerceAtLeast(0)
-
     val (headline, countdown) = formatBeamCountdown(
         remainingMs = remainingMs,
         targetTimeMs = targetTimeMs
@@ -498,20 +469,16 @@ private fun formatBeamCountdown(
     zoneId: ZoneId = ZoneId.systemDefault()
 ): Pair<String, String> {
     val totalSeconds = (remainingMs / 1_000L).coerceAtLeast(0)
-
     val days = totalSeconds / 86_400
     val hours = (totalSeconds % 86_400) / 3_600
     val minutes = (totalSeconds % 3_600) / 60
     val seconds = totalSeconds % 60
-
     val headline = if (totalSeconds <= 0) "BEAM IMMINENT" else "NEXT BEAM"
-
     // If it's far out, show "DAY + TIME" vibe
     if (days >= 3) {
         val dayFmt = DateTimeFormatter.ofPattern("EEE, MMM d")   // "Fri, Feb 2"
         val timeFmt = DateTimeFormatter.ofPattern("h:mm a")      // "7:30 PM"
         val zdt = Instant.ofEpochMilli(targetTimeMs).atZone(zoneId)
-
         val whenText = "${zdt.format(dayFmt)} · ${zdt.format(timeFmt)}"
         val countdownText = "${days}d ${hours}h ${minutes}m"
         // You asked: "If more than two days, along with above mention Day and time"

@@ -28,10 +28,11 @@ fun AtlasHeader(
 ) {
     val cs = MaterialTheme.colorScheme
     val zone = ZoneId.systemDefault()
-
     val dayLabel =
-        if (dayStartMs > 0L) Instant.ofEpochMilli(dayStartMs).atZone(zone).format(DAY_FMT) else "Atlas"
-
+        if (dayStartMs > 0L)
+            Instant.ofEpochMilli(dayStartMs).atZone(zone).format(DAY_FMT)
+        else
+            "Atlas"
     // ✅ Determine if we're already on today's dayStart
     val nowDayStart = floorToDay(System.currentTimeMillis())
     val isOnToday = dayStartMs == nowDayStart

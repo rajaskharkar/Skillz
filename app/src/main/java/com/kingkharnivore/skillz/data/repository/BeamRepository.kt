@@ -29,16 +29,13 @@ class BeamRepository @Inject constructor(
         if (durationMs <= 0L) throw BeamError.InvalidTime("Duration must be > 0")
         val endTime = startTime + durationMs
         if (endTime <= startTime) throw BeamError.InvalidTime("End time must be after start; check duration")
-
         // If beam ends in the past entirely, reject (prevents nonsense)
         val now = System.currentTimeMillis()
         if (endTime <= now - 60_000L) { // allow slight past tolerance if you want
             throw BeamError.InvalidTime("Beam ends in the past")
         }
-
         val overlap = beamDao.findFirstOverlap(startTime, endTime)
         if (overlap != null) throw BeamError.Overlap(overlap)
-
         return beamDao.insert(
             BeamEntity(
                 tagId = tagId,
@@ -58,10 +55,8 @@ class BeamRepository @Inject constructor(
         if (durationMs <= 0L) throw BeamError.InvalidTime("Duration must be > 0")
         val endTime = startTime + durationMs
         if (endTime <= startTime) throw BeamError.InvalidTime("End time must be after start")
-
         val overlap = beamDao.findFirstOverlapExcludingId(beamId, startTime, endTime)
         if (overlap != null) throw BeamError.Overlap(overlap)
-
         val existing = beamDao.getById(beamId) ?: return
         beamDao.update(
             existing.copy(

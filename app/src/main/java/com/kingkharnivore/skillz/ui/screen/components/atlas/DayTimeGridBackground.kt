@@ -25,11 +25,7 @@ import kotlin.math.max
 fun DayTimeGridBackground(
     dayPlan: DayPlanUi,
     listState: LazyListState,
-    dpPerMin: Dp,
     railWidth: Dp,
-    sentinelHeight: Dp,
-    listTopPadding: Dp,
-    listBottomPadding: Dp,
     listOuterStartPadding: Dp
 ) {
     val cs = MaterialTheme.colorScheme

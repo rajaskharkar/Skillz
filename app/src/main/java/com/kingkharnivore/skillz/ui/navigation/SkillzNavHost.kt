@@ -59,7 +59,6 @@ fun SkillzNavHost(
                 onCancel = { navController.popBackStack() }
             )
         }
-
     }
 }
 

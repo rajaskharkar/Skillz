@@ -1,10 +1,5 @@
 package com.kingkharnivore.skillz.ui.atlas.model
 
-data class MinuteAnchor(
-    val minuteOfDay: Int,   // 0..1440
-    val displayMinute: Int  // 0..totalDisplayMinutes
-)
-
 sealed class DaySegmentUi {
 
     data class Gap(

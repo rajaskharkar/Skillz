@@ -75,7 +75,6 @@ class FlowRepository @Inject constructor(
         sessionDao.insertSession(session)
     }
 
-    // ✅ ARC: retro-tag/update arc fields
     suspend fun updateArcFields(
         sessionId: Long,
         arcId: Long,

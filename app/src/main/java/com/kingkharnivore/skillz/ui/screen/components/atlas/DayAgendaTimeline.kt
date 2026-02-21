@@ -21,11 +21,9 @@ fun DayAgendaTimeline(
 ) {
     val listState = rememberLazyListState()
     val density = LocalDensity.current
-
     val railWidth = 72.dp
     val dpPerMin = 1.8.dp
     val sentinelHeight = 96.dp
-
     // Must match LazyColumn contentPadding:
     val outerStartPadding = 16.dp
     val outerEndPadding = 16.dp
@@ -39,7 +37,6 @@ fun DayAgendaTimeline(
     LaunchedEffect(dayPlan.dayStartMs) {
         val now = System.currentTimeMillis()
         val dayEnd = dayPlan.dayStartMs + 24 * 60 * 60 * 1000L
-
         if (now in dayPlan.dayStartMs until dayEnd) {
             val minute = ((now - dayPlan.dayStartMs) / 60_000L).toInt().coerceIn(0, 1440)
             val pxPerMin = with(density) { dpPerMin.toPx() }
@@ -54,39 +51,29 @@ fun DayAgendaTimeline(
     LaunchedEffect(dayPlan.dayStartMs) {
         val edgeThresholdPx = with(density) { 28.dp.toPx() }.toInt()
         val cooldownMs = 650L
-
         snapshotFlow { listState.layoutInfo }
             .collect { info ->
                 if (!listState.isScrollInProgress) return@collect
                 if (suppressDayAdvance) return@collect
-
                 val total = info.totalItemsCount
                 if (total <= 0) return@collect
-
                 val now = System.currentTimeMillis()
                 if (now - lastAdvanceAtMs < cooldownMs) return@collect
-
                 val viewportStart = info.viewportStartOffset
                 val viewportEnd = info.viewportEndOffset
-
                 val first = info.visibleItemsInfo.firstOrNull()
                 val last = info.visibleItemsInfo.lastOrNull()
-
                 val topSentinelIndex = 0
                 val bottomSentinelIndex = total - 1
-
                 val isAtTopSentinel =
                     first?.index == topSentinelIndex &&
                             (first.offset - viewportStart) <= edgeThresholdPx
-
                 val isAtBottomSentinel =
                     last?.index == bottomSentinelIndex &&
                             (viewportEnd - (last.offset + last.size)) <= edgeThresholdPx
-
                 when {
                     isAtTopSentinel -> {
                         suppressDayAdvance = true
-                        lastAdvanceAtMs = now
                         onAdvanceDay(-1)
                         delay(220)
                         suppressDayAdvance = false
@@ -94,7 +81,6 @@ fun DayAgendaTimeline(
 
                     isAtBottomSentinel -> {
                         suppressDayAdvance = true
-                        lastAdvanceAtMs = now
                         onAdvanceDay(+1)
                         delay(220)
                         suppressDayAdvance = false
@@ -108,10 +94,8 @@ fun DayAgendaTimeline(
         snapshotFlow { listState.isScrollInProgress }.collect { inProgress ->
             if (inProgress) return@collect
             if (suppressDayAdvance) return@collect
-
             val first = listState.firstVisibleItemIndex
             if (first <= 0 || first > dayPlan.segments.size) return@collect
-
             val seg = dayPlan.segments[first - 1]
             if (seg is DaySegmentUi.Gap) {
                 listState.animateScrollToItem(first + 1)
@@ -125,16 +109,11 @@ fun DayAgendaTimeline(
             .fillMaxSize()
             .clipToBounds() // ✅ prevents background bleeding into other zones
     ) {
-
         // ✅ Background grid aligned to the same paddings as the list content
         DayTimeGridBackground(
             dayPlan = dayPlan,
             listState = listState,
-            dpPerMin = dpPerMin,
             railWidth = railWidth,
-            sentinelHeight = sentinelHeight,
-            listTopPadding = listTopPadding,
-            listBottomPadding = listBottomPadding,
             listOuterStartPadding = outerStartPadding
         )
 
@@ -150,7 +129,6 @@ fun DayAgendaTimeline(
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             item { Spacer(Modifier.height(sentinelHeight)) }
-
             items(dayPlan.segments) { segment ->
                 when (segment) {
                     is DaySegmentUi.Gap -> {
@@ -165,7 +143,6 @@ fun DayAgendaTimeline(
                     }
                 }
             }
-
             item { Spacer(Modifier.height(sentinelHeight)) }
         }
     }

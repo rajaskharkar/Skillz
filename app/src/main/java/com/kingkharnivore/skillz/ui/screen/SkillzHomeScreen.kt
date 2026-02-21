@@ -67,10 +67,7 @@ fun SkillzHomeScreen(
                     when (page) {
                         0 -> AtlasScreen(
                         uiState = atlasState,
-                        onFilterAll = { atlasViewModel.setJourneyFilter(JourneyFilter.All) },
-                        onFilterJourney = { tagId -> atlasViewModel.setJourneyFilter(JourneyFilter.Only(tagId)) },
                         onStartFlow = onAddSessionClick,
-                        onGoToActiveFlow = onGoToActiveSession,
                         onSelectMode = atlasViewModel::setViewMode,
                         onPrevDay = { atlasViewModel.shiftSelectedDay(-1) },
                         onNextDay = { atlasViewModel.shiftSelectedDay(+1) },

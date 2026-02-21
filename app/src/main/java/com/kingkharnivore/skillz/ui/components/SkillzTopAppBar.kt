@@ -45,9 +45,7 @@ fun SkillzTopAppBar() {
         "scyra" -> "Scyra"
         else -> "Skillz"
     }
-
     val nav = LocalSkillzHomeNav.current
-
     TopAppBar(
         title = {
             Text(
@@ -120,9 +118,7 @@ private fun NavIcon(
         Color.Transparent
     }
     val alpha = if (selected) 1f else 0.72f
-
     val contentColor = LocalContentColor.current.copy(alpha = alpha)
-
     IconButton(
         onClick = onClick,
         modifier = Modifier

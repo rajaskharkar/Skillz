@@ -21,7 +21,6 @@ enum class ReadinessLevel(
     PLANNED("PLANNED"),
     LATER_TODAY("LATER TODAY"),
     COMING_UP("COMING UP"),
-
     // Approaching
     ON_DECK("ON DECK"),
     APPROACHING("APPROACHING"),
@@ -29,7 +28,6 @@ enum class ReadinessLevel(
     SOON("SOON"),
     PREP("PREP"),
     NOW("NOW"),
-
     // State
     ACTIVE("ACTIVE"),
     MISSED("MISSED"),
@@ -47,42 +45,6 @@ data class AtlasUiState(
     val selectedDayStartMs: Long = 0L,
     val dayPlan: DayPlanUi = DayPlanUi(0L, 0L),
     val minSelectableDayStartMs: Long? = null,
-    val horizon: HorizonState = HorizonState(),
-    val timeline: HorizonTimelineModel = HorizonTimelineModel(),
-    val aftermath: AftermathModel = AftermathModel()
-)
-
-/**
- * Horizon = the “time window” we are looking at.
- * Example: startMs=nowRoundedToHour, hours=8 => now..+8h.
- */
-data class HorizonState(
-    val startMs: Long = 0L,
-    val hours: Int = 8,
-    val nowMs: Long = 0L
-) {
-    val endMs: Long get() = startMs + hours * 60L * 60L * 1000L
-    val rangeMinutes: Int get() = hours * 60
-
-    fun title(): String {
-        if (startMs <= 0L) return "Horizon"
-        val zone = ZoneId.systemDefault()
-        val fmt = DateTimeFormatter.ofPattern("h:mm a")
-        val s = Instant.ofEpochMilli(startMs).atZone(zone).format(fmt)
-        val e = Instant.ofEpochMilli(endMs).atZone(zone).format(fmt)
-        return "$s → $e"
-    }
-}
-
-data class HorizonTimelineModel(
-    val blocks: List<BeamBlockUi> = emptyList(),
-    val ticks: List<HorizonTickUi> = emptyList()
-)
-
-data class HorizonTickUi(
-    val minuteFromStart: Int, // 0..rangeMinutes
-    val label: String,        // "5 PM"
-    val isMajor: Boolean
 )
 
 data class JourneyChipUi(
@@ -103,23 +65,6 @@ data class NowState(
 ) {
     val isBeamActive: Boolean get() = activeBeam != null
 }
-
-data class AftermathModel(
-    val completed: List<CompletedBeamUi> = emptyList()
-)
-
-data class CompletedBeamUi(
-    val beam: BeamBlockUi,
-    val flows: List<FlowInBeamUi>
-)
-
-data class FlowInBeamUi(
-    val id: Long,
-    val startMs: Long,
-    val endMs: Long,
-    val durationMs: Long,
-    val title: String? = null
-)
 
 /**
  * BeamBlockUi.startMin/endMin are minutes relative to Horizon.startMs (NOT a day).
@@ -144,10 +89,8 @@ data class BeamBlockUi(
 fun computeBeamStatus(nowMs: Long, startMs: Long, endMs: Long, completionRatio: Float): BeamStatus {
     if (nowMs < startMs) return BeamStatus.UPCOMING
     if (nowMs in startMs until endMs) return BeamStatus.ACTIVE
-
     val r = completionRatio.coerceIn(0f, 1f)
     val eps = 0.01f
-
     return when {
         r >= 1f - eps -> BeamStatus.COMPLETED_SUCCESS
         r > eps       -> BeamStatus.COMPLETED_PARTIAL
@@ -155,47 +98,20 @@ fun computeBeamStatus(nowMs: Long, startMs: Long, endMs: Long, completionRatio: 
     }
 }
 
-private fun overlapMs(aStart: Long, aEnd: Long, bStart: Long, bEnd: Long): Long {
-    val s = maxOf(aStart, bStart)
-    val e = minOf(aEnd, bEnd)
-    return (e - s).coerceAtLeast(0L)
-}
-
-fun computeCompletionRatio(
-    beamStart: Long,
-    beamEnd: Long,
-    flows: List<FlowInBeamUi> // or your FlowEntity
-): Float {
-    val beamDur = (beamEnd - beamStart).coerceAtLeast(1L)
-    val completed = flows.sumOf { f ->
-        overlapMs(f.startMs, f.endMs, beamStart, beamEnd)
-    }.coerceAtMost(beamDur)
-
-    return completed.toFloat() / beamDur.toFloat()
-}
-
 fun computeReadiness(
     nowMs: Long,
     startMs: Long,
     status: BeamStatus
 ): ReadinessLevel {
-
     // Active beam
     if (status == BeamStatus.ACTIVE) return ReadinessLevel.ACTIVE
-
     // Past beams
     if (status == BeamStatus.MISSED) return ReadinessLevel.MISSED
-
-    if (
-        status == BeamStatus.COMPLETED_SUCCESS ||
-        status == BeamStatus.COMPLETED_PARTIAL
-    ) return ReadinessLevel.EXPIRED
-
+    if (status == BeamStatus.COMPLETED_SUCCESS || status == BeamStatus.COMPLETED_PARTIAL)
+        return ReadinessLevel.EXPIRED
     // Upcoming only below
     val msUntilStart = (startMs - nowMs).coerceAtLeast(0L)
-
     val minutes = msUntilStart / 60_000L
-
     // High-resolution logic under 3 hours
     if (minutes <= 180) {
         return when {
@@ -207,9 +123,7 @@ fun computeReadiness(
             else           -> ReadinessLevel.ON_DECK
         }
     }
-
     val hours = msUntilStart / 3_600_000L
-
     return when {
         hours < 6   -> ReadinessLevel.COMING_UP
         hours < 12  -> ReadinessLevel.LATER_TODAY

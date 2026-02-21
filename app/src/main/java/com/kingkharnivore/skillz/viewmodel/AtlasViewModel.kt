@@ -6,7 +6,7 @@ import com.kingkharnivore.skillz.data.model.entity.BeamEntity
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.repository.BeamRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
-import com.kingkharnivore.skillz.data.repository.FlowRepository // ✅ rename if yours differs
+import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.ui.atlas.model.*
 import com.kingkharnivore.skillz.ui.theme.ColdSteel
 import com.kingkharnivore.skillz.utils.time.dayStartPlusDays
@@ -14,9 +14,6 @@ import com.kingkharnivore.skillz.utils.time.floorToDay
 import com.kingkharnivore.skillz.viewmodel.atlas.tickerFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.max
@@ -25,7 +22,7 @@ import kotlin.math.max
 class AtlasViewModel @Inject constructor(
     private val beamRepository: BeamRepository,
     private val journeyRepository: JourneyRepository,
-    private val sessionRepository: FlowRepository // ✅ add to DI graph
+    private val sessionRepository: FlowRepository
 ) : ViewModel() {
 
     private val journeyFilter = MutableStateFlow<JourneyFilter>(JourneyFilter.All)
@@ -51,21 +48,6 @@ class AtlasViewModel @Inject constructor(
     fun goToToday() {
         selectedDayStartMs.update { floorToDay(System.currentTimeMillis()) }
         viewMode.update { AtlasViewMode.DAY }
-    }
-
-    fun setJourneyFilter(filter: JourneyFilter) = journeyFilter.update { filter }
-
-    fun setHorizonHours(hours: Int) {
-        horizonHours.update { hours.coerceIn(2, 12) }
-    }
-
-    fun shiftHorizonByHours(deltaHours: Int) {
-        val delta = deltaHours * 60L * 60L * 1000L
-        horizonStartMs.update { it + delta }
-    }
-
-    fun resetHorizonToNow() {
-        horizonStartMs.update { floorToHour(System.currentTimeMillis()) }
     }
 
     private val nowTicker: Flow<Long> =
@@ -194,8 +176,6 @@ class AtlasViewModel @Inject constructor(
                 )
             }
 
-        val ticks = buildHorizonTicks(start, hours)
-
         return AtlasUiState(
             journeyFilter = filter,
             availableJourneys = tagChips,
@@ -231,9 +211,6 @@ class AtlasViewModel @Inject constructor(
             selectedDayStartMs = selectedDayStartMs,
             dayPlan = dayPlan,
             minSelectableDayStartMs = minSelectableDay,
-            horizon = HorizonState(startMs = start, hours = hours, nowMs = nowMs),
-            timeline = HorizonTimelineModel(blocks = horizonBlocks, ticks = ticks),
-            aftermath = AftermathModel(completed = emptyList())
         )
     }
 
@@ -472,30 +449,6 @@ class AtlasViewModel @Inject constructor(
             completionRatio = completionRatio,
             journeyColorArgb = journeyColorArgb
         )
-    }
-
-    private fun buildHorizonTicks(horizonStartMs: Long, hours: Int): List<HorizonTickUi> {
-        val zone = ZoneId.systemDefault()
-        val hourFmt = DateTimeFormatter.ofPattern("h a")
-        val start = Instant.ofEpochMilli(horizonStartMs).atZone(zone)
-
-        val totalMinutes = hours * 60
-        val step = 15
-
-        val ticks = mutableListOf<HorizonTickUi>()
-        var m = 0
-        while (m <= totalMinutes) {
-            val isHour = (m % 60 == 0)
-            val label = if (isHour) start.plusMinutes(m.toLong()).format(hourFmt) else ""
-
-            ticks += HorizonTickUi(
-                minuteFromStart = m,
-                label = label,
-                isMajor = isHour
-            )
-            m += step
-        }
-        return ticks
     }
 
     private val ATLAS_JOURNEY_PALETTE: List<Int> = listOf(

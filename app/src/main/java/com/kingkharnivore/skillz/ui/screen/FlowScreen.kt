@@ -70,15 +70,13 @@ fun FlowScreen(
     val awaitingNextFlow by viewModel.awaitingNextFlowAfterContinue.collectAsState()
 
     var showSurgeDialog by remember { mutableStateOf(false) }
+    var showEndDialog by remember { mutableStateOf(false) }
+    // Rewards dialog state
+    var showPointsDialog by remember { mutableStateOf(false) }
     var surgeMinutesInput by remember { mutableStateOf("") }
 
     val stopwatchState = uiState.stopwatch
     val isInFlowState = uiState.isInFlowMode
-
-    var showEndDialog by remember { mutableStateOf(false) }
-
-    // Rewards dialog state
-    var showPointsDialog by remember { mutableStateOf(false) }
 
     // Auto-open points dialog when reward arrives
     LaunchedEffect(reward) {
@@ -108,7 +106,6 @@ fun FlowScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
             if (BuildConfig.FLAVOR != "aera") {
                 Button(
                     onClick = { showSurgeDialog = true },
@@ -215,7 +212,6 @@ fun FlowScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // ✅ Buttons (no Save button)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -276,7 +272,6 @@ fun FlowScreen(
     // 🟢 Rewards dialog
     if (showPointsDialog && reward != null) {
         val r = reward!!
-
         // local UI toggle: Session Reward → Arc Reward (only when completing arc)
         var showArcSummary by remember(r) { mutableStateOf(false) }
 
@@ -313,7 +308,6 @@ fun FlowScreen(
                             showArcSummary = true
                         } else {
                             showPointsDialog = false
-
                             // ✅ Continue Arc: now "open another flow"
                             if (awaitingNextFlow) {
                                 viewModel.beginNextFlowAfterContinue()

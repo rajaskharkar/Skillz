@@ -438,52 +438,6 @@ private fun SagaHeaderStat(
 }
 
 @Composable
-private fun SagaSummaryStrip(
-    flows: Int,
-    durationMs: Long,
-    score: Int
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 1.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = "$flows flow${if (flows == 1) "" else "s"}",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = "⏱ ${formatDuration(durationMs)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🔥", style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    text = score.toString(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun SagaJourneyRow(
     rank: Int,
     stat: Journey7dStatUiModel,
