@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.roundToInt
 
 data class StopwatchState(
     val isRunning: Boolean = false,
@@ -548,13 +547,13 @@ class FlowViewModel @Inject constructor(
 
     // -------- Arc end actions --------
 
-    fun onEndFlowClicked(action: FlowEndAction, onDone: () -> Unit) {
+    fun onEndFlowClicked(action: FlowEndAction) {
         viewModelScope.launch {
-            saveWithArcBehavior(endMode = action, onDone = onDone)
+            saveWithArcBehavior(endMode = action)
         }
     }
 
-    private suspend fun saveWithArcBehavior(endMode: FlowEndAction, onDone: () -> Unit) {
+    private suspend fun saveWithArcBehavior(endMode: FlowEndAction) {
         val state = _uiState.value
         val title = state.title.trim()
         val tagName = state.tagName.trim()
@@ -569,23 +568,20 @@ class FlowViewModel @Inject constructor(
         _error.value = null
 
         try {
-            val DEV_TIME_MULTIPLIER = 60L
-
             val realDurationMs = state.stopwatch.elapsedMs.coerceAtLeast(0L)
             val endTime = System.currentTimeMillis()
             val realStartTime = (endTime - realDurationMs).coerceAtLeast(0L)
 
-            val scoringDurationMs = realDurationMs * DEV_TIME_MULTIPLIER
-            val startTime = (endTime - scoringDurationMs).coerceAtLeast(0L)
+            val startTime = (endTime - realDurationMs).coerceAtLeast(0L)
 
             val tagId = tagRepository.getOrCreateTagId(tagName)
 
             val surgePoints = ScoreCalculator.surgePoints(
                 surgePlannedMs = state.surgePlannedMs,
-                actualDurationMs = scoringDurationMs
+                actualDurationMs = realDurationMs
             )
 
-            val breakdown = ScoreCalculator.breakdownFromDuration(scoringDurationMs)
+            val breakdown = ScoreCalculator.breakdownFromDuration(realDurationMs)
             val baseScyra = breakdown.totalPoints
 
 
@@ -696,7 +692,7 @@ class FlowViewModel @Inject constructor(
                 val res = ScoreCalculator.arcMath(
                     beforeArcPoints = beforeArc,
                     chainBase = s.multiplier,
-                    durationMs = scoringDurationMs
+                    durationMs = realDurationMs
                 )
 
                 arcMultiplierUsed = res.arcMultiplierUsed
@@ -713,7 +709,7 @@ class FlowViewModel @Inject constructor(
                 tagId = tagId,
                 startTime = startTime,
                 endTime = endTime,
-                durationMs = scoringDurationMs,
+                durationMs = realDurationMs,
                 surgePlannedMs = state.surgePlannedMs,
                 surgePoints = surgePoints,
                 beamId = beam.beamId,
@@ -799,6 +795,7 @@ class FlowViewModel @Inject constructor(
 
                 FlowEndAction.SAVE_FLOW -> {
                     _lastReward.value = baseReward
+                    _exitAfterReward.value = true   // ✅ wait for dialog dismissal
 
                     if (arcState != null) {
                         arcPrefs.clear()
@@ -823,17 +820,6 @@ class FlowViewModel @Inject constructor(
                     aliveFlowServiceController.stop()
                     clearOngoing()
                 }
-            }
-
-            if (endMode == FlowEndAction.SAVE_FLOW) {
-                _uiState.value = FlowUiState(
-                    tagName = tagName,
-                    isInArc = arcState != null,
-                    arcMultiplier = arcState?.multiplier,
-                    arcProgressMs = arcState?.progressMs ?: 0L,
-                    arcNextIndex = arcState?.let { it.sessionCountInArc + 1 }
-                )
-                onDone()
             }
         } catch (e: Exception) {
             _error.value = e.message ?: "Failed to save session"

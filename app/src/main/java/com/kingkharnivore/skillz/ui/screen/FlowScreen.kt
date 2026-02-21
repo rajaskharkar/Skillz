@@ -226,10 +226,7 @@ fun FlowScreen(
                             !isSaving &&
                             !isInFlowState,
                     onClick = {
-                        viewModel.onEndFlowClicked(FlowEndAction.CONTINUE_ARC) {
-                            // For Continue Arc we do NOT navigate away.
-                            // Rewards dialog will open automatically via lastReward.
-                        }
+                        viewModel.onEndFlowClicked(FlowEndAction.CONTINUE_ARC)
                     },
                     modifier = Modifier.weight(1f)
                 ) {
@@ -245,7 +242,7 @@ fun FlowScreen(
                             !isSaving &&
                             !isInFlowState,
                     onClick = {
-                        viewModel.onEndFlowClicked(completeAction, onDone)
+                        viewModel.onEndFlowClicked(completeAction)
                     },
                     modifier = Modifier.weight(1f)
                 ) { Text(if (isSaving) "Saving..." else completeLabel) }
