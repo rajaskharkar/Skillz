@@ -64,6 +64,8 @@ fun StoryScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing
+            .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
         floatingActionButton = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -78,7 +80,7 @@ fun StoryScreen(
                 SkillListFab(onClick = onAddSessionClick)
             }
         }
-    ) { innerPadding ->
+    )  { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
