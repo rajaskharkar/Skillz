@@ -27,13 +27,23 @@ data class SessionEntity(
     val startTime: Long,
     val endTime: Long,
     val durationMs: Long,
+
     val surgePlannedMs: Long? = null,
     val surgePoints: Int = 0,
+
     val beamId: Long? = null,
     val beamEligibleMs: Long = 0L,
     val beamBonusPoints: Int = 0,
     val beamMultiplier: Double? = null,
+
     val scyraPoints: Int = 0,
+
+    // ✅ ARC FIELDS
+    val arcId: Long? = null,
+    val arcIndex: Int? = null,                 // 1-based within arc
+    val arcMultiplierUsed: Double? = null,     // what multiplier this session used
+    val arcBonusPoints: Int = 0,               // extra points gained via arc multiplier for THIS session
+
     val createdAt: Long = System.currentTimeMillis()
 )
 
@@ -75,5 +85,11 @@ data class FlowListItemUiModel(
     val score: Int,
     val isSurge: Boolean,
     val surgePoints: Int,
-    val beamBonusPoints: Int
+    val beamBonusPoints: Int,
+
+    // ✅ ARC
+    val arcId: Long? = null,
+    val arcIndex: Int? = null,
+    val arcMultiplierUsed: Double? = null,
+    val arcBonusPoints: Int = 0
 )

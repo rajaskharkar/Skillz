@@ -179,4 +179,51 @@ object ScoreCalculator {
         val x = t.coerceIn(0.0, 1.0)
         return 1.0 - (1.0 - x).pow(3.0)
     }
+
+    data class ArcMathResult(
+        val arcMultiplierUsed: Double,   // chainBase + tierExtra for THIS session
+        val arcBonusPoints: Int,         // boosted - beforeArc
+        val finalPoints: Int,            // beforeArc + arcBonusPoints
+        val nextChainBase: Double,       // chainBase advanced for NEXT flow (no tier)
+        val didLevelUp: Boolean          // whether chain grew by +0.1
+    )
+
+    fun arcMath(
+        beforeArcPoints: Int,
+        chainBase: Double,
+        durationMs: Long,
+        startChainBase: Double = 1.3,           // optional, not required
+        stepMs: Long = 10 * 60_000L,
+        step: Double = 0.1
+    ): ArcMathResult {
+        val tierExtra = arcTierExtra(durationMs) // internal helper
+
+        val used = chainBase + tierExtra
+
+        val boosted = (beforeArcPoints * used).roundToInt()
+        val bonus = (boosted - beforeArcPoints).coerceAtLeast(0)
+        val final = beforeArcPoints + bonus
+
+        val didLevel = durationMs >= stepMs
+        val nextBase = if (didLevel) chainBase + step else chainBase
+
+        return ArcMathResult(
+            arcMultiplierUsed = used,
+            arcBonusPoints = bonus,
+            finalPoints = final,
+            nextChainBase = nextBase,
+            didLevelUp = didLevel
+        )
+    }
+
+    private fun arcTierExtra(durationMs: Long): Double {
+        return when {
+            durationMs < 10 * 60_000L -> 0.0
+            durationMs < 20 * 60_000L -> 0.0
+            durationMs < 40 * 60_000L -> 0.1
+            durationMs < 60 * 60_000L -> 0.2
+            durationMs < 90 * 60_000L -> 0.3
+            else -> 0.4
+        }
+    }
 }

@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -32,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,13 +42,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.times
 import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
+import com.kingkharnivore.skillz.viewmodel.ArcSummaryUiModel
+import com.kingkharnivore.skillz.viewmodel.FlowEndAction
+import com.kingkharnivore.skillz.viewmodel.FlowRewardUiModel
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.viewmodel.StopwatchState
-import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +66,8 @@ fun FlowScreen(
     val error by viewModel.error.collectAsState()
     val tags by viewModel.suggestedTags.collectAsState()
     val reward by viewModel.lastReward.collectAsState()
+    val exitAfterReward by viewModel.exitAfterReward.collectAsState()
+    val awaitingNextFlow by viewModel.awaitingNextFlowAfterContinue.collectAsState()
 
     var showSurgeDialog by remember { mutableStateOf(false) }
     var surgeMinutesInput by remember { mutableStateOf("") }
@@ -68,22 +77,23 @@ fun FlowScreen(
 
     var showEndDialog by remember { mutableStateOf(false) }
 
+    // Rewards dialog state
     var showPointsDialog by remember { mutableStateOf(false) }
+
+    // Auto-open points dialog when reward arrives
+    LaunchedEffect(reward) {
+        if (reward != null) {
+            showPointsDialog = true
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Flow") },
                 navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            onCancel()
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
-                        )
+                    IconButton(onClick = { onCancel() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -98,23 +108,19 @@ fun FlowScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
             if (BuildConfig.FLAVOR != "aera") {
                 Button(
                     onClick = { showSurgeDialog = true },
                     enabled = !uiState.isInFlowMode && (!uiState.isSurgeOn || !viewModel.isSurgeLocked()),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp)
+                    modifier = Modifier.fillMaxWidth().height(60.dp)
                 ) {
                     val surgePlannedMs = uiState.surgePlannedMs
-
                     val label = when {
                         uiState.isSurgeOn && surgePlannedMs != null -> {
                             val mins = (surgePlannedMs / 60_000L).toInt()
-                            if (viewModel.isSurgeLocked()) "Surge: $mins min (Locked)"
-                            else "Surge: $mins min"
+                            if (viewModel.isSurgeLocked()) "Surge: $mins min (Locked)" else "Surge: $mins min"
                         }
-
                         else -> "Turn on Surge"
                     }
                     Text(label, style = MaterialTheme.typography.titleMedium)
@@ -127,12 +133,11 @@ fun FlowScreen(
                 label = { Text("Dive in") },
                 modifier = Modifier.fillMaxWidth()
             )
+
             if (tags.isNotEmpty()) {
                 TagSuggestionRow(
                     tags = tags,
-                    onTagClicked = { tag ->
-                        viewModel.onTagNameChange(tag.name)
-                    }
+                    onTagClicked = { tag -> viewModel.onTagNameChange(tag.name) }
                 )
             }
 
@@ -143,25 +148,41 @@ fun FlowScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            if (uiState.isInArc && uiState.arcMultiplier != null) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    tonalElevation = 1.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🔥")
+                        Spacer(Modifier.width(8.dp))
+                        Text("Arc Active", fontWeight = FontWeight.SemiBold)
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            "×${"%.1f".format(uiState.arcMultiplier)}",
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        uiState.arcNextIndex?.let {
+                            Spacer(Modifier.width(10.dp))
+                            Text("Now: Flow $it", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+            }
+
             StopwatchSection(
                 state = stopwatchState,
-                onStartOrResume = { viewModel.startOrResumeStopwatch() },
-                onPause = { viewModel.pauseStopwatch() },
-                onReset = { viewModel.resetStopwatch() },
-                viewModel
+                viewModel = viewModel
             )
 
             Button(
-                onClick = {
-                    if (isInFlowState) {
-                        viewModel.exitFocusMode()
-                    } else {
-                        viewModel.enterFocusMode()
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp)
+                onClick = { if (isInFlowState) viewModel.exitFocusMode() else viewModel.enterFocusMode() },
+                modifier = Modifier.fillMaxWidth().height(60.dp)
             ) {
                 Text(
                     text = if (isInFlowState) "Exit Flow" else "Enter Flow",
@@ -171,8 +192,7 @@ fun FlowScreen(
 
             if (isInFlowState) {
                 Text(
-                    text = "You\'re in Flow. You may use other parts of this app.\n" +
-                            "You may turn off the screen — the timer continues.",
+                    text = "You're in Flow. You may use other parts of this app.\nYou may turn off the screen — the timer continues.",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -195,43 +215,45 @@ fun FlowScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
+            // ✅ Buttons (no Save button)
             Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Button(
-                    enabled = uiState.title.isNotBlank() && uiState.tagName.isNotBlank() && !isSaving && !isInFlowState,
+                OutlinedButton(
+                    enabled = uiState.title.isNotBlank() &&
+                            uiState.tagName.isNotBlank() &&
+                            !isSaving &&
+                            !isInFlowState,
                     onClick = {
-                        val durationMs = uiState.stopwatch.elapsedMs.coerceAtLeast(0L)
-                        val tenMinutesMs = 1 * 60_000L
-                        val surgePoints =
-                            ScoreCalculator.surgePoints(uiState.surgePlannedMs, durationMs)
-                        val shouldShowDialog = durationMs >= tenMinutesMs || surgePoints > 0
-
-                        if (shouldShowDialog) {
-                            viewModel.prepareRewardPreview()
-                            showPointsDialog = true
-                        } else {
-                            viewModel.saveSession(onDone)
+                        viewModel.onEndFlowClicked(FlowEndAction.CONTINUE_ARC) {
+                            // For Continue Arc we do NOT navigate away.
+                            // Rewards dialog will open automatically via lastReward.
                         }
                     },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(if (isSaving) "Saving..." else "Save")
+                    Text("Continue Arc")
                 }
 
-                OutlinedButton(
-                    onClick = onCancel,
-                    enabled = !isSaving && !stopwatchState.isRunning, // optional: block cancel while running
+                val completeLabel = if (uiState.isInArc) "Complete Arc" else "Complete Flow"
+                val completeAction = if (uiState.isInArc) FlowEndAction.COMPLETE_ARC else FlowEndAction.SAVE_FLOW
+
+                Button(
+                    enabled = uiState.title.isNotBlank() &&
+                            uiState.tagName.isNotBlank() &&
+                            !isSaving &&
+                            !isInFlowState,
+                    onClick = {
+                        viewModel.onEndFlowClicked(completeAction, onDone)
+                    },
                     modifier = Modifier.weight(1f)
-                ) {
-                    Text("Cancel")
-                }
+                ) { Text(if (isSaving) "Saving..." else completeLabel) }
             }
         }
     }
 
-    // 🔴 "Are you sure you want to end?" popup
+    // 🔴 "Are you sure you want to end?" popup (kept as-is)
     if (showEndDialog) {
         AlertDialog(
             onDismissRequest = { showEndDialog = false },
@@ -240,193 +262,82 @@ fun FlowScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        // Stop timer and leave
                         viewModel.pauseStopwatch()
                         viewModel.resetStopwatch()
                         viewModel.exitFocusMode()
                         showEndDialog = false
-                        onCancel() // navigate back to list
+                        onCancel()
                     }
-                ) {
-                    Text("End")
-                }
+                ) { Text("End") }
             },
             dismissButton = {
-                TextButton(onClick = { showEndDialog = false }) {
-                    Text("Continue")
-                }
+                TextButton(onClick = { showEndDialog = false }) { Text("Continue") }
             }
         )
     }
 
-    // 🟢 "Points earned" popup for sessions >= 10 minutes
+    // 🟢 Rewards dialog
     if (showPointsDialog && reward != null) {
-        val r = reward ?: return
+        val r = reward!!
+
+        // local UI toggle: Session Reward → Arc Reward (only when completing arc)
+        var showArcSummary by remember(r) { mutableStateOf(false) }
 
         AlertDialog(
             onDismissRequest = { /* locked */ },
-            title = { Text("You did it!") },
+            title = {
+                Text(if (showArcSummary && r.arcSummary != null) "Arc Reward" else "You did it!")
+            },
             text = {
-                val isAera = BuildConfig.FLAVOR == "aera"
-                val hasBeamPoints = r.beamBonusPoints > 0
-                val showBeamUi = hasBeamPoints
-
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 0.75f * LocalConfiguration.current.screenHeightDp.dp) // 👈 prevents infinite height
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    // ─────────────────────────────────────────────
-                    // Header
-                    // ─────────────────────────────────────────────
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            text = if (r.surgePoints > 0) "Surge completed." else "Flow completed.",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold
+                    if (showArcSummary && r.arcSummary != null) {
+                        ArcSummaryContent(
+                            arc = r.arcSummary!!,
+                            isAera = BuildConfig.FLAVOR == "aera"
                         )
-                        Text(
-                            text = "Logged into your story.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
+                    } else {
+                        SessionRewardContent(
+                            r = r,
+                            isAera = BuildConfig.FLAVOR == "aera"
                         )
-                    }
-
-                    // ─────────────────────────────────────────────
-                    // Chips row: Total Scyra, Beam time, Surge
-                    // (Aera-safe: it will show time-only chip set)
-                    // ─────────────────────────────────────────────
-                    RewardChipRowV2(
-                        isAera = isAera,
-                        totalMinutes = r.minutes,
-                        totalScyra = r.finalScyraPoints,
-                        beamBonusPoints = r.beamBonusPoints,
-                        showBeamUi = showBeamUi,
-                        surgePoints = r.surgePoints
-                    )
-
-                    if (isAera) {
-                        // AERA: no scores, no breakdown math
-                        RewardCard(
-                            title = "Session details",
-                            subtitle = "Time only"
-                        ) {
-                            MetricLine(
-                                label = "Total time",
-                                value = "${r.minutes} min",
-                                tone = MetricTone.Neutral
-                            )
-
-                            if (showBeamUi) {
-                                MetricLine(
-                                    label = "Time in Beam ⭐",
-                                    value = formatMsAsMmSs(r.beamEligibleMs),
-                                    tone = MetricTone.Glow
-                                )
-                            }
-                        }
-                        return@Column
-                    }
-
-                    // ─────────────────────────────────────────────
-                    // Total Scyra Score hero card
-                    // ─────────────────────────────────────────────
-                    RewardTotalCard(
-                        title = "Total Scyra Score",
-                        value = r.finalScyraPoints,
-                        footnote = "This Flow"
-                    )
-
-                    // ─────────────────────────────────────────────
-                    // Breakdown: how total was built (NO surge here)
-                    // ─────────────────────────────────────────────
-                    RewardCard(
-                        title = "Breakdown",
-                        subtitle = "How your score was built"
-                    ) {
-                        // Base Scyra score (big)
-                        HighlightMetric(
-                            label = "Base Scyra score",
-                            value = "+${r.baseScyraPoints}"
-                        )
-
-                        // Time bonuses
-                        val hasAnyBonus =
-                            r.tenMinuteBonuses > 0 || r.thirtyMinuteBonuses > 0 || r.sixtyMinuteBonuses > 0
-
-                        if (hasAnyBonus) {
-                            DividerSoft()
-                            Text(
-                                text = "Time bonuses",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
-                            )
-
-                            if (r.tenMinuteBonuses > 0) {
-                                BonusLine(
-                                    label = "10-minute bonus",
-                                    count = r.tenMinuteBonuses,
-                                    pointsEach = 5
-                                )
-                            }
-                            if (r.thirtyMinuteBonuses > 0) {
-                                BonusLine(
-                                    label = "30-minute bonus",
-                                    count = r.thirtyMinuteBonuses,
-                                    pointsEach = 15
-                                )
-                            }
-                            if (r.sixtyMinuteBonuses > 0) {
-                                BonusLine(
-                                    label = "60-minute bonus",
-                                    count = r.sixtyMinuteBonuses,
-                                    pointsEach = 50
-                                )
-                            }
-
-                            DividerSoft()
-                        }
-
-                        if (showBeamUi) {
-                            DividerSoft()
-                            Text(
-                                text = "Beam ⭐",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
-                            )
-
-                            MetricLine(
-                                label = "Time in Beam",
-                                value = formatMsAsMmSs(r.beamEligibleMs),
-                                tone = MetricTone.Glow
-                            )
-
-                            MetricLine(
-                                label = "Beam multiplier",
-                                value = r.beamMultiplier?.let { "×${"%.2f".format(it)}" } ?: "—",
-                                tone = if (r.beamMultiplier != null) MetricTone.Glow else MetricTone.Muted
-                            )
-
-                            HighlightMetric(
-                                label = "Beam points gained",
-                                value = "+${r.beamBonusPoints}",
-                                glow = true
-                            )
-                        }
                     }
                 }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        showPointsDialog = false
-                        viewModel.saveSession(onDone)
+                        // if arc summary exists, "Next" shows it first
+                        if (r.arcSummary != null && !showArcSummary) {
+                            showArcSummary = true
+                        } else {
+                            showPointsDialog = false
+
+                            // ✅ Continue Arc: now "open another flow"
+                            if (awaitingNextFlow) {
+                                viewModel.beginNextFlowAfterContinue()
+                            } else {
+                                viewModel.clearLastReward()
+                                // ✅ If this reward was for COMPLETE_ARC, now exit
+                                if (exitAfterReward && viewModel.consumeExitAfterReward()) {
+                                    onDone()
+                                }
+                            }
+                        }
                     }
-                ) { Text("End") }
+                ) {
+                    Text(if (r.arcSummary != null && !showArcSummary) "Next" else "Done")
+                }
             },
             dismissButton = {}
         )
     }
 
+    // Surge dialog
     if (showSurgeDialog) {
         val locked = viewModel.isSurgeLocked()
         val currentMinutes = (uiState.surgePlannedMs ?: 0L) / 60_000L
@@ -438,22 +349,20 @@ fun FlowScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (locked) {
                         Text("Surge is locked on once time starts.")
-                        Text("Planned: ${currentMinutes} min")
+                        Text("Planned: $currentMinutes min")
                     } else {
                         Text("Set a planned time limit. Finish early to earn Surge Points.")
 
                         OutlinedTextField(
                             value = surgeMinutesInput,
-                            onValueChange = {
-                                surgeMinutesInput = it.filter(Char::isDigit)
-                            },
+                            onValueChange = { surgeMinutesInput = it.filter(Char::isDigit) },
                             label = { Text("Surge Time (minutes)") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
 
                         if (uiState.isSurgeOn) {
-                            Text("Current: ${currentMinutes} min")
+                            Text("Current: $currentMinutes min")
                         }
                     }
                 }
@@ -463,15 +372,11 @@ fun FlowScreen(
                     onClick = {
                         if (!locked) {
                             val mins = surgeMinutesInput.toIntOrNull()
-                            if (mins != null && mins > 0) {
-                                viewModel.setSurgePlannedMinutes(mins)
-                            }
+                            if (mins != null && mins > 0) viewModel.setSurgePlannedMinutes(mins)
                         }
                         showSurgeDialog = false
                     }
-                ) {
-                    Text(if (locked) "OK" else "Set")
-                }
+                ) { Text(if (locked) "OK" else "Set") }
             },
             dismissButton = {
                 if (!locked && uiState.isSurgeOn) {
@@ -480,9 +385,7 @@ fun FlowScreen(
                             viewModel.clearSurgeIfAllowed()
                             showSurgeDialog = false
                         }
-                    ) {
-                        Text("Turn Off")
-                    }
+                    ) { Text("Turn Off") }
                 }
             }
         )
@@ -490,12 +393,153 @@ fun FlowScreen(
 }
 
 @Composable
-private fun StatText(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
-    )
+private fun ArcSummaryContent(
+    arc: ArcSummaryUiModel,
+    isAera: Boolean
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = "Arc completed.",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = "Totals across this Arc.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
+        )
+
+        RewardCard(title = "Arc totals") {
+            MetricLine("Flows", "${arc.totalSessions}", MetricTone.Neutral)
+            MetricLine("Total duration", formatDuration(arc.totalDurationMs), MetricTone.Neutral)
+
+            if (!isAera) {
+                DividerSoft()
+                MetricLine("Peak multiplier", "×${"%.1f".format(arc.peakMultiplier)}", MetricTone.Glow)
+                HighlightMetric("Arc bonus points", "+${arc.totalArcBonusPoints}", glow = true)
+                HighlightMetric("Total Scyra Score", "+${arc.totalFinalPoints}", glow = true)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SessionRewardContent(
+    r: FlowRewardUiModel,
+    isAera: Boolean
+) {
+    val showBeamUi = r.beamBonusPoints > 0
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = if (r.surgePoints > 0) "Surge completed." else "Flow completed.",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "Logged into your story.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
+            )
+        }
+
+        RewardChipRowV2(
+            isAera = isAera,
+            totalMinutes = r.minutes,
+            totalScyra = r.finalScyraPoints,
+            beamBonusPoints = r.beamBonusPoints,
+            showBeamUi = showBeamUi,
+            surgePoints = r.surgePoints
+        )
+
+        if (isAera) {
+            RewardCard(title = "Session details", subtitle = "Time only") {
+                MetricLine("Total time", "${r.minutes} min", MetricTone.Neutral)
+                if (showBeamUi) {
+                    MetricLine("Time in Beam ⭐", formatMsAsMmSs(r.beamEligibleMs), MetricTone.Glow)
+                }
+            }
+            return
+        }
+
+        RewardTotalCard(
+            title = "Total Scyra Score",
+            value = r.finalScyraPoints,
+            footnote = "This Flow"
+        )
+
+        RewardCard(title = "Breakdown", subtitle = "How your score was built") {
+            HighlightMetric("Base Scyra score", "+${r.baseScyraPoints}")
+
+            val hasAnyBonus =
+                r.tenMinuteBonuses > 0 || r.thirtyMinuteBonuses > 0 || r.sixtyMinuteBonuses > 0
+
+            if (hasAnyBonus) {
+                DividerSoft()
+                Text(
+                    text = "Time bonuses",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
+                )
+
+                if (r.tenMinuteBonuses > 0) BonusLine("10-minute bonus", r.tenMinuteBonuses, 5)
+                if (r.thirtyMinuteBonuses > 0) BonusLine("30-minute bonus", r.thirtyMinuteBonuses, 15)
+                if (r.sixtyMinuteBonuses > 0) BonusLine("60-minute bonus", r.sixtyMinuteBonuses, 50)
+            }
+
+            val showArcUi = r.arcBonusPoints > 0 || (r.arcMultiplierUsed != null)
+            if (showArcUi) {
+                DividerSoft()
+                Text(
+                    text = "Arc 🔥",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
+                )
+
+                MetricLine(
+                    label = "Arc multiplier used",
+                    value = r.arcMultiplierUsed?.let { "×${"%.1f".format(it)}" } ?: "—",
+                    tone = if (r.arcMultiplierUsed != null) MetricTone.Glow else MetricTone.Muted
+                )
+
+                HighlightMetric("Arc points gained", "+${r.arcBonusPoints}", glow = true)
+
+                if (r.arcDidLevelUp) {
+                    Text(
+                        text = "Multiplier grew by +0.1",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            if (showBeamUi) {
+                DividerSoft()
+                Text(
+                    text = "Beam ⭐",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
+                )
+
+                MetricLine("Time in Beam", formatMsAsMmSs(r.beamEligibleMs), MetricTone.Glow)
+
+                MetricLine(
+                    "Beam multiplier",
+                    r.beamMultiplier?.let { "×${"%.2f".format(it)}" } ?: "—",
+                    tone = if (r.beamMultiplier != null) MetricTone.Glow else MetricTone.Muted
+                )
+
+                HighlightMetric("Beam points gained", "+${r.beamBonusPoints}", glow = true)
+            }
+        }
+    }
 }
 
 @Composable
@@ -503,7 +547,6 @@ fun TagSuggestionRow(
     tags: List<TagEntity>,
     onTagClicked: (TagEntity) -> Unit
 ) {
-    // ✅ defensive: ignore broken/empty names just in case
     val cleanTags = remember(tags) { tags.filter { it.name.isNotBlank() } }
     if (cleanTags.isEmpty()) return
 
@@ -511,20 +554,14 @@ fun TagSuggestionRow(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(
-            text = "Continue an existing journey",
-            style = MaterialTheme.typography.labelSmall
-        )
+        Text("Continue an existing journey", style = MaterialTheme.typography.labelSmall)
 
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 8.dp)
         ) {
-            items(
-                items = cleanTags,
-                key = { it.id }
-            ) { tag ->
+            items(items = cleanTags, key = { it.id }) { tag ->
                 AssistChip(
                     onClick = { onTagClicked(tag) },
                     label = { Text(tag.name) }
@@ -534,24 +571,18 @@ fun TagSuggestionRow(
     }
 }
 
-
 @Composable
 private fun StopwatchSection(
     state: StopwatchState,
-    onStartOrResume: () -> Unit,
-    onPause: () -> Unit,
-    onReset: () -> Unit,
     viewModel: FlowViewModel
 ) {
     var showResetConfirm by remember { mutableStateOf(false) }
+
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "In Flow",
-            style = MaterialTheme.typography.titleSmall
-        )
+        Text(text = "In Flow", style = MaterialTheme.typography.titleSmall)
 
         Text(
             text = formatElapsed(state.elapsedMs),
@@ -561,19 +592,12 @@ private fun StopwatchSection(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
                 onClick = {
-                    val threshold = 2 * 60_000L // 2 minutes in ms
-                    if (state.elapsedMs >= threshold) {
-                        // More than 2 minutes → ask "Are you sure?"
-                        showResetConfirm = true
-                    } else {
-                        // Under 2 minutes → reset directly
-                        viewModel.resetStopwatch()
-                    }
+                    val threshold = 2 * 60_000L
+                    if (state.elapsedMs >= threshold) showResetConfirm = true
+                    else viewModel.resetStopwatch()
                 },
                 enabled = state.elapsedMs > 0L && !state.isRunning
-            ) {
-                Text("Reset")
-            }
+            ) { Text("Reset") }
         }
 
         if (showResetConfirm) {
@@ -590,40 +614,13 @@ private fun StopwatchSection(
                             showResetConfirm = false
                             viewModel.resetStopwatch()
                         }
-                    ) {
-                        Text("Yes, reset")
-                    }
+                    ) { Text("Yes, reset") }
                 },
                 dismissButton = {
-                    TextButton(
-                        onClick = { showResetConfirm = false }
-                    ) {
-                        Text("Cancel")
-                    }
+                    TextButton(onClick = { showResetConfirm = false }) { Text("Cancel") }
                 }
             )
         }
-    }
-}
-
-@Composable
-fun BonusRow(label: String, value: Int) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
-        )
-        Text(
-            text = "×$value",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
     }
 }
 
@@ -633,11 +630,22 @@ private fun formatElapsed(elapsedMs: Long): String {
     val minutes = (totalSeconds % 3600) / 60
     val seconds = totalSeconds % 60
 
-    return if (hours > 0) {
-        String.format("%d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format("%02d:%02d", minutes, seconds)
-    }
+    return if (hours > 0) String.format("%d:%02d:%02d", hours, minutes, seconds)
+    else String.format("%02d:%02d", minutes, seconds)
+}
+
+private fun formatMsAsMmSs(ms: Long): String {
+    val totalSeconds = (ms.coerceAtLeast(0L) / 1000L)
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format("%d:%02d", minutes, seconds)
+}
+
+private fun formatDuration(ms: Long): String {
+    val totalSeconds = (ms.coerceAtLeast(0L) / 1000L)
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
 }
 
 private enum class MetricTone { Neutral, Glow, Muted }
@@ -663,17 +671,10 @@ private fun RewardChipRowV2(
 
         RewardChip(text = "🔥 +$totalScyra")
 
-        // ✅ strict: only show Beam chip if points > 0
-        if (showBeamUi) {
-            RewardChip(text = "⭐ +$beamBonusPoints")
-        }
-
-        if (surgePoints > 0) {
-            RewardChip(text = "⚡ +$surgePoints")
-        }
+        if (showBeamUi) RewardChip(text = "⭐ +$beamBonusPoints")
+        if (surgePoints > 0) RewardChip(text = "⚡ +$surgePoints")
     }
 }
-
 
 @Composable
 private fun RewardChip(text: String) {
@@ -753,11 +754,7 @@ private fun RewardCard(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 if (subtitle != null) {
                     Text(
                         text = subtitle,
@@ -766,7 +763,6 @@ private fun RewardCard(
                     )
                 }
             }
-
             content()
         }
     }
@@ -808,9 +804,7 @@ private fun HighlightMetric(
     value: String,
     glow: Boolean = true
 ) {
-    val valueColor =
-        if (glow) MaterialTheme.colorScheme.primary
-        else MaterialTheme.colorScheme.onSurface
+    val valueColor = if (glow) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -841,11 +835,7 @@ private fun HighlightMetric(
 }
 
 @Composable
-private fun BonusLine(
-    label: String,
-    count: Int,
-    pointsEach: Int
-) {
+private fun BonusLine(label: String, count: Int, pointsEach: Int) {
     val total = count * pointsEach
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -877,17 +867,8 @@ private fun BonusLine(
 @Composable
 private fun DividerSoft() {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(1.dp),
+        modifier = Modifier.fillMaxWidth().height(1.dp),
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
         content = {}
     )
-}
-
-private fun formatMsAsMmSs(ms: Long): String {
-    val totalSeconds = (ms.coerceAtLeast(0L) / 1000L)
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return String.format("%d:%02d", minutes, seconds)
 }

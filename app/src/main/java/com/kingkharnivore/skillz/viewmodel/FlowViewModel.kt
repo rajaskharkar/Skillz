@@ -9,7 +9,10 @@ import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.BeamRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
+import com.kingkharnivore.skillz.ui.arc.model.ArcRuntimeState
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
+import com.kingkharnivore.skillz.utils.arc.ArcPrefs
+import com.kingkharnivore.skillz.utils.arc.ArcRules
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -25,6 +28,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 data class StopwatchState(
     val isRunning: Boolean = false,
@@ -38,7 +42,13 @@ data class FlowUiState(
     val stopwatch: StopwatchState = StopwatchState(),
     val isInFlowMode: Boolean = false,
     val isSurgeOn: Boolean = false,
-    val surgePlannedMs: Long? = null
+    val surgePlannedMs: Long? = null,
+
+    // ✅ ARC UI
+    val isInArc: Boolean = false,
+    val arcMultiplier: Double? = null,   // multiplier for NEXT session (if in arc)
+    val arcProgressMs: Long = 0L,        // progress bank toward next +0.1
+    val arcNextIndex: Int? = null        // next session index if you end now
 )
 
 data class FlowRewardUiModel(
@@ -51,7 +61,25 @@ data class FlowRewardUiModel(
     val beamBonusPoints: Int,
     val beamMultiplier: Double?,
     val finalScyraPoints: Int,
-    val surgePoints: Int
+    val surgePoints: Int,
+
+    // ✅ ARC
+    val arcMultiplierUsed: Double? = null,
+    val arcBonusPoints: Int = 0,
+    val arcNextMultiplier: Double? = null,
+    val arcProgressTowardNextMs: Long = 0L,
+    val arcDidLevelUp: Boolean = false,
+
+    // ✅ Only when completing arc
+    val arcSummary: ArcSummaryUiModel? = null
+)
+
+data class ArcSummaryUiModel(
+    val totalSessions: Int,
+    val totalDurationMs: Long,
+    val totalFinalPoints: Int,
+    val totalArcBonusPoints: Int,
+    val peakMultiplier: Double
 )
 
 private data class BeamOutcome(
@@ -61,6 +89,12 @@ private data class BeamOutcome(
     val multiplier: Double? = null
 )
 
+enum class FlowEndAction {
+    SAVE_FLOW,
+    CONTINUE_ARC,
+    COMPLETE_ARC
+}
+
 const val BEAM_MIN_ELIGIBLE_MS = 60_000L // 1 minute
 
 @HiltViewModel
@@ -69,28 +103,34 @@ class FlowViewModel @Inject constructor(
     private val sessionRepository: FlowRepository,
     private val focusSessionRepository: AliveFlowRepository,
     private val aliveFlowServiceController: AliveFlowServiceController,
-    private val beamRepository: BeamRepository
+    private val beamRepository: BeamRepository,
+    private val arcPrefs: ArcPrefs
 ) : ViewModel() {
 
     val ongoingSession: StateFlow<OngoingSessionEntity?> =
         focusSessionRepository.getOngoingSession()
-            .stateIn(
-                viewModelScope,
-                SharingStarted.Companion.WhileSubscribed(5_000),
-                null
-            )
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val _uiState = MutableStateFlow(FlowUiState())
     val uiState: StateFlow<FlowUiState> = _uiState.asStateFlow()
 
     private val _isSaving = MutableStateFlow(false)
-    val isSaving: StateFlow<Boolean> = _isSaving
+    val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
 
     private val _lastReward = MutableStateFlow<FlowRewardUiModel?>(null)
     val lastReward: StateFlow<FlowRewardUiModel?> = _lastReward.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error
+    val error: StateFlow<String?> = _error.asStateFlow()
+
+    /**
+     * ✅ Continue Arc UX:
+     * - When Continue Arc is clicked, we save + set lastReward
+     * - UI should show reward dialog
+     * - When dialog is closed, FlowScreen should call beginNextFlowAfterContinue()
+     */
+    private val _awaitingNextFlowAfterContinue = MutableStateFlow(false)
+    val awaitingNextFlowAfterContinue: StateFlow<Boolean> = _awaitingNextFlowAfterContinue.asStateFlow()
 
     val tags: StateFlow<List<TagEntity>> =
         tagRepository.getAllTags()
@@ -108,45 +148,164 @@ class FlowViewModel @Inject constructor(
         initialValue = emptyList()
     )
 
-    // Stopwatch internal fields for correct elapsed computation
+    // Stopwatch internals
     private var baseStartTimeMs: Long? = null
     private var accumulatedBeforeStartMs: Long = 0L
     private var tickerJob: Job? = null
 
+    // ARC runtime
+    private var arcState: ArcRuntimeState? = null
+
+
+    private fun isArcExpired(nowMs: Long, state: ArcRuntimeState): Boolean {
+        val delta = nowMs - state.lastSessionEndTimeMs
+        return delta > ArcRules.GRACE_WINDOW_MS
+    }
+
+    private val _exitAfterReward = MutableStateFlow(false)
+    val exitAfterReward: StateFlow<Boolean> = _exitAfterReward.asStateFlow()
+
+    fun consumeExitAfterReward(): Boolean {
+        val shouldExit = _exitAfterReward.value
+        _exitAfterReward.value = false
+        return shouldExit
+    }
+
+    /**
+     * Arc rule:
+     * - multiplier increases by +0.1 only when completed flow duration >= 10 minutes
+     * - shorter flows can be in arc but do not increase multiplier
+     * - only +0.1 max per session
+     */
+    private fun applyArcProgressOnce(
+        currentMultiplier: Double,
+        currentProgressMs: Long,
+        sessionDurationMs: Long
+    ): Triple<Double, Long, Boolean> {
+        if (sessionDurationMs < ArcRules.PROGRESS_STEP_MS) {
+            return Triple(currentMultiplier, currentProgressMs, false)
+        }
+
+        val newProgress = currentProgressMs + sessionDurationMs
+        return if (newProgress >= ArcRules.PROGRESS_STEP_MS) {
+            Triple(
+                currentMultiplier + ArcRules.STEP,
+                newProgress - ArcRules.PROGRESS_STEP_MS,
+                true
+            )
+        } else {
+            Triple(currentMultiplier, newProgress, false)
+        }
+    }
+
+    private fun syncArcUi() {
+        val s = arcState
+        _uiState.update { old ->
+            if (s == null) {
+                old.copy(isInArc = false, arcMultiplier = null, arcProgressMs = 0L, arcNextIndex = null)
+            } else {
+                old.copy(
+                    isInArc = true,
+                    arcMultiplier = s.multiplier,
+                    arcProgressMs = s.progressMs,
+                    arcNextIndex = s.sessionCountInArc + 1
+                )
+            }
+        }
+    }
+
     init {
-        // On creation, restore any ongoing session
         viewModelScope.launch {
-            focusSessionRepository.getOngoingSession()
+
+            // ─────────────────────────────────────────────
+            // 1️⃣ Restore ongoing session FIRST (Room)
+            // ─────────────────────────────────────────────
+            val ongoing = focusSessionRepository
+                .getOngoingSession()
                 .firstOrNull()
-                ?.let { entity ->
-                    val now = System.currentTimeMillis()
-                    accumulatedBeforeStartMs = entity.accumulatedBeforeStartMs
-                    baseStartTimeMs = entity.baseStartTimeMs
 
-                    val elapsed = if (entity.isRunning && baseStartTimeMs != null) {
-                        accumulatedBeforeStartMs + (now - baseStartTimeMs!!).coerceAtLeast(0L)
-                    } else {
-                        accumulatedBeforeStartMs
+            // ─────────────────────────────────────────────
+            // 2️⃣ Restore Arc state
+            // Priority:
+            //    a) From ongoing session (strongest source)
+            //    b) From DataStore (ArcPrefs)
+            // ─────────────────────────────────────────────
+
+            if (ongoing?.arcId != null) {
+
+                // ✅ Reconstruct Arc from Room-backed ongoing session
+                arcState = ArcRuntimeState(
+                    arcId = ongoing.arcId,
+                    isPending = (ongoing.arcSessionCountInArc ?: 0) < 2,
+                    multiplier = ongoing.arcChainBase ?: ArcRules.START_MULTIPLIER,
+                    progressMs = 0L, // banking removed
+                    lastSessionEndTimeMs = ongoing.arcLastSessionEndTimeMs ?: 0L,
+                    sessionCountInArc = ongoing.arcSessionCountInArc ?: 0
+                )
+
+                // Persist back to DataStore to keep both sources aligned
+                arcPrefs.save(arcState!!)
+
+            } else {
+
+                // Fallback to ArcPrefs
+                arcState = arcPrefs.load()
+
+                val now = System.currentTimeMillis()
+
+                // Expire arc ONLY if no ongoing session exists
+                if (ongoing == null) {
+                    arcState?.let { s ->
+                        if (isArcExpired(now, s)) {
+                            arcPrefs.clear()
+                            arcState = null
+                        }
                     }
+                }
+            }
 
-                    _uiState.value = FlowUiState(
+            // Sync Arc UI pill state
+            syncArcUi()
+
+            // ─────────────────────────────────────────────
+            // 3️⃣ Restore stopwatch state
+            // ─────────────────────────────────────────────
+            ongoing?.let { entity ->
+
+                baseStartTimeMs = entity.baseStartTimeMs
+                accumulatedBeforeStartMs = entity.accumulatedBeforeStartMs
+
+                val elapsed = if (entity.isRunning && baseStartTimeMs != null) {
+                    accumulatedBeforeStartMs +
+                            (System.currentTimeMillis() - baseStartTimeMs!!)
+                } else {
+                    accumulatedBeforeStartMs
+                }
+
+                _uiState.update {
+                    it.copy(
                         title = entity.title,
                         description = entity.description,
                         tagName = entity.tagName,
+                        isInFlowMode = entity.isInFlowMode,
+                        isSurgeOn = entity.isSurgeOn,
+                        surgePlannedMs = entity.surgePlannedMs,
                         stopwatch = StopwatchState(
                             isRunning = entity.isRunning,
                             elapsedMs = elapsed
-                        ),
-                        isInFlowMode = entity.isInFlowMode,
-                        isSurgeOn = entity.isSurgeOn,
-                        surgePlannedMs = entity.surgePlannedMs
+                        )
                     )
-
-                    if (entity.isRunning) {
-                        startTicker()
-                    }
                 }
+
+                if (entity.isRunning) {
+                    startTicker()
+                }
+            }
         }
+    }
+
+    fun clearLastReward() {
+        _lastReward.value = null
     }
 
     fun onTitleChange(newTitle: String) {
@@ -164,16 +323,14 @@ class FlowViewModel @Inject constructor(
         saveOngoing()
     }
 
-    // -------- Stopwatch / Focus Mode logic (same as before, plus save) --------
+    // -------- Stopwatch / Focus Mode logic --------
 
     fun startOrResumeStopwatch() {
         if (_uiState.value.stopwatch.isRunning) return
 
         val now = System.currentTimeMillis()
         baseStartTimeMs = now
-        _uiState.update {
-            it.copy(stopwatch = it.stopwatch.copy(isRunning = true))
-        }
+        _uiState.update { it.copy(stopwatch = it.stopwatch.copy(isRunning = true)) }
         startTicker()
         saveOngoing()
     }
@@ -182,8 +339,7 @@ class FlowViewModel @Inject constructor(
         if (!_uiState.value.stopwatch.isRunning) return
 
         val now = System.currentTimeMillis()
-        val base = baseStartTimeMs
-        if (base != null) {
+        baseStartTimeMs?.let { base ->
             accumulatedBeforeStartMs += (now - base).coerceAtLeast(0L)
         }
         baseStartTimeMs = null
@@ -203,9 +359,7 @@ class FlowViewModel @Inject constructor(
     fun resetStopwatch() {
         baseStartTimeMs = null
         accumulatedBeforeStartMs = 0L
-        _uiState.update {
-            it.copy(stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L))
-        }
+        _uiState.update { it.copy(stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L)) }
         stopTicker()
         saveOngoing()
     }
@@ -222,9 +376,7 @@ class FlowViewModel @Inject constructor(
                 } else {
                     accumulatedBeforeStartMs
                 }
-                _uiState.update {
-                    it.copy(stopwatch = it.stopwatch.copy(elapsedMs = elapsed))
-                }
+                _uiState.update { it.copy(stopwatch = it.stopwatch.copy(elapsedMs = elapsed)) }
             }
         }
     }
@@ -234,28 +386,24 @@ class FlowViewModel @Inject constructor(
         tickerJob = null
     }
 
-    // Focus mode toggle
     fun enterFocusMode() {
-        if (!_uiState.value.stopwatch.isRunning) {
-            startOrResumeStopwatch()
-        }
+        if (!_uiState.value.stopwatch.isRunning) startOrResumeStopwatch()
         _uiState.update { it.copy(isInFlowMode = true) }
         saveOngoing()
         aliveFlowServiceController.start()
     }
 
     fun exitFocusMode() {
-        if (uiState.value.stopwatch.isRunning) {
-            pauseStopwatch()
-        }
+        if (uiState.value.stopwatch.isRunning) pauseStopwatch()
         _uiState.update { it.copy(isInFlowMode = false) }
         saveOngoing()
         aliveFlowServiceController.stop()
     }
 
-    // Persist current state to DB
     private fun saveOngoing() {
         val state = _uiState.value
+        val arc = arcState
+
         viewModelScope.launch {
             val entity = OngoingSessionEntity(
                 id = 1,
@@ -267,165 +415,39 @@ class FlowViewModel @Inject constructor(
                 baseStartTimeMs = baseStartTimeMs,
                 accumulatedBeforeStartMs = accumulatedBeforeStartMs,
                 isSurgeOn = state.isSurgeOn,
-                surgePlannedMs = state.surgePlannedMs
+                surgePlannedMs = state.surgePlannedMs,
+                createdAt = System.currentTimeMillis(),
+                arcId = arc?.arcId,
+                arcChainBase = arc?.multiplier,
+                arcSessionCountInArc = arc?.sessionCountInArc,
+                arcLastSessionEndTimeMs = arc?.lastSessionEndTimeMs
             )
             focusSessionRepository.saveOngoingSession(entity)
         }
     }
 
-    fun prepareRewardPreview() {
-        viewModelScope.launch {
-            _lastReward.value = computeRewardPreview()
-        }
-    }
-
-    private suspend fun computeRewardPreview(): FlowRewardUiModel {
-        val state = _uiState.value
-
-        val durationMs = state.stopwatch.elapsedMs.coerceAtLeast(0L)
-        val endTime = System.currentTimeMillis()
-        val startTime = (endTime - durationMs).coerceAtLeast(0L)
-
-        val surgePoints = ScoreCalculator.surgePoints(state.surgePlannedMs, durationMs)
-
-        val breakdown = ScoreCalculator.breakdownFromDuration(durationMs)
-        val baseScyra = breakdown.totalPoints
-
-        val tagName = state.tagName.trim()
-
-        val beam = if (tagName.isBlank()) {
-            BeamOutcome()
-        } else {
-            val tagId = tagRepository.getOrCreateTagId(tagName)
-            computeBeamOutcomeForSession(
-                tagId = tagId,
-                sessionStart = startTime,
-                sessionEnd = endTime,
-                sessionDurationMs = durationMs
-            )
-        }
-
-        val finalScyra = baseScyra + beam.bonusPoints
-
-        return FlowRewardUiModel(
-            minutes = breakdown.minutes,
-            baseScyraPoints = baseScyra,
-            tenMinuteBonuses = breakdown.tenMinuteBonuses,
-            thirtyMinuteBonuses = breakdown.thirtyMinuteBonuses,
-            sixtyMinuteBonuses = breakdown.sixtyMinuteBonuses,
-            beamEligibleMs = beam.eligibleMs,
-            beamBonusPoints = beam.bonusPoints,
-            beamMultiplier = beam.multiplier,
-            finalScyraPoints = finalScyra,
-            surgePoints = surgePoints
-        )
-    }
-
-    fun setSurgePlannedMinutes(minutes: Int) {
-        val mins = minutes.coerceAtLeast(1)
-        val plannedMs = mins * 60_000L
-        _uiState.update {
-            it.copy(
-                isSurgeOn = true,
-                surgePlannedMs = plannedMs
-            )
-        }
-        saveOngoing()
-    }
-
-    fun clearSurgeIfAllowed() {
-        val elapsed = _uiState.value.stopwatch.elapsedMs
-        if (elapsed > 0L) return // 🔒 locked once time starts
-
-        _uiState.update {
-            it.copy(
-                isSurgeOn = false,
-                surgePlannedMs = null
-            )
-        }
-        saveOngoing()
-    }
-
-    fun isSurgeLocked(): Boolean {
-        return _uiState.value.stopwatch.elapsedMs > 0L
-    }
-
-    // Clear persisted focus session (after saving real session or aborting)
     private suspend fun clearOngoing() {
         focusSessionRepository.clearOngoingSession()
     }
 
-    // -------- Saving the real session --------
+    // -------- Surge --------
 
-    fun saveSession(onDone: () -> Unit) {
-        val state = _uiState.value
-        val title = state.title.trim()
-        val tagName = state.tagName.trim()
-        val description = state.description.trim()
-
-        if (title.isBlank() || tagName.isBlank()) {
-            _error.value = "Title and Skill are required"
-            return
-        }
-
-        viewModelScope.launch {
-            _isSaving.value = true
-            _error.value = null
-
-            try {
-                val durationMs = state.stopwatch.elapsedMs.coerceAtLeast(0L)
-                val endTime = System.currentTimeMillis()
-                val startTime = (endTime - durationMs).coerceAtLeast(0L)
-
-                val tagId = tagRepository.getOrCreateTagId(tagName)
-
-                val surgePoints = ScoreCalculator.surgePoints(
-                    surgePlannedMs = state.surgePlannedMs,
-                    actualDurationMs = durationMs
-                )
-
-                val breakdown = ScoreCalculator.breakdownFromDuration(durationMs)
-                val baseScyra = breakdown.totalPoints
-
-                val beam = computeBeamOutcomeForSession(
-                    tagId = tagId,
-                    sessionStart = startTime,
-                    sessionEnd = endTime,
-                    sessionDurationMs = durationMs
-                )
-
-                // ✅ Option A: Scyra score is base + beam (surge separate)
-                val finalScyra = baseScyra + beam.bonusPoints
-
-                sessionRepository.addSession(
-                    title = title,
-                    description = description,
-                    tagId = tagId,
-                    startTime = startTime,
-                    endTime = endTime,
-                    durationMs = durationMs,
-                    surgePlannedMs = state.surgePlannedMs,
-                    surgePoints = surgePoints,
-                    beamId = beam.beamId,
-                    beamEligibleMs = beam.eligibleMs,       // ✅ NEW
-                    beamBonusPoints = beam.bonusPoints,
-                    beamMultiplier = beam.multiplier,
-                    scyraPoints = finalScyra                // ✅ NEW
-                )
-
-
-                resetStopwatch()
-                _uiState.value = FlowUiState()
-                clearOngoing()
-                aliveFlowServiceController.stop()
-                onDone()
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Failed to save session"
-            } finally {
-                _isSaving.value = false
-            }
-        }
+    fun setSurgePlannedMinutes(minutes: Int) {
+        val mins = minutes.coerceAtLeast(1)
+        val plannedMs = mins * 60_000L
+        _uiState.update { it.copy(isSurgeOn = true, surgePlannedMs = plannedMs) }
+        saveOngoing()
     }
+
+    fun clearSurgeIfAllowed() {
+        if (_uiState.value.stopwatch.elapsedMs > 0L) return // locked once time starts
+        _uiState.update { it.copy(isSurgeOn = false, surgePlannedMs = null) }
+        saveOngoing()
+    }
+
+    fun isSurgeLocked(): Boolean = _uiState.value.stopwatch.elapsedMs > 0L
+
+    // -------- Beam overlap scoring --------
 
     private suspend fun computeBeamOutcomeForSession(
         tagId: Long,
@@ -433,28 +455,33 @@ class FlowViewModel @Inject constructor(
         sessionEnd: Long,
         sessionDurationMs: Long
     ): BeamOutcome {
-        // Find beams overlapping the SESSION window (beam can end before session ends – still overlaps)
         val beams = beamRepository.getBeamsOverlappingWindow(sessionStart, sessionEnd)
 
-        // deterministic: earliest starting beam for this tag within that overlap set
-        val matchingBeam = beams
-            .asSequence()
+        // ✅ Only beams for this journey/tag AND with real overlap > 0
+        val candidates = beams.asSequence()
             .filter { it.tagId == tagId }
-            .minByOrNull { it.startTime }
+            .map { beam ->
+                val overlap = ScoreCalculator.overlapMs(
+                    aStart = sessionStart,
+                    aEnd = sessionEnd,
+                    bStart = beam.startTime,
+                    bEnd = beam.endTime
+                )
+                beam to overlap
+            }
+            .filter { (_, overlap) -> overlap > 0L }
+            .toList()
+
+        val (bestBeam, eligibleMs) = candidates
+            .maxWithOrNull(
+                compareBy<Pair<BeamEntity, Long>> { it.second } // overlap
+                    .thenByDescending { -kotlin.math.abs(it.first.startTime - sessionStart) }
+            )
             ?: return BeamOutcome()
 
-        // ✅ TRUE ELIGIBILITY = overlap(session, beam)
-        val eligibleMs = ScoreCalculator.overlapMs(
-            aStart = sessionStart,
-            aEnd = sessionEnd,
-            bStart = matchingBeam.startTime,
-            bEnd = matchingBeam.endTime
-        )
-
-        // If overlap is too tiny, we keep beamId+eligibleMs for UI/debug but award 0
         if (eligibleMs < BEAM_MIN_ELIGIBLE_MS) {
             return BeamOutcome(
-                beamId = matchingBeam.id,
+                beamId = bestBeam.id,
                 eligibleMs = eligibleMs,
                 bonusPoints = 0,
                 multiplier = null
@@ -465,14 +492,14 @@ class FlowViewModel @Inject constructor(
             sessionStart = sessionStart,
             sessionEnd = sessionEnd,
             sessionDurationMs = sessionDurationMs,
-            beamStart = matchingBeam.startTime,
-            beamEnd = matchingBeam.endTime,
-            beamDurationMs = matchingBeam.durationMs,
-            continuousEngagedMsInThisSession = eligibleMs // current assumption: overlap == engaged
+            beamStart = bestBeam.startTime,
+            beamEnd = bestBeam.endTime,
+            beamDurationMs = bestBeam.durationMs,
+            continuousEngagedMsInThisSession = eligibleMs
         )
 
         return BeamOutcome(
-            beamId = matchingBeam.id,
+            beamId = bestBeam.id,
             eligibleMs = eligibleMs,
             bonusPoints = res.beamBonusPoints.coerceAtLeast(0),
             multiplier = res.appliedMultiplier
@@ -483,4 +510,353 @@ class FlowViewModel @Inject constructor(
         _uiState.update { it.copy(tagName = tagName) }
         saveOngoing()
     }
+
+    /**
+     * Called by FlowScreen when user closes the reward dialog after CONTINUE_ARC.
+     * This is what "opens another flow."
+     */
+    fun beginNextFlowAfterContinue() {
+        if (!_awaitingNextFlowAfterContinue.value) return
+
+        val keepTag = _uiState.value.tagName
+        val keepArc = arcState
+
+        _lastReward.value = null
+        _awaitingNextFlowAfterContinue.value = false
+
+        baseStartTimeMs = null
+        accumulatedBeforeStartMs = 0L
+        stopTicker()
+        aliveFlowServiceController.stop()
+
+        _uiState.value = FlowUiState(
+            title = "",
+            description = "",
+            tagName = keepTag,
+            stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L),
+            isInFlowMode = false,
+            isSurgeOn = false,
+            surgePlannedMs = null,
+            isInArc = keepArc != null,
+            arcMultiplier = keepArc?.multiplier,
+            arcProgressMs = keepArc?.progressMs ?: 0L,
+            arcNextIndex = keepArc?.let { it.sessionCountInArc + 1 }
+        )
+
+        viewModelScope.launch { clearOngoing() }
+    }
+
+    // -------- Arc end actions --------
+
+    fun onEndFlowClicked(action: FlowEndAction, onDone: () -> Unit) {
+        viewModelScope.launch {
+            saveWithArcBehavior(endMode = action, onDone = onDone)
+        }
+    }
+
+    private suspend fun saveWithArcBehavior(endMode: FlowEndAction, onDone: () -> Unit) {
+        val state = _uiState.value
+        val title = state.title.trim()
+        val tagName = state.tagName.trim()
+        val description = state.description.trim()
+
+        if (title.isBlank() || tagName.isBlank()) {
+            _error.value = "Title and Skill are required"
+            return
+        }
+
+        _isSaving.value = true
+        _error.value = null
+
+        try {
+            val DEV_TIME_MULTIPLIER = 60L
+
+            val realDurationMs = state.stopwatch.elapsedMs.coerceAtLeast(0L)
+            val endTime = System.currentTimeMillis()
+            val realStartTime = (endTime - realDurationMs).coerceAtLeast(0L)
+
+            val scoringDurationMs = realDurationMs * DEV_TIME_MULTIPLIER
+            val startTime = (endTime - scoringDurationMs).coerceAtLeast(0L)
+
+            val tagId = tagRepository.getOrCreateTagId(tagName)
+
+            val surgePoints = ScoreCalculator.surgePoints(
+                surgePlannedMs = state.surgePlannedMs,
+                actualDurationMs = scoringDurationMs
+            )
+
+            val breakdown = ScoreCalculator.breakdownFromDuration(scoringDurationMs)
+            val baseScyra = breakdown.totalPoints
+
+
+            val beam = computeBeamOutcomeForSession(
+                tagId = tagId,
+                sessionStart = startTime,
+                sessionEnd = endTime,
+                sessionDurationMs = realDurationMs
+            )
+
+            val beforeArc = baseScyra + beam.bonusPoints
+
+            // expire arc if grace exceeded
+            val now = endTime
+            var localArc = arcState
+            if (localArc != null && isArcExpired(now, localArc)) {
+                arcPrefs.clear()
+                localArc = null
+                arcState = null
+            }
+
+            val isInExistingArc = (localArc != null)
+
+            // If Continue Arc with no arc yet: create arc with session #1 at multiplier 1.0
+            if (!isInExistingArc && endMode == FlowEndAction.CONTINUE_ARC) {
+                val sessionId1 = sessionRepository.addSession(
+                    title = title,
+                    description = description,
+                    tagId = tagId,
+                    startTime = realStartTime,
+                    endTime = endTime,
+                    durationMs = realDurationMs,
+                    surgePlannedMs = state.surgePlannedMs,
+                    surgePoints = surgePoints,
+                    beamId = beam.beamId,
+                    beamEligibleMs = beam.eligibleMs,
+                    beamBonusPoints = beam.bonusPoints,
+                    beamMultiplier = beam.multiplier,
+                    scyraPoints = beforeArc
+                )
+
+                val arcId = System.currentTimeMillis()
+
+                sessionRepository.updateArcFields(
+                    sessionId = sessionId1,
+                    arcId = arcId,
+                    arcIndex = 1,
+                    arcMultiplierUsed = 1.0,
+                    arcBonusPoints = 0,
+                    finalScyraPoints = beforeArc
+                )
+
+                arcState = ArcRuntimeState(
+                    arcId = arcId,
+                    isPending = true,
+                    multiplier = ArcRules.START_MULTIPLIER,
+                    progressMs = 0L,
+                    lastSessionEndTimeMs = endTime,
+                    sessionCountInArc = 1
+                )
+                arcPrefs.save(arcState!!)
+                syncArcUi()
+
+                _lastReward.value = FlowRewardUiModel(
+                    minutes = breakdown.minutes,
+                    baseScyraPoints = baseScyra,
+                    tenMinuteBonuses = breakdown.tenMinuteBonuses,
+                    thirtyMinuteBonuses = breakdown.thirtyMinuteBonuses,
+                    sixtyMinuteBonuses = breakdown.sixtyMinuteBonuses,
+                    beamEligibleMs = beam.eligibleMs,
+                    beamBonusPoints = beam.bonusPoints,
+                    beamMultiplier = beam.multiplier,
+                    finalScyraPoints = beforeArc,
+                    surgePoints = surgePoints,
+                    arcMultiplierUsed = 1.0,
+                    arcBonusPoints = 0,
+                    arcNextMultiplier = arcState?.multiplier,
+                    arcProgressTowardNextMs = arcState?.progressMs ?: 0L,
+                    arcDidLevelUp = false
+                )
+
+                _awaitingNextFlowAfterContinue.value = true
+
+                baseStartTimeMs = null
+                accumulatedBeforeStartMs = 0L
+                stopTicker()
+                aliveFlowServiceController.stop()
+                clearOngoing()
+
+                return
+            }
+
+            // If arc exists, apply it
+            var arcMultiplierUsed: Double? = null
+            var arcBonusPoints = 0
+            var arcIndex: Int? = null
+            var arcDidLevelUp = false
+            var nextMultiplier: Double? = null
+            var nextProgress: Long = 0L
+
+            var finalScyra = beforeArc
+
+            if (isInExistingArc) {
+                val s = localArc
+
+                arcIndex = s.sessionCountInArc + 1
+
+                val res = ScoreCalculator.arcMath(
+                    beforeArcPoints = beforeArc,
+                    chainBase = s.multiplier,
+                    durationMs = scoringDurationMs
+                )
+
+                arcMultiplierUsed = res.arcMultiplierUsed
+                arcBonusPoints = res.arcBonusPoints
+                finalScyra = res.finalPoints
+                arcDidLevelUp = res.didLevelUp
+                nextMultiplier = res.nextChainBase
+                nextProgress = 0L
+            }
+
+            val insertedId = sessionRepository.addSession(
+                title = title,
+                description = description,
+                tagId = tagId,
+                startTime = startTime,
+                endTime = endTime,
+                durationMs = scoringDurationMs,
+                surgePlannedMs = state.surgePlannedMs,
+                surgePoints = surgePoints,
+                beamId = beam.beamId,
+                beamEligibleMs = beam.eligibleMs,
+                beamBonusPoints = beam.bonusPoints,
+                beamMultiplier = beam.multiplier,
+                scyraPoints = finalScyra
+            )
+
+            if (isInExistingArc) {
+                val s = localArc ?: return  // or handle gracefully
+
+                sessionRepository.updateArcFields(
+                    sessionId = insertedId,
+                    arcId = s.arcId,
+                    arcIndex = arcIndex ?: (s.sessionCountInArc + 1),
+                    arcMultiplierUsed = arcMultiplierUsed ?: s.multiplier,
+                    arcBonusPoints = arcBonusPoints,
+                    finalScyraPoints = finalScyra
+                )
+
+                val newCount = s.sessionCountInArc + 1
+
+                arcState = s.copy(
+                    isPending = newCount < 2,
+                    multiplier = nextMultiplier ?: s.multiplier,
+                    progressMs = 0L,
+                    lastSessionEndTimeMs = endTime,
+                    sessionCountInArc = newCount
+                )
+
+                arcPrefs.save(arcState!!)
+                syncArcUi()
+            }
+
+            val baseReward = FlowRewardUiModel(
+                minutes = breakdown.minutes,
+                baseScyraPoints = baseScyra,
+                tenMinuteBonuses = breakdown.tenMinuteBonuses,
+                thirtyMinuteBonuses = breakdown.thirtyMinuteBonuses,
+                sixtyMinuteBonuses = breakdown.sixtyMinuteBonuses,
+                beamEligibleMs = beam.eligibleMs,
+                beamBonusPoints = beam.bonusPoints,
+                beamMultiplier = beam.multiplier,
+                finalScyraPoints = finalScyra,
+                surgePoints = surgePoints,
+                arcMultiplierUsed = arcMultiplierUsed,
+                arcBonusPoints = arcBonusPoints,
+                arcNextMultiplier = arcState?.multiplier,
+                arcProgressTowardNextMs = arcState?.progressMs ?: 0L,
+                arcDidLevelUp = arcDidLevelUp
+            )
+
+            when (endMode) {
+                FlowEndAction.COMPLETE_ARC -> {
+                    val s = arcState
+                    val summary = if (s != null) {
+                        val arcSessions = sessionRepository.getSessionsForArc(s.arcId)
+                        if (arcSessions.size >= 2) {
+                            ArcSummaryUiModel(
+                                totalSessions = arcSessions.size,
+                                totalDurationMs = arcSessions.sumOf { it.durationMs },
+                                totalFinalPoints = arcSessions.sumOf { it.scyraPoints },
+                                totalArcBonusPoints = arcSessions.sumOf { it.arcBonusPoints },
+                                peakMultiplier = arcSessions.mapNotNull { it.arcMultiplierUsed }.maxOrNull() ?: 1.0
+                            )
+                        } else null
+                    } else null
+
+                    _lastReward.value = baseReward.copy(arcSummary = summary)
+                    _exitAfterReward.value = true
+
+                    arcPrefs.clear()
+                    arcState = null
+                    syncArcUi()
+
+                    baseStartTimeMs = null
+                    accumulatedBeforeStartMs = 0L
+                    stopTicker()
+                    aliveFlowServiceController.stop()
+                    clearOngoing()
+                }
+
+                FlowEndAction.SAVE_FLOW -> {
+                    _lastReward.value = baseReward
+
+                    if (arcState != null) {
+                        arcPrefs.clear()
+                        arcState = null
+                        syncArcUi()
+                    }
+
+                    baseStartTimeMs = null
+                    accumulatedBeforeStartMs = 0L
+                    stopTicker()
+                    aliveFlowServiceController.stop()
+                    clearOngoing()
+                }
+
+                FlowEndAction.CONTINUE_ARC -> {
+                    _lastReward.value = baseReward
+                    _awaitingNextFlowAfterContinue.value = true
+
+                    baseStartTimeMs = null
+                    accumulatedBeforeStartMs = 0L
+                    stopTicker()
+                    aliveFlowServiceController.stop()
+                    clearOngoing()
+                }
+            }
+
+            if (endMode == FlowEndAction.SAVE_FLOW) {
+                _uiState.value = FlowUiState(
+                    tagName = tagName,
+                    isInArc = arcState != null,
+                    arcMultiplier = arcState?.multiplier,
+                    arcProgressMs = arcState?.progressMs ?: 0L,
+                    arcNextIndex = arcState?.let { it.sessionCountInArc + 1 }
+                )
+                onDone()
+            }
+        } catch (e: Exception) {
+            _error.value = e.message ?: "Failed to save session"
+        } finally {
+            _isSaving.value = false
+        }
+    }
+}
+
+private fun arcTierExtra(durationMs: Long): Double {
+    // tiers are based on *this flow's* duration only; never persisted
+    return when {
+        durationMs < ArcRules.PROGRESS_STEP_MS -> 0.0                 // < 10m
+        durationMs < 20 * 60_000L -> 0.0                              // 10–19m
+        durationMs < 40 * 60_000L -> 0.1                              // 20–39m
+        durationMs < 60 * 60_000L -> 0.2                              // 40–59m
+        durationMs < 90 * 60_000L -> 0.3                              // 60–89m
+        else -> 0.4                                                   // 90m+
+    }
+}
+
+private fun nextChainBaseAfterFlow(chainBaseUsed: Double, durationMs: Long): Pair<Double, Boolean> {
+    val leveledUp = durationMs >= ArcRules.PROGRESS_STEP_MS           // >= 10m qualifies
+    val next = if (leveledUp) chainBaseUsed + ArcRules.STEP else chainBaseUsed
+    return next to leveledUp
 }

@@ -184,7 +184,12 @@ class StoryViewModel @Inject constructor(
                 score = session.scyraPoints,
                 isSurge = session.surgePlannedMs != null,
                 surgePoints = session.surgePoints,
-                beamBonusPoints = session.beamBonusPoints
+                beamBonusPoints = session.beamBonusPoints,
+
+                arcId = session.arcId,
+                arcIndex = session.arcIndex,
+                arcMultiplierUsed = session.arcMultiplierUsed,
+                arcBonusPoints = session.arcBonusPoints
             )
         }
     }

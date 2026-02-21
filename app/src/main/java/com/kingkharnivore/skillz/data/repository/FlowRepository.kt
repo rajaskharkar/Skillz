@@ -74,4 +74,32 @@ class FlowRepository @Inject constructor(
     suspend fun insertSession(session: SessionEntity) {
         sessionDao.insertSession(session)
     }
+
+    // ✅ ARC: retro-tag/update arc fields
+    suspend fun updateArcFields(
+        sessionId: Long,
+        arcId: Long,
+        arcIndex: Int,
+        arcMultiplierUsed: Double,
+        arcBonusPoints: Int,
+        finalScyraPoints: Int
+    ) {
+        sessionDao.updateArcFields(
+            sessionId = sessionId,
+            arcId = arcId,
+            arcIndex = arcIndex,
+            arcMultiplierUsed = arcMultiplierUsed,
+            arcBonusPoints = arcBonusPoints,
+            finalScyraPoints = finalScyraPoints
+        )
+    }
+
+    suspend fun getSessionsForArc(arcId: Long): List<SessionEntity> =
+        sessionDao.getSessionsForArc(arcId)
+
+    suspend fun getLastSessionInArc(arcId: Long): SessionEntity? =
+        sessionDao.getLastSessionInArc(arcId)
+
+    suspend fun getMaxArcIndex(arcId: Long): Int =
+        sessionDao.getMaxArcIndex(arcId) ?: 0
 }

@@ -15,5 +15,9 @@ data class OngoingSessionEntity(
     val accumulatedBeforeStartMs: Long,  // elapsed before baseStartTimeMs
     val isSurgeOn: Boolean = false,
     val surgePlannedMs: Long? = null,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val arcId: Long? = null,
+    val arcChainBase: Double? = null,
+    val arcSessionCountInArc: Int? = null,
+    val arcLastSessionEndTimeMs: Long? = null,
 )
