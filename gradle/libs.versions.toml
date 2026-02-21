@@ -26,6 +26,8 @@ roomRuntime = "2.8.4"
 workRuntimeKtx = "2.11.0"
 animationCore = "1.10.0"
 foundation = "1.10.0"
+uiUnit = "1.10.1"
+uiGraphics = "1.10.1"
 
 [libraries]
 androidx-activity-compose-v193 = { module = "androidx.activity:activity-compose", version.ref = "activityComposeVersion" }
@@ -62,6 +64,8 @@ kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomKtx" }
 androidx-compose-animation-core = { group = "androidx.compose.animation", name = "animation-core", version.ref = "animationCore" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
+androidx-compose-ui-unit = { group = "androidx.compose.ui", name = "ui-unit", version.ref = "uiUnit" }
+androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

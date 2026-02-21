@@ -1,7 +1,6 @@
-package com.kingkharnivore.skillz.ui.skills
+package com.kingkharnivore.skillz.ui.screen
 
 import android.Manifest
-import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult

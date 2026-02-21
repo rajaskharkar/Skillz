@@ -21,11 +21,16 @@ class FlowRepository @Inject constructor(
         title: String,
         description: String,
         tagId: Long,
-        startTime: Long = System.currentTimeMillis(),
-        endTime: Long = System.currentTimeMillis(),
-        durationMs: Long = 0L,          // TODO: wire stopwatch here
-        surgePlannedMs: Long? = null,
-        surgePoints: Int = 0
+        startTime: Long,
+        endTime: Long,
+        durationMs: Long,
+        surgePlannedMs: Long?,
+        surgePoints: Int,
+        beamId: Long?,
+        beamEligibleMs: Long,
+        beamBonusPoints: Int,
+        beamMultiplier: Double?,
+        scyraPoints: Int
     ): Long {
         val session = SessionEntity(
             title = title,
@@ -35,7 +40,12 @@ class FlowRepository @Inject constructor(
             endTime = endTime,
             durationMs = durationMs,
             surgePlannedMs = surgePlannedMs,
-            surgePoints = surgePoints
+            surgePoints = surgePoints,
+            beamId = beamId,
+            beamEligibleMs = beamEligibleMs,
+            beamBonusPoints = beamBonusPoints,
+            beamMultiplier = beamMultiplier,
+            scyraPoints = scyraPoints
         )
         return sessionDao.insertSession(session)
     }
@@ -64,4 +74,31 @@ class FlowRepository @Inject constructor(
     suspend fun insertSession(session: SessionEntity) {
         sessionDao.insertSession(session)
     }
+
+    suspend fun updateArcFields(
+        sessionId: Long,
+        arcId: Long,
+        arcIndex: Int,
+        arcMultiplierUsed: Double,
+        arcBonusPoints: Int,
+        finalScyraPoints: Int
+    ) {
+        sessionDao.updateArcFields(
+            sessionId = sessionId,
+            arcId = arcId,
+            arcIndex = arcIndex,
+            arcMultiplierUsed = arcMultiplierUsed,
+            arcBonusPoints = arcBonusPoints,
+            finalScyraPoints = finalScyraPoints
+        )
+    }
+
+    suspend fun getSessionsForArc(arcId: Long): List<SessionEntity> =
+        sessionDao.getSessionsForArc(arcId)
+
+    suspend fun getLastSessionInArc(arcId: Long): SessionEntity? =
+        sessionDao.getLastSessionInArc(arcId)
+
+    suspend fun getMaxArcIndex(arcId: Long): Int =
+        sessionDao.getMaxArcIndex(arcId) ?: 0
 }

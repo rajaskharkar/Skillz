@@ -47,4 +47,42 @@ interface SessionDao {
     @Query("DELETE FROM sessions WHERE id = :id")
     suspend fun deleteSession(id: Long)
 
+    // ✅ ARC: update a session after insert (retro-tag session #1, or set arc data)
+    @Query("""
+        UPDATE sessions
+        SET arcId = :arcId,
+            arcIndex = :arcIndex,
+            arcMultiplierUsed = :arcMultiplierUsed,
+            arcBonusPoints = :arcBonusPoints,
+            scyraPoints = :finalScyraPoints
+        WHERE id = :sessionId
+    """)
+    suspend fun updateArcFields(
+        sessionId: Long,
+        arcId: Long,
+        arcIndex: Int,
+        arcMultiplierUsed: Double,
+        arcBonusPoints: Int,
+        finalScyraPoints: Int
+    )
+
+    // ✅ ARC: get arc sessions for summary
+    @Query("""
+        SELECT * FROM sessions
+        WHERE arcId = :arcId
+        ORDER BY arcIndex ASC
+    """)
+    suspend fun getSessionsForArc(arcId: Long): List<SessionEntity>
+
+    @Query("""
+        SELECT * FROM sessions
+        WHERE arcId = :arcId
+        ORDER BY arcIndex DESC
+        LIMIT 1
+    """)
+    suspend fun getLastSessionInArc(arcId: Long): SessionEntity?
+
+    @Query("SELECT MAX(arcIndex) FROM sessions WHERE arcId = :arcId")
+    suspend fun getMaxArcIndex(arcId: Long): Int?
+
 }

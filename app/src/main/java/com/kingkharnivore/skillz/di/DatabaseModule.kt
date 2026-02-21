@@ -8,7 +8,9 @@ import androidx.room.Room
 import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
+import com.kingkharnivore.skillz.data.model.dao.BeamDao
 import com.kingkharnivore.skillz.data.model.dao.TagDao
+import com.kingkharnivore.skillz.utils.arc.ArcPrefs
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,7 +31,7 @@ object DatabaseModule {
             context,
             SkillzDatabase::class.java,
             "skillz_db"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     @Provides
@@ -41,6 +43,13 @@ object DatabaseModule {
     @Provides
     fun provideOngoingSessionDao(db: SkillzDatabase): OngoingSessionDao =
         db.ongoingSessionDao()
+
+    @Provides
+    fun provideBeamDao(db: SkillzDatabase): BeamDao = db.beamDao()
+
+    @Provides
+    @Singleton
+    fun provideArcPrefs(ds: DataStore<Preferences>): ArcPrefs = ArcPrefs(ds)
 
     private val Context.skillzDataStore: DataStore<Preferences> by preferencesDataStore(
         name = "skillz_prefs"
