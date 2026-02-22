@@ -44,25 +44,25 @@ fun AtlasHeader(
         verticalArrangement = Arrangement.spacedBy(8.dp) // ✅ tighter
     ) {
         // Mode selector
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            SegmentedButton(
-                selected = mode == AtlasViewMode.DAY,
-                onClick = { onSelectMode(AtlasViewMode.DAY) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3)
-            ) { Text("Day") }
-
-            SegmentedButton(
-                selected = mode == AtlasViewMode.WEEK,
-                onClick = { onSelectMode(AtlasViewMode.WEEK) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3)
-            ) { Text("Week") }
-
-            SegmentedButton(
-                selected = mode == AtlasViewMode.MONTH,
-                onClick = { onSelectMode(AtlasViewMode.MONTH) },
-                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3)
-            ) { Text("Month") }
-        }
+//        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+//            SegmentedButton(
+//                selected = mode == AtlasViewMode.DAY,
+//                onClick = { onSelectMode(AtlasViewMode.DAY) },
+//                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3)
+//            ) { Text("Day") }
+//
+//            SegmentedButton(
+//                selected = mode == AtlasViewMode.WEEK,
+//                onClick = { onSelectMode(AtlasViewMode.WEEK) },
+//                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3)
+//            ) { Text("Week") }
+//
+//            SegmentedButton(
+//                selected = mode == AtlasViewMode.MONTH,
+//                onClick = { onSelectMode(AtlasViewMode.MONTH) },
+//                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3)
+//            ) { Text("Month") }
+//        }
 
         when (mode) {
             AtlasViewMode.DAY -> {

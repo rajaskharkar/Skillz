@@ -1,6 +1,12 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.kingkharnivore.skillz.ui.screen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,10 +18,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -30,8 +38,12 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,12 +51,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
 import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
@@ -54,7 +74,6 @@ import com.kingkharnivore.skillz.viewmodel.FlowRewardUiModel
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.viewmodel.StopwatchState
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FlowScreen(
     viewModel: FlowViewModel,
@@ -71,18 +90,17 @@ fun FlowScreen(
 
     var showSurgeDialog by remember { mutableStateOf(false) }
     var showEndDialog by remember { mutableStateOf(false) }
-    // Rewards dialog state
     var showPointsDialog by remember { mutableStateOf(false) }
+
     var surgeMinutesInput by remember { mutableStateOf("") }
+    var surgeMinutesInline by rememberSaveable { mutableStateOf("") }
 
     val stopwatchState = uiState.stopwatch
     val isInFlowState = uiState.isInFlowMode
+    val hasTime = stopwatchState.elapsedMs > 0L
 
-    // Auto-open points dialog when reward arrives
     LaunchedEffect(reward) {
-        if (reward != null) {
-            showPointsDialog = true
-        }
+        if (reward != null) showPointsDialog = true
     }
 
     Scaffold(
@@ -97,110 +115,118 @@ fun FlowScreen(
             )
         }
     ) { innerPadding ->
+
         Column(
             modifier = Modifier
                 .padding(innerPadding)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
                 .verticalScroll(rememberScrollState())
                 .imePadding(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (BuildConfig.FLAVOR != "aera") {
-                Button(
-                    onClick = { showSurgeDialog = true },
-                    enabled = !uiState.isInFlowMode && (!uiState.isSurgeOn || !viewModel.isSurgeLocked()),
-                    modifier = Modifier.fillMaxWidth().height(60.dp)
-                ) {
-                    val surgePlannedMs = uiState.surgePlannedMs
-                    val label = when {
-                        uiState.isSurgeOn && surgePlannedMs != null -> {
-                            val mins = (surgePlannedMs / 60_000L).toInt()
-                            if (viewModel.isSurgeLocked()) "Surge: $mins min (Locked)" else "Surge: $mins min"
-                        }
-                        else -> "Turn on Surge"
-                    }
-                    Text(label, style = MaterialTheme.typography.titleMedium)
-                }
+
+            // 1) Title — grand, centered
+            RitualCard(rotation = -0.20f, corner = 30.dp) {
+                GrandTitleField(
+                    value = uiState.title,
+                    onValueChange = viewModel::onTitleChange
+                )
             }
 
-            OutlinedTextField(
-                value = uiState.title,
-                onValueChange = viewModel::onTitleChange,
-                label = { Text("Dive in") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            if (tags.isNotEmpty()) {
-                TagSuggestionRow(
+            // 2) Journeys — leaner, centered
+            RitualCard(rotation = 0.12f, corner = 26.dp) {
+                JourneyLean(
                     tags = tags,
-                    onTagClicked = { tag -> viewModel.onTagNameChange(tag.name) }
+                    tagName = uiState.tagName,
+                    onTagClicked = { tag -> viewModel.onTagNameChange(tag.name) },
+                    onTagNameChange = viewModel::onTagNameChange
                 )
             }
 
-            OutlinedTextField(
-                value = uiState.tagName,
-                onValueChange = viewModel::onTagNameChange,
-                label = { Text("Start a new journey") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            // 3) Core — timer center + reset near + enter flow + surge (small/right)
+            RitualFrame(rotation = -0.08f, corner = 32.dp, showBorder = false) {
 
-            if (uiState.isInArc && uiState.arcMultiplier != null) {
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    tonalElevation = 1.dp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                if (uiState.isInArc && uiState.arcMultiplier != null) {
+                    ArcPill(
+                        arcMultiplier = uiState.arcMultiplier!!,
+                        arcNextIndex = uiState.arcNextIndex
+                    )
+                    Spacer(Modifier.height(10.dp))
+                }
+
+                StopwatchSection(
+                    state = stopwatchState,
+                    viewModel = viewModel
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                Button(
+                    onClick = { if (isInFlowState) viewModel.exitFocusMode() else viewModel.enterFocusMode() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp),
+                    shape = RoundedCornerShape(999.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("🔥")
-                        Spacer(Modifier.width(8.dp))
-                        Text("Arc Active", fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            "×${"%.1f".format(uiState.arcMultiplier)}",
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary
+                    Text(
+                        text = if (isInFlowState) "Exit Flow" else "Enter Flow",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+
+                // Surge: discreet when off + right aligned reliably
+                if (BuildConfig.FLAVOR != "aera") {
+                    val locked = viewModel.isSurgeLocked()
+
+                    Spacer(Modifier.height(10.dp))
+
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        SurgeMiniControl(
+                            modifier = Modifier.align(Alignment.CenterEnd),
+                            isInFlow = isInFlowState,
+                            elapsedMs = stopwatchState.elapsedMs,
+                            locked = locked,
+                            isSurgeOn = uiState.isSurgeOn,
+                            plannedMs = uiState.surgePlannedMs,
+                            minutesInline = surgeMinutesInline,
+                            onMinutesChange = { raw -> surgeMinutesInline = raw.filter(Char::isDigit).take(3) },
+                            onCommit = {
+                                val mins = surgeMinutesInline.toIntOrNull()
+                                if (mins != null && mins > 0 && !locked && !isInFlowState) {
+                                    viewModel.setSurgePlannedMinutes(mins)
+                                }
+                            },
+                            onToggleOff = {
+                                if (!locked && !isInFlowState) {
+                                    viewModel.clearSurgeIfAllowed()
+                                    surgeMinutesInline = ""
+                                }
+                            },
+                            onLongPress = { showSurgeDialog = true }
                         )
-                        uiState.arcNextIndex?.let {
-                            Spacer(Modifier.width(10.dp))
-                            Text("Now: Flow $it", style = MaterialTheme.typography.labelMedium)
-                        }
                     }
+                }
+
+                if (isInFlowState) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "You're in Flow. You may use other parts of this app.\nYou may turn off the screen — the timer continues.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
 
-            StopwatchSection(
-                state = stopwatchState,
-                viewModel = viewModel
-            )
-
-            Button(
-                onClick = { if (isInFlowState) viewModel.exitFocusMode() else viewModel.enterFocusMode() },
-                modifier = Modifier.fillMaxWidth().height(60.dp)
-            ) {
-                Text(
-                    text = if (isInFlowState) "Exit Flow" else "Enter Flow",
-                    style = MaterialTheme.typography.titleMedium
+            // 4) Description — inviting UI (same text)
+            RitualCard(rotation = 0.16f, corner = 28.dp) {
+                ChronicleField(
+                    value = uiState.description,
+                    onValueChange = viewModel::onDescriptionChange
                 )
             }
-
-            if (isInFlowState) {
-                Text(
-                    text = "You're in Flow. You may use other parts of this app.\nYou may turn off the screen — the timer continues.",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-
-            OutlinedTextField(
-                value = uiState.description,
-                onValueChange = viewModel::onDescriptionChange,
-                label = { Text("Write your story") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3
-            )
 
             if (error != null) {
                 Text(
@@ -210,8 +236,7 @@ fun FlowScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-
+            // Bottom actions — unchanged logic
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -219,34 +244,43 @@ fun FlowScreen(
                 OutlinedButton(
                     enabled = uiState.title.isNotBlank() &&
                             uiState.tagName.isNotBlank() &&
+                            hasTime &&
                             !isSaving &&
                             !isInFlowState,
-                    onClick = {
-                        viewModel.onEndFlowClicked(FlowEndAction.CONTINUE_ARC)
-                    },
-                    modifier = Modifier.weight(1f)
+                    onClick = { viewModel.onEndFlowClicked(FlowEndAction.CONTINUE_ARC) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(18.dp)
                 ) {
                     Text("Continue Arc")
                 }
 
-                val completeLabel = if (uiState.isInArc) "Complete Arc" else "Complete Flow"
-                val completeAction = if (uiState.isInArc) FlowEndAction.COMPLETE_ARC else FlowEndAction.SAVE_FLOW
+                val isArcActuallyCompletable = uiState.isInArc && !uiState.arcIsPending
+                val completeLabel = if (isArcActuallyCompletable) "Complete Arc" else "Complete Flow"
+                val completeAction = if (isArcActuallyCompletable) {
+                    FlowEndAction.COMPLETE_ARC
+                } else {
+                    FlowEndAction.SAVE_FLOW
+                }
 
                 Button(
                     enabled = uiState.title.isNotBlank() &&
                             uiState.tagName.isNotBlank() &&
+                            hasTime &&
                             !isSaving &&
                             !isInFlowState,
-                    onClick = {
-                        viewModel.onEndFlowClicked(completeAction)
-                    },
-                    modifier = Modifier.weight(1f)
-                ) { Text(if (isSaving) "Saving..." else completeLabel) }
+                    onClick = { viewModel.onEndFlowClicked(completeAction) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Text(if (isSaving) "Saving..." else completeLabel)
+                }
             }
+
+            Spacer(Modifier.height(10.dp))
         }
     }
 
-    // 🔴 "Are you sure you want to end?" popup (kept as-is)
+    // 🔴 End dialog (kept as-is)
     if (showEndDialog) {
         AlertDialog(
             onDismissRequest = { showEndDialog = false },
@@ -269,22 +303,19 @@ fun FlowScreen(
         )
     }
 
-    // 🟢 Rewards dialog
+    // 🟢 Rewards dialog (unchanged)
     if (showPointsDialog && reward != null) {
         val r = reward!!
-        // local UI toggle: Session Reward → Arc Reward (only when completing arc)
         var showArcSummary by remember(r) { mutableStateOf(false) }
 
         AlertDialog(
             onDismissRequest = { /* locked */ },
-            title = {
-                Text(if (showArcSummary && r.arcSummary != null) "Arc Reward" else "You did it!")
-            },
+            title = { Text(if (showArcSummary && r.arcSummary != null) "Arc Reward" else "You did it!") },
             text = {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 0.75f * LocalConfiguration.current.screenHeightDp.dp) // 👈 prevents infinite height
+                        .heightIn(max = 0.75f * LocalConfiguration.current.screenHeightDp.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
                     if (showArcSummary && r.arcSummary != null) {
@@ -303,32 +334,25 @@ fun FlowScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        // if arc summary exists, "Next" shows it first
                         if (r.arcSummary != null && !showArcSummary) {
                             showArcSummary = true
                         } else {
                             showPointsDialog = false
-                            // ✅ Continue Arc: now "open another flow"
                             if (awaitingNextFlow) {
                                 viewModel.beginNextFlowAfterContinue()
                             } else {
                                 viewModel.clearLastReward()
-                                // ✅ If this reward was for COMPLETE_ARC, now exit
-                                if (exitAfterReward && viewModel.consumeExitAfterReward()) {
-                                    onDone()
-                                }
+                                if (exitAfterReward && viewModel.consumeExitAfterReward()) onDone()
                             }
                         }
                     }
-                ) {
-                    Text(if (r.arcSummary != null && !showArcSummary) "Next" else "Done")
-                }
+                ) { Text(if (r.arcSummary != null && !showArcSummary) "Next" else "Done") }
             },
             dismissButton = {}
         )
     }
 
-    // Surge dialog
+    // Surge dialog (kept)
     if (showSurgeDialog) {
         val locked = viewModel.isSurgeLocked()
         val currentMinutes = (uiState.surgePlannedMs ?: 0L) / 60_000L
@@ -352,9 +376,7 @@ fun FlowScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        if (uiState.isSurgeOn) {
-                            Text("Current: $currentMinutes min")
-                        }
+                        if (uiState.isSurgeOn) Text("Current: $currentMinutes min")
                     }
                 }
             },
@@ -382,6 +404,515 @@ fun FlowScreen(
         )
     }
 }
+
+@Composable
+private fun RitualFrame(
+    rotation: Float,
+    corner: Dp,
+    contentPadding: PaddingValues = PaddingValues(16.dp),
+    showBorder: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val stroke = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { rotationZ = rotation },
+        shape = RoundedCornerShape(corner),
+        tonalElevation = 0.dp,      // ✅ no “card” elevation feel
+        shadowElevation = 0.dp,
+        color = Color.Transparent   // ✅ transparent background
+    ) {
+        Column(
+            modifier = Modifier
+                .then(
+                    if (showBorder) Modifier.border(1.dp, stroke, RoundedCornerShape(corner))
+                    else Modifier
+                )
+                .padding(contentPadding),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            content = content
+        )
+    }
+}
+
+/* ---------------------------------------------------------
+   DESIGN BUILDING BLOCKS
+   --------------------------------------------------------- */
+
+@Composable
+private fun RitualCard(
+    rotation: Float,
+    corner: Dp,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val stroke = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { rotationZ = rotation },
+        shape = RoundedCornerShape(corner),
+        tonalElevation = 2.dp,
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            modifier = Modifier
+                .border(1.dp, stroke, RoundedCornerShape(corner))
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            content = content
+        )
+    }
+}
+
+@Composable
+private fun GrandTitleField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = TextFieldDefaults.colors(
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
+        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
+        focusedIndicatorColor = Color.Transparent,
+        unfocusedIndicatorColor = Color.Transparent,
+        disabledIndicatorColor = Color.Transparent,
+        cursorColor = MaterialTheme.colorScheme.tertiary
+    )
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Set the tone…",
+            style = MaterialTheme.typography.labelLarge.copy(
+                letterSpacing = 0.6.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
+            ),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp)
+        )
+
+        TextField(
+            value = value,
+            onValueChange = { onValueChange(it.take(60)) },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = {
+                Text(
+                    text = "It begins here.",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontFamily = FontFamily.Cursive,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f)
+                )
+            },
+            shape = RoundedCornerShape(28.dp),
+            singleLine = true,
+            textStyle = MaterialTheme.typography.headlineSmall.copy(
+                fontFamily = FontFamily.Cursive,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                letterSpacing = 0.2.sp
+            ),
+            colors = colors
+        )
+    }
+}
+
+@Composable
+private fun JourneyLean(
+    tags: List<TagEntity>,
+    tagName: String,
+    onTagClicked: (TagEntity) -> Unit,
+    onTagNameChange: (String) -> Unit
+) {
+    Text(
+        text = if (tags.size > 1) "Journeys" else "Journey",
+        style = MaterialTheme.typography.labelLarge.copy(
+            letterSpacing = 0.6.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center
+        ),
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 10.dp)
+    )
+
+    val cleanTags = remember(tags) { tags.filter { it.name.isNotBlank() } }
+    if (cleanTags.isNotEmpty()) {
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 6.dp)
+        ) {
+            items(items = cleanTags, key = { it.id }) { tag ->
+                AssistChip(
+                    onClick = { onTagClicked(tag) },
+                    label = { Text(tag.name) }
+                )
+            }
+        }
+    }
+
+    val colors = TextFieldDefaults.colors(
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
+        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.36f),
+        focusedIndicatorColor = Color.Transparent,
+        unfocusedIndicatorColor = Color.Transparent
+    )
+
+    TextField(
+        value = tagName,
+        onValueChange = onTagNameChange,
+        modifier = Modifier.fillMaxWidth(),
+        placeholder = { Text(
+            text = "Start a new journey…",
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontFamily = FontFamily.Cursive,
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f)) },
+        shape = RoundedCornerShape(999.dp),
+        singleLine = true,
+        textStyle = MaterialTheme.typography.headlineSmall.copy(
+            fontFamily = FontFamily.Cursive,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            letterSpacing = 0.2.sp
+        ),
+        colors = colors
+    )
+}
+
+@Composable
+private fun ChronicleField(
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    Text(
+        text = "Write your story",
+        style = MaterialTheme.typography.labelLarge.copy(
+            letterSpacing = 0.6.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Start
+        ),
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 10.dp)
+    )
+
+    val colors = TextFieldDefaults.colors(
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f),
+        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+        focusedIndicatorColor = Color.Transparent,
+        unfocusedIndicatorColor = Color.Transparent
+    )
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        tonalElevation = 1.dp,
+        color = Color.Transparent
+    ) {
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+                    shape = RoundedCornerShape(28.dp)
+                ),
+            placeholder = {
+                Text(
+                    "Wins, friction, lessons, next moves…",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Start,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontFamily = FontFamily.Cursive,
+                        fontWeight = FontWeight.Normal
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f)
+                )
+            },
+
+            // ✅ THIS makes typed text cursive
+            textStyle = MaterialTheme.typography.headlineSmall.copy(
+                fontFamily = FontFamily.Cursive,
+                fontWeight = FontWeight.Thin,
+                letterSpacing = 0.2.sp,
+                lineHeight = 30.sp
+            ),
+
+            minLines = 6,
+            shape = RoundedCornerShape(28.dp),
+            colors = colors
+        )
+    }
+}
+
+@Composable
+private fun ArcPill(
+    arcMultiplier: Double,
+    arcNextIndex: Int?
+) {
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("🔥")
+            Spacer(Modifier.width(8.dp))
+            Text("Arc Active", fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.width(10.dp))
+            Text(
+                "×${"%.1f".format(arcMultiplier)}",
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            arcNextIndex?.let {
+                Spacer(Modifier.width(10.dp))
+                Text("Now: Flow $it", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+    }
+}
+
+/**
+ * Surge (Option A: two-row):
+ * - Wrap-content pill so it can truly sit on the right.
+ * - Discreet when OFF.
+ * - Toggle disabled once Flow is entered OR locked.
+ * - Countdown while Flow active.
+ * - Long-press opens dialog.
+ */
+@Composable
+private fun SurgeMiniControl(
+    modifier: Modifier = Modifier,
+    isInFlow: Boolean,
+    elapsedMs: Long,
+    locked: Boolean,
+    isSurgeOn: Boolean,
+    plannedMs: Long?,
+    minutesInline: String,
+    onMinutesChange: (String) -> Unit,
+    onCommit: () -> Unit,
+    onToggleOff: () -> Unit,
+    onLongPress: () -> Unit
+) {
+    var pendingOn by rememberSaveable { mutableStateOf(false) }
+    var isEditing by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(isSurgeOn) {
+        if (isSurgeOn) pendingOn = false
+        if (!isSurgeOn && !pendingOn) isEditing = false
+    }
+
+    val effectiveOn = isSurgeOn || pendingOn
+    val toggleEnabled = !isInFlow && !locked
+
+    val planned = plannedMs
+    val remainingMs = if (planned != null) (planned - elapsedMs).coerceAtLeast(0L) else null
+    val completed = isInFlow && planned != null && remainingMs == 0L
+
+    LaunchedEffect(effectiveOn, plannedMs, toggleEnabled) {
+        if (effectiveOn && toggleEnabled && plannedMs == null) isEditing = true
+    }
+
+    // ✅ Auto-revert if user toggled Surge ON but never set minutes
+    LaunchedEffect(isEditing, plannedMs, pendingOn) {
+        if (!isEditing && pendingOn && plannedMs == null) {
+            pendingOn = false
+            onToggleOff()
+        }
+    }
+
+    val isOff = !effectiveOn
+
+    val stroke = if (isOff)
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f)
+    else
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+
+    val containerColor = when {
+        completed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+        effectiveOn -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)
+        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.12f)
+    }
+
+    val outerShape = RoundedCornerShape(if (isOff) 999.dp else 18.dp)
+    val contentHPad = if (isOff) 10.dp else 12.dp
+    val contentVPad = if (isOff) 6.dp else 10.dp
+    val rowSpacing = if (isOff) 6.dp else 10.dp
+
+    val offTrack = MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f)
+    val offThumb = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+
+    Surface(
+        modifier = modifier
+            .wrapContentWidth()
+            .combinedClickable(
+                onClick = {
+                    if (effectiveOn && toggleEnabled && !isInFlow) isEditing = true
+                },
+                onLongClick = { onLongPress() }
+            )
+            .border(1.dp, stroke, outerShape),
+        shape = outerShape,
+        tonalElevation = 1.dp,
+        color = containerColor
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = contentHPad, vertical = contentVPad),
+            verticalArrangement = Arrangement.spacedBy(rowSpacing)
+        ) {
+            // Row 1: label + status + toggle (WRAP CONTENT — no fillMaxWidth)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("⚡")
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = "Surge",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (isOff) FontWeight.Medium else FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isOff) 0.70f else 1f)
+                )
+
+                Spacer(Modifier.width(10.dp))
+
+                // Status text: remove the awkward branch
+                val statusText = when {
+                    completed -> "Complete"
+                    planned != null && elapsedMs > 0L && remainingMs != null -> formatMsAsMmSs(remainingMs)
+                    planned != null -> "${planned / 60_000L} min"
+                    else -> ""
+                }
+
+                if (statusText.isNotBlank()) {
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
+                    )
+                }
+
+                Spacer(Modifier.width(10.dp))
+
+                Switch(
+                    checked = effectiveOn,
+                    onCheckedChange = { checked ->
+                        if (!toggleEnabled) return@Switch
+
+                        if (checked) {
+                            pendingOn = true
+                            if (plannedMs == null) isEditing = true
+                        } else {
+                            pendingOn = false
+                            isEditing = false
+                            onToggleOff()
+                        }
+                    },
+                    enabled = toggleEnabled,
+                    colors = SwitchDefaults.colors(
+                        uncheckedTrackColor = offTrack,
+                        uncheckedThumbColor = offThumb
+                    )
+                )
+            }
+
+            // Row 2: editor (only when editing) — still wrap-content
+            AnimatedVisibility(visible = effectiveOn && toggleEnabled && isEditing && !isInFlow) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = minutesInline,
+                        onValueChange = { raw ->
+                            onMinutesChange(raw.filter(Char::isDigit).take(3))
+                        },
+                        modifier = Modifier
+                            .width(88.dp)
+                            .height(48.dp),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        placeholder = {
+                            Text(
+                                text = "0",
+                                style = MaterialTheme.typography.labelLarge.copy(textAlign = TextAlign.Center),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        },
+                        textStyle = MaterialTheme.typography.labelLarge.copy(
+                            textAlign = TextAlign.Center,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        shape = RoundedCornerShape(999.dp)
+                    )
+
+                    Spacer(Modifier.width(8.dp))
+
+                    Text(
+                        text = "mins",
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                        )
+                    )
+
+                    Spacer(Modifier.width(10.dp))
+
+                    val minsValid = minutesInline.toIntOrNull()?.let { it > 0 } == true
+
+                    Surface(
+                        onClick = {
+                            if (minsValid) {
+                                onCommit()
+                                isEditing = false
+                            }
+                        },
+                        shape = RoundedCornerShape(999.dp),
+                        tonalElevation = if (minsValid) 2.dp else 0.dp,
+                        color = if (minsValid)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Text(
+                            text = "Set",
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (minsValid)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ---------------------------------------------------------
+   YOUR EXISTING REWARD UI + HELPERS (UNCHANGED)
+   --------------------------------------------------------- */
 
 @Composable
 private fun ArcSummaryContent(
@@ -453,9 +984,7 @@ private fun SessionRewardContent(
         if (isAera) {
             RewardCard(title = "Session details", subtitle = "Time only") {
                 MetricLine("Total time", "${r.minutes} min", MetricTone.Neutral)
-                if (showBeamUi) {
-                    MetricLine("Time in Beam ⭐", formatMsAsMmSs(r.beamEligibleMs), MetricTone.Glow)
-                }
+                if (showBeamUi) MetricLine("Time in Beam ⭐", formatMsAsMmSs(r.beamEligibleMs), MetricTone.Glow)
             }
             return
         }
@@ -485,7 +1014,9 @@ private fun SessionRewardContent(
                 if (r.sixtyMinuteBonuses > 0) BonusLine("60-minute bonus", r.sixtyMinuteBonuses, 50)
             }
 
-            val showArcUi = r.arcBonusPoints > 0 || (r.arcMultiplierUsed != null)
+            val showArcUi =
+                (r.arcIndexInArc ?: 0) >= 2 && (r.arcBonusPoints > 0 || r.arcMultiplierUsed != null)
+
             if (showArcUi) {
                 DividerSoft()
                 Text(
@@ -534,35 +1065,6 @@ private fun SessionRewardContent(
 }
 
 @Composable
-fun TagSuggestionRow(
-    tags: List<TagEntity>,
-    onTagClicked: (TagEntity) -> Unit
-) {
-    val cleanTags = remember(tags) { tags.filter { it.name.isNotBlank() } }
-    if (cleanTags.isEmpty()) return
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text("Continue an existing journey", style = MaterialTheme.typography.labelSmall)
-
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(horizontal = 8.dp)
-        ) {
-            items(items = cleanTags, key = { it.id }) { tag ->
-                AssistChip(
-                    onClick = { onTagClicked(tag) },
-                    label = { Text(tag.name) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun StopwatchSection(
     state: StopwatchState,
     viewModel: FlowViewModel
@@ -577,7 +1079,9 @@ private fun StopwatchSection(
 
         Text(
             text = formatElapsed(state.elapsedMs),
-            style = MaterialTheme.typography.headlineMedium
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -661,7 +1165,6 @@ private fun RewardChipRowV2(
         }
 
         RewardChip(text = "🔥 +$totalScyra")
-
         if (showBeamUi) RewardChip(text = "⭐ +$beamBonusPoints")
         if (surgePoints > 0) RewardChip(text = "⚡ +$surgePoints")
     }

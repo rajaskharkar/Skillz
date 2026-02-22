@@ -45,9 +45,10 @@ data class FlowUiState(
 
     // ✅ ARC UI
     val isInArc: Boolean = false,
-    val arcMultiplier: Double? = null,   // multiplier for NEXT session (if in arc)
-    val arcProgressMs: Long = 0L,        // progress bank toward next +0.1
-    val arcNextIndex: Int? = null        // next session index if you end now
+    val arcIsPending: Boolean = false,     // ✅ ADD: pending until session #2
+    val arcMultiplier: Double? = null,     // multiplier for NEXT session (if in arc)
+    val arcProgressMs: Long = 0L,          // progress bank toward next +0.1 (currently unused)
+    val arcNextIndex: Int? = null          // next session index if you end now
 )
 
 data class FlowRewardUiModel(
@@ -63,13 +64,12 @@ data class FlowRewardUiModel(
     val surgePoints: Int,
 
     // ✅ ARC
+    val arcIndexInArc: Int? = null,
     val arcMultiplierUsed: Double? = null,
     val arcBonusPoints: Int = 0,
     val arcNextMultiplier: Double? = null,
     val arcProgressTowardNextMs: Long = 0L,
     val arcDidLevelUp: Boolean = false,
-
-    // ✅ Only when completing arc
     val arcSummary: ArcSummaryUiModel? = null
 )
 
@@ -125,8 +125,8 @@ class FlowViewModel @Inject constructor(
     /**
      * ✅ Continue Arc UX:
      * - When Continue Arc is clicked, we save + set lastReward
-     * - UI should show reward dialog
-     * - When dialog is closed, FlowScreen should call beginNextFlowAfterContinue()
+     * - UI shows reward dialog
+     * - When dialog closes, FlowScreen calls beginNextFlowAfterContinue()
      */
     private val _awaitingNextFlowAfterContinue = MutableStateFlow(false)
     val awaitingNextFlowAfterContinue: StateFlow<Boolean> = _awaitingNextFlowAfterContinue.asStateFlow()
@@ -155,12 +155,6 @@ class FlowViewModel @Inject constructor(
     // ARC runtime
     private var arcState: ArcRuntimeState? = null
 
-
-    private fun isArcExpired(nowMs: Long, state: ArcRuntimeState): Boolean {
-        val delta = nowMs - state.lastSessionEndTimeMs
-        return delta > ArcRules.GRACE_WINDOW_MS
-    }
-
     private val _exitAfterReward = MutableStateFlow(false)
     val exitAfterReward: StateFlow<Boolean> = _exitAfterReward.asStateFlow()
 
@@ -170,41 +164,49 @@ class FlowViewModel @Inject constructor(
         return shouldExit
     }
 
-    /**
-     * Arc rule:
-     * - multiplier increases by +0.1 only when completed flow duration >= 10 minutes
-     * - shorter flows can be in arc but do not increase multiplier
-     * - only +0.1 max per session
-     */
-    private fun applyArcProgressOnce(
-        currentMultiplier: Double,
-        currentProgressMs: Long,
-        sessionDurationMs: Long
-    ): Triple<Double, Long, Boolean> {
-        if (sessionDurationMs < ArcRules.PROGRESS_STEP_MS) {
-            return Triple(currentMultiplier, currentProgressMs, false)
-        }
+    private fun isArcExpired(nowMs: Long, state: ArcRuntimeState): Boolean {
+        val delta = nowMs - state.lastSessionEndTimeMs
+        return delta > ArcRules.GRACE_WINDOW_MS
+    }
 
-        val newProgress = currentProgressMs + sessionDurationMs
-        return if (newProgress >= ArcRules.PROGRESS_STEP_MS) {
-            Triple(
-                currentMultiplier + ArcRules.STEP,
-                newProgress - ArcRules.PROGRESS_STEP_MS,
-                true
-            )
-        } else {
-            Triple(currentMultiplier, newProgress, false)
-        }
+    private fun isZeroDuration(durationMs: Long): Boolean = durationMs <= 0L
+
+    private fun nextArcMultiplier(chainBase: Double, realDurationMs: Long): Pair<Double, Boolean> {
+        val leveledUp = realDurationMs >= ArcRules.PROGRESS_STEP_MS // 10m+
+        val next = if (leveledUp) chainBase + ArcRules.STEP else chainBase
+        return next to leveledUp
+    }
+
+    /**
+     * ✅ Refresh grace window WITHOUT reviving expired arcs.
+     * This prevents "Arc expires while reward dialog is open", but does not extend beyond grace.
+     */
+    private fun refreshArcGraceWindowNowIfValid() {
+        val s = arcState ?: return
+        val now = System.currentTimeMillis()
+        if (isArcExpired(now, s)) return // do NOT revive expired arcs
+
+        val refreshed = s.copy(lastSessionEndTimeMs = now)
+        arcState = refreshed
+        viewModelScope.launch { arcPrefs.save(refreshed) }
+        syncArcUi()
     }
 
     private fun syncArcUi() {
         val s = arcState
         _uiState.update { old ->
             if (s == null) {
-                old.copy(isInArc = false, arcMultiplier = null, arcProgressMs = 0L, arcNextIndex = null)
+                old.copy(
+                    isInArc = false,
+                    arcIsPending = false,
+                    arcMultiplier = null,
+                    arcProgressMs = 0L,
+                    arcNextIndex = null
+                )
             } else {
                 old.copy(
                     isInArc = true,
+                    arcIsPending = s.isPending,
                     arcMultiplier = s.multiplier,
                     arcProgressMs = s.progressMs,
                     arcNextIndex = s.sessionCountInArc + 1
@@ -215,44 +217,24 @@ class FlowViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            // 1) Restore ongoing session
+            val ongoing = focusSessionRepository.getOngoingSession().firstOrNull()
 
-            // ─────────────────────────────────────────────
-            // 1️⃣ Restore ongoing session FIRST (Room)
-            // ─────────────────────────────────────────────
-            val ongoing = focusSessionRepository
-                .getOngoingSession()
-                .firstOrNull()
-
-            // ─────────────────────────────────────────────
-            // 2️⃣ Restore Arc state
-            // Priority:
-            //    a) From ongoing session (strongest source)
-            //    b) From DataStore (ArcPrefs)
-            // ─────────────────────────────────────────────
-
+            // 2) Restore Arc state (Room beats DataStore)
             if (ongoing?.arcId != null) {
-
-                // ✅ Reconstruct Arc from Room-backed ongoing session
                 arcState = ArcRuntimeState(
                     arcId = ongoing.arcId,
                     isPending = (ongoing.arcSessionCountInArc ?: 0) < 2,
                     multiplier = ongoing.arcChainBase ?: ArcRules.START_MULTIPLIER,
-                    progressMs = 0L, // banking removed
+                    progressMs = 0L, // strict arcs: no banking
                     lastSessionEndTimeMs = ongoing.arcLastSessionEndTimeMs ?: 0L,
                     sessionCountInArc = ongoing.arcSessionCountInArc ?: 0
                 )
-
-                // Persist back to DataStore to keep both sources aligned
                 arcPrefs.save(arcState!!)
-
             } else {
-
-                // Fallback to ArcPrefs
                 arcState = arcPrefs.load()
 
                 val now = System.currentTimeMillis()
-
-                // Expire arc ONLY if no ongoing session exists
                 if (ongoing == null) {
                     arcState?.let { s ->
                         if (isArcExpired(now, s)) {
@@ -263,20 +245,15 @@ class FlowViewModel @Inject constructor(
                 }
             }
 
-            // Sync Arc UI pill state
             syncArcUi()
 
-            // ─────────────────────────────────────────────
-            // 3️⃣ Restore stopwatch state
-            // ─────────────────────────────────────────────
+            // 3) Restore stopwatch
             ongoing?.let { entity ->
-
                 baseStartTimeMs = entity.baseStartTimeMs
                 accumulatedBeforeStartMs = entity.accumulatedBeforeStartMs
 
                 val elapsed = if (entity.isRunning && baseStartTimeMs != null) {
-                    accumulatedBeforeStartMs +
-                            (System.currentTimeMillis() - baseStartTimeMs!!)
+                    accumulatedBeforeStartMs + (System.currentTimeMillis() - baseStartTimeMs!!).coerceAtLeast(0L)
                 } else {
                     accumulatedBeforeStartMs
                 }
@@ -296,9 +273,7 @@ class FlowViewModel @Inject constructor(
                     )
                 }
 
-                if (entity.isRunning) {
-                    startTicker()
-                }
+                if (entity.isRunning) startTicker()
             }
         }
     }
@@ -326,7 +301,6 @@ class FlowViewModel @Inject constructor(
 
     fun startOrResumeStopwatch() {
         if (_uiState.value.stopwatch.isRunning) return
-
         val now = System.currentTimeMillis()
         baseStartTimeMs = now
         _uiState.update { it.copy(stopwatch = it.stopwatch.copy(isRunning = true)) }
@@ -336,7 +310,6 @@ class FlowViewModel @Inject constructor(
 
     fun pauseStopwatch() {
         if (!_uiState.value.stopwatch.isRunning) return
-
         val now = System.currentTimeMillis()
         baseStartTimeMs?.let { base ->
             accumulatedBeforeStartMs += (now - base).coerceAtLeast(0L)
@@ -439,7 +412,7 @@ class FlowViewModel @Inject constructor(
     }
 
     fun clearSurgeIfAllowed() {
-        if (_uiState.value.stopwatch.elapsedMs > 0L) return // locked once time starts
+        if (_uiState.value.stopwatch.elapsedMs > 0L) return
         _uiState.update { it.copy(isSurgeOn = false, surgePlannedMs = null) }
         saveOngoing()
     }
@@ -456,7 +429,6 @@ class FlowViewModel @Inject constructor(
     ): BeamOutcome {
         val beams = beamRepository.getBeamsOverlappingWindow(sessionStart, sessionEnd)
 
-        // ✅ Only beams for this journey/tag AND with real overlap > 0
         val candidates = beams.asSequence()
             .filter { it.tagId == tagId }
             .map { beam ->
@@ -473,7 +445,7 @@ class FlowViewModel @Inject constructor(
 
         val (bestBeam, eligibleMs) = candidates
             .maxWithOrNull(
-                compareBy<Pair<BeamEntity, Long>> { it.second } // overlap
+                compareBy<Pair<BeamEntity, Long>> { it.second }
                     .thenByDescending { -kotlin.math.abs(it.first.startTime - sessionStart) }
             )
             ?: return BeamOutcome()
@@ -512,12 +484,12 @@ class FlowViewModel @Inject constructor(
 
     /**
      * Called by FlowScreen when user closes the reward dialog after CONTINUE_ARC.
-     * This is what "opens another flow."
      */
     fun beginNextFlowAfterContinue() {
         if (!_awaitingNextFlowAfterContinue.value) return
 
         val keepTag = _uiState.value.tagName
+        refreshArcGraceWindowNowIfValid()
         val keepArc = arcState
 
         _lastReward.value = null
@@ -537,6 +509,7 @@ class FlowViewModel @Inject constructor(
             isSurgeOn = false,
             surgePlannedMs = null,
             isInArc = keepArc != null,
+            arcIsPending = keepArc?.isPending ?: false,
             arcMultiplier = keepArc?.multiplier,
             arcProgressMs = keepArc?.progressMs ?: 0L,
             arcNextIndex = keepArc?.let { it.sessionCountInArc + 1 }
@@ -548,9 +521,7 @@ class FlowViewModel @Inject constructor(
     // -------- Arc end actions --------
 
     fun onEndFlowClicked(action: FlowEndAction) {
-        viewModelScope.launch {
-            saveWithArcBehavior(endMode = action)
-        }
+        viewModelScope.launch { saveWithArcBehavior(endMode = action) }
     }
 
     private suspend fun saveWithArcBehavior(endMode: FlowEndAction) {
@@ -564,15 +535,18 @@ class FlowViewModel @Inject constructor(
             return
         }
 
+        val realDurationMs = state.stopwatch.elapsedMs.coerceAtLeast(0L)
+        if (isZeroDuration(realDurationMs)) {
+            _error.value = "Start the timer before saving."
+            return
+        }
+
         _isSaving.value = true
         _error.value = null
 
         try {
-            val realDurationMs = state.stopwatch.elapsedMs.coerceAtLeast(0L)
-            val endTime = System.currentTimeMillis()
-            val realStartTime = (endTime - realDurationMs).coerceAtLeast(0L)
-
-            val startTime = (endTime - realDurationMs).coerceAtLeast(0L)
+            val sessionEnd = System.currentTimeMillis()
+            val sessionStart = (sessionEnd - realDurationMs).coerceAtLeast(0L)
 
             val tagId = tagRepository.getOrCreateTagId(tagName)
 
@@ -584,20 +558,18 @@ class FlowViewModel @Inject constructor(
             val breakdown = ScoreCalculator.breakdownFromDuration(realDurationMs)
             val baseScyra = breakdown.totalPoints
 
-
             val beam = computeBeamOutcomeForSession(
                 tagId = tagId,
-                sessionStart = startTime,
-                sessionEnd = endTime,
+                sessionStart = sessionStart,
+                sessionEnd = sessionEnd,
                 sessionDurationMs = realDurationMs
             )
 
             val beforeArc = baseScyra + beam.bonusPoints
 
             // expire arc if grace exceeded
-            val now = endTime
             var localArc = arcState
-            if (localArc != null && isArcExpired(now, localArc)) {
+            if (localArc != null && isArcExpired(sessionEnd, localArc)) {
                 arcPrefs.clear()
                 localArc = null
                 arcState = null
@@ -605,14 +577,14 @@ class FlowViewModel @Inject constructor(
 
             val isInExistingArc = (localArc != null)
 
-            // If Continue Arc with no arc yet: create arc with session #1 at multiplier 1.0
+            // If Continue Arc with no arc yet: create arc with session #1 at multiplier 1.0 (used), next base = 1.3
             if (!isInExistingArc && endMode == FlowEndAction.CONTINUE_ARC) {
                 val sessionId1 = sessionRepository.addSession(
                     title = title,
                     description = description,
                     tagId = tagId,
-                    startTime = realStartTime,
-                    endTime = endTime,
+                    startTime = sessionStart,
+                    endTime = sessionEnd,
                     durationMs = realDurationMs,
                     surgePlannedMs = state.surgePlannedMs,
                     surgePoints = surgePoints,
@@ -639,12 +611,13 @@ class FlowViewModel @Inject constructor(
                     isPending = true,
                     multiplier = ArcRules.START_MULTIPLIER,
                     progressMs = 0L,
-                    lastSessionEndTimeMs = endTime,
+                    lastSessionEndTimeMs = sessionEnd,
                     sessionCountInArc = 1
                 )
                 arcPrefs.save(arcState!!)
                 syncArcUi()
 
+                // ✅ First flow in arc: do NOT show arc UI in rewards
                 _lastReward.value = FlowRewardUiModel(
                     minutes = breakdown.minutes,
                     baseScyraPoints = baseScyra,
@@ -656,7 +629,8 @@ class FlowViewModel @Inject constructor(
                     beamMultiplier = beam.multiplier,
                     finalScyraPoints = beforeArc,
                     surgePoints = surgePoints,
-                    arcMultiplierUsed = 1.0,
+                    arcIndexInArc = 1,
+                    arcMultiplierUsed = null,
                     arcBonusPoints = 0,
                     arcNextMultiplier = arcState?.multiplier,
                     arcProgressTowardNextMs = arcState?.progressMs ?: 0L,
@@ -680,12 +654,11 @@ class FlowViewModel @Inject constructor(
             var arcIndex: Int? = null
             var arcDidLevelUp = false
             var nextMultiplier: Double? = null
-            var nextProgress: Long = 0L
 
             var finalScyra = beforeArc
 
             if (isInExistingArc) {
-                val s = localArc
+                val s = localArc!!
 
                 arcIndex = s.sessionCountInArc + 1
 
@@ -698,17 +671,22 @@ class FlowViewModel @Inject constructor(
                 arcMultiplierUsed = res.arcMultiplierUsed
                 arcBonusPoints = res.arcBonusPoints
                 finalScyra = res.finalPoints
-                arcDidLevelUp = res.didLevelUp
-                nextMultiplier = res.nextChainBase
-                nextProgress = 0L
+
+                // ✅ enforce leveling rule here (source of truth)
+                val (forcedNext, forcedDidLevel) = nextArcMultiplier(
+                    chainBase = s.multiplier,
+                    realDurationMs = realDurationMs
+                )
+                arcDidLevelUp = forcedDidLevel
+                nextMultiplier = forcedNext
             }
 
             val insertedId = sessionRepository.addSession(
                 title = title,
                 description = description,
                 tagId = tagId,
-                startTime = startTime,
-                endTime = endTime,
+                startTime = sessionStart,
+                endTime = sessionEnd,
                 durationMs = realDurationMs,
                 surgePlannedMs = state.surgePlannedMs,
                 surgePoints = surgePoints,
@@ -720,7 +698,7 @@ class FlowViewModel @Inject constructor(
             )
 
             if (isInExistingArc) {
-                val s = localArc ?: return  // or handle gracefully
+                val s = localArc!!
 
                 sessionRepository.updateArcFields(
                     sessionId = insertedId,
@@ -737,7 +715,7 @@ class FlowViewModel @Inject constructor(
                     isPending = newCount < 2,
                     multiplier = nextMultiplier ?: s.multiplier,
                     progressMs = 0L,
-                    lastSessionEndTimeMs = endTime,
+                    lastSessionEndTimeMs = sessionEnd,
                     sessionCountInArc = newCount
                 )
 
@@ -756,6 +734,7 @@ class FlowViewModel @Inject constructor(
                 beamMultiplier = beam.multiplier,
                 finalScyraPoints = finalScyra,
                 surgePoints = surgePoints,
+                arcIndexInArc = arcIndex,
                 arcMultiplierUsed = arcMultiplierUsed,
                 arcBonusPoints = arcBonusPoints,
                 arcNextMultiplier = arcState?.multiplier,
@@ -795,7 +774,7 @@ class FlowViewModel @Inject constructor(
 
                 FlowEndAction.SAVE_FLOW -> {
                     _lastReward.value = baseReward
-                    _exitAfterReward.value = true   // ✅ wait for dialog dismissal
+                    _exitAfterReward.value = true
 
                     if (arcState != null) {
                         arcPrefs.clear()
@@ -827,22 +806,4 @@ class FlowViewModel @Inject constructor(
             _isSaving.value = false
         }
     }
-}
-
-private fun arcTierExtra(durationMs: Long): Double {
-    // tiers are based on *this flow's* duration only; never persisted
-    return when {
-        durationMs < ArcRules.PROGRESS_STEP_MS -> 0.0                 // < 10m
-        durationMs < 20 * 60_000L -> 0.0                              // 10–19m
-        durationMs < 40 * 60_000L -> 0.1                              // 20–39m
-        durationMs < 60 * 60_000L -> 0.2                              // 40–59m
-        durationMs < 90 * 60_000L -> 0.3                              // 60–89m
-        else -> 0.4                                                   // 90m+
-    }
-}
-
-private fun nextChainBaseAfterFlow(chainBaseUsed: Double, durationMs: Long): Pair<Double, Boolean> {
-    val leveledUp = durationMs >= ArcRules.PROGRESS_STEP_MS           // >= 10m qualifies
-    val next = if (leveledUp) chainBaseUsed + ArcRules.STEP else chainBaseUsed
-    return next to leveledUp
 }
