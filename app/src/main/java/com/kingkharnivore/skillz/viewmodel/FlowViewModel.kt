@@ -70,8 +70,6 @@ data class FlowRewardUiModel(
     val arcNextMultiplier: Double? = null,
     val arcProgressTowardNextMs: Long = 0L,
     val arcDidLevelUp: Boolean = false,
-
-    // ✅ Only when completing arc
     val arcSummary: ArcSummaryUiModel? = null
 )
 

@@ -4,7 +4,6 @@ package com.kingkharnivore.skillz.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,11 +58,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
 import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
@@ -147,7 +148,7 @@ fun FlowScreen(
             }
 
             // 3) Core — timer center + reset near + enter flow + surge (small/right)
-            RitualCard(rotation = -0.08f, corner = 32.dp) {
+            RitualFrame(rotation = -0.08f, corner = 32.dp, showBorder = false) {
 
                 if (uiState.isInArc && uiState.arcMultiplier != null) {
                     ArcPill(
@@ -407,6 +408,39 @@ fun FlowScreen(
     }
 }
 
+@Composable
+private fun RitualFrame(
+    rotation: Float,
+    corner: Dp,
+    contentPadding: PaddingValues = PaddingValues(16.dp),
+    showBorder: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val stroke = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { rotationZ = rotation },
+        shape = RoundedCornerShape(corner),
+        tonalElevation = 0.dp,      // ✅ no “card” elevation feel
+        shadowElevation = 0.dp,
+        color = Color.Transparent   // ✅ transparent background
+    ) {
+        Column(
+            modifier = Modifier
+                .then(
+                    if (showBorder) Modifier.border(1.dp, stroke, RoundedCornerShape(corner))
+                    else Modifier
+                )
+                .padding(contentPadding),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            content = content
+        )
+    }
+}
+
 /* ---------------------------------------------------------
    DESIGN BUILDING BLOCKS
    --------------------------------------------------------- */
@@ -441,29 +475,62 @@ private fun RitualCard(
 @Composable
 private fun GrandTitleField(
     value: String,
-    onValueChange: (String) -> Unit
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val colors = TextFieldDefaults.colors(
-        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f),
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
+        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
         focusedIndicatorColor = Color.Transparent,
         unfocusedIndicatorColor = Color.Transparent,
-        disabledIndicatorColor = Color.Transparent
+        disabledIndicatorColor = Color.Transparent,
+        cursorColor = MaterialTheme.colorScheme.tertiary
     )
 
-    TextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text("Dive in…", textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
-        shape = RoundedCornerShape(32.dp),
-        singleLine = true,
-        textStyle = MaterialTheme.typography.headlineSmall.copy(
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        ),
-        colors = colors
-    )
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Set the tone…",
+            style = MaterialTheme.typography.labelLarge.copy(
+                letterSpacing = 0.6.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
+            ),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp)
+        )
+
+        TextField(
+            value = value,
+            onValueChange = { onValueChange(it.take(60)) },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = {
+                Text(
+                    text = "It begins here.",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontFamily = FontFamily.Cursive,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f)
+                )
+            },
+            shape = RoundedCornerShape(28.dp),
+            singleLine = true,
+            textStyle = MaterialTheme.typography.headlineSmall.copy(
+                fontFamily = FontFamily.Cursive,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                letterSpacing = 0.2.sp
+            ),
+            colors = colors
+        )
+    }
 }
 
 @Composable
@@ -475,10 +542,15 @@ private fun JourneyLean(
 ) {
     Text(
         text = if (tags.size > 1) "Journeys" else "Journey",
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Medium,
-        modifier = Modifier.fillMaxWidth(),
-        textAlign = TextAlign.Center
+        style = MaterialTheme.typography.labelLarge.copy(
+            letterSpacing = 0.6.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center
+        ),
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 10.dp)
     )
 
     val cleanTags = remember(tags) { tags.filter { it.name.isNotBlank() } }
@@ -508,10 +580,23 @@ private fun JourneyLean(
         value = tagName,
         onValueChange = onTagNameChange,
         modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text("Start a new journey…", textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
+        placeholder = { Text(
+            text = "Start a new journey…",
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontFamily = FontFamily.Cursive,
+                fontWeight = FontWeight.SemiBold
+            ),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f)) },
         shape = RoundedCornerShape(999.dp),
         singleLine = true,
-        textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center),
+        textStyle = MaterialTheme.typography.headlineSmall.copy(
+            fontFamily = FontFamily.Cursive,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            letterSpacing = 0.2.sp
+        ),
         colors = colors
     )
 }
@@ -523,10 +608,15 @@ private fun ChronicleField(
 ) {
     Text(
         text = "Write your story",
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Medium,
-        modifier = Modifier.fillMaxWidth(),
-        textAlign = TextAlign.Center
+        style = MaterialTheme.typography.labelLarge.copy(
+            letterSpacing = 0.6.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Start
+        ),
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 10.dp)
     )
 
     val colors = TextFieldDefaults.colors(
@@ -552,7 +642,27 @@ private fun ChronicleField(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
                     shape = RoundedCornerShape(28.dp)
                 ),
-            placeholder = { Text("Wins, friction, lessons, next move…") },
+            placeholder = {
+                Text(
+                    "Wins, friction, lessons, next moves…",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Start,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontFamily = FontFamily.Cursive,
+                        fontWeight = FontWeight.Normal
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f)
+                )
+            },
+
+            // ✅ THIS makes typed text cursive
+            textStyle = MaterialTheme.typography.headlineSmall.copy(
+                fontFamily = FontFamily.Cursive,
+                fontWeight = FontWeight.Thin,
+                letterSpacing = 0.2.sp,
+                lineHeight = 30.sp
+            ),
+
             minLines = 6,
             shape = RoundedCornerShape(28.dp),
             colors = colors
