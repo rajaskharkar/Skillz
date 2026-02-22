@@ -22,10 +22,35 @@ class NotepadRepository @Inject constructor(
     // ✅ Brand-y default only if key is missing (fresh install / never saved)
     private val DEFAULT_WELCOME_HTML: String =
         """
-        <p><b>Hi! Welcome to Scyra.</b> ✨</p>
-        <p>This is your <b>Flow Log</b> — a place to capture thoughts, intentions, and tiny wins while you Flow.</p>
-        <p>Start anywhere. Write freely. Scyra will remember.</p>
-        """.trimIndent()
+<h1>Hi! Welcome to Scyra!</h1>
+
+<br/>
+
+<h2>SkratchPad</h2>
+
+<br/>
+
+<p>
+This is your SkratchPad — a place to plan your next Flow,
+capture your thoughts, and record the progress you earn.
+</p>
+
+<br/>
+
+<p>
+Sketch what’s ahead.
+Reflect on what’s done.
+</p>
+
+<br/>
+
+<p>
+Write freely.
+Design your focus.
+Build your momentum.
+This is your time.
+</p>
+""".trimIndent()
 
     val notepadTextFlow: Flow<String> =
         dataStore.data

@@ -234,6 +234,26 @@ fun NotepadScreen(
         val (html, meta) = splitPersisted(persisted)
         suppressHistory = true
         state.setHtml(html)
+        if (html.contains("Hi! Welcome to Scyra!")) {
+            suppressHistory = true
+
+            // H1 line → make cursive
+            val text = state.annotatedString.text
+            val h1Start = text.indexOf("Hi! Welcome to Scyra!")
+            if (h1Start >= 0) {
+                state.selection = TextRange(h1Start, h1Start + "Hi! Welcome to Scyra!".length)
+                state.toggleSpanStyle(SpanStyle(fontFamily = FontFamily.Cursive))
+            }
+
+            // Flow Log → mono
+            val h2Start = text.indexOf("SkratchPad")
+            if (h2Start >= 0) {
+                state.selection = TextRange(h2Start, h2Start + "SkratchPad".length)
+                state.toggleSpanStyle(SpanStyle(fontFamily = FontFamily.Monospace))
+            }
+
+            suppressHistory = false
+        }
         scope.launch {
             // Let editor apply HTML first
             delay(30)
@@ -325,6 +345,26 @@ fun NotepadScreen(
 
         val (html, meta) = splitPersisted(text)
         state.setHtml(html)
+        if (html.contains("Hi! Welcome to Scyra!")) {
+            suppressHistory = true
+
+            // H1 line → make cursive
+            val text = state.annotatedString.text
+            val h1Start = text.indexOf("Hi! Welcome to Scyra!")
+            if (h1Start >= 0) {
+                state.selection = TextRange(h1Start, h1Start + "Hi! Welcome to Scyra!".length)
+                state.toggleSpanStyle(SpanStyle(fontFamily = FontFamily.Cursive))
+            }
+
+            // SkratchPad → mono
+            val h2Start = text.indexOf("SkratchPad")
+            if (h2Start >= 0) {
+                state.selection = TextRange(h2Start, h2Start + "SkratchPad".length)
+                state.toggleSpanStyle(SpanStyle(fontFamily = FontFamily.Monospace))
+            }
+
+            suppressHistory = false
+        }
         history.resetWith(buildPersisted(html, meta ?: FontMeta()))
 
         delay(40)
