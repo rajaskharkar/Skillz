@@ -28,6 +28,8 @@ animationCore = "1.10.0"
 foundation = "1.10.0"
 uiUnit = "1.10.1"
 uiGraphics = "1.10.1"
+ui = "1.10.3"
+appcompat = "1.7.1"
 
 [libraries]
 androidx-activity-compose-v193 = { module = "androidx.activity:activity-compose", version.ref = "activityComposeVersion" }
@@ -66,6 +68,8 @@ androidx-compose-animation-core = { group = "androidx.compose.animation", name =
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
 androidx-compose-ui-unit = { group = "androidx.compose.ui", name = "ui-unit", version.ref = "uiUnit" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

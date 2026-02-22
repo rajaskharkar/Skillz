@@ -37,6 +37,7 @@ fun SkillzHomeScreen(
     isFlowModeOn: Boolean
 ) {
     val notepadText by notepadViewModel.notepadText.collectAsState()
+    val docFont by notepadViewModel.notepadDocFont.collectAsState()
     val atlasState by atlasViewModel.uiState.collectAsState()
 
     val pagerState = rememberPagerState(

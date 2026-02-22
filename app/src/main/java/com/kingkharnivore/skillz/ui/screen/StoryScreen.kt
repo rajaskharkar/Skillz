@@ -6,6 +6,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -18,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
@@ -26,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -36,6 +39,7 @@ import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.FlowListItemUiModel
 import com.kingkharnivore.skillz.data.model.entity.FlowListUiState
 import com.kingkharnivore.skillz.data.model.entity.Journey7dStatUiModel
+import com.kingkharnivore.skillz.ui.theme.CaveatSemiBold
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 import com.kingkharnivore.skillz.utils.time.TimeWindowUtils
 import com.kingkharnivore.skillz.utils.time.formatDuration
@@ -940,17 +944,27 @@ private fun FlowCard(
                     }
 
                     if (showSurgeStat) {
-                        Text(
-                            text = "+${session.surgePoints}",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.secondary
+                        val dark = isSystemInDarkTheme()
+
+                        // Readable in light mode, still "surge-y" in dark mode
+                        val surgeTint = lerp(
+                            MaterialTheme.colorScheme.onSurface,
+                            MaterialTheme.colorScheme.secondary,
+                            if (dark) 0.75f else 0.45f
                         )
-                        Text(
-                            text = "Surge",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.60f)
-                        )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "⚡ +${session.surgePoints}",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = surgeTint
+                            )
+                        }
+
                         Spacer(Modifier.height(6.dp))
                     }
 
@@ -1515,11 +1529,13 @@ fun ScoreDisplay(
 
             Text(
                 text = when (period) {
-                    StoryPeriod.DAY -> "Today"
-                    StoryPeriod.WEEK -> "This view"
-                    StoryPeriod.MONTH -> "This view"
+                    StoryPeriod.DAY -> "Scyra Score"
+                    StoryPeriod.WEEK -> "This week"
+                    StoryPeriod.MONTH -> "This month"
                 },
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontFamily = CaveatSemiBold
+                ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

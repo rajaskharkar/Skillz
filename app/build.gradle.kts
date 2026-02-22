@@ -91,6 +91,8 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.ui.unit)
     implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.appcompat)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
@@ -102,6 +104,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.kotlinx.datetime)
+    implementation("com.mohamedrejeb.richeditor:richeditor-compose:1.0.0-rc13")
 
     implementation(libs.compose)
     implementation(libs.compose.m3)

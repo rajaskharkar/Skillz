@@ -23,10 +23,25 @@ class NotepadViewModel @Inject constructor(
                 initialValue = ""
             )
 
+    // 0 default, 1 cursive, 2 mono
+    val notepadDocFont: StateFlow<Int> =
+        repository.notepadDocFontFlow
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = 0
+            )
+
+    // ✅ Option A: no debounce here (UI already debounces)
     fun onTextChanged(newText: String) {
-        // simple version: save on every change
         viewModelScope.launch {
             repository.saveNotepadText(newText)
+        }
+    }
+
+    fun onDocFontChanged(font: Int) {
+        viewModelScope.launch {
+            repository.saveNotepadDocFont(font)
         }
     }
 }
