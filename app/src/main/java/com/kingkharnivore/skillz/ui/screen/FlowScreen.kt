@@ -92,10 +92,7 @@ fun FlowScreen(
     var showEndDialog by remember { mutableStateOf(false) }
     var showPointsDialog by remember { mutableStateOf(false) }
 
-    // Advanced (dialog) minutes input (kept)
     var surgeMinutesInput by remember { mutableStateOf("") }
-
-    // Inline Surge editor (UI-only)
     var surgeMinutesInline by rememberSaveable { mutableStateOf("") }
 
     val stopwatchState = uiState.stopwatch
