@@ -238,8 +238,9 @@ class FlowViewModel @Inject constructor(
                 if (ongoing == null) {
                     arcState?.let { s ->
                         if (isArcExpired(now, s)) {
-                            arcPrefs.clear()
                             arcState = null
+                            syncArcUi()
+                            arcPrefs.clear()
                         }
                     }
                 }
@@ -301,11 +302,27 @@ class FlowViewModel @Inject constructor(
 
     fun startOrResumeStopwatch() {
         if (_uiState.value.stopwatch.isRunning) return
+
+        arcState?.let { s ->
+            val now = System.currentTimeMillis()
+            if (isArcExpired(now, s)) {
+                arcState = null
+                syncArcUi()
+                clearArcPersistedAsync()
+            }
+        }
+
         val now = System.currentTimeMillis()
         baseStartTimeMs = now
         _uiState.update { it.copy(stopwatch = it.stopwatch.copy(isRunning = true)) }
         startTicker()
         saveOngoing()
+    }
+
+    private fun clearArcPersistedAsync() {
+        viewModelScope.launch {
+            arcPrefs.clear()
+        }
     }
 
     fun pauseStopwatch() {
@@ -489,7 +506,7 @@ class FlowViewModel @Inject constructor(
         if (!_awaitingNextFlowAfterContinue.value) return
 
         val keepTag = _uiState.value.tagName
-        refreshArcGraceWindowNowIfValid()
+//        refreshArcGraceWindowNowIfValid()
         val keepArc = arcState
 
         _lastReward.value = null
@@ -568,12 +585,16 @@ class FlowViewModel @Inject constructor(
             val beforeArc = baseScyra + beam.bonusPoints
 
             // expire arc if grace exceeded
+            // ✅ expire arc based on whether it was valid WHEN THIS FLOW STARTED
             var localArc = arcState
-            if (localArc != null && isArcExpired(sessionEnd, localArc)) {
-                arcPrefs.clear()
+            if (localArc != null && isArcExpired(sessionStart, localArc)) {
+                clearArcPersistedAsync()
                 localArc = null
                 arcState = null
+                syncArcUi()
             }
+
+            val arcIdForSummary: Long? = localArc?.arcId
 
             val isInExistingArc = (localArc != null)
 
@@ -744,9 +765,10 @@ class FlowViewModel @Inject constructor(
 
             when (endMode) {
                 FlowEndAction.COMPLETE_ARC -> {
-                    val s = arcState
-                    val summary = if (s != null) {
-                        val arcSessions = sessionRepository.getSessionsForArc(s.arcId)
+
+                    val arcId = arcIdForSummary
+                    val summary = if (arcId != null) {
+                        val arcSessions = sessionRepository.getSessionsForArc(arcId)
                         if (arcSessions.size >= 2) {
                             ArcSummaryUiModel(
                                 totalSessions = arcSessions.size,
@@ -761,7 +783,7 @@ class FlowViewModel @Inject constructor(
                     _lastReward.value = baseReward.copy(arcSummary = summary)
                     _exitAfterReward.value = true
 
-                    arcPrefs.clear()
+                    clearArcPersistedAsync()
                     arcState = null
                     syncArcUi()
 
@@ -777,7 +799,7 @@ class FlowViewModel @Inject constructor(
                     _exitAfterReward.value = true
 
                     if (arcState != null) {
-                        arcPrefs.clear()
+                        clearArcPersistedAsync()
                         arcState = null
                         syncArcUi()
                     }
