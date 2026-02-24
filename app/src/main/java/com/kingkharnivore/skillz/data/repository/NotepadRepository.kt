@@ -23,7 +23,7 @@ class NotepadRepository @Inject constructor(
      * Default doc is pure HTML with inline font families.
      * Avoid runtime "if contains" injection in NotepadScreen (it can desync meta indices).
      */
-    private val DEFAULT_WELCOME_HTML: String =
+    val DEFAULT_WELCOME_HTML: String =
         """
 <h2><span style="font-family: monospace;">SkratchPad</span></h2>
 

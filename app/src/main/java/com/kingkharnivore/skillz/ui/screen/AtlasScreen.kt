@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -49,7 +50,8 @@ fun AtlasScreen(
     onPrevDay: () -> Unit,
     onNextDay: () -> Unit,
     onToday: () -> Unit,
-    onAdvanceDay: (Long) -> Unit
+    onAdvanceDay: (Long) -> Unit,
+    onScheduleBeamClick: () -> Unit,
 ) {
     var selectedBeam by remember { mutableStateOf<BeamBlockUi?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -82,7 +84,8 @@ fun AtlasScreen(
         // For now we can keep it; it's not scroll-nested anymore.
         NowZone(
             now = uiState.now,
-            onStartFlow = onStartFlow
+            onStartFlow = onStartFlow,
+            onScheduleBeamClick = onScheduleBeamClick
         )
 
         val beamsCountLabel = when (uiState.viewMode) {
@@ -194,7 +197,8 @@ private fun BeamDetailsSheetContent(
 @Composable
 private fun NowZone(
     now: NowState,
-    onStartFlow: () -> Unit
+    onStartFlow: () -> Unit,
+    onScheduleBeamClick: () -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
     val b = now.activeBeam
@@ -338,31 +342,43 @@ private fun NowZone(
         } else {
             // No active beam
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(22.dp),
+                modifier = Modifier
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(26.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = cs.surfaceVariant,
-                    contentColor = cs.onSurfaceVariant
+                    containerColor = cs.surface,
+                    contentColor = cs.onSurface
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 18.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                        .padding(horizontal = 22.dp, vertical = 22.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
 
                     Text(
                         text = "ATLAS",
-                        style = MaterialTheme.typography.labelMedium,
-                        letterSpacing = 1.6.sp,
-                        color = cs.onSurfaceVariant.copy(alpha = 0.75f)
+                        style = MaterialTheme.typography.labelSmall,
+                        letterSpacing = 2.2.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = cs.secondary
                     )
 
                     Text(
-                        text = "Your journeys await",
-                        style = MaterialTheme.typography.titleMedium
+                        text = "Create your path. Step forward. Walk it without hesitation.",
+                        fontFamily = FontFamily.Cursive,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        lineHeight = 26.sp,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = cs.onSurface
+                    )
+
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = cs.onSurface.copy(alpha = 0.08f)
                     )
 
                     now.nextBeam?.let { beam ->
@@ -371,10 +387,23 @@ private fun NowZone(
                             modifier = Modifier.fillMaxWidth()
                         )
                     } ?: Text(
-                        text = "No upcoming Beams scheduled",
+                        text = "No upcoming Beams scheduled.\n\nCommit your time. Schedule a Beam.\n\nHonor it and unlock up to a 2× Scyra Score multiplier.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = cs.onSurfaceVariant.copy(alpha = 0.80f)
+                        lineHeight = 20.sp,
+                        color = cs.onSurfaceVariant.copy(alpha = 0.85f)
                     )
+
+                    Button(
+                        onClick = onScheduleBeamClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary
+                        )
+                    ) {
+                        Text("⭐ Schedule a Beam")
+                    }
                 }
             }
         }

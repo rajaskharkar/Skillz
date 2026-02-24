@@ -20,7 +20,7 @@ class NotepadViewModel @Inject constructor(
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = ""
+                initialValue = repository.DEFAULT_WELCOME_HTML
             )
 
     // 0 default, 1 cursive, 2 mono
