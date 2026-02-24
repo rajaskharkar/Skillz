@@ -19,14 +19,17 @@ class NotepadRepository @Inject constructor(
         val NOTEPAD_DOC_FONT = intPreferencesKey("notepad_doc_font") // 0 default, 1 cursive, 2 mono
     }
 
-    // ✅ Brand-y default only if key is missing (fresh install / never saved)
-    private val DEFAULT_WELCOME_HTML: String =
+    /**
+     * Default doc is pure HTML with inline font families.
+     * Avoid runtime "if contains" injection in NotepadScreen (it can desync meta indices).
+     */
+    val DEFAULT_WELCOME_HTML: String =
         """
-<h1>Hi! Welcome to Scyra!</h1>
+<h2><span style="font-family: monospace;">SkratchPad</span></h2>
 
 <br/>
 
-<h2>SkratchPad</h2>
+<h1><span style="font-family: cursive;">Hi! Welcome to Scyra!</span></h1>
 
 <br/>
 
@@ -55,8 +58,6 @@ This is your time.
     val notepadTextFlow: Flow<String> =
         dataStore.data
             .map { prefs ->
-                // If key missing -> default welcome text
-                // If user saved empty string -> keep empty string
                 if (prefs.contains(NOTEPAD_TEXT)) prefs[NOTEPAD_TEXT] ?: ""
                 else DEFAULT_WELCOME_HTML
             }
@@ -68,14 +69,10 @@ This is your time.
             .distinctUntilChanged()
 
     suspend fun saveNotepadText(text: String) {
-        dataStore.edit { prefs ->
-            prefs[NOTEPAD_TEXT] = text
-        }
+        dataStore.edit { prefs -> prefs[NOTEPAD_TEXT] = text }
     }
 
     suspend fun saveNotepadDocFont(font: Int) {
-        dataStore.edit { prefs ->
-            prefs[NOTEPAD_DOC_FONT] = font.coerceIn(0, 2)
-        }
+        dataStore.edit { prefs -> prefs[NOTEPAD_DOC_FONT] = font.coerceIn(0, 2) }
     }
 }

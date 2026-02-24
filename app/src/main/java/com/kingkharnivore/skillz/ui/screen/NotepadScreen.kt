@@ -3,11 +3,14 @@
 package com.kingkharnivore.skillz.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -17,6 +20,7 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -42,8 +46,6 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-enum class ListMode { NONE, BULLET, NUMBERED }
-
 @Stable
 private data class NotepadEditorPrefs(
     val selectionStart: Int = 0,
@@ -56,9 +58,10 @@ private data class NotepadEditorPrefs(
     val sub: Boolean = false,
     val sup: Boolean = false,
 
-    val listMode: Int = 0, // 0 none, 1 bullet, 2 numbered
+    // kept for backward-compat with your saver; lists are removed now
+    val listMode: Int = 0,
 
-    // 0 normal, 1 H1, 2 H2, 3 cursive, 4 mono (UI heuristic only)
+    // 0 normal, 1 H1, 2 H2, 3 cursive, 4 mono
     val preset: Int = 0
 )
 
@@ -109,10 +112,7 @@ fun NotepadScreen(
     val focusRequester = remember { FocusRequester() }
     val scrollState = rememberScrollState()
 
-    var showListMenu by remember { mutableStateOf(false) }
-
     // ---------------- Scyra font meta persistence ----------------
-
     // We store meta inside the persisted string as an HTML comment so it never renders.
     // Example: <!--SCYRA_FONTS:C:0-5,10-12|M:30-40-->
     val META_PREFIX = "<!--SCYRA_FONTS:"
@@ -142,14 +142,12 @@ fun NotepadScreen(
     fun encodeMeta(meta: FontMeta): String {
         fun enc(list: List<IntRange>): String =
             list.joinToString(",") { "${it.first}-${it.last}" }
-
         val c = enc(meta.cursive)
         val m = enc(meta.mono)
         return "C:$c|M:$m"
     }
 
     fun decodeMeta(raw: String): FontMeta {
-        // raw format: C:0-5,10-12|M:30-40
         fun parseRanges(part: String): List<IntRange> {
             val payload = part.substringAfter(":", "")
             if (payload.isBlank()) return emptyList()
@@ -200,9 +198,48 @@ fun NotepadScreen(
         )
     }
 
+    fun applyFamilyToAllOccurrences(needle: String, family: FontFamily) {
+        if (needle.isBlank()) return
+        val txt = state.annotatedString.text
+        var start = 0
+        while (true) {
+            val idx = txt.indexOf(needle, startIndex = start, ignoreCase = false)
+            if (idx < 0) break
+            val endExcl = idx + needle.length
+            val prevSel = state.selection
+            state.selection = TextRange(idx, endExcl)
+            state.toggleSpanStyle(SpanStyle(fontFamily = family))
+            state.selection = prevSel
+            start = endExcl
+        }
+    }
+
+    /**
+     * Fallback for the default welcome doc when meta is missing and font spans weren't restored.
+     * Applies:
+     *  - "SkratchPad" -> Monospace
+     *  - "Scyra"      -> Cursive
+     */
+    suspend fun applyWelcomeFontsFallbackIfNeeded(meta: FontMeta?) {
+        if (meta != null) return // meta will handle it
+
+        // If spans already contain font families, do nothing.
+        val existing = captureFontMetaFromState()
+        if (existing.cursive.isNotEmpty() || existing.mono.isNotEmpty()) return
+
+        // Only apply if these tokens exist (avoids touching normal user docs)
+        val txt = state.annotatedString.text
+        if (!txt.contains("SkratchPad") && !txt.contains("Scyra")) return
+
+        val prevSel = state.selection
+
+        applyFamilyToAllOccurrences("SkratchPad", FontFamily.Monospace)
+        applyFamilyToAllOccurrences("Hi! Welcome to Scyra!", FontFamily.Cursive)
+
+        state.selection = prevSel
+    }
+
     suspend fun applyFontMetaToState(meta: FontMeta) {
-        // Apply by selecting ranges + toggling the fontFamily.
-        // Do this while suppressHistory=true so it doesn't create extra history entries.
         val prevSel = state.selection
 
         fun applyRange(r: IntRange, family: FontFamily) {
@@ -213,7 +250,6 @@ fun NotepadScreen(
             state.toggleSpanStyle(SpanStyle(fontFamily = family))
         }
 
-        // Apply cursive then mono (order doesn't matter; they shouldn't overlap)
         meta.cursive.forEach { applyRange(it, FontFamily.Cursive) }
         meta.mono.forEach { applyRange(it, FontFamily.Monospace) }
 
@@ -234,35 +270,15 @@ fun NotepadScreen(
         val (html, meta) = splitPersisted(persisted)
         suppressHistory = true
         state.setHtml(html)
-        if (html.contains("Hi! Welcome to Scyra!")) {
-            suppressHistory = true
-
-            // H1 line → make cursive
-            val text = state.annotatedString.text
-            val h1Start = text.indexOf("Hi! Welcome to Scyra!")
-            if (h1Start >= 0) {
-                state.selection = TextRange(h1Start, h1Start + "Hi! Welcome to Scyra!".length)
-                state.toggleSpanStyle(SpanStyle(fontFamily = FontFamily.Cursive))
-            }
-
-            // Flow Log → mono
-            val h2Start = text.indexOf("SkratchPad")
-            if (h2Start >= 0) {
-                state.selection = TextRange(h2Start, h2Start + "SkratchPad".length)
-                state.toggleSpanStyle(SpanStyle(fontFamily = FontFamily.Monospace))
-            }
-
-            suppressHistory = false
-        }
         scope.launch {
-            // Let editor apply HTML first
             delay(30)
             meta?.let { applyFontMetaToState(it) }
-            // Restore caret clamp from prefs after re-apply
+
             val len = state.annotatedString.text.length
             val s = prefs.selectionStart.coerceIn(0, len)
             val e = prefs.selectionEnd.coerceIn(0, len)
             state.selection = TextRange(s, e)
+
             delay(30)
             suppressHistory = false
         }
@@ -295,23 +311,17 @@ fun NotepadScreen(
             val sub = cs.baselineShift == BaselineShift.Subscript
             val sup = cs.baselineShift == BaselineShift.Superscript
 
-            val listMode =
-                when {
-                    state.isOrderedList -> 2
-                    state.isUnorderedList -> 1
-                    else -> 0
-                }
-
-            Triple(sel, Pair(listMode, cs), listOf(bold, italic, underline, strike, sub, sup))
+            Triple(sel, cs, listOf(bold, italic, underline, strike, sub, sup))
         }.collect {
             val sel = it.first
-            val listMode = it.second.first
-            val cs = it.second.second
+            val cs = it.second
             val toolFlags = it.third
 
             val size = cs.fontSize
             val h1On = (size.value >= 24f) && (cs.fontWeight == FontWeight.Bold)
-            val h2On = (size.value in 18f..23.99f) && (cs.fontWeight == FontWeight.SemiBold || cs.fontWeight == FontWeight.Medium)
+            val h2On =
+                (size.value in 18f..23.99f) &&
+                        (cs.fontWeight == FontWeight.SemiBold || cs.fontWeight == FontWeight.Medium)
             val monoOn = cs.fontFamily == FontFamily.Monospace
             val cursiveOn = cs.fontFamily == FontFamily.Cursive
 
@@ -326,7 +336,7 @@ fun NotepadScreen(
             prefs = prefs.copy(
                 selectionStart = sel.start,
                 selectionEnd = sel.end,
-                listMode = listMode,
+                listMode = 0, // lists removed
                 bold = toolFlags[0],
                 italic = toolFlags[1],
                 underline = toolFlags[2],
@@ -345,32 +355,14 @@ fun NotepadScreen(
 
         val (html, meta) = splitPersisted(text)
         state.setHtml(html)
-        if (html.contains("Hi! Welcome to Scyra!")) {
-            suppressHistory = true
-
-            // H1 line → make cursive
-            val text = state.annotatedString.text
-            val h1Start = text.indexOf("Hi! Welcome to Scyra!")
-            if (h1Start >= 0) {
-                state.selection = TextRange(h1Start, h1Start + "Hi! Welcome to Scyra!".length)
-                state.toggleSpanStyle(SpanStyle(fontFamily = FontFamily.Cursive))
-            }
-
-            // SkratchPad → mono
-            val h2Start = text.indexOf("SkratchPad")
-            if (h2Start >= 0) {
-                state.selection = TextRange(h2Start, h2Start + "SkratchPad".length)
-                state.toggleSpanStyle(SpanStyle(fontFamily = FontFamily.Monospace))
-            }
-
-            suppressHistory = false
-        }
         history.resetWith(buildPersisted(html, meta ?: FontMeta()))
 
         delay(40)
-        meta?.let { applyFontMetaToState(it) }
 
-        // restore caret
+        // ✅ Apply meta if present, otherwise fallback for welcome doc
+        meta?.let { applyFontMetaToState(it) }
+        applyWelcomeFontsFallbackIfNeeded(meta)
+
         val len = state.annotatedString.text.length
         state.selection = TextRange(
             prefs.selectionStart.coerceIn(0, len),
@@ -465,9 +457,6 @@ fun NotepadScreen(
     fun applyMonospace() = setFontFamilyExclusive(FontFamily.Monospace)
     fun applyNormal() = setFontFamilyExclusive(null)
 
-    fun toggleBulletList() = runFormatting { state.toggleUnorderedList() }
-    fun toggleNumberedList() = runFormatting { state.toggleOrderedList() }
-
     // ---------------- Search ----------------
     var searchMode by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -508,22 +497,13 @@ fun NotepadScreen(
 
     val size = cs.fontSize
     val h1On = (size.value >= 24f) && (cs.fontWeight == FontWeight.Bold)
-    val h2On = (size.value in 18f..23.99f) && (cs.fontWeight == FontWeight.SemiBold || cs.fontWeight == FontWeight.Medium)
+    val h2On =
+        (size.value in 18f..23.99f) &&
+                (cs.fontWeight == FontWeight.SemiBold || cs.fontWeight == FontWeight.Medium)
 
     val cursiveOn = cs.fontFamily == FontFamily.Cursive
     val monoOn = cs.fontFamily == FontFamily.Monospace
     val normalOn = !h1On && !h2On && !cursiveOn && !monoOn
-
-    val listModeUi: ListMode = when {
-        state.isOrderedList -> ListMode.NUMBERED
-        state.isUnorderedList -> ListMode.BULLET
-        else -> ListMode.NONE
-    }
-    val listOn = listModeUi != ListMode.NONE
-    val listIcon = when (listModeUi) {
-        ListMode.NUMBERED -> Icons.Default.FormatListNumbered
-        else -> Icons.Default.FormatListBulleted
-    }
 
     // ---------------- UI ----------------
     Column(modifier = modifier.fillMaxSize()) {
@@ -629,55 +609,25 @@ fun NotepadScreen(
                     contentDescription = "Subscript",
                     onToggle = {
                         runFormatting {
-                            state.toggleSpanStyle(SpanStyle(baselineShift = BaselineShift.Subscript, fontSize = 12.sp))
+                            state.toggleSpanStyle(
+                                SpanStyle(baselineShift = BaselineShift.Subscript)
+                            )
                         }
                     }
                 )
+
                 FormatIconToggle(
                     checked = superOn,
                     icon = Icons.Default.Superscript,
                     contentDescription = "Superscript",
                     onToggle = {
                         runFormatting {
-                            state.toggleSpanStyle(SpanStyle(baselineShift = BaselineShift.Superscript, fontSize = 12.sp))
-                        }
-                    }
-                )
-
-                Box {
-                    Surface(
-                        onClick = { showListMenu = true },
-                        modifier = Modifier.size(40.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        color = if (listOn) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.62f)
-                        else MaterialTheme.colorScheme.surface.copy(alpha = 0f),
-                        tonalElevation = 0.dp,
-                        shadowElevation = 0.dp
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = listIcon,
-                                contentDescription = "Lists",
-                                tint = if (listOn) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            state.toggleSpanStyle(
+                                SpanStyle(baselineShift = BaselineShift.Superscript)
                             )
                         }
                     }
-
-                    DropdownMenu(
-                        expanded = showListMenu,
-                        onDismissRequest = { showListMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) { Icon(Icons.Default.FormatListBulleted, null) } },
-                            onClick = { toggleBulletList(); showListMenu = false }
-                        )
-                        DropdownMenuItem(
-                            text = { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) { Icon(Icons.Default.FormatListNumbered, null) } },
-                            onClick = { toggleNumberedList(); showListMenu = false }
-                        )
-                    }
-                }
+                )
             }
 
             FlowRow(
@@ -702,16 +652,53 @@ fun NotepadScreen(
                 .padding(horizontal = 16.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                RichTextEditor(
-                    state = state,
+                // ✨ Beautiful editor chrome (no ugly underline, comfy height, subtle surface)
+// Drop this *around* your RichTextEditor call.
+
+                val shape = RoundedCornerShape(20.dp)
+
+                Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .focusRequester(focusRequester),
-                    singleLine = false,
-                    maxLines = Int.MAX_VALUE,
-                    textStyle = MaterialTheme.typography.bodyLarge,
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
-                )
+                        .heightIn(min = 220.dp)                 // ✅ gives it presence
+                        .clip(shape),
+                    shape = shape,
+                    tonalElevation = 2.dp,
+                    shadowElevation = 0.dp,
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    // Optional: a very subtle inner “panel” feel without a hard border
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                            .padding(horizontal = 16.dp, vertical = 14.dp)
+                    ) {
+                        CompositionLocalProvider(
+                            // ✅ Removes the default TextField underline/border vibes in many editor impls
+                            LocalTextSelectionColors provides TextSelectionColors(
+                                handleColor = MaterialTheme.colorScheme.primary,
+                                backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                            )
+                        ) {
+                            RichTextEditor(
+                                state = state,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .focusRequester(focusRequester),
+                                singleLine = false,
+                                maxLines = Int.MAX_VALUE,
+                                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.12f
+                                ),
+                                keyboardOptions = KeyboardOptions(
+                                    capitalization = KeyboardCapitalization.Sentences
+                                )
+                            )
+                        }
+                    }
+                }
                 Spacer(Modifier.height(28.dp))
             }
         }

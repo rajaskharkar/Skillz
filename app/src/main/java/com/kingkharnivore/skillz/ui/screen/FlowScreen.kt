@@ -681,7 +681,7 @@ private fun ArcPill(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("🔥")
+            Text("\uD83C\uDFD4\uFE0F")
             Spacer(Modifier.width(8.dp))
             Text("Arc Active", fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.width(10.dp))

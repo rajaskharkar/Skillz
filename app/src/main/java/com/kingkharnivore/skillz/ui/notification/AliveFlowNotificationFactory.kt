@@ -152,4 +152,17 @@ object AliveFlowNotificationFactory {
             else -> "%02d:%02d".format(m, s)
         }
     }
+
+    fun buildBootNotification(context: Context): Notification {
+        // Reuse your channel + basic ongoing style
+        // Must include smallIcon.
+        return NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_media_play) // <-- use your real icon
+            .setContentTitle("Flow")
+            .setContentText("Starting…")
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+    }
 }

@@ -311,7 +311,6 @@ class StoryViewModel @Inject constructor(
                                 .thenByDescending { it.totalDurationMs }
                                 .thenByDescending { it.sessionsCount }
                         )
-                        .take(6)
                         .toList()
 
                 // ============================================================

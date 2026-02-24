@@ -15,7 +15,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.kingkharnivore.skillz.ui.atlas.model.JourneyFilter
 import com.kingkharnivore.skillz.ui.components.LocalSkillzHomeNav
 import com.kingkharnivore.skillz.ui.components.SkillzHomeNavState
 import com.kingkharnivore.skillz.ui.components.SkillzTopAppBar
@@ -73,7 +72,8 @@ fun SkillzHomeScreen(
                         onPrevDay = { atlasViewModel.shiftSelectedDay(-1) },
                         onNextDay = { atlasViewModel.shiftSelectedDay(+1) },
                         onToday = { atlasViewModel.goToToday() },
-                        onAdvanceDay = { delta -> atlasViewModel.shiftSelectedDay(delta) }
+                        onAdvanceDay = { delta -> atlasViewModel.shiftSelectedDay(delta) },
+                            onScheduleBeamClick = onScheduleBeamClick,
                     )
 
                         1 -> StoryScreen(

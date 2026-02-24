@@ -3,32 +3,42 @@
 package com.kingkharnivore.skillz.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.outlined.AutoStories
+import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,6 +55,7 @@ import com.kingkharnivore.skillz.utils.time.TimeWindowUtils
 import com.kingkharnivore.skillz.utils.time.formatDuration
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
 import com.kingkharnivore.skillz.viewmodel.TagUiModel
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -71,9 +82,9 @@ fun StoryScreen(
         contentWindowInsets = WindowInsets.safeDrawing
             .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
         floatingActionButton = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalAlignment = Alignment.End
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Bottom
             ) {
                 FloatingActionButton(
                     onClick = onScheduleBeamClick,
@@ -135,98 +146,63 @@ fun StoryBody(
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         when {
-            uiState.isLoading -> {
-                LoadingState(modifier = Modifier.align(Alignment.Center))
-            }
+            uiState.isLoading -> LoadingState(modifier = Modifier.align(Alignment.Center))
 
-            uiState.errorMessage != null -> {
-                ErrorState(
-                    message = uiState.errorMessage,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
-
-            uiState.sessions.isEmpty() -> {
-                if (isFlowStateActive) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp, vertical = 24.dp)
-                    ) {
-                        StoryHeader(
-                            uiState = uiState,
-                            onTagSelected = onTagSelected,
-                            onPeriodSelected = onPeriodSelected,
-                            onPrev = onPrev,
-                            onNext = onNext,
-                            onToday = onToday,
-                            onOpenViewJourneys = onOpenViewJourneys,
-                            extraTopContent = { FlowModeHeroCard(onGoToActiveSession = onGoToActiveSession) }
-                        )
-                    }
-                } else {
-                    // ✅ Keep the SAME scroll + header structure as non-empty days
-                    LazyColumn(
-                        state = listState, // pass listState into StoryBody for this
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        contentPadding = PaddingValues(vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        item {
-                            StoryHeader(
-                                uiState = uiState,
-                                onTagSelected = onTagSelected,
-                                onPeriodSelected = onPeriodSelected,
-                                onPrev = onPrev,
-                                onNext = onNext,
-                                onToday = onToday,
-                                onOpenViewJourneys = onOpenViewJourneys
-                            )
-                        }
-
-                        item {
-                            FirstTimeUser(
-                                onAddSessionClick = onAddSessionClick
-                            )
-                        }
-                    }
-                }
-            }
+            uiState.errorMessage != null -> ErrorState(
+                message = uiState.errorMessage,
+                modifier = Modifier.align(Alignment.Center)
+            )
 
             else -> {
-                if (isFlowStateActive) {
-                    FlowStateActiveContent(
-                        uiState = uiState,
-                        listState = listState,
-                        onTagSelected = onTagSelected,
-                        onPeriodSelected = onPeriodSelected,
-                        onPrev = onPrev,
-                        onNext = onNext,
-                        onToday = onToday,
-                        onGoToActiveSession = onGoToActiveSession,
-                        onSessionClick = onSessionClick,
-                        onDeleteSession = onDeleteSession,
-                        onOpenViewJourneys = onOpenViewJourneys,
-                        onUpdateSessionDescription = onUpdateSessionDescription
-                    )
-                } else {
-                    FlowStateInactiveContent(
-                        uiState = uiState,
-                        listState = listState,
-                        onTagSelected = onTagSelected,
-                        onPeriodSelected = onPeriodSelected,
-                        onPrev = onPrev,
-                        onNext = onNext,
-                        onToday = onToday,
-                        onSessionClick = onSessionClick,
-                        onDeleteSession = onDeleteSession,
-                        onOpenViewJourneys = onOpenViewJourneys,
-                        onUpdateSessionDescription = onUpdateSessionDescription
-                    )
-                }
+                StoryHeaderScrollableWithStickyTabs(
+                    uiState = uiState,
+                    listState = listState,
+                    onTagSelected = onTagSelected,
+                    onPeriodSelected = onPeriodSelected,
+                    onPrev = onPrev,
+                    onNext = onNext,
+                    onToday = onToday,
+                    onOpenViewJourneys = onOpenViewJourneys,
+                    onSessionClick = onSessionClick,
+                    onDeleteSession = onDeleteSession,
+                    onUpdateSessionDescription = onUpdateSessionDescription,
+                    onAddSessionClick = onAddSessionClick,
+                    extraTopContent = if (isFlowStateActive) {
+                        { FlowModeHeroCard(onGoToActiveSession = onGoToActiveSession) }
+                    } else null
+                )
             }
+        }
+    }
+}
+
+private fun LazyListScope.chroniclesEmptyPage(
+    onAddSessionClick: () -> Unit
+) {
+    item {
+        FirstTimeUser(onAddSessionClick = onAddSessionClick)
+    }
+}
+
+private fun LazyListScope.sagasPage(
+    uiState: FlowListUiState,
+    onOpenViewJourneys: (Long) -> Unit
+) {
+    item {
+        if (uiState.sagasInView.isEmpty()) {
+            Text(
+                text = "No saga data in this view.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                modifier = Modifier.padding(vertical = 6.dp)
+            )
+        } else {
+            SagasCard(
+                period = uiState.period,
+                anchorDayStartMs = uiState.anchorDayStartMs,
+                stats = uiState.sagasInView,
+                onOpenViewJourneys = onOpenViewJourneys
+            )
         }
     }
 }
@@ -269,78 +245,91 @@ private fun SagasCard(
     stats: List<Journey7dStatUiModel>,
     onOpenViewJourneys: (tagId: Long) -> Unit
 ) {
+    val cs = MaterialTheme.colorScheme
+
     val totalFlows = remember(stats) { stats.sumOf { it.sessionsCount } }
     val totalDuration = remember(stats) { stats.sumOf { it.totalDurationMs } }
     val totalScore = remember(stats) { stats.sumOf { it.totalScore } }
 
-    var isSagasExpanded by rememberSaveable(period, anchorDayStartMs) {
-        mutableStateOf(false)
+    var expanded by rememberSaveable(period, anchorDayStartMs) {
+        mutableStateOf(true) // dedicated view => expanded feels right
     }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = cs.surface,
         tonalElevation = 2.dp,
-        color = MaterialTheme.colorScheme.surface
+        shadowElevation = 1.dp,
+        border = BorderStroke(1.dp, cs.onSurface.copy(alpha = 0.07f))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // ── Header (not a button anymore) ──────────────────────────
-            SagaHeader(
-                title = "Your Saga",
-                subtitle = sagaSubtitle(period, anchorDayStartMs),
-                periodLabel = period.label,
-                totalFlows = totalFlows,
-                totalDurationMs = totalDuration,
-                totalScore = totalScore
-            )
-
-            // ── Delicate action BELOW-RIGHT ───────────────────────────
+            // ── Header row + expand toggle ─────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                verticalAlignment = Alignment.Top
             ) {
-                TextButton(
-                    onClick = { isSagasExpanded = !isSagasExpanded },
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    SagaHeader(
+                        title = "Your Saga",
+                        subtitle = sagaSubtitle(period, anchorDayStartMs),
+                        periodLabel = period.label,
+                        totalFlows = totalFlows,
+                        totalDurationMs = totalDuration,
+                        totalScore = totalScore
+                    )
+                }
+
+                Spacer(Modifier.width(8.dp))
+
+                FilledTonalIconButton(
+                    onClick = { expanded = !expanded },
+                    modifier = Modifier.size(40.dp),
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = cs.surfaceVariant,
+                        contentColor = cs.onSurfaceVariant
+                    )
                 ) {
-                    Text(
-                        text = if (isSagasExpanded) "Hide" else "View",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
+                    Icon(
+                        imageVector = if (expanded)
+                            Icons.Default.KeyboardArrowUp
+                        else
+                            Icons.Default.KeyboardArrowDown,
+                        contentDescription = if (expanded) "Collapse" else "Expand"
                     )
                 }
             }
 
-            // ── Expanded content ──────────────────────────────────────
-            AnimatedVisibility(visible = isSagasExpanded) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // ── Body ───────────────────────────────────────────────────
+            AnimatedVisibility(visible = expanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (stats.isEmpty()) {
-                        Text(
-                            text = "No flows in this view.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
-                        )
-                    } else {
-                        val scrollState = rememberScrollState()
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 320.dp)
-                                .verticalScroll(scrollState),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        Surface(
+                            shape = RoundedCornerShape(18.dp),
+                            color = cs.surfaceVariant,
+                            tonalElevation = 1.dp
                         ) {
-                            stats.forEachIndexed { index, stat ->
-                                SagaJourneyRow(
-                                    rank = index + 1,
-                                    stat = stat,
-                                    onClick = { onOpenViewJourneys(stat.tagId) }
-                                )
-                            }
+                            Text(
+                                text = "No saga data in this view.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = cs.onSurfaceVariant.copy(alpha = 0.78f),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                            )
+                        }
+                    } else {
+                        stats.forEachIndexed { index, stat ->
+                            SagaJourneyRow(
+                                rank = index + 1,
+                                stat = stat,
+                                onClick = { onOpenViewJourneys(stat.tagId) }
+                            )
                         }
                     }
                 }
@@ -358,7 +347,12 @@ private fun SagaHeader(
     totalDurationMs: Long,
     totalScore: Int
 ) {
+    // If/when you have surge available for this header, set this > 0.
+    // Keeping it here lets you turn it on later with one line.
+    val totalSurgeScore = 0
+
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+
         // Title row + period pill
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -397,7 +391,7 @@ private fun SagaHeader(
             }
         }
 
-        // Stats row (flows / duration / score)
+        // Stats row (flows / duration / score [+ surge])
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -413,7 +407,147 @@ private fun SagaHeader(
             ) {
                 SagaHeaderStat(label = "Flows", value = totalFlows.toString())
                 SagaHeaderStat(label = "Duration", value = formatDuration(totalDurationMs))
-                SagaHeaderStat(label = "Score", value = "🔥 $totalScore", alignEnd = true)
+
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    SagaHeaderStat(
+                        label = "Score",
+                        value = "🔥 $totalScore",
+                        alignEnd = true
+                    )
+
+                    if (totalSurgeScore > 0) {
+                        Text(
+                            text = "⚡ +$totalSurgeScore",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SagaJourneyRow(
+    rank: Int,
+    stat: Journey7dStatUiModel,
+    onClick: () -> Unit
+) {
+    val cs = MaterialTheme.colorScheme
+
+    // “Alive” tint without going loud — uses your palette (secondary)
+    val accentAlpha = when (rank) {
+        1 -> 0.28f
+        2 -> 0.22f
+        3 -> 0.18f
+        else -> 0.14f
+    }
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 1.dp,
+        color = cs.surfaceVariant,
+        border = BorderStroke(1.dp, cs.onSurface.copy(alpha = 0.06f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 12.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            // Left accent “spine” (replaces dull grey wash)
+            Box(
+                modifier = Modifier
+                    .width(6.dp)
+                    .height(44.dp)
+                    .background(
+                        color = cs.secondary.copy(alpha = accentAlpha),
+                        shape = RoundedCornerShape(999.dp)
+                    )
+            )
+
+            Spacer(Modifier.width(12.dp))
+
+            // Rank badge (now vibrant + readable)
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = cs.secondary.copy(alpha = 0.14f),
+                border = BorderStroke(1.dp, cs.secondary.copy(alpha = 0.22f))
+            ) {
+                Text(
+                    text = "#$rank",
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = cs.secondary
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            // Middle: title + meta
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = stat.tagName,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = cs.onSurface
+                )
+
+                Text(
+                    text = "${stat.sessionsCount} flow${if (stat.sessionsCount == 1) "" else "s"} • ${formatDuration(stat.totalDurationMs)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = cs.onSurfaceVariant.copy(alpha = 0.78f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            // Right: score “pill” + arrow
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = cs.secondary.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, cs.secondary.copy(alpha = 0.18f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🔥", style = MaterialTheme.typography.bodyLarge)
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = stat.totalScore.toString(),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = cs.onSurface
+                        )
+                    }
+                }
+
+                Icon(
+                    imageVector = Icons.Default.ArrowForwardIos,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = cs.onSurfaceVariant.copy(alpha = 0.45f)
+                )
             }
         }
     }
@@ -440,98 +574,6 @@ private fun SagaHeaderStat(
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface
         )
-    }
-}
-
-@Composable
-private fun SagaJourneyRow(
-    rank: Int,
-    stat: Journey7dStatUiModel,
-    onClick: () -> Unit
-) {
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(18.dp),
-        tonalElevation = 1.dp,
-        color = MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Rank badge
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
-            ) {
-                Text(
-                    text = "#$rank",
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
-                )
-            }
-
-            Spacer(Modifier.width(10.dp))
-
-            // Left: journey info
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                Text(
-                    text = stat.tagName,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Text(
-                    text = "${stat.sessionsCount} flow${if (stat.sessionsCount == 1) "" else "s"} • ${formatDuration(stat.totalDurationMs)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            // Right: score + hint
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("🔥", style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = stat.totalScore.toString(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Scry journeys",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.70f)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Icon(
-                        imageVector = Icons.Default.ArrowForwardIos,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -772,6 +814,7 @@ fun rememberMiniBarAlpha(
 }
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FlowStateActiveContent(
     uiState: FlowListUiState,
@@ -785,55 +828,28 @@ private fun FlowStateActiveContent(
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
     onOpenViewJourneys: (Long) -> Unit,
-    onUpdateSessionDescription: (Long, String) -> Unit
+    onUpdateSessionDescription: (Long, String) -> Unit,
+    onAddSessionClick: () -> Unit
 ) {
-    val expandedState = rememberExpandedSessionIdsState()
-    val editState = rememberSessionEditState()
-
     val miniBarAlpha by rememberMiniBarAlpha(listState)
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize()) {
 
-        FlowEditDialog(
-            editState = editState,
-            onSave = { sessionId, newText -> onUpdateSessionDescription(sessionId, newText) }
+        StoryHeaderScrollableWithStickyTabs(
+            uiState = uiState,
+            listState = listState,
+            onTagSelected = onTagSelected,
+            onPeriodSelected = onPeriodSelected,
+            onPrev = onPrev,
+            onNext = onNext,
+            onToday = onToday,
+            onOpenViewJourneys = onOpenViewJourneys,
+            onSessionClick = onSessionClick,
+            onDeleteSession = onDeleteSession,
+            onUpdateSessionDescription = onUpdateSessionDescription,
+            onAddSessionClick = onAddSessionClick,
+            extraTopContent = { FlowModeHeroCard(onGoToActiveSession = onGoToActiveSession) }
         )
-
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            contentPadding = PaddingValues(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                StoryHeader(
-                    uiState = uiState,
-                    onTagSelected = onTagSelected,
-                    onPeriodSelected = onPeriodSelected,
-                    onPrev = onPrev,
-                    onNext = onNext,
-                    onToday = onToday,
-                    onOpenViewJourneys = onOpenViewJourneys,
-                    extraTopContent = { FlowModeHeroCard(onGoToActiveSession = onGoToActiveSession) }
-                )
-            }
-
-            items(
-                items = uiState.sessions,
-                key = { it.sessionId }
-            ) { session ->
-                FlowCard(
-                    session = session,
-                    isExpanded = expandedState.isExpanded(session.sessionId),
-                    onToggleExpand = { expandedState.toggle(session.sessionId) },
-                    onDeleteSession = { onDeleteSession(session.sessionId) },
-                    onLongPress = { editState.startEditing(session) },
-                    onClick = { onSessionClick(session.sessionId) }
-                )
-            }
-        }
 
         if (miniBarAlpha > 0f) {
             FocusModeFloatingMiniBar(
@@ -1083,6 +1099,7 @@ private fun FocusModeFloatingMiniBar(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FlowStateInactiveContent(
     uiState: FlowListUiState,
@@ -1095,50 +1112,23 @@ private fun FlowStateInactiveContent(
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
     onOpenViewJourneys: (Long) -> Unit,
-    onUpdateSessionDescription: (Long, String) -> Unit
+    onUpdateSessionDescription: (Long, String) -> Unit,
+    onAddSessionClick: () -> Unit
 ) {
-    val expandedState = rememberExpandedSessionIdsState()
-    val editState = rememberSessionEditState()
-
-    FlowEditDialog(
-        editState = editState,
-        onSave = { sessionId, newText -> onUpdateSessionDescription(sessionId, newText) }
+    StoryHeaderScrollableWithStickyTabs(
+        uiState = uiState,
+        listState = listState,
+        onTagSelected = onTagSelected,
+        onPeriodSelected = onPeriodSelected,
+        onPrev = onPrev,
+        onNext = onNext,
+        onToday = onToday,
+        onOpenViewJourneys = onOpenViewJourneys,
+        onSessionClick = onSessionClick,
+        onDeleteSession = onDeleteSession,
+        onUpdateSessionDescription = onUpdateSessionDescription,
+        onAddSessionClick = onAddSessionClick
     )
-
-    LazyColumn(
-        state = listState,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        contentPadding = PaddingValues(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            StoryHeader(
-                uiState = uiState,
-                onTagSelected = onTagSelected,
-                onPeriodSelected = onPeriodSelected,
-                onPrev = onPrev,
-                onNext = onNext,
-                onToday = onToday,
-                onOpenViewJourneys = onOpenViewJourneys
-            )
-        }
-
-        items(
-            items = uiState.sessions,
-            key = { it.sessionId }
-        ) { session ->
-            FlowCard(
-                session = session,
-                isExpanded = expandedState.isExpanded(session.sessionId),
-                onToggleExpand = { expandedState.toggle(session.sessionId) },
-                onDeleteSession = { onDeleteSession(session.sessionId) },
-                onLongPress = { editState.startEditing(session) },
-                onClick = { onSessionClick(session.sessionId) }
-            )
-        }
-    }
 }
 
 @Composable
@@ -1200,26 +1190,249 @@ private fun StoryHeader(
     HorizontalDivider()
 
     Spacer(Modifier.height(12.dp))
+}
 
-    StorySummaryCardSection(
-        uiState = uiState,
-        onOpenViewJourneys = onOpenViewJourneys
+private enum class StoryTab { SAGAS, CHRONICLES }
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun StoryHeaderScrollableWithStickyTabs(
+    uiState: FlowListUiState,
+    listState: LazyListState,
+    onTagSelected: (Long?) -> Unit,
+    onPeriodSelected: (StoryPeriod) -> Unit,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+    onToday: () -> Unit,
+    onOpenViewJourneys: (Long) -> Unit,
+    onSessionClick: (Long) -> Unit,
+    onDeleteSession: (Long) -> Unit,
+    onUpdateSessionDescription: (Long, String) -> Unit,
+    onAddSessionClick: () -> Unit,
+    extraTopContent: (@Composable () -> Unit)? = null
+) {
+    var tab by rememberSaveable { mutableStateOf(StoryTab.CHRONICLES) }
+
+    val expandedState = rememberExpandedSessionIdsState()
+    val editState = rememberSessionEditState()
+
+    FlowEditDialog(
+        editState = editState,
+        onSave = { id, text -> onUpdateSessionDescription(id, text) }
     )
+
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // ── Scrollable Header ───────────────────────────────────────
+        item {
+            StoryHeader(
+                uiState = uiState,
+                onTagSelected = onTagSelected,
+                onPeriodSelected = onPeriodSelected,
+                onPrev = onPrev,
+                onNext = onNext,
+                onToday = onToday,
+                onOpenViewJourneys = onOpenViewJourneys,
+                extraTopContent = extraTopContent
+            )
+        }
+
+        // ── Sticky Lean Tabs ────────────────────────────────────────
+        stickyHeader {
+            // keep sticky area from showing content "through" while scrolling
+            Surface(
+                color = MaterialTheme.colorScheme.background,
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp, bottom = 10.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    val container = MaterialTheme.colorScheme.surfaceVariant
+                    val selectedBg = MaterialTheme.colorScheme.surface
+                    val selectedFg = MaterialTheme.colorScheme.secondary
+                    val unselectedFg = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = container,
+                        tonalElevation = 0.dp
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(3.dp) // outer pill padding
+                                .height(34.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SegmentedIconTab(
+                                selected = tab == StoryTab.SAGAS,
+                                onClick = { tab = StoryTab.SAGAS },
+                                selectedBg = selectedBg,
+                                selectedFg = selectedFg,
+                                unselectedFg = unselectedFg,
+                                icon = Icons.Outlined.MenuBook,
+                                contentDescription = "Sagas"
+                            )
+
+                            SegmentedIconTab(
+                                selected = tab == StoryTab.CHRONICLES,
+                                onClick = { tab = StoryTab.CHRONICLES },
+                                selectedBg = selectedBg,
+                                selectedFg = selectedFg,
+                                unselectedFg = unselectedFg,
+                                icon = Icons.Outlined.Timeline,
+                                contentDescription = "Chronicles",
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Content (same LazyColumn, so it feels fluid) ─────────────
+        when (tab) {
+            StoryTab.SAGAS -> {
+                item {
+                    if (uiState.sagasInView.isEmpty()) {
+                        Text(
+                            text = "No saga data in this view.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                            modifier = Modifier.padding(vertical = 6.dp)
+                        )
+                    } else {
+                        SagasCard(
+                            period = uiState.period,
+                            anchorDayStartMs = uiState.anchorDayStartMs,
+                            stats = uiState.sagasInView,
+                            onOpenViewJourneys = onOpenViewJourneys
+                        )
+                    }
+                }
+            }
+
+            StoryTab.CHRONICLES -> {
+                if (uiState.sessions.isEmpty()) {
+                    item { FirstTimeUser(onAddSessionClick = onAddSessionClick) }
+                } else {
+                    items(
+                        items = uiState.sessions,
+                        key = { it.sessionId }
+                    ) { session ->
+                        FlowCard(
+                            session = session,
+                            isExpanded = expandedState.isExpanded(session.sessionId),
+                            onToggleExpand = { expandedState.toggle(session.sessionId) },
+                            onDeleteSession = { onDeleteSession(session.sessionId) },
+                            onLongPress = { editState.startEditing(session) },
+                            onClick = { onSessionClick(session.sessionId) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun StoryTabsAndPager(
+    headerContent: @Composable () -> Unit,
+    sagasListState: LazyListState,
+    chroniclesListState: LazyListState,
+    sagasPage: LazyListScope.() -> Unit,
+    chroniclesPage: LazyListScope.() -> Unit
+) {
+    val scope = rememberCoroutineScope()
+
+    // Default load should be RIGHT = Chronicles
+    val pagerState = rememberPagerState(
+        initialPage = 1,
+        pageCount = { 2 }
+    )
+
+    Column(modifier = Modifier.fillMaxSize()) {
+
+        TabRow(
+            selectedTabIndex = pagerState.currentPage,
+            divider = {},
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Tab(
+                selected = pagerState.currentPage == 0,
+                onClick = { scope.launch { pagerState.animateScrollToPage(0) } },
+                text = { Text("Sagas", fontFamily = CaveatSemiBold) },
+                icon = { Icon(Icons.Outlined.AutoStories, contentDescription = null) }
+            )
+            Tab(
+                selected = pagerState.currentPage == 1,
+                onClick = { scope.launch { pagerState.animateScrollToPage(1) } },
+                text = { Text("Chronicles", fontFamily = CaveatSemiBold) },
+                icon = { Icon(Icons.Outlined.Timeline, contentDescription = null) }
+            )
+        }
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            val state = if (page == 0) sagasListState else chroniclesListState
+
+            LazyColumn(
+                state = state,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // ✅ Header is now scrollable again
+                item { headerContent() }
+
+                // Page-specific content
+                if (page == 0) sagasPage() else chroniclesPage()
+            }
+        }
+    }
 }
 
 @Composable
-private fun StorySummaryCardSection(
-    uiState: FlowListUiState,
-    onOpenViewJourneys: (Long) -> Unit
+private fun SegmentedIconTab(
+    selected: Boolean,
+    onClick: () -> Unit,
+    selectedBg: Color,
+    selectedFg: Color,
+    unselectedFg: Color,
+    icon: ImageVector,
+    contentDescription: String
 ) {
-    if (uiState.sagasInView.isEmpty()) return
-
-    SagasCard(
-        period = uiState.period,
-        anchorDayStartMs = uiState.anchorDayStartMs,
-        stats = uiState.sagasInView,
-        onOpenViewJourneys = onOpenViewJourneys
-    )
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(999.dp),
+        color = if (selected) selectedBg else Color.Transparent,
+        tonalElevation = if (selected) 1.dp else 0.dp
+    ) {
+        Box(
+            modifier = Modifier
+                .width(54.dp)
+                .fillMaxHeight(),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(18.dp),
+                tint = if (selected) selectedFg else unselectedFg
+            )
+        }
+    }
 }
 
 @Composable
@@ -1270,7 +1483,18 @@ private fun PeriodAndDateNavigator(
                 FilterChip(
                     selected = p == period,
                     onClick = { onPeriodSelected(p) },
-                    label = { Text(p.label) },
+                    label = {
+                        Text(
+                            text = p.label,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f),
+                        selectedLabelColor = MaterialTheme.colorScheme.secondary,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                    ),
                     modifier = Modifier.padding(end = 8.dp)
                 )
             }
@@ -1479,7 +1703,18 @@ fun TagFilterRow(
                 FilterChip(
                     selected = selectedTagId == null,
                     onClick = { onTagSelected(null) },
-                    label = { Text("All") },
+                    label = {
+                        Text(
+                            text = "All",
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f),
+                        selectedLabelColor = MaterialTheme.colorScheme.secondary,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
                     modifier = Modifier.padding(end = 8.dp)
                 )
             }
@@ -1491,7 +1726,18 @@ fun TagFilterRow(
                 FilterChip(
                     selected = selectedTagId == tag.id,
                     onClick = { onTagSelected(tag.id) },
-                    label = { Text(tag.name) },
+                    label = {
+                        Text(
+                            text = tag.name,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f),
+                        selectedLabelColor = MaterialTheme.colorScheme.secondary,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                    ),
                     modifier = Modifier.padding(end = 8.dp)
                 )
             }

@@ -3,6 +3,7 @@ package com.kingkharnivore.skillz.ui.service
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
+import androidx.core.app.NotificationManagerCompat
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.ui.notification.AliveFlowNotificationFactory
@@ -18,17 +19,28 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class AliveFlowService : Service() {
 
-    @Inject
-    lateinit var aliveFlowRepository: AliveFlowRepository
+    @Inject lateinit var aliveFlowRepository: AliveFlowRepository
 
     private val serviceScope =
         CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
+    private var hasForegrounded = false
+
     override fun onCreate() {
         super.onCreate()
+
+        // ✅ Always ensure channel first
         AliveFlowNotificationFactory.ensureChannel(this)
 
-        serviceScope.launch {
+        // ✅ CRITICAL: startForeground immediately (do NOT wait on Room/Flow)
+        startForeground(
+            AliveFlowNotificationFactory.NOTIFICATION_ID,
+            AliveFlowNotificationFactory.buildBootNotification(this)
+        )
+        hasForegrounded = true
+
+        // Now you can safely do async work
+        serviceScope.launch(Dispatchers.IO) {
             aliveFlowRepository.getOngoingSession()
                 .collectLatest { entity ->
                     if (entity == null || !entity.isInFlowMode) {
@@ -38,23 +50,24 @@ class AliveFlowService : Service() {
 
                     val elapsedMs = computeElapsed(entity)
 
-                    val notification =
-                        AliveFlowNotificationFactory.buildNotification(
-                            this@AliveFlowService,
-                            entity,
-                            elapsedMs
-                        )
-
-                    startForeground(
-                        AliveFlowNotificationFactory.NOTIFICATION_ID,
-                        notification
+                    val notification = AliveFlowNotificationFactory.buildNotification(
+                        this@AliveFlowService,
+                        entity,
+                        elapsedMs
                     )
+
+                    // ✅ Update the existing foreground notification
+                    NotificationManagerCompat.from(this@AliveFlowService)
+                        .notify(AliveFlowNotificationFactory.NOTIFICATION_ID, notification)
                 }
         }
     }
 
     private fun stopSelfSafely() {
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        // ✅ Always legal after we've foregrounded immediately
+        if (hasForegrounded) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        }
         stopSelf()
     }
 
