@@ -254,7 +254,7 @@ fun FlowScreen(
                     Text("Continue Arc")
                 }
 
-                val isArcActuallyCompletable = uiState.isInArc && !uiState.arcIsPending
+                val isArcActuallyCompletable = uiState.isInArc
                 val completeLabel = if (isArcActuallyCompletable) "Complete Arc" else "Complete Flow"
                 val completeAction = if (isArcActuallyCompletable) {
                     FlowEndAction.COMPLETE_ARC

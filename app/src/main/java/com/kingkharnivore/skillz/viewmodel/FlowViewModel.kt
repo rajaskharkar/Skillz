@@ -769,7 +769,7 @@ class FlowViewModel @Inject constructor(
                     val arcId = arcIdForSummary
                     val summary = if (arcId != null) {
                         val arcSessions = sessionRepository.getSessionsForArc(arcId)
-                        if (arcSessions.size >= 2) {
+                        if (arcSessions.isNotEmpty()) {
                             ArcSummaryUiModel(
                                 totalSessions = arcSessions.size,
                                 totalDurationMs = arcSessions.sumOf { it.durationMs },
