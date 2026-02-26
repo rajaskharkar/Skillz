@@ -5,15 +5,38 @@ import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.model.entity.BeamEntity
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.repository.BeamRepository
-import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
-import com.kingkharnivore.skillz.ui.atlas.model.*
+import com.kingkharnivore.skillz.data.repository.JourneyRepository
+import com.kingkharnivore.skillz.ui.model.AtlasUiState
+import com.kingkharnivore.skillz.ui.model.AtlasViewMode
+import com.kingkharnivore.skillz.ui.model.BeamBlockUi
+import com.kingkharnivore.skillz.ui.model.BeamStatus
+import com.kingkharnivore.skillz.ui.model.DayAnchorUi
+import com.kingkharnivore.skillz.ui.model.DayPlanUi
+import com.kingkharnivore.skillz.ui.model.DaySegmentUi
+import com.kingkharnivore.skillz.ui.model.JourneyChipUi
+import com.kingkharnivore.skillz.ui.model.JourneyFilter
+import com.kingkharnivore.skillz.ui.model.NowState
+import com.kingkharnivore.skillz.ui.model.ReadinessLevel
+import com.kingkharnivore.skillz.ui.model.computeBeamStatus
+import com.kingkharnivore.skillz.ui.model.computeReadiness
+import com.kingkharnivore.skillz.ui.model.overlaps
+import com.kingkharnivore.skillz.ui.model.progress
 import com.kingkharnivore.skillz.ui.theme.ColdSteel
 import com.kingkharnivore.skillz.utils.time.dayStartPlusDays
 import com.kingkharnivore.skillz.utils.time.floorToDay
-import com.kingkharnivore.skillz.viewmodel.atlas.tickerFlow
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.max
@@ -52,6 +75,13 @@ class AtlasViewModel @Inject constructor(
 
     private val nowTicker: Flow<Long> =
         tickerFlow(periodMs = 1000L).onStart { emit(System.currentTimeMillis()) }
+
+    private fun tickerFlow(periodMs: Long = 60_000L): Flow<Long> = flow {
+        while (true) {
+            emit(System.currentTimeMillis())
+            delay(periodMs)
+        }
+    }
 
     private val tagsFlow: Flow<Pair<Map<Long, String>, List<JourneyChipUi>>> =
         journeyRepository.getAllTags()

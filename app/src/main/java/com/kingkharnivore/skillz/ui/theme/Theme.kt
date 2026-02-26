@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.kingkharnivore.skillz.BuildConfig
 
-val color = if (BuildConfig.SHOW_SCORE) RavenclawBlue else SlytherinButNiceTeal
+val color = SlytherinButNiceTeal
 
 private val LightGryffindorColors = lightColorScheme(
     primary = color,
