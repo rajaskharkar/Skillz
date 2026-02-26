@@ -15,9 +15,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.kingkharnivore.skillz.ui.components.LocalSkillzHomeNav
-import com.kingkharnivore.skillz.ui.components.SkillzHomeNavState
-import com.kingkharnivore.skillz.ui.components.SkillzTopAppBar
+import com.kingkharnivore.skillz.ui.screen.atlas.AtlasScreen
+import com.kingkharnivore.skillz.ui.screen.story.StoryScreen
 import com.kingkharnivore.skillz.viewmodel.AtlasViewModel
 import com.kingkharnivore.skillz.viewmodel.NotepadViewModel
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
@@ -66,15 +65,15 @@ fun SkillzHomeScreen(
                 ) { page ->
                     when (page) {
                         0 -> AtlasScreen(
-                        uiState = atlasState,
-                        onStartFlow = onAddSessionClick,
-                        onSelectMode = atlasViewModel::setViewMode,
-                        onPrevDay = { atlasViewModel.shiftSelectedDay(-1) },
-                        onNextDay = { atlasViewModel.shiftSelectedDay(+1) },
-                        onToday = { atlasViewModel.goToToday() },
-                        onAdvanceDay = { delta -> atlasViewModel.shiftSelectedDay(delta) },
+                            uiState = atlasState,
+                            onStartFlow = onAddSessionClick,
+                            onSelectMode = atlasViewModel::setViewMode,
+                            onPrevDay = { atlasViewModel.shiftSelectedDay(-1) },
+                            onNextDay = { atlasViewModel.shiftSelectedDay(+1) },
+                            onToday = { atlasViewModel.goToToday() },
+                            onAdvanceDay = { delta -> atlasViewModel.shiftSelectedDay(delta) },
                             onScheduleBeamClick = onScheduleBeamClick,
-                    )
+                        )
 
                         1 -> StoryScreen(
                             viewModel = skillzViewModel,

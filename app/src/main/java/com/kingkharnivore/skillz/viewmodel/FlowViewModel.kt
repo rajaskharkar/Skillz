@@ -9,7 +9,7 @@ import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.BeamRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
-import com.kingkharnivore.skillz.ui.arc.model.ArcRuntimeState
+import com.kingkharnivore.skillz.ui.model.ArcRuntimeState
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
 import com.kingkharnivore.skillz.utils.arc.ArcPrefs
 import com.kingkharnivore.skillz.utils.arc.ArcRules

@@ -2,7 +2,7 @@ package com.kingkharnivore.skillz.utils.arc
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
-import com.kingkharnivore.skillz.ui.arc.model.ArcRuntimeState
+import com.kingkharnivore.skillz.ui.model.ArcRuntimeState
 import kotlinx.coroutines.flow.first
 
 class ArcPrefs(private val ds: DataStore<Preferences>) {
