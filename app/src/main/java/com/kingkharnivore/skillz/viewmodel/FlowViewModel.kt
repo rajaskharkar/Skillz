@@ -14,6 +14,7 @@ import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
 import com.kingkharnivore.skillz.utils.arc.ArcPrefs
 import com.kingkharnivore.skillz.utils.arc.ArcRules
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
+import com.kingkharnivore.skillz.utils.user.UserPrefs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -43,12 +44,16 @@ data class FlowUiState(
     val isSurgeOn: Boolean = false,
     val surgePlannedMs: Long? = null,
 
-    // ✅ ARC UI
+    // ✅ ADD THESE (defaults OFF)
+    val showScoreUi: Boolean = false,
+    val calmMode: Boolean = false,
+
+    // ARC UI...
     val isInArc: Boolean = false,
-    val arcIsPending: Boolean = false,     // ✅ ADD: pending until session #2
-    val arcMultiplier: Double? = null,     // multiplier for NEXT session (if in arc)
-    val arcProgressMs: Long = 0L,          // progress bank toward next +0.1 (currently unused)
-    val arcNextIndex: Int? = null,          // next session index if you end now
+    val arcIsPending: Boolean = false,
+    val arcMultiplier: Double? = null,
+    val arcProgressMs: Long = 0L,
+    val arcNextIndex: Int? = null,
     val arcGraceRemainingMs: Long? = null,
     val arcPauseRemainingMs: Long? = null
 )
@@ -106,7 +111,8 @@ class FlowViewModel @Inject constructor(
     private val focusSessionRepository: AliveFlowRepository,
     private val aliveFlowServiceController: AliveFlowServiceController,
     private val beamRepository: BeamRepository,
-    private val arcPrefs: ArcPrefs
+    private val arcPrefs: ArcPrefs,
+    private val userPrefs: UserPrefs
 ) : ViewModel() {
 
     val ongoingSession: StateFlow<OngoingSessionEntity?> =
@@ -265,6 +271,16 @@ class FlowViewModel @Inject constructor(
     }
 
     init {
+        viewModelScope.launch {
+            userPrefs.showScoreUi.collect { enabled ->
+                _uiState.update { it.copy(showScoreUi = enabled) }
+            }
+        }
+        viewModelScope.launch {
+            userPrefs.calmMode.collect { enabled ->
+                _uiState.update { it.copy(calmMode = enabled) }
+            }
+        }
         viewModelScope.launch {
             // 1) Restore ongoing session
             val ongoing = focusSessionRepository.getOngoingSession().firstOrNull()
@@ -699,7 +715,6 @@ class FlowViewModel @Inject constructor(
         if (!_awaitingNextFlowAfterContinue.value) return
 
         val keepTag = _uiState.value.tagName
-//        refreshArcGraceWindowNowIfValid()
         val keepArc = arcState
 
         _lastReward.value = null
@@ -710,20 +725,27 @@ class FlowViewModel @Inject constructor(
         stopTicker()
         aliveFlowServiceController.stop()
 
-        _uiState.value = FlowUiState(
-            title = "",
-            description = "",
-            tagName = keepTag,
-            stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L),
-            isInFlowMode = false,
-            isSurgeOn = false,
-            surgePlannedMs = null,
-            isInArc = keepArc != null,
-            arcIsPending = keepArc?.isPending ?: false,
-            arcMultiplier = keepArc?.multiplier,
-            arcProgressMs = keepArc?.progressMs ?: 0L,
-            arcNextIndex = keepArc?.let { it.sessionCountInArc + 1 }
-        )
+        // ✅ Preserve user prefs (calmMode/showScoreUi) by copying from old state
+        _uiState.update { old ->
+            old.copy(
+                title = "",
+                description = "",
+                tagName = keepTag,
+                stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L),
+                isInFlowMode = false,
+                isSurgeOn = false,
+                surgePlannedMs = null,
+
+                // ARC UI
+                isInArc = keepArc != null,
+                arcIsPending = keepArc?.isPending ?: false,
+                arcMultiplier = keepArc?.multiplier,
+                arcProgressMs = keepArc?.progressMs ?: 0L,
+                arcNextIndex = keepArc?.let { it.sessionCountInArc + 1 },
+                arcGraceRemainingMs = null,
+                arcPauseRemainingMs = null
+            )
+        }
 
         viewModelScope.launch { clearOngoing() }
     }

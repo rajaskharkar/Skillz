@@ -39,7 +39,9 @@ fun ArcPill(
     isPending: Boolean,
     graceRemainingMs: Long?,
     pauseRemainingMs: Long?,
-    isInFlow: Boolean
+    isInFlow: Boolean,
+    modifier: Modifier = Modifier,
+    calmMode: Boolean = false
 ) {
     val m = arcMultiplier.coerceAtLeast(1.0)
     val intensity = multiplierIntensity(m)
@@ -49,27 +51,45 @@ fun ArcPill(
 
     val t = intensity.coerceIn(0f, 1f)
     val boostedT = sqrt(t)
-    val targetAccent = lerpColor(baseA, baseB, boostedT)
+    val rawTargetAccent = lerpColor(baseA, baseB, boostedT)
 
-    val accent by animateColorAsState(
-        targetValue = targetAccent,
-        animationSpec = tween(450, easing = FastOutSlowInEasing),
-        label = "arcAccent"
-    )
+    // Calm Mode: neutral accent (no animated shifting)
+    val targetAccent = if (calmMode) {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+    } else {
+        rawTargetAccent
+    }
 
-    val infinite = rememberInfiniteTransition(label = "arcPulse")
-    val pulse by infinite.animateFloat(
-        initialValue = 0.06f,
-        targetValue = 0.10f + (0.10f * t),
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = (1300 - (450 * t)).toInt().coerceAtLeast(750),
-                easing = FastOutSlowInEasing
+    val accent: Color = if (calmMode) {
+        targetAccent
+    } else {
+        val animated by animateColorAsState(
+            targetValue = targetAccent,
+            animationSpec = tween(450, easing = FastOutSlowInEasing),
+            label = "arcAccent"
+        )
+        animated
+    }
+
+    // Calm Mode: no pulse
+    val pulse: Float = if (calmMode) {
+        0.0f
+    } else {
+        val infinite = rememberInfiniteTransition(label = "arcPulse")
+        val p by infinite.animateFloat(
+            initialValue = 0.06f,
+            targetValue = 0.10f + (0.10f * t),
+            animationSpec = infiniteRepeatable(
+                animation = tween(
+                    durationMillis = (1300 - (450 * t)).toInt().coerceAtLeast(750),
+                    easing = FastOutSlowInEasing
+                ),
+                repeatMode = RepeatMode.Reverse
             ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse"
-    )
+            label = "pulse"
+        )
+        p
+    }
 
     val shape = RoundedCornerShape(999.dp)
 
@@ -83,14 +103,31 @@ fun ArcPill(
 
     val showPendingChip = isPending && !isInFlow && (graceRemainingMs != null)
 
-    val bg = Brush.linearGradient(
-        colors = listOf(
-            accent.copy(alpha = 0.24f + pulse),
-            MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
+    // Calm Mode: simpler background
+    val bg = if (calmMode) {
+        Brush.linearGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.70f),
+                MaterialTheme.colorScheme.surface.copy(alpha = 1.0f)
+            )
         )
-    )
+    } else {
+        Brush.linearGradient(
+            colors = listOf(
+                accent.copy(alpha = 0.24f + pulse),
+                MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
+            )
+        )
+    }
+
+    val borderColor = if (calmMode) {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+    } else {
+        accent.copy(alpha = 0.28f)
+    }
 
     Surface(
+        modifier = modifier,
         shape = shape,
         tonalElevation = 1.dp,
         color = MaterialTheme.colorScheme.surface
@@ -101,24 +138,27 @@ fun ArcPill(
                 .background(bg)
                 .border(
                     width = 1.dp,
-                    color = accent.copy(alpha = 0.28f),
+                    color = borderColor,
                     shape = shape
                 )
                 .padding(horizontal = 12.dp, vertical = 8.dp)
                 .height(38.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp) // spacing instead of SpaceBetween
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // LEFT: text group that is allowed to shrink/ellipsis
+            // LEFT: shrinkable group
             Row(
                 modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = tierIcon(m),
-                    style = MaterialTheme.typography.labelLarge
-                )
+                // Calm Mode: hide tier icon/runes (multiplier vibe)
+                if (!calmMode) {
+                    Text(
+                        text = tierIcon(m),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
 
                 Text(
                     text = "Arc",
@@ -128,13 +168,16 @@ fun ArcPill(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Text(
-                    text = "×${"%.1f".format(m)}",
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = accent,
-                    maxLines = 1
-                )
+                // Calm Mode: hide ×multiplier
+                if (!calmMode) {
+                    Text(
+                        text = "×${"%.1f".format(m)}",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = accent,
+                        maxLines = 1
+                    )
+                }
 
                 arcNextIndex?.let {
                     Text(
@@ -147,47 +190,70 @@ fun ArcPill(
                 }
             }
 
-            // MIDDLE: pending chip gets its own space so it never gets cut
             if (showPendingChip) {
-                PendingChip(tint = accent)
+                PendingChip(tint = accent, calmMode = calmMode)
             }
 
-            // RIGHT: status capsule, fixed
             StatusCapsule(
                 emoji = statusEmoji,
                 text = statusLabel,
-                tint = accent
+                tint = accent,
+                calmMode = calmMode
             )
         }
     }
 }
 
 @Composable
-private fun PendingChip(tint: Color) {
+private fun PendingChip(tint: Color, calmMode: Boolean) {
+    val bg = if (calmMode) {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f)
+    } else {
+        tint.copy(alpha = 0.16f)
+    }
+
+    val border = if (calmMode) {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+    } else {
+        tint.copy(alpha = 0.30f)
+    }
+
+    val textColor = if (calmMode) {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
+    } else {
+        tint
+    }
+
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(tint.copy(alpha = 0.16f))
-            .border(1.dp, tint.copy(alpha = 0.30f), RoundedCornerShape(999.dp))
+            .background(bg)
+            .border(1.dp, border, RoundedCornerShape(999.dp))
             .padding(horizontal = 7.dp, vertical = 2.dp)
     ) {
         Text(
             text = "PENDING",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
-            color = tint,
+            color = textColor,
             maxLines = 1
         )
     }
 }
 
 @Composable
-private fun StatusCapsule(emoji: String, text: String, tint: Color) {
+private fun StatusCapsule(emoji: String, text: String, tint: Color, calmMode: Boolean) {
+    val border = if (calmMode) {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+    } else {
+        tint.copy(alpha = 0.22f)
+    }
+
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-            .border(1.dp, tint.copy(alpha = 0.22f), RoundedCornerShape(999.dp))
+            .border(1.dp, border, RoundedCornerShape(999.dp))
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -203,6 +269,8 @@ private fun StatusCapsule(emoji: String, text: String, tint: Color) {
         }
     }
 }
+
+// ---- helpers (same as your current file) ----
 
 private fun buildArcStatus(
     isInFlow: Boolean,

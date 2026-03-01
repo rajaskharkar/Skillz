@@ -53,7 +53,8 @@ fun SurgeMiniControl(
     onMinutesChange: (String) -> Unit,
     onCommit: () -> Unit,
     onToggleOff: () -> Unit,
-    onLongPress: () -> Unit
+    onLongPress: () -> Unit,
+    calmMode: Boolean = false
 ) {
     var pendingOn by rememberSaveable { mutableStateOf(false) }
     var isEditing by rememberSaveable { mutableStateOf(false) }
@@ -84,24 +85,36 @@ fun SurgeMiniControl(
 
     val isOff = !effectiveOn
 
-    val stroke = if (isOff)
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f)
-    else
-        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
-
-    val containerColor = when {
-        completed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-        effectiveOn -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)
-        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.12f)
-    }
-
     val outerShape = RoundedCornerShape(if (isOff) 999.dp else 18.dp)
     val contentHPad = if (isOff) 10.dp else 12.dp
     val contentVPad = if (isOff) 6.dp else 10.dp
     val rowSpacing = if (isOff) 6.dp else 10.dp
 
-    val offTrack = MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f)
-    val offThumb = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
+    // Calm Mode: neutral stroke/container
+    val stroke = if (calmMode) {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+    } else {
+        if (isOff) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f)
+        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+    }
+
+    val containerColor = if (calmMode) {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (effectiveOn) 0.22f else 0.14f)
+    } else {
+        when {
+            completed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+            effectiveOn -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)
+            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.12f)
+        }
+    }
+
+    // Calm Mode: less “surge” tint on switch when off
+    val offTrack = if (calmMode)
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
+    else
+        MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f)
+
+    val offThumb = MaterialTheme.colorScheme.onSurface.copy(alpha = if (calmMode) 0.35f else 0.45f)
 
     Surface(
         modifier = modifier
@@ -121,10 +134,13 @@ fun SurgeMiniControl(
             modifier = Modifier.padding(horizontal = contentHPad, vertical = contentVPad),
             verticalArrangement = Arrangement.spacedBy(rowSpacing)
         ) {
-            // Row 1: label + status + toggle (WRAP CONTENT — no fillMaxWidth)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("⚡")
-                Spacer(Modifier.width(6.dp))
+                // Calm Mode: optional to remove emoji (keeps it calmer)
+                if (!calmMode) {
+                    Text("⚡")
+                    Spacer(Modifier.width(6.dp))
+                }
+
                 Text(
                     text = "Surge",
                     style = MaterialTheme.typography.labelLarge,
@@ -134,7 +150,6 @@ fun SurgeMiniControl(
 
                 Spacer(Modifier.width(10.dp))
 
-                // Status text: remove the awkward branch
                 val statusText = when {
                     completed -> "Complete"
                     planned != null && elapsedMs > 0L && remainingMs != null -> formatMsAsMmSs(remainingMs)
@@ -174,7 +189,6 @@ fun SurgeMiniControl(
                 )
             }
 
-            // Row 2: editor (only when editing) — still wrap-content
             AnimatedVisibility(visible = effectiveOn && toggleEnabled && isEditing && !isInFlow) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
@@ -214,6 +228,12 @@ fun SurgeMiniControl(
 
                     val minsValid = minutesInline.toIntOrNull()?.let { it > 0 } == true
 
+                    val setColor = when {
+                        calmMode -> MaterialTheme.colorScheme.surfaceVariant
+                        minsValid -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        else -> MaterialTheme.colorScheme.surfaceVariant
+                    }
+
                     Surface(
                         onClick = {
                             if (minsValid) {
@@ -222,21 +242,19 @@ fun SurgeMiniControl(
                             }
                         },
                         shape = RoundedCornerShape(999.dp),
-                        tonalElevation = if (minsValid) 2.dp else 0.dp,
-                        color = if (minsValid)
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                        else
-                            MaterialTheme.colorScheme.surfaceVariant
+                        tonalElevation = if (minsValid && !calmMode) 2.dp else 0.dp,
+                        color = setColor
                     ) {
                         Text(
                             text = "Set",
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (minsValid)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                            color = when {
+                                minsValid && !calmMode -> MaterialTheme.colorScheme.primary
+                                minsValid && calmMode -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+                                else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                            }
                         )
                     }
                 }

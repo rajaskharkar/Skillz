@@ -11,6 +11,7 @@ import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 import com.kingkharnivore.skillz.utils.time.TimeWindowUtils
+import com.kingkharnivore.skillz.utils.user.UserPrefs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,11 +28,14 @@ data class TagUiModel(
 @HiltViewModel
 class StoryViewModel @Inject constructor(
     private val sessionRepository: FlowRepository,
-    private val tagRepository: JourneyRepository
+    private val tagRepository: JourneyRepository,
+    private val userPrefs: UserPrefs
 ) : ViewModel() {
 
     // null = "All skills", non-null = filter by that tag/skill
     private val selectedTagId = MutableStateFlow<Long?>(null)
+    private val showScoreUiFlow = userPrefs.showScoreUi
+    private val calmModeFlow = userPrefs.calmMode
 
     private val period = MutableStateFlow(StoryPeriod.WEEK)
     private val anchorDayStartMs = MutableStateFlow(
@@ -77,6 +81,14 @@ class StoryViewModel @Inject constructor(
 
     init {
         observeSessions()
+    }
+
+    fun setShowScoreUi(enabled: Boolean) {
+        viewModelScope.launch { userPrefs.setShowScoreUi(enabled) }
+    }
+
+    fun setCalmMode(enabled: Boolean) {
+        viewModelScope.launch { userPrefs.setCalmMode(enabled) }
     }
 
     /** User chose a tag/skill chip – null means "All". */
@@ -210,8 +222,10 @@ class StoryViewModel @Inject constructor(
                 selectedTagId,
                 period,
                 anchorDayStartMs,
-                viewJourneysTagId,     // StateFlow<Long?>
-                isViewJourneysOpen     // StateFlow<Boolean>
+                viewJourneysTagId,
+                isViewJourneysOpen,
+                showScoreUiFlow,
+                calmModeFlow
             ) { arr: Array<Any?> ->
 
                 // ✅ strongly-typed unpack (this is the key fix)
@@ -222,6 +236,8 @@ class StoryViewModel @Inject constructor(
                 val anchorStartMs = arr[4] as Long
                 val viewTagId = arr[5] as Long?
                 val viewOpen = arr[6] as Boolean
+                val showScoreUi = arr[7] as Boolean
+                val calmMode = arr[8] as Boolean
 
                 val nowMs = System.currentTimeMillis()
 
@@ -352,7 +368,9 @@ class StoryViewModel @Inject constructor(
                     sagasInView = sagasInView,
                     isViewJourneysOpen = viewOpen,
                     viewJourneysTitle = viewJourneysTitle,
-                    viewJourneysSessions = viewJourneysSessions
+                    viewJourneysSessions = viewJourneysSessions,
+                    showScoreUi = showScoreUi,
+                    calmMode = calmMode
                 )
             }
                 .catch { e ->

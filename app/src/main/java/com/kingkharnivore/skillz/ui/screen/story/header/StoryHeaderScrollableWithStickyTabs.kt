@@ -170,6 +170,8 @@ fun StoryHeaderScrollableWithStickyTabs(
                         FlowCard(
                             session = session,
                             isExpanded = expandedState.isExpanded(session.sessionId),
+                            showScoreUi = uiState.showScoreUi,
+                            calmMode = uiState.calmMode,
                             onToggleExpand = { expandedState.toggle(session.sessionId) },
                             onDeleteSession = { onDeleteSession(session.sessionId) },
                             onLongPress = { editState.startEditing(session) },

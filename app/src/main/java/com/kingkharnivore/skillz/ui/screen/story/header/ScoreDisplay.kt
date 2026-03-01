@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kingkharnivore.skillz.ui.theme.CaveatSemiBold
@@ -20,7 +21,8 @@ fun ScoreDisplay(
     score: Int,
     surgeScore: Int,
     period: StoryPeriod,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    calmMode: Boolean = false
 ) {
     Box(
         modifier = modifier.padding(80.dp),
@@ -32,7 +34,8 @@ fun ScoreDisplay(
                 style = MaterialTheme.typography.displayLarge.copy(fontSize = 70.sp)
             )
 
-            if (surgeScore > 0) {
+            // Calm Mode hides bonus breakdown
+            if (!calmMode && surgeScore > 0) {
                 Spacer(Modifier.height(6.dp))
                 Text(
                     text = "+$surgeScore Surge",

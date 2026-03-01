@@ -16,6 +16,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.kingkharnivore.skillz.ui.screen.atlas.AtlasScreen
+import com.kingkharnivore.skillz.ui.screen.help.HelpScreen
 import com.kingkharnivore.skillz.ui.screen.story.StoryScreen
 import com.kingkharnivore.skillz.viewmodel.AtlasViewModel
 import com.kingkharnivore.skillz.viewmodel.NotepadViewModel
@@ -40,7 +41,7 @@ fun SkillzHomeScreen(
 
     val pagerState = rememberPagerState(
         initialPage = 1,
-        pageCount = { 3 }
+        pageCount = { 4 }
     )
     val scope = rememberCoroutineScope()
 
@@ -89,6 +90,16 @@ fun SkillzHomeScreen(
                             onTextChange = notepadViewModel::onTextChanged,
                             modifier = Modifier.fillMaxSize()
                         )
+
+                        3 -> {
+                            val storyUiState by skillzViewModel.uiState.collectAsState()
+                            HelpScreen(
+                                uiState = storyUiState,
+                                onToggleShowScoreUi = skillzViewModel::setShowScoreUi,
+                                onToggleCalmMode = skillzViewModel::setCalmMode,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
                     }
                 }
             }

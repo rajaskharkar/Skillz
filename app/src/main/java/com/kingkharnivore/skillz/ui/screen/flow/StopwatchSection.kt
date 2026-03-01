@@ -24,20 +24,30 @@ import com.kingkharnivore.skillz.viewmodel.StopwatchState
 @Composable
 fun StopwatchSection(
     state: StopwatchState,
-    viewModel: FlowViewModel
+    viewModel: FlowViewModel,
+    showScoreUi: Boolean,
+    calmMode: Boolean
 ) {
     var showResetConfirm by remember { mutableStateOf(false) }
+
+    val titleAlpha = if (calmMode) 0.55f else 1f
+    val timeAlpha = if (calmMode) 0.78f else 1f
 
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "In Flow", style = MaterialTheme.typography.titleSmall)
+        Text(
+            text = if (calmMode) "Calm" else "In Flow",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = titleAlpha)
+        )
 
         Text(
             text = formatElapsed(state.elapsedMs),
-            style = MaterialTheme.typography.headlineMedium,
+            style = if (calmMode) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = timeAlpha),
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -51,6 +61,9 @@ fun StopwatchSection(
                 enabled = state.elapsedMs > 0L && !state.isRunning
             ) { Text("Reset") }
         }
+
+        // If later you add score UI near timer, it must be gated like this:
+        // if (showScoreUi && !calmMode) { ... }
 
         if (showResetConfirm) {
             val minutes = (state.elapsedMs / 60_000L).toInt()

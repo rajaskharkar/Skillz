@@ -54,16 +54,19 @@ fun StoryHeader(
 
     Spacer(modifier = Modifier.height(12.dp))
 
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
-        ScoreDisplay(
-            score = uiState.currentScore,
-            surgeScore = uiState.currentSurgeScore,
-            period = uiState.period,
-            modifier = Modifier.fillMaxWidth()
-        )
+    if (uiState.showScoreUi) {
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            ScoreDisplay(
+                score = uiState.currentScore,
+                surgeScore = uiState.currentSurgeScore,
+                period = uiState.period,
+                modifier = Modifier.fillMaxWidth(),
+                calmMode = uiState.calmMode
+            )
+        }
     }
 
     HorizontalDivider()

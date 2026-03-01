@@ -129,15 +129,29 @@ fun FlowScreen(
                         isPending = uiState.arcIsPending,
                         graceRemainingMs = uiState.arcGraceRemainingMs,
                         pauseRemainingMs = uiState.arcPauseRemainingMs,
-                        isInFlow = uiState.stopwatch.isRunning // or uiState.isInFlowMode, your choice
+                        isInFlow = uiState.stopwatch.isRunning,
+                        calmMode = uiState.calmMode
                     )
                     Spacer(Modifier.height(10.dp))
                 }
 
-                StopwatchSection(
-                    state = stopwatchState,
-                    viewModel = viewModel
-                )
+                if (!uiState.calmMode) {
+                    StopwatchSection(
+                        state = stopwatchState,
+                        viewModel = viewModel,
+                        showScoreUi = uiState.showScoreUi,
+                        calmMode = uiState.calmMode
+                    )
+                } else {
+                    // optional: keep layout from feeling empty
+                    Text(
+                        text = "Calm Mode",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                }
 
                 Spacer(Modifier.height(12.dp))
 
@@ -182,7 +196,8 @@ fun FlowScreen(
                                     surgeMinutesInline = ""
                                 }
                             },
-                            onLongPress = { showSurgeDialog = true }
+                            onLongPress = { showSurgeDialog = true },
+                            calmMode = uiState.calmMode
                         )
                     }
                 }
