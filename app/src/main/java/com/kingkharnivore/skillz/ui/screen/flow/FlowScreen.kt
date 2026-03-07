@@ -135,7 +135,9 @@ fun FlowScreen(
                     Spacer(Modifier.height(10.dp))
                 }
 
-                if (!uiState.calmMode) {
+                val shouldShowStopwatch = !uiState.calmMode || !stopwatchState.isRunning
+
+                if (shouldShowStopwatch) {
                     StopwatchSection(
                         state = stopwatchState,
                         viewModel = viewModel,
@@ -143,7 +145,6 @@ fun FlowScreen(
                         calmMode = uiState.calmMode
                     )
                 } else {
-                    // optional: keep layout from feeling empty
                     Text(
                         text = "Calm Mode",
                         style = MaterialTheme.typography.labelMedium,
