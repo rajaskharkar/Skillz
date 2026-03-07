@@ -322,12 +322,14 @@ fun FlowScreen(
                     if (showArcSummary && r.arcSummary != null) {
                         ArcSummaryContent(
                             arc = r.arcSummary!!,
-                            isAera = BuildConfig.FLAVOR == "aera"
+                            isAera = BuildConfig.FLAVOR == "aera",
+                            calmMode = uiState.calmMode
                         )
                     } else {
                         SessionRewardContent(
                             r = r,
-                            isAera = BuildConfig.FLAVOR == "aera"
+                            isAera = BuildConfig.FLAVOR == "aera",
+                            calmMode = uiState.calmMode
                         )
                     }
                 }

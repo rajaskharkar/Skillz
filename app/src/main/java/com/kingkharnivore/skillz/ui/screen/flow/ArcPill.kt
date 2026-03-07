@@ -289,7 +289,7 @@ private fun buildArcStatus(
         val e = if (multiplier >= 3.5) "👑" else "🔥"
         return "Flow Active" to e
     }
-    return if (isPending) "Link it" to "🧷" else "Ready" to "✅"
+    return if (isPending) "Wrapping Up" to "🟡" else "Ready" to "✅"
 }
 
 private fun multiplierIntensity(multiplier: Double): Float {

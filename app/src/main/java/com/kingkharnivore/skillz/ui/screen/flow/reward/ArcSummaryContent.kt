@@ -14,7 +14,8 @@ import com.kingkharnivore.skillz.viewmodel.ArcSummaryUiModel
 @Composable
 fun ArcSummaryContent(
     arc: ArcSummaryUiModel,
-    isAera: Boolean
+    isAera: Boolean,
+    calmMode: Boolean
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -31,11 +32,14 @@ fun ArcSummaryContent(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
         )
 
-        RewardCard(title = "Arc totals") {
+        RewardCard(
+            title = "Arc totals",
+            subtitle = if (calmMode || isAera) "Your Story in Time" else null
+        ) {
             MetricLine("Flows", "${arc.totalSessions}", MetricTone.Neutral)
             MetricLine("Total duration", formatDuration(arc.totalDurationMs), MetricTone.Neutral)
 
-            if (!isAera) {
+            if (!isAera && !calmMode) {
                 DividerSoft()
                 MetricLine("Peak multiplier", "×${"%.1f".format(arc.peakMultiplier)}", MetricTone.Glow)
                 HighlightMetric("Arc bonus points", "+${arc.totalArcBonusPoints}", glow = true)
