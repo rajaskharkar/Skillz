@@ -32,7 +32,6 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.FlowListItemUiModel
 import com.kingkharnivore.skillz.utils.time.formatDuration
 
@@ -78,7 +77,6 @@ fun FlowCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
-            // ── Header row ─────────────────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -95,18 +93,15 @@ fun FlowCard(
                     )
                 }
 
-                // Right rail
                 Column(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Calm Mode hides bonus breakdown chips
                     if (!calmMode && isBeamed) {
                         BeamBonusChip(bonusPoints = session.beamBonusPoints)
                         Spacer(Modifier.height(6.dp))
                     }
 
-                    // Calm Mode hides surge bonus stat line
                     if (!calmMode && showSurgeStat) {
                         val dark = isSystemInDarkTheme()
 
@@ -132,7 +127,9 @@ fun FlowCard(
                     }
 
                     if (isExpanded) {
-                        IconButton(onClick = { showDeleteDialog = true }) {
+                        IconButton(
+                            onClick = { showDeleteDialog = true }
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = "Delete session"
@@ -146,7 +143,6 @@ fun FlowCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f))
             Spacer(modifier = Modifier.height(10.dp))
 
-            // ── Body ───────────────────────────────────────────────────
             if (session.description.isNotBlank()) {
                 Text(
                     text = session.description,
@@ -162,7 +158,6 @@ fun FlowCard(
                 style = MaterialTheme.typography.bodySmall
             )
 
-            // Show Score UI toggle controls Scyra score visibility
             if (showScoreUi) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
@@ -175,7 +170,31 @@ fun FlowCard(
     }
 
     if (showDeleteDialog) {
-        // your existing dialog, call onDeleteSession()
-        // (left as-is because you didn’t paste it)
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
+                Text("Delete flow?")
+            },
+            text = {
+                Text("This will permanently delete this flow.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteSession()
+                    }
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
