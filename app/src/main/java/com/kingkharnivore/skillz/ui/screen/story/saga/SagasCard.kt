@@ -29,7 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.kingkharnivore.skillz.data.model.entity.Journey7dStatUiModel
+import com.kingkharnivore.skillz.model.ui.Journey7dStatUiModel
 import com.kingkharnivore.skillz.ui.screen.helpers.sagaSubtitle
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 

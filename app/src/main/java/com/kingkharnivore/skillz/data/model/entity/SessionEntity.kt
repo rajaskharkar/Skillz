@@ -4,8 +4,6 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.kingkharnivore.skillz.viewmodel.TagUiModel
-import com.kingkharnivore.skillz.utils.time.StoryPeriod
 
 @Entity(
     tableName = "sessions",
@@ -41,47 +39,3 @@ data class SessionEntity(
     val createdAt: Long = System.currentTimeMillis()
 )
 
-data class Journey7dStatUiModel(
-    val tagId: Long,
-    val tagName: String,
-    val totalScore: Int,
-    val totalDurationMs: Long,
-    val sessionsCount: Int
-)
-
-data class FlowListUiState(
-    val isLoading: Boolean = true,
-    val sessions: List<FlowListItemUiModel> = emptyList(),
-    val tags: List<TagUiModel> = emptyList(),
-    val selectedTagId: Long? = null,
-    val totalDurationMs: Long = 0L,
-    val errorMessage: String? = null,
-    val period: StoryPeriod = StoryPeriod.DAY,
-    val anchorDayStartMs: Long = 0L,
-    val currentScore: Int = 0,
-    val currentSurgeScore: Int = 0,
-    val topJourneysLast7d: List<Journey7dStatUiModel> = emptyList(),
-    val firstSessionStartMs: Long? = null,
-    val isCurrentPeriod: Boolean = true,
-    val sagasInView: List<Journey7dStatUiModel> = emptyList(), // reuse your stat model
-    val isViewJourneysOpen: Boolean = false,
-    val viewJourneysTitle: String = "",
-    val viewJourneysSessions: List<FlowListItemUiModel> = emptyList(),
-)
-
-data class FlowListItemUiModel(
-    val sessionId: Long,
-    val title: String,
-    val description: String,
-    val tagName: String,
-    val durationMs: Long,
-    val createdAt: Long,
-    val score: Int,
-    val isSurge: Boolean,
-    val surgePoints: Int,
-    val beamBonusPoints: Int,
-    val arcId: Long? = null,
-    val arcIndex: Int? = null,
-    val arcMultiplierUsed: Double? = null,
-    val arcBonusPoints: Int = 0
-)

@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.kingkharnivore.skillz.data.model.entity.FlowListUiState
+import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 
 @Composable
@@ -54,16 +54,19 @@ fun StoryHeader(
 
     Spacer(modifier = Modifier.height(12.dp))
 
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
-        ScoreDisplay(
-            score = uiState.currentScore,
-            surgeScore = uiState.currentSurgeScore,
-            period = uiState.period,
-            modifier = Modifier.fillMaxWidth()
-        )
+    if (uiState.showScoreUi) {
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            ScoreDisplay(
+                score = uiState.currentScore,
+                surgeScore = uiState.currentSurgeScore,
+                period = uiState.period,
+                modifier = Modifier.fillMaxWidth(),
+                calmMode = uiState.calmMode
+            )
+        }
     }
 
     HorizontalDivider()

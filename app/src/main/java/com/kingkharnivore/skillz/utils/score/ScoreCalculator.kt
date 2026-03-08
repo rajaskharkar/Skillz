@@ -192,7 +192,6 @@ object ScoreCalculator {
         beforeArcPoints: Int,
         chainBase: Double,
         durationMs: Long,
-        startChainBase: Double = 1.3,           // optional, not required
         stepMs: Long = 10 * 60_000L,
         step: Double = 0.1
     ): ArcMathResult {

@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -90,17 +92,31 @@ private fun HomeNavIcons(
             contentDescription = "Atlas",
             icon = { Icon(Icons.Outlined.Map, contentDescription = null, modifier = Modifier.size(22.dp)) }
         )
+
         NavIcon(
             selected = selected == 1,
             onClick = { onSelect(1) },
             contentDescription = "Story",
             icon = { Icon(Icons.Outlined.AutoStories, contentDescription = null, modifier = Modifier.size(22.dp)) }
         )
+
         NavIcon(
             selected = selected == 2,
             onClick = { onSelect(2) },
             contentDescription = "Notepad",
             icon = { Icon(Icons.Outlined.EditNote, contentDescription = null, modifier = Modifier.size(22.dp)) }
+        )
+
+        // ✅ NEW: Help / Settings (last tab)
+        // Roadmap-ish icon.
+        NavIcon(
+            selected = selected == 3,
+            onClick = { onSelect(3) },
+            contentDescription = "Help",
+            icon = {
+                // Prefer Explore for "roadmap", fallback to HelpOutline if you chose that import.
+                Icon(Icons.Outlined.HelpOutline, contentDescription = null, modifier = Modifier.size(22.dp))
+            }
         )
     }
 }

@@ -1,6 +1,6 @@
 package com.kingkharnivore.skillz.ui.screen.helpers
 
-import com.kingkharnivore.skillz.data.model.entity.FlowListItemUiModel
+import com.kingkharnivore.skillz.model.ui.FlowListItemUiModel
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 import com.kingkharnivore.skillz.utils.time.TimeWindowUtils
 import com.kingkharnivore.skillz.utils.time.formatDuration

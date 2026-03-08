@@ -32,14 +32,15 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.kingkharnivore.skillz.BuildConfig
-import com.kingkharnivore.skillz.data.model.entity.FlowListItemUiModel
+import com.kingkharnivore.skillz.model.ui.FlowListItemUiModel
 import com.kingkharnivore.skillz.utils.time.formatDuration
 
 @Composable
 fun FlowCard(
     session: FlowListItemUiModel,
     isExpanded: Boolean,
+    showScoreUi: Boolean,
+    calmMode: Boolean,
     onToggleExpand: () -> Unit,
     onDeleteSession: () -> Unit,
     onLongPress: () -> Unit,
@@ -76,7 +77,6 @@ fun FlowCard(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
 
-            // ── Header row ─────────────────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -93,20 +93,18 @@ fun FlowCard(
                     )
                 }
 
-                // Right rail (stable-ish)
                 Column(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    if (isBeamed) {
+                    if (!calmMode && isBeamed) {
                         BeamBonusChip(bonusPoints = session.beamBonusPoints)
                         Spacer(Modifier.height(6.dp))
                     }
 
-                    if (showSurgeStat) {
+                    if (!calmMode && showSurgeStat) {
                         val dark = isSystemInDarkTheme()
 
-                        // Readable in light mode, still "surge-y" in dark mode
                         val surgeTint = lerp(
                             MaterialTheme.colorScheme.onSurface,
                             MaterialTheme.colorScheme.secondary,
@@ -129,7 +127,9 @@ fun FlowCard(
                     }
 
                     if (isExpanded) {
-                        IconButton(onClick = { showDeleteDialog = true }) {
+                        IconButton(
+                            onClick = { showDeleteDialog = true }
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
                                 contentDescription = "Delete session"
@@ -143,7 +143,6 @@ fun FlowCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f))
             Spacer(modifier = Modifier.height(10.dp))
 
-            // ── Body ───────────────────────────────────────────────────
             if (session.description.isNotBlank()) {
                 Text(
                     text = session.description,
@@ -159,12 +158,12 @@ fun FlowCard(
                 style = MaterialTheme.typography.bodySmall
             )
 
-            if (BuildConfig.SHOW_SCORE) {
+            if (showScoreUi) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = "Scyra Score: ${session.score}",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (calmMode) 0.70f else 0.85f)
                 )
             }
         }
@@ -173,18 +172,28 @@ fun FlowCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete flow?") },
-            text = { Text("Are you sure you want to delete this flow? This action cannot be undone.") },
+            title = {
+                Text("Delete flow?")
+            },
+            text = {
+                Text("This will permanently delete this flow.")
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showDeleteDialog = false
                         onDeleteSession()
                     }
-                ) { Text("Delete") }
+                ) {
+                    Text("Delete")
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+                TextButton(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text("Cancel")
+                }
             }
         )
     }

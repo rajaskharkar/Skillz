@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.ui.navigation
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -12,8 +13,10 @@ import androidx.navigation.navDeepLink
 import com.kingkharnivore.skillz.ui.screen.ScheduleBeamScreen
 import com.kingkharnivore.skillz.ui.screen.flow.FlowScreen
 import com.kingkharnivore.skillz.ui.screen.SkillzHomeScreen
+import com.kingkharnivore.skillz.ui.screen.help.HelpScreen
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.viewmodel.ScheduleBeamViewModel
+import com.kingkharnivore.skillz.viewmodel.StoryViewModel
 
 @Composable
 fun SkillzNavHost(
@@ -21,6 +24,7 @@ fun SkillzNavHost(
     modifier: Modifier = Modifier
 ) {
     val focusVm: FlowViewModel = hiltViewModel()
+    val storyViewModel: StoryViewModel = hiltViewModel()
     val ongoing by focusVm.ongoingSession.collectAsState()
     val isFocusModeOn = ongoing?.isInFlowMode == true
 
@@ -57,6 +61,17 @@ fun SkillzNavHost(
                 vm = vm,
                 onDone = { popToHome(navController) },
                 onCancel = { navController.popBackStack() }
+            )
+        }
+
+        composable("help") {
+            val uiState by storyViewModel.uiState.collectAsState()
+
+            HelpScreen(
+                uiState = uiState,
+                onToggleShowScoreUi = storyViewModel::setShowScoreUi,
+                onToggleCalmMode = storyViewModel::setCalmMode,
+                modifier = Modifier.fillMaxSize()
             )
         }
     }

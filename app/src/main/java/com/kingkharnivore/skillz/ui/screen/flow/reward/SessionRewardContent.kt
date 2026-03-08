@@ -10,12 +10,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.ui.screen.flow.formatMsAsMmSs
-import com.kingkharnivore.skillz.viewmodel.FlowRewardUiModel
+import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 
 @Composable
 fun SessionRewardContent(
     r: FlowRewardUiModel,
-    isAera: Boolean
+    isAera: Boolean,
+    calmMode: Boolean
 ) {
     val showBeamUi = r.beamBonusPoints > 0
 
@@ -36,6 +37,16 @@ fun SessionRewardContent(
             )
         }
 
+        if (calmMode || isAera) {
+            RewardCard(title = "Session details", subtitle = "Your Story in Time") {
+                MetricLine("Total time", "${r.minutes} min", MetricTone.Neutral)
+                if (showBeamUi) {
+                    MetricLine("Time in Beam ⭐", formatMsAsMmSs(r.beamEligibleMs), MetricTone.Glow)
+                }
+            }
+            return
+        }
+
         RewardChipRowV2(
             isAera = isAera,
             totalMinutes = r.minutes,
@@ -44,14 +55,6 @@ fun SessionRewardContent(
             showBeamUi = showBeamUi,
             surgePoints = r.surgePoints
         )
-
-        if (isAera) {
-            RewardCard(title = "Session details", subtitle = "Time only") {
-                MetricLine("Total time", "${r.minutes} min", MetricTone.Neutral)
-                if (showBeamUi) MetricLine("Time in Beam ⭐", formatMsAsMmSs(r.beamEligibleMs), MetricTone.Glow)
-            }
-            return
-        }
 
         RewardTotalCard(
             title = "Total Scyra Score",

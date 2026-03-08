@@ -125,15 +125,34 @@ fun FlowScreen(
                 if (uiState.isInArc && uiState.arcMultiplier != null) {
                     ArcPill(
                         arcMultiplier = uiState.arcMultiplier!!,
-                        arcNextIndex = uiState.arcNextIndex
+                        arcNextIndex = uiState.arcNextIndex,
+                        isPending = uiState.arcIsPending,
+                        graceRemainingMs = uiState.arcGraceRemainingMs,
+                        pauseRemainingMs = uiState.arcPauseRemainingMs,
+                        isInFlow = uiState.stopwatch.isRunning,
+                        calmMode = uiState.calmMode
                     )
                     Spacer(Modifier.height(10.dp))
                 }
 
-                StopwatchSection(
-                    state = stopwatchState,
-                    viewModel = viewModel
-                )
+                val shouldShowStopwatch = !uiState.calmMode || !stopwatchState.isRunning
+
+                if (shouldShowStopwatch) {
+                    StopwatchSection(
+                        state = stopwatchState,
+                        viewModel = viewModel,
+                        showScoreUi = uiState.showScoreUi,
+                        calmMode = uiState.calmMode
+                    )
+                } else {
+                    Text(
+                        text = "Calm Mode",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+                }
 
                 Spacer(Modifier.height(12.dp))
 
@@ -178,7 +197,8 @@ fun FlowScreen(
                                     surgeMinutesInline = ""
                                 }
                             },
-                            onLongPress = { showSurgeDialog = true }
+                            onLongPress = { showSurgeDialog = true },
+                            calmMode = uiState.calmMode
                         )
                     }
                 }
@@ -278,14 +298,20 @@ fun FlowScreen(
         )
     }
 
-    // 🟢 Rewards dialog (unchanged)
+    // 🟢 Rewards dialog (accurate + fixed)
     if (showPointsDialog && reward != null) {
         val r = reward!!
-        var showArcSummary by remember(r) { mutableStateOf(false) }
+
+        // ✅ If reward is "arc-only summary", open directly on ArcSummary
+        var showArcSummary by remember(r) { mutableStateOf(r.isArcOnlySummary) }
 
         AlertDialog(
             onDismissRequest = { /* locked */ },
-            title = { Text(if (showArcSummary && r.arcSummary != null) "Arc Reward" else "You did it!") },
+            title = {
+                Text(
+                    if (showArcSummary && r.arcSummary != null) "Arc Reward" else "You did it!"
+                )
+            },
             text = {
                 Column(
                     modifier = Modifier
@@ -296,12 +322,14 @@ fun FlowScreen(
                     if (showArcSummary && r.arcSummary != null) {
                         ArcSummaryContent(
                             arc = r.arcSummary!!,
-                            isAera = BuildConfig.FLAVOR == "aera"
+                            isAera = BuildConfig.FLAVOR == "aera",
+                            calmMode = uiState.calmMode
                         )
                     } else {
                         SessionRewardContent(
                             r = r,
-                            isAera = BuildConfig.FLAVOR == "aera"
+                            isAera = BuildConfig.FLAVOR == "aera",
+                            calmMode = uiState.calmMode
                         )
                     }
                 }
@@ -309,7 +337,8 @@ fun FlowScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        if (r.arcSummary != null && !showArcSummary) {
+                        // ✅ Only allow "Next" if this is NOT arc-only summary.
+                        if (r.arcSummary != null && !showArcSummary && !r.isArcOnlySummary) {
                             showArcSummary = true
                         } else {
                             showPointsDialog = false
@@ -321,7 +350,14 @@ fun FlowScreen(
                             }
                         }
                     }
-                ) { Text(if (r.arcSummary != null && !showArcSummary) "Next" else "Done") }
+                ) {
+                    val label = when {
+                        r.isArcOnlySummary -> "Done"
+                        r.arcSummary != null && !showArcSummary -> "Next"
+                        else -> "Done"
+                    }
+                    Text(label)
+                }
             },
             dismissButton = {}
         )
