@@ -41,6 +41,16 @@ class ExpandedSessionIdsState(
     }
 }
 
+class ExpandedArcIdsState(
+    private val ids: MutableState<Set<Long>>
+) {
+    fun isExpanded(id: Long): Boolean = ids.value.contains(id)
+
+    fun toggle(id: Long) {
+        ids.value = if (ids.value.contains(id)) ids.value - id else ids.value + id
+    }
+}
+
 class SessionEditState(
     val editingSession: MutableState<FlowListItemUiModel?>,
     val editText: MutableState<String>
@@ -133,6 +143,12 @@ fun rememberSessionEditState(): SessionEditState {
     val editingSession = remember { mutableStateOf<FlowListItemUiModel?>(null) }
     val editText = remember { mutableStateOf("") }
     return remember { SessionEditState(editingSession, editText) }
+}
+
+@Composable
+fun rememberExpandedArcIdsState(): ExpandedArcIdsState {
+    val ids = remember { mutableStateOf(setOf<Long>()) }
+    return remember { ExpandedArcIdsState(ids) }
 }
 
 @Composable
