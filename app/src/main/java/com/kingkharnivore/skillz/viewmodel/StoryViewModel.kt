@@ -3,9 +3,9 @@ package com.kingkharnivore.skillz.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
-import com.kingkharnivore.skillz.data.model.entity.FlowListItemUiModel
-import com.kingkharnivore.skillz.data.model.entity.FlowListUiState
-import com.kingkharnivore.skillz.data.model.entity.Journey7dStatUiModel
+import com.kingkharnivore.skillz.model.ui.FlowListItemUiModel
+import com.kingkharnivore.skillz.model.state.FlowListUiState
+import com.kingkharnivore.skillz.model.ui.Journey7dStatUiModel
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository

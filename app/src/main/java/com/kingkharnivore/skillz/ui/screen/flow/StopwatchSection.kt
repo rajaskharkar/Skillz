@@ -19,7 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
-import com.kingkharnivore.skillz.viewmodel.StopwatchState
+import com.kingkharnivore.skillz.model.state.flow.StopwatchState
 
 @Composable
 fun StopwatchSection(

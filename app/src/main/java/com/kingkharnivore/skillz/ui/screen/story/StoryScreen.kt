@@ -27,7 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.kingkharnivore.skillz.data.model.entity.FlowListItemUiModel
+import com.kingkharnivore.skillz.model.ui.FlowListItemUiModel
 import com.kingkharnivore.skillz.ui.screen.story.saga.journeys.ViewJourneysBottomSheet
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
 

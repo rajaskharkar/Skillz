@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.di
+package com.kingkharnivore.skillz.data.di
 
 import android.content.Context
 import androidx.datastore.core.DataStore

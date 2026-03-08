@@ -9,6 +9,10 @@ import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.BeamRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
+import com.kingkharnivore.skillz.model.state.flow.ArcSummaryUiModel
+import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
+import com.kingkharnivore.skillz.model.state.flow.FlowUiState
+import com.kingkharnivore.skillz.model.state.flow.StopwatchState
 import com.kingkharnivore.skillz.ui.model.ArcRuntimeState
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
 import com.kingkharnivore.skillz.utils.arc.ArcPrefs
@@ -29,65 +33,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-data class StopwatchState(
-    val isRunning: Boolean = false,
-    val elapsedMs: Long = 0L
-)
-
-data class FlowUiState(
-    val title: String = "",
-    val description: String = "",
-    val tagName: String = "",
-    val stopwatch: StopwatchState = StopwatchState(),
-    val isInFlowMode: Boolean = false,
-    val isSurgeOn: Boolean = false,
-    val surgePlannedMs: Long? = null,
-
-    // ✅ ADD THESE (defaults OFF)
-    val showScoreUi: Boolean = false,
-    val calmMode: Boolean = false,
-
-    // ARC UI...
-    val isInArc: Boolean = false,
-    val arcIsPending: Boolean = false,
-    val arcMultiplier: Double? = null,
-    val arcProgressMs: Long = 0L,
-    val arcNextIndex: Int? = null,
-    val arcGraceRemainingMs: Long? = null,
-    val arcPauseRemainingMs: Long? = null
-)
-
-data class FlowRewardUiModel(
-    val minutes: Int,
-    val baseScyraPoints: Int,
-    val tenMinuteBonuses: Int,
-    val thirtyMinuteBonuses: Int,
-    val sixtyMinuteBonuses: Int,
-    val beamEligibleMs: Long,
-    val beamBonusPoints: Int,
-    val beamMultiplier: Double?,
-    val finalScyraPoints: Int,
-    val surgePoints: Int,
-
-    // ✅ ARC
-    val arcIndexInArc: Int? = null,
-    val arcMultiplierUsed: Double? = null,
-    val arcBonusPoints: Int = 0,
-    val arcNextMultiplier: Double? = null,
-    val arcProgressTowardNextMs: Long = 0L,
-    val arcDidLevelUp: Boolean = false,
-    val arcSummary: ArcSummaryUiModel? = null,
-    val isArcOnlySummary: Boolean = false
-)
-
-data class ArcSummaryUiModel(
-    val totalSessions: Int,
-    val totalDurationMs: Long,
-    val totalFinalPoints: Int,
-    val totalArcBonusPoints: Int,
-    val peakMultiplier: Double
-)
 
 private data class BeamOutcome(
     val beamId: Long? = null,
@@ -405,7 +350,8 @@ class FlowViewModel @Inject constructor(
                     totalDurationMs = arcSessions.sumOf { it.durationMs },
                     totalFinalPoints = arcSessions.sumOf { it.scyraPoints },
                     totalArcBonusPoints = arcSessions.sumOf { it.arcBonusPoints },
-                    peakMultiplier = arcSessions.mapNotNull { it.arcMultiplierUsed }.maxOrNull() ?: 1.0
+                    peakMultiplier = arcSessions.mapNotNull { it.arcMultiplierUsed }.maxOrNull()
+                        ?: 1.0
                 )
             } else null
 
@@ -991,7 +937,8 @@ class FlowViewModel @Inject constructor(
                                 totalDurationMs = arcSessions.sumOf { it.durationMs },
                                 totalFinalPoints = arcSessions.sumOf { it.scyraPoints },
                                 totalArcBonusPoints = arcSessions.sumOf { it.arcBonusPoints },
-                                peakMultiplier = arcSessions.mapNotNull { it.arcMultiplierUsed }.maxOrNull() ?: 1.0
+                                peakMultiplier = arcSessions.mapNotNull { it.arcMultiplierUsed }
+                                    .maxOrNull() ?: 1.0
                             )
                         } else null
                     } else null
@@ -1005,7 +952,11 @@ class FlowViewModel @Inject constructor(
                     // ✅ hard reset stopwatch UI so Arc UI doesn't think we're "paused mid-flow"
                     baseStartTimeMs = null
                     accumulatedBeforeStartMs = 0L
-                    _uiState.update { it.copy(stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L)) }
+                    _uiState.update { it.copy(stopwatch = StopwatchState(
+                        isRunning = false,
+                        elapsedMs = 0L
+                    )
+                    ) }
 
                     stopTicker()
                     syncArcUi() // (will no-op arc UI since arcState=null)
@@ -1026,7 +977,11 @@ class FlowViewModel @Inject constructor(
                     // ✅ reset stopwatch UI
                     baseStartTimeMs = null
                     accumulatedBeforeStartMs = 0L
-                    _uiState.update { it.copy(stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L)) }
+                    _uiState.update { it.copy(stopwatch = StopwatchState(
+                        isRunning = false,
+                        elapsedMs = 0L
+                    )
+                    ) }
 
                     stopTicker()
                     syncArcUi()
@@ -1042,7 +997,11 @@ class FlowViewModel @Inject constructor(
                     // ✅ reset stopwatch UI so we are truly "between flows" (grace countdown should run)
                     baseStartTimeMs = null
                     accumulatedBeforeStartMs = 0L
-                    _uiState.update { it.copy(stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L)) }
+                    _uiState.update { it.copy(stopwatch = StopwatchState(
+                        isRunning = false,
+                        elapsedMs = 0L
+                    )
+                    ) }
 
                     stopTicker()
                     syncArcUi() // arcState still exists; countdown will start via syncArcUi()

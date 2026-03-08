@@ -5,24 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.repository.BeamError
 import com.kingkharnivore.skillz.data.repository.BeamRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
+import com.kingkharnivore.skillz.model.state.ScheduleBeamUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.*
 import javax.inject.Inject
-
-data class ScheduleBeamUiState(
-    val tagName: String = "",
-    val selectedDateEpochMs: Long? = null,
-    val selectedHour: Int? = null,
-    val selectedMinute: Int? = null,
-    val durationMinutes: Int? = null,
-    val customMinutesText: String = "",
-    val datePreset: String? = null, // "today" | "tomorrow" | null
-    val isSaving: Boolean = false,
-    val error: String? = null,
-    val success: Boolean = false
-)
 
 @HiltViewModel
 class ScheduleBeamViewModel @Inject constructor(

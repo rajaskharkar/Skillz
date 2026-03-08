@@ -29,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.kingkharnivore.skillz.data.model.entity.FlowListUiState
+import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.ui.screen.helpers.formatPeriodSubtitle
 import com.kingkharnivore.skillz.ui.screen.helpers.formatPeriodTitle
 

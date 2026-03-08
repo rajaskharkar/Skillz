@@ -26,7 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.kingkharnivore.skillz.data.model.entity.FlowListUiState
+import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.ui.screen.story.rememberExpandedSessionIdsState
 import com.kingkharnivore.skillz.ui.screen.story.rememberSessionEditState
 import com.kingkharnivore.skillz.ui.screen.story.chronicle.FlowCard

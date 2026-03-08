@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.ui.screen.flow.formatMsAsMmSs
-import com.kingkharnivore.skillz.viewmodel.FlowRewardUiModel
+import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 
 @Composable
 fun SessionRewardContent(

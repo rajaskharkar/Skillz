@@ -9,7 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.kingkharnivore.skillz.data.model.entity.FlowListUiState
+import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.ui.screen.story.header.StoryHeaderScrollableWithStickyTabs
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 

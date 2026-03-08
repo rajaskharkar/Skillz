@@ -18,7 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.kingkharnivore.skillz.data.model.entity.FlowListUiState
+import com.kingkharnivore.skillz.model.state.FlowListUiState
 
 @Composable
 fun HelpScreen(
