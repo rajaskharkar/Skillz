@@ -313,11 +313,10 @@ fun FlowScreen(
                 )
             },
             text = {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 0.75f * LocalConfiguration.current.screenHeightDp.dp)
-                        .verticalScroll(rememberScrollState())
                 ) {
                     if (showArcSummary && r.arcSummary != null) {
                         ArcSummaryContent(

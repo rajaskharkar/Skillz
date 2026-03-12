@@ -25,7 +25,7 @@ object AliveFlowNotificationFactory {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_LOW // ongoing, non-intrusive
+                NotificationManager.IMPORTANCE_LOW
             ).apply {
                 description = "Shows when a Flow State is active"
                 setShowBadge(false)
@@ -52,8 +52,8 @@ object AliveFlowNotificationFactory {
 
         val n = builder.build()
         n.flags = n.flags or
-                android.app.Notification.FLAG_ONGOING_EVENT or
-                android.app.Notification.FLAG_NO_CLEAR
+                Notification.FLAG_ONGOING_EVENT or
+                Notification.FLAG_NO_CLEAR
         return n
     }
 
@@ -62,7 +62,6 @@ object AliveFlowNotificationFactory {
         entity: OngoingSessionEntity,
         elapsedMs: Long
     ): Notification {
-
         val elapsedSeconds = max(0, elapsedMs / 1000)
         val startWhenMs = System.currentTimeMillis() - elapsedMs
 
@@ -82,17 +81,28 @@ object AliveFlowNotificationFactory {
             if (entity.isRunning) "$status • Started at $startedAtText"
             else "$status • Total ${formatElapsed(elapsedSeconds)}"
 
+        val surgeLine = buildSurgeLine(entity, elapsedMs)
+
         val bigText = buildString {
             append(tag)
+
             entity.description.takeIf { !it.isNullOrBlank() }?.let {
                 append("\n")
                 append(it.trim())
             }
+
+            surgeLine?.let {
+                append("\n")
+                append(it)
+            }
+
             append("\n")
             append(line2)
         }
 
-        // Tap notification -> open Flow screen (deep link handled by NavGraph)
+        // Prefer showing surge status when applicable
+        val contentText = surgeLine ?: line2
+
         val openFlowIntent = Intent(
             Intent.ACTION_VIEW,
             Uri.parse("skillz://flow"),
@@ -112,7 +122,7 @@ object AliveFlowNotificationFactory {
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentTitle(title)
-            .setContentText(line2)
+            .setContentText(contentText)
             .setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
             .setContentIntent(openFlowPendingIntent)
             .setOngoing(true)
@@ -127,7 +137,9 @@ object AliveFlowNotificationFactory {
             .setColorized(true)
             .setColor(BuildConfig.PRIMARY_COLOR)
 
-        if (entity.isRunning) builder.setUsesChronometer(true)
+        if (entity.isRunning) {
+            builder.setUsesChronometer(true)
+        }
 
         val notification = builder.build()
         notification.flags = notification.flags or
@@ -135,6 +147,20 @@ object AliveFlowNotificationFactory {
                 Notification.FLAG_NO_CLEAR
 
         return notification
+    }
+
+    private fun buildSurgeLine(
+        entity: OngoingSessionEntity,
+        elapsedMs: Long
+    ): String? {
+        val plannedMs = entity.surgePlannedMs ?: return null
+        if (!entity.isSurgeOn) return null
+
+        return if (elapsedMs >= plannedMs) {
+            "Surge Complete • Keep going"
+        } else {
+            "Surge • ${formatElapsed(elapsedMs / 1000)} / ${formatElapsed(plannedMs / 1000)}"
+        }
     }
 
     private fun formatClockTime(timeMs: Long): String {
@@ -154,10 +180,8 @@ object AliveFlowNotificationFactory {
     }
 
     fun buildBootNotification(context: Context): Notification {
-        // Reuse your channel + basic ongoing style
-        // Must include smallIcon.
         return NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_media_play) // <-- use your real icon
+            .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentTitle("Flow")
             .setContentText("Starting…")
             .setOngoing(true)

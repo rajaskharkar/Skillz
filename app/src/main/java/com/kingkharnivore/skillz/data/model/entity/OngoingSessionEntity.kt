@@ -13,8 +13,16 @@ data class OngoingSessionEntity(
     val isRunning: Boolean,
     val baseStartTimeMs: Long?,          // last start/resume timestamp
     val accumulatedBeforeStartMs: Long,  // elapsed before baseStartTimeMs
+
     val isSurgeOn: Boolean = false,
     val surgePlannedMs: Long? = null,
+
+    // ✅ persisted runtime state for service-driven Surge
+    val surgeMilestonesFiredCsv: String = "",
+    val surgeTargetReached: Boolean = false,
+    val surgeTargetReachedAtMs: Long? = null,
+    val surgeFinalCountdownStarted: Boolean = false,
+
     val createdAt: Long = System.currentTimeMillis(),
     val arcId: Long? = null,
     val arcChainBase: Double? = null,

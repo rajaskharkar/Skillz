@@ -81,6 +81,25 @@ fun SessionRewardContent(
                 if (r.sixtyMinuteBonuses > 0) BonusLine("60-minute bonus", r.sixtyMinuteBonuses, 50)
             }
 
+            if (showBeamUi) {
+                DividerSoft()
+                Text(
+                    text = "Beam ⭐",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
+                )
+
+                MetricLine("Time in Beam", formatMsAsMmSs(r.beamEligibleMs), MetricTone.Glow)
+
+                MetricLine(
+                    "Beam multiplier",
+                    r.beamMultiplier?.let { "×${"%.2f".format(it)}" } ?: "—",
+                    tone = if (r.beamMultiplier != null) MetricTone.Glow else MetricTone.Muted
+                )
+
+                HighlightMetric("Beam points gained", "+${r.beamBonusPoints}", glow = true)
+            }
+
             val showArcUi =
                 (r.arcIndexInArc ?: 0) >= 2 && (r.arcBonusPoints > 0 || r.arcMultiplierUsed != null)
 
@@ -107,25 +126,6 @@ fun SessionRewardContent(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-            }
-
-            if (showBeamUi) {
-                DividerSoft()
-                Text(
-                    text = "Beam ⭐",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
-                )
-
-                MetricLine("Time in Beam", formatMsAsMmSs(r.beamEligibleMs), MetricTone.Glow)
-
-                MetricLine(
-                    "Beam multiplier",
-                    r.beamMultiplier?.let { "×${"%.2f".format(it)}" } ?: "—",
-                    tone = if (r.beamMultiplier != null) MetricTone.Glow else MetricTone.Muted
-                )
-
-                HighlightMetric("Beam points gained", "+${r.beamBonusPoints}", glow = true)
             }
         }
     }
