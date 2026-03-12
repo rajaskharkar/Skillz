@@ -44,18 +44,44 @@ fun FlowCard(
     onToggleExpand: () -> Unit,
     onDeleteSession: () -> Unit,
     onLongPress: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isArcGrouped: Boolean = false,
+    isFirstInArcGroup: Boolean = false,
+    isLastInArcGroup: Boolean = false
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     val showSurgeStat = session.isSurge && session.surgePoints > 0
     val isBeamed = session.beamBonusPoints > 0
 
+    val journeyTint = lerp(
+        MaterialTheme.colorScheme.surface,
+        session.journeyColor,
+        if (isArcGrouped) 0.10f else 0.14f
+    )
+
     val baseContainer = if (session.isSurge) {
-        MaterialTheme.colorScheme.surfaceVariant
+        lerp(journeyTint, MaterialTheme.colorScheme.surfaceVariant, 0.22f)
     } else {
-        MaterialTheme.colorScheme.surface
+        journeyTint
     }
+
+    val cardShape = if (isArcGrouped) {
+        RoundedCornerShape(
+            topStart = if (isFirstInArcGroup) 18.dp else 10.dp,
+            topEnd = if (isFirstInArcGroup) 18.dp else 10.dp,
+            bottomStart = if (isLastInArcGroup) 18.dp else 10.dp,
+            bottomEnd = if (isLastInArcGroup) 18.dp else 10.dp
+        )
+    } else {
+        RoundedCornerShape(20.dp)
+    }
+
+    val labelColor = lerp(
+        MaterialTheme.colorScheme.onSurface,
+        session.journeyColor,
+        if (isSystemInDarkTheme()) 0.70f else 0.55f
+    )
 
     val cardModifier = Modifier
         .fillMaxWidth()
@@ -69,14 +95,20 @@ fun FlowCard(
 
     Card(
         modifier = cardModifier,
-        shape = RoundedCornerShape(20.dp),
+        shape = cardShape,
         colors = CardDefaults.cardColors(
             containerColor = baseContainer,
             contentColor = MaterialTheme.colorScheme.onSurface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 0.dp,
+            pressedElevation = 0.dp,
+            focusedElevation = 0.dp,
+            hoveredElevation = 0.dp,
+            draggedElevation = 0.dp
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -84,7 +116,8 @@ fun FlowCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = session.tagName,
-                        style = MaterialTheme.typography.labelMedium
+                        style = MaterialTheme.typography.labelMedium,
+                        color = labelColor
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -158,12 +191,21 @@ fun FlowCard(
                 style = MaterialTheme.typography.bodySmall
             )
 
-            if (showScoreUi) {
+            if (!calmMode && session.arcMultiplierUsed != null) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Multiplier Used: ×${"%.1f".format(session.arcMultiplierUsed)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = labelColor
+                )
+            }
+
+            if (showScoreUi && !calmMode) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = "Scyra Score: ${session.score}",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (calmMode) 0.70f else 0.85f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
                 )
             }
         }
@@ -172,12 +214,8 @@ fun FlowCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = {
-                Text("Delete flow?")
-            },
-            text = {
-                Text("This will permanently delete this flow.")
-            },
+            title = { Text("Delete flow?") },
+            text = { Text("This will permanently delete this flow.") },
             confirmButton = {
                 TextButton(
                     onClick = {

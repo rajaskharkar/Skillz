@@ -15,6 +15,7 @@ import com.kingkharnivore.skillz.model.state.flow.FlowUiState
 import com.kingkharnivore.skillz.model.state.flow.StopwatchState
 import com.kingkharnivore.skillz.ui.model.ArcRuntimeState
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
+import com.kingkharnivore.skillz.ui.service.SurgeHapticsManager
 import com.kingkharnivore.skillz.utils.arc.ArcPrefs
 import com.kingkharnivore.skillz.utils.arc.ArcRules
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
@@ -57,7 +58,8 @@ class FlowViewModel @Inject constructor(
     private val aliveFlowServiceController: AliveFlowServiceController,
     private val beamRepository: BeamRepository,
     private val arcPrefs: ArcPrefs,
-    private val userPrefs: UserPrefs
+    private val userPrefs: UserPrefs,
+    private val surgeHapticsManager: SurgeHapticsManager
 ) : ViewModel() {
 
     val ongoingSession: StateFlow<OngoingSessionEntity?> =
@@ -320,7 +322,7 @@ class FlowViewModel @Inject constructor(
             arcState?.let { s ->
                 val now = System.currentTimeMillis()
                 if (isArcExpired(now, s)) {
-                    concludeArc(reason = "expired") // ✅ show summary, then clear
+                    concludeArc(reason = "expired")
                 }
             }
         }
@@ -336,6 +338,10 @@ class FlowViewModel @Inject constructor(
         }
         startTicker()
         saveOngoing()
+
+        if (!isResumingSameFlow && _uiState.value.isSurgeOn) {
+            surgeHapticsManager.playStarted()
+        }
     }
 
     private fun concludeArc(reason: String) {
@@ -579,7 +585,15 @@ class FlowViewModel @Inject constructor(
     fun setSurgePlannedMinutes(minutes: Int) {
         val mins = minutes.coerceAtLeast(1)
         val plannedMs = mins * 60_000L
-        _uiState.update { it.copy(isSurgeOn = true, surgePlannedMs = plannedMs) }
+
+        _uiState.update {
+            it.copy(
+                isSurgeOn = true,
+                surgePlannedMs = plannedMs
+            )
+        }
+
+        surgeHapticsManager.playArmed()
         saveOngoing()
     }
 
@@ -732,6 +746,13 @@ class FlowViewModel @Inject constructor(
                 surgePlannedMs = state.surgePlannedMs,
                 actualDurationMs = realDurationMs
             )
+
+            val planned = state.surgePlannedMs
+
+            val surgeSucceeded =
+                state.isSurgeOn &&
+                        planned != null &&
+                        realDurationMs <= planned
 
             val breakdown = ScoreCalculator.breakdownFromDuration(realDurationMs)
             val baseScyra = breakdown.totalPoints
@@ -928,6 +949,14 @@ class FlowViewModel @Inject constructor(
 
                 FlowEndAction.COMPLETE_ARC -> {
 
+                    if (state.isSurgeOn && state.surgePlannedMs != null) {
+                        if (surgeSucceeded) {
+                            surgeHapticsManager.playCompletedSuccess()
+                        } else {
+                            surgeHapticsManager.playCompletedFail()
+                        }
+                    }
+
                     val arcId = arcIdForSummary
                     val summary = if (arcId != null) {
                         val arcSessions = sessionRepository.getSessionsForArc(arcId)
@@ -966,6 +995,15 @@ class FlowViewModel @Inject constructor(
                 }
 
                 FlowEndAction.SAVE_FLOW -> {
+
+                    if (state.isSurgeOn && state.surgePlannedMs != null) {
+                        if (surgeSucceeded) {
+                            surgeHapticsManager.playCompletedSuccess()
+                        } else {
+                            surgeHapticsManager.playCompletedFail()
+                        }
+                    }
+
                     _lastReward.value = baseReward
                     _exitAfterReward.value = true
 
@@ -991,17 +1029,28 @@ class FlowViewModel @Inject constructor(
                 }
 
                 FlowEndAction.CONTINUE_ARC -> {
+
+                    if (state.isSurgeOn && state.surgePlannedMs != null) {
+                        if (surgeSucceeded) {
+                            surgeHapticsManager.playCompletedSuccess()
+                        } else {
+                            surgeHapticsManager.playCompletedFail()
+                        }
+                    }
+
                     _lastReward.value = baseReward
                     _awaitingNextFlowAfterContinue.value = true
 
-                    // ✅ reset stopwatch UI so we are truly "between flows" (grace countdown should run)
                     baseStartTimeMs = null
                     accumulatedBeforeStartMs = 0L
-                    _uiState.update { it.copy(stopwatch = StopwatchState(
-                        isRunning = false,
-                        elapsedMs = 0L
-                    )
-                    ) }
+                    _uiState.update {
+                        it.copy(
+                            stopwatch = StopwatchState(
+                                isRunning = false,
+                                elapsedMs = 0L
+                            )
+                        )
+                    }
 
                     stopTicker()
                     syncArcUi() // arcState still exists; countdown will start via syncArcUi()

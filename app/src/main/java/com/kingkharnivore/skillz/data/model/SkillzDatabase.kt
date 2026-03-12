@@ -18,7 +18,7 @@ import com.kingkharnivore.skillz.data.model.entity.TagEntity
         OngoingSessionEntity::class,
         BeamEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class SkillzDatabase : RoomDatabase() {

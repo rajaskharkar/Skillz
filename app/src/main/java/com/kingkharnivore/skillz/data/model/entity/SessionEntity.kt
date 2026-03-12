@@ -38,4 +38,3 @@ data class SessionEntity(
     val arcBonusPoints: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 )
-

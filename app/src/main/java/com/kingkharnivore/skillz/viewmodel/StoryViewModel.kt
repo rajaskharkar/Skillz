@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.viewmodel
 
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
@@ -9,6 +10,8 @@ import com.kingkharnivore.skillz.model.ui.Journey7dStatUiModel
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
+import com.kingkharnivore.skillz.model.ui.ArcFlowItemUiModel
+import com.kingkharnivore.skillz.model.ui.ChronicleUiModel
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 import com.kingkharnivore.skillz.utils.time.TimeWindowUtils
 import com.kingkharnivore.skillz.utils.user.UserPrefs
@@ -44,6 +47,50 @@ class StoryViewModel @Inject constructor(
 
     private val viewJourneysTagId = MutableStateFlow<Long?>(null)
     private val isViewJourneysOpen = MutableStateFlow(false)
+
+    private val journeyColorMemory = linkedMapOf<Long, Color>()
+    private var nextJourneyColorIndex = 0
+
+    private fun getOrCreateJourneyColors(tagIds: List<Long>): Map<Long, Color> {
+        val missingTagIds = tagIds.filter { it !in journeyColorMemory }
+
+        if (missingTagIds.isNotEmpty()) {
+            val palette = buildJourneyPalette()
+
+            missingTagIds.forEach { tagId ->
+                val color = palette[nextJourneyColorIndex % palette.size]
+                journeyColorMemory[tagId] = color
+                nextJourneyColorIndex++
+            }
+        }
+
+        return tagIds.associateWith { tagId ->
+            journeyColorMemory[tagId] ?: Color.Gray
+        }
+    }
+
+    private fun buildJourneyPalette(): List<Color> {
+        val base = listOf(
+            Color(0xFF8B1E1E),
+            Color(0xFF3A5F8C),
+            Color(0xFF2F8F86),
+            Color(0xFF6F9E91),
+            Color(0xFFD1B45A),
+            Color(0xFFCC8A3E),
+            Color(0xFF7A4A32),
+            Color(0xFF8C6AA8),
+            Color(0xFF3E8F6B)
+        )
+
+        val lighter = base.map { androidx.compose.ui.graphics.lerp(it, Color.White, 0.18f) }
+        val darker = base.map { androidx.compose.ui.graphics.lerp(it, Color.Black, 0.12f) }
+
+        return buildList {
+            addAll(base)
+            addAll(lighter)
+            addAll(darker)
+        }
+    }
 
     fun openViewJourneys(tagId: Long) {
         viewJourneysTagId.value = tagId
@@ -181,7 +228,8 @@ class StoryViewModel @Inject constructor(
     // --- Private mapping helpers ---
 
     private fun List<SessionEntity>.toUiModels(
-        tags: List<TagEntity>
+        tags: List<TagEntity>,
+        journeyColors: Map<Long, Color>
     ): List<FlowListItemUiModel> {
         val tagNameById: Map<Long, String> = tags.associate { it.id to it.name }
 
@@ -190,14 +238,15 @@ class StoryViewModel @Inject constructor(
                 sessionId = session.id,
                 title = session.title,
                 description = session.description,
+                tagId = session.tagId,
                 tagName = tagNameById[session.tagId].orEmpty(),
+                journeyColor = journeyColors[session.tagId] ?: Color.Gray,
                 durationMs = session.durationMs,
                 createdAt = session.createdAt,
                 score = session.scyraPoints,
                 isSurge = session.surgePlannedMs != null,
                 surgePoints = session.surgePoints,
                 beamBonusPoints = session.beamBonusPoints,
-
                 arcId = session.arcId,
                 arcIndex = session.arcIndex,
                 arcMultiplierUsed = session.arcMultiplierUsed,
@@ -228,7 +277,6 @@ class StoryViewModel @Inject constructor(
                 calmModeFlow
             ) { arr: Array<Any?> ->
 
-                // ✅ strongly-typed unpack (this is the key fix)
                 val sessions = arr[0] as List<SessionEntity>
                 val tags = arr[1] as List<TagEntity>
                 val currentTagId = arr[2] as Long?
@@ -256,7 +304,9 @@ class StoryViewModel @Inject constructor(
 
                 // 1) Apply tag filter
                 val sessionsForTag: List<SessionEntity> =
-                    effectiveTagId?.let { tagId -> sessions.filter { it.tagId == tagId } } ?: sessions
+                    effectiveTagId?.let { tagId ->
+                        sessions.filter { it.tagId == tagId }
+                    } ?: sessions
 
                 // 2) Normalize anchor + compute window
                 val normalizedAnchor =
@@ -265,9 +315,32 @@ class StoryViewModel @Inject constructor(
                 val window =
                     TimeWindowUtils.windowFor(normalizedAnchor, currentPeriod)
 
-                // 3) Apply time window (your “view”)
                 val visibleSessions: List<SessionEntity> =
                     sessionsForTag.filter { it.createdAt in window.startMs until window.endMs }
+
+                // --- Journey colors for currently visible flows ---
+                val visibleJourneyIdsInPriorityOrder: List<Long> =
+                    visibleSessions
+                        .groupBy { it.tagId }
+                        .entries
+                        .sortedWith(
+                            compareByDescending<Map.Entry<Long, List<SessionEntity>>> { it.value.size }
+                                .thenByDescending { entry ->
+                                    entry.value.maxOfOrNull { it.createdAt } ?: 0L
+                                }
+                        )
+                        .map { it.key }
+
+                val journeyColors = getOrCreateJourneyColors(visibleJourneyIdsInPriorityOrder)
+
+                // --- Chronicle items (standalone flows + arc groups) ---
+                val chronicleItems = buildChronicleItems(
+                    allSessions = sessions,
+                    visibleSessionsInWindow = visibleSessions,
+                    tags = tags,
+                    journeyColors = journeyColors,
+                    selectedTagId = effectiveTagId
+                )
 
                 // --- Is current period? ---
                 val todayAnchor =
@@ -303,7 +376,9 @@ class StoryViewModel @Inject constructor(
                             )
                             .take(5)
                             .toList()
-                    } else emptyList()
+                    } else {
+                        emptyList()
+                    }
 
                 // ============================================================
                 // Sagas (ONLY for past periods)
@@ -330,7 +405,7 @@ class StoryViewModel @Inject constructor(
                         .toList()
 
                 // ============================================================
-                // View Journeys sheet (session list for a chosen journey inside current window)
+                // View Journeys sheet
                 // ============================================================
                 val viewJourneysSessions: List<FlowListItemUiModel> =
                     if (viewOpen && viewTagId != null) {
@@ -339,21 +414,27 @@ class StoryViewModel @Inject constructor(
                             .filter { it.createdAt in window.startMs until window.endMs }
                             .sortedByDescending { it.createdAt }
                             .toList()
-                            .toUiModels(tags)
-                    } else emptyList()
+                            .toUiModels(tags, journeyColors)
+                    } else {
+                        emptyList()
+                    }
 
                 val viewJourneysTitle: String =
-                    if (viewOpen && viewTagId != null) tagNameById[viewTagId].orEmpty() else ""
+                    if (viewOpen && viewTagId != null) {
+                        tagNameById[viewTagId].orEmpty()
+                    } else {
+                        ""
+                    }
 
                 // --- Totals from visible sessions ---
                 val totalDurationMs = visibleSessions.sumOf { it.durationMs }
                 val totalScore = visibleSessions.sumOf { it.scyraPoints }
                 val currentSurgeScore = visibleSessions.sumOf { it.surgePoints }
 
-                // Build state
                 FlowListUiState(
                     isLoading = false,
-                    sessions = visibleSessions.toUiModels(tags),
+                    sessions = visibleSessions.toUiModels(tags, journeyColors),
+                    chronicleItems = chronicleItems,
                     tags = visibleTags.toUiModels(),
                     selectedTagId = effectiveTagId,
                     totalDurationMs = totalDurationMs,
@@ -397,5 +478,109 @@ class StoryViewModel @Inject constructor(
                 // optional: set uiState error
             }
         }
+    }
+
+    private fun buildChronicleItems(
+        allSessions: List<SessionEntity>,
+        visibleSessionsInWindow: List<SessionEntity>,
+        tags: List<TagEntity>,
+        journeyColors: Map<Long, Color>,
+        selectedTagId: Long?
+    ): List<ChronicleUiModel> {
+        val visibleUi = visibleSessionsInWindow.toUiModels(tags, journeyColors)
+        val visibleUiBySessionId = visibleUi.associateBy { it.sessionId }
+
+        // ✅ Arc membership/totals should come from ALL sessions, not just current window
+        val allByArcId = allSessions
+            .filter { it.arcId != null }
+            .groupBy { it.arcId!! }
+
+        // ✅ Visible child flows still come only from the current filtered/windowed list
+        val visibleByArcId = visibleSessionsInWindow
+            .filter { it.arcId != null }
+            .groupBy { it.arcId!! }
+
+        val chronicleItems = mutableListOf<ChronicleUiModel>()
+        val emittedArcIds = mutableSetOf<Long>()
+
+        visibleSessionsInWindow.forEach { session ->
+            val arcId = session.arcId
+
+            if (arcId == null) {
+                val flowUi = visibleUiBySessionId[session.id] ?: return@forEach
+                chronicleItems += ChronicleUiModel.StandaloneFlow(flowUi)
+                return@forEach
+            }
+
+            if (!emittedArcIds.add(arcId)) return@forEach
+
+            val allArcSessions = allByArcId[arcId].orEmpty().sortedByDescending { it.createdAt }
+            val visibleArcSessions = visibleByArcId[arcId].orEmpty().sortedByDescending { it.createdAt }
+
+            // ✅ Defensive guard: true 1-flow arcs should not render as Arc groups
+            if (allArcSessions.size < 2) {
+                val flowUi = visibleUiBySessionId[session.id] ?: return@forEach
+                chronicleItems += ChronicleUiModel.StandaloneFlow(flowUi)
+                return@forEach
+            }
+
+            val visibleFlows = visibleArcSessions.mapIndexed { index, s ->
+                ArcFlowItemUiModel(
+                    flow = visibleUiBySessionId[s.id]
+                        ?: error("Missing ui model for visible session ${s.id}"),
+                    isFirstVisibleInArc = index == 0,
+                    isLastVisibleInArc = index == visibleArcSessions.lastIndex
+                )
+            }
+
+            val hiddenFlowsCount = (allArcSessions.size - visibleArcSessions.size).coerceAtLeast(0)
+            val totalArcDurationMs = allArcSessions.sumOf { it.durationMs }
+            val totalArcScore = allArcSessions.sumOf { it.scyraPoints }
+            val peakMultiplier = allArcSessions.maxOfOrNull { it.arcMultiplierUsed ?: 0.0 }
+                ?.takeIf { it > 0.0 }
+
+            val visibleJourneyIds = visibleArcSessions.map { it.tagId }.distinct()
+            val headerAccentColor = if (visibleJourneyIds.size == 1) {
+                journeyColors[visibleJourneyIds.first()]
+            } else {
+                null
+            }
+
+            val filteredJourneyDurationMs =
+                selectedTagId?.let { selectedId ->
+                    allArcSessions
+                        .filter { it.tagId == selectedId }
+                        .sumOf { it.durationMs }
+                        .takeIf { it > 0L }
+                }
+
+            val filteredJourneyPercentOfArc =
+                if (selectedTagId != null && totalArcDurationMs > 0L) {
+                    val duration = allArcSessions
+                        .filter { it.tagId == selectedTagId }
+                        .sumOf { it.durationMs }
+
+                    ((duration.toDouble() / totalArcDurationMs.toDouble()) * 100.0)
+                        .toInt()
+                        .coerceIn(0, 100)
+                } else {
+                    null
+                }
+
+            chronicleItems += ChronicleUiModel.ArcGroup(
+                arcId = arcId,
+                headerAccentColor = headerAccentColor,
+                totalArcDurationMs = totalArcDurationMs,
+                totalArcScore = totalArcScore,
+                peakMultiplier = peakMultiplier,
+                visibleFlows = visibleFlows,
+                hiddenFlowsCount = hiddenFlowsCount,
+                totalFlowsCount = allArcSessions.size,
+                filteredJourneyDurationMs = filteredJourneyDurationMs,
+                filteredJourneyPercentOfArc = filteredJourneyPercentOfArc
+            )
+        }
+
+        return chronicleItems
     }
 }

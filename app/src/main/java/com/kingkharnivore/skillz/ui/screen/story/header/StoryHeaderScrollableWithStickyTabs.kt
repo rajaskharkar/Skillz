@@ -27,9 +27,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.model.state.FlowListUiState
+import com.kingkharnivore.skillz.model.ui.ChronicleUiModel
+import com.kingkharnivore.skillz.ui.screen.story.chronicle.ArcGroupCard
 import com.kingkharnivore.skillz.ui.screen.story.rememberExpandedSessionIdsState
 import com.kingkharnivore.skillz.ui.screen.story.rememberSessionEditState
 import com.kingkharnivore.skillz.ui.screen.story.chronicle.FlowCard
+import com.kingkharnivore.skillz.ui.screen.story.rememberExpandedArcIdsState
 import com.kingkharnivore.skillz.ui.screen.story.saga.SagasCard
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 
@@ -55,6 +58,7 @@ fun StoryHeaderScrollableWithStickyTabs(
     var tab by rememberSaveable { mutableStateOf(StoryTab.CHRONICLES) }
 
     val expandedState = rememberExpandedSessionIdsState()
+    val expandedArcState = rememberExpandedArcIdsState()
     val editState = rememberSessionEditState()
 
     FlowEditDialog(
@@ -160,23 +164,52 @@ fun StoryHeaderScrollableWithStickyTabs(
             }
 
             StoryTab.CHRONICLES -> {
-                if (uiState.sessions.isEmpty()) {
+                if (uiState.chronicleItems.isEmpty()) {
                     item { FirstTimeUser(onAddSessionClick = onAddSessionClick) }
                 } else {
                     items(
-                        items = uiState.sessions,
-                        key = { it.sessionId }
-                    ) { session ->
-                        FlowCard(
-                            session = session,
-                            isExpanded = expandedState.isExpanded(session.sessionId),
-                            showScoreUi = uiState.showScoreUi,
-                            calmMode = uiState.calmMode,
-                            onToggleExpand = { expandedState.toggle(session.sessionId) },
-                            onDeleteSession = { onDeleteSession(session.sessionId) },
-                            onLongPress = { editState.startEditing(session) },
-                            onClick = { onSessionClick(session.sessionId) }
-                        )
+                        items = uiState.chronicleItems,
+                        key = { it.key }
+                    ) { item ->
+                        when (item) {
+                            is ChronicleUiModel.StandaloneFlow -> {
+                                val session = item.flow
+                                FlowCard(
+                                    session = session,
+                                    isExpanded = expandedState.isExpanded(session.sessionId),
+                                    showScoreUi = uiState.showScoreUi,
+                                    calmMode = uiState.calmMode,
+                                    onToggleExpand = { expandedState.toggle(session.sessionId) },
+                                    onDeleteSession = { onDeleteSession(session.sessionId) },
+                                    onLongPress = { editState.startEditing(session) },
+                                    onClick = { onSessionClick(session.sessionId) }
+                                )
+                            }
+
+                            is ChronicleUiModel.ArcGroup -> {
+                                ArcGroupCard(
+                                    group = item,
+                                    showScoreUi = uiState.showScoreUi,
+                                    calmMode = uiState.calmMode,
+                                    isExpanded = if (uiState.selectedTagId != null) {
+                                        true
+                                    } else {
+                                        expandedArcState.isExpanded(item.arcId)
+                                    },
+                                    onToggleExpanded = {
+                                        if (uiState.selectedTagId == null) {
+                                            expandedArcState.toggle(item.arcId)
+                                        }
+                                    },
+                                    isExpandedByFilter = uiState.selectedTagId != null,
+                                    isExpandedFlow = { sessionId -> expandedState.isExpanded(sessionId) },
+                                    onToggleFlowExpand = { sessionId -> expandedState.toggle(sessionId) },
+                                    onDeleteSession = onDeleteSession,
+                                    onLongPress = { session -> editState.startEditing(session) },
+                                    onClick = onSessionClick
+                                )
+                            }
+                        }
                     }
                 }
             }

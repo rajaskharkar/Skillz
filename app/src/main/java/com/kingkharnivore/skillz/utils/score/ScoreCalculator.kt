@@ -59,15 +59,6 @@ object ScoreCalculator {
         return if (a <= n) raw else raw.coerceAtMost(n.toInt())
     }
 
-    fun sessionScore(session: SessionEntity): Int {
-        val base = breakdownFromDuration(session.durationMs).totalPoints
-        return base + session.beamBonusPoints
-    }
-
-    fun totalScoreForSessions(sessions: List<SessionEntity>): Int {
-        return sessions.sumOf { sessionScore(it) }
-    }
-
     fun scoreWithBeam(
         sessionStart: Long,
         sessionEnd: Long,
