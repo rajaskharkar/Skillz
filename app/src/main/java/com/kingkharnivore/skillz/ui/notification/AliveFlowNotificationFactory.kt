@@ -11,6 +11,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.MainActivity
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import kotlin.math.max
 
@@ -20,9 +21,16 @@ object AliveFlowNotificationFactory {
     const val CHANNEL_NAME = "Flow State"
     const val NOTIFICATION_ID = 1001
 
-    fun ensureChannel(context: Context) {
+    const val REMINDER_CHANNEL_ID = "flow_hourly_reminder_channel"
+    const val REMINDER_CHANNEL_NAME = "Flow reminders"
+    const val REMINDER_NOTIFICATION_ID = 1002
+
+    fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
+            val manager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            val aliveChannel = NotificationChannel(
                 CHANNEL_ID,
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_LOW
@@ -32,29 +40,19 @@ object AliveFlowNotificationFactory {
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
 
-            val manager =
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            manager.createNotificationChannel(channel)
+            val reminderChannel = NotificationChannel(
+                REMINDER_CHANNEL_ID,
+                REMINDER_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Gentle check-ins during long Flow sessions"
+                setShowBadge(true)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            }
+
+            manager.createNotificationChannel(aliveChannel)
+            manager.createNotificationChannel(reminderChannel)
         }
-    }
-
-    fun buildRestoringNotification(context: Context): Notification {
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_media_play)
-            .setContentTitle("Flow is alive")
-            .setContentText("Restoring…")
-            .setOngoing(true)
-            .setAutoCancel(false)
-            .setOnlyAlertOnce(true)
-            .setSilent(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setCategory(NotificationCompat.CATEGORY_SERVICE)
-
-        val n = builder.build()
-        n.flags = n.flags or
-                Notification.FLAG_ONGOING_EVENT or
-                Notification.FLAG_NO_CLEAR
-        return n
     }
 
     fun buildNotification(
@@ -187,6 +185,63 @@ object AliveFlowNotificationFactory {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+    }
+
+    fun buildHourlyReminderNotification(
+        context: Context,
+        entity: OngoingSessionEntity,
+        elapsedMs: Long,
+        hourMark: Int
+    ): Notification {
+        val title = "Still in Flow?"
+        val text =
+            "No action needed if this is deliberate. Tap to return to Flow and end it if you forgot."
+
+        val flowTitle = entity.title.takeIf { it.isNotBlank() } ?: "Flow in progress"
+        val tag = entity.tagName.takeIf { it.isNotBlank() } ?: "Unassigned Skill"
+        val elapsedSeconds = max(0, elapsedMs / 1000)
+
+        val bigText = buildString {
+            append(text)
+            append("\n\n")
+            append(flowTitle)
+            append("\n")
+            append(tag)
+            append("\n")
+            append("Elapsed: ")
+            append(formatElapsed(elapsedSeconds))
+            append(" • Hour ")
+            append(hourMark)
+        }
+
+        val openFlowIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("skillz://flow"),
+            context,
+            MainActivity::class.java
+        ).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+
+        val openFlowPendingIntent = PendingIntent.getActivity(
+            context,
+            1002,
+            openFlowIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return NotificationCompat.Builder(context, REMINDER_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_scyra_notification)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
+            .setContentIntent(openFlowPendingIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setColor(BuildConfig.PRIMARY_COLOR)
             .build()
     }
 }

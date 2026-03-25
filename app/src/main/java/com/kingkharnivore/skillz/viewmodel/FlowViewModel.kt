@@ -107,6 +107,7 @@ class FlowViewModel @Inject constructor(
     private var baseStartTimeMs: Long? = null
     private var accumulatedBeforeStartMs: Long = 0L
     private var tickerJob: Job? = null
+    private var ongoingCreatedAtMs: Long = System.currentTimeMillis()
 
     // ARC runtime
     private var arcState: ArcRuntimeState? = null
@@ -260,8 +261,8 @@ class FlowViewModel @Inject constructor(
 
             syncArcUi()
 
-            // 3) Restore stopwatch
             ongoing?.let { entity ->
+                ongoingCreatedAtMs = entity.createdAt
                 baseStartTimeMs = entity.baseStartTimeMs
                 accumulatedBeforeStartMs = entity.accumulatedBeforeStartMs
 
@@ -566,7 +567,7 @@ class FlowViewModel @Inject constructor(
                 accumulatedBeforeStartMs = accumulatedBeforeStartMs,
                 isSurgeOn = state.isSurgeOn,
                 surgePlannedMs = state.surgePlannedMs,
-                createdAt = System.currentTimeMillis(),
+                createdAt = ongoingCreatedAtMs,
                 arcId = arc?.arcId,
                 arcChainBase = arc?.multiplier,
                 arcSessionCountInArc = arc?.sessionCountInArc,
@@ -679,6 +680,7 @@ class FlowViewModel @Inject constructor(
 
         _lastReward.value = null
         _awaitingNextFlowAfterContinue.value = false
+        ongoingCreatedAtMs = System.currentTimeMillis()
 
         baseStartTimeMs = null
         accumulatedBeforeStartMs = 0L
@@ -992,6 +994,7 @@ class FlowViewModel @Inject constructor(
 
                     aliveFlowServiceController.stop()
                     clearOngoing()
+                    ongoingCreatedAtMs = System.currentTimeMillis()
                 }
 
                 FlowEndAction.SAVE_FLOW -> {
@@ -1026,6 +1029,7 @@ class FlowViewModel @Inject constructor(
 
                     aliveFlowServiceController.stop()
                     clearOngoing()
+                    ongoingCreatedAtMs = System.currentTimeMillis()
                 }
 
                 FlowEndAction.CONTINUE_ARC -> {
