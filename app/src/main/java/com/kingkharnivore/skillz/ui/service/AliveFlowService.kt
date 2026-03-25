@@ -29,6 +29,14 @@ class AliveFlowService : Service() {
     @Inject lateinit var aliveFlowRepository: AliveFlowRepository
     @Inject lateinit var surgeHapticsManager: SurgeHapticsManager
 
+    private companion object {
+        const val HOUR_MS = 60 * 60 * 1000L
+    }
+
+    private data class HourlyReminderRuntime(
+        val lastRemindedHour: Int = 0
+    )
+
     private val serviceScope =
         CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -39,10 +47,23 @@ class AliveFlowService : Service() {
     private var surgeRuntime: SurgeRuntimeState? = null
     private var surgeSessionKey: String? = null
 
+    private var hourlyReminderRuntime: HourlyReminderRuntime? = null
+    private var hourlyReminderSessionKey: String? = null
+
+    private fun buildHourlyReminderSessionKey(entity: OngoingSessionEntity): String {
+        return entity.createdAt.toString()
+    }
+
+    private fun clearHourlyReminderRuntime() {
+        hourlyReminderRuntime = null
+        hourlyReminderSessionKey = null
+    }
+
+
     override fun onCreate() {
         super.onCreate()
 
-        AliveFlowNotificationFactory.ensureChannel(this)
+        AliveFlowNotificationFactory.ensureChannels(this)
 
         startForeground(
             AliveFlowNotificationFactory.NOTIFICATION_ID,
@@ -62,6 +83,8 @@ class AliveFlowService : Service() {
                 if (entity == null || !entity.isInFlowMode) {
                     surgeHapticsManager.cancel()
                     clearSurgeRuntime()
+                    clearHourlyReminderRuntime()
+                    cancelHourlyReminderNotification()
                     stopSelfSafely()
                     return@collectLatest
                 }
@@ -71,6 +94,7 @@ class AliveFlowService : Service() {
                 }
 
                 syncSurgeRuntimeWithEntity(entity)
+                syncHourlyReminderRuntimeWithEntity(entity)
                 publishNotification(entity)
             }
         }
@@ -87,6 +111,7 @@ class AliveFlowService : Service() {
 
                 if (entity.isRunning) {
                     evaluateSurgeIfNeeded(entity)
+                    evaluateHourlyReminderIfNeeded(entity)
                 }
 
                 publishNotification(latestEntity ?: entity)
@@ -212,6 +237,9 @@ class AliveFlowService : Service() {
         tickerJob?.cancel()
         tickerJob = null
 
+        clearHourlyReminderRuntime()
+        cancelHourlyReminderNotification()
+
         if (hasForegrounded) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         }
@@ -246,9 +274,89 @@ class AliveFlowService : Service() {
         tickerJob?.cancel()
         surgeHapticsManager.cancel()
         clearSurgeRuntime()
+        clearHourlyReminderRuntime()
+        cancelHourlyReminderNotification()
         serviceScope.cancel()
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun syncHourlyReminderRuntimeWithEntity(entity: OngoingSessionEntity) {
+        val newKey = buildHourlyReminderSessionKey(entity)
+
+        if (hourlyReminderRuntime != null && hourlyReminderSessionKey == newKey) {
+            return
+        }
+
+        val elapsedMs = computeElapsed(entity)
+        val elapsedHours = (elapsedMs / HOUR_MS).toInt()
+
+        // ✅ No retroactive catch-up notifications on restore/rebind.
+        hourlyReminderRuntime = HourlyReminderRuntime(
+            lastRemindedHour = elapsedHours
+        )
+        hourlyReminderSessionKey = newKey
+    }
+
+    private fun canPostReminderNotifications(): Boolean {
+        val manager = NotificationManagerCompat.from(this)
+
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            manager.areNotificationsEnabled()
+        } else {
+            manager.areNotificationsEnabled()
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun publishHourlyReminderNotification(
+        entity: OngoingSessionEntity,
+        elapsedMs: Long,
+        hourMark: Int
+    ) {
+        if (!canPostReminderNotifications()) return
+
+        val notification = AliveFlowNotificationFactory.buildHourlyReminderNotification(
+            context = this,
+            entity = entity,
+            elapsedMs = elapsedMs,
+            hourMark = hourMark
+        )
+
+        NotificationManagerCompat.from(this).notify(
+            AliveFlowNotificationFactory.REMINDER_NOTIFICATION_ID,
+            notification
+        )
+    }
+
+    private fun evaluateHourlyReminderIfNeeded(entity: OngoingSessionEntity) {
+        if (!entity.isInFlowMode || !entity.isRunning) return
+
+        if (hourlyReminderRuntime == null) {
+            syncHourlyReminderRuntimeWithEntity(entity)
+        }
+
+        val runtime = hourlyReminderRuntime ?: return
+        val elapsedMs = computeElapsed(entity)
+        val elapsedHours = (elapsedMs / HOUR_MS).toInt()
+
+        if (elapsedHours >= 1 && elapsedHours > runtime.lastRemindedHour) {
+            publishHourlyReminderNotification(
+                entity = entity,
+                elapsedMs = elapsedMs,
+                hourMark = elapsedHours
+            )
+
+            hourlyReminderRuntime = runtime.copy(
+                lastRemindedHour = elapsedHours
+            )
+        }
+    }
+
+    private fun cancelHourlyReminderNotification() {
+        NotificationManagerCompat.from(this).cancel(
+            AliveFlowNotificationFactory.REMINDER_NOTIFICATION_ID
+        )
+    }
 }
