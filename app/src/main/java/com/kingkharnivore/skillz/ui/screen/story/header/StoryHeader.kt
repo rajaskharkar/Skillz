@@ -45,14 +45,25 @@ fun StoryHeader(
 
     extraTopContent?.invoke()
 
-    if (uiState.selectedTagId != null) {
-        TotalTimeHighlight(
-            totalDurationMs = uiState.totalDurationMs,
-            subtitle = "Time in view"
-        )
-    }
+    when {
+        uiState.selectedTagId != null -> {
+            TotalTimeHighlight(
+                totalDurationMs = uiState.totalDurationMs,
+                subtitle = "Time in view"
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
 
-    Spacer(modifier = Modifier.height(12.dp))
+        uiState.totalDurationMs > 0L -> {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                SubtleTimeSummary(totalDurationMs = uiState.totalDurationMs)
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
 
     if (uiState.showScoreUi) {
         Box(
@@ -70,8 +81,5 @@ fun StoryHeader(
     }
 
     HorizontalDivider()
-
-    HorizontalDivider()
-
     Spacer(Modifier.height(12.dp))
 }
