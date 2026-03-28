@@ -6,7 +6,6 @@ import com.kingkharnivore.skillz.model.ui.Journey7dStatUiModel
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 import com.kingkharnivore.skillz.viewmodel.TagUiModel
 
-
 data class FlowListUiState(
     val isLoading: Boolean = true,
     val sessions: List<FlowListItemUiModel> = emptyList(),
@@ -22,6 +21,7 @@ data class FlowListUiState(
     val topJourneysLast7d: List<Journey7dStatUiModel> = emptyList(),
     val firstSessionStartMs: Long? = null,
     val isCurrentPeriod: Boolean = true,
+    val hasAnyRecordedFlows: Boolean = false,
     val sagasInView: List<Journey7dStatUiModel> = emptyList(),
     val isViewJourneysOpen: Boolean = false,
     val viewJourneysTitle: String = "",

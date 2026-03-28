@@ -17,7 +17,6 @@ import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,7 +71,6 @@ fun StoryHeaderScrollableWithStickyTabs(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // ── Scrollable Header ───────────────────────────────────────
         item {
             StoryHeader(
                 uiState = uiState,
@@ -86,9 +84,7 @@ fun StoryHeaderScrollableWithStickyTabs(
             )
         }
 
-        // ── Sticky Lean Tabs ────────────────────────────────────────
         stickyHeader {
-            // keep sticky area from showing content "through" while scrolling
             Surface(
                 color = MaterialTheme.colorScheme.background,
                 tonalElevation = 0.dp,
@@ -112,7 +108,7 @@ fun StoryHeaderScrollableWithStickyTabs(
                     ) {
                         Row(
                             modifier = Modifier
-                                .padding(3.dp) // outer pill padding
+                                .padding(3.dp)
                                 .height(34.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -141,17 +137,11 @@ fun StoryHeaderScrollableWithStickyTabs(
             }
         }
 
-        // ── Content (same LazyColumn, so it feels fluid) ─────────────
         when (tab) {
             StoryTab.SAGAS -> {
                 item {
                     if (uiState.sagasInView.isEmpty()) {
-                        Text(
-                            text = "No saga data in this view.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                            modifier = Modifier.padding(vertical = 6.dp)
-                        )
+                        EmptySagasState()
                     } else {
                         SagasCard(
                             period = uiState.period,
@@ -165,7 +155,20 @@ fun StoryHeaderScrollableWithStickyTabs(
 
             StoryTab.CHRONICLES -> {
                 if (uiState.chronicleItems.isEmpty()) {
-                    item { FirstTimeUser(onAddSessionClick = onAddSessionClick) }
+                    item {
+                        val shouldShowFirstTimeUser =
+                            !uiState.hasAnyRecordedFlows && uiState.isCurrentPeriod
+
+                        if (shouldShowFirstTimeUser) {
+                            FirstTimeUser(onAddSessionClick = onAddSessionClick)
+                        } else {
+                            EmptyChroniclesState(
+                                period = uiState.period,
+                                isCurrentPeriod = uiState.isCurrentPeriod,
+                                onTodayClick = if (uiState.isCurrentPeriod) null else onToday
+                            )
+                        }
+                    }
                 } else {
                     items(
                         items = uiState.chronicleItems,

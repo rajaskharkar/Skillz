@@ -35,7 +35,6 @@ class StoryViewModel @Inject constructor(
     private val userPrefs: UserPrefs
 ) : ViewModel() {
 
-    // null = "All skills", non-null = filter by that tag/skill
     private val selectedTagId = MutableStateFlow<Long?>(null)
     private val showScoreUiFlow = userPrefs.showScoreUi
     private val calmModeFlow = userPrefs.calmMode
@@ -102,7 +101,11 @@ class StoryViewModel @Inject constructor(
         viewJourneysTagId.value = null
     }
 
-    private fun setAnchorClamped(anchorCandidateMs: Long, periodValue: StoryPeriod, nowMs: Long = System.currentTimeMillis()) {
+    private fun setAnchorClamped(
+        anchorCandidateMs: Long,
+        periodValue: StoryPeriod,
+        nowMs: Long = System.currentTimeMillis()
+    ) {
         anchorDayStartMs.value = TimeWindowUtils.clampToFirstAndToday(
             anchorStartMs = TimeWindowUtils.normalizeAnchor(anchorCandidateMs, periodValue),
             period = periodValue,
@@ -111,7 +114,6 @@ class StoryViewModel @Inject constructor(
         )
     }
 
-    // Source flows
     private val sessionsFlow: Flow<List<SessionEntity>> =
         sessionRepository.getAllSessions()
 
@@ -138,12 +140,10 @@ class StoryViewModel @Inject constructor(
         viewModelScope.launch { userPrefs.setCalmMode(enabled) }
     }
 
-    /** User chose a tag/skill chip – null means "All". */
     fun selectTag(tagId: Long?) {
         selectedTagId.value = tagId
     }
 
-    // Keep if you still call it somewhere
     fun onTagSelected(tagId: Long?) {
         selectedTagId.value = tagId
     }
@@ -165,26 +165,18 @@ class StoryViewModel @Inject constructor(
 
     private fun navigatePeriod(dir: Int) {
         val p = period.value
-
         val normalized = TimeWindowUtils.normalizeAnchor(anchorDayStartMs.value, p)
         val shifted = TimeWindowUtils.shiftAnchor(normalized, p, dir)
-
         setClampedAnchor(period = p, anchorStartMs = shifted)
     }
 
     fun onPeriodSelected(newPeriod: StoryPeriod) {
         val nowMs = System.currentTimeMillis()
 
-        // 1) update period
         period.value = newPeriod
 
-        // 2) default anchor to "today" for the selected period:
-        // DAY -> today start
-        // WEEK -> Monday of this week
-        // MONTH -> 1st of this month
         val todayAnchor = TimeWindowUtils.startOfPeriodMs(nowMs, newPeriod)
 
-        // 3) clamp to [first session .. today] (keeps arrows consistent)
         anchorDayStartMs.value = TimeWindowUtils.clampToFirstAndToday(
             anchorStartMs = todayAnchor,
             period = newPeriod,
@@ -216,16 +208,12 @@ class StoryViewModel @Inject constructor(
     fun updateSessionDescription(sessionId: Long, description: String) {
         viewModelScope.launch {
             sessionRepository.updateSessionDescription(sessionId, description)
-            // sessionsFlow emits updated list
         }
     }
 
-    /** Optional: clear visible error (simple + deterministic). */
     fun clearError() {
         uiState.value = uiState.value.copy(errorMessage = null)
     }
-
-    // --- Private mapping helpers ---
 
     private fun List<SessionEntity>.toUiModels(
         tags: List<TagEntity>,
@@ -287,28 +275,24 @@ class StoryViewModel @Inject constructor(
                 val showScoreUi = arr[7] as Boolean
                 val calmMode = arr[8] as Boolean
 
+                val hasAnyRecordedFlows = sessions.isNotEmpty()
                 val nowMs = System.currentTimeMillis()
 
-                // --- Tag map ---
                 val tagNameById: Map<Long, String> = tags.associate { it.id to it.name }
 
-                // --- First session boundary (used for clamping + nav disable) ---
                 val firstSessionStartMs: Long? = sessions.minOfOrNull { it.createdAt }
 
-                // --- Visible tags ---
                 val tagUsageCount: Map<Long, Int> = sessions.groupingBy { it.tagId }.eachCount()
                 val visibleTags: List<TagEntity> = tags.filter { (tagUsageCount[it.id] ?: 0) > 0 }
 
                 val effectiveTagId: Long? =
                     currentTagId?.takeIf { (tagUsageCount[it] ?: 0) > 0 }
 
-                // 1) Apply tag filter
                 val sessionsForTag: List<SessionEntity> =
                     effectiveTagId?.let { tagId ->
                         sessions.filter { it.tagId == tagId }
                     } ?: sessions
 
-                // 2) Normalize anchor + compute window
                 val normalizedAnchor =
                     TimeWindowUtils.normalizeAnchor(anchorStartMs, currentPeriod)
 
@@ -318,7 +302,6 @@ class StoryViewModel @Inject constructor(
                 val visibleSessions: List<SessionEntity> =
                     sessionsForTag.filter { it.createdAt in window.startMs until window.endMs }
 
-                // --- Journey colors for currently visible flows ---
                 val visibleJourneyIdsInPriorityOrder: List<Long> =
                     visibleSessions
                         .groupBy { it.tagId }
@@ -333,7 +316,6 @@ class StoryViewModel @Inject constructor(
 
                 val journeyColors = getOrCreateJourneyColors(visibleJourneyIdsInPriorityOrder)
 
-                // --- Chronicle items (standalone flows + arc groups) ---
                 val chronicleItems = buildChronicleItems(
                     allSessions = sessions,
                     visibleSessionsInWindow = visibleSessions,
@@ -342,16 +324,12 @@ class StoryViewModel @Inject constructor(
                     selectedTagId = effectiveTagId
                 )
 
-                // --- Is current period? ---
                 val todayAnchor =
                     TimeWindowUtils.startOfPeriodMs(nowMs, currentPeriod)
 
                 val isCurrentPeriod: Boolean =
                     normalizedAnchor == todayAnchor
 
-                // ============================================================
-                // 7-day summary (ONLY for current period)
-                // ============================================================
                 val topJourneysLast7d: List<Journey7dStatUiModel> =
                     if (isCurrentPeriod) {
                         val sevenDaysMs = 7L * 24L * 60L * 60L * 1000L
@@ -380,9 +358,6 @@ class StoryViewModel @Inject constructor(
                         emptyList()
                     }
 
-                // ============================================================
-                // Sagas (ONLY for past periods)
-                // ============================================================
                 val sagasInView: List<Journey7dStatUiModel> =
                     sessions.asSequence()
                         .filter { it.createdAt in window.startMs until window.endMs }
@@ -404,9 +379,6 @@ class StoryViewModel @Inject constructor(
                         )
                         .toList()
 
-                // ============================================================
-                // View Journeys sheet
-                // ============================================================
                 val viewJourneysSessions: List<FlowListItemUiModel> =
                     if (viewOpen && viewTagId != null) {
                         sessions.asSequence()
@@ -426,7 +398,6 @@ class StoryViewModel @Inject constructor(
                         ""
                     }
 
-                // --- Totals from visible sessions ---
                 val totalDurationMs = visibleSessions.sumOf { it.durationMs }
                 val totalScore = visibleSessions.sumOf { it.scyraPoints }
                 val currentSurgeScore = visibleSessions.sumOf { it.surgePoints }
@@ -446,6 +417,7 @@ class StoryViewModel @Inject constructor(
                     topJourneysLast7d = topJourneysLast7d,
                     firstSessionStartMs = firstSessionStartMs,
                     isCurrentPeriod = isCurrentPeriod,
+                    hasAnyRecordedFlows = hasAnyRecordedFlows,
                     sagasInView = sagasInView,
                     isViewJourneysOpen = viewOpen,
                     viewJourneysTitle = viewJourneysTitle,
@@ -466,7 +438,6 @@ class StoryViewModel @Inject constructor(
         }
     }
 
-
     fun deleteSession(sessionId: Long) {
         viewModelScope.launch {
             try {
@@ -475,7 +446,6 @@ class StoryViewModel @Inject constructor(
                     selectedTagId.value = null
                 }
             } catch (_: Exception) {
-                // optional: set uiState error
             }
         }
     }
@@ -490,12 +460,10 @@ class StoryViewModel @Inject constructor(
         val visibleUi = visibleSessionsInWindow.toUiModels(tags, journeyColors)
         val visibleUiBySessionId = visibleUi.associateBy { it.sessionId }
 
-        // ✅ Arc membership/totals should come from ALL sessions, not just current window
         val allByArcId = allSessions
             .filter { it.arcId != null }
             .groupBy { it.arcId!! }
 
-        // ✅ Visible child flows still come only from the current filtered/windowed list
         val visibleByArcId = visibleSessionsInWindow
             .filter { it.arcId != null }
             .groupBy { it.arcId!! }
@@ -517,7 +485,6 @@ class StoryViewModel @Inject constructor(
             val allArcSessions = allByArcId[arcId].orEmpty().sortedByDescending { it.createdAt }
             val visibleArcSessions = visibleByArcId[arcId].orEmpty().sortedByDescending { it.createdAt }
 
-            // ✅ Defensive guard: true 1-flow arcs should not render as Arc groups
             if (allArcSessions.size < 2) {
                 val flowUi = visibleUiBySessionId[session.id] ?: return@forEach
                 chronicleItems += ChronicleUiModel.StandaloneFlow(flowUi)
