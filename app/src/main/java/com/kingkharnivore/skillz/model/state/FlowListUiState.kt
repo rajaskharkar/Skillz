@@ -11,7 +11,7 @@ data class FlowListUiState(
     val sessions: List<FlowListItemUiModel> = emptyList(),
     val chronicleItems: List<ChronicleUiModel> = emptyList(),
     val tags: List<TagUiModel> = emptyList(),
-    val selectedTagId: Long? = null,
+    val selectedTagIds: Set<Long> = emptySet(),
     val totalDurationMs: Long = 0L,
     val errorMessage: String? = null,
     val period: StoryPeriod = StoryPeriod.DAY,

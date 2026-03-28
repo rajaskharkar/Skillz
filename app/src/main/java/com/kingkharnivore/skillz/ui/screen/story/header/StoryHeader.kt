@@ -15,7 +15,8 @@ import com.kingkharnivore.skillz.utils.time.StoryPeriod
 @Composable
 fun StoryHeader(
     uiState: FlowListUiState,
-    onTagSelected: (Long?) -> Unit,
+    onTagToggled: (Long) -> Unit,
+    onClearAllTags: () -> Unit,
     onPeriodSelected: (StoryPeriod) -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
@@ -25,8 +26,9 @@ fun StoryHeader(
 ) {
     TagFilterRow(
         tags = uiState.tags,
-        selectedTagId = uiState.selectedTagId,
-        onTagSelected = onTagSelected
+        selectedTagIds = uiState.selectedTagIds,
+        onTagToggled = onTagToggled,
+        onClearAll = onClearAllTags
     )
 
     Spacer(modifier = Modifier.height(12.dp))
@@ -46,10 +48,10 @@ fun StoryHeader(
     extraTopContent?.invoke()
 
     when {
-        uiState.selectedTagId != null -> {
+        uiState.selectedTagIds.isNotEmpty() -> {
             TotalTimeHighlight(
                 totalDurationMs = uiState.totalDurationMs,
-                subtitle = "Time in view"
+                subtitle = "Time in selected journeys"
             )
             Spacer(modifier = Modifier.height(12.dp))
         }

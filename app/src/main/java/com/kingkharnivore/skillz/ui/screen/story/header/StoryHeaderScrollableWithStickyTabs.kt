@@ -28,10 +28,10 @@ import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.model.ui.ChronicleUiModel
 import com.kingkharnivore.skillz.ui.screen.story.chronicle.ArcGroupCard
-import com.kingkharnivore.skillz.ui.screen.story.rememberExpandedSessionIdsState
-import com.kingkharnivore.skillz.ui.screen.story.rememberSessionEditState
 import com.kingkharnivore.skillz.ui.screen.story.chronicle.FlowCard
 import com.kingkharnivore.skillz.ui.screen.story.rememberExpandedArcIdsState
+import com.kingkharnivore.skillz.ui.screen.story.rememberExpandedSessionIdsState
+import com.kingkharnivore.skillz.ui.screen.story.rememberSessionEditState
 import com.kingkharnivore.skillz.ui.screen.story.saga.SagasCard
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 
@@ -42,7 +42,8 @@ private enum class StoryTab { SAGAS, CHRONICLES }
 fun StoryHeaderScrollableWithStickyTabs(
     uiState: FlowListUiState,
     listState: LazyListState,
-    onTagSelected: (Long?) -> Unit,
+    onTagToggled: (Long) -> Unit,
+    onClearAllTags: () -> Unit,
     onPeriodSelected: (StoryPeriod) -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
@@ -74,13 +75,14 @@ fun StoryHeaderScrollableWithStickyTabs(
         item {
             StoryHeader(
                 uiState = uiState,
-                onTagSelected = onTagSelected,
+                onTagToggled = onTagToggled,
+                onClearAllTags = onClearAllTags,
                 onPeriodSelected = onPeriodSelected,
                 onPrev = onPrev,
                 onNext = onNext,
                 onToday = onToday,
                 onOpenViewJourneys = onOpenViewJourneys,
-                extraTopContent = extraTopContent
+                extraTopContent = extraTopContent,
             )
         }
 
@@ -190,21 +192,23 @@ fun StoryHeaderScrollableWithStickyTabs(
                             }
 
                             is ChronicleUiModel.ArcGroup -> {
+                                val isFilteredByTags = uiState.selectedTagIds.isNotEmpty()
+
                                 ArcGroupCard(
                                     group = item,
                                     showScoreUi = uiState.showScoreUi,
                                     calmMode = uiState.calmMode,
-                                    isExpanded = if (uiState.selectedTagId != null) {
+                                    isExpanded = if (isFilteredByTags) {
                                         true
                                     } else {
                                         expandedArcState.isExpanded(item.arcId)
                                     },
                                     onToggleExpanded = {
-                                        if (uiState.selectedTagId == null) {
+                                        if (!isFilteredByTags) {
                                             expandedArcState.toggle(item.arcId)
                                         }
                                     },
-                                    isExpandedByFilter = uiState.selectedTagId != null,
+                                    isExpandedByFilter = isFilteredByTags,
                                     isExpandedFlow = { sessionId -> expandedState.isExpanded(sessionId) },
                                     onToggleFlowExpand = { sessionId -> expandedState.toggle(sessionId) },
                                     onDeleteSession = onDeleteSession,

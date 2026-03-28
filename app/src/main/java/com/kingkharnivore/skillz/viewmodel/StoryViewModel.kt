@@ -35,7 +35,7 @@ class StoryViewModel @Inject constructor(
     private val userPrefs: UserPrefs
 ) : ViewModel() {
 
-    private val selectedTagId = MutableStateFlow<Long?>(null)
+    private val selectedTagIds = MutableStateFlow<Set<Long>>(emptySet())
     private val showScoreUiFlow = userPrefs.showScoreUi
     private val calmModeFlow = userPrefs.calmMode
 
@@ -141,11 +141,17 @@ class StoryViewModel @Inject constructor(
     }
 
     fun selectTag(tagId: Long?) {
-        selectedTagId.value = tagId
+        selectedTagIds.value = tagId?.let { setOf(it) } ?: emptySet()
     }
 
-    fun onTagSelected(tagId: Long?) {
-        selectedTagId.value = tagId
+    fun onTagToggled(tagId: Long) {
+        selectedTagIds.value = selectedTagIds.value.toMutableSet().apply {
+            if (contains(tagId)) remove(tagId) else add(tagId)
+        }
+    }
+
+    fun onClearAllTags() {
+        selectedTagIds.value = emptySet()
     }
 
     private fun nowMs(): Long = System.currentTimeMillis()
@@ -256,7 +262,7 @@ class StoryViewModel @Inject constructor(
             combine(
                 sessionsFlow,
                 tagsFlow,
-                selectedTagId,
+                selectedTagIds,
                 period,
                 anchorDayStartMs,
                 viewJourneysTagId,
@@ -267,7 +273,7 @@ class StoryViewModel @Inject constructor(
 
                 val sessions = arr[0] as List<SessionEntity>
                 val tags = arr[1] as List<TagEntity>
-                val currentTagId = arr[2] as Long?
+                val currentTagIds = arr[2] as Set<Long>
                 val currentPeriod = arr[3] as StoryPeriod
                 val anchorStartMs = arr[4] as Long
                 val viewTagId = arr[5] as Long?
@@ -285,13 +291,15 @@ class StoryViewModel @Inject constructor(
                 val tagUsageCount: Map<Long, Int> = sessions.groupingBy { it.tagId }.eachCount()
                 val visibleTags: List<TagEntity> = tags.filter { (tagUsageCount[it.id] ?: 0) > 0 }
 
-                val effectiveTagId: Long? =
-                    currentTagId?.takeIf { (tagUsageCount[it] ?: 0) > 0 }
+                val effectiveSelectedTagIds: Set<Long> =
+                    currentTagIds.filterTo(linkedSetOf()) { (tagUsageCount[it] ?: 0) > 0 }
 
-                val sessionsForTag: List<SessionEntity> =
-                    effectiveTagId?.let { tagId ->
-                        sessions.filter { it.tagId == tagId }
-                    } ?: sessions
+                val sessionsForTags: List<SessionEntity> =
+                    if (effectiveSelectedTagIds.isEmpty()) {
+                        sessions
+                    } else {
+                        sessions.filter { it.tagId in effectiveSelectedTagIds }
+                    }
 
                 val normalizedAnchor =
                     TimeWindowUtils.normalizeAnchor(anchorStartMs, currentPeriod)
@@ -300,7 +308,7 @@ class StoryViewModel @Inject constructor(
                     TimeWindowUtils.windowFor(normalizedAnchor, currentPeriod)
 
                 val visibleSessions: List<SessionEntity> =
-                    sessionsForTag.filter { it.createdAt in window.startMs until window.endMs }
+                    sessionsForTags.filter { it.createdAt in window.startMs until window.endMs }
 
                 val visibleJourneyIdsInPriorityOrder: List<Long> =
                     visibleSessions
@@ -321,7 +329,7 @@ class StoryViewModel @Inject constructor(
                     visibleSessionsInWindow = visibleSessions,
                     tags = tags,
                     journeyColors = journeyColors,
-                    selectedTagId = effectiveTagId
+                    selectedTagIds = effectiveSelectedTagIds
                 )
 
                 val todayAnchor =
@@ -407,7 +415,7 @@ class StoryViewModel @Inject constructor(
                     sessions = visibleSessions.toUiModels(tags, journeyColors),
                     chronicleItems = chronicleItems,
                     tags = visibleTags.toUiModels(),
-                    selectedTagId = effectiveTagId,
+                    selectedTagIds = effectiveSelectedTagIds,
                     totalDurationMs = totalDurationMs,
                     errorMessage = null,
                     period = currentPeriod,
@@ -442,8 +450,8 @@ class StoryViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val removedTagId = sessionRepository.deleteSessionAndCleanupTag(sessionId)
-                if (removedTagId != null && selectedTagId.value == removedTagId) {
-                    selectedTagId.value = null
+                if (removedTagId != null) {
+                    selectedTagIds.value = selectedTagIds.value - removedTagId
                 }
             } catch (_: Exception) {
             }
@@ -455,7 +463,7 @@ class StoryViewModel @Inject constructor(
         visibleSessionsInWindow: List<SessionEntity>,
         tags: List<TagEntity>,
         journeyColors: Map<Long, Color>,
-        selectedTagId: Long?
+        selectedTagIds: Set<Long>
     ): List<ChronicleUiModel> {
         val visibleUi = visibleSessionsInWindow.toUiModels(tags, journeyColors)
         val visibleUiBySessionId = visibleUi.associateBy { it.sessionId }
@@ -514,17 +522,19 @@ class StoryViewModel @Inject constructor(
             }
 
             val filteredJourneyDurationMs =
-                selectedTagId?.let { selectedId ->
+                if (selectedTagIds.isNotEmpty()) {
                     allArcSessions
-                        .filter { it.tagId == selectedId }
+                        .filter { it.tagId in selectedTagIds }
                         .sumOf { it.durationMs }
                         .takeIf { it > 0L }
+                } else {
+                    null
                 }
 
             val filteredJourneyPercentOfArc =
-                if (selectedTagId != null && totalArcDurationMs > 0L) {
+                if (selectedTagIds.isNotEmpty() && totalArcDurationMs > 0L) {
                     val duration = allArcSessions
-                        .filter { it.tagId == selectedTagId }
+                        .filter { it.tagId in selectedTagIds }
                         .sumOf { it.durationMs }
 
                     ((duration.toDouble() / totalArcDurationMs.toDouble()) * 100.0)
