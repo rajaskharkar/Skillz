@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -336,7 +337,7 @@ fun NotepadScreen(
             prefs = prefs.copy(
                 selectionStart = sel.start,
                 selectionEnd = sel.end,
-                listMode = 0, // lists removed
+                listMode = 0,
                 bold = toolFlags[0],
                 italic = toolFlags[1],
                 underline = toolFlags[2],
@@ -359,7 +360,6 @@ fun NotepadScreen(
 
         delay(40)
 
-        // ✅ Apply meta if present, otherwise fallback for welcome doc
         meta?.let { applyFontMetaToState(it) }
         applyWelcomeFontsFallbackIfNeeded(meta)
 
@@ -405,7 +405,6 @@ fun NotepadScreen(
             }
     }
 
-    // ✅ Flush on stop so last keystroke + last formatting survives app death
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -652,22 +651,18 @@ fun NotepadScreen(
                 .padding(horizontal = 16.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                // ✨ Beautiful editor chrome (no ugly underline, comfy height, subtle surface)
-// Drop this *around* your RichTextEditor call.
-
                 val shape = RoundedCornerShape(20.dp)
 
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 220.dp)                 // ✅ gives it presence
+                        .heightIn(min = 220.dp)
                         .clip(shape),
                     shape = shape,
                     tonalElevation = 2.dp,
                     shadowElevation = 0.dp,
                     color = MaterialTheme.colorScheme.surface
                 ) {
-                    // Optional: a very subtle inner “panel” feel without a hard border
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -675,7 +670,6 @@ fun NotepadScreen(
                             .padding(horizontal = 16.dp, vertical = 14.dp)
                     ) {
                         CompositionLocalProvider(
-                            // ✅ Removes the default TextField underline/border vibes in many editor impls
                             LocalTextSelectionColors provides TextSelectionColors(
                                 handleColor = MaterialTheme.colorScheme.primary,
                                 backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
@@ -693,7 +687,9 @@ fun NotepadScreen(
                                     lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.12f
                                 ),
                                 keyboardOptions = KeyboardOptions(
-                                    capitalization = KeyboardCapitalization.Sentences
+                                    capitalization = KeyboardCapitalization.Sentences,
+                                    keyboardType = KeyboardType.Text,
+                                    autoCorrect = true
                                 )
                             )
                         }
