@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.model.entity.BeamEntity
@@ -14,6 +15,7 @@ import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 import com.kingkharnivore.skillz.model.state.flow.FlowUiState
 import com.kingkharnivore.skillz.model.state.flow.StopwatchState
 import com.kingkharnivore.skillz.ui.model.ArcRuntimeState
+import com.kingkharnivore.skillz.ui.navigation.SkillzDestinations
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
 import com.kingkharnivore.skillz.ui.service.SurgeHapticsManager
 import com.kingkharnivore.skillz.utils.arc.ArcPrefs
@@ -59,8 +61,19 @@ class FlowViewModel @Inject constructor(
     private val beamRepository: BeamRepository,
     private val arcPrefs: ArcPrefs,
     private val userPrefs: UserPrefs,
-    private val surgeHapticsManager: SurgeHapticsManager
+    private val surgeHapticsManager: SurgeHapticsManager,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    private val atlasJourneyOverride: String? =
+        savedStateHandle
+            .get<String>(SkillzDestinations.ADD_SKILL_ARG_PREFILL_JOURNEY)
+            ?.takeIf { it.isNotBlank() }
+
+    private fun applyAtlasJourneyOverride(state: FlowUiState): FlowUiState {
+        val override = atlasJourneyOverride ?: return state
+        return state.copy(tagName = override)
+    }
 
     val ongoingSession: StateFlow<OngoingSessionEntity?> =
         focusSessionRepository.getOngoingSession()
@@ -239,7 +252,7 @@ class FlowViewModel @Inject constructor(
                     arcId = ongoing.arcId,
                     isPending = (ongoing.arcSessionCountInArc ?: 0) < 2,
                     multiplier = ongoing.arcChainBase ?: ArcRules.START_MULTIPLIER,
-                    progressMs = 0L, // strict arcs: no banking
+                    progressMs = 0L,
                     lastSessionEndTimeMs = ongoing.arcLastSessionEndTimeMs ?: 0L,
                     sessionCountInArc = ongoing.arcSessionCountInArc ?: 0
                 )
@@ -272,22 +285,34 @@ class FlowViewModel @Inject constructor(
                     accumulatedBeforeStartMs
                 }
 
-                _uiState.update {
-                    it.copy(
-                        title = entity.title,
-                        description = entity.description,
-                        tagName = entity.tagName,
-                        isInFlowMode = entity.isInFlowMode,
-                        isSurgeOn = entity.isSurgeOn,
-                        surgePlannedMs = entity.surgePlannedMs,
-                        stopwatch = StopwatchState(
-                            isRunning = entity.isRunning,
-                            elapsedMs = elapsed
+                _uiState.update { old ->
+                    applyAtlasJourneyOverride(
+                        old.copy(
+                            title = entity.title,
+                            description = entity.description,
+                            tagName = entity.tagName,
+                            isInFlowMode = entity.isInFlowMode,
+                            isSurgeOn = entity.isSurgeOn,
+                            surgePlannedMs = entity.surgePlannedMs,
+                            stopwatch = StopwatchState(
+                                isRunning = entity.isRunning,
+                                elapsedMs = elapsed
+                            )
                         )
                     )
                 }
 
                 if (entity.isRunning) startTicker()
+
+                if (!atlasJourneyOverride.isNullOrBlank() && atlasJourneyOverride != entity.tagName) {
+                    saveOngoing()
+                }
+            } ?: run {
+                if (!atlasJourneyOverride.isNullOrBlank()) {
+                    _uiState.update { old ->
+                        applyAtlasJourneyOverride(old)
+                    }
+                }
             }
         }
     }
@@ -662,11 +687,6 @@ class FlowViewModel @Inject constructor(
             bonusPoints = res.beamBonusPoints.coerceAtLeast(0),
             multiplier = res.appliedMultiplier
         )
-    }
-
-    fun prefillFromBeam(tagName: String) {
-        _uiState.update { it.copy(tagName = tagName) }
-        saveOngoing()
     }
 
     /**

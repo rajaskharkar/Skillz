@@ -32,6 +32,7 @@ fun SkillzHomeScreen(
     atlasViewModel: AtlasViewModel = hiltViewModel(),
     onAddSessionClick: () -> Unit,
     onScheduleBeamClick: () -> Unit,
+    onStartFlowFromActiveBeam: (String) -> Unit,
     onGoToActiveSession: () -> Unit,
     isFlowModeOn: Boolean
 ) {
@@ -67,7 +68,7 @@ fun SkillzHomeScreen(
                     when (page) {
                         0 -> AtlasScreen(
                             uiState = atlasState,
-                            onStartFlow = onAddSessionClick,
+                            onStartFlow = onStartFlowFromActiveBeam,
                             onSelectMode = atlasViewModel::setViewMode,
                             onPrevDay = { atlasViewModel.shiftSelectedDay(-1) },
                             onNextDay = { atlasViewModel.shiftSelectedDay(+1) },

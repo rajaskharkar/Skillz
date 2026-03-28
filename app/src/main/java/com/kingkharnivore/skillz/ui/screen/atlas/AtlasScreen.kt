@@ -23,7 +23,7 @@ import com.kingkharnivore.skillz.ui.model.BeamBlockUi
 @Composable
 fun AtlasScreen(
     uiState: AtlasUiState,
-    onStartFlow: () -> Unit,
+    onStartFlow: (String) -> Unit,
     onSelectMode: (AtlasViewMode) -> Unit,
     onPrevDay: () -> Unit,
     onNextDay: () -> Unit,
