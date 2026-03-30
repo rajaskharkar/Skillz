@@ -19,8 +19,9 @@ import com.kingkharnivore.skillz.viewmodel.TagUiModel
 @Composable
 fun TagFilterRow(
     tags: List<TagUiModel>,
-    selectedTagId: Long?,
-    onTagSelected: (Long?) -> Unit
+    selectedTagIds: Set<Long>,
+    onTagToggled: (Long) -> Unit,
+    onClearAll: () -> Unit
 ) {
     if (tags.isEmpty()) return
 
@@ -29,7 +30,11 @@ fun TagFilterRow(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "Observe a journey:",
+            text = if (selectedTagIds.isEmpty()) {
+                "Observe journeys:"
+            } else {
+                "Observe journeys (${selectedTagIds.size} selected):"
+            },
             style = MaterialTheme.typography.labelSmall
         )
 
@@ -40,8 +45,8 @@ fun TagFilterRow(
         ) {
             item {
                 FilterChip(
-                    selected = selectedTagId == null,
-                    onClick = { onTagSelected(null) },
+                    selected = selectedTagIds.isEmpty(),
+                    onClick = onClearAll,
                     label = {
                         Text(
                             text = "All",
@@ -62,9 +67,11 @@ fun TagFilterRow(
                 items = tags,
                 key = { it.id }
             ) { tag ->
+                val isSelected = tag.id in selectedTagIds
+
                 FilterChip(
-                    selected = selectedTagId == tag.id,
-                    onClick = { onTagSelected(tag.id) },
+                    selected = isSelected,
+                    onClick = { onTagToggled(tag.id) },
                     label = {
                         Text(
                             text = tag.name,
@@ -75,7 +82,7 @@ fun TagFilterRow(
                         selectedContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f),
                         selectedLabelColor = MaterialTheme.colorScheme.secondary,
                         containerColor = MaterialTheme.colorScheme.surface,
-                        labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                        labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
                     ),
                     modifier = Modifier.padding(end = 8.dp)
                 )

@@ -18,7 +18,8 @@ fun StoryBody(
     uiState: FlowListUiState,
     listState: LazyListState,
     isFlowStateActive: Boolean,
-    onTagSelected: (Long?) -> Unit,
+    onTagToggled: (Long) -> Unit,
+    onClearAllTags: () -> Unit,
     onPeriodSelected: (StoryPeriod) -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
@@ -27,7 +28,10 @@ fun StoryBody(
     onAddSessionClick: () -> Unit,
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
+    onDeletePulse: (Long) -> Unit,
+    onUpdatePulse: (Long, String, String, String) -> Unit,
     onUpdateSessionDescription: (Long, String) -> Unit,
+    onCreatePulseForSession: (Long, String, String, String) -> Unit,
     onOpenViewJourneys: (Long) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -43,7 +47,8 @@ fun StoryBody(
                 StoryHeaderScrollableWithStickyTabs(
                     uiState = uiState,
                     listState = listState,
-                    onTagSelected = onTagSelected,
+                    onTagToggled = onTagToggled,
+                    onClearAllTags = onClearAllTags,
                     onPeriodSelected = onPeriodSelected,
                     onPrev = onPrev,
                     onNext = onNext,
@@ -51,7 +56,10 @@ fun StoryBody(
                     onOpenViewJourneys = onOpenViewJourneys,
                     onSessionClick = onSessionClick,
                     onDeleteSession = onDeleteSession,
+                    onDeletePulse = onDeletePulse,
                     onUpdateSessionDescription = onUpdateSessionDescription,
+                    onUpdatePulse = onUpdatePulse,
+                    onCreatePulseForSession = onCreatePulseForSession,
                     onAddSessionClick = onAddSessionClick,
                     extraTopContent = if (isFlowStateActive) {
                         { FlowModeHeroCard(onGoToActiveSession = onGoToActiveSession) }

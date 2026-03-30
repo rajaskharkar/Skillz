@@ -12,6 +12,7 @@ data class FlowListItemUiModel(
     val durationMs: Long,
     val createdAt: Long,
     val score: Int,
+    val isSoftMode: Boolean = false,
     val isSurge: Boolean,
     val surgePoints: Int,
     val beamBonusPoints: Int,

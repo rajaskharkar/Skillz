@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.ui.screen.story.header
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,7 +18,6 @@ import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,10 +29,13 @@ import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.model.ui.ChronicleUiModel
 import com.kingkharnivore.skillz.ui.screen.story.chronicle.ArcGroupCard
-import com.kingkharnivore.skillz.ui.screen.story.rememberExpandedSessionIdsState
-import com.kingkharnivore.skillz.ui.screen.story.rememberSessionEditState
 import com.kingkharnivore.skillz.ui.screen.story.chronicle.FlowCard
+import com.kingkharnivore.skillz.ui.screen.story.chronicle.PulseCard
 import com.kingkharnivore.skillz.ui.screen.story.rememberExpandedArcIdsState
+import com.kingkharnivore.skillz.ui.screen.story.rememberExpandedSessionIdsState
+import com.kingkharnivore.skillz.ui.screen.story.rememberPulseEditState
+import com.kingkharnivore.skillz.ui.screen.story.rememberSessionEditState
+import com.kingkharnivore.skillz.ui.screen.story.saga.SagaPulseSection
 import com.kingkharnivore.skillz.ui.screen.story.saga.SagasCard
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 
@@ -43,7 +46,8 @@ private enum class StoryTab { SAGAS, CHRONICLES }
 fun StoryHeaderScrollableWithStickyTabs(
     uiState: FlowListUiState,
     listState: LazyListState,
-    onTagSelected: (Long?) -> Unit,
+    onTagToggled: (Long) -> Unit,
+    onClearAllTags: () -> Unit,
     onPeriodSelected: (StoryPeriod) -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
@@ -51,7 +55,10 @@ fun StoryHeaderScrollableWithStickyTabs(
     onOpenViewJourneys: (Long) -> Unit,
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
+    onDeletePulse: (Long) -> Unit,
     onUpdateSessionDescription: (Long, String) -> Unit,
+    onUpdatePulse: (Long, String, String, String) -> Unit,
+    onCreatePulseForSession: (Long, String, String, String) -> Unit,
     onAddSessionClick: () -> Unit,
     extraTopContent: (@Composable () -> Unit)? = null
 ) {
@@ -60,10 +67,24 @@ fun StoryHeaderScrollableWithStickyTabs(
     val expandedState = rememberExpandedSessionIdsState()
     val expandedArcState = rememberExpandedArcIdsState()
     val editState = rememberSessionEditState()
+    val pulseEditState = rememberPulseEditState()
+    var expandedPulseIds by rememberSaveable { mutableStateOf(setOf<Long>()) }
 
-    FlowEditDialog(
+    val editingFlow = editState.editingSession.value
+    FlowDetailsSheet(
         editState = editState,
-        onSave = { id, text -> onUpdateSessionDescription(id, text) }
+        tags = uiState.tags,
+        childPulses = editingFlow?.let { uiState.pulsesBySessionId[it.sessionId].orEmpty() }.orEmpty(),
+        onSaveNotes = { id, text -> onUpdateSessionDescription(id, text) },
+        onCreatePulse = onCreatePulseForSession,
+        onDeletePulse = onDeletePulse,
+        onEditPulse = { pulse -> pulseEditState.startEditing(pulse) }
+    )
+
+    PulseEditSheet(
+        editState = pulseEditState,
+        tags = uiState.tags,
+        onSave = onUpdatePulse
     )
 
     LazyColumn(
@@ -72,23 +93,21 @@ fun StoryHeaderScrollableWithStickyTabs(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // ── Scrollable Header ───────────────────────────────────────
         item {
             StoryHeader(
                 uiState = uiState,
-                onTagSelected = onTagSelected,
+                onTagToggled = onTagToggled,
+                onClearAllTags = onClearAllTags,
                 onPeriodSelected = onPeriodSelected,
                 onPrev = onPrev,
                 onNext = onNext,
                 onToday = onToday,
                 onOpenViewJourneys = onOpenViewJourneys,
-                extraTopContent = extraTopContent
+                extraTopContent = extraTopContent,
             )
         }
 
-        // ── Sticky Lean Tabs ────────────────────────────────────────
         stickyHeader {
-            // keep sticky area from showing content "through" while scrolling
             Surface(
                 color = MaterialTheme.colorScheme.background,
                 tonalElevation = 0.dp,
@@ -112,7 +131,7 @@ fun StoryHeaderScrollableWithStickyTabs(
                     ) {
                         Row(
                             modifier = Modifier
-                                .padding(3.dp) // outer pill padding
+                                .padding(3.dp)
                                 .height(34.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -141,31 +160,46 @@ fun StoryHeaderScrollableWithStickyTabs(
             }
         }
 
-        // ── Content (same LazyColumn, so it feels fluid) ─────────────
         when (tab) {
             StoryTab.SAGAS -> {
                 item {
-                    if (uiState.sagasInView.isEmpty()) {
-                        Text(
-                            text = "No saga data in this view.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                            modifier = Modifier.padding(vertical = 6.dp)
-                        )
-                    } else {
-                        SagasCard(
-                            period = uiState.period,
-                            anchorDayStartMs = uiState.anchorDayStartMs,
-                            stats = uiState.sagasInView,
-                            onOpenViewJourneys = onOpenViewJourneys
-                        )
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (uiState.sagaPulsesInView.isNotEmpty()) {
+                            SagaPulseSection(pulses = uiState.sagaPulsesInView)
+                        }
+
+                        if (uiState.sagasInView.isEmpty()) {
+                            if (uiState.sagaPulsesInView.isEmpty()) {
+                                EmptySagasState()
+                            }
+                        } else {
+                            SagasCard(
+                                period = uiState.period,
+                                anchorDayStartMs = uiState.anchorDayStartMs,
+                                stats = uiState.sagasInView,
+                                onOpenViewJourneys = onOpenViewJourneys
+                            )
+                        }
                     }
                 }
             }
 
             StoryTab.CHRONICLES -> {
                 if (uiState.chronicleItems.isEmpty()) {
-                    item { FirstTimeUser(onAddSessionClick = onAddSessionClick) }
+                    item {
+                        val shouldShowFirstTimeUser =
+                            !uiState.hasAnyRecordedArtifacts && uiState.isCurrentPeriod
+
+                        if (shouldShowFirstTimeUser) {
+                            FirstTimeUser(onAddSessionClick = onAddSessionClick)
+                        } else {
+                            EmptyChroniclesState(
+                                period = uiState.period,
+                                isCurrentPeriod = uiState.isCurrentPeriod,
+                                onTodayClick = if (uiState.isCurrentPeriod) null else onToday
+                            )
+                        }
+                    }
                 } else {
                     items(
                         items = uiState.chronicleItems,
@@ -176,35 +210,62 @@ fun StoryHeaderScrollableWithStickyTabs(
                                 val session = item.flow
                                 FlowCard(
                                     session = session,
+                                    childPulses = item.childPulses,
                                     isExpanded = expandedState.isExpanded(session.sessionId),
                                     showScoreUi = uiState.showScoreUi,
                                     calmMode = uiState.calmMode,
                                     onToggleExpand = { expandedState.toggle(session.sessionId) },
                                     onDeleteSession = { onDeleteSession(session.sessionId) },
                                     onLongPress = { editState.startEditing(session) },
-                                    onClick = { onSessionClick(session.sessionId) }
+                                    onClick = { onSessionClick(session.sessionId) },
+                                    onEditPulse = { pulse -> pulseEditState.startEditing(pulse) },
+                                    onDeletePulse = onDeletePulse
+                                )
+                            }
+
+                            is ChronicleUiModel.StandalonePulse -> {
+                                val pulse = item.pulse
+                                val isExpanded = expandedPulseIds.contains(pulse.pulseId)
+
+                                PulseCard(
+                                    pulse = pulse,
+                                    isExpanded = isExpanded,
+                                    onToggleExpand = {
+                                        expandedPulseIds =
+                                            if (expandedPulseIds.contains(pulse.pulseId)) {
+                                                expandedPulseIds - pulse.pulseId
+                                            } else {
+                                                expandedPulseIds + pulse.pulseId
+                                            }
+                                    },
+                                    onLongPress = { pulseEditState.startEditing(pulse) },
+                                    onDeletePulse = { onDeletePulse(pulse.pulseId) }
                                 )
                             }
 
                             is ChronicleUiModel.ArcGroup -> {
+                                val isFilteredByTags = uiState.selectedTagIds.isNotEmpty()
+
                                 ArcGroupCard(
                                     group = item,
                                     showScoreUi = uiState.showScoreUi,
                                     calmMode = uiState.calmMode,
-                                    isExpanded = if (uiState.selectedTagId != null) {
+                                    isExpanded = if (isFilteredByTags) {
                                         true
                                     } else {
                                         expandedArcState.isExpanded(item.arcId)
                                     },
                                     onToggleExpanded = {
-                                        if (uiState.selectedTagId == null) {
+                                        if (!isFilteredByTags) {
                                             expandedArcState.toggle(item.arcId)
                                         }
                                     },
-                                    isExpandedByFilter = uiState.selectedTagId != null,
+                                    isExpandedByFilter = isFilteredByTags,
                                     isExpandedFlow = { sessionId -> expandedState.isExpanded(sessionId) },
                                     onToggleFlowExpand = { sessionId -> expandedState.toggle(sessionId) },
                                     onDeleteSession = onDeleteSession,
+                                    onEditPulse = { pulse -> pulseEditState.startEditing(pulse) },
+                                    onDeletePulse = onDeletePulse,
                                     onLongPress = { session -> editState.startEditing(session) },
                                     onClick = onSessionClick
                                 )

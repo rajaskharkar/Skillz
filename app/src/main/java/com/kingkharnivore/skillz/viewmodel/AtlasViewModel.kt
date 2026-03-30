@@ -7,13 +7,15 @@ import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.repository.BeamRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
+import com.kingkharnivore.skillz.ui.model.AtlasDayUi
+import com.kingkharnivore.skillz.ui.model.AtlasMonthCellUi
+import com.kingkharnivore.skillz.ui.model.AtlasMonthUi
 import com.kingkharnivore.skillz.ui.model.AtlasUiState
 import com.kingkharnivore.skillz.ui.model.AtlasViewMode
+import com.kingkharnivore.skillz.ui.model.AtlasWeekDayUi
+import com.kingkharnivore.skillz.ui.model.AtlasWeekUi
 import com.kingkharnivore.skillz.ui.model.BeamBlockUi
 import com.kingkharnivore.skillz.ui.model.BeamStatus
-import com.kingkharnivore.skillz.ui.model.DayAnchorUi
-import com.kingkharnivore.skillz.ui.model.DayPlanUi
-import com.kingkharnivore.skillz.ui.model.DaySegmentUi
 import com.kingkharnivore.skillz.ui.model.JourneyChipUi
 import com.kingkharnivore.skillz.ui.model.JourneyFilter
 import com.kingkharnivore.skillz.ui.model.NowState
@@ -23,8 +25,6 @@ import com.kingkharnivore.skillz.ui.model.computeReadiness
 import com.kingkharnivore.skillz.ui.model.overlaps
 import com.kingkharnivore.skillz.ui.model.progress
 import com.kingkharnivore.skillz.ui.theme.ColdSteel
-import com.kingkharnivore.skillz.utils.time.dayStartPlusDays
-import com.kingkharnivore.skillz.utils.time.floorToDay
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -37,6 +37,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import java.time.Instant
+import java.time.ZoneId
+import java.time.temporal.TemporalAdjusters
+import java.time.temporal.WeekFields
+import java.util.Locale
 import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.max
@@ -48,29 +53,48 @@ class AtlasViewModel @Inject constructor(
     private val sessionRepository: FlowRepository
 ) : ViewModel() {
 
-    private val journeyFilter = MutableStateFlow<JourneyFilter>(JourneyFilter.All)
+    private val zoneId = ZoneId.systemDefault()
+    private val firstDayOfWeek = WeekFields.of(Locale.getDefault()).firstDayOfWeek
 
+    private val journeyFilter = MutableStateFlow<JourneyFilter>(JourneyFilter.All)
     private val horizonHours = MutableStateFlow(8)
     private val horizonStartMs = MutableStateFlow(floorToHour(System.currentTimeMillis()))
-
     private val viewMode = MutableStateFlow(AtlasViewMode.DAY)
-    private val selectedDayStartMs = MutableStateFlow(floorToDay(System.currentTimeMillis()))
+    private val selectedDayStartMs = MutableStateFlow(localDayStart(System.currentTimeMillis()))
+
+    @Volatile
+    private var minDayStartCache: Long? = null
 
     fun setViewMode(mode: AtlasViewMode) = viewMode.update { mode }
 
-    @Volatile private var minDayStartCache: Long? = null
+    fun selectDay(dayStartMs: Long) {
+        selectedDayStartMs.update { dayStartMs }
+    }
 
-    fun shiftSelectedDay(deltaDays: Long) {
+    fun shiftSelectedPeriod(delta: Long) {
         selectedDayStartMs.update { current ->
-            val next = dayStartPlusDays(current, deltaDays)
-            val min = minDayStartCache
-            if (min != null && next < min) min else next
+            when (viewMode.value) {
+                AtlasViewMode.DAY -> {
+                    val next = plusLocalDays(current, delta)
+                    val min = minDayStartCache
+                    if (min != null && next < min) min else next
+                }
+                AtlasViewMode.WEEK -> {
+                    val next = plusLocalWeeks(current, delta)
+                    val min = minDayStartCache?.let { localWeekStart(it) }
+                    if (min != null && next < min) min else next
+                }
+                AtlasViewMode.MONTH -> {
+                    val next = plusLocalMonths(current, delta)
+                    val min = minDayStartCache?.let { localMonthStart(it) }
+                    if (min != null && next < min) min else next
+                }
+            }
         }
     }
 
     fun goToToday() {
-        selectedDayStartMs.update { floorToDay(System.currentTimeMillis()) }
-        viewMode.update { AtlasViewMode.DAY }
+        selectedDayStartMs.update { localDayStart(System.currentTimeMillis()) }
     }
 
     private val nowTicker: Flow<Long> =
@@ -95,13 +119,23 @@ class AtlasViewModel @Inject constructor(
 
     val uiState: StateFlow<AtlasUiState> =
         beamRepository.observeAllBeams()
-            .combine(sessionRepository.getAllSessions()) { beams, sessions -> beams to sessions } // ✅
+            .combine(sessionRepository.getAllSessions()) { beams, sessions -> beams to sessions }
             .combine(tagsFlow) { (beams, sessions), tagData -> Triple(beams, sessions, tagData) }
-            .combine(journeyFilter) { (beams, sessions, tagData), filter -> Quad(beams, sessions, tagData, filter) }
-            .combine(horizonStartMs) { quad, start -> Penta(quad.a, quad.b, quad.c, quad.d, start) }
-            .combine(horizonHours) { penta, hours -> Sexta(penta.a, penta.b, penta.c, penta.d, penta.e, hours) }
-            .combine(viewMode) { sexta, mode -> Septa(sexta.a, sexta.b, sexta.c, sexta.d, sexta.e, sexta.f, mode) }
-            .combine(selectedDayStartMs) { septa, dayStart -> Octa(septa.a, septa.b, septa.c, septa.d, septa.e, septa.f, septa.g, dayStart) }
+            .combine(journeyFilter) { (beams, sessions, tagData), filter ->
+                Quad(beams, sessions, tagData, filter)
+            }
+            .combine(horizonStartMs) { quad, start ->
+                Penta(quad.a, quad.b, quad.c, quad.d, start)
+            }
+            .combine(horizonHours) { penta, hours ->
+                Sexta(penta.a, penta.b, penta.c, penta.d, penta.e, hours)
+            }
+            .combine(viewMode) { sexta, mode ->
+                Septa(sexta.a, sexta.b, sexta.c, sexta.d, sexta.e, sexta.f, mode)
+            }
+            .combine(selectedDayStartMs) { septa, dayStart ->
+                Octa(septa.a, septa.b, septa.c, septa.d, septa.e, septa.f, septa.g, dayStart)
+            }
             .combine(nowTicker) { octa, nowMs ->
                 buildUiState(
                     beams = octa.a,
@@ -133,10 +167,8 @@ class AtlasViewModel @Inject constructor(
 
         val pastBufferHours = minOf(2, maxOf(0, hours - 2))
         val start = horizonStart - pastBufferHours * 60L * 60L * 1000L
-        val end = start + hours * 60L * 60L * 1000L
         val rangeMinutes = hours * 60
 
-        // ✅ index sessions by beamId when present (fast path)
         val sessionsByBeamId =
             sessions
                 .filter { it.beamId != null }
@@ -180,31 +212,41 @@ class AtlasViewModel @Inject constructor(
             is JourneyFilter.Only -> allBlocks.filter { it.beam.tagId == filter.tagId }
         }
 
-        val minSelectableDay = filtered.minOfOrNull { floorToDay(it.beam.startTime) }
+        val minSelectableDay = filtered
+            .flatMap { overlappingDayStarts(it.beam.startTime, it.beam.endTime) }
+            .minOrNull()
+
         minDayStartCache = minSelectableDay
+
+        val effectiveSelectedDayStartMs = when {
+            minSelectableDay != null && selectedDayStartMs < minSelectableDay -> minSelectableDay
+            else -> selectedDayStartMs
+        }
 
         val activeRaw = filtered.firstOrNull { it.status == BeamStatus.ACTIVE }
         val nextRaw = filtered
             .filter { it.beam.startTime > nowMs }
             .minByOrNull { it.beam.startTime }
 
-        val dayPlan = buildDayPlan(filtered = filtered, dayStartMs = selectedDayStartMs, nowMs = nowMs)
+        val day = buildDay(
+            filtered = filtered,
+            dayStartMs = effectiveSelectedDayStartMs,
+            nowMs = nowMs
+        )
 
-        val horizonBlocks = filtered
-            .filter { overlaps(it.beam.startTime, it.beam.endTime, start, end) }
-            .sortedBy { it.beam.startTime }
-            .map { raw ->
-                projectIntoHorizon(
-                    beam = raw.beam,
-                    tagName = raw.tagName,
-                    status = raw.status,
-                    readiness = raw.readiness,
-                    horizonStartMs = start,
-                    rangeMinutes = rangeMinutes,
-                    nowMs = nowMs,
-                    completionRatio = raw.completionRatio
-                )
-            }
+        val week = buildWeek(
+            filtered = filtered,
+            selectedDayStartMs = effectiveSelectedDayStartMs,
+            nowMs = nowMs
+        )
+
+        val month = buildMonth(
+            filtered = filtered,
+            selectedDayStartMs = effectiveSelectedDayStartMs,
+            nowMs = nowMs
+        )
+
+        val beamsByDayStartMs = buildBeamCountsByDay(filtered)
 
         return AtlasUiState(
             journeyFilter = filter,
@@ -235,202 +277,179 @@ class AtlasViewModel @Inject constructor(
                     )
                 },
                 activeBeamRemainingMs = activeRaw?.let { max(0L, it.beam.endTime - nowMs) },
-                activeBeamProgress = activeRaw?.let { progress(nowMs, it.beam.startTime, it.beam.endTime) }
+                activeBeamProgress = activeRaw?.let {
+                    progress(nowMs, it.beam.startTime, it.beam.endTime)
+                }
             ),
+            nowMs = nowMs,
             viewMode = viewMode,
-            selectedDayStartMs = selectedDayStartMs,
-            dayPlan = dayPlan,
+            selectedDayStartMs = effectiveSelectedDayStartMs,
+            day = day,
+            week = week,
+            month = month,
+            beamsByDayStartMs = beamsByDayStartMs,
             minSelectableDayStartMs = minSelectableDay,
         )
     }
 
-    /**
-     * ✅ Completion ratio logic:
-     * 1) Fast path: sessions with beamId == this beam.id, sum beamEligibleMs
-     * 2) Fallback: if no sessions are linked, optionally compute overlap-based completion
-     */
-    private fun computeCompletionRatio(
-        beam: BeamEntity,
-        sessionsByBeamId: Map<Long, List<SessionEntity>>,
-        allSessions: List<SessionEntity>
-    ): Float {
-        val beamDur = (beam.endTime - beam.startTime).coerceAtLeast(1L)
-
-        val linked = sessionsByBeamId[beam.id].orEmpty()
-        if (linked.isNotEmpty()) {
-            val eligible = linked.sumOf { it.beamEligibleMs.coerceAtLeast(0L) }
-                .coerceAtMost(beamDur)
-            return eligible.toFloat() / beamDur.toFloat()
-        }
-
-        // Optional fallback: overlap-based for sessions without beamId (safe default)
-        // If you DON'T want fallback, just return 0f here.
-        val overlapMs = allSessions
-            .asSequence()
-            .filter { overlaps(it.startTime, it.endTime, beam.startTime, beam.endTime) }
-            .sumOf { overlapMs(it.startTime, it.endTime, beam.startTime, beam.endTime) }
-            .coerceAtMost(beamDur)
-
-        return overlapMs.toFloat() / beamDur.toFloat()
-    }
-
-    private fun overlapMs(aStart: Long, aEnd: Long, bStart: Long, bEnd: Long): Long {
-        val s = maxOf(aStart, bStart)
-        val e = minOf(aEnd, bEnd)
-        return (e - s).coerceAtLeast(0L)
-    }
-
-    private fun buildDayPlan(
+    private fun buildDay(
         filtered: List<RawBeamBlock>,
         dayStartMs: Long,
         nowMs: Long
-    ): DayPlanUi {
-        val dayEndMs = dayStartMs + 24L * 60L * 60L * 1000L
+    ): AtlasDayUi {
+        val dayEndMs = nextLocalDayStart(dayStartMs)
+        val windowMinutes = ((dayEndMs - dayStartMs) / 60_000L).toInt().coerceAtLeast(1)
 
-        val dayRaw = filtered
+        val dayBeams = filtered
             .filter { raw -> overlaps(raw.beam.startTime, raw.beam.endTime, dayStartMs, dayEndMs) }
             .sortedBy { it.beam.startTime }
-
-        val dayBlocks = dayRaw.map { raw ->
-            projectToWindow(
-                beam = raw.beam,
-                tagName = raw.tagName,
-                status = raw.status,
-                readiness = raw.readiness,
-                windowStartMs = dayStartMs,
-                windowMinutes = 1440,
-                nowMs = nowMs,
-                completionRatio = raw.completionRatio
-            )
-        }.sortedBy { it.startMs }
-
-        val segments = mutableListOf<DaySegmentUi>()
-        val anchors = mutableListOf<DayAnchorUi>()
-        var displayCursorMin = 0
-
-        fun addAnchor(realMinute: Int, displayMinute: Int) {
-            val rm = realMinute.coerceIn(0, 1440)
-            val dm = displayMinute.coerceAtLeast(0)
-            if (anchors.lastOrNull()?.minuteOfDay == rm) {
-                anchors[anchors.lastIndex] = DayAnchorUi(rm, dm)
-            } else {
-                anchors += DayAnchorUi(rm, dm)
-            }
-        }
-
-        addAnchor(0, 0)
-        var cursorMs = dayStartMs
-
-        for (b in dayBlocks) {
-            val beamStartClamped = maxOf(b.startMs, dayStartMs)
-            val beamEndClamped = minOf(b.endMs, dayEndMs)
-
-            if (beamStartClamped > cursorMs) {
-                val gapMin = ((beamStartClamped - cursorMs) / 60_000L).toInt().coerceAtLeast(1)
-                val dispMin = gapDisplayMinutes(gapMin)
-
-                val realStartMin = ((cursorMs - dayStartMs) / 60_000L).toInt().coerceIn(0, 1440)
-                val realEndMin = ((beamStartClamped - dayStartMs) / 60_000L).toInt().coerceIn(0, 1440)
-
-                addAnchor(realStartMin, displayCursorMin)
-                displayCursorMin += dispMin
-                addAnchor(realEndMin, displayCursorMin)
-
-                segments += DaySegmentUi.Gap(gapMinutes = gapMin, displayMinutes = dispMin)
-            }
-
-            run {
-                val realStartMin = ((beamStartClamped - dayStartMs) / 60_000L).toInt().coerceIn(0, 1440)
-                val realEndMin = ((beamEndClamped - dayStartMs) / 60_000L).toInt().coerceIn(0, 1440)
-                val beamMin = (realEndMin - realStartMin).coerceAtLeast(1)
-
-                addAnchor(realStartMin, displayCursorMin)
-                displayCursorMin += beamMin
-                addAnchor(realEndMin, displayCursorMin)
-
-                segments += DaySegmentUi.Beam(
-                    block = b.copy(
-                        clippedTop = b.startMs < dayStartMs,
-                        clippedBottom = b.endMs > dayEndMs
-                    ),
-                    realMinutes = beamMin,
-                    displayMinutes = beamMin
+            .map { raw ->
+                projectToWindow(
+                    beam = raw.beam,
+                    tagName = raw.tagName,
+                    status = raw.status,
+                    readiness = raw.readiness,
+                    windowStartMs = dayStartMs,
+                    windowMinutes = windowMinutes,
+                    nowMs = nowMs,
+                    completionRatio = raw.completionRatio
+                ).copy(
+                    clippedTop = raw.beam.startTime < dayStartMs,
+                    clippedBottom = raw.beam.endTime > dayEndMs
                 )
-
-                cursorMs = maxOf(cursorMs, beamEndClamped)
             }
-        }
 
-        if (cursorMs < dayEndMs) {
-            val gapMin = ((dayEndMs - cursorMs) / 60_000L).toInt().coerceAtLeast(1)
-            val dispMin = gapDisplayMinutes(gapMin)
-
-            val realStartMin = ((cursorMs - dayStartMs) / 60_000L).toInt().coerceIn(0, 1440)
-
-            addAnchor(realStartMin, displayCursorMin)
-            displayCursorMin += dispMin
-            addAnchor(1440, displayCursorMin)
-
-            segments += DaySegmentUi.Gap(gapMinutes = gapMin, displayMinutes = dispMin)
-        } else {
-            if (anchors.lastOrNull()?.minuteOfDay != 1440) addAnchor(1440, displayCursorMin)
-        }
-
-        return DayPlanUi(
+        return AtlasDayUi(
             dayStartMs = dayStartMs,
             dayEndMs = dayEndMs,
-            segments = segments,
-            anchors = anchors,
-            totalDisplayMinutes = displayCursorMin.coerceAtLeast(1),
-            beamsCount = dayBlocks.size
+            beams = dayBeams,
+            beamsCount = dayBeams.size
         )
     }
 
-    private fun gapDisplayMinutes(gapMin: Int): Int {
-        val head = minOf(gapMin, 30)
-        val tail = (gapMin - head).coerceAtLeast(0)
-        val collapsedTail = (tail * 0.15f).toInt()
-        return (head + collapsedTail).coerceAtLeast(8)
+    private fun buildWeek(
+        filtered: List<RawBeamBlock>,
+        selectedDayStartMs: Long,
+        nowMs: Long
+    ): AtlasWeekUi {
+        val weekStartMs = localWeekStart(selectedDayStartMs)
+        val weekEndMs = plusLocalDays(weekStartMs, 7)
+
+        val days = (0 until 7).map { index ->
+            val dayStartMs = plusLocalDays(weekStartMs, index.toLong())
+            val dayEndMs = nextLocalDayStart(dayStartMs)
+            val windowMinutes = ((dayEndMs - dayStartMs) / 60_000L).toInt().coerceAtLeast(1)
+
+            val dayRaw = filtered
+                .filter { raw -> overlaps(raw.beam.startTime, raw.beam.endTime, dayStartMs, dayEndMs) }
+                .sortedBy { it.beam.startTime }
+
+            val dayBeams = dayRaw.map { raw ->
+                projectToWindow(
+                    beam = raw.beam,
+                    tagName = raw.tagName,
+                    status = raw.status,
+                    readiness = raw.readiness,
+                    windowStartMs = dayStartMs,
+                    windowMinutes = windowMinutes,
+                    nowMs = nowMs,
+                    completionRatio = raw.completionRatio
+                ).copy(
+                    clippedTop = raw.beam.startTime < dayStartMs,
+                    clippedBottom = raw.beam.endTime > dayEndMs
+                )
+            }
+
+            AtlasWeekDayUi(
+                dayStartMs = dayStartMs,
+                dayEndMs = dayEndMs,
+                beams = dayBeams,
+                beamsCount = dayBeams.size,
+                totalDurationMs = dayRaw.sumOf {
+                    overlapMs(it.beam.startTime, it.beam.endTime, dayStartMs, dayEndMs)
+                }
+            )
+        }
+
+        val weekDistinctBeamIds = filtered
+            .filter { overlaps(it.beam.startTime, it.beam.endTime, weekStartMs, weekEndMs) }
+            .map { it.beam.id }
+            .distinct()
+
+        return AtlasWeekUi(
+            weekStartMs = weekStartMs,
+            weekEndMs = weekEndMs,
+            days = days,
+            beamsCount = weekDistinctBeamIds.size,
+            activeDaysCount = days.count { it.beamsCount > 0 },
+            totalDurationMs = days.sumOf { it.totalDurationMs }
+        )
     }
 
-    private fun projectToWindow(
-        beam: BeamEntity,
-        tagName: String,
-        status: BeamStatus,
-        readiness: ReadinessLevel,
-        windowStartMs: Long,
-        windowMinutes: Int,
-        nowMs: Long,
-        completionRatio: Float
-    ): BeamBlockUi {
-        val startMinRaw = ((beam.startTime - windowStartMs) / 60_000L).toInt()
-        val endMinRaw = ((beam.endTime - windowStartMs) / 60_000L).toInt()
+    private fun buildMonth(
+        filtered: List<RawBeamBlock>,
+        selectedDayStartMs: Long,
+        nowMs: Long
+    ): AtlasMonthUi {
+        val monthStartMs = localMonthStart(selectedDayStartMs)
+        val monthEndMs = nextLocalMonthStart(monthStartMs)
 
-        val clippedTop = startMinRaw < 0
-        val clippedBottom = endMinRaw > windowMinutes
+        val monthStartDate = Instant.ofEpochMilli(monthStartMs).atZone(zoneId).toLocalDate()
+        val gridStartDate = monthStartDate.with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
+        val gridStartMs = gridStartDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
 
-        val clampedStart = startMinRaw.coerceIn(0, windowMinutes)
-        val clampedEnd = kotlin.math.max(clampedStart + 1, endMinRaw.coerceIn(0, windowMinutes))
+        val cells = (0 until 42).map { index ->
+            val cellStartMs = plusLocalDays(gridStartMs, index.toLong())
+            val cellEndMs = nextLocalDayStart(cellStartMs)
+            val cellDate = Instant.ofEpochMilli(cellStartMs).atZone(zoneId).toLocalDate()
 
-        val isPast = beam.endTime <= nowMs
-        val journeyColorArgb = if (isPast) ColdSteel else colorForTagId(beam.tagId)
+            val dayRaw = filtered
+                .filter { raw -> overlaps(raw.beam.startTime, raw.beam.endTime, cellStartMs, cellEndMs) }
+                .sortedBy { it.beam.startTime }
 
-        return BeamBlockUi(
-            beamId = beam.id,
-            tagId = beam.tagId,
-            tagName = tagName,
-            startMs = beam.startTime,
-            endMs = beam.endTime,
-            durationMs = beam.durationMs,
-            status = status,
-            readiness = readiness,
-            startMin = clampedStart,
-            endMin = clampedEnd,
-            clippedTop = clippedTop,
-            clippedBottom = clippedBottom,
-            completionRatio = completionRatio,
-            journeyColorArgb = journeyColorArgb
+            val previewColors = dayRaw
+                .map { raw ->
+                    if (raw.beam.endTime <= nowMs) ColdSteel else colorForTagId(raw.beam.tagId)
+                }
+                .distinct()
+                .take(3)
+
+            AtlasMonthCellUi(
+                dayStartMs = cellStartMs,
+                isInCurrentMonth = cellDate.monthValue == monthStartDate.monthValue &&
+                        cellDate.year == monthStartDate.year,
+                beamsCount = dayRaw.map { it.beam.id }.distinct().size,
+                totalDurationMs = dayRaw.sumOf {
+                    overlapMs(it.beam.startTime, it.beam.endTime, cellStartMs, cellEndMs)
+                },
+                previewColors = previewColors
+            )
+        }
+
+        val monthDistinctBeamIds = filtered
+            .filter { overlaps(it.beam.startTime, it.beam.endTime, monthStartMs, monthEndMs) }
+            .map { it.beam.id }
+            .distinct()
+
+        return AtlasMonthUi(
+            monthStartMs = monthStartMs,
+            monthEndMs = monthEndMs,
+            cells = cells,
+            beamsCount = monthDistinctBeamIds.size,
+            activeDaysCount = cells.count { it.isInCurrentMonth && it.beamsCount > 0 }
         )
+    }
+
+    private fun buildBeamCountsByDay(
+        filtered: List<RawBeamBlock>
+    ): Map<Long, Int> {
+        return filtered
+            .flatMap { raw ->
+                overlappingDayStarts(raw.beam.startTime, raw.beam.endTime)
+                    .map { dayStart -> dayStart to raw.beam.id }
+            }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, ids) -> ids.distinct().size }
     }
 
     private data class RawBeamBlock(
@@ -451,14 +470,36 @@ class AtlasViewModel @Inject constructor(
         nowMs: Long,
         completionRatio: Float
     ): BeamBlockUi {
-        val startMinRaw = ((beam.startTime - horizonStartMs) / 60_000L).toInt()
-        val endMinRaw = ((beam.endTime - horizonStartMs) / 60_000L).toInt()
+        return projectToWindow(
+            beam = beam,
+            tagName = tagName,
+            status = status,
+            readiness = readiness,
+            windowStartMs = horizonStartMs,
+            windowMinutes = rangeMinutes,
+            nowMs = nowMs,
+            completionRatio = completionRatio
+        )
+    }
+
+    private fun projectToWindow(
+        beam: BeamEntity,
+        tagName: String,
+        status: BeamStatus,
+        readiness: ReadinessLevel,
+        windowStartMs: Long,
+        windowMinutes: Int,
+        nowMs: Long,
+        completionRatio: Float
+    ): BeamBlockUi {
+        val startMinRaw = ((beam.startTime - windowStartMs) / 60_000L).toInt()
+        val endMinRaw = ((beam.endTime - windowStartMs) / 60_000L).toInt()
 
         val clippedTop = startMinRaw < 0
-        val clippedBottom = endMinRaw > rangeMinutes
+        val clippedBottom = endMinRaw > windowMinutes
 
-        val clampedStart = startMinRaw.coerceIn(0, rangeMinutes)
-        val clampedEnd = max(clampedStart + 1, endMinRaw.coerceIn(0, rangeMinutes))
+        val clampedStart = startMinRaw.coerceIn(0, windowMinutes)
+        val clampedEnd = max(clampedStart + 1, endMinRaw.coerceIn(0, windowMinutes))
 
         val isPast = beam.endTime <= nowMs
         val journeyColorArgb = if (isPast) ColdSteel else colorForTagId(beam.tagId)
@@ -479,6 +520,85 @@ class AtlasViewModel @Inject constructor(
             completionRatio = completionRatio,
             journeyColorArgb = journeyColorArgb
         )
+    }
+
+    private fun overlapMs(aStart: Long, aEnd: Long, bStart: Long, bEnd: Long): Long {
+        val s = maxOf(aStart, bStart)
+        val e = minOf(aEnd, bEnd)
+        return (e - s).coerceAtLeast(0L)
+    }
+
+    private fun localDayStart(ms: Long): Long {
+        return Instant.ofEpochMilli(ms)
+            .atZone(zoneId)
+            .toLocalDate()
+            .atStartOfDay(zoneId)
+            .toInstant()
+            .toEpochMilli()
+    }
+
+    private fun nextLocalDayStart(dayStartMs: Long): Long {
+        val date = Instant.ofEpochMilli(dayStartMs).atZone(zoneId).toLocalDate()
+        return date.plusDays(1)
+            .atStartOfDay(zoneId)
+            .toInstant()
+            .toEpochMilli()
+    }
+
+    private fun plusLocalDays(dayStartMs: Long, deltaDays: Long): Long {
+        val date = Instant.ofEpochMilli(dayStartMs).atZone(zoneId).toLocalDate()
+        return date.plusDays(deltaDays)
+            .atStartOfDay(zoneId)
+            .toInstant()
+            .toEpochMilli()
+    }
+
+    private fun localWeekStart(ms: Long): Long {
+        val date = Instant.ofEpochMilli(ms).atZone(zoneId).toLocalDate()
+        val weekStart = date.with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
+        return weekStart.atStartOfDay(zoneId).toInstant().toEpochMilli()
+    }
+
+    private fun plusLocalWeeks(ms: Long, deltaWeeks: Long): Long {
+        val date = Instant.ofEpochMilli(localWeekStart(ms)).atZone(zoneId).toLocalDate()
+        return date.plusWeeks(deltaWeeks)
+            .atStartOfDay(zoneId)
+            .toInstant()
+            .toEpochMilli()
+    }
+
+    private fun localMonthStart(ms: Long): Long {
+        val date = Instant.ofEpochMilli(ms).atZone(zoneId).toLocalDate().withDayOfMonth(1)
+        return date.atStartOfDay(zoneId).toInstant().toEpochMilli()
+    }
+
+    private fun nextLocalMonthStart(monthStartMs: Long): Long {
+        val date = Instant.ofEpochMilli(monthStartMs).atZone(zoneId).toLocalDate().withDayOfMonth(1)
+        return date.plusMonths(1).atStartOfDay(zoneId).toInstant().toEpochMilli()
+    }
+
+    private fun plusLocalMonths(ms: Long, deltaMonths: Long): Long {
+        val date = Instant.ofEpochMilli(localMonthStart(ms)).atZone(zoneId).toLocalDate()
+        return date.plusMonths(deltaMonths)
+            .withDayOfMonth(1)
+            .atStartOfDay(zoneId)
+            .toInstant()
+            .toEpochMilli()
+    }
+
+    private fun overlappingDayStarts(startMs: Long, endMs: Long): List<Long> {
+        val safeEndMs = maxOf(startMs + 1L, endMs)
+        val lastIncludedMs = safeEndMs - 1L
+
+        var date = Instant.ofEpochMilli(startMs).atZone(zoneId).toLocalDate()
+        val endDate = Instant.ofEpochMilli(lastIncludedMs).atZone(zoneId).toLocalDate()
+
+        val result = mutableListOf<Long>()
+        while (!date.isAfter(endDate)) {
+            result += date.atStartOfDay(zoneId).toInstant().toEpochMilli()
+            date = date.plusDays(1)
+        }
+        return result
     }
 
     private val ATLAS_JOURNEY_PALETTE: List<Int> = listOf(
@@ -500,7 +620,6 @@ class AtlasViewModel @Inject constructor(
     }
 }
 
-/** helpers for nested combine typing */
 private data class Quad<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
 private data class Penta<A, B, C, D, E>(val a: A, val b: B, val c: C, val d: D, val e: E)
 private data class Sexta<A, B, C, D, E, F>(val a: A, val b: B, val c: C, val d: D, val e: E, val f: F)

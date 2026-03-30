@@ -1,24 +1,52 @@
 package com.kingkharnivore.skillz.ui.screen.help
 
+import androidx.annotation.DrawableRes
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButtonDefaults.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.state.FlowListUiState
+import kotlin.math.absoluteValue
+import kotlinx.coroutines.launch
 
 @Composable
 fun HelpScreen(
@@ -27,13 +55,14 @@ fun HelpScreen(
     onToggleCalmMode: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val pages = remember { helpPages() }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 18.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // “Different” and less prominent than your other pages:
         Text(
             text = "Help",
             style = MaterialTheme.typography.titleMedium,
@@ -41,7 +70,7 @@ fun HelpScreen(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
         )
 
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(2.dp))
 
         PreferenceToggleRow(
             title = "Keep Score Visible",
@@ -56,6 +85,230 @@ fun HelpScreen(
             checked = uiState.calmMode,
             onCheckedChange = onToggleCalmMode
         )
+
+        HelpConceptCarousel(
+            pages = pages,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun HelpConceptCarousel(
+    pages: List<HelpPage>,
+    modifier: Modifier = Modifier
+) {
+    val pagerState = rememberPagerState(pageCount = { pages.size })
+    val scope = rememberCoroutineScope()
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                contentPadding = PaddingValues(horizontal = 34.dp),
+                pageSpacing = 10.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) { page ->
+                val pageOffset =
+                    ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
+                        .absoluteValue
+                        .coerceIn(0f, 1f)
+
+                val scale = 1f - (pageOffset * 0.035f)
+                val alpha = 1f - (pageOffset * 0.10f)
+
+                HelpInfoCard(
+                    page = pages[page],
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            this.alpha = alpha
+                        }
+                )
+            }
+
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 12.dp, end = 42.dp),
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                tonalElevation = 2.dp,
+                shadowElevation = 6.dp
+            ) {
+                Text(
+                    text = "${pagerState.currentPage + 1}/${pages.size}",
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+
+        ElegantPagerIndicator(
+            pageCount = pages.size,
+            currentPage = pagerState.currentPage,
+            onPageSelected = { index ->
+                scope.launch { pagerState.animateScrollToPage(index) }
+            }
+        )
+    }
+}
+
+@Composable
+private fun ElegantPagerIndicator(
+    pageCount: Int,
+    currentPage: Int,
+    onPageSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+        tonalElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(pageCount) { index ->
+                val selected = index == currentPage
+                val width by animateDpAsState(
+                    targetValue = if (selected) 18.dp else 6.dp,
+                    label = "help_indicator_width"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .clickable { onPageSelected(index) }
+                        .background(
+                            if (selected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f)
+                            }
+                        )
+                        .size(width = width, height = 6.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HelpCardKicker(
+    iconRes: Int,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.primary
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.16f)
+            ) {
+                Image(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .padding(4.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
+
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+        }
+    }
+}
+
+@Composable
+private fun HelpInfoCard(
+    page: HelpPage,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 245.dp),
+        shape = RoundedCornerShape(28.dp),
+        tonalElevation = 0.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            HelpCardKicker(
+                iconRes = page.iconRes,
+                label = page.kicker
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = page.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = page.subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                )
+            }
+
+            Text(
+                text = page.body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.90f)
+            )
+
+            Spacer(Modifier.weight(1f))
+
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.background.copy(alpha = 0.60f)
+            ) {
+                Text(
+                    text = page.tip,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                    textAlign = TextAlign.Start
+                )
+            }
+        }
     }
 }
 
@@ -98,3 +351,63 @@ private fun PreferenceToggleRow(
         }
     }
 }
+
+private data class HelpPage(
+    @DrawableRes val iconRes: Int,
+    val kicker: String,
+    val title: String,
+    val subtitle: String,
+    val body: String,
+    val tip: String
+)
+
+private fun helpPages(): List<HelpPage> = listOf(
+    HelpPage(
+        iconRes = R.drawable.scyra_turtle,
+        kicker = "Flow",
+        title = "A Flow is one focused session.",
+        subtitle = "Start a Flow when you want to intentionally spend time on something that matters.",
+        body = "A Flow tracks your time, keeps the session alive in the background, and lets you add notes so the work becomes part of your Story. Every Flow is a clean, deliberate chapter of effort.",
+        tip = "Use Flow for deep work, practice, study, writing, workouts, or anything you want to do with intention."
+    ),
+    HelpPage(
+        iconRes = R.drawable.scyra_turtle,
+        kicker = "Soft Flow",
+        title = "Soft Flow is a gentler session.",
+        subtitle = "Use Soft Flow when you want to stay present with an activity without turning it into a scored push.",
+        body = "Soft Flow still tracks time and lets the moment become part of your Story, but it does not award score. It is designed for quieter sessions where the goal is simply to show up, breathe, recover, reflect, or move gently without pressure.",
+        tip = "Use Soft Flow for walks, stretching, journaling, meditation, light reading, recovery time, or any session you want to honor without gamifying."
+    ),
+    HelpPage(
+        iconRes = R.drawable.scyra_turtle,
+        kicker = "Pulse",
+        title = "A Pulse is a quick moment log.",
+        subtitle = "Use a Pulse when you want to capture something small, meaningful, or immediate without starting a full Flow.",
+        body = "A Pulse helps you record a thought, feeling, realization, event, or micro-win in seconds. It is lighter than a Flow, but still becomes part of your Story, helping you remember the moments that shaped your day.",
+        tip = "Use Pulse for quick reflections, ideas, breakthroughs, emotions, check-ins, or little moments you do not want to lose."
+    ),
+    HelpPage(
+        iconRes = R.drawable.scyra_turtle,
+        kicker = "Arc",
+        title = "Arcs reward continuity.",
+        subtitle = "An Arc forms when you continue your momentum across consecutive Flows.",
+        body = "Keep going and your Arc grows. After each completed Flow of 10 minutes or more, the Arc multiplier increases by +0.1. You have a short grace window between Flows, so continuing quickly helps preserve the chain.",
+        tip = "Think of an Arc as momentum across sessions. Save Flow, continue, and keep the chain alive."
+    ),
+    HelpPage(
+        iconRes = R.drawable.scyra_turtle,
+        kicker = "Beam",
+        title = "Beams are planned boost windows.",
+        subtitle = "Set up a Beam when you know you want a protected pocket of time for focused effort.",
+        body = "When your Flow overlaps with a Beam, that overlapping time receives a score boost. Beams help you turn planned time into higher-value time, especially when you want structure around important work.",
+        tip = "Use Beams for study blocks, training sessions, writing time, or any window you want to treat as special."
+    ),
+    HelpPage(
+        iconRes = R.drawable.scyra_turtle,
+        kicker = "Surge",
+        title = "Surge rewards precision.",
+        subtitle = "Set a target duration before you begin and try to finish close to it.",
+        body = "Surge is for sessions where you want to commit to a specific amount of time. The closer your actual session is to the planned duration, the better the reward. It adds a satisfying sense of control and intentional execution.",
+        tip = "Use Surge when you want a clear mission, such as 20 minutes of reading, 45 minutes of coding, or 30 minutes of practice."
+    )
+)

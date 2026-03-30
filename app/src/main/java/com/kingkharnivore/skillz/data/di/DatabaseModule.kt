@@ -5,10 +5,11 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
-import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
-import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.dao.BeamDao
+import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
+import com.kingkharnivore.skillz.data.model.dao.PulseDao
+import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.dao.TagDao
 import com.kingkharnivore.skillz.utils.arc.ArcPrefs
 import dagger.Module
@@ -39,6 +40,9 @@ object DatabaseModule {
 
     @Provides
     fun provideSessionDao(db: SkillzDatabase): SessionDao = db.sessionDao()
+
+    @Provides
+    fun providePulseDao(db: SkillzDatabase): PulseDao = db.pulseDao()
 
     @Provides
     fun provideOngoingSessionDao(db: SkillzDatabase): OngoingSessionDao =

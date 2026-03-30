@@ -46,7 +46,7 @@ import kotlin.math.roundToInt
 @Composable
 fun NowZone(
     now: NowState,
-    onStartFlow: () -> Unit,
+    onStartFlow: (String) -> Unit,
     onScheduleBeamClick: () -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
@@ -69,7 +69,6 @@ fun NowZone(
                 label = "remainingFrac"
             )
             val ringColor = remainingToColor(remainingFracRaw)
-            // 🔥 Visible but classy pulse when <= 30% left
             val lowPulseAlpha: Float = if (remainingFracRaw <= 0.30f) {
                 val transition = rememberInfiniteTransition(label = "lowPulse")
                 val alpha by transition.animateFloat(
@@ -104,8 +103,6 @@ fun NowZone(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-
-                    // Status label
                     Text(
                         text = "⭐ BEAM ACTIVE",
                         style = MaterialTheme.typography.labelMedium,
@@ -113,12 +110,10 @@ fun NowZone(
                         color = cs.onSurfaceVariant.copy(alpha = 0.78f)
                     )
 
-                    // Circular Energy Core
                     Box(
                         modifier = Modifier.size(150.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        // Halo pulse when low
                         if (remainingFracRaw <= 0.30f) {
                             Box(
                                 modifier = Modifier
@@ -130,14 +125,12 @@ fun NowZone(
                             )
                         }
 
-                        // Track
                         CircularProgressIndicator(
                             strokeWidth = 12.dp,
                             color = Color.Transparent,
                             modifier = Modifier.fillMaxSize()
                         )
 
-                        // Remaining arc
                         CircularProgressIndicator(
                             progress = { remainingFrac },
                             strokeWidth = 12.dp,
@@ -147,7 +140,6 @@ fun NowZone(
                         )
 
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-
                             Text(
                                 text = "$pctLeft%",
                                 style = MaterialTheme.typography.headlineMedium,
@@ -163,7 +155,6 @@ fun NowZone(
                         }
                     }
 
-                    // Beam name
                     Text(
                         text = b.tagName,
                         style = MaterialTheme.typography.titleLarge,
@@ -171,9 +162,8 @@ fun NowZone(
                         maxLines = 2
                     )
 
-                    // CTA 60% width
                     Button(
-                        onClick = onStartFlow,
+                        onClick = { onStartFlow(b.tagName) },
                         modifier = Modifier.fillMaxWidth(0.6f),
                         shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.buttonColors(
@@ -189,10 +179,8 @@ fun NowZone(
                 }
             }
         } else {
-            // No active beam
             Card(
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(26.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = cs.surface,
@@ -206,7 +194,6 @@ fun NowZone(
                         .padding(horizontal = 22.dp, vertical = 22.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-
                     Text(
                         text = "ATLAS",
                         style = MaterialTheme.typography.labelSmall,
@@ -259,31 +246,20 @@ fun NowZone(
     }
 }
 
-/**
- * remainingFrac = fraction of time LEFT (1.0 at start, 0.0 at end).
- *
- * Rules:
- * - Start of beam is Scyra Blue.
- * - When remaining < 30%, it becomes red and gets increasingly darker as it approaches 0.
- * - Between 30%..100% we ease from Scyra Blue toward a warm red (not harsh), then hand off to darkening reds.
- */
 private fun remainingToColor(remainingFrac: Float): Color {
     val r = remainingFrac.coerceIn(0f, 1f)
-    // <= 30% left → deepen into crimson
     if (r <= 0.30f) {
         val t = (r / 0.30f).coerceIn(0f, 1f)
         return lerp(
-            Color(0xFF3A050B),     // dark ink red
-            GryffindorRed,         // your theme red
+            Color(0xFF3A050B),
+            GryffindorRed,
             t
         )
     }
-    // 30%–70% left → Bronze transition
     if (r <= 0.70f) {
         val t = ((r - 0.30f) / 0.40f).coerceIn(0f, 1f)
         return lerp(GryffindorRed, Bronze, t)
     }
-    // 70%–100% left → RavenclawBlue to Bronze
     val t = ((r - 0.70f) / 0.30f).coerceIn(0f, 1f)
     return lerp(Bronze, RavenclawBlue, t)
 }

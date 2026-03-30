@@ -3,15 +3,19 @@ package com.kingkharnivore.skillz.viewmodel
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kingkharnivore.skillz.data.model.entity.PulseEntity
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
-import com.kingkharnivore.skillz.model.ui.FlowListItemUiModel
-import com.kingkharnivore.skillz.model.state.FlowListUiState
-import com.kingkharnivore.skillz.model.ui.Journey7dStatUiModel
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
+import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
+import com.kingkharnivore.skillz.data.repository.PulseRepository
+import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.model.ui.ArcFlowItemUiModel
 import com.kingkharnivore.skillz.model.ui.ChronicleUiModel
+import com.kingkharnivore.skillz.model.ui.FlowListItemUiModel
+import com.kingkharnivore.skillz.model.ui.Journey7dStatUiModel
+import com.kingkharnivore.skillz.model.ui.PulseListItemUiModel
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 import com.kingkharnivore.skillz.utils.time.TimeWindowUtils
 import com.kingkharnivore.skillz.utils.user.UserPrefs
@@ -20,6 +24,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -31,12 +36,13 @@ data class TagUiModel(
 @HiltViewModel
 class StoryViewModel @Inject constructor(
     private val sessionRepository: FlowRepository,
+    private val pulseRepository: PulseRepository,
     private val tagRepository: JourneyRepository,
+    private val aliveFlowRepository: AliveFlowRepository,
     private val userPrefs: UserPrefs
 ) : ViewModel() {
 
-    // null = "All skills", non-null = filter by that tag/skill
-    private val selectedTagId = MutableStateFlow<Long?>(null)
+    private val selectedTagIds = MutableStateFlow<Set<Long>>(emptySet())
     private val showScoreUiFlow = userPrefs.showScoreUi
     private val calmModeFlow = userPrefs.calmMode
 
@@ -102,7 +108,11 @@ class StoryViewModel @Inject constructor(
         viewJourneysTagId.value = null
     }
 
-    private fun setAnchorClamped(anchorCandidateMs: Long, periodValue: StoryPeriod, nowMs: Long = System.currentTimeMillis()) {
+    private fun setAnchorClamped(
+        anchorCandidateMs: Long,
+        periodValue: StoryPeriod,
+        nowMs: Long = System.currentTimeMillis()
+    ) {
         anchorDayStartMs.value = TimeWindowUtils.clampToFirstAndToday(
             anchorStartMs = TimeWindowUtils.normalizeAnchor(anchorCandidateMs, periodValue),
             period = periodValue,
@@ -111,9 +121,11 @@ class StoryViewModel @Inject constructor(
         )
     }
 
-    // Source flows
     private val sessionsFlow: Flow<List<SessionEntity>> =
         sessionRepository.getAllSessions()
+
+    private val pulsesFlow: Flow<List<PulseEntity>> =
+        pulseRepository.getAllPulses()
 
     private val tagsFlow: Flow<List<TagEntity>> =
         tagRepository.getAllTags()
@@ -138,14 +150,18 @@ class StoryViewModel @Inject constructor(
         viewModelScope.launch { userPrefs.setCalmMode(enabled) }
     }
 
-    /** User chose a tag/skill chip – null means "All". */
     fun selectTag(tagId: Long?) {
-        selectedTagId.value = tagId
+        selectedTagIds.value = tagId?.let { setOf(it) } ?: emptySet()
     }
 
-    // Keep if you still call it somewhere
-    fun onTagSelected(tagId: Long?) {
-        selectedTagId.value = tagId
+    fun onTagToggled(tagId: Long) {
+        selectedTagIds.value = selectedTagIds.value.toMutableSet().apply {
+            if (contains(tagId)) remove(tagId) else add(tagId)
+        }
+    }
+
+    fun onClearAllTags() {
+        selectedTagIds.value = emptySet()
     }
 
     private fun nowMs(): Long = System.currentTimeMillis()
@@ -163,28 +179,13 @@ class StoryViewModel @Inject constructor(
         )
     }
 
-    private fun navigatePeriod(dir: Int) {
-        val p = period.value
-
-        val normalized = TimeWindowUtils.normalizeAnchor(anchorDayStartMs.value, p)
-        val shifted = TimeWindowUtils.shiftAnchor(normalized, p, dir)
-
-        setClampedAnchor(period = p, anchorStartMs = shifted)
-    }
-
     fun onPeriodSelected(newPeriod: StoryPeriod) {
         val nowMs = System.currentTimeMillis()
 
-        // 1) update period
         period.value = newPeriod
 
-        // 2) default anchor to "today" for the selected period:
-        // DAY -> today start
-        // WEEK -> Monday of this week
-        // MONTH -> 1st of this month
         val todayAnchor = TimeWindowUtils.startOfPeriodMs(nowMs, newPeriod)
 
-        // 3) clamp to [first session .. today] (keeps arrows consistent)
         anchorDayStartMs.value = TimeWindowUtils.clampToFirstAndToday(
             anchorStartMs = todayAnchor,
             period = newPeriod,
@@ -216,16 +217,122 @@ class StoryViewModel @Inject constructor(
     fun updateSessionDescription(sessionId: Long, description: String) {
         viewModelScope.launch {
             sessionRepository.updateSessionDescription(sessionId, description)
-            // sessionsFlow emits updated list
         }
     }
 
-    /** Optional: clear visible error (simple + deterministic). */
+    fun createPulseFromStory(
+        title: String,
+        description: String,
+        tagName: String,
+        attachToCurrentFlow: Boolean
+    ) {
+        viewModelScope.launch {
+            val trimmedTitle = title.trim()
+            val trimmedDescription = description.trim()
+            val trimmedTag = tagName.trim()
+
+            if (trimmedTitle.isBlank() && trimmedDescription.isBlank()) {
+                uiState.value = uiState.value.copy(
+                    errorMessage = "Add a title or description to save this moment."
+                )
+                return@launch
+            }
+
+            val tagId = if (trimmedTag.isBlank()) {
+                null
+            } else {
+                tagRepository.getOrCreateTagId(trimmedTag)
+            }
+
+            val ongoing = aliveFlowRepository.getOngoingSession().firstOrNull()
+            val shouldAttach = attachToCurrentFlow && ongoing?.isInFlowMode == true
+
+            pulseRepository.addPulse(
+                title = trimmedTitle,
+                description = trimmedDescription,
+                tagId = tagId,
+                parentSessionId = null,
+                parentFlowInstanceId = if (shouldAttach) ongoing?.flowInstanceId else null,
+                arcId = if (shouldAttach) ongoing?.arcId else null
+            )
+
+            uiState.value = uiState.value.copy(errorMessage = null)
+        }
+    }
+
+    fun updatePulse(
+        pulseId: Long,
+        title: String,
+        description: String,
+        tagName: String
+    ) {
+        viewModelScope.launch {
+            val trimmedTitle = title.trim()
+            val trimmedDescription = description.trim()
+            val trimmedTag = tagName.trim()
+
+            if (trimmedTitle.isBlank() && trimmedDescription.isBlank()) return@launch
+
+            val tagId = if (trimmedTag.isBlank()) {
+                null
+            } else {
+                tagRepository.getOrCreateTagId(trimmedTag)
+            }
+
+            val removedTagId = pulseRepository.updatePulseDetails(
+                pulseId = pulseId,
+                title = trimmedTitle,
+                description = trimmedDescription,
+                tagId = tagId
+            )
+
+            if (removedTagId != null) {
+                selectedTagIds.value = selectedTagIds.value - removedTagId
+            }
+        }
+    }
+
+    fun createPulseForSession(
+        sessionId: Long,
+        title: String,
+        description: String,
+        tagName: String
+    ) {
+        viewModelScope.launch {
+            val session = sessionRepository.getSessionById(sessionId) ?: return@launch
+
+            val trimmedTitle = title.trim()
+            val trimmedDescription = description.trim()
+            val trimmedTag = tagName.trim()
+
+            if (trimmedTitle.isBlank() && trimmedDescription.isBlank()) return@launch
+
+            val tagId = if (trimmedTag.isBlank()) {
+                null
+            } else {
+                tagRepository.getOrCreateTagId(trimmedTag)
+            }
+
+            pulseRepository.addPulse(
+                title = trimmedTitle,
+                description = trimmedDescription,
+                tagId = tagId,
+                parentSessionId = sessionId,
+                parentFlowInstanceId = null,
+                arcId = session.arcId
+            )
+        }
+    }
+
+    fun deletePulse(pulseId: Long) {
+        viewModelScope.launch {
+            pulseRepository.deletePulseAndCleanupTag(pulseId)
+        }
+    }
+
     fun clearError() {
         uiState.value = uiState.value.copy(errorMessage = null)
     }
-
-    // --- Private mapping helpers ---
 
     private fun List<SessionEntity>.toUiModels(
         tags: List<TagEntity>,
@@ -244,6 +351,7 @@ class StoryViewModel @Inject constructor(
                 durationMs = session.durationMs,
                 createdAt = session.createdAt,
                 score = session.scyraPoints,
+                isSoftMode = session.isSoftMode,
                 isSurge = session.surgePlannedMs != null,
                 surgePoints = session.surgePoints,
                 beamBonusPoints = session.beamBonusPoints,
@@ -251,6 +359,25 @@ class StoryViewModel @Inject constructor(
                 arcIndex = session.arcIndex,
                 arcMultiplierUsed = session.arcMultiplierUsed,
                 arcBonusPoints = session.arcBonusPoints
+            )
+        }
+    }
+
+    private fun List<PulseEntity>.toUiModels(
+        tags: List<TagEntity>
+    ): List<PulseListItemUiModel> {
+        val tagNameById = tags.associate { it.id to it.name }
+
+        return map { pulse ->
+            PulseListItemUiModel(
+                pulseId = pulse.id,
+                title = pulse.title,
+                description = pulse.description,
+                tagId = pulse.tagId,
+                tagName = pulse.tagId?.let { tagNameById[it].orEmpty() }.orEmpty(),
+                createdAt = pulse.createdAt,
+                parentSessionId = pulse.parentSessionId,
+                arcId = pulse.arcId
             )
         }
     }
@@ -267,8 +394,9 @@ class StoryViewModel @Inject constructor(
 
             combine(
                 sessionsFlow,
+                pulsesFlow,
                 tagsFlow,
-                selectedTagId,
+                selectedTagIds,
                 period,
                 anchorDayStartMs,
                 viewJourneysTagId,
@@ -278,37 +406,53 @@ class StoryViewModel @Inject constructor(
             ) { arr: Array<Any?> ->
 
                 val sessions = arr[0] as List<SessionEntity>
-                val tags = arr[1] as List<TagEntity>
-                val currentTagId = arr[2] as Long?
-                val currentPeriod = arr[3] as StoryPeriod
-                val anchorStartMs = arr[4] as Long
-                val viewTagId = arr[5] as Long?
-                val viewOpen = arr[6] as Boolean
-                val showScoreUi = arr[7] as Boolean
-                val calmMode = arr[8] as Boolean
+                val pulses = arr[1] as List<PulseEntity>
+                val tags = arr[2] as List<TagEntity>
+                val currentTagIds = arr[3] as Set<Long>
+                val currentPeriod = arr[4] as StoryPeriod
+                val anchorStartMs = arr[5] as Long
+                val viewTagId = arr[6] as Long?
+                val viewOpen = arr[7] as Boolean
+                val showScoreUi = arr[8] as Boolean
+                val calmMode = arr[9] as Boolean
 
+                val hasAnyRecordedFlows = sessions.isNotEmpty()
+                val hasAnyRecordedArtifacts = sessions.isNotEmpty() || pulses.isNotEmpty()
                 val nowMs = System.currentTimeMillis()
 
-                // --- Tag map ---
                 val tagNameById: Map<Long, String> = tags.associate { it.id to it.name }
 
-                // --- First session boundary (used for clamping + nav disable) ---
-                val firstSessionStartMs: Long? = sessions.minOfOrNull { it.createdAt }
+                val firstRecordedAtMs: Long? =
+                    listOfNotNull(
+                        sessions.minOfOrNull { it.createdAt },
+                        pulses.minOfOrNull { it.createdAt }
+                    ).minOrNull()
 
-                // --- Visible tags ---
-                val tagUsageCount: Map<Long, Int> = sessions.groupingBy { it.tagId }.eachCount()
+                val tagUsageCount: Map<Long, Int> =
+                    buildList {
+                        addAll(sessions.map { it.tagId })
+                        addAll(pulses.mapNotNull { it.tagId })
+                    }.groupingBy { it }.eachCount()
+
                 val visibleTags: List<TagEntity> = tags.filter { (tagUsageCount[it.id] ?: 0) > 0 }
 
-                val effectiveTagId: Long? =
-                    currentTagId?.takeIf { (tagUsageCount[it] ?: 0) > 0 }
+                val effectiveSelectedTagIds: Set<Long> =
+                    currentTagIds.filterTo(linkedSetOf()) { (tagUsageCount[it] ?: 0) > 0 }
 
-                // 1) Apply tag filter
-                val sessionsForTag: List<SessionEntity> =
-                    effectiveTagId?.let { tagId ->
-                        sessions.filter { it.tagId == tagId }
-                    } ?: sessions
+                val sessionsForTags: List<SessionEntity> =
+                    if (effectiveSelectedTagIds.isEmpty()) {
+                        sessions
+                    } else {
+                        sessions.filter { it.tagId in effectiveSelectedTagIds }
+                    }
 
-                // 2) Normalize anchor + compute window
+                val pulsesForTags: List<PulseEntity> =
+                    if (effectiveSelectedTagIds.isEmpty()) {
+                        pulses
+                    } else {
+                        pulses.filter { it.tagId != null && it.tagId in effectiveSelectedTagIds }
+                    }
+
                 val normalizedAnchor =
                     TimeWindowUtils.normalizeAnchor(anchorStartMs, currentPeriod)
 
@@ -316,42 +460,53 @@ class StoryViewModel @Inject constructor(
                     TimeWindowUtils.windowFor(normalizedAnchor, currentPeriod)
 
                 val visibleSessions: List<SessionEntity> =
-                    sessionsForTag.filter { it.createdAt in window.startMs until window.endMs }
+                    sessionsForTags.filter { it.createdAt in window.startMs until window.endMs }
 
-                // --- Journey colors for currently visible flows ---
+                val visiblePulses: List<PulseEntity> =
+                    pulsesForTags.filter { it.createdAt in window.startMs until window.endMs }
+
                 val visibleJourneyIdsInPriorityOrder: List<Long> =
-                    visibleSessions
-                        .groupBy { it.tagId }
+                    buildList {
+                        addAll(visibleSessions.map { it.tagId })
+                        addAll(visiblePulses.mapNotNull { it.tagId })
+                    }
+                        .groupingBy { it }
+                        .eachCount()
                         .entries
                         .sortedWith(
-                            compareByDescending<Map.Entry<Long, List<SessionEntity>>> { it.value.size }
+                            compareByDescending<Map.Entry<Long, Int>> { it.value }
                                 .thenByDescending { entry ->
-                                    entry.value.maxOfOrNull { it.createdAt } ?: 0L
+                                    val latestSession = visibleSessions
+                                        .filter { it.tagId == entry.key }
+                                        .maxOfOrNull { it.createdAt } ?: 0L
+
+                                    val latestPulse = visiblePulses
+                                        .filter { it.tagId == entry.key }
+                                        .maxOfOrNull { it.createdAt } ?: 0L
+
+                                    maxOf(latestSession, latestPulse)
                                 }
                         )
                         .map { it.key }
 
                 val journeyColors = getOrCreateJourneyColors(visibleJourneyIdsInPriorityOrder)
 
-                // --- Chronicle items (standalone flows + arc groups) ---
                 val chronicleItems = buildChronicleItems(
                     allSessions = sessions,
                     visibleSessionsInWindow = visibleSessions,
+                    allPulses = pulses,
+                    visiblePulsesInWindow = visiblePulses,
                     tags = tags,
                     journeyColors = journeyColors,
-                    selectedTagId = effectiveTagId
+                    selectedTagIds = effectiveSelectedTagIds
                 )
 
-                // --- Is current period? ---
                 val todayAnchor =
                     TimeWindowUtils.startOfPeriodMs(nowMs, currentPeriod)
 
                 val isCurrentPeriod: Boolean =
                     normalizedAnchor == todayAnchor
 
-                // ============================================================
-                // 7-day summary (ONLY for current period)
-                // ============================================================
                 val topJourneysLast7d: List<Journey7dStatUiModel> =
                     if (isCurrentPeriod) {
                         val sevenDaysMs = 7L * 24L * 60L * 60L * 1000L
@@ -380,9 +535,6 @@ class StoryViewModel @Inject constructor(
                         emptyList()
                     }
 
-                // ============================================================
-                // Sagas (ONLY for past periods)
-                // ============================================================
                 val sagasInView: List<Journey7dStatUiModel> =
                     sessions.asSequence()
                         .filter { it.createdAt in window.startMs until window.endMs }
@@ -404,9 +556,6 @@ class StoryViewModel @Inject constructor(
                         )
                         .toList()
 
-                // ============================================================
-                // View Journeys sheet
-                // ============================================================
                 val viewJourneysSessions: List<FlowListItemUiModel> =
                     if (viewOpen && viewTagId != null) {
                         sessions.asSequence()
@@ -426,7 +575,16 @@ class StoryViewModel @Inject constructor(
                         ""
                     }
 
-                // --- Totals from visible sessions ---
+                val pulsesBySessionId: Map<Long, List<PulseListItemUiModel>> =
+                    visiblePulses
+                        .filter { it.parentSessionId != null }
+                        .groupBy { it.parentSessionId!! }
+                        .mapValues { (_, grouped) ->
+                            grouped
+                                .sortedByDescending { it.createdAt }
+                                .toUiModels(tags)
+                        }
+
                 val totalDurationMs = visibleSessions.sumOf { it.durationMs }
                 val totalScore = visibleSessions.sumOf { it.scyraPoints }
                 val currentSurgeScore = visibleSessions.sumOf { it.surgePoints }
@@ -434,19 +592,25 @@ class StoryViewModel @Inject constructor(
                 FlowListUiState(
                     isLoading = false,
                     sessions = visibleSessions.toUiModels(tags, journeyColors),
+                    pulses = visiblePulses.toUiModels(tags),
                     chronicleItems = chronicleItems,
                     tags = visibleTags.toUiModels(),
-                    selectedTagId = effectiveTagId,
+                    selectedTagIds = effectiveSelectedTagIds,
                     totalDurationMs = totalDurationMs,
+                    pulseCountInView = visiblePulses.size,
                     errorMessage = null,
                     period = currentPeriod,
                     anchorDayStartMs = normalizedAnchor,
                     currentScore = totalScore,
                     currentSurgeScore = currentSurgeScore,
                     topJourneysLast7d = topJourneysLast7d,
-                    firstSessionStartMs = firstSessionStartMs,
+                    firstSessionStartMs = firstRecordedAtMs,
                     isCurrentPeriod = isCurrentPeriod,
+                    hasAnyRecordedFlows = hasAnyRecordedFlows,
+                    hasAnyRecordedArtifacts = hasAnyRecordedArtifacts,
                     sagasInView = sagasInView,
+                    sagaPulsesInView = visiblePulses.toUiModels(tags),
+                    pulsesBySessionId = pulsesBySessionId,
                     isViewJourneysOpen = viewOpen,
                     viewJourneysTitle = viewJourneysTitle,
                     viewJourneysSessions = viewJourneysSessions,
@@ -466,16 +630,14 @@ class StoryViewModel @Inject constructor(
         }
     }
 
-
     fun deleteSession(sessionId: Long) {
         viewModelScope.launch {
             try {
                 val removedTagId = sessionRepository.deleteSessionAndCleanupTag(sessionId)
-                if (removedTagId != null && selectedTagId.value == removedTagId) {
-                    selectedTagId.value = null
+                if (removedTagId != null) {
+                    selectedTagIds.value = selectedTagIds.value - removedTagId
                 }
             } catch (_: Exception) {
-                // optional: set uiState error
             }
         }
     }
@@ -483,32 +645,47 @@ class StoryViewModel @Inject constructor(
     private fun buildChronicleItems(
         allSessions: List<SessionEntity>,
         visibleSessionsInWindow: List<SessionEntity>,
+        allPulses: List<PulseEntity>,
+        visiblePulsesInWindow: List<PulseEntity>,
         tags: List<TagEntity>,
         journeyColors: Map<Long, Color>,
-        selectedTagId: Long?
+        selectedTagIds: Set<Long>
     ): List<ChronicleUiModel> {
-        val visibleUi = visibleSessionsInWindow.toUiModels(tags, journeyColors)
-        val visibleUiBySessionId = visibleUi.associateBy { it.sessionId }
+        val visibleFlowUi = visibleSessionsInWindow.toUiModels(tags, journeyColors)
+        val visibleFlowUiBySessionId = visibleFlowUi.associateBy { it.sessionId }
 
-        // ✅ Arc membership/totals should come from ALL sessions, not just current window
+        val visiblePulseUi = visiblePulsesInWindow.toUiModels(tags)
+        val visiblePulseUiById = visiblePulseUi.associateBy { it.pulseId }
+
+        val visiblePulsesBySessionId = visiblePulsesInWindow
+            .filter { it.parentSessionId != null }
+            .groupBy { it.parentSessionId!! }
+
         val allByArcId = allSessions
             .filter { it.arcId != null }
             .groupBy { it.arcId!! }
 
-        // ✅ Visible child flows still come only from the current filtered/windowed list
         val visibleByArcId = visibleSessionsInWindow
             .filter { it.arcId != null }
             .groupBy { it.arcId!! }
 
-        val chronicleItems = mutableListOf<ChronicleUiModel>()
+        val topLevel = mutableListOf<Pair<Long, ChronicleUiModel>>()
         val emittedArcIds = mutableSetOf<Long>()
 
         visibleSessionsInWindow.forEach { session ->
             val arcId = session.arcId
 
             if (arcId == null) {
-                val flowUi = visibleUiBySessionId[session.id] ?: return@forEach
-                chronicleItems += ChronicleUiModel.StandaloneFlow(flowUi)
+                val flowUi = visibleFlowUiBySessionId[session.id] ?: return@forEach
+                val childPulses = visiblePulsesBySessionId[session.id]
+                    .orEmpty()
+                    .sortedByDescending { it.createdAt }
+                    .mapNotNull { visiblePulseUiById[it.id] }
+
+                topLevel += session.createdAt to ChronicleUiModel.StandaloneFlow(
+                    flow = flowUi,
+                    childPulses = childPulses
+                )
                 return@forEach
             }
 
@@ -517,17 +694,28 @@ class StoryViewModel @Inject constructor(
             val allArcSessions = allByArcId[arcId].orEmpty().sortedByDescending { it.createdAt }
             val visibleArcSessions = visibleByArcId[arcId].orEmpty().sortedByDescending { it.createdAt }
 
-            // ✅ Defensive guard: true 1-flow arcs should not render as Arc groups
             if (allArcSessions.size < 2) {
-                val flowUi = visibleUiBySessionId[session.id] ?: return@forEach
-                chronicleItems += ChronicleUiModel.StandaloneFlow(flowUi)
+                val flowUi = visibleFlowUiBySessionId[session.id] ?: return@forEach
+                val childPulses = visiblePulsesBySessionId[session.id]
+                    .orEmpty()
+                    .sortedByDescending { it.createdAt }
+                    .mapNotNull { visiblePulseUiById[it.id] }
+
+                topLevel += session.createdAt to ChronicleUiModel.StandaloneFlow(
+                    flow = flowUi,
+                    childPulses = childPulses
+                )
                 return@forEach
             }
 
             val visibleFlows = visibleArcSessions.mapIndexed { index, s ->
                 ArcFlowItemUiModel(
-                    flow = visibleUiBySessionId[s.id]
+                    flow = visibleFlowUiBySessionId[s.id]
                         ?: error("Missing ui model for visible session ${s.id}"),
+                    childPulses = visiblePulsesBySessionId[s.id]
+                        .orEmpty()
+                        .sortedByDescending { it.createdAt }
+                        .mapNotNull { visiblePulseUiById[it.id] },
                     isFirstVisibleInArc = index == 0,
                     isLastVisibleInArc = index == visibleArcSessions.lastIndex
                 )
@@ -547,17 +735,19 @@ class StoryViewModel @Inject constructor(
             }
 
             val filteredJourneyDurationMs =
-                selectedTagId?.let { selectedId ->
+                if (selectedTagIds.isNotEmpty()) {
                     allArcSessions
-                        .filter { it.tagId == selectedId }
+                        .filter { it.tagId in selectedTagIds }
                         .sumOf { it.durationMs }
                         .takeIf { it > 0L }
+                } else {
+                    null
                 }
 
             val filteredJourneyPercentOfArc =
-                if (selectedTagId != null && totalArcDurationMs > 0L) {
+                if (selectedTagIds.isNotEmpty() && totalArcDurationMs > 0L) {
                     val duration = allArcSessions
-                        .filter { it.tagId == selectedTagId }
+                        .filter { it.tagId in selectedTagIds }
                         .sumOf { it.durationMs }
 
                     ((duration.toDouble() / totalArcDurationMs.toDouble()) * 100.0)
@@ -567,7 +757,9 @@ class StoryViewModel @Inject constructor(
                     null
                 }
 
-            chronicleItems += ChronicleUiModel.ArcGroup(
+            val arcTopTime = visibleArcSessions.maxOfOrNull { it.createdAt } ?: session.createdAt
+
+            topLevel += arcTopTime to ChronicleUiModel.ArcGroup(
                 arcId = arcId,
                 headerAccentColor = headerAccentColor,
                 totalArcDurationMs = totalArcDurationMs,
@@ -581,6 +773,15 @@ class StoryViewModel @Inject constructor(
             )
         }
 
-        return chronicleItems
+        visiblePulsesInWindow
+            .filter { it.parentSessionId == null }
+            .forEach { pulse ->
+                val pulseUi = visiblePulseUiById[pulse.id] ?: return@forEach
+                topLevel += pulse.createdAt to ChronicleUiModel.StandalonePulse(pulseUi)
+            }
+
+        return topLevel
+            .sortedByDescending { it.first }
+            .map { it.second }
     }
 }

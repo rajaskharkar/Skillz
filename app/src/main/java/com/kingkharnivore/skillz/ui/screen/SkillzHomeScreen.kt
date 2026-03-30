@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.ui.screen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,6 +24,11 @@ import com.kingkharnivore.skillz.viewmodel.NotepadViewModel
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
 import kotlinx.coroutines.launch
 
+private const val PAGE_ATLAS = 0
+private const val PAGE_STORY = 1
+private const val PAGE_NOTEPAD = 2
+private const val PAGE_HELP = 3
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun SkillzHomeScreen(
@@ -31,7 +37,9 @@ fun SkillzHomeScreen(
     notepadViewModel: NotepadViewModel = hiltViewModel(),
     atlasViewModel: AtlasViewModel = hiltViewModel(),
     onAddSessionClick: () -> Unit,
+    onAddPulseClick: () -> Unit,
     onScheduleBeamClick: () -> Unit,
+    onStartFlowFromActiveBeam: (String) -> Unit,
     onGoToActiveSession: () -> Unit,
     isFlowModeOn: Boolean
 ) {
@@ -40,15 +48,23 @@ fun SkillzHomeScreen(
     val atlasState by atlasViewModel.uiState.collectAsState()
 
     val pagerState = rememberPagerState(
-        initialPage = 1,
+        initialPage = PAGE_STORY,
         pageCount = { 4 }
     )
     val scope = rememberCoroutineScope()
 
+    BackHandler(enabled = pagerState.currentPage != PAGE_STORY) {
+        scope.launch {
+            pagerState.animateScrollToPage(PAGE_STORY)
+        }
+    }
+
     CompositionLocalProvider(
         LocalSkillzHomeNav provides SkillzHomeNavState(
             currentPage = pagerState.currentPage,
-            onSelectPage = { page -> scope.launch { pagerState.animateScrollToPage(page) } }
+            onSelectPage = { page ->
+                scope.launch { pagerState.animateScrollToPage(page) }
+            }
         )
     ) {
         Scaffold(
@@ -65,33 +81,34 @@ fun SkillzHomeScreen(
                     userScrollEnabled = true
                 ) { page ->
                     when (page) {
-                        0 -> AtlasScreen(
+                        PAGE_ATLAS -> AtlasScreen(
                             uiState = atlasState,
-                            onStartFlow = onAddSessionClick,
+                            onStartFlow = onStartFlowFromActiveBeam,
                             onSelectMode = atlasViewModel::setViewMode,
-                            onPrevDay = { atlasViewModel.shiftSelectedDay(-1) },
-                            onNextDay = { atlasViewModel.shiftSelectedDay(+1) },
+                            onPrevPeriod = { atlasViewModel.shiftSelectedPeriod(-1) },
+                            onNextPeriod = { atlasViewModel.shiftSelectedPeriod(+1) },
                             onToday = { atlasViewModel.goToToday() },
-                            onAdvanceDay = { delta -> atlasViewModel.shiftSelectedDay(delta) },
+                            onSelectDay = atlasViewModel::selectDay,
                             onScheduleBeamClick = onScheduleBeamClick,
                         )
 
-                        1 -> StoryScreen(
+                        PAGE_STORY -> StoryScreen(
                             viewModel = skillzViewModel,
                             onAddSessionClick = onAddSessionClick,
+                            onAddPulseClick = onAddPulseClick,
                             onScheduleBeamClick = onScheduleBeamClick,
                             onSessionClick = onSessionClick,
                             onGoToActiveSession = onGoToActiveSession,
-                            isFocusModeOn = isFlowModeOn
+                            isFlowStateActive = isFlowModeOn
                         )
 
-                        2 -> NotepadScreen(
+                        PAGE_NOTEPAD -> NotepadScreen(
                             text = notepadText,
                             onTextChange = notepadViewModel::onTextChanged,
                             modifier = Modifier.fillMaxSize()
                         )
 
-                        3 -> {
+                        PAGE_HELP -> {
                             val storyUiState by skillzViewModel.uiState.collectAsState()
                             HelpScreen(
                                 uiState = storyUiState,

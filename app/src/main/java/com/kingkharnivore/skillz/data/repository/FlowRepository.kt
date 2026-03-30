@@ -1,14 +1,16 @@
 package com.kingkharnivore.skillz.data.repository
 
+import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
-import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.dao.TagDao
+import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class FlowRepository @Inject constructor(
     private val sessionDao: SessionDao,
-    private val tagDao: TagDao
+    private val tagDao: TagDao,
+    private val pulseDao: PulseDao
 ) {
 
     fun getAllSessions(): Flow<List<SessionEntity>> =
@@ -30,7 +32,8 @@ class FlowRepository @Inject constructor(
         beamEligibleMs: Long,
         beamBonusPoints: Int,
         beamMultiplier: Double?,
-        scyraPoints: Int
+        scyraPoints: Int,
+        isSoftMode: Boolean = false
     ): Long {
         val session = SessionEntity(
             title = title,
@@ -45,7 +48,8 @@ class FlowRepository @Inject constructor(
             beamEligibleMs = beamEligibleMs,
             beamBonusPoints = beamBonusPoints,
             beamMultiplier = beamMultiplier,
-            scyraPoints = scyraPoints
+            scyraPoints = scyraPoints,
+            isSoftMode = isSoftMode
         )
         return sessionDao.insertSession(session)
     }
@@ -53,9 +57,14 @@ class FlowRepository @Inject constructor(
     suspend fun deleteSessionAndCleanupTag(sessionId: Long): Long? {
         val session = sessionDao.getSessionById(sessionId) ?: return null
         val tagId = session.tagId
+
+        pulseDao.detachPulsesFromSession(sessionId)
         sessionDao.deleteSessionById(sessionId)
-        val remaining = sessionDao.getSessionCountForTag(tagId)
-        return if (remaining == 0) {
+
+        val remainingSessions = sessionDao.getSessionCountForTag(tagId)
+        val remainingPulses = pulseDao.getPulseCountForTag(tagId)
+
+        return if (remainingSessions == 0 && remainingPulses == 0) {
             tagDao.deleteTagById(tagId)
             tagId
         } else {
@@ -68,6 +77,7 @@ class FlowRepository @Inject constructor(
     }
 
     suspend fun deleteSession(sessionId: Long) {
+        pulseDao.detachPulsesFromSession(sessionId)
         sessionDao.deleteSession(sessionId)
     }
 
@@ -101,4 +111,7 @@ class FlowRepository @Inject constructor(
 
     suspend fun getMaxArcIndex(arcId: Long): Int =
         sessionDao.getMaxArcIndex(arcId) ?: 0
+
+    suspend fun getSessionById(sessionId: Long): SessionEntity? =
+        sessionDao.getSessionById(sessionId)
 }

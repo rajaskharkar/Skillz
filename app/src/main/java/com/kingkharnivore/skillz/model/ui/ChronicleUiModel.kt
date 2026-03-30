@@ -6,9 +6,16 @@ sealed interface ChronicleUiModel {
     val key: String
 
     data class StandaloneFlow(
-        val flow: FlowListItemUiModel
+        val flow: FlowListItemUiModel,
+        val childPulses: List<PulseListItemUiModel> = emptyList()
     ) : ChronicleUiModel {
         override val key: String = "flow_${flow.sessionId}"
+    }
+
+    data class StandalonePulse(
+        val pulse: PulseListItemUiModel
+    ) : ChronicleUiModel {
+        override val key: String = "pulse_${pulse.pulseId}"
     }
 
     data class ArcGroup(
@@ -29,6 +36,7 @@ sealed interface ChronicleUiModel {
 
 data class ArcFlowItemUiModel(
     val flow: FlowListItemUiModel,
+    val childPulses: List<PulseListItemUiModel> = emptyList(),
     val isFirstVisibleInArc: Boolean,
     val isLastVisibleInArc: Boolean
 )

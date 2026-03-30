@@ -15,7 +15,8 @@ import com.kingkharnivore.skillz.utils.time.StoryPeriod
 @Composable
 fun StoryHeader(
     uiState: FlowListUiState,
-    onTagSelected: (Long?) -> Unit,
+    onTagToggled: (Long) -> Unit,
+    onClearAllTags: () -> Unit,
     onPeriodSelected: (StoryPeriod) -> Unit,
     onPrev: () -> Unit,
     onNext: () -> Unit,
@@ -25,8 +26,9 @@ fun StoryHeader(
 ) {
     TagFilterRow(
         tags = uiState.tags,
-        selectedTagId = uiState.selectedTagId,
-        onTagSelected = onTagSelected
+        selectedTagIds = uiState.selectedTagIds,
+        onTagToggled = onTagToggled,
+        onClearAll = onClearAllTags
     )
 
     Spacer(modifier = Modifier.height(12.dp))
@@ -45,14 +47,25 @@ fun StoryHeader(
 
     extraTopContent?.invoke()
 
-    if (uiState.selectedTagId != null) {
-        TotalTimeHighlight(
-            totalDurationMs = uiState.totalDurationMs,
-            subtitle = "Time in view"
-        )
-    }
+    when {
+        uiState.selectedTagIds.isNotEmpty() -> {
+            TotalTimeHighlight(
+                totalDurationMs = uiState.totalDurationMs,
+                subtitle = "Time in selected journeys"
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
 
-    Spacer(modifier = Modifier.height(12.dp))
+        uiState.totalDurationMs > 0L -> {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                SubtleTimeSummary(totalDurationMs = uiState.totalDurationMs)
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
 
     if (uiState.showScoreUi) {
         Box(
@@ -70,8 +83,5 @@ fun StoryHeader(
     }
 
     HorizontalDivider()
-
-    HorizontalDivider()
-
     Spacer(Modifier.height(12.dp))
 }

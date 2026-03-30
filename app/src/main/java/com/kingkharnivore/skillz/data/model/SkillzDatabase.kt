@@ -4,10 +4,12 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.kingkharnivore.skillz.data.model.dao.BeamDao
 import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
+import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.dao.TagDao
 import com.kingkharnivore.skillz.data.model.entity.BeamEntity
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
+import com.kingkharnivore.skillz.data.model.entity.PulseEntity
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 
@@ -15,15 +17,17 @@ import com.kingkharnivore.skillz.data.model.entity.TagEntity
     entities = [
         TagEntity::class,
         SessionEntity::class,
+        PulseEntity::class,
         OngoingSessionEntity::class,
         BeamEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class SkillzDatabase : RoomDatabase() {
     abstract fun tagDao(): TagDao
     abstract fun sessionDao(): SessionDao
+    abstract fun pulseDao(): PulseDao
     abstract fun ongoingSessionDao(): OngoingSessionDao
     abstract fun beamDao(): BeamDao
 }

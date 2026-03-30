@@ -7,13 +7,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.kingkharnivore.skillz.ui.screen.ScheduleBeamScreen
-import com.kingkharnivore.skillz.ui.screen.flow.FlowScreen
 import com.kingkharnivore.skillz.ui.screen.SkillzHomeScreen
+import com.kingkharnivore.skillz.ui.screen.flow.FlowScreen
 import com.kingkharnivore.skillz.ui.screen.help.HelpScreen
+import com.kingkharnivore.skillz.ui.screen.story.pulse.PulseScreen
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.viewmodel.ScheduleBeamViewModel
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
@@ -36,22 +39,55 @@ fun SkillzNavHost(
         composable(SkillzDestinations.HOME_SCREEN) {
             SkillzHomeScreen(
                 onSessionClick = { /* later */ },
-                onAddSessionClick = { navController.navigate(SkillzDestinations.ADD_SKILL) },
-                onScheduleBeamClick = { navController.navigate(SkillzDestinations.SCHEDULE_BEAM) },
-                onGoToActiveSession = { navController.navigate(SkillzDestinations.ADD_SKILL) },
+                onAddSessionClick = {
+                    navController.navigate(SkillzDestinations.addSkillRoute())
+                },
+                onAddPulseClick = {
+                    navController.navigate(SkillzDestinations.ADD_PULSE_ROUTE)
+                },
+                onScheduleBeamClick = {
+                    navController.navigate(SkillzDestinations.SCHEDULE_BEAM)
+                },
+                onStartFlowFromActiveBeam = { journeyName ->
+                    navController.navigate(
+                        SkillzDestinations.addSkillRoute(prefillJourney = journeyName)
+                    )
+                },
+                onGoToActiveSession = {
+                    navController.navigate(SkillzDestinations.addSkillRoute())
+                },
                 isFlowModeOn = isFocusModeOn
             )
         }
 
         composable(
-            SkillzDestinations.ADD_SKILL,
-            deepLinks = listOf(navDeepLink { uriPattern = "skillz://flow" })
+            route = SkillzDestinations.ADD_SKILL_ROUTE,
+            arguments = listOf(
+                navArgument(SkillzDestinations.ADD_SKILL_ARG_PREFILL_JOURNEY) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            ),
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "skillz://flow" }
+            )
         ) {
             val addSessionViewModel: FlowViewModel = hiltViewModel()
+
             FlowScreen(
                 viewModel = addSessionViewModel,
                 onDone = { popToHome(navController) },
                 onCancel = { popToHome(navController) }
+            )
+        }
+
+        composable(SkillzDestinations.ADD_PULSE_ROUTE) {
+            PulseScreen(
+                viewModel = storyViewModel,
+                isFlowStateActive = isFocusModeOn,
+                onDone = { popToHome(navController) },
+                onCancel = { navController.popBackStack() }
             )
         }
 
@@ -77,11 +113,9 @@ fun SkillzNavHost(
     }
 }
 
-
 private fun popToHome(navController: NavHostController) {
     navController.popBackStack(
         route = SkillzDestinations.HOME_SCREEN,
         inclusive = false
     )
 }
-
