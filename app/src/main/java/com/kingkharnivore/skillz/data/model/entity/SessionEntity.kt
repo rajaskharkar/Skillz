@@ -32,6 +32,7 @@ data class SessionEntity(
     val beamBonusPoints: Int = 0,
     val beamMultiplier: Double? = null,
     val scyraPoints: Int = 0,
+    val isSoftMode: Boolean = false,
     val arcId: Long? = null,
     val arcIndex: Int? = null,
     val arcMultiplierUsed: Double? = null,

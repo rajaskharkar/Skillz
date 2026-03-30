@@ -37,6 +37,7 @@ fun SkillzHomeScreen(
     notepadViewModel: NotepadViewModel = hiltViewModel(),
     atlasViewModel: AtlasViewModel = hiltViewModel(),
     onAddSessionClick: () -> Unit,
+    onAddPulseClick: () -> Unit,
     onScheduleBeamClick: () -> Unit,
     onStartFlowFromActiveBeam: (String) -> Unit,
     onGoToActiveSession: () -> Unit,
@@ -94,10 +95,11 @@ fun SkillzHomeScreen(
                         PAGE_STORY -> StoryScreen(
                             viewModel = skillzViewModel,
                             onAddSessionClick = onAddSessionClick,
+                            onAddPulseClick = onAddPulseClick,
                             onScheduleBeamClick = onScheduleBeamClick,
                             onSessionClick = onSessionClick,
                             onGoToActiveSession = onGoToActiveSession,
-                            isFocusModeOn = isFlowModeOn
+                            isFlowStateActive = isFlowModeOn
                         )
 
                         PAGE_NOTEPAD -> NotepadScreen(

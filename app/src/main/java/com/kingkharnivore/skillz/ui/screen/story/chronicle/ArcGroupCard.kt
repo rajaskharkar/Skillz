@@ -19,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.model.ui.ChronicleUiModel
 import com.kingkharnivore.skillz.model.ui.FlowListItemUiModel
+import com.kingkharnivore.skillz.model.ui.PulseListItemUiModel
+import com.kingkharnivore.skillz.ui.screen.story.rememberPulseEditState
 import com.kingkharnivore.skillz.utils.time.formatDuration
 
 @Composable
@@ -32,6 +34,8 @@ fun ArcGroupCard(
     isExpandedFlow: (Long) -> Boolean,
     onToggleFlowExpand: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
+    onEditPulse: (PulseListItemUiModel) -> Unit,
+    onDeletePulse: (Long) -> Unit,
     onLongPress: (FlowListItemUiModel) -> Unit,
     onClick: (Long) -> Unit
 ) {
@@ -138,6 +142,7 @@ fun ArcGroupCard(
             group.visibleFlows.forEach { item ->
                 FlowCard(
                     session = item.flow,
+                    childPulses = item.childPulses,
                     isExpanded = isExpandedFlow(item.flow.sessionId),
                     showScoreUi = showScoreUi,
                     calmMode = calmMode,
@@ -145,6 +150,8 @@ fun ArcGroupCard(
                     onDeleteSession = { onDeleteSession(item.flow.sessionId) },
                     onLongPress = { onLongPress(item.flow) },
                     onClick = { onClick(item.flow.sessionId) },
+                    onEditPulse = onEditPulse,
+                    onDeletePulse = onDeletePulse,
                     isArcGrouped = true,
                     isFirstInArcGroup = item.isFirstVisibleInArc,
                     isLastInArcGroup = item.isLastVisibleInArc
@@ -171,9 +178,7 @@ private fun ArcStatChip(
     accentColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.secondary
 ) {
     val bg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-
     val labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
-
     val valueColor = if (accent) {
         accentColor
     } else {

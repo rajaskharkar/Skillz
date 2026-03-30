@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.ui.screen.story.header
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,9 +30,12 @@ import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.model.ui.ChronicleUiModel
 import com.kingkharnivore.skillz.ui.screen.story.chronicle.ArcGroupCard
 import com.kingkharnivore.skillz.ui.screen.story.chronicle.FlowCard
+import com.kingkharnivore.skillz.ui.screen.story.chronicle.PulseCard
 import com.kingkharnivore.skillz.ui.screen.story.rememberExpandedArcIdsState
 import com.kingkharnivore.skillz.ui.screen.story.rememberExpandedSessionIdsState
+import com.kingkharnivore.skillz.ui.screen.story.rememberPulseEditState
 import com.kingkharnivore.skillz.ui.screen.story.rememberSessionEditState
+import com.kingkharnivore.skillz.ui.screen.story.saga.SagaPulseSection
 import com.kingkharnivore.skillz.ui.screen.story.saga.SagasCard
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 
@@ -51,7 +55,10 @@ fun StoryHeaderScrollableWithStickyTabs(
     onOpenViewJourneys: (Long) -> Unit,
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
+    onDeletePulse: (Long) -> Unit,
     onUpdateSessionDescription: (Long, String) -> Unit,
+    onUpdatePulse: (Long, String, String, String) -> Unit,
+    onCreatePulseForSession: (Long, String, String, String) -> Unit,
     onAddSessionClick: () -> Unit,
     extraTopContent: (@Composable () -> Unit)? = null
 ) {
@@ -60,10 +67,24 @@ fun StoryHeaderScrollableWithStickyTabs(
     val expandedState = rememberExpandedSessionIdsState()
     val expandedArcState = rememberExpandedArcIdsState()
     val editState = rememberSessionEditState()
+    val pulseEditState = rememberPulseEditState()
+    var expandedPulseIds by rememberSaveable { mutableStateOf(setOf<Long>()) }
 
-    FlowEditDialog(
+    val editingFlow = editState.editingSession.value
+    FlowDetailsSheet(
         editState = editState,
-        onSave = { id, text -> onUpdateSessionDescription(id, text) }
+        tags = uiState.tags,
+        childPulses = editingFlow?.let { uiState.pulsesBySessionId[it.sessionId].orEmpty() }.orEmpty(),
+        onSaveNotes = { id, text -> onUpdateSessionDescription(id, text) },
+        onCreatePulse = onCreatePulseForSession,
+        onDeletePulse = onDeletePulse,
+        onEditPulse = { pulse -> pulseEditState.startEditing(pulse) }
+    )
+
+    PulseEditSheet(
+        editState = pulseEditState,
+        tags = uiState.tags,
+        onSave = onUpdatePulse
     )
 
     LazyColumn(
@@ -142,15 +163,23 @@ fun StoryHeaderScrollableWithStickyTabs(
         when (tab) {
             StoryTab.SAGAS -> {
                 item {
-                    if (uiState.sagasInView.isEmpty()) {
-                        EmptySagasState()
-                    } else {
-                        SagasCard(
-                            period = uiState.period,
-                            anchorDayStartMs = uiState.anchorDayStartMs,
-                            stats = uiState.sagasInView,
-                            onOpenViewJourneys = onOpenViewJourneys
-                        )
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (uiState.sagaPulsesInView.isNotEmpty()) {
+                            SagaPulseSection(pulses = uiState.sagaPulsesInView)
+                        }
+
+                        if (uiState.sagasInView.isEmpty()) {
+                            if (uiState.sagaPulsesInView.isEmpty()) {
+                                EmptySagasState()
+                            }
+                        } else {
+                            SagasCard(
+                                period = uiState.period,
+                                anchorDayStartMs = uiState.anchorDayStartMs,
+                                stats = uiState.sagasInView,
+                                onOpenViewJourneys = onOpenViewJourneys
+                            )
+                        }
                     }
                 }
             }
@@ -159,7 +188,7 @@ fun StoryHeaderScrollableWithStickyTabs(
                 if (uiState.chronicleItems.isEmpty()) {
                     item {
                         val shouldShowFirstTimeUser =
-                            !uiState.hasAnyRecordedFlows && uiState.isCurrentPeriod
+                            !uiState.hasAnyRecordedArtifacts && uiState.isCurrentPeriod
 
                         if (shouldShowFirstTimeUser) {
                             FirstTimeUser(onAddSessionClick = onAddSessionClick)
@@ -181,13 +210,36 @@ fun StoryHeaderScrollableWithStickyTabs(
                                 val session = item.flow
                                 FlowCard(
                                     session = session,
+                                    childPulses = item.childPulses,
                                     isExpanded = expandedState.isExpanded(session.sessionId),
                                     showScoreUi = uiState.showScoreUi,
                                     calmMode = uiState.calmMode,
                                     onToggleExpand = { expandedState.toggle(session.sessionId) },
                                     onDeleteSession = { onDeleteSession(session.sessionId) },
                                     onLongPress = { editState.startEditing(session) },
-                                    onClick = { onSessionClick(session.sessionId) }
+                                    onClick = { onSessionClick(session.sessionId) },
+                                    onEditPulse = { pulse -> pulseEditState.startEditing(pulse) },
+                                    onDeletePulse = onDeletePulse
+                                )
+                            }
+
+                            is ChronicleUiModel.StandalonePulse -> {
+                                val pulse = item.pulse
+                                val isExpanded = expandedPulseIds.contains(pulse.pulseId)
+
+                                PulseCard(
+                                    pulse = pulse,
+                                    isExpanded = isExpanded,
+                                    onToggleExpand = {
+                                        expandedPulseIds =
+                                            if (expandedPulseIds.contains(pulse.pulseId)) {
+                                                expandedPulseIds - pulse.pulseId
+                                            } else {
+                                                expandedPulseIds + pulse.pulseId
+                                            }
+                                    },
+                                    onLongPress = { pulseEditState.startEditing(pulse) },
+                                    onDeletePulse = { onDeletePulse(pulse.pulseId) }
                                 )
                             }
 
@@ -212,6 +264,8 @@ fun StoryHeaderScrollableWithStickyTabs(
                                     isExpandedFlow = { sessionId -> expandedState.isExpanded(sessionId) },
                                     onToggleFlowExpand = { sessionId -> expandedState.toggle(sessionId) },
                                     onDeleteSession = onDeleteSession,
+                                    onEditPulse = { pulse -> pulseEditState.startEditing(pulse) },
+                                    onDeletePulse = onDeletePulse,
                                     onLongPress = { session -> editState.startEditing(session) },
                                     onClick = onSessionClick
                                 )

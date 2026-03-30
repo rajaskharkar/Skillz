@@ -11,6 +11,7 @@ object SkillzDestinations {
 
     const val HOME_SCREEN = "home_screen"
     const val SCHEDULE_BEAM = "schedule_beam"
+    const val ADD_PULSE_ROUTE = "add_pulse"
 
     fun addSkillRoute(prefillJourney: String? = null): String {
         val encodedJourney = prefillJourney

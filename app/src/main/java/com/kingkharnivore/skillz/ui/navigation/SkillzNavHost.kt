@@ -16,6 +16,7 @@ import com.kingkharnivore.skillz.ui.screen.ScheduleBeamScreen
 import com.kingkharnivore.skillz.ui.screen.SkillzHomeScreen
 import com.kingkharnivore.skillz.ui.screen.flow.FlowScreen
 import com.kingkharnivore.skillz.ui.screen.help.HelpScreen
+import com.kingkharnivore.skillz.ui.screen.pulse.PulseScreen
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.viewmodel.ScheduleBeamViewModel
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
@@ -40,6 +41,9 @@ fun SkillzNavHost(
                 onSessionClick = { /* later */ },
                 onAddSessionClick = {
                     navController.navigate(SkillzDestinations.addSkillRoute())
+                },
+                onAddPulseClick = {
+                    navController.navigate(SkillzDestinations.ADD_PULSE_ROUTE)
                 },
                 onScheduleBeamClick = {
                     navController.navigate(SkillzDestinations.SCHEDULE_BEAM)
@@ -75,6 +79,15 @@ fun SkillzNavHost(
                 viewModel = addSessionViewModel,
                 onDone = { popToHome(navController) },
                 onCancel = { popToHome(navController) }
+            )
+        }
+
+        composable(SkillzDestinations.ADD_PULSE_ROUTE) {
+            PulseScreen(
+                viewModel = storyViewModel,
+                isFlowStateActive = isFocusModeOn,
+                onDone = { popToHome(navController) },
+                onCancel = { navController.popBackStack() }
             )
         }
 

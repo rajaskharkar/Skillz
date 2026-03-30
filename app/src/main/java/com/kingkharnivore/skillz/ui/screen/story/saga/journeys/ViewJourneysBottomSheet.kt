@@ -44,7 +44,6 @@ fun ViewJourneysBottomSheet(
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // Internal "navigation" inside sheet
     var selectedSessionId by remember(uiState.isViewJourneysOpen, uiState.viewJourneysTitle) {
         mutableStateOf<Long?>(null)
     }
@@ -65,7 +64,7 @@ fun ViewJourneysBottomSheet(
     val totalScyraScore = remember(sessions) { sessions.sumOf { it.score } }
     val totalBeamBonus = remember(sessions) { sessions.sumOf { it.beamBonusPoints } }
     val totalBaseScore = remember(totalScyraScore, totalBeamBonus) { totalScyraScore - totalBeamBonus }
-    val totalSurge = remember(sessions) { sessions.sumOf { it.surgePoints } } // separate
+    val totalSurge = remember(sessions) { sessions.sumOf { it.surgePoints } }
 
     ModalBottomSheet(
         onDismissRequest = onClose,
@@ -79,7 +78,6 @@ fun ViewJourneysBottomSheet(
                 .padding(bottom = 18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // ── Top bar ───────────────────────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -113,7 +111,6 @@ fun ViewJourneysBottomSheet(
             }
 
             if (selected == null) {
-                // ── LIST MODE ──────────────────────────────────────────
                 JourneyViewSummary(
                     flowsCount = sessions.size,
                     totalDurationMs = totalDuration,
@@ -147,16 +144,18 @@ fun ViewJourneysBottomSheet(
                             JourneySessionRow(
                                 session = s,
                                 onExpand = { selectedSessionId = s.sessionId },
-                                onScry = { selectedSessionId = s.sessionId } // ✅ always works
+                                onScry = {
+                                    selectedSessionId = s.sessionId
+                                    onSessionClick(s.sessionId)
+                                }
                             )
                         }
                     }
                 }
             } else {
-                // ── DETAIL MODE ───────────────────────────────────────
                 JourneySessionDetail(
                     session = selected,
-                    onOpenFull = null // until you actually have a full screen
+                    onOpenFull = { onSessionClick(selected.sessionId) }
                 )
             }
         }

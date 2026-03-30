@@ -28,7 +28,10 @@ fun StoryBody(
     onAddSessionClick: () -> Unit,
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
+    onDeletePulse: (Long) -> Unit,
+    onUpdatePulse: (Long, String, String, String) -> Unit,
     onUpdateSessionDescription: (Long, String) -> Unit,
+    onCreatePulseForSession: (Long, String, String, String) -> Unit,
     onOpenViewJourneys: (Long) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -53,7 +56,10 @@ fun StoryBody(
                     onOpenViewJourneys = onOpenViewJourneys,
                     onSessionClick = onSessionClick,
                     onDeleteSession = onDeleteSession,
+                    onDeletePulse = onDeletePulse,
                     onUpdateSessionDescription = onUpdateSessionDescription,
+                    onUpdatePulse = onUpdatePulse,
+                    onCreatePulseForSession = onCreatePulseForSession,
                     onAddSessionClick = onAddSessionClick,
                     extraTopContent = if (isFlowStateActive) {
                         { FlowModeHeroCard(onGoToActiveSession = onGoToActiveSession) }
