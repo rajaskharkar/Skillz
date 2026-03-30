@@ -102,7 +102,10 @@ fun FlowScreen(
             TopAppBar(
                 title = { Text("Flow") },
                 navigationIcon = {
-                    IconButton(onClick = { onCancel() }) {
+                    IconButton(onClick = {
+                        viewModel.discardDraftIfIdle()
+                        onCancel()
+                    }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }

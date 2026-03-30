@@ -61,7 +61,6 @@ fun SkillzTopAppBar() {
             )
         },
         actions = {
-            // ✅ Icon-only section switching (no extra vertical real-estate).
             if (nav != null) {
                 HomeNavIcons(
                     selected = nav.currentPage,
@@ -90,32 +89,64 @@ private fun HomeNavIcons(
             selected = selected == 0,
             onClick = { onSelect(0) },
             contentDescription = "Atlas",
-            icon = { Icon(Icons.Outlined.Map, contentDescription = null, modifier = Modifier.size(22.dp)) }
+            icon = {
+                Icon(
+                    Icons.Outlined.Map,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
         )
 
         NavIcon(
             selected = selected == 1,
             onClick = { onSelect(1) },
             contentDescription = "Story",
-            icon = { Icon(Icons.Outlined.AutoStories, contentDescription = null, modifier = Modifier.size(22.dp)) }
+            icon = {
+                Icon(
+                    Icons.Outlined.AutoStories,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
         )
 
         NavIcon(
             selected = selected == 2,
             onClick = { onSelect(2) },
-            contentDescription = "Notepad",
-            icon = { Icon(Icons.Outlined.EditNote, contentDescription = null, modifier = Modifier.size(22.dp)) }
+            contentDescription = "Paths",
+            icon = {
+                Icon(
+                    Icons.Outlined.Explore,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
         )
 
-        // ✅ NEW: Help / Settings (last tab)
-        // Roadmap-ish icon.
         NavIcon(
             selected = selected == 3,
             onClick = { onSelect(3) },
+            contentDescription = "Notepad",
+            icon = {
+                Icon(
+                    Icons.Outlined.EditNote,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        )
+
+        NavIcon(
+            selected = selected == 4,
+            onClick = { onSelect(4) },
             contentDescription = "Help",
             icon = {
-                // Prefer Explore for "roadmap", fallback to HelpOutline if you chose that import.
-                Icon(Icons.Outlined.HelpOutline, contentDescription = null, modifier = Modifier.size(22.dp))
+                Icon(
+                    Icons.Outlined.HelpOutline,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
             }
         )
     }
@@ -128,7 +159,6 @@ private fun NavIcon(
     contentDescription: String,
     icon: @Composable () -> Unit
 ) {
-    // Sexy + minimal: selected gets a soft capsule behind it.
     val capsule = if (selected) {
         MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f)
     } else {
@@ -136,6 +166,7 @@ private fun NavIcon(
     }
     val alpha = if (selected) 1f else 0.72f
     val contentColor = LocalContentColor.current.copy(alpha = alpha)
+
     IconButton(
         onClick = onClick,
         modifier = Modifier

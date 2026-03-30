@@ -53,6 +53,15 @@ fun SkillzNavHost(
                         SkillzDestinations.addSkillRoute(prefillJourney = journeyName)
                     )
                 },
+                onOpenPlannedFlow = { title, tagName, isSoftMode ->
+                    navController.navigate(
+                        SkillzDestinations.addSkillRoute(
+                            prefillJourney = tagName,
+                            prefillTitle = title,
+                            prefillSoftMode = isSoftMode
+                        )
+                    )
+                },
                 onGoToActiveSession = {
                     navController.navigate(SkillzDestinations.addSkillRoute())
                 },
@@ -67,6 +76,15 @@ fun SkillzNavHost(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
+                },
+                navArgument(SkillzDestinations.ADD_SKILL_ARG_PREFILL_TITLE) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument(SkillzDestinations.ADD_SKILL_ARG_PREFILL_SOFT_MODE) {
+                    type = NavType.BoolType
+                    defaultValue = false
                 }
             ),
             deepLinks = listOf(

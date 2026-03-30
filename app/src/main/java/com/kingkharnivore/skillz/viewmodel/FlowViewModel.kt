@@ -73,9 +73,36 @@ class FlowViewModel @Inject constructor(
             .get<String>(SkillzDestinations.ADD_SKILL_ARG_PREFILL_JOURNEY)
             ?.takeIf { it.isNotBlank() }
 
-    private fun applyAtlasJourneyOverride(state: FlowUiState): FlowUiState {
-        val override = atlasJourneyOverride ?: return state
-        return state.copy(tagName = override)
+    private val prefillTitleOverride: String? =
+        savedStateHandle
+            .get<String>(SkillzDestinations.ADD_SKILL_ARG_PREFILL_TITLE)
+            ?.takeIf { it.isNotBlank() }
+
+    private val prefillSoftModeOverride: Boolean =
+        savedStateHandle.get<Boolean>(
+            SkillzDestinations.ADD_SKILL_ARG_PREFILL_SOFT_MODE
+        ) ?: false
+
+    private val hasLaunchOverrides: Boolean =
+        !atlasJourneyOverride.isNullOrBlank() ||
+                !prefillTitleOverride.isNullOrBlank() ||
+                prefillSoftModeOverride
+
+    private fun applyLaunchOverrides(state: FlowUiState): FlowUiState {
+        return state.copy(
+            title = prefillTitleOverride ?: state.title,
+            tagName = atlasJourneyOverride ?: state.tagName,
+            isSoftMode = if (prefillSoftModeOverride) true else state.isSoftMode,
+            isSurgeOn = if (prefillSoftModeOverride) false else state.isSurgeOn,
+            surgePlannedMs = if (prefillSoftModeOverride) null else state.surgePlannedMs
+        )
+    }
+
+    private fun shouldTreatOngoingAsDraft(entity: OngoingSessionEntity): Boolean {
+        return !entity.isInFlowMode &&
+                !entity.isRunning &&
+                entity.accumulatedBeforeStartMs == 0L &&
+                entity.baseStartTimeMs == null
     }
 
     val ongoingSession: StateFlow<OngoingSessionEntity?> =
@@ -114,14 +141,12 @@ class FlowViewModel @Inject constructor(
         initialValue = emptyList()
     )
 
-    // Stopwatch internals
     private var baseStartTimeMs: Long? = null
     private var accumulatedBeforeStartMs: Long = 0L
     private var tickerJob: Job? = null
     private var ongoingCreatedAtMs: Long = System.currentTimeMillis()
     private var currentFlowInstanceId: String = UUID.randomUUID().toString()
 
-    // ARC runtime
     private var arcState: ArcRuntimeState? = null
 
     private val _exitAfterReward = MutableStateFlow(false)
@@ -218,7 +243,7 @@ class FlowViewModel @Inject constructor(
     private fun isZeroDuration(durationMs: Long): Boolean = durationMs <= 0L
 
     private fun nextArcMultiplier(chainBase: Double, realDurationMs: Long): Pair<Double, Boolean> {
-        val leveledUp = realDurationMs >= ArcRules.PROGRESS_STEP_MS // 10m+
+        val leveledUp = realDurationMs >= ArcRules.PROGRESS_STEP_MS
         val next = if (leveledUp) chainBase + ArcRules.STEP else chainBase
         return next to leveledUp
     }
@@ -342,19 +367,46 @@ class FlowViewModel @Inject constructor(
             syncArcUi()
 
             ongoing?.let { entity ->
-                currentFlowInstanceId = entity.flowInstanceId
-                ongoingCreatedAtMs = entity.createdAt
-                baseStartTimeMs = entity.baseStartTimeMs
-                accumulatedBeforeStartMs = entity.accumulatedBeforeStartMs
+                val shouldOverrideDraft = hasLaunchOverrides && shouldTreatOngoingAsDraft(entity)
 
-                val elapsed = if (entity.isRunning && baseStartTimeMs != null) {
-                    accumulatedBeforeStartMs + (System.currentTimeMillis() - baseStartTimeMs!!).coerceAtLeast(0L)
+                if (shouldOverrideDraft) {
+                    currentFlowInstanceId = UUID.randomUUID().toString()
+                    ongoingCreatedAtMs = System.currentTimeMillis()
+                    baseStartTimeMs = null
+                    accumulatedBeforeStartMs = 0L
+
+                    _uiState.update { old ->
+                        applyLaunchOverrides(
+                            old.copy(
+                                title = "",
+                                description = "",
+                                tagName = "",
+                                isInFlowMode = false,
+                                isSoftMode = false,
+                                isSurgeOn = false,
+                                surgePlannedMs = null,
+                                stopwatch = StopwatchState(
+                                    isRunning = false,
+                                    elapsedMs = 0L
+                                )
+                            )
+                        )
+                    }
+
+                    clearOngoing()
                 } else {
-                    accumulatedBeforeStartMs
-                }
+                    currentFlowInstanceId = entity.flowInstanceId
+                    ongoingCreatedAtMs = entity.createdAt
+                    baseStartTimeMs = entity.baseStartTimeMs
+                    accumulatedBeforeStartMs = entity.accumulatedBeforeStartMs
 
-                _uiState.update { old ->
-                    applyAtlasJourneyOverride(
+                    val elapsed = if (entity.isRunning && baseStartTimeMs != null) {
+                        accumulatedBeforeStartMs + (System.currentTimeMillis() - baseStartTimeMs!!).coerceAtLeast(0L)
+                    } else {
+                        accumulatedBeforeStartMs
+                    }
+
+                    _uiState.update { old ->
                         old.copy(
                             title = entity.title,
                             description = entity.description,
@@ -368,19 +420,15 @@ class FlowViewModel @Inject constructor(
                                 elapsedMs = elapsed
                             )
                         )
-                    )
-                }
+                    }
 
-                if (entity.isRunning) startTicker()
-
-                if (!atlasJourneyOverride.isNullOrBlank() && atlasJourneyOverride != entity.tagName) {
-                    saveOngoing()
+                    if (entity.isRunning) startTicker()
                 }
             } ?: run {
                 currentFlowInstanceId = UUID.randomUUID().toString()
-                if (!atlasJourneyOverride.isNullOrBlank()) {
+                if (hasLaunchOverrides) {
                     _uiState.update { old ->
-                        applyAtlasJourneyOverride(old)
+                        applyLaunchOverrides(old)
                     }
                 }
             }
@@ -404,6 +452,32 @@ class FlowViewModel @Inject constructor(
     fun onTagNameChange(newTagName: String) {
         _uiState.update { it.copy(tagName = newTagName) }
         saveOngoing()
+    }
+
+    fun discardDraftIfIdle() {
+        val state = _uiState.value
+        val hasNoElapsedTime = state.stopwatch.elapsedMs == 0L
+        val isNotRunning = !state.stopwatch.isRunning
+        val isNotInFlowMode = !state.isInFlowMode
+        val hasNoArc = arcState == null
+
+        if (hasNoElapsedTime && isNotRunning && isNotInFlowMode && hasNoArc) {
+            viewModelScope.launch {
+                clearOngoing()
+            }
+
+            currentFlowInstanceId = UUID.randomUUID().toString()
+            ongoingCreatedAtMs = System.currentTimeMillis()
+            baseStartTimeMs = null
+            accumulatedBeforeStartMs = 0L
+
+            _uiState.value = applyLaunchOverrides(
+                FlowUiState(
+                    showScoreUi = state.showScoreUi,
+                    calmMode = state.calmMode
+                )
+            )
+        }
     }
 
     fun startOrResumeStopwatch() {
@@ -1041,7 +1115,6 @@ class FlowViewModel @Inject constructor(
             when (if (state.isSoftMode) FlowEndAction.SAVE_FLOW else endMode) {
 
                 FlowEndAction.COMPLETE_ARC -> {
-
                     if (!state.isSoftMode && state.isSurgeOn && state.surgePlannedMs != null) {
                         if (surgeSucceeded) {
                             surgeHapticsManager.playCompletedSuccess()
@@ -1092,7 +1165,6 @@ class FlowViewModel @Inject constructor(
                 }
 
                 FlowEndAction.SAVE_FLOW -> {
-
                     if (!state.isSoftMode && state.isSurgeOn && state.surgePlannedMs != null) {
                         if (surgeSucceeded) {
                             surgeHapticsManager.playCompletedSuccess()
@@ -1130,7 +1202,6 @@ class FlowViewModel @Inject constructor(
                 }
 
                 FlowEndAction.CONTINUE_ARC -> {
-
                     if (!state.isSoftMode && state.isSurgeOn && state.surgePlannedMs != null) {
                         if (surgeSucceeded) {
                             surgeHapticsManager.playCompletedSuccess()

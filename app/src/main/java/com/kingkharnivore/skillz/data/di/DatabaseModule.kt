@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.dao.BeamDao
+import com.kingkharnivore.skillz.data.model.dao.FlowPlanDao
 import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
 import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
@@ -50,6 +51,9 @@ object DatabaseModule {
 
     @Provides
     fun provideBeamDao(db: SkillzDatabase): BeamDao = db.beamDao()
+
+    @Provides
+    fun provideFlowPlanDao(db: SkillzDatabase): FlowPlanDao = db.flowPlanDao()
 
     @Provides
     @Singleton
