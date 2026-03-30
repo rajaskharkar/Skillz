@@ -1,7 +1,11 @@
-package com.kingkharnivore.skillz.ui.screen.atlas
+package com.kingkharnivore.skillz.ui.screen.atlas.calendar
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -10,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ButtonDefaults
@@ -18,11 +23,16 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -60,25 +70,10 @@ fun AtlasHeader(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            SegmentedButton(
-                selected = mode == AtlasViewMode.DAY,
-                onClick = { onSelectMode(AtlasViewMode.DAY) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3)
-            ) { Text("Day") }
-
-            SegmentedButton(
-                selected = mode == AtlasViewMode.WEEK,
-                onClick = { onSelectMode(AtlasViewMode.WEEK) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3)
-            ) { Text("Week") }
-
-            SegmentedButton(
-                selected = mode == AtlasViewMode.MONTH,
-                onClick = { onSelectMode(AtlasViewMode.MONTH) },
-                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3)
-            ) { Text("Month") }
-        }
+        AtlasModeSwitcher(
+            mode = mode,
+            onSelectMode = onSelectMode
+        )
 
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -170,5 +165,83 @@ fun AtlasHeader(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun AtlasModeSwitcher(
+    mode: AtlasViewMode,
+    onSelectMode: (AtlasViewMode) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val cs = MaterialTheme.colorScheme
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = cs.surfaceVariant.copy(alpha = 0.55f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            AtlasModeTab(
+                label = "Day",
+                selected = mode == AtlasViewMode.DAY,
+                onClick = { onSelectMode(AtlasViewMode.DAY) },
+                modifier = Modifier.weight(1f)
+            )
+            AtlasModeTab(
+                label = "Week",
+                selected = mode == AtlasViewMode.WEEK,
+                onClick = { onSelectMode(AtlasViewMode.WEEK) },
+                modifier = Modifier.weight(1f)
+            )
+            AtlasModeTab(
+                label = "Month",
+                selected = mode == AtlasViewMode.MONTH,
+                onClick = { onSelectMode(AtlasViewMode.MONTH) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AtlasModeTab(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val cs = MaterialTheme.colorScheme
+
+    val containerColor by animateColorAsState(
+        targetValue = if (selected) cs.primary else Color.Transparent,
+        label = "atlas_tab_container"
+    )
+
+    val contentColor by animateColorAsState(
+        targetValue = if (selected) cs.onPrimary else cs.onSurfaceVariant,
+        label = "atlas_tab_content"
+    )
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(containerColor)
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+            ),
+            color = contentColor
+        )
     }
 }

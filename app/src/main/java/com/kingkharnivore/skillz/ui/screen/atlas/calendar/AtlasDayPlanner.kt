@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.ui.screen.atlas
+package com.kingkharnivore.skillz.ui.screen.atlas.calendar
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -42,13 +42,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.ui.model.AtlasDayUi
 import com.kingkharnivore.skillz.ui.model.BeamBlockUi
+import com.kingkharnivore.skillz.ui.screen.atlas.BeamCard
 import com.kingkharnivore.skillz.utils.time.formatRange
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.math.hypot
 import kotlin.math.roundToInt
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 private data class PlacedBeamUi(
@@ -321,7 +321,12 @@ private fun AtlasBeamLayer(
                         .semantics {
                             role = Role.Button
                             contentDescription =
-                                "${spec.beam.tagName}, ${formatRange(spec.beam.startMs, spec.beam.endMs)}"
+                                "${spec.beam.tagName}, ${
+                                    formatRange(
+                                        spec.beam.startMs,
+                                        spec.beam.endMs
+                                    )
+                                }"
                             onClick {
                                 onBeamClick(spec.beam)
                                 true

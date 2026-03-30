@@ -23,6 +23,11 @@ import androidx.compose.ui.graphics.Color
 import com.kingkharnivore.skillz.ui.model.AtlasUiState
 import com.kingkharnivore.skillz.ui.model.AtlasViewMode
 import com.kingkharnivore.skillz.ui.model.BeamBlockUi
+import com.kingkharnivore.skillz.ui.screen.atlas.calendar.AtlasDayPlanner
+import com.kingkharnivore.skillz.ui.screen.atlas.calendar.AtlasDayStrip
+import com.kingkharnivore.skillz.ui.screen.atlas.calendar.AtlasHeader
+import com.kingkharnivore.skillz.ui.screen.atlas.calendar.AtlasMonthGrid
+import com.kingkharnivore.skillz.ui.screen.atlas.calendar.AtlasWeekBoard
 import com.kingkharnivore.skillz.utils.time.formatDuration
 import java.time.Instant
 import java.time.ZoneId

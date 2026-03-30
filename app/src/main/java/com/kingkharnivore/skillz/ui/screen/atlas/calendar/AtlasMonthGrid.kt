@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.ui.screen.atlas
+package com.kingkharnivore.skillz.ui.screen.atlas.calendar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.ui.model.AtlasMonthCellUi
 import com.kingkharnivore.skillz.ui.model.AtlasMonthUi
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -89,7 +92,7 @@ private fun AtlasMonthCell(
 ) {
     val cs = MaterialTheme.colorScheme
     val zone = ZoneId.systemDefault()
-    val todayStart = java.time.LocalDate.now(zone).atStartOfDay(zone).toInstant().toEpochMilli()
+    val todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant().toEpochMilli()
     val isToday = cell.dayStartMs == todayStart
     val isSelected = cell.dayStartMs == selectedDayStartMs
 
@@ -115,7 +118,7 @@ private fun AtlasMonthCell(
         modifier = modifier
             .aspectRatio(1f)
             .alpha(if (cell.isInCurrentMonth) 1f else 0.50f)
-            .background(baseColor, androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
+            .background(baseColor, RoundedCornerShape(18.dp))
             .then(
                 if (borderColor != Color.Transparent) {
                     Modifier.border(
@@ -147,7 +150,7 @@ private fun AtlasMonthCell(
                                     .size(7.dp)
                                     .background(
                                         Color(argb),
-                                        androidx.compose.foundation.shape.CircleShape
+                                        CircleShape
                                     )
                             )
                         }

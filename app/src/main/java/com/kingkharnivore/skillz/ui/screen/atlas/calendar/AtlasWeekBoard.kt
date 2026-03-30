@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.ui.screen.atlas
+package com.kingkharnivore.skillz.ui.screen.atlas.calendar
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -30,6 +30,7 @@ import com.kingkharnivore.skillz.ui.model.BeamBlockUi
 import com.kingkharnivore.skillz.utils.time.formatDuration
 import com.kingkharnivore.skillz.utils.time.formatRange
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -87,7 +88,7 @@ private fun AtlasWeekDayCard(
     val cs = MaterialTheme.colorScheme
     val zone = ZoneId.systemDefault()
     val date = Instant.ofEpochMilli(day.dayStartMs).atZone(zone)
-    val todayStart = java.time.LocalDate.now(zone).atStartOfDay(zone).toInstant().toEpochMilli()
+    val todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant().toEpochMilli()
 
     val isToday = day.dayStartMs == todayStart
     val isSelected = day.dayStartMs == selectedDayStartMs

@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "ongoing_session")
 data class OngoingSessionEntity(
-    @PrimaryKey val id: Int = 1, // always a single row
+    @PrimaryKey val id: Int = 1,
     val flowInstanceId: String,
     val title: String,
     val description: String,
@@ -13,17 +13,14 @@ data class OngoingSessionEntity(
     val isInFlowMode: Boolean,
     val isRunning: Boolean,
     val isSoftMode: Boolean = false,
-    val baseStartTimeMs: Long?,          // last start/resume timestamp
-    val accumulatedBeforeStartMs: Long,  // elapsed before baseStartTimeMs
-
+    val baseStartTimeMs: Long?,
+    val accumulatedBeforeStartMs: Long,
     val isSurgeOn: Boolean = false,
     val surgePlannedMs: Long? = null,
-
     val surgeMilestonesFiredCsv: String = "",
     val surgeTargetReached: Boolean = false,
     val surgeTargetReachedAtMs: Long? = null,
     val surgeFinalCountdownStarted: Boolean = false,
-
     val createdAt: Long = System.currentTimeMillis(),
     val arcId: Long? = null,
     val arcChainBase: Double? = null,

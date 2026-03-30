@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.ui.screen.atlas
+package com.kingkharnivore.skillz.ui.screen.atlas.calendar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
