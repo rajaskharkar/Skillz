@@ -199,7 +199,7 @@ private fun PulseFab(onClick: () -> Unit) {
     ) {
         Icon(
             imageVector = Icons.Outlined.PsychologyAlt,
-            contentDescription = "Record Pulse"
+            contentDescription = "Record a Pulse"
         )
     }
 }

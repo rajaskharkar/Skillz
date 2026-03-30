@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
-package com.kingkharnivore.skillz.ui.screen.pulse
+package com.kingkharnivore.skillz.ui.screen.story.pulse
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -37,10 +37,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -49,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kingkharnivore.skillz.ui.screen.flow.ChronicleField
 import com.kingkharnivore.skillz.ui.screen.flow.GrandTitleField
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
 import com.kingkharnivore.skillz.viewmodel.TagUiModel
@@ -118,18 +119,10 @@ fun PulseScreen(
                 }
             }
 
-            Surface(
-                shape = RoundedCornerShape(26.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    PulseReflectionField(
-                        value = description,
-                        onValueChange = { description = it }
-                    )
-                }
-            }
+            ChronicleField(
+                value = description,
+                onValueChange = { description = it }
+            )
 
             if (isFlowStateActive) {
                 Surface(
@@ -200,7 +193,7 @@ fun PulseScreen(
                         )
                         onDone()
                     },
-                    enabled = title.isNotBlank() && description.isNotBlank(),
+                    enabled = title.isNotBlank() || description.isNotBlank(),
                     modifier = Modifier.weight(1.25f),
                     shape = RoundedCornerShape(18.dp)
                 ) {
@@ -232,14 +225,14 @@ private fun PulseHeroCard() {
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    text = "Record Pulse",
+                    text = "Record a Pulse",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
                 )
             }
 
             Text(
-                text = "Capture a moment, insight, realization, or feeling and place it into Story.",
+                text = "Capture a moment, insight, realization, or feeling.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.88f)
             )
@@ -317,62 +310,4 @@ private fun PulseJourneyLean(
         ),
         colors = colors
     )
-}
-
-@Composable
-private fun PulseReflectionField(
-    value: String,
-    onValueChange: (String) -> Unit
-) {
-    val colors = TextFieldDefaults.colors(
-        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
-        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
-        focusedIndicatorColor = Color.Transparent,
-        unfocusedIndicatorColor = Color.Transparent,
-        disabledIndicatorColor = Color.Transparent,
-        cursorColor = MaterialTheme.colorScheme.primary
-    )
-
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(
-            text = "Hold the signal…",
-            style = MaterialTheme.typography.labelLarge.copy(
-                letterSpacing = 0.6.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center
-            ),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 10.dp)
-        )
-
-        TextField(
-            value = value,
-            onValueChange = { onValueChange(it.take(1000)) },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = {
-                Text(
-                    text = "What did you notice?",
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontFamily = FontFamily.Cursive,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f)
-                )
-            },
-            shape = RoundedCornerShape(24.dp),
-            minLines = 6,
-            maxLines = 10,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 0.1.sp
-            ),
-            colors = colors
-        )
-    }
 }

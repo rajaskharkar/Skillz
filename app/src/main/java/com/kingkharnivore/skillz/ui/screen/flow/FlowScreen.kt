@@ -281,7 +281,7 @@ fun FlowScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(18.dp)
                     ) {
-                        Text("Record Pulse")
+                        Text("Record a Pulse")
                     }
 
                     Spacer(Modifier.height(8.dp))
@@ -396,7 +396,7 @@ fun FlowScreen(
             onDismissRequest = { showPulseDialog = false },
             title = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Record Pulse")
+                    Text("Record a Pulse")
                     if (isInFlowState && uiState.title.isNotBlank()) {
                         Text(
                             text = "Current Flow: ${uiState.title}",
@@ -474,7 +474,7 @@ fun FlowScreen(
             },
             confirmButton = {
                 TextButton(
-                    enabled = pulseTitle.isNotBlank() && pulseDescription.isNotBlank(),
+                    enabled = pulseTitle.isNotBlank() || pulseDescription.isNotBlank(),
                     onClick = {
                         viewModel.recordPulse(
                             title = pulseTitle,

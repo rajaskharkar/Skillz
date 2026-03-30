@@ -116,7 +116,7 @@ fun PulseEditSheet(
                         )
                         editState.stopEditing()
                     },
-                    enabled = editState.editTitle.value.isNotBlank() &&
+                    enabled = editState.editTitle.value.isNotBlank() ||
                             editState.editDescription.value.isNotBlank(),
                     modifier = Modifier.weight(1.2f),
                     shape = RoundedCornerShape(18.dp)

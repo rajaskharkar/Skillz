@@ -231,7 +231,12 @@ class StoryViewModel @Inject constructor(
             val trimmedDescription = description.trim()
             val trimmedTag = tagName.trim()
 
-            if (trimmedTitle.isBlank() || trimmedDescription.isBlank()) return@launch
+            if (trimmedTitle.isBlank() && trimmedDescription.isBlank()) {
+                uiState.value = uiState.value.copy(
+                    errorMessage = "Add a title or description to save this moment."
+                )
+                return@launch
+            }
 
             val tagId = if (trimmedTag.isBlank()) {
                 null
@@ -250,6 +255,8 @@ class StoryViewModel @Inject constructor(
                 parentFlowInstanceId = if (shouldAttach) ongoing?.flowInstanceId else null,
                 arcId = if (shouldAttach) ongoing?.arcId else null
             )
+
+            uiState.value = uiState.value.copy(errorMessage = null)
         }
     }
 
@@ -264,7 +271,7 @@ class StoryViewModel @Inject constructor(
             val trimmedDescription = description.trim()
             val trimmedTag = tagName.trim()
 
-            if (trimmedTitle.isBlank() || trimmedDescription.isBlank()) return@launch
+            if (trimmedTitle.isBlank() && trimmedDescription.isBlank()) return@launch
 
             val tagId = if (trimmedTag.isBlank()) {
                 null
@@ -298,7 +305,7 @@ class StoryViewModel @Inject constructor(
             val trimmedDescription = description.trim()
             val trimmedTag = tagName.trim()
 
-            if (trimmedTitle.isBlank() || trimmedDescription.isBlank()) return@launch
+            if (trimmedTitle.isBlank() && trimmedDescription.isBlank()) return@launch
 
             val tagId = if (trimmedTag.isBlank()) {
                 null

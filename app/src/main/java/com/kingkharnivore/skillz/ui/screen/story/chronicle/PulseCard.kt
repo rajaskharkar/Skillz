@@ -144,14 +144,16 @@ fun PulseCard(
                         }
                     }
 
-                    Spacer(Modifier.height(8.dp))
+                    if (pulse.title.isNotBlank()) {
+                        Spacer(Modifier.height(8.dp))
 
-                    Text(
-                        text = pulse.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = contentColor
-                    )
+                        Text(
+                            text = pulse.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = contentColor
+                        )
+                    }
                 }
 
                 if (isExpanded) {

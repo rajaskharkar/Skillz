@@ -180,13 +180,8 @@ class FlowViewModel @Inject constructor(
             val trimmedDescription = description.trim()
             val trimmedTag = tagName.trim()
 
-            if (trimmedTitle.isBlank()) {
-                _error.value = "Pulse title is required"
-                return@launch
-            }
-
-            if (trimmedDescription.isBlank()) {
-                _error.value = "Pulse description is required"
+            if (trimmedTitle.isBlank() && trimmedDescription.isBlank()) {
+                _error.value = "Add a title or description to record this moment"
                 return@launch
             }
 

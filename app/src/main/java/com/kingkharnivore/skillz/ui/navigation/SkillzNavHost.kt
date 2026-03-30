@@ -16,7 +16,7 @@ import com.kingkharnivore.skillz.ui.screen.ScheduleBeamScreen
 import com.kingkharnivore.skillz.ui.screen.SkillzHomeScreen
 import com.kingkharnivore.skillz.ui.screen.flow.FlowScreen
 import com.kingkharnivore.skillz.ui.screen.help.HelpScreen
-import com.kingkharnivore.skillz.ui.screen.pulse.PulseScreen
+import com.kingkharnivore.skillz.ui.screen.story.pulse.PulseScreen
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.viewmodel.ScheduleBeamViewModel
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
