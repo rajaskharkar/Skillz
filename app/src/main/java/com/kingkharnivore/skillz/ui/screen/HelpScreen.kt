@@ -1,6 +1,7 @@
 package com.kingkharnivore.skillz.ui.screen.help
 
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,11 +21,17 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButtonDefaults.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -96,71 +103,106 @@ private fun HelpConceptCarousel(
 
     Column(
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        HorizontalPager(
-            state = pagerState,
-            contentPadding = PaddingValues(horizontal = 26.dp),
-            pageSpacing = 12.dp,
+        Box(
             modifier = Modifier.fillMaxWidth()
-        ) { page ->
-            val pageOffset =
-                ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
-                    .absoluteValue
-                    .coerceIn(0f, 1f)
-
-            val scale = 1f - (pageOffset * 0.06f)
-            val alpha = 1f - (pageOffset * 0.18f)
-
-            HelpInfoCard(
-                page = pages[page],
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                        this.alpha = alpha
-                    }
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                pages.forEachIndexed { index, _ ->
-                    val selected = index == pagerState.currentPage
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(index)
-                                }
-                            }
-                            .background(
-                                if (selected) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f)
-                                }
-                            )
-                            .size(if (selected) 10.dp else 8.dp)
-                    )
-                }
+            HorizontalPager(
+                state = pagerState,
+                contentPadding = PaddingValues(horizontal = 34.dp),
+                pageSpacing = 10.dp,
+                modifier = Modifier.fillMaxWidth()
+            ) { page ->
+                val pageOffset =
+                    ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction)
+                        .absoluteValue
+                        .coerceIn(0f, 1f)
+
+                val scale = 1f - (pageOffset * 0.035f)
+                val alpha = 1f - (pageOffset * 0.10f)
+
+                HelpInfoCard(
+                    page = pages[page],
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            this.alpha = alpha
+                        }
+                )
             }
 
-            Spacer(Modifier.weight(1f))
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 12.dp, end = 42.dp),
+                shape = RoundedCornerShape(999.dp),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                tonalElevation = 2.dp,
+                shadowElevation = 6.dp
+            ) {
+                Text(
+                    text = "${pagerState.currentPage + 1}/${pages.size}",
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
 
-            Text(
-                text = "Swipe • ${pagerState.currentPage + 1} / ${pages.size}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
-            )
+        ElegantPagerIndicator(
+            pageCount = pages.size,
+            currentPage = pagerState.currentPage,
+            onPageSelected = { index ->
+                scope.launch { pagerState.animateScrollToPage(index) }
+            }
+        )
+    }
+}
+
+@Composable
+private fun ElegantPagerIndicator(
+    pageCount: Int,
+    currentPage: Int,
+    onPageSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(999.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+        tonalElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(pageCount) { index ->
+                val selected = index == currentPage
+                val width by animateDpAsState(
+                    targetValue = if (selected) 18.dp else 6.dp,
+                    label = "help_indicator_width"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .clickable { onPageSelected(index) }
+                        .background(
+                            if (selected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f)
+                            }
+                        )
+                        .size(width = width, height = 6.dp)
+                )
+            }
         }
     }
 }
@@ -327,6 +369,22 @@ private fun helpPages(): List<HelpPage> = listOf(
         subtitle = "Start a Flow when you want to intentionally spend time on something that matters.",
         body = "A Flow tracks your time, keeps the session alive in the background, and lets you add notes so the work becomes part of your Story. Every Flow is a clean, deliberate chapter of effort.",
         tip = "Use Flow for deep work, practice, study, writing, workouts, or anything you want to do with intention."
+    ),
+    HelpPage(
+        iconRes = R.drawable.scyra_turtle,
+        kicker = "Soft Flow",
+        title = "Soft Flow is a gentler session.",
+        subtitle = "Use Soft Flow when you want to stay present with an activity without turning it into a scored push.",
+        body = "Soft Flow still tracks time and lets the moment become part of your Story, but it does not award score. It is designed for quieter sessions where the goal is simply to show up, breathe, recover, reflect, or move gently without pressure.",
+        tip = "Use Soft Flow for walks, stretching, journaling, meditation, light reading, recovery time, or any session you want to honor without gamifying."
+    ),
+    HelpPage(
+        iconRes = R.drawable.scyra_turtle,
+        kicker = "Pulse",
+        title = "A Pulse is a quick moment log.",
+        subtitle = "Use a Pulse when you want to capture something small, meaningful, or immediate without starting a full Flow.",
+        body = "A Pulse helps you record a thought, feeling, realization, event, or micro-win in seconds. It is lighter than a Flow, but still becomes part of your Story, helping you remember the moments that shaped your day.",
+        tip = "Use Pulse for quick reflections, ideas, breakthroughs, emotions, check-ins, or little moments you do not want to lose."
     ),
     HelpPage(
         iconRes = R.drawable.scyra_turtle,
