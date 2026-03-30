@@ -84,10 +84,10 @@ fun SkillzHomeScreen(
                             uiState = atlasState,
                             onStartFlow = onStartFlowFromActiveBeam,
                             onSelectMode = atlasViewModel::setViewMode,
-                            onPrevDay = { atlasViewModel.shiftSelectedDay(-1) },
-                            onNextDay = { atlasViewModel.shiftSelectedDay(+1) },
+                            onPrevPeriod = { atlasViewModel.shiftSelectedPeriod(-1) },
+                            onNextPeriod = { atlasViewModel.shiftSelectedPeriod(+1) },
                             onToday = { atlasViewModel.goToToday() },
-                            onAdvanceDay = { delta -> atlasViewModel.shiftSelectedDay(delta) },
+                            onSelectDay = atlasViewModel::selectDay,
                             onScheduleBeamClick = onScheduleBeamClick,
                         )
 

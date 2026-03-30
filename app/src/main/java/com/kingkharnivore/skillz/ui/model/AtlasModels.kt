@@ -13,24 +13,20 @@ enum class BeamStatus {
 enum class ReadinessLevel(
     val displayLabel: String
 ) {
-    // Future
     DISTANT("DISTANT"),
     PLANNED("PLANNED"),
     LATER_TODAY("LATER TODAY"),
     COMING_UP("COMING UP"),
-    // Approaching
     ON_DECK("ON DECK"),
     APPROACHING("APPROACHING"),
     GET_READY("GET READY"),
     SOON("SOON"),
     PREP("PREP"),
     NOW("NOW"),
-    // State
     ACTIVE("ACTIVE"),
     MISSED("MISSED"),
     EXPIRED("EXPIRED");
 }
-
 
 enum class AtlasViewMode { DAY, WEEK, MONTH }
 
@@ -38,10 +34,54 @@ data class AtlasUiState(
     val journeyFilter: JourneyFilter = JourneyFilter.All,
     val availableJourneys: List<JourneyChipUi> = emptyList(),
     val now: NowState = NowState(),
+    val nowMs: Long = 0L,
     val viewMode: AtlasViewMode = AtlasViewMode.DAY,
     val selectedDayStartMs: Long = 0L,
-    val dayPlan: DayPlanUi = DayPlanUi(0L, 0L),
+    val day: AtlasDayUi = AtlasDayUi(0L, 0L),
+    val week: AtlasWeekUi = AtlasWeekUi(0L, 0L),
+    val month: AtlasMonthUi = AtlasMonthUi(0L, 0L),
+    val beamsByDayStartMs: Map<Long, Int> = emptyMap(),
     val minSelectableDayStartMs: Long? = null,
+)
+
+data class AtlasDayUi(
+    val dayStartMs: Long,
+    val dayEndMs: Long,
+    val beams: List<BeamBlockUi> = emptyList(),
+    val beamsCount: Int = 0
+)
+
+data class AtlasWeekUi(
+    val weekStartMs: Long,
+    val weekEndMs: Long,
+    val days: List<AtlasWeekDayUi> = emptyList(),
+    val beamsCount: Int = 0,
+    val activeDaysCount: Int = 0,
+    val totalDurationMs: Long = 0L
+)
+
+data class AtlasWeekDayUi(
+    val dayStartMs: Long,
+    val dayEndMs: Long,
+    val beams: List<BeamBlockUi> = emptyList(),
+    val beamsCount: Int = 0,
+    val totalDurationMs: Long = 0L
+)
+
+data class AtlasMonthUi(
+    val monthStartMs: Long,
+    val monthEndMs: Long,
+    val cells: List<AtlasMonthCellUi> = emptyList(),
+    val beamsCount: Int = 0,
+    val activeDaysCount: Int = 0
+)
+
+data class AtlasMonthCellUi(
+    val dayStartMs: Long,
+    val isInCurrentMonth: Boolean,
+    val beamsCount: Int = 0,
+    val totalDurationMs: Long = 0L,
+    val previewColors: List<Int> = emptyList()
 )
 
 data class JourneyChipUi(
@@ -58,14 +98,11 @@ data class NowState(
     val activeBeam: BeamBlockUi? = null,
     val nextBeam: BeamBlockUi? = null,
     val activeBeamRemainingMs: Long? = null,
-    val activeBeamProgress: Float? = null // 0..1
+    val activeBeamProgress: Float? = null
 ) {
     val isBeamActive: Boolean get() = activeBeam != null
 }
 
-/**
- * BeamBlockUi.startMin/endMin are minutes relative to Horizon.startMs (NOT a day).
- */
 data class BeamBlockUi(
     val beamId: Long,
     val tagId: Long,
@@ -90,8 +127,8 @@ fun computeBeamStatus(nowMs: Long, startMs: Long, endMs: Long, completionRatio: 
     val eps = 0.01f
     return when {
         r >= 1f - eps -> BeamStatus.COMPLETED_SUCCESS
-        r > eps       -> BeamStatus.COMPLETED_PARTIAL
-        else          -> BeamStatus.MISSED
+        r > eps -> BeamStatus.COMPLETED_PARTIAL
+        else -> BeamStatus.MISSED
     }
 }
 
@@ -100,32 +137,32 @@ fun computeReadiness(
     startMs: Long,
     status: BeamStatus
 ): ReadinessLevel {
-    // Active beam
     if (status == BeamStatus.ACTIVE) return ReadinessLevel.ACTIVE
-    // Past beams
     if (status == BeamStatus.MISSED) return ReadinessLevel.MISSED
-    if (status == BeamStatus.COMPLETED_SUCCESS || status == BeamStatus.COMPLETED_PARTIAL)
+    if (status == BeamStatus.COMPLETED_SUCCESS || status == BeamStatus.COMPLETED_PARTIAL) {
         return ReadinessLevel.EXPIRED
-    // Upcoming only below
+    }
+
     val msUntilStart = (startMs - nowMs).coerceAtLeast(0L)
     val minutes = msUntilStart / 60_000L
-    // High-resolution logic under 3 hours
+
     if (minutes <= 180) {
         return when {
-            minutes <= 3   -> ReadinessLevel.NOW
-            minutes <= 10  -> ReadinessLevel.PREP
-            minutes <= 20  -> ReadinessLevel.SOON
-            minutes <= 45  -> ReadinessLevel.GET_READY
-            minutes <= 90  -> ReadinessLevel.APPROACHING
-            else           -> ReadinessLevel.ON_DECK
+            minutes <= 3 -> ReadinessLevel.NOW
+            minutes <= 10 -> ReadinessLevel.PREP
+            minutes <= 20 -> ReadinessLevel.SOON
+            minutes <= 45 -> ReadinessLevel.GET_READY
+            minutes <= 90 -> ReadinessLevel.APPROACHING
+            else -> ReadinessLevel.ON_DECK
         }
     }
+
     val hours = msUntilStart / 3_600_000L
     return when {
-        hours < 6   -> ReadinessLevel.COMING_UP
-        hours < 12  -> ReadinessLevel.LATER_TODAY
-        hours < 24  -> ReadinessLevel.PLANNED
-        else        -> ReadinessLevel.DISTANT
+        hours < 6 -> ReadinessLevel.COMING_UP
+        hours < 12 -> ReadinessLevel.LATER_TODAY
+        hours < 24 -> ReadinessLevel.PLANNED
+        else -> ReadinessLevel.DISTANT
     }
 }
 
