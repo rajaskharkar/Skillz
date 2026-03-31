@@ -22,6 +22,8 @@ data class FlowPlanEntity(
     val title: String,
     val tagId: Long? = null,
     val isSoftMode: Boolean = false,
+    val targetMinutes: Int? = null,
+    val launchWithSurge: Boolean = false,
     val pinned: Boolean = false,
     val archived: Boolean = false,
     val launchCount: Int = 0,

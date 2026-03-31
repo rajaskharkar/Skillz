@@ -9,7 +9,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoGraph
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -70,12 +73,23 @@ fun ArcGroupCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            text = "Arc Length · ${group.totalFlowsCount} flows",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = headerAccent
-                        )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.AutoGraph,
+                                contentDescription = null,
+                                tint = headerAccent
+                            )
+
+                            Text(
+                                text = "Arc Length · ${group.totalFlowsCount} flows",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = headerAccent
+                            )
+                        }
 
                         Text(
                             text = "Total time · ${formatDuration(group.totalArcDurationMs)}",

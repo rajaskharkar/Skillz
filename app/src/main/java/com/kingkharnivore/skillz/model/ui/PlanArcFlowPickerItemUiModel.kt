@@ -1,6 +1,6 @@
 package com.kingkharnivore.skillz.model.ui
 
-data class FlowPlanListItemUiModel(
+data class PlanArcFlowPickerItemUiModel(
     val id: Long,
     val title: String,
     val tagId: Long?,
@@ -8,7 +8,5 @@ data class FlowPlanListItemUiModel(
     val isSoftMode: Boolean,
     val targetMinutes: Int?,
     val launchWithSurge: Boolean,
-    val pinned: Boolean,
-    val launchCount: Int,
-    val lastLaunchedAt: Long?
+    val pinned: Boolean
 )

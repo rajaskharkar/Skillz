@@ -156,6 +156,35 @@ fun FlowScreen(
 
             RitualFrame(rotation = -0.08f, corner = 32.dp, showBorder = false) {
 
+                if (
+                    !uiState.plannedArcTitle.isNullOrBlank() &&
+                    uiState.plannedArcStepIndex != null &&
+                    uiState.plannedArcTotalSteps != null
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = uiState.plannedArcTitle!!,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "Step ${uiState.plannedArcStepIndex!! + 1} of ${uiState.plannedArcTotalSteps!!}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                }
                 if (uiState.isInArc && uiState.arcMultiplier != null) {
                     ArcPill(
                         arcMultiplier = uiState.arcMultiplier!!,
@@ -344,7 +373,8 @@ fun FlowScreen(
                         Text("Continue Arc")
                     }
 
-                    val isArcActuallyCompletable = uiState.isInArc
+                    val isPlannedArc = !uiState.plannedArcTitle.isNullOrBlank()
+                    val isArcActuallyCompletable = uiState.isInArc || isPlannedArc
                     val completeLabel = if (isArcActuallyCompletable) "Complete Arc" else "Complete Flow"
                     val completeAction = if (isArcActuallyCompletable) {
                         FlowEndAction.COMPLETE_ARC

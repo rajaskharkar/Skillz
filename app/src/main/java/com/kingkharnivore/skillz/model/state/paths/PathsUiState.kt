@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.model.state.paths
 
+import com.kingkharnivore.skillz.model.ui.ArcPlanListItemUiModel
 import com.kingkharnivore.skillz.model.ui.FlowPlanListItemUiModel
 import com.kingkharnivore.skillz.viewmodel.TagUiModel
 
@@ -22,5 +23,7 @@ data class PathsUiState(
     val selectedTimeLens: PathsTimeLens = PathsTimeLens.DAY,
     val flowPlans: List<FlowPlanListItemUiModel> = emptyList(),
     val dreamFlowPlans: List<FlowPlanListItemUiModel> = emptyList(),
+    val studioArcPlans: List<ArcPlanListItemUiModel> = emptyList(),
+    val arcPlans: List<ArcPlanListItemUiModel> = emptyList(),
     val tags: List<TagUiModel> = emptyList()
 )

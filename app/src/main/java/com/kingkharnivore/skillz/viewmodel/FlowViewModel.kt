@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.model.entity.BeamEntity
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
+import com.kingkharnivore.skillz.data.repository.ActiveArcRunRepository
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
+import com.kingkharnivore.skillz.data.repository.ArcPlanRepository
 import com.kingkharnivore.skillz.data.repository.BeamRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
@@ -60,6 +62,8 @@ class FlowViewModel @Inject constructor(
     private val sessionRepository: FlowRepository,
     private val pulseRepository: PulseRepository,
     private val focusSessionRepository: AliveFlowRepository,
+    private val activeArcRunRepository: ActiveArcRunRepository,
+    private val arcPlanRepository: ArcPlanRepository,
     private val aliveFlowServiceController: AliveFlowServiceController,
     private val beamRepository: BeamRepository,
     private val arcPrefs: ArcPrefs,
@@ -67,6 +71,21 @@ class FlowViewModel @Inject constructor(
     private val surgeHapticsManager: SurgeHapticsManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    private val plannedArcTitleOverride: String? =
+        savedStateHandle
+            .get<String>(SkillzDestinations.ADD_SKILL_ARG_PLANNED_ARC_TITLE)
+            ?.takeIf { it.isNotBlank() }
+
+    private val plannedArcStepIndexOverride: Int? =
+        savedStateHandle
+            .get<Int>(SkillzDestinations.ADD_SKILL_ARG_PLANNED_ARC_STEP_INDEX)
+            ?.takeIf { it >= 0 }
+
+    private val plannedArcTotalStepsOverride: Int? =
+        savedStateHandle
+            .get<Int>(SkillzDestinations.ADD_SKILL_ARG_PLANNED_ARC_TOTAL_STEPS)
+            ?.takeIf { it > 0 }
 
     private val atlasJourneyOverride: String? =
         savedStateHandle
@@ -86,7 +105,10 @@ class FlowViewModel @Inject constructor(
     private val hasLaunchOverrides: Boolean =
         !atlasJourneyOverride.isNullOrBlank() ||
                 !prefillTitleOverride.isNullOrBlank() ||
-                prefillSoftModeOverride
+                prefillSoftModeOverride ||
+                !plannedArcTitleOverride.isNullOrBlank() ||
+                plannedArcStepIndexOverride != null ||
+                plannedArcTotalStepsOverride != null
 
     private fun applyLaunchOverrides(state: FlowUiState): FlowUiState {
         return state.copy(
@@ -94,7 +116,10 @@ class FlowViewModel @Inject constructor(
             tagName = atlasJourneyOverride ?: state.tagName,
             isSoftMode = if (prefillSoftModeOverride) true else state.isSoftMode,
             isSurgeOn = if (prefillSoftModeOverride) false else state.isSurgeOn,
-            surgePlannedMs = if (prefillSoftModeOverride) null else state.surgePlannedMs
+            surgePlannedMs = if (prefillSoftModeOverride) null else state.surgePlannedMs,
+            plannedArcTitle = plannedArcTitleOverride ?: state.plannedArcTitle,
+            plannedArcStepIndex = plannedArcStepIndexOverride ?: state.plannedArcStepIndex,
+            plannedArcTotalSteps = plannedArcTotalStepsOverride ?: state.plannedArcTotalSteps
         )
     }
 
@@ -331,11 +356,13 @@ class FlowViewModel @Inject constructor(
                 _uiState.update { it.copy(showScoreUi = enabled) }
             }
         }
+
         viewModelScope.launch {
             userPrefs.calmMode.collect { enabled ->
                 _uiState.update { it.copy(calmMode = enabled) }
             }
         }
+
         viewModelScope.launch {
             val ongoing = focusSessionRepository.getOngoingSession().firstOrNull()
 
@@ -388,7 +415,10 @@ class FlowViewModel @Inject constructor(
                                 stopwatch = StopwatchState(
                                     isRunning = false,
                                     elapsedMs = 0L
-                                )
+                                ),
+                                plannedArcTitle = null,
+                                plannedArcStepIndex = null,
+                                plannedArcTotalSteps = null
                             )
                         )
                     }
@@ -426,9 +456,18 @@ class FlowViewModel @Inject constructor(
                 }
             } ?: run {
                 currentFlowInstanceId = UUID.randomUUID().toString()
-                if (hasLaunchOverrides) {
-                    _uiState.update { old ->
-                        applyLaunchOverrides(old)
+
+                _uiState.update { old ->
+                    val cleared = old.copy(
+                        plannedArcTitle = null,
+                        plannedArcStepIndex = null,
+                        plannedArcTotalSteps = null
+                    )
+
+                    if (hasLaunchOverrides) {
+                        applyLaunchOverrides(cleared)
+                    } else {
+                        cleared
                     }
                 }
             }
@@ -474,7 +513,10 @@ class FlowViewModel @Inject constructor(
             _uiState.value = applyLaunchOverrides(
                 FlowUiState(
                     showScoreUi = state.showScoreUi,
-                    calmMode = state.calmMode
+                    calmMode = state.calmMode,
+                    plannedArcTitle = null,
+                    plannedArcStepIndex = null,
+                    plannedArcTotalSteps = null
                 )
             )
         }
@@ -819,44 +861,63 @@ class FlowViewModel @Inject constructor(
     fun beginNextFlowAfterContinue() {
         if (!_awaitingNextFlowAfterContinue.value) return
 
-        val keepTag = _uiState.value.tagName
-        val keepArc = arcState
+        viewModelScope.launch {
+            val hydrated = hydrateNextPlannedArcStepIfAny()
+            if (hydrated) return@launch
 
-        _lastReward.value = null
-        _awaitingNextFlowAfterContinue.value = false
-        ongoingCreatedAtMs = System.currentTimeMillis()
-        currentFlowInstanceId = UUID.randomUUID().toString()
+            val keepTag = _uiState.value.tagName
+            val keepArc = arcState
 
-        baseStartTimeMs = null
-        accumulatedBeforeStartMs = 0L
-        stopTicker()
-        aliveFlowServiceController.stop()
+            _lastReward.value = null
+            _awaitingNextFlowAfterContinue.value = false
+            ongoingCreatedAtMs = System.currentTimeMillis()
+            currentFlowInstanceId = UUID.randomUUID().toString()
 
-        _uiState.update { old ->
-            old.copy(
-                title = "",
-                description = "",
-                tagName = keepTag,
-                stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L),
-                isInFlowMode = false,
-                isSoftMode = false,
-                isSurgeOn = false,
-                surgePlannedMs = null,
-                isInArc = keepArc != null,
-                arcIsPending = keepArc?.isPending ?: false,
-                arcMultiplier = keepArc?.multiplier,
-                arcProgressMs = keepArc?.progressMs ?: 0L,
-                arcNextIndex = keepArc?.let { it.sessionCountInArc + 1 },
-                arcGraceRemainingMs = null,
-                arcPauseRemainingMs = null
-            )
+            baseStartTimeMs = null
+            accumulatedBeforeStartMs = 0L
+            stopTicker()
+            aliveFlowServiceController.stop()
+
+            _uiState.update { old ->
+                old.copy(
+                    title = "",
+                    description = "",
+                    tagName = keepTag,
+                    stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L),
+                    isInFlowMode = false,
+                    isSoftMode = false,
+                    isSurgeOn = false,
+                    surgePlannedMs = null,
+                    isInArc = keepArc != null,
+                    arcIsPending = keepArc?.isPending ?: false,
+                    arcMultiplier = keepArc?.multiplier,
+                    arcProgressMs = keepArc?.progressMs ?: 0L,
+                    arcNextIndex = keepArc?.let { it.sessionCountInArc + 1 },
+                    arcGraceRemainingMs = null,
+                    arcPauseRemainingMs = null,
+                    plannedArcTitle = null,
+                    plannedArcStepIndex = null,
+                    plannedArcTotalSteps = null
+                )
+            }
+
+            clearOngoing()
         }
-
-        viewModelScope.launch { clearOngoing() }
     }
 
     fun onEndFlowClicked(action: FlowEndAction) {
-        viewModelScope.launch { saveWithArcBehavior(endMode = action) }
+        viewModelScope.launch {
+            val effectiveAction = if (
+                action == FlowEndAction.CONTINUE_ARC &&
+                isLastPlannedArcStep()
+            ) {
+                FlowEndAction.COMPLETE_ARC
+            } else {
+                action
+            }
+
+            saveWithArcBehavior(endMode = effectiveAction)
+        }
     }
 
     private suspend fun saveWithArcBehavior(endMode: FlowEndAction) {
@@ -1151,7 +1212,10 @@ class FlowViewModel @Inject constructor(
                             stopwatch = StopwatchState(
                                 isRunning = false,
                                 elapsedMs = 0L
-                            )
+                            ),
+                            plannedArcTitle = null,
+                            plannedArcStepIndex = null,
+                            plannedArcTotalSteps = null
                         )
                     }
 
@@ -1160,6 +1224,7 @@ class FlowViewModel @Inject constructor(
 
                     aliveFlowServiceController.stop()
                     clearOngoing()
+                    activeArcRunRepository.clear()
                     ongoingCreatedAtMs = System.currentTimeMillis()
                     currentFlowInstanceId = UUID.randomUUID().toString()
                 }
@@ -1188,7 +1253,10 @@ class FlowViewModel @Inject constructor(
                             stopwatch = StopwatchState(
                                 isRunning = false,
                                 elapsedMs = 0L
-                            )
+                            ),
+                            plannedArcTitle = null,
+                            plannedArcStepIndex = null,
+                            plannedArcTotalSteps = null
                         )
                     }
 
@@ -1197,6 +1265,7 @@ class FlowViewModel @Inject constructor(
 
                     aliveFlowServiceController.stop()
                     clearOngoing()
+                    activeArcRunRepository.clear()
                     ongoingCreatedAtMs = System.currentTimeMillis()
                     currentFlowInstanceId = UUID.randomUUID().toString()
                 }
@@ -1236,5 +1305,81 @@ class FlowViewModel @Inject constructor(
         } finally {
             _isSaving.value = false
         }
+    }
+
+    private suspend fun hydrateNextPlannedArcStepIfAny(): Boolean {
+        val activeRun = activeArcRunRepository.getActiveArcRunOnce() ?: return false
+        val nextIndex = activeRun.currentStepIndex + 1
+
+        if (nextIndex >= activeRun.totalSteps) {
+            return false
+        }
+
+        val nextStep = arcPlanRepository
+            .getStepsForArcPlanOnce(activeRun.arcPlanId)
+            .sortedBy { it.orderIndex }
+            .getOrNull(nextIndex)
+            ?: return false
+
+        val nextTagName = nextStep.tagIdSnapshot
+            ?.let { tagId -> tags.value.firstOrNull { it.id == tagId }?.name }
+            .orEmpty()
+
+        activeArcRunRepository.updateCurrentStep(
+            currentStepIndex = nextIndex,
+            currentStepTitle = nextStep.titleSnapshot,
+            currentTagName = nextTagName,
+            currentIsSoftMode = nextStep.isSoftModeSnapshot
+        )
+
+        ongoingCreatedAtMs = System.currentTimeMillis()
+        currentFlowInstanceId = UUID.randomUUID().toString()
+
+        baseStartTimeMs = null
+        accumulatedBeforeStartMs = 0L
+        stopTicker()
+        aliveFlowServiceController.stop()
+
+        _lastReward.value = null
+        _awaitingNextFlowAfterContinue.value = false
+
+        _uiState.update { old ->
+            old.copy(
+                title = nextStep.titleSnapshot,
+                description = "",
+                tagName = nextTagName,
+                stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L),
+                isInFlowMode = false,
+                isSoftMode = nextStep.isSoftModeSnapshot,
+                isSurgeOn = !nextStep.isSoftModeSnapshot && nextStep.launchWithSurgeSnapshot,
+                surgePlannedMs = if (
+                    !nextStep.isSoftModeSnapshot &&
+                    nextStep.launchWithSurgeSnapshot &&
+                    nextStep.targetMinutesSnapshot != null
+                ) {
+                    nextStep.targetMinutesSnapshot * 60_000L
+                } else {
+                    null
+                },
+                plannedArcTitle = activeRun.arcTitle,
+                plannedArcStepIndex = nextIndex,
+                plannedArcTotalSteps = activeRun.totalSteps,
+                isInArc = arcState != null,
+                arcIsPending = arcState?.isPending ?: false,
+                arcMultiplier = arcState?.multiplier,
+                arcProgressMs = arcState?.progressMs ?: 0L,
+                arcNextIndex = arcState?.let { it.sessionCountInArc + 1 },
+                arcGraceRemainingMs = null,
+                arcPauseRemainingMs = null
+            )
+        }
+
+        clearOngoing()
+        return true
+    }
+
+    private suspend fun isLastPlannedArcStep(): Boolean {
+        val activeRun = activeArcRunRepository.getActiveArcRunOnce() ?: return false
+        return activeRun.currentStepIndex >= activeRun.totalSteps - 1
     }
 }

@@ -45,6 +45,10 @@ fun SkillzHomeScreen(
     onScheduleBeamClick: () -> Unit,
     onStartFlowFromActiveBeam: (String) -> Unit,
     onOpenPlannedFlow: (title: String, tagName: String?, isSoftMode: Boolean) -> Unit,
+    onPlanArcClick: () -> Unit,
+    onEditArc: (Long) -> Unit,
+    onOpenArc: (Long) -> Unit,
+    onOpenSuggestedRoute: (String) -> Unit,
     onGoToActiveSession: () -> Unit,
     isFlowModeOn: Boolean
 ) {
@@ -108,9 +112,11 @@ fun SkillzHomeScreen(
 
                         PAGE_PATHS -> PathsScreen(
                             viewModel = pathsViewModel,
-                            onPlanFlowClick = { /* next step */ },
-                            onPlanArcClick = { /* later */ },
-                            onOpenFlowPlan = onOpenPlannedFlow
+                            onPlanFlowClick = { },
+                            onPlanArcClick = onPlanArcClick,
+                            onOpenFlowPlan = onOpenPlannedFlow,
+                            onOpenSuggestedRoute = onOpenSuggestedRoute,
+                            onOpenArc = onOpenArc
                         )
 
                         PAGE_NOTEPAD -> NotepadScreen(

@@ -3,12 +3,14 @@ package com.kingkharnivore.skillz.ui.screen.atlas.calendar
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,9 +21,11 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.ui.model.AtlasWeekDayUi
@@ -35,20 +39,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val WEEK_DAY_FMT = DateTimeFormatter.ofPattern("EEE, MMM d")
-
-/**
- * Explicit Atlas card palette.
- * Avoids Material gray / default Android card feel.
- */
-private val AtlasCardBase = Color(0xFFF7F1E8)
-private val AtlasCardWithBeams = Color(0xFFF3ECE3)
-private val AtlasCardEmpty = Color(0xFFEEE6DB)
-private val AtlasCardToday = Color(0xFFE4F1EE)
-private val AtlasCardSelected = Color(0xFFD7EBE8)
-
-private val AtlasPanelBase = Color(0xFFFFFAF4)
-private val AtlasPanelToday = Color(0xFFF2FBF8)
-private val AtlasPanelSelected = Color(0xFFEAF7F5)
 
 @Composable
 fun AtlasWeekBoard(
@@ -86,31 +76,55 @@ private fun AtlasWeekDayCard(
     onBeamClick: (BeamBlockUi) -> Unit
 ) {
     val cs = MaterialTheme.colorScheme
+    val isDark = isSystemInDarkTheme()
+
     val zone = ZoneId.systemDefault()
     val date = Instant.ofEpochMilli(day.dayStartMs).atZone(zone)
     val todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant().toEpochMilli()
 
     val isToday = day.dayStartMs == todayStart
     val isSelected = day.dayStartMs == selectedDayStartMs
+    val hasBeams = day.beamsCount > 0
 
-    val containerColor = when {
-        isSelected -> AtlasCardSelected
-        isToday -> AtlasCardToday
-        day.beamsCount > 0 -> AtlasCardWithBeams
-        else -> AtlasCardEmpty
+    val containerColor = remember(isDark, isSelected, isToday, hasBeams, cs) {
+        when {
+            isSelected -> if (isDark) {
+                cs.primary.copy(alpha = 0.20f).compositeOver(cs.surfaceContainerHigh)
+            } else {
+                cs.primary.copy(alpha = 0.10f).compositeOver(cs.surfaceContainerHigh)
+            }
+
+            isToday -> if (isDark) {
+                cs.tertiary.copy(alpha = 0.16f).compositeOver(cs.surfaceContainer)
+            } else {
+                cs.tertiary.copy(alpha = 0.08f).compositeOver(cs.surfaceContainer)
+            }
+
+            hasBeams -> if (isDark) {
+                cs.surfaceContainerHigh
+            } else {
+                cs.surfaceContainer
+            }
+
+            else -> if (isDark) {
+                cs.surfaceContainerLow
+            } else {
+                cs.surfaceContainerLowest
+            }
+        }
     }
 
     val borderColor = when {
-        isSelected -> cs.primary
-        isToday -> cs.primary.copy(alpha = 0.55f)
-        day.beamsCount > 0 -> cs.primary.copy(alpha = 0.18f)
-        else -> cs.outline.copy(alpha = 0.14f)
+        isSelected -> cs.primary.copy(alpha = if (isDark) 0.85f else 0.55f)
+        isToday -> cs.primary.copy(alpha = if (isDark) 0.50f else 0.32f)
+        hasBeams -> cs.outline.copy(alpha = if (isDark) 0.34f else 0.18f)
+        else -> cs.outline.copy(alpha = if (isDark) 0.24f else 0.12f)
     }
 
     val chipContainer = when {
-        isSelected -> cs.primary.copy(alpha = 0.12f)
-        isToday -> cs.primary.copy(alpha = 0.10f)
-        else -> Color.White.copy(alpha = 0.82f)
+        isSelected -> cs.primary.copy(alpha = if (isDark) 0.22f else 0.12f)
+        isToday -> cs.primary.copy(alpha = if (isDark) 0.16f else 0.10f)
+        else -> if (isDark) cs.surfaceContainerHighest else cs.surface
     }
 
     Surface(
@@ -136,22 +150,15 @@ private fun AtlasWeekDayCard(
                         color = cs.onSurface
                     )
 
-                    when {
-                        day.totalDurationMs > 0L -> {
-                            Text(
-                                text = formatDuration(day.totalDurationMs),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = cs.onSurface.copy(alpha = 0.74f)
-                            )
-                        }
-                        else -> {
-                            Text(
-                                text = "No beams planned",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = cs.onSurface.copy(alpha = 0.64f)
-                            )
-                        }
-                    }
+                    Text(
+                        text = if (day.totalDurationMs > 0L) {
+                            formatDuration(day.totalDurationMs)
+                        } else {
+                            "No beams planned"
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = cs.onSurfaceVariant
+                    )
                 }
 
                 Spacer(Modifier.weight(1f))
@@ -161,12 +168,17 @@ private fun AtlasWeekDayCard(
                     enabled = false,
                     label = {
                         Text(
-                            if (day.beamsCount == 1) "1 beam" else "${day.beamsCount} beams"
+                            text = if (day.beamsCount == 1) "1 beam" else "${day.beamsCount} beams"
                         )
                     },
                     colors = AssistChipDefaults.assistChipColors(
                         disabledContainerColor = chipContainer,
                         disabledLabelColor = cs.onSurfaceVariant
+                    ),
+                    border = AssistChipDefaults.assistChipBorder(
+                        enabled = false,
+                        borderColor = Color.Transparent,
+                        disabledBorderColor = Color.Transparent
                     )
                 )
             }
@@ -188,7 +200,7 @@ private fun AtlasWeekDayCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedButton(
                         onClick = { onOpenDay(day.dayStartMs) },
-                        border = BorderStroke(1.dp, cs.primary.copy(alpha = 0.35f))
+                        border = BorderStroke(1.dp, cs.primary.copy(alpha = if (isDark) 0.55f else 0.35f))
                     ) {
                         Text("Open Day")
                     }
@@ -214,17 +226,26 @@ private fun EmptyDayPanel(
     onOpenDay: () -> Unit
 ) {
     val cs = MaterialTheme.colorScheme
+    val isDark = isSystemInDarkTheme()
+
     val bg = when {
-        isSelected -> AtlasPanelSelected
-        isToday -> AtlasPanelToday
-        else -> AtlasPanelBase
+        isSelected -> cs.primary.copy(alpha = if (isDark) 0.16f else 0.08f)
+            .compositeOver(cs.surfaceContainer)
+
+        isToday -> cs.tertiary.copy(alpha = if (isDark) 0.12f else 0.06f)
+            .compositeOver(cs.surfaceContainerLow)
+
+        else -> cs.surfaceContainerLow
     }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         color = bg,
-        border = BorderStroke(1.dp, cs.onSurface.copy(alpha = 0.08f))
+        border = BorderStroke(
+            1.dp,
+            cs.outline.copy(alpha = if (isDark) 0.22f else 0.10f)
+        )
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
@@ -238,11 +259,11 @@ private fun EmptyDayPanel(
             Text(
                 text = "A clear day to rest, improvise, or chart something new.",
                 style = MaterialTheme.typography.bodySmall,
-                color = cs.onSurface.copy(alpha = 0.70f)
+                color = cs.onSurfaceVariant
             )
             OutlinedButton(
                 onClick = onOpenDay,
-                border = BorderStroke(1.dp, cs.primary.copy(alpha = 0.35f))
+                border = BorderStroke(1.dp, cs.primary.copy(alpha = if (isDark) 0.55f else 0.35f))
             ) {
                 Text("Open Day")
             }
@@ -256,43 +277,82 @@ private fun WeekBeamRow(
     onClick: () -> Unit
 ) {
     val cs = MaterialTheme.colorScheme
-    val accent = Color(beam.journeyColorArgb)
+    val isDark = isSystemInDarkTheme()
+    val accent = remember(beam.journeyColorArgb) { Color(beam.journeyColorArgb) }
 
-    Row(
+    val rowBackground = if (isDark) {
+        accent.copy(alpha = 0.22f).compositeOver(cs.surfaceContainerHigh)
+    } else {
+        accent.copy(alpha = 0.14f).compositeOver(cs.surface)
+    }
+
+    val strokeColor = if (isDark) {
+        accent.copy(alpha = 0.40f)
+    } else {
+        accent.copy(alpha = 0.22f)
+    }
+
+    val contentColor = if (rowBackground.luminance() < 0.22f) {
+        Color.White.copy(alpha = 0.96f)
+    } else {
+        cs.onSurface
+    }
+
+    val secondaryColor = if (rowBackground.luminance() < 0.22f) {
+        Color.White.copy(alpha = 0.72f)
+    } else {
+        cs.onSurfaceVariant
+    }
+
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .background(
-                color = accent.copy(alpha = 0.16f),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .padding(horizontal = 10.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = rowBackground,
+        border = BorderStroke(1.dp, strokeColor)
     ) {
-        Box(
-            modifier = Modifier
-                .width(6.dp)
-                .background(accent, RoundedCornerShape(999.dp))
-                .padding(vertical = 14.dp)
-        )
-
-        Spacer(Modifier.width(10.dp))
-
-        Column(
-            modifier = Modifier.weight(1f)
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = beam.tagName,
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = cs.onSurface
+            Box(
+                modifier = Modifier
+                    .width(6.dp)
+                    .height(40.dp)
+                    .background(accent, RoundedCornerShape(999.dp))
             )
-            Text(
-                text = formatRange(beam.startMs, beam.endMs),
-                style = MaterialTheme.typography.labelSmall,
-                color = cs.onSurface.copy(alpha = 0.70f)
-            )
+
+            Spacer(Modifier.width(10.dp))
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = beam.tagName,
+                    style = MaterialTheme.typography.labelLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = contentColor
+                )
+                Text(
+                    text = formatRange(beam.startMs, beam.endMs),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = secondaryColor
+                )
+            }
         }
     }
+}
+
+private fun Color.compositeOver(background: Color): Color {
+    val alpha = this.alpha
+    val inverse = 1f - alpha
+    return Color(
+        red = (this.red * alpha) + (background.red * inverse),
+        green = (this.green * alpha) + (background.green * inverse),
+        blue = (this.blue * alpha) + (background.blue * inverse),
+        alpha = 1f
+    )
 }

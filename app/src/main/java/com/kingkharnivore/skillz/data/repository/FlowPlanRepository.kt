@@ -23,20 +23,36 @@ class FlowPlanRepository @Inject constructor(
     suspend fun createFlowPlan(
         title: String,
         tagId: Long?,
-        isSoftMode: Boolean
+        isSoftMode: Boolean,
+        targetMinutes: Int?,
+        launchWithSurge: Boolean
     ): Long {
+        val normalizedTargetMinutes = targetMinutes?.takeIf { it > 0 }
+        val normalizedLaunchWithSurge =
+            !isSoftMode && normalizedTargetMinutes != null && launchWithSurge
+
         return flowPlanDao.insertFlowPlan(
             FlowPlanEntity(
                 title = title.trim(),
                 tagId = tagId,
-                isSoftMode = isSoftMode
+                isSoftMode = isSoftMode,
+                targetMinutes = normalizedTargetMinutes,
+                launchWithSurge = normalizedLaunchWithSurge
             )
         )
     }
 
     suspend fun updateFlowPlan(plan: FlowPlanEntity) {
+        val normalizedTargetMinutes = plan.targetMinutes?.takeIf { it > 0 }
+        val normalizedLaunchWithSurge =
+            !plan.isSoftMode && normalizedTargetMinutes != null && plan.launchWithSurge
+
         flowPlanDao.updateFlowPlan(
-            plan.copy(updatedAt = System.currentTimeMillis())
+            plan.copy(
+                targetMinutes = normalizedTargetMinutes,
+                launchWithSurge = normalizedLaunchWithSurge,
+                updatedAt = System.currentTimeMillis()
+            )
         )
     }
 

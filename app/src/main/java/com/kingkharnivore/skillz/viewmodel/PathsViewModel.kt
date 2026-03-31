@@ -4,11 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.model.entity.FlowPlanEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
+import com.kingkharnivore.skillz.data.repository.ArcPlanRepository
 import com.kingkharnivore.skillz.data.repository.FlowPlanRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.model.state.paths.PathsPrimaryTab
 import com.kingkharnivore.skillz.model.state.paths.PathsTimeLens
 import com.kingkharnivore.skillz.model.state.paths.PathsUiState
+import com.kingkharnivore.skillz.model.ui.ArcPlanListItemUiModel
 import com.kingkharnivore.skillz.model.ui.FlowPlanListItemUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +25,7 @@ import javax.inject.Inject
 @HiltViewModel
 class PathsViewModel @Inject constructor(
     private val flowPlanRepository: FlowPlanRepository,
+    private val arcPlanRepository: ArcPlanRepository,
     private val journeyRepository: JourneyRepository
 ) : ViewModel() {
 
@@ -53,14 +56,22 @@ class PathsViewModel @Inject constructor(
         title: String,
         tagName: String,
         isSoftMode: Boolean,
+        targetMinutesText: String,
+        launchWithSurge: Boolean,
         onSaved: () -> Unit = {}
     ) {
         viewModelScope.launch {
             val trimmedTitle = title.trim()
             val trimmedTag = tagName.trim()
+            val parsedTargetMinutes = targetMinutesText.trim().toIntOrNull()
 
             if (trimmedTitle.isBlank()) {
                 _uiState.update { it.copy(errorMessage = "Title is required.") }
+                return@launch
+            }
+
+            if (parsedTargetMinutes != null && parsedTargetMinutes <= 0) {
+                _uiState.update { it.copy(errorMessage = "Target minutes must be greater than 0.") }
                 return@launch
             }
 
@@ -77,16 +88,13 @@ class PathsViewModel @Inject constructor(
                 flowPlanRepository.createFlowPlan(
                     title = trimmedTitle,
                     tagId = tagId,
-                    isSoftMode = isSoftMode
+                    isSoftMode = isSoftMode,
+                    targetMinutes = parsedTargetMinutes,
+                    launchWithSurge = launchWithSurge
                 )
 
                 isSaving.value = false
-                _uiState.update {
-                    it.copy(
-                        isSaving = false,
-                        errorMessage = null
-                    )
-                }
+                _uiState.update { it.copy(isSaving = false, errorMessage = null) }
                 onSaved()
             } catch (e: Exception) {
                 isSaving.value = false
@@ -95,28 +103,6 @@ class PathsViewModel @Inject constructor(
                         isSaving = false,
                         errorMessage = e.message ?: "Failed to save planned flow."
                     )
-                }
-            }
-        }
-    }
-
-    fun onFlowPlanLaunched(planId: Long) {
-        viewModelScope.launch {
-            try {
-                flowPlanRepository.markLaunched(planId)
-            } catch (_: Exception) {
-                // Launch should still continue even if stat tracking fails.
-            }
-        }
-    }
-
-    fun setFlowPlanPinned(planId: Long, pinned: Boolean) {
-        viewModelScope.launch {
-            try {
-                flowPlanRepository.setPinned(planId, pinned)
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(errorMessage = e.message ?: "Failed to update pin state.")
                 }
             }
         }
@@ -158,15 +144,68 @@ class PathsViewModel @Inject constructor(
         }
     }
 
+    fun setFlowPlanPinned(planId: Long, pinned: Boolean) {
+        viewModelScope.launch {
+            try {
+                flowPlanRepository.setPinned(planId, pinned)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(errorMessage = e.message ?: "Failed to update pin state.")
+                }
+            }
+        }
+    }
+
+    fun onFlowPlanLaunched(planId: Long) {
+        viewModelScope.launch {
+            try {
+                flowPlanRepository.markLaunched(planId)
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    fun addArcToStudio(arcPlanId: Long) {
+        viewModelScope.launch {
+            try {
+                arcPlanRepository.setInStudio(arcPlanId, true)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(errorMessage = e.message ?: "Failed to add arc to Studio.")
+                }
+            }
+        }
+    }
+
+    fun removeArcFromStudio(arcPlanId: Long) {
+        viewModelScope.launch {
+            try {
+                arcPlanRepository.setInStudio(arcPlanId, false)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(errorMessage = e.message ?: "Failed to remove arc from Studio.")
+                }
+            }
+        }
+    }
+
     private fun observePaths() {
         viewModelScope.launch {
             combine(
                 combine(
                     flowPlanRepository.getActiveFlowPlans(),
                     flowPlanRepository.getArchivedFlowPlans(),
+                    arcPlanRepository.getStudioArcPlans(),
+                    arcPlanRepository.getActiveArcPlans(),
                     journeyRepository.getAllTags()
-                ) { activeFlowPlans, dreamFlowPlans, tags ->
-                    Triple(activeFlowPlans, dreamFlowPlans, tags)
+                ) { activeFlowPlans, dreamFlowPlans, studioArcPlans, activeArcPlans, tags ->
+                    DataBundle(
+                        activeFlowPlans = activeFlowPlans,
+                        dreamFlowPlans = dreamFlowPlans,
+                        studioArcPlans = studioArcPlans,
+                        activeArcPlans = activeArcPlans,
+                        tags = tags
+                    )
                 },
                 combine(
                     selectedPrimaryTab,
@@ -175,9 +214,11 @@ class PathsViewModel @Inject constructor(
                 ) { primaryTab, timeLens, saving ->
                     Triple(primaryTab, timeLens, saving)
                 }
-            ) { dataTriple, uiTriple ->
-                val (activeFlowPlans, dreamFlowPlans, tags) = dataTriple
-                val (primaryTab, timeLens, saving) = uiTriple
+            ) { data, uiBits ->
+                val (primaryTab, timeLens, saving) = uiBits
+
+                val studioIds = data.studioArcPlans.map { it.id }.toSet()
+                val nonStudioArcPlans = data.activeArcPlans.filterNot { it.id in studioIds }
 
                 PathsUiState(
                     isLoading = false,
@@ -185,9 +226,11 @@ class PathsViewModel @Inject constructor(
                     errorMessage = _uiState.value.errorMessage,
                     selectedPrimaryTab = primaryTab,
                     selectedTimeLens = timeLens,
-                    flowPlans = activeFlowPlans.toUiModels(tags),
-                    dreamFlowPlans = dreamFlowPlans.toUiModels(tags),
-                    tags = tags.toTagUiModels()
+                    flowPlans = data.activeFlowPlans.toFlowUiModels(data.tags),
+                    dreamFlowPlans = data.dreamFlowPlans.toFlowUiModels(data.tags),
+                    studioArcPlans = data.studioArcPlans.toArcUiModels(),
+                    arcPlans = nonStudioArcPlans.toArcUiModels(),
+                    tags = data.tags.toTagUiModels()
                 )
             }
                 .catch { e ->
@@ -205,7 +248,7 @@ class PathsViewModel @Inject constructor(
         }
     }
 
-    private fun List<FlowPlanEntity>.toUiModels(
+    private fun List<FlowPlanEntity>.toFlowUiModels(
         tags: List<TagEntity>
     ): List<FlowPlanListItemUiModel> {
         val tagNameById = tags.associate { it.id to it.name }
@@ -217,6 +260,8 @@ class PathsViewModel @Inject constructor(
                 tagId = plan.tagId,
                 tagName = plan.tagId?.let { tagNameById[it] }.orEmpty(),
                 isSoftMode = plan.isSoftMode,
+                targetMinutes = plan.targetMinutes,
+                launchWithSurge = plan.launchWithSurge,
                 pinned = plan.pinned,
                 launchCount = plan.launchCount,
                 lastLaunchedAt = plan.lastLaunchedAt
@@ -224,6 +269,38 @@ class PathsViewModel @Inject constructor(
         }
     }
 
+    private fun List<com.kingkharnivore.skillz.data.model.entity.ArcPlanEntity>.toArcUiModels():
+            List<ArcPlanListItemUiModel> =
+        map { plan ->
+            ArcPlanListItemUiModel(
+                id = plan.id,
+                title = plan.title,
+                isInStudio = plan.isInStudio,
+                launchCount = plan.launchCount,
+                lastLaunchedAt = plan.lastLaunchedAt
+            )
+        }
+
     private fun List<TagEntity>.toTagUiModels(): List<TagUiModel> =
         map { TagUiModel(id = it.id, name = it.name) }
+
+    private data class DataBundle(
+        val activeFlowPlans: List<FlowPlanEntity>,
+        val dreamFlowPlans: List<FlowPlanEntity>,
+        val studioArcPlans: List<com.kingkharnivore.skillz.data.model.entity.ArcPlanEntity>,
+        val activeArcPlans: List<com.kingkharnivore.skillz.data.model.entity.ArcPlanEntity>,
+        val tags: List<TagEntity>
+    )
+
+    fun deleteArcPlan(arcPlanId: Long) {
+        viewModelScope.launch {
+            try {
+                arcPlanRepository.deleteArcPlanById(arcPlanId)
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(errorMessage = e.message ?: "Failed to delete arc.")
+                }
+            }
+        }
+    }
 }
