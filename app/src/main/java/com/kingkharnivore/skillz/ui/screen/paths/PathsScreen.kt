@@ -66,9 +66,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.state.paths.PathsPrimaryTab
 import com.kingkharnivore.skillz.model.state.paths.PathsTimeLens
 import com.kingkharnivore.skillz.model.state.paths.PathsUiState
@@ -163,6 +171,23 @@ private fun PathsScreenContent(
     onOpenArc: (Long) -> Unit,
     onDeleteArc: (Long) -> Unit,
 ) {
+    val loadingDescription = stringResource(R.string.paths_loading)
+    val emptyFlowsTitle = stringResource(R.string.paths_empty_flows_title)
+    val emptyFlowsBody = stringResource(R.string.paths_empty_flows_body)
+    val planFlowText = stringResource(R.string.paths_plan_flow)
+    val plannedFlowsTitle = stringResource(R.string.paths_planned_flows_title)
+    val plannedFlowsSubtitle = stringResource(R.string.paths_planned_flows_subtitle)
+    val emptyArcsTitle = stringResource(R.string.paths_empty_arcs_title)
+    val emptyArcsBody = stringResource(R.string.paths_empty_arcs_body)
+    val planArcText = stringResource(R.string.paths_plan_arc)
+    val studioTitle = stringResource(R.string.paths_studio_title)
+    val studioSubtitle = stringResource(R.string.paths_studio_subtitle)
+    val suggestedRoutesTitle = stringResource(R.string.paths_suggested_routes_title)
+    val suggestedRoutesSubtitle = stringResource(R.string.paths_suggested_routes_subtitle)
+    val yourArcsTitle = stringResource(R.string.paths_your_arcs_title)
+    val yourArcsSubtitle = stringResource(R.string.paths_your_arcs_subtitle)
+    val emptyMoreArcsBody = stringResource(R.string.paths_empty_more_arcs_body)
+
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing
             .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
@@ -192,7 +217,11 @@ private fun PathsScreenContent(
                                 .padding(top = 32.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator()
+                            CircularProgressIndicator(
+                                modifier = Modifier.semantics {
+                                    contentDescription = loadingDescription
+                                }
+                            )
                         }
                     }
                 }
@@ -216,9 +245,9 @@ private fun PathsScreenContent(
                                         modifier = Modifier.size(28.dp)
                                     )
                                 },
-                                title = "No planned flows yet",
-                                body = "Save activities so they’re always ready to begin.",
-                                cta = "Plan Flow",
+                                title = emptyFlowsTitle,
+                                body = emptyFlowsBody,
+                                cta = planFlowText,
                                 onClick = onPlanFlowClick
                             )
                         }
@@ -226,8 +255,8 @@ private fun PathsScreenContent(
                         if (uiState.flowPlans.isNotEmpty()) {
                             item {
                                 SectionHeader(
-                                    title = "Planned Flows",
-                                    subtitle = "Ready to shape into action"
+                                    title = plannedFlowsTitle,
+                                    subtitle = plannedFlowsSubtitle
                                 )
                             }
 
@@ -236,7 +265,7 @@ private fun PathsScreenContent(
                                     onClick = onPlanFlowClick,
                                     shape = RoundedCornerShape(999.dp)
                                 ) {
-                                    Text("Plan Flow")
+                                    Text(planFlowText)
                                 }
                             }
 
@@ -284,9 +313,9 @@ private fun PathsScreenContent(
                                         modifier = Modifier.size(28.dp)
                                     )
                                 },
-                                title = "No planned arcs yet",
-                                body = "Build a guided sequence of planned flows so the next step is always ready.",
-                                cta = "Plan Arc",
+                                title = emptyArcsTitle,
+                                body = emptyArcsBody,
+                                cta = planArcText,
                                 onClick = onPlanArcClick
                             )
                         }
@@ -294,8 +323,8 @@ private fun PathsScreenContent(
                         if (uiState.studioArcPlans.isNotEmpty()) {
                             item {
                                 SectionHeader(
-                                    title = "Studio",
-                                    subtitle = "Routes you keep close"
+                                    title = studioTitle,
+                                    subtitle = studioSubtitle
                                 )
                             }
 
@@ -310,8 +339,8 @@ private fun PathsScreenContent(
 
                         item {
                             SectionHeader(
-                                title = "Suggested Routes",
-                                subtitle = "Thoughtful routines to adapt into your own life"
+                                title = suggestedRoutesTitle,
+                                subtitle = suggestedRoutesSubtitle
                             )
                         }
 
@@ -327,8 +356,8 @@ private fun PathsScreenContent(
 
                         item {
                             SectionHeader(
-                                title = "Your Arcs",
-                                subtitle = "Routes waiting to be lived"
+                                title = yourArcsTitle,
+                                subtitle = yourArcsSubtitle
                             )
                         }
 
@@ -337,7 +366,7 @@ private fun PathsScreenContent(
                                 onClick = onPlanArcClick,
                                 shape = RoundedCornerShape(999.dp)
                             ) {
-                                Text("Plan Arc")
+                                Text(planArcText)
                             }
                         }
 
@@ -349,7 +378,7 @@ private fun PathsScreenContent(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Text(
-                                        text = "No additional arcs yet. Add one to Studio once you find a route you return to often.",
+                                        text = emptyMoreArcsBody,
                                         modifier = Modifier.padding(16.dp),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
@@ -394,6 +423,31 @@ private fun PlanFlowSheet(
     var launchWithSurge by rememberSaveable { mutableStateOf(false) }
     val chipListState = rememberLazyListState()
 
+    val selectedText = stringResource(R.string.paths_selected)
+    val notSelectedText = stringResource(R.string.paths_not_selected)
+    val softFlowSwitchA11y = stringResource(R.string.paths_soft_flow_switch_a11y)
+    val launchWithSurgeSwitchA11y = stringResource(R.string.paths_launch_with_surge_switch_a11y)
+    val onText = stringResource(R.string.paths_on)
+    val offText = stringResource(R.string.paths_off)
+    val planFlowSheetTitle = stringResource(R.string.paths_plan_flow_sheet_title)
+    val planFlowSheetSubtitle = stringResource(R.string.paths_plan_flow_sheet_subtitle)
+    val titleLabel = stringResource(R.string.paths_title_label)
+    val titlePlaceholder = stringResource(R.string.paths_title_placeholder)
+    val journeyTagLabel = stringResource(R.string.paths_journey_tag_label)
+    val journeyTagPlaceholder = stringResource(R.string.paths_journey_tag_placeholder)
+    val recentTagsText = stringResource(R.string.paths_recent_tags)
+    val softFlowTitle = stringResource(R.string.paths_soft_flow_title)
+    val softFlowBody = stringResource(R.string.paths_soft_flow_body)
+    val targetMinutesLabel = stringResource(R.string.paths_target_minutes_label)
+    val targetMinutesPlaceholder = stringResource(R.string.paths_target_minutes_placeholder)
+    val launchWithSurgeTitle = stringResource(R.string.paths_launch_with_surge_title)
+    val launchWithSurgeDisabledSoft = stringResource(R.string.paths_launch_with_surge_disabled_soft)
+    val launchWithSurgeDisabledNoTarget = stringResource(R.string.paths_launch_with_surge_disabled_no_target)
+    val launchWithSurgeEnabledBody = stringResource(R.string.paths_launch_with_surge_enabled_body)
+    val cancelText = stringResource(R.string.paths_cancel)
+    val savingText = stringResource(R.string.paths_saving)
+    val saveText = stringResource(R.string.paths_save)
+
     val hasTargetMinutes = targetMinutesText.trim().isNotBlank()
     val surgeEnabled = !isSoftMode && hasTargetMinutes
 
@@ -410,13 +464,13 @@ private fun PlanFlowSheet(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
-                text = "Plan Flow",
+                text = planFlowSheetTitle,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold
             )
 
             Text(
-                text = "Save an activity so it’s always ready to begin.",
+                text = planFlowSheetSubtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
             )
@@ -425,8 +479,8 @@ private fun PlanFlowSheet(
                 value = title,
                 onValueChange = { title = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Title") },
-                placeholder = { Text("Deep Work, Guitar Practice, Journal…") },
+                label = { Text(titleLabel) },
+                placeholder = { Text(titlePlaceholder) },
                 singleLine = true
             )
 
@@ -434,14 +488,14 @@ private fun PlanFlowSheet(
                 value = tagName,
                 onValueChange = { tagName = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Journey Tag") },
-                placeholder = { Text("Writing, Music, Fitness…") },
+                label = { Text(journeyTagLabel) },
+                placeholder = { Text(journeyTagPlaceholder) },
                 singleLine = true
             )
 
             if (tags.isNotEmpty()) {
                 Text(
-                    text = "Recent Tags",
+                    text = recentTagsText,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
                 )
@@ -455,10 +509,21 @@ private fun PlanFlowSheet(
                     item {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             tags.take(3).forEach { tag ->
+                                val chipA11y = stringResource(
+                                    R.string.paths_recent_tag_chip_a11y,
+                                    tag.name
+                                )
+                                val chipState = if (tagName == tag.name) selectedText else notSelectedText
+
                                 FilterChip(
                                     selected = tagName == tag.name,
                                     onClick = { tagName = tag.name },
-                                    label = { Text(tag.name) }
+                                    label = { Text(tag.name) },
+                                    modifier = Modifier.semantics {
+                                        role = Role.Button
+                                        contentDescription = chipA11y
+                                        stateDescription = chipState
+                                    }
                                 )
                             }
                         }
@@ -468,10 +533,21 @@ private fun PlanFlowSheet(
                         item {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 tags.drop(3).take(3).forEach { tag ->
+                                    val chipA11y = stringResource(
+                                        R.string.paths_recent_tag_chip_a11y,
+                                        tag.name
+                                    )
+                                    val chipState = if (tagName == tag.name) selectedText else notSelectedText
+
                                     FilterChip(
                                         selected = tagName == tag.name,
                                         onClick = { tagName = tag.name },
-                                        label = { Text(tag.name) }
+                                        label = { Text(tag.name) },
+                                        modifier = Modifier.semantics {
+                                            role = Role.Button
+                                            contentDescription = chipA11y
+                                            stateDescription = chipState
+                                        }
                                     )
                                 }
                             }
@@ -492,11 +568,11 @@ private fun PlanFlowSheet(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Soft Flow",
+                            text = softFlowTitle,
                             style = MaterialTheme.typography.titleSmall
                         )
                         Text(
-                            text = "Save this as a gentler, low-pressure activity.",
+                            text = softFlowBody,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
                         )
@@ -506,6 +582,10 @@ private fun PlanFlowSheet(
                         onCheckedChange = {
                             isSoftMode = it
                             if (it) launchWithSurge = false
+                        },
+                        modifier = Modifier.semantics {
+                            contentDescription = softFlowSwitchA11y
+                            stateDescription = if (isSoftMode) onText else offText
                         }
                     )
                 }
@@ -515,8 +595,8 @@ private fun PlanFlowSheet(
                 value = targetMinutesText,
                 onValueChange = { targetMinutesText = it.filter(Char::isDigit) },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Target Minutes") },
-                placeholder = { Text("25") },
+                label = { Text(targetMinutesLabel) },
+                placeholder = { Text(targetMinutesPlaceholder) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
@@ -533,14 +613,14 @@ private fun PlanFlowSheet(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Launch with Surge",
+                            text = launchWithSurgeTitle,
                             style = MaterialTheme.typography.titleSmall
                         )
                         Text(
                             text = when {
-                                isSoftMode -> "Surge is unavailable for Soft flows."
-                                !hasTargetMinutes -> "Set target minutes to enable Surge."
-                                else -> "Open this flow with Surge armed by default."
+                                isSoftMode -> launchWithSurgeDisabledSoft
+                                !hasTargetMinutes -> launchWithSurgeDisabledNoTarget
+                                else -> launchWithSurgeEnabledBody
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
@@ -549,7 +629,11 @@ private fun PlanFlowSheet(
                     Switch(
                         checked = launchWithSurge,
                         onCheckedChange = { launchWithSurge = it },
-                        enabled = surgeEnabled
+                        enabled = surgeEnabled,
+                        modifier = Modifier.semantics {
+                            contentDescription = launchWithSurgeSwitchA11y
+                            stateDescription = if (launchWithSurge) onText else offText
+                        }
                     )
                 }
             }
@@ -566,7 +650,9 @@ private fun PlanFlowSheet(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                     enabled = !isSaving
-                ) { Text("Cancel") }
+                ) {
+                    Text(cancelText)
+                }
 
                 Button(
                     onClick = {
@@ -582,7 +668,7 @@ private fun PlanFlowSheet(
                     enabled = !isSaving,
                     shape = RoundedCornerShape(999.dp)
                 ) {
-                    Text(if (isSaving) "Saving..." else "Save")
+                    Text(if (isSaving) savingText else saveText)
                 }
             }
         }
@@ -591,6 +677,9 @@ private fun PlanFlowSheet(
 
 @Composable
 private fun PathsHeader() {
+    val title = stringResource(R.string.paths_title)
+    val body = stringResource(R.string.paths_header_body)
+
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -602,14 +691,14 @@ private fun PathsHeader() {
                 tint = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "Paths",
+                text = title,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.SemiBold
             )
         }
 
         Text(
-            text = "Prepare what you want ready to live next.",
+            text = body,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
         )
@@ -641,10 +730,23 @@ private fun DreamsSectionHeader(
     expanded: Boolean,
     onToggle: () -> Unit
 ) {
+    val countText = pluralStringResource(R.plurals.paths_dreams_count, count, count)
+    val headerA11y = stringResource(R.string.paths_dreams_header_a11y, countText)
+    val expandedText = stringResource(R.string.paths_expanded)
+    val collapsedText = stringResource(R.string.paths_collapsed)
+    val dreamsTitle = stringResource(R.string.paths_dreams_title)
+    val hideText = stringResource(R.string.paths_hide)
+    val showText = stringResource(R.string.paths_show)
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onToggle),
+            .clickable(onClick = onToggle)
+            .semantics {
+                role = Role.Button
+                contentDescription = headerA11y
+                stateDescription = if (expanded) expandedText else collapsedText
+            },
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceVariant
     ) {
@@ -666,19 +768,19 @@ private fun DreamsSectionHeader(
                     .padding(start = 10.dp)
             ) {
                 Text(
-                    text = "Dreams",
+                    text = dreamsTitle,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "$count ${if (count == 1) "flow" else "flows"} for someday",
+                    text = countText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f)
                 )
             }
 
             Text(
-                text = if (expanded) "Hide" else "Show",
+                text = if (expanded) hideText else showText,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold
@@ -698,10 +800,46 @@ private fun FlowPlanCard(
     var menuExpanded by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
+    val surgeText = stringResource(R.string.paths_surge)
+    val pinnedText = stringResource(R.string.paths_pinned)
+    val moreActionsText = stringResource(R.string.paths_more_actions)
+    val unpinText = stringResource(R.string.paths_unpin)
+    val pinText = stringResource(R.string.paths_pin)
+    val moveToDreamsText = stringResource(R.string.paths_move_to_dreams)
+    val deleteTitle = stringResource(R.string.paths_delete_planned_flow_title)
+    val deleteBody = stringResource(R.string.paths_delete_planned_flow_body)
+    val deleteText = stringResource(R.string.common_delete)
+    val cancelText = stringResource(R.string.common_cancel)
+    val notLaunchedYetText = stringResource(R.string.paths_not_launched_yet)
+    val softText = stringResource(R.string.paths_soft)
+
+    val meta = buildList {
+        if (plan.tagName.isNotBlank()) add(plan.tagName)
+        plan.targetMinutes?.let { add(stringResource(R.string.paths_minutes_compact, it)) }
+        if (plan.launchWithSurge) add(surgeText)
+    }.joinToString(" • ")
+
+    val launchText = if (plan.launchCount > 0) {
+        pluralStringResource(R.plurals.paths_launch_count, plan.launchCount, plan.launchCount)
+    } else {
+        notLaunchedYetText
+    }
+
+    val cardA11y = buildString {
+        append(plan.title)
+        if (meta.isNotBlank()) append(". $meta")
+        append(". $launchText")
+        if (plan.pinned) append(". $pinnedText")
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .semantics {
+                role = Role.Button
+                contentDescription = cardA11y
+            },
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -731,12 +869,6 @@ private fun FlowPlanCard(
                         fontWeight = FontWeight.SemiBold
                     )
 
-                    val meta = buildList {
-                        if (plan.tagName.isNotBlank()) add(plan.tagName)
-                        plan.targetMinutes?.let { add("${it}m") }
-                        if (plan.launchWithSurge) add("Surge")
-                    }.joinToString(" • ")
-
                     if (meta.isNotBlank()) {
                         Text(
                             text = meta,
@@ -749,16 +881,20 @@ private fun FlowPlanCard(
                 if (plan.pinned) {
                     Icon(
                         imageVector = Icons.Outlined.PushPin,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        contentDescription = pinnedText
                     )
                 }
 
                 Box {
-                    IconButton(onClick = { menuExpanded = true }) {
+                    IconButton(
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier.semantics {
+                            contentDescription = moreActionsText
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.Outlined.MoreVert,
-                            contentDescription = "More actions"
+                            contentDescription = null
                         )
                     }
 
@@ -767,7 +903,9 @@ private fun FlowPlanCard(
                         onDismissRequest = { menuExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text(if (plan.pinned) "Unpin" else "Pin") },
+                            text = {
+                                Text(if (plan.pinned) unpinText else pinText)
+                            },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Outlined.PushPin,
@@ -781,7 +919,7 @@ private fun FlowPlanCard(
                         )
 
                         DropdownMenuItem(
-                            text = { Text("Move to Dreams") },
+                            text = { Text(moveToDreamsText) },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Outlined.CloudQueue,
@@ -795,7 +933,7 @@ private fun FlowPlanCard(
                         )
 
                         DropdownMenuItem(
-                            text = { Text("Delete") },
+                            text = { Text(deleteText) },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Outlined.DeleteOutline,
@@ -812,10 +950,12 @@ private fun FlowPlanCard(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                plan.targetMinutes?.let { MiniBadge(text = "${it} min") }
+                plan.targetMinutes?.let {
+                    MiniBadge(text = stringResource(R.string.paths_minutes_short, it))
+                }
                 if (plan.launchWithSurge) {
                     MiniBadge(
-                        text = "Surge",
+                        text = surgeText,
                         icon = {
                             Icon(
                                 imageVector = Icons.Outlined.Speed,
@@ -826,18 +966,14 @@ private fun FlowPlanCard(
                     )
                 }
                 if (plan.isSoftMode) {
-                    MiniBadge(text = "Soft")
+                    MiniBadge(text = softText)
                 }
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
 
             Text(
-                text = if (plan.launchCount > 0) {
-                    "Launched ${plan.launchCount} ${if (plan.launchCount == 1) "time" else "times"}"
-                } else {
-                    "Not launched yet"
-                },
+                text = launchText,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
             )
@@ -847,18 +983,20 @@ private fun FlowPlanCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete planned flow?") },
-            text = { Text("This will permanently remove this planned flow.") },
+            title = { Text(deleteTitle) },
+            text = { Text(deleteBody) },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showDeleteDialog = false
                         onDelete()
                     }
-                ) { Text("Delete") }
+                ) { Text(deleteText) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(cancelText)
+                }
             }
         )
     }
@@ -873,8 +1011,34 @@ private fun DreamFlowPlanCard(
     var menuExpanded by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
+    val surgeText = stringResource(R.string.paths_surge)
+    val savedInDreamsText = stringResource(R.string.paths_saved_in_dreams)
+    val moreActionsText = stringResource(R.string.paths_more_actions)
+    val bringBackText = stringResource(R.string.paths_bring_back)
+    val deleteText = stringResource(R.string.common_delete)
+    val cancelText = stringResource(R.string.common_cancel)
+    val deleteTitle = stringResource(R.string.paths_delete_dream_flow_title)
+    val deleteBody = stringResource(R.string.paths_delete_dream_flow_body)
+    val softText = stringResource(R.string.paths_soft)
+
+    val meta = buildList {
+        if (plan.tagName.isNotBlank()) add(plan.tagName)
+        plan.targetMinutes?.let { add(stringResource(R.string.paths_minutes_compact, it)) }
+        if (plan.launchWithSurge) add(surgeText)
+    }.joinToString(" • ")
+
+    val cardA11y = buildString {
+        append(plan.title)
+        if (meta.isNotBlank()) append(". $meta")
+        append(". $savedInDreamsText")
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = cardA11y
+            },
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
@@ -904,12 +1068,6 @@ private fun DreamFlowPlanCard(
                         fontWeight = FontWeight.SemiBold
                     )
 
-                    val meta = buildList {
-                        if (plan.tagName.isNotBlank()) add(plan.tagName)
-                        plan.targetMinutes?.let { add("${it}m") }
-                        if (plan.launchWithSurge) add("Surge")
-                    }.joinToString(" • ")
-
                     if (meta.isNotBlank()) {
                         Text(
                             text = meta,
@@ -920,10 +1078,15 @@ private fun DreamFlowPlanCard(
                 }
 
                 Box {
-                    IconButton(onClick = { menuExpanded = true }) {
+                    IconButton(
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier.semantics {
+                            contentDescription = moreActionsText
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.Outlined.MoreVert,
-                            contentDescription = "More actions"
+                            contentDescription = null
                         )
                     }
 
@@ -932,7 +1095,7 @@ private fun DreamFlowPlanCard(
                         onDismissRequest = { menuExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Bring Back") },
+                            text = { Text(bringBackText) },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Outlined.Unarchive,
@@ -946,7 +1109,7 @@ private fun DreamFlowPlanCard(
                         )
 
                         DropdownMenuItem(
-                            text = { Text("Delete") },
+                            text = { Text(deleteText) },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Outlined.DeleteOutline,
@@ -963,10 +1126,12 @@ private fun DreamFlowPlanCard(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                plan.targetMinutes?.let { MiniBadge(text = "${it} min") }
+                plan.targetMinutes?.let {
+                    MiniBadge(text = stringResource(R.string.paths_minutes_short, it))
+                }
                 if (plan.launchWithSurge) {
                     MiniBadge(
-                        text = "Surge",
+                        text = surgeText,
                         icon = {
                             Icon(
                                 imageVector = Icons.Outlined.Speed,
@@ -977,14 +1142,14 @@ private fun DreamFlowPlanCard(
                     )
                 }
                 if (plan.isSoftMode) {
-                    MiniBadge(text = "Soft")
+                    MiniBadge(text = softText)
                 }
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
 
             Text(
-                text = "Saved in Dreams",
+                text = savedInDreamsText,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
             )
@@ -994,18 +1159,20 @@ private fun DreamFlowPlanCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete dream flow?") },
-            text = { Text("This will permanently remove this flow from Dreams.") },
+            title = { Text(deleteTitle) },
+            text = { Text(deleteBody) },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showDeleteDialog = false
                         onDelete()
                     }
-                ) { Text("Delete") }
+                ) { Text(deleteText) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(cancelText)
+                }
             }
         )
     }
@@ -1019,10 +1186,30 @@ private fun StudioArcCard(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
+    val studioTitle = stringResource(R.string.paths_studio_title)
+    val moreActionsText = stringResource(R.string.paths_more_actions)
+    val removeFromStudioText = stringResource(R.string.paths_remove_from_studio)
+
+    val launchText = if (arc.launchCount > 0) {
+        pluralStringResource(R.plurals.paths_launch_count, arc.launchCount, arc.launchCount)
+    } else {
+        stringResource(R.string.paths_ready_to_return)
+    }
+
+    val cardA11y = stringResource(
+        R.string.paths_studio_arc_card_a11y,
+        arc.title,
+        launchText
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .semantics {
+                role = Role.Button
+                contentDescription = cardA11y
+            },
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -1057,7 +1244,7 @@ private fun StudioArcCard(
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
-                            text = "Studio",
+                            text = studioTitle,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary
@@ -1068,10 +1255,15 @@ private fun StudioArcCard(
                 Spacer(modifier = Modifier.weight(1f))
 
                 Box {
-                    IconButton(onClick = { menuExpanded = true }) {
+                    IconButton(
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier.semantics {
+                            contentDescription = moreActionsText
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.Outlined.MoreVert,
-                            contentDescription = "More actions"
+                            contentDescription = null
                         )
                     }
 
@@ -1080,7 +1272,7 @@ private fun StudioArcCard(
                         onDismissRequest = { menuExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Remove from Studio") },
+                            text = { Text(removeFromStudioText) },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Outlined.StarBorder,
@@ -1103,11 +1295,7 @@ private fun StudioArcCard(
             )
 
             Text(
-                text = if (arc.launchCount > 0) {
-                    "Launched ${arc.launchCount} ${if (arc.launchCount == 1) "time" else "times"}"
-                } else {
-                    "Ready to return to"
-                },
+                text = launchText,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
             )
@@ -1125,10 +1313,34 @@ private fun ArcLibraryCard(
     var menuExpanded by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
+    val moreActionsText = stringResource(R.string.paths_more_actions)
+    val addToStudioText = stringResource(R.string.paths_add_to_studio)
+    val deleteText = stringResource(R.string.common_delete)
+    val cancelText = stringResource(R.string.common_cancel)
+    val deleteTitle = stringResource(R.string.paths_delete_arc_title)
+    val deleteBody = stringResource(R.string.paths_delete_arc_body)
+    val arcLibraryBody = stringResource(R.string.paths_arc_library_body)
+
+    val launchText = if (arc.launchCount > 0) {
+        pluralStringResource(R.plurals.paths_launch_count, arc.launchCount, arc.launchCount)
+    } else {
+        stringResource(R.string.paths_not_launched_yet)
+    }
+
+    val cardA11y = stringResource(
+        R.string.paths_arc_library_card_a11y,
+        arc.title,
+        launchText
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .semantics {
+                role = Role.Button
+                contentDescription = cardA11y
+            },
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -1158,21 +1370,22 @@ private fun ArcLibraryCard(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = if (arc.launchCount > 0) {
-                            "Launched ${arc.launchCount} ${if (arc.launchCount == 1) "time" else "times"}"
-                        } else {
-                            "Not launched yet"
-                        },
+                        text = launchText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
                     )
                 }
 
                 Box {
-                    IconButton(onClick = { menuExpanded = true }) {
+                    IconButton(
+                        onClick = { menuExpanded = true },
+                        modifier = Modifier.semantics {
+                            contentDescription = moreActionsText
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.Outlined.MoreVert,
-                            contentDescription = "More actions"
+                            contentDescription = null
                         )
                     }
 
@@ -1181,7 +1394,7 @@ private fun ArcLibraryCard(
                         onDismissRequest = { menuExpanded = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Add to Studio") },
+                            text = { Text(addToStudioText) },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Outlined.StarBorder,
@@ -1195,7 +1408,7 @@ private fun ArcLibraryCard(
                         )
 
                         DropdownMenuItem(
-                            text = { Text("Delete") },
+                            text = { Text(deleteText) },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Outlined.DeleteOutline,
@@ -1214,7 +1427,7 @@ private fun ArcLibraryCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
 
             Text(
-                text = "Open to review the route before you begin.",
+                text = arcLibraryBody,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f)
             )
@@ -1224,8 +1437,8 @@ private fun ArcLibraryCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete arc?") },
-            text = { Text("This will permanently remove this arc.") },
+            title = { Text(deleteTitle) },
+            text = { Text(deleteBody) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -1233,12 +1446,12 @@ private fun ArcLibraryCard(
                         onDelete()
                     }
                 ) {
-                    Text("Delete")
+                    Text(deleteText)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text(cancelText)
                 }
             }
         )
@@ -1253,10 +1466,29 @@ private fun SuggestedRouteCard(
     approxMinutes: Int?,
     onClick: () -> Unit
 ) {
+    val tapToPreviewText = stringResource(R.string.paths_tap_to_preview)
+
+    val meta = buildList {
+        approxMinutes?.let { add(stringResource(R.string.paths_approx_minutes, it)) }
+        add(tapToPreviewText)
+    }.joinToString(" • ")
+
+    val cardA11y = stringResource(
+        R.string.paths_suggested_route_card_a11y,
+        category,
+        title,
+        subtitle,
+        meta
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .semantics {
+                role = Role.Button
+                contentDescription = cardA11y
+            },
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -1291,11 +1523,6 @@ private fun SuggestedRouteCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
             )
-
-            val meta = buildList {
-                approxMinutes?.let { add("~${it} min") }
-                add("Tap to preview")
-            }.joinToString(" • ")
 
             Text(
                 text = meta,
@@ -1343,13 +1570,13 @@ private fun PrimaryPathsTabs(
         ) {
             SegmentedChoice(
                 modifier = Modifier.weight(1f),
-                text = "Flows",
+                text = stringResource(R.string.paths_tab_flows),
                 selected = selected == PathsPrimaryTab.FLOWS,
                 onClick = { onSelected(PathsPrimaryTab.FLOWS) }
             )
             SegmentedChoice(
                 modifier = Modifier.weight(1f),
-                text = "Arcs",
+                text = stringResource(R.string.paths_tab_arcs),
                 selected = selected == PathsPrimaryTab.ARCS,
                 onClick = { onSelected(PathsPrimaryTab.ARCS) }
             )
@@ -1373,8 +1600,15 @@ private fun SegmentedChoice(
     selected: Boolean,
     onClick: () -> Unit
 ) {
+    val selectedText = stringResource(R.string.paths_selected)
+    val notSelectedText = stringResource(R.string.paths_not_selected)
+
     Surface(
-        modifier = modifier,
+        modifier = modifier.semantics {
+            role = Role.Tab
+            contentDescription = text
+            stateDescription = if (selected) selectedText else notSelectedText
+        },
         onClick = onClick,
         shape = RoundedCornerShape(999.dp),
         color = if (selected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant,
@@ -1446,21 +1680,29 @@ private fun EmptyPathsState(
             Button(
                 onClick = onClick,
                 shape = RoundedCornerShape(999.dp)
-            ) { Text(cta) }
+            ) {
+                Text(cta)
+            }
         }
     }
 }
 
 @Composable
 private fun ErrorPathsState(message: String?) {
+    val fallback = stringResource(R.string.paths_error_generic)
+
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.errorContainer,
         contentColor = MaterialTheme.colorScheme.onErrorContainer,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = message ?: fallback
+            }
     ) {
         Text(
-            text = message ?: "Something went wrong",
+            text = message ?: fallback,
             modifier = Modifier.padding(16.dp),
             style = MaterialTheme.typography.bodyMedium
         )

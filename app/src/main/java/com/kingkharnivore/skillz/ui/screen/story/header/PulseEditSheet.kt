@@ -3,6 +3,7 @@ package com.kingkharnivore.skillz.ui.screen.story.header
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
@@ -23,11 +24,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.ui.screen.story.PulseEditState
 import com.kingkharnivore.skillz.viewmodel.TagUiModel
 
@@ -40,32 +48,46 @@ fun PulseEditSheet(
 ) {
     val pulse = editState.editingPulse.value ?: return
 
+    val paneTitle = stringResource(R.string.pulse_edit_sheet_pane_title)
+    val titleText = stringResource(R.string.pulse_edit_sheet_title)
+    val subtitleText = stringResource(R.string.pulse_edit_sheet_subtitle)
+    val descriptionLabel = stringResource(R.string.pulse_edit_sheet_description_label)
+    val descriptionPlaceholder = stringResource(R.string.pulse_edit_sheet_description_placeholder)
+    val cancelText = stringResource(R.string.common_cancel)
+    val saveText = stringResource(R.string.common_save)
+    val headerA11y = stringResource(R.string.pulse_edit_sheet_header_a11y)
+
     ModalBottomSheet(
         onDismissRequest = { editState.stopEditing() }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .semantics { this.paneTitle = paneTitle }
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clearAndSetSemantics {
+                        contentDescription = headerA11y
+                    },
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.fillMaxWidth()
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
-                        text = "Edit Pulse",
+                        text = titleText,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "Refine the moment, tag, or meaning.",
+                        text = subtitleText,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.88f)
                     )
@@ -90,12 +112,12 @@ fun PulseEditSheet(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 5,
                 maxLines = 8,
-                label = { Text("Description") },
-                placeholder = { Text("Refine the insight, feeling, or learning…") },
+                label = { Text(descriptionLabel) },
+                placeholder = { Text(descriptionPlaceholder) },
                 shape = RoundedCornerShape(20.dp)
             )
 
-            androidx.compose.foundation.layout.Row(
+            Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -103,7 +125,7 @@ fun PulseEditSheet(
                     onClick = { editState.stopEditing() },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Cancel")
+                    Text(cancelText)
                 }
 
                 Button(
@@ -121,7 +143,7 @@ fun PulseEditSheet(
                     modifier = Modifier.weight(1.2f),
                     shape = RoundedCornerShape(18.dp)
                 ) {
-                    Text("Save")
+                    Text(saveText)
                 }
             }
         }
@@ -133,6 +155,9 @@ private fun PulseEditTitleField(
     value: String,
     onValueChange: (String) -> Unit
 ) {
+    val labelText = stringResource(R.string.pulse_edit_title_label)
+    val placeholderText = stringResource(R.string.pulse_edit_title_placeholder)
+
     val colors = TextFieldDefaults.colors(
         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
@@ -144,7 +169,7 @@ private fun PulseEditTitleField(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Enter your title",
+            text = labelText,
             style = MaterialTheme.typography.labelLarge.copy(
                 letterSpacing = 0.6.sp,
                 fontWeight = FontWeight.Medium,
@@ -154,6 +179,7 @@ private fun PulseEditTitleField(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 10.dp)
+                .semantics { heading() }
         )
 
         TextField(
@@ -162,7 +188,7 @@ private fun PulseEditTitleField(
             modifier = Modifier.fillMaxWidth(),
             placeholder = {
                 Text(
-                    text = "What was the moment?",
+                    text = placeholderText,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleMedium.copy(
@@ -192,8 +218,19 @@ private fun PulseEditJourneyField(
     onTagClicked: (TagUiModel) -> Unit,
     onTagNameChange: (String) -> Unit
 ) {
+    val headingText = stringResource(
+        if (tags.size > 1) {
+            R.string.pulse_edit_journey_plural
+        } else {
+            R.string.pulse_edit_journey_singular
+        }
+    )
+    val fieldLabel = stringResource(R.string.pulse_edit_journey_field_label)
+    val placeholderText = stringResource(R.string.pulse_edit_journey_placeholder)
+    val suggestionsLabel = stringResource(R.string.pulse_edit_sheet_tag_suggestions)
+
     Text(
-        text = if (tags.size > 1) "Journeys" else "Journey",
+        text = headingText,
         style = MaterialTheme.typography.labelLarge.copy(
             letterSpacing = 0.6.sp,
             fontWeight = FontWeight.Medium,
@@ -203,20 +240,31 @@ private fun PulseEditJourneyField(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 10.dp)
+            .semantics { heading() }
     )
 
     val cleanTags = remember(tags) { tags.filter { it.name.isNotBlank() } }
 
     if (cleanTags.isNotEmpty()) {
         LazyRow(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    contentDescription = suggestionsLabel
+                },
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 6.dp)
         ) {
             items(items = cleanTags, key = { it.id }) { tag ->
+                val selectJourneyLabel =
+                    stringResource(R.string.pulse_edit_sheet_select_journey, tag.name)
+
                 AssistChip(
                     onClick = { onTagClicked(tag) },
-                    label = { Text(tag.name) }
+                    label = { Text(tag.name) },
+                    modifier = Modifier.semantics {
+                        contentDescription = selectJourneyLabel
+                    }
                 )
             }
         }
@@ -226,8 +274,8 @@ private fun PulseEditJourneyField(
         value = tagName,
         onValueChange = onTagNameChange,
         modifier = Modifier.fillMaxWidth(),
-        label = { Text("Journey") },
-        placeholder = { Text("Leave blank for untagged") },
+        label = { Text(fieldLabel) },
+        placeholder = { Text(placeholderText) },
         singleLine = true,
         shape = RoundedCornerShape(20.dp)
     )

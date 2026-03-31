@@ -22,9 +22,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.ui.Journey7dStatUiModel
 import com.kingkharnivore.skillz.utils.time.formatDuration
 
@@ -36,7 +43,6 @@ fun SagaJourneyRow(
 ) {
     val cs = MaterialTheme.colorScheme
 
-    // “Alive” tint without going loud — uses your palette (secondary)
     val accentAlpha = when (rank) {
         1 -> 0.28f
         2 -> 0.22f
@@ -44,8 +50,31 @@ fun SagaJourneyRow(
         else -> 0.14f
     }
 
+    val flowCountText = pluralStringResource(
+        R.plurals.saga_journey_row_flows_count,
+        stat.sessionsCount,
+        stat.sessionsCount
+    )
+    val durationText = formatDuration(stat.totalDurationMs)
+    val rankText = stringResource(R.string.saga_journey_row_rank, rank)
+    val metaText = stringResource(R.string.saga_journey_row_meta, flowCountText, durationText)
+    val scoreText = stringResource(R.string.saga_journey_row_score_value, stat.totalScore)
+    val scoreA11y = stringResource(R.string.saga_journey_row_score_a11y, stat.totalScore)
+    val rowA11y = stringResource(
+        R.string.saga_journey_row_a11y,
+        stat.tagName,
+        rank,
+        metaText,
+        stat.totalScore
+    )
+    val openDetailsLabel = stringResource(R.string.saga_journey_row_open_details)
+
     Surface(
         onClick = onClick,
+        modifier = Modifier.clearAndSetSemantics {
+            role = Role.Button
+            contentDescription = rowA11y
+        },
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 1.dp,
         color = cs.surfaceVariant,
@@ -57,8 +86,6 @@ fun SagaJourneyRow(
                 .padding(start = 12.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
-            // Left accent “spine” (replaces dull grey wash)
             Box(
                 modifier = Modifier
                     .width(6.dp)
@@ -71,14 +98,13 @@ fun SagaJourneyRow(
 
             Spacer(Modifier.width(12.dp))
 
-            // Rank badge (now vibrant + readable)
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = cs.secondary.copy(alpha = 0.14f),
                 border = BorderStroke(1.dp, cs.secondary.copy(alpha = 0.22f))
             ) {
                 Text(
-                    text = "#$rank",
+                    text = rankText,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
@@ -88,7 +114,6 @@ fun SagaJourneyRow(
 
             Spacer(Modifier.width(12.dp))
 
-            // Middle: title + meta
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -103,7 +128,7 @@ fun SagaJourneyRow(
                 )
 
                 Text(
-                    text = "${stat.sessionsCount} flow${if (stat.sessionsCount == 1) "" else "s"} • ${formatDuration(stat.totalDurationMs)}",
+                    text = metaText,
                     style = MaterialTheme.typography.labelSmall,
                     color = cs.onSurfaceVariant.copy(alpha = 0.78f),
                     maxLines = 1,
@@ -113,12 +138,14 @@ fun SagaJourneyRow(
 
             Spacer(Modifier.width(12.dp))
 
-            // Right: score “pill” + arrow
             Column(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Surface(
+                    modifier = Modifier.clearAndSetSemantics {
+                        contentDescription = scoreA11y
+                    },
                     shape = RoundedCornerShape(999.dp),
                     color = cs.secondary.copy(alpha = 0.12f),
                     border = BorderStroke(1.dp, cs.secondary.copy(alpha = 0.18f))
@@ -130,7 +157,7 @@ fun SagaJourneyRow(
                         Text("🔥", style = MaterialTheme.typography.bodyLarge)
                         Spacer(Modifier.width(6.dp))
                         Text(
-                            text = stat.totalScore.toString(),
+                            text = scoreText,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = cs.onSurface
@@ -140,7 +167,7 @@ fun SagaJourneyRow(
 
                 Icon(
                     imageVector = Icons.Default.ArrowForwardIos,
-                    contentDescription = null,
+                    contentDescription = openDetailsLabel,
                     modifier = Modifier.size(14.dp),
                     tint = cs.onSurfaceVariant.copy(alpha = 0.45f)
                 )

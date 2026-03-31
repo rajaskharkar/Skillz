@@ -26,9 +26,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.ui.screen.helpers.formatPeriodSubtitle
 import com.kingkharnivore.skillz.ui.screen.helpers.formatPeriodTitle
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
@@ -46,7 +55,14 @@ fun PeriodAndDateNavigator(
 ) {
     val nowMs = System.currentTimeMillis()
 
-    // Normalize anchors for correct comparisons (esp when switching period)
+    val previousLabel = stringResource(R.string.period_navigator_previous)
+    val nextLabel = stringResource(R.string.period_navigator_next)
+    val filtersA11yLabel = stringResource(R.string.period_navigator_period_filters)
+    val dateNavA11yLabel = stringResource(R.string.period_navigator_date_navigation)
+    val selectedLabel = stringResource(R.string.period_navigator_selected)
+    val notSelectedLabel = stringResource(R.string.period_navigator_not_selected)
+    val jumpToCurrentPeriodLabel = stringResource(R.string.period_navigator_jump_to_current_period)
+
     val normalizedAnchor = remember(period, anchorDayStartMs) {
         TimeWindowUtils.normalizeAnchor(anchorDayStartMs, period)
     }
@@ -70,15 +86,30 @@ fun PeriodAndDateNavigator(
     val canGoPrev = prevAnchor >= minAnchor
     val canGoNext = nextAnchor <= maxAnchor
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    val periodTitle = formatPeriodTitle(period, normalizedAnchor)
+    val periodSubtitle = formatPeriodSubtitle(period, normalizedAnchor)
+    val currentPeriodState = stringResource(
+        R.string.period_navigator_current_period,
+        periodTitle,
+        periodSubtitle
+    )
 
-        // Period chips
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
+                .semantics {
+                    contentDescription = filtersA11yLabel
+                }
         ) {
             listOf(StoryPeriod.DAY, StoryPeriod.WEEK, StoryPeriod.MONTH).forEach { p ->
+                val chipState = stringResource(
+                    R.string.period_navigator_filter_state,
+                    p.label,
+                    if (p == period) selectedLabel else notSelectedLabel
+                )
+
                 FilterChip(
                     selected = p == period,
                     onClick = { onPeriodSelected(p) },
@@ -94,14 +125,22 @@ fun PeriodAndDateNavigator(
                         containerColor = MaterialTheme.colorScheme.surface,
                         labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                     ),
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .semantics {
+                            contentDescription = p.label
+                            stateDescription = chipState
+                        }
                 )
             }
         }
 
-        // Date nav row
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    contentDescription = dateNavA11yLabel
+                },
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(
@@ -110,7 +149,7 @@ fun PeriodAndDateNavigator(
             ) {
                 Icon(
                     imageVector = Icons.Default.ArrowBackIosNew,
-                    contentDescription = "Previous",
+                    contentDescription = previousLabel,
                     tint = if (canGoPrev) {
                         MaterialTheme.colorScheme.onSurface
                     } else {
@@ -120,17 +159,22 @@ fun PeriodAndDateNavigator(
             }
 
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .clearAndSetSemantics {
+                        heading()
+                        contentDescription = currentPeriodState
+                    },
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = formatPeriodTitle(period, normalizedAnchor),
+                    text = periodTitle,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = formatPeriodSubtitle(period, normalizedAnchor),
+                    text = periodSubtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
                     textAlign = TextAlign.Center
@@ -143,7 +187,7 @@ fun PeriodAndDateNavigator(
             ) {
                 Icon(
                     imageVector = Icons.Default.ArrowForwardIos,
-                    contentDescription = "Next",
+                    contentDescription = nextLabel,
                     tint = if (canGoNext) {
                         MaterialTheme.colorScheme.onSurface
                     } else {
@@ -162,8 +206,19 @@ fun PeriodAndDateNavigator(
                     .padding(top = 6.dp),
                 horizontalArrangement = Arrangement.Center
             ) {
+                val label = when (period) {
+                    StoryPeriod.DAY -> stringResource(R.string.period_navigator_back_to_today)
+                    StoryPeriod.WEEK -> stringResource(R.string.period_navigator_back_to_this_week)
+                    StoryPeriod.MONTH -> stringResource(R.string.period_navigator_back_to_this_month)
+                }
+
                 Card(
                     onClick = onToday,
+                    modifier = Modifier.semantics {
+                        role = Role.Button
+                        contentDescription = jumpToCurrentPeriodLabel
+                        stateDescription = label
+                    },
                     shape = RoundedCornerShape(28.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     colors = CardDefaults.cardColors(
@@ -182,12 +237,6 @@ fun PeriodAndDateNavigator(
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
-
-                        val label = when (period) {
-                            StoryPeriod.DAY -> "Back to Today"
-                            StoryPeriod.WEEK -> "Back to This Week"
-                            StoryPeriod.MONTH -> "Back to This Month"
-                        }
 
                         Text(
                             text = label,

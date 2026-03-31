@@ -12,10 +12,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import com.kingkharnivore.skillz.ui.screen.HelpScreen
 import com.kingkharnivore.skillz.ui.screen.ScheduleBeamScreen
 import com.kingkharnivore.skillz.ui.screen.SkillzHomeScreen
 import com.kingkharnivore.skillz.ui.screen.flow.FlowScreen
-import com.kingkharnivore.skillz.ui.screen.help.HelpScreen
 import com.kingkharnivore.skillz.ui.screen.paths.arc.ArcDetailScreen
 import com.kingkharnivore.skillz.ui.screen.paths.arc.PlanArcScreen
 import com.kingkharnivore.skillz.ui.screen.paths.suggested.SuggestedRouteDetailScreen
@@ -245,8 +245,10 @@ fun SkillzNavHost(
 
             HelpScreen(
                 uiState = uiState,
+                selectedLanguageTag = uiState.appLanguageTag,
                 onToggleShowScoreUi = storyViewModel::setShowScoreUi,
                 onToggleCalmMode = storyViewModel::setCalmMode,
+                onSetAppLanguage = storyViewModel::setAppLanguage,
                 modifier = Modifier.fillMaxSize()
             )
         }

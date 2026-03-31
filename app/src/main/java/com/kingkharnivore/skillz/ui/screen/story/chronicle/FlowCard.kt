@@ -34,12 +34,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.ui.FlowListItemUiModel
 import com.kingkharnivore.skillz.model.ui.PulseListItemUiModel
 import com.kingkharnivore.skillz.utils.time.formatDuration
+import java.util.Locale
 
 @Composable
 fun FlowCard(
@@ -103,8 +115,92 @@ fun FlowCard(
         )
     }
 
+    val flowTypeLabel = stringResource(
+        if (isSoft) R.string.flow_card_type_soft else R.string.flow_card_type_flow
+    )
+    val expandedStateLabel = stringResource(R.string.a11y_expanded)
+    val collapsedStateLabel = stringResource(R.string.a11y_collapsed)
+    val editFlowLabel = stringResource(R.string.flow_card_edit_flow)
+    val expandFlowLabel = stringResource(R.string.flow_card_expand)
+    val collapseFlowLabel = stringResource(R.string.flow_card_collapse)
+    val openDetailsLabel = stringResource(R.string.flow_card_open_details)
+    val deleteFlowLabel = stringResource(R.string.flow_card_delete_flow)
+
+    val durationLabel = stringResource(
+        R.string.flow_card_duration_value,
+        formatDuration(session.durationMs)
+    )
+
+    val multiplierLabel = session.arcMultiplierUsed?.let {
+        stringResource(
+            R.string.flow_card_multiplier_used_value,
+            String.format(Locale.getDefault(), "%.1f", it)
+        )
+    }
+
+    val scoreLabel = stringResource(R.string.flow_card_scyra_score_value, session.score)
+    val surgeA11yLabel = stringResource(R.string.flow_card_surge_points_value, session.surgePoints)
+    val surgeCompactLabel = stringResource(R.string.flow_card_surge_points_compact, session.surgePoints)
+
+    val momentsSummary = pluralStringResource(
+        R.plurals.flow_card_moments_count,
+        childPulses.size,
+        childPulses.size
+    )
+
+    val stateLabel = if (isExpanded) expandedStateLabel else collapsedStateLabel
+    val toggleLabel = if (isExpanded) collapseFlowLabel else expandFlowLabel
+
+    val cardContentDescription = buildString {
+        append(session.title)
+        append(", ")
+        append(flowTypeLabel)
+
+        if (session.tagName.isNotBlank()) {
+            append(", ")
+            append(session.tagName)
+        }
+
+        append(", ")
+        append(durationLabel)
+
+        if (showSurgeStat) {
+            append(", ")
+            append(surgeA11yLabel)
+        }
+
+        if (!isSoft && showScoreUi && !calmMode) {
+            append(", ")
+            append(scoreLabel)
+        }
+
+        if (childPulses.isNotEmpty()) {
+            append(", ")
+            append(momentsSummary)
+        }
+    }
+
     val cardModifier = Modifier
         .fillMaxWidth()
+        .semantics {
+            role = Role.Button
+            contentDescription = cardContentDescription
+            stateDescription = stateLabel
+            onLongClick(label = editFlowLabel) {
+                onLongPress()
+                true
+            }
+            customActions = listOf(
+                CustomAccessibilityAction(label = toggleLabel) {
+                    onToggleExpand()
+                    true
+                },
+                CustomAccessibilityAction(label = openDetailsLabel) {
+                    onClick()
+                    true
+                }
+            )
+        }
         .combinedClickable(
             onClick = {
                 onToggleExpand()
@@ -186,7 +282,7 @@ fun FlowCard(
                         )
 
                         Text(
-                            text = "⚡ +${session.surgePoints}",
+                            text = surgeCompactLabel,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = surgeTint
@@ -201,7 +297,7 @@ fun FlowCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete flow",
+                                contentDescription = deleteFlowLabel,
                                 tint = contentColor
                             )
                         }
@@ -225,15 +321,15 @@ fun FlowCard(
             }
 
             Text(
-                text = "Duration: ${formatDuration(session.durationMs)}",
+                text = durationLabel,
                 style = MaterialTheme.typography.bodySmall,
                 color = contentColor
             )
 
-            if (!isSoft && !calmMode && session.arcMultiplierUsed != null) {
+            if (!isSoft && !calmMode && session.arcMultiplierUsed != null && multiplierLabel != null) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Multiplier Used: ×${"%.1f".format(session.arcMultiplierUsed)}",
+                    text = multiplierLabel,
                     style = MaterialTheme.typography.bodySmall,
                     color = labelColor
                 )
@@ -242,7 +338,7 @@ fun FlowCard(
             if (!isSoft && showScoreUi && !calmMode) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Scyra Score: ${session.score}",
+                    text = scoreLabel,
                     style = MaterialTheme.typography.labelMedium,
                     color = contentColor.copy(alpha = 0.85f)
                 )
@@ -262,7 +358,7 @@ fun FlowCard(
                     )
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(
-                        text = "${childPulses.size} ${if (childPulses.size == 1) "moment" else "moments"}",
+                        text = momentsSummary,
                         style = MaterialTheme.typography.labelMedium,
                         color = contentColor.copy(alpha = 0.82f)
                     )
@@ -299,8 +395,8 @@ fun FlowCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete entry?") },
-            text = { Text("This will permanently delete this entry.") },
+            title = { Text(stringResource(R.string.flow_card_delete_dialog_title)) },
+            text = { Text(stringResource(R.string.flow_card_delete_dialog_body)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -308,14 +404,14 @@ fun FlowCard(
                         onDeleteSession()
                     }
                 ) {
-                    Text("Delete")
+                    Text(stringResource(R.string.common_delete))
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showDeleteDialog = false }
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )

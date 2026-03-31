@@ -14,8 +14,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.utils.time.formatDuration
 
 @Composable
@@ -27,19 +32,61 @@ fun SagaHeader(
     totalDurationMs: Long,
     totalScore: Int
 ) {
-    // If/when you have surge available for this header, set this > 0.
-    // Keeping it here lets you turn it on later with one line.
     val totalSurgeScore = 0
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    val flowsLabel = stringResource(R.string.saga_header_flows)
+    val durationLabel = stringResource(R.string.saga_header_duration)
+    val scoreLabel = stringResource(R.string.saga_header_score)
+    val durationText = formatDuration(totalDurationMs)
+    val scoreValueText = stringResource(R.string.saga_header_score_value, totalScore)
+    val surgeValueText = stringResource(R.string.saga_header_surge_value, totalSurgeScore)
 
-        // Title row + period pill
+    val topA11y = if (subtitle.isNotBlank()) {
+        stringResource(
+            R.string.saga_header_top_a11y_with_subtitle,
+            title,
+            subtitle,
+            periodLabel
+        )
+    } else {
+        stringResource(
+            R.string.saga_header_top_a11y_no_subtitle,
+            title,
+            periodLabel
+        )
+    }
+
+    val statsA11y = if (totalSurgeScore > 0) {
+        stringResource(
+            R.string.saga_header_stats_a11y_with_surge,
+            totalFlows,
+            durationText,
+            totalScore,
+            totalSurgeScore
+        )
+    } else {
+        stringResource(
+            R.string.saga_header_stats_a11y,
+            totalFlows,
+            durationText,
+            totalScore
+        )
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clearAndSetSemantics {
+                    heading()
+                    contentDescription = topA11y
+                },
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left: icon + title/subtitle
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("📜", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.width(8.dp))
@@ -49,14 +96,15 @@ fun SagaHeader(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
-                )
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
+                    )
+                }
             }
 
-            // Right: small period chip
             Surface(
                 shape = RoundedCornerShape(999.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
@@ -71,9 +119,12 @@ fun SagaHeader(
             }
         }
 
-        // Stats row (flows / duration / score [+ surge])
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clearAndSetSemantics {
+                    contentDescription = statsA11y
+                },
             shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surfaceVariant,
             tonalElevation = 1.dp
@@ -85,22 +136,29 @@ fun SagaHeader(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                SagaHeaderStat(label = "Flows", value = totalFlows.toString())
-                SagaHeaderStat(label = "Duration", value = formatDuration(totalDurationMs))
+                SagaHeaderStat(
+                    label = flowsLabel,
+                    value = totalFlows.toString()
+                )
+
+                SagaHeaderStat(
+                    label = durationLabel,
+                    value = durationText
+                )
 
                 Column(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     SagaHeaderStat(
-                        label = "Score",
-                        value = "🔥 $totalScore",
+                        label = scoreLabel,
+                        value = scoreValueText,
                         alignEnd = true
                     )
 
                     if (totalSurgeScore > 0) {
                         Text(
-                            text = "⚡ +$totalSurgeScore",
+                            text = surgeValueText,
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.secondary

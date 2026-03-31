@@ -39,16 +39,25 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.ui.screen.flow.ChronicleField
 import com.kingkharnivore.skillz.ui.screen.flow.GrandTitleField
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
@@ -68,13 +77,30 @@ fun PulseScreen(
     var tagName by rememberSaveable { mutableStateOf("") }
     var attachToCurrentFlow by rememberSaveable { mutableStateOf(isFlowStateActive) }
 
+    val screenTitle = stringResource(R.string.pulse_screen_title)
+    val backLabel = stringResource(R.string.common_back)
+    val cancelLabel = stringResource(R.string.common_cancel)
+    val savePulseLabel = stringResource(R.string.pulse_screen_save_pulse)
+    val attachTitle = stringResource(R.string.pulse_screen_attach_to_current_flow)
+    val attachEnabledText = stringResource(R.string.pulse_screen_attach_enabled)
+    val attachDisabledText = stringResource(R.string.pulse_screen_attach_disabled)
+    val attachSwitchLabel = stringResource(R.string.pulse_a11y_attach_switch)
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Pulse") },
+                title = {
+                    Text(
+                        text = screenTitle,
+                        modifier = Modifier.semantics { heading() }
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onCancel) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = backLabel
+                        )
                     }
                 }
             )
@@ -138,15 +164,15 @@ fun PulseScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Attach to current Flow",
+                                text = attachTitle,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
                                 text = if (attachToCurrentFlow) {
-                                    "This Pulse will appear under the active Flow in Chronicles."
+                                    attachEnabledText
                                 } else {
-                                    "This Pulse will be saved as its own moment."
+                                    attachDisabledText
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
@@ -155,7 +181,16 @@ fun PulseScreen(
 
                         Switch(
                             checked = attachToCurrentFlow,
-                            onCheckedChange = { attachToCurrentFlow = it }
+                            onCheckedChange = { attachToCurrentFlow = it },
+                            modifier = Modifier.semantics {
+                                contentDescription = attachSwitchLabel
+                                stateDescription = if (attachToCurrentFlow) {
+                                    attachEnabledText
+                                } else {
+                                    attachDisabledText
+                                }
+                                role = Role.Switch
+                            }
                         )
                     }
                 }
@@ -180,7 +215,7 @@ fun PulseScreen(
                     onClick = onCancel,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Cancel")
+                    Text(cancelLabel)
                 }
 
                 Button(
@@ -197,7 +232,7 @@ fun PulseScreen(
                     modifier = Modifier.weight(1.25f),
                     shape = RoundedCornerShape(18.dp)
                 ) {
-                    Text("Save Pulse")
+                    Text(savePulseLabel)
                 }
             }
         }
@@ -206,11 +241,19 @@ fun PulseScreen(
 
 @Composable
 private fun PulseHeroCard() {
+    val heroTitle = stringResource(R.string.pulse_hero_title)
+    val heroBody = stringResource(R.string.pulse_hero_body)
+    val heroA11y = stringResource(R.string.pulse_a11y_pulse_hero)
+
     Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clearAndSetSemantics {
+                contentDescription = heroA11y
+            },
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary,
-        modifier = Modifier.fillMaxWidth()
+        contentColor = MaterialTheme.colorScheme.onPrimary
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
@@ -221,18 +264,18 @@ private fun PulseHeroCard() {
             ) {
                 Icon(
                     imageVector = Icons.Outlined.PsychologyAlt,
-                    contentDescription = "Pulse"
+                    contentDescription = null
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    text = "Record a Pulse",
+                    text = heroTitle,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
                 )
             }
 
             Text(
-                text = "Capture a moment, insight, realization, or feeling.",
+                text = heroBody,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.88f)
             )
@@ -247,8 +290,14 @@ private fun PulseJourneyLean(
     onTagClicked: (TagUiModel) -> Unit,
     onTagNameChange: (String) -> Unit
 ) {
+    val journeyLabel = stringResource(
+        if (tags.size > 1) R.string.pulse_journey_plural else R.string.pulse_journey_singular
+    )
+    val placeholderLabel = stringResource(R.string.pulse_journey_placeholder)
+    val tagSuggestionsLabel = stringResource(R.string.pulse_a11y_tag_suggestions)
+
     Text(
-        text = if (tags.size > 1) "Journeys" else "Journey",
+        text = journeyLabel,
         style = MaterialTheme.typography.labelLarge.copy(
             letterSpacing = 0.6.sp,
             fontWeight = FontWeight.Medium,
@@ -258,20 +307,31 @@ private fun PulseJourneyLean(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 10.dp)
+            .semantics { heading() }
     )
 
     val cleanTags = remember(tags) { tags.filter { it.name.isNotBlank() } }
 
     if (cleanTags.isNotEmpty()) {
         LazyRow(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    contentDescription = tagSuggestionsLabel
+                },
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 6.dp)
         ) {
             items(items = cleanTags, key = { it.id }) { tag ->
+                val selectJourneyLabel =
+                    stringResource(R.string.pulse_a11y_select_journey, tag.name)
+
                 AssistChip(
                     onClick = { onTagClicked(tag) },
-                    label = { Text(tag.name) }
+                    label = { Text(tag.name) },
+                    modifier = Modifier.semantics {
+                        contentDescription = selectJourneyLabel
+                    }
                 )
             }
         }
@@ -290,7 +350,7 @@ private fun PulseJourneyLean(
         modifier = Modifier.fillMaxWidth(),
         placeholder = {
             Text(
-                text = "Start a new journey…",
+                text = placeholderLabel,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.titleMedium.copy(

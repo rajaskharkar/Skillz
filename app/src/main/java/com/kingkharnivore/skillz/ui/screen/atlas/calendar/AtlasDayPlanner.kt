@@ -3,9 +3,11 @@ package com.kingkharnivore.skillz.ui.screen.atlas.calendar
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,12 +29,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
@@ -40,6 +43,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.ui.model.AtlasDayUi
 import com.kingkharnivore.skillz.ui.model.BeamBlockUi
 import com.kingkharnivore.skillz.ui.screen.atlas.BeamCard
@@ -311,6 +315,12 @@ private fun AtlasBeamLayer(
                 }
         ) {
             renderSpecs.forEach { spec ->
+                val beamA11y = stringResource(
+                    R.string.atlas_day_planner_beam_card_a11y,
+                    spec.beam.tagName,
+                    formatRange(spec.beam.startMs, spec.beam.endMs)
+                )
+
                 BeamCard(
                     b = spec.beam,
                     h = spec.height,
@@ -320,13 +330,7 @@ private fun AtlasBeamLayer(
                         .width(spec.width)
                         .semantics {
                             role = Role.Button
-                            contentDescription =
-                                "${spec.beam.tagName}, ${
-                                    formatRange(
-                                        spec.beam.startMs,
-                                        spec.beam.endMs
-                                    )
-                                }"
+                            contentDescription = beamA11y
                             onClick {
                                 onBeamClick(spec.beam)
                                 true
@@ -367,6 +371,9 @@ private fun AtlasZoomControls(
     modifier: Modifier = Modifier
 ) {
     val cs = MaterialTheme.colorScheme
+    val zoomOutA11y = stringResource(R.string.atlas_zoom_out_a11y)
+    val zoomInA11y = stringResource(R.string.atlas_zoom_in_a11y)
+    val scheduleBeamA11y = stringResource(R.string.atlas_zoom_schedule_beam_a11y)
 
     Surface(
         modifier = modifier,
@@ -382,9 +389,12 @@ private fun AtlasZoomControls(
             SmallFloatingActionButton(
                 onClick = onZoomOut,
                 containerColor = cs.secondary,
-                contentColor = cs.onSecondary
+                contentColor = cs.onSecondary,
+                modifier = Modifier.semantics {
+                    contentDescription = zoomOutA11y
+                }
             ) {
-                Text("−")
+                Text(stringResource(R.string.atlas_day_planner_loading_hour_label_minus))
             }
 
             Box(Modifier.width(8.dp))
@@ -392,9 +402,12 @@ private fun AtlasZoomControls(
             SmallFloatingActionButton(
                 onClick = onZoomIn,
                 containerColor = cs.secondary,
-                contentColor = cs.onSecondary
+                contentColor = cs.onSecondary,
+                modifier = Modifier.semantics {
+                    contentDescription = zoomInA11y
+                }
             ) {
-                Text("+")
+                Text(stringResource(R.string.atlas_day_planner_loading_hour_label_plus))
             }
 
             Box(Modifier.width(12.dp))
@@ -402,9 +415,12 @@ private fun AtlasZoomControls(
             SmallFloatingActionButton(
                 onClick = onScheduleBeamClick,
                 containerColor = cs.secondary,
-                contentColor = cs.onSecondary
+                contentColor = cs.onSecondary,
+                modifier = Modifier.semantics {
+                    contentDescription = scheduleBeamA11y
+                }
             ) {
-                Text("⏰")
+                Text(stringResource(R.string.atlas_day_planner_schedule_beam_icon))
             }
         }
     }

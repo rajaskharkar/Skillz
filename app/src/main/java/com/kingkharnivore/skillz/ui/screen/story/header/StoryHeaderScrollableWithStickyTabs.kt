@@ -25,16 +25,20 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.model.ui.ChronicleUiModel
-import com.kingkharnivore.skillz.ui.screen.story.chronicle.ArcGroupCard
-import com.kingkharnivore.skillz.ui.screen.story.chronicle.FlowCard
-import com.kingkharnivore.skillz.ui.screen.story.chronicle.PulseCard
 import com.kingkharnivore.skillz.ui.screen.story.rememberExpandedArcIdsState
 import com.kingkharnivore.skillz.ui.screen.story.rememberExpandedSessionIdsState
 import com.kingkharnivore.skillz.ui.screen.story.rememberPulseEditState
 import com.kingkharnivore.skillz.ui.screen.story.rememberSessionEditState
+import com.kingkharnivore.skillz.ui.screen.story.chronicle.ArcGroupCard
+import com.kingkharnivore.skillz.ui.screen.story.chronicle.FlowCard
+import com.kingkharnivore.skillz.ui.screen.story.chronicle.PulseCard
 import com.kingkharnivore.skillz.ui.screen.story.saga.SagaPulseSection
 import com.kingkharnivore.skillz.ui.screen.story.saga.SagasCard
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
@@ -63,6 +67,9 @@ fun StoryHeaderScrollableWithStickyTabs(
     extraTopContent: (@Composable () -> Unit)? = null
 ) {
     var tab by rememberSaveable { mutableStateOf(StoryTab.CHRONICLES) }
+
+    val sagasLabel = stringResource(R.string.story_tab_sagas)
+    val chroniclesLabel = stringResource(R.string.story_tab_chronicles)
 
     val expandedState = rememberExpandedSessionIdsState()
     val expandedArcState = rememberExpandedArcIdsState()
@@ -132,7 +139,8 @@ fun StoryHeaderScrollableWithStickyTabs(
                         Row(
                             modifier = Modifier
                                 .padding(3.dp)
-                                .height(34.dp),
+                                .height(34.dp)
+                                .semantics { isTraversalGroup = true },
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             SegmentedIconTab(
@@ -142,7 +150,7 @@ fun StoryHeaderScrollableWithStickyTabs(
                                 selectedFg = selectedFg,
                                 unselectedFg = unselectedFg,
                                 icon = Icons.Outlined.MenuBook,
-                                contentDescription = "Sagas"
+                                contentDescription = sagasLabel
                             )
 
                             SegmentedIconTab(
@@ -152,7 +160,7 @@ fun StoryHeaderScrollableWithStickyTabs(
                                 selectedFg = selectedFg,
                                 unselectedFg = unselectedFg,
                                 icon = Icons.Outlined.Timeline,
-                                contentDescription = "Chronicles",
+                                contentDescription = chroniclesLabel,
                             )
                         }
                     }

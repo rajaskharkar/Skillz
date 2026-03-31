@@ -24,10 +24,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.ui.model.AtlasWeekDayUi
 import com.kingkharnivore.skillz.ui.model.AtlasWeekUi
 import com.kingkharnivore.skillz.ui.model.BeamBlockUi
@@ -78,9 +87,18 @@ private fun AtlasWeekDayCard(
     val cs = MaterialTheme.colorScheme
     val isDark = isSystemInDarkTheme()
 
-    val zone = ZoneId.systemDefault()
-    val date = Instant.ofEpochMilli(day.dayStartMs).atZone(zone)
-    val todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant().toEpochMilli()
+    val zone = remember { ZoneId.systemDefault() }
+    val date = remember(day.dayStartMs, zone) {
+        Instant.ofEpochMilli(day.dayStartMs).atZone(zone)
+    }
+    val todayStart = remember(nowMs, zone) {
+        Instant.ofEpochMilli(nowMs)
+            .atZone(zone)
+            .toLocalDate()
+            .atStartOfDay(zone)
+            .toInstant()
+            .toEpochMilli()
+    }
 
     val isToday = day.dayStartMs == todayStart
     val isSelected = day.dayStartMs == selectedDayStartMs
@@ -127,8 +145,38 @@ private fun AtlasWeekDayCard(
         else -> if (isDark) cs.surfaceContainerHighest else cs.surface
     }
 
+    val dateText = remember(date) { date.format(WEEK_DAY_FMT) }
+    val durationText = if (day.totalDurationMs > 0L) {
+        formatDuration(day.totalDurationMs)
+    } else {
+        stringResource(R.string.atlas_week_day_duration_none)
+    }
+    val beamCountText = stringResource(
+        R.string.atlas_week_beam_count_one,
+        day.beamsCount,
+        day.beamsCount
+    )
+    val cardContentDescription = stringResource(
+        R.string.atlas_week_day_card_a11y,
+        dateText,
+        durationText,
+        beamCountText
+    )
+    val cardStateDescription = buildList {
+        if (isToday) add(stringResource(R.string.atlas_week_day_card_state_today))
+        if (isSelected) add(stringResource(R.string.atlas_week_day_card_state_selected))
+    }.joinToString(", ")
+
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                role = Role.Button
+                contentDescription = cardContentDescription
+                if (cardStateDescription.isNotBlank()) {
+                    stateDescription = cardStateDescription
+                }
+            },
         shape = RoundedCornerShape(24.dp),
         color = containerColor,
         tonalElevation = 0.dp,
@@ -145,17 +193,13 @@ private fun AtlasWeekDayCard(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = date.format(WEEK_DAY_FMT),
+                        text = dateText,
                         style = MaterialTheme.typography.titleMedium,
                         color = cs.onSurface
                     )
 
                     Text(
-                        text = if (day.totalDurationMs > 0L) {
-                            formatDuration(day.totalDurationMs)
-                        } else {
-                            "No beams planned"
-                        },
+                        text = durationText,
                         style = MaterialTheme.typography.labelMedium,
                         color = cs.onSurfaceVariant
                     )
@@ -167,9 +211,7 @@ private fun AtlasWeekDayCard(
                     onClick = {},
                     enabled = false,
                     label = {
-                        Text(
-                            text = if (day.beamsCount == 1) "1 beam" else "${day.beamsCount} beams"
-                        )
+                        Text(text = beamCountText)
                     },
                     colors = AssistChipDefaults.assistChipColors(
                         disabledContainerColor = chipContainer,
@@ -202,13 +244,16 @@ private fun AtlasWeekDayCard(
                         onClick = { onOpenDay(day.dayStartMs) },
                         border = BorderStroke(1.dp, cs.primary.copy(alpha = if (isDark) 0.55f else 0.35f))
                     ) {
-                        Text("Open Day")
+                        Text(stringResource(R.string.atlas_week_open_day))
                     }
 
                     if (day.beams.size > 4) {
                         Spacer(Modifier.width(10.dp))
                         Text(
-                            text = "+${day.beams.size - 4} more",
+                            text = stringResource(
+                                R.string.atlas_week_more_count,
+                                day.beams.size - 4
+                            ),
                             style = MaterialTheme.typography.labelMedium,
                             color = cs.primary
                         )
@@ -238,8 +283,20 @@ private fun EmptyDayPanel(
         else -> cs.surfaceContainerLow
     }
 
+    val titleText = stringResource(R.string.atlas_week_no_beams_planned)
+    val bodyText = stringResource(R.string.atlas_week_empty_day_body)
+    val panelContentDescription = stringResource(
+        R.string.atlas_week_empty_panel_a11y,
+        titleText,
+        bodyText
+    )
+
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = panelContentDescription
+            },
         shape = RoundedCornerShape(18.dp),
         color = bg,
         border = BorderStroke(
@@ -252,12 +309,12 @@ private fun EmptyDayPanel(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "No beams planned",
+                text = titleText,
                 style = MaterialTheme.typography.labelLarge,
                 color = cs.onSurface
             )
             Text(
-                text = "A clear day to rest, improvise, or chart something new.",
+                text = bodyText,
                 style = MaterialTheme.typography.bodySmall,
                 color = cs.onSurfaceVariant
             )
@@ -265,7 +322,7 @@ private fun EmptyDayPanel(
                 onClick = onOpenDay,
                 border = BorderStroke(1.dp, cs.primary.copy(alpha = if (isDark) 0.55f else 0.35f))
             ) {
-                Text("Open Day")
+                Text(stringResource(R.string.atlas_week_open_day))
             }
         }
     }
@@ -304,10 +361,21 @@ private fun WeekBeamRow(
         cs.onSurfaceVariant
     }
 
+    val rangeText = formatRange(beam.startMs, beam.endMs)
+    val beamRowContentDescription = stringResource(
+        R.string.atlas_week_beam_row_a11y,
+        beam.tagName,
+        rangeText
+    )
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .semantics {
+                role = Role.Button
+                contentDescription = beamRowContentDescription
+            },
         shape = RoundedCornerShape(16.dp),
         color = rowBackground,
         border = BorderStroke(1.dp, strokeColor)
@@ -337,7 +405,7 @@ private fun WeekBeamRow(
                     color = contentColor
                 )
                 Text(
-                    text = formatRange(beam.startMs, beam.endMs),
+                    text = rangeText,
                     style = MaterialTheme.typography.labelSmall,
                     color = secondaryColor
                 )

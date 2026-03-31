@@ -23,9 +23,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kingkharnivore.skillz.R
 
 @Composable
 fun FlowModeHeroCard(
@@ -34,7 +38,8 @@ fun FlowModeHeroCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 12.dp),
+            .padding(bottom = 12.dp)
+            .semantics(mergeDescendants = true) {},
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.95f),
@@ -60,7 +65,7 @@ fun FlowModeHeroCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.Timer,
-                    contentDescription = "Focus mode active",
+                    contentDescription = null,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -70,20 +75,21 @@ fun FlowModeHeroCard(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "IN FLOW",
+                    text = stringResource(R.string.story_flow_mode_kicker),
                     style = MaterialTheme.typography.labelSmall,
                     letterSpacing = 1.5.sp,
                     textAlign = TextAlign.Center
                 )
 
                 Text(
-                    text = "Your story is unfolding now",
+                    text = stringResource(R.string.story_flow_mode_title),
                     style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.semantics { heading() }
                 )
 
                 Text(
-                    text = "Jump back in!",
+                    text = stringResource(R.string.story_flow_mode_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center
                 )
@@ -107,7 +113,7 @@ fun FlowModeHeroCard(
                 contentPadding = PaddingValues(vertical = 12.dp)
             ) {
                 Text(
-                    text = "View Active Flow",
+                    text = stringResource(R.string.story_flow_mode_cta),
                     style = MaterialTheme.typography.titleMedium
                 )
             }

@@ -28,10 +28,18 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kingkharnivore.skillz.BuildConfig
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.ui.theme.CaveatSemiBold
 
 data class SkillzHomeNavState(
@@ -44,15 +52,16 @@ val LocalSkillzHomeNav = compositionLocalOf<SkillzHomeNavState?> { null }
 @Composable
 fun SkillzTopAppBar() {
     val title = when (BuildConfig.FLAVOR) {
-        "aera" -> "Aera"
-        "scyra" -> "Scyra"
-        else -> "Skillz"
+        "aera" -> stringResource(R.string.home_app_name_aera)
+        "scyra" -> stringResource(R.string.home_app_name_scyra)
+        else -> stringResource(R.string.home_app_name_skillz)
     }
     val nav = LocalSkillzHomeNav.current
+
     TopAppBar(
         title = {
             Text(
-                title,
+                text = title,
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontFamily = CaveatSemiBold,
                     fontSize = 36.sp,
@@ -81,14 +90,25 @@ private fun HomeNavIcons(
     selected: Int,
     onSelect: (Int) -> Unit
 ) {
+    val atlasLabel = stringResource(R.string.home_nav_atlas)
+    val storyLabel = stringResource(R.string.home_nav_story)
+    val pathsLabel = stringResource(R.string.home_nav_paths)
+    val notepadLabel = stringResource(R.string.home_nav_notepad)
+    val helpLabel = stringResource(R.string.home_nav_help)
+    val navBarLabel = stringResource(R.string.home_nav_bar)
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier.padding(end = 6.dp)
+        modifier = Modifier
+            .padding(end = 6.dp)
+            .semantics {
+                contentDescription = navBarLabel
+            }
     ) {
         NavIcon(
             selected = selected == 0,
             onClick = { onSelect(0) },
-            contentDescription = "Atlas",
+            contentDescription = atlasLabel,
             icon = {
                 Icon(
                     Icons.Outlined.Map,
@@ -101,7 +121,7 @@ private fun HomeNavIcons(
         NavIcon(
             selected = selected == 1,
             onClick = { onSelect(1) },
-            contentDescription = "Story",
+            contentDescription = storyLabel,
             icon = {
                 Icon(
                     Icons.Outlined.AutoStories,
@@ -114,7 +134,7 @@ private fun HomeNavIcons(
         NavIcon(
             selected = selected == 2,
             onClick = { onSelect(2) },
-            contentDescription = "Paths",
+            contentDescription = pathsLabel,
             icon = {
                 Icon(
                     Icons.Outlined.Explore,
@@ -127,7 +147,7 @@ private fun HomeNavIcons(
         NavIcon(
             selected = selected == 3,
             onClick = { onSelect(3) },
-            contentDescription = "Notepad",
+            contentDescription = notepadLabel,
             icon = {
                 Icon(
                     Icons.Outlined.EditNote,
@@ -140,7 +160,7 @@ private fun HomeNavIcons(
         NavIcon(
             selected = selected == 4,
             onClick = { onSelect(4) },
-            contentDescription = "Help",
+            contentDescription = helpLabel,
             icon = {
                 Icon(
                     Icons.Outlined.HelpOutline,
@@ -159,6 +179,14 @@ private fun NavIcon(
     contentDescription: String,
     icon: @Composable () -> Unit
 ) {
+    val selectedLabel = stringResource(R.string.home_nav_selected)
+    val notSelectedLabel = stringResource(R.string.home_nav_not_selected)
+    val stateLabel = stringResource(
+        R.string.home_nav_tab_state,
+        contentDescription,
+        if (selected) selectedLabel else notSelectedLabel
+    )
+
     val capsule = if (selected) {
         MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f)
     } else {
@@ -173,6 +201,12 @@ private fun NavIcon(
             .clip(RoundedCornerShape(999.dp))
             .background(capsule)
             .padding(2.dp)
+            .semantics {
+                role = Role.Tab
+                this.selected = selected
+                this.contentDescription = contentDescription
+                stateDescription = stateLabel
+            }
     ) {
         CompositionLocalProvider(
             LocalContentColor provides contentColor

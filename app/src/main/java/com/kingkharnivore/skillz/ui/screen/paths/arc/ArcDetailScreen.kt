@@ -42,8 +42,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.viewmodel.ArcDetailLaunchPayload
 import com.kingkharnivore.skillz.viewmodel.ArcDetailStepUiModel
 import com.kingkharnivore.skillz.viewmodel.ArcDetailUiState
@@ -57,6 +64,13 @@ fun ArcDetailScreen(
     onBeginArc: (ArcDetailLaunchPayload) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val backText = stringResource(R.string.arc_detail_back)
+    val restartText = stringResource(R.string.arc_detail_restart)
+    val resumeArcText = stringResource(R.string.arc_detail_resume_arc)
+    val beginArcText = stringResource(R.string.arc_detail_begin_arc)
+    val loadingText = stringResource(R.string.arc_detail_loading)
+    val genericErrorText = stringResource(R.string.arc_detail_error_generic)
 
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing
@@ -72,9 +86,13 @@ fun ArcDetailScreen(
                     ) {
                         TextButton(
                             onClick = onBack,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .semantics {
+                                    contentDescription = backText
+                                }
                         ) {
-                            Text("Back")
+                            Text(backText)
                         }
 
                         if (uiState.hasActiveRun) {
@@ -82,21 +100,31 @@ fun ArcDetailScreen(
                                 onClick = {
                                     viewModel.restartArc(onReady = onBeginArc)
                                 },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .semantics {
+                                        contentDescription = restartText
+                                    }
                             ) {
-                                Text("Restart")
+                                Text(restartText)
                             }
                         }
+
+                        val primaryText = if (uiState.hasActiveRun) resumeArcText else beginArcText
 
                         Button(
                             onClick = {
                                 viewModel.beginArc(onReady = onBeginArc)
                             },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .semantics {
+                                    contentDescription = primaryText
+                                },
                             shape = RoundedCornerShape(999.dp),
                             enabled = uiState.steps.isNotEmpty()
                         ) {
-                            Text(if (uiState.hasActiveRun) "Resume Arc" else "Begin Arc")
+                            Text(primaryText)
                         }
                     }
                 }
@@ -111,11 +139,17 @@ fun ArcDetailScreen(
                         .padding(innerPadding),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(
+                        modifier = Modifier.semantics {
+                            contentDescription = loadingText
+                        }
+                    )
                 }
             }
 
             uiState.errorMessage != null -> {
+                val errorText = uiState.errorMessage ?: genericErrorText
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -126,10 +160,13 @@ fun ArcDetailScreen(
                     Surface(
                         shape = RoundedCornerShape(24.dp),
                         color = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.semantics {
+                            contentDescription = errorText
+                        }
                     ) {
                         Text(
-                            text = uiState.errorMessage ?: "Something went wrong",
+                            text = errorText,
                             modifier = Modifier.padding(16.dp)
                         )
                     }
@@ -157,6 +194,9 @@ private fun ArcDetailContent(
     onRemoveFromStudio: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val routeTitle = stringResource(R.string.arc_detail_route_title)
+    val routeSubtitle = stringResource(R.string.arc_detail_route_subtitle)
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
@@ -194,12 +234,12 @@ private fun ArcDetailContent(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Route",
+                    text = routeTitle,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "This is the sequence you’ll move through when you begin.",
+                    text = routeSubtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
                 )
@@ -220,8 +260,16 @@ private fun ActiveRunCard(
     stepNumber: Int,
     totalSteps: Int
 ) {
+    val titleText = stringResource(R.string.arc_detail_active_run_title)
+    val bodyText = stringResource(R.string.arc_detail_active_run_body, stepNumber, totalSteps)
+    val a11yText = stringResource(R.string.arc_detail_active_run_a11y, titleText, bodyText)
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = a11yText
+            },
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
@@ -232,13 +280,13 @@ private fun ActiveRunCard(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = "Arc in progress",
+                text = titleText,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "Resume from step $stepNumber of $totalSteps.",
+                text = bodyText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f)
             )
@@ -251,10 +299,25 @@ private fun ArcRecurrenceCard(
     recurrenceType: String,
     recurrenceDaysCsv: String
 ) {
+    val repeatTitle = stringResource(R.string.arc_detail_repeat_title)
+    val oneTime = stringResource(R.string.arc_detail_repeat_one_time)
+    val daily = stringResource(R.string.arc_detail_repeat_daily)
+    val weekdays = stringResource(R.string.arc_detail_repeat_weekdays)
+    val weekly = stringResource(R.string.arc_detail_repeat_weekly)
+    val custom = stringResource(R.string.arc_detail_repeat_custom)
+
+    val mon = stringResource(R.string.arc_detail_day_mon)
+    val tue = stringResource(R.string.arc_detail_day_tue)
+    val wed = stringResource(R.string.arc_detail_day_wed)
+    val thu = stringResource(R.string.arc_detail_day_thu)
+    val fri = stringResource(R.string.arc_detail_day_fri)
+    val sat = stringResource(R.string.arc_detail_day_sat)
+    val sun = stringResource(R.string.arc_detail_day_sun)
+
     val label = when (recurrenceType) {
-        "daily" -> "Daily"
-        "weekdays" -> "Weekdays"
-        "weekly" -> "Weekly"
+        "daily" -> daily
+        "weekdays" -> weekdays
+        "weekly" -> weekly
         "custom" -> {
             val days = recurrenceDaysCsv
                 .split(",")
@@ -262,23 +325,29 @@ private fun ArcRecurrenceCard(
                 .sorted()
                 .mapNotNull {
                     when (it) {
-                        1 -> "Mon"
-                        2 -> "Tue"
-                        3 -> "Wed"
-                        4 -> "Thu"
-                        5 -> "Fri"
-                        6 -> "Sat"
-                        7 -> "Sun"
+                        1 -> mon
+                        2 -> tue
+                        3 -> wed
+                        4 -> thu
+                        5 -> fri
+                        6 -> sat
+                        7 -> sun
                         else -> null
                     }
                 }
-            if (days.isEmpty()) "Custom" else days.joinToString(" • ")
+            if (days.isEmpty()) custom else days.joinToString(" • ")
         }
-        else -> "One time"
+        else -> oneTime
     }
 
+    val a11yText = stringResource(R.string.arc_detail_repeat_a11y, repeatTitle, label)
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = a11yText
+            },
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -289,7 +358,7 @@ private fun ArcRecurrenceCard(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = "Repeat",
+                text = repeatTitle,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )
@@ -309,8 +378,26 @@ private fun ArcHeaderCard(
     onAddToStudio: () -> Unit,
     onRemoveFromStudio: () -> Unit
 ) {
+    val arcType = stringResource(R.string.arc_detail_type_arc)
+    val studioArcType = stringResource(R.string.arc_detail_type_studio_arc)
+    val editText = stringResource(R.string.common_edit)
+    val addToStudioText = stringResource(R.string.arc_detail_add_to_studio)
+    val removeFromStudioText = stringResource(R.string.arc_detail_remove_from_studio)
+    val launchText = if (uiState.launchCount > 0) {
+        pluralStringResource(R.plurals.arc_detail_launch_count, uiState.launchCount, uiState.launchCount)
+    } else {
+        stringResource(R.string.arc_detail_not_launched_yet)
+    }
+
+    val typeText = if (uiState.isInStudio) studioArcType else arcType
+    val a11yText = stringResource(R.string.arc_detail_header_a11y, typeText, uiState.title, launchText)
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = a11yText
+            },
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
@@ -336,7 +423,7 @@ private fun ArcHeaderCard(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = if (uiState.isInStudio) "Studio Arc" else "Arc",
+                        text = typeText,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary
@@ -351,11 +438,7 @@ private fun ArcHeaderCard(
             )
 
             Text(
-                text = if (uiState.launchCount > 0) {
-                    "Launched ${uiState.launchCount} ${if (uiState.launchCount == 1) "time" else "times"}"
-                } else {
-                    "Not launched yet"
-                },
+                text = launchText,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
             )
@@ -363,25 +446,40 @@ private fun ArcHeaderCard(
             HorizontalDivider()
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                TextButton(onClick = onEditArc) {
-                    Text("Edit")
+                TextButton(
+                    onClick = onEditArc,
+                    modifier = Modifier.semantics {
+                        contentDescription = editText
+                    }
+                ) {
+                    Text(editText)
                 }
 
                 if (uiState.isInStudio) {
-                    TextButton(onClick = onRemoveFromStudio) {
+                    TextButton(
+                        onClick = onRemoveFromStudio,
+                        modifier = Modifier.semantics {
+                            contentDescription = removeFromStudioText
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.Outlined.Star,
                             contentDescription = null
                         )
-                        Text("Remove from Studio")
+                        Text(removeFromStudioText)
                     }
                 } else {
-                    TextButton(onClick = onAddToStudio) {
+                    TextButton(
+                        onClick = onAddToStudio,
+                        modifier = Modifier.semantics {
+                            contentDescription = addToStudioText
+                        }
+                    ) {
                         Icon(
                             imageVector = Icons.Outlined.StarBorder,
                             contentDescription = null
                         )
-                        Text("Add to Studio")
+                        Text(addToStudioText)
                     }
                 }
             }
@@ -393,8 +491,37 @@ private fun ArcHeaderCard(
 private fun ArcSummaryCard(
     uiState: ArcDetailUiState
 ) {
+    val stepCountText = pluralStringResource(
+        R.plurals.arc_detail_step_count,
+        uiState.steps.size,
+        uiState.steps.size
+    )
+    val minutesText = if (uiState.untimedCount > 0) {
+        stringResource(R.string.arc_detail_minutes_plus, uiState.totalMinutes)
+    } else {
+        stringResource(R.string.arc_detail_minutes, uiState.totalMinutes)
+    }
+
+    val summaryText = listOf(stepCountText, minutesText).joinToString(" • ")
+
+    val detailText = buildList {
+        if (uiState.untimedCount > 0) add(stringResource(R.string.arc_detail_untimed_count, uiState.untimedCount))
+        if (uiState.surgeCount > 0) add(stringResource(R.string.arc_detail_surge_count, uiState.surgeCount))
+        if (uiState.softCount > 0) add(stringResource(R.string.arc_detail_soft_count, uiState.softCount))
+    }.joinToString(" • ")
+
+    val a11yText = stringResource(
+        R.string.arc_detail_summary_a11y,
+        summaryText,
+        if (detailText.isBlank()) summaryText else detailText
+    )
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = a11yText
+            },
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -404,30 +531,15 @@ private fun ArcSummaryCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            val summary = buildList {
-                add("${uiState.steps.size} ${if (uiState.steps.size == 1) "step" else "steps"}")
-                if (uiState.untimedCount > 0) {
-                    add("${uiState.totalMinutes}+ min")
-                } else {
-                    add("${uiState.totalMinutes} min")
-                }
-            }.joinToString(" • ")
-
             Text(
-                text = summary,
+                text = summaryText,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
 
-            val detail = buildList {
-                if (uiState.untimedCount > 0) add("${uiState.untimedCount} untimed")
-                if (uiState.surgeCount > 0) add("${uiState.surgeCount} Surge")
-                if (uiState.softCount > 0) add("${uiState.softCount} Soft")
-            }.joinToString(" • ")
-
-            if (detail.isNotBlank()) {
+            if (detailText.isNotBlank()) {
                 Text(
-                    text = detail,
+                    text = detailText,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
                 )
@@ -441,8 +553,41 @@ private fun ArcStepCard(
     step: ArcDetailStepUiModel,
     isActiveStep: Boolean
 ) {
+    val currentText = stringResource(R.string.arc_detail_current)
+    val surgeText = stringResource(R.string.arc_detail_surge)
+    val softText = stringResource(R.string.arc_detail_soft)
+    val stepNumberText = stringResource(R.string.arc_detail_step_number_a11y, step.orderIndex + 1)
+
+    val badgeSummary = buildList {
+        if (isActiveStep) add(currentText)
+        step.targetMinutes?.let { add(stringResource(R.string.arc_detail_minutes, it)) }
+        if (step.launchWithSurge) add(surgeText)
+        if (step.isSoftMode) add(softText)
+    }.joinToString(" • ")
+
+    val a11yText = if (step.tagName.isNotBlank()) {
+        stringResource(
+            R.string.arc_detail_step_card_with_tag_a11y,
+            stepNumberText,
+            step.title,
+            step.tagName,
+            badgeSummary.ifBlank { stepNumberText }
+        )
+    } else {
+        stringResource(
+            R.string.arc_detail_step_card_a11y,
+            stepNumberText,
+            step.title,
+            badgeSummary.ifBlank { stepNumberText }
+        )
+    }
+
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                contentDescription = a11yText
+            },
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isActiveStep) {
@@ -498,12 +643,14 @@ private fun ArcStepCard(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (isActiveStep) {
-                    MiniBadge(text = "Current")
+                    MiniBadge(text = currentText)
                 }
-                step.targetMinutes?.let { MiniBadge(text = "${it} min") }
+                step.targetMinutes?.let {
+                    MiniBadge(text = stringResource(R.string.arc_detail_minutes, it))
+                }
                 if (step.launchWithSurge) {
                     MiniBadge(
-                        text = "Surge",
+                        text = surgeText,
                         icon = {
                             Icon(
                                 imageVector = Icons.Outlined.Speed,
@@ -514,7 +661,7 @@ private fun ArcStepCard(
                     )
                 }
                 if (step.isSoftMode) {
-                    MiniBadge(text = "Soft")
+                    MiniBadge(text = softText)
                 }
             }
         }

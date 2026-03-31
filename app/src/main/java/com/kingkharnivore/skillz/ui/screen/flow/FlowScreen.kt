@@ -49,11 +49,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
 import com.kingkharnivore.skillz.BuildConfig
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 import com.kingkharnivore.skillz.ui.screen.flow.reward.ArcSummaryContent
 import com.kingkharnivore.skillz.ui.screen.flow.reward.SessionRewardContent
@@ -100,13 +102,16 @@ fun FlowScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Flow") },
+                title = { Text(stringResource(R.string.flow_screen_title)) },
                 navigationIcon = {
                     IconButton(onClick = {
                         viewModel.discardDraftIfIdle()
                         onCancel()
                     }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = stringResource(R.string.common_back)
+                        )
                     }
                 }
             )
@@ -177,7 +182,11 @@ fun FlowScreen(
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = "Step ${uiState.plannedArcStepIndex!! + 1} of ${uiState.plannedArcTotalSteps!!}",
+                                text = stringResource(
+                                    R.string.flow_screen_planned_arc_step,
+                                    uiState.plannedArcStepIndex!! + 1,
+                                    uiState.plannedArcTotalSteps!!
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f)
                             )
@@ -185,6 +194,7 @@ fun FlowScreen(
                     }
                     Spacer(Modifier.height(10.dp))
                 }
+
                 if (uiState.isInArc && uiState.arcMultiplier != null) {
                     ArcPill(
                         arcMultiplier = uiState.arcMultiplier!!,
@@ -209,7 +219,7 @@ fun FlowScreen(
                     )
                 } else {
                     Text(
-                        text = "Calm Mode",
+                        text = stringResource(R.string.help_pref_calm_mode_title),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
                         modifier = Modifier.fillMaxWidth(),
@@ -230,10 +240,10 @@ fun FlowScreen(
                 ) {
                     Text(
                         text = when {
-                            isInFlowState && uiState.isSoftMode -> "Exit Soft Flow"
-                            isInFlowState -> "Exit Flow"
-                            uiState.isSoftMode -> "Begin Soft Flow"
-                            else -> "Enter Flow"
+                            isInFlowState && uiState.isSoftMode -> stringResource(R.string.flow_screen_exit_soft_flow)
+                            isInFlowState -> stringResource(R.string.flow_screen_exit_flow)
+                            uiState.isSoftMode -> stringResource(R.string.flow_screen_begin_soft_flow)
+                            else -> stringResource(R.string.flow_screen_enter_flow)
                         },
                         style = MaterialTheme.typography.titleMedium
                     )
@@ -286,13 +296,13 @@ fun FlowScreen(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = "Soft Flow",
+                                text = stringResource(R.string.flow_screen_soft_flow_label),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.secondary,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                text = "This session will be recorded without score, Surge, Beam, or Arc progression.",
+                                text = stringResource(R.string.flow_screen_soft_flow_body),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
                             )
@@ -313,12 +323,12 @@ fun FlowScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(18.dp)
                     ) {
-                        Text("Record a Pulse")
+                        Text(stringResource(R.string.story_fab_record_pulse))
                     }
 
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "You're in Flow. You may use other parts of this app.\nYou may turn off the screen — the timer continues.",
+                        text = stringResource(R.string.flow_screen_in_flow_helper),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                         textAlign = TextAlign.Center,
@@ -353,7 +363,10 @@ fun FlowScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp)
                 ) {
-                    Text(if (isSaving) "Saving..." else "Save Soft Flow")
+                    Text(
+                        if (isSaving) stringResource(R.string.flow_screen_saving)
+                        else stringResource(R.string.flow_screen_save_soft_flow)
+                    )
                 }
             } else {
                 Row(
@@ -370,12 +383,16 @@ fun FlowScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(18.dp)
                     ) {
-                        Text("Continue Arc")
+                        Text(stringResource(R.string.flow_screen_continue_arc))
                     }
 
                     val isPlannedArc = !uiState.plannedArcTitle.isNullOrBlank()
                     val isArcActuallyCompletable = uiState.isInArc || isPlannedArc
-                    val completeLabel = if (isArcActuallyCompletable) "Complete Arc" else "Complete Flow"
+                    val completeLabel = if (isArcActuallyCompletable) {
+                        stringResource(R.string.flow_screen_complete_arc)
+                    } else {
+                        stringResource(R.string.flow_screen_complete_flow)
+                    }
                     val completeAction = if (isArcActuallyCompletable) {
                         FlowEndAction.COMPLETE_ARC
                     } else {
@@ -392,7 +409,7 @@ fun FlowScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(18.dp)
                     ) {
-                        Text(if (isSaving) "Saving..." else completeLabel)
+                        Text(if (isSaving) stringResource(R.string.flow_screen_saving) else completeLabel)
                     }
                 }
             }
@@ -404,9 +421,9 @@ fun FlowScreen(
     if (showSoftArcConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showSoftArcConfirmDialog = false },
-            title = { Text("Enter Soft Mode?") },
+            title = { Text(stringResource(R.string.flow_screen_soft_confirm_title)) },
             text = {
-                Text("This will complete your current Arc. Soft sessions are recorded without score or Arc progression.")
+                Text(stringResource(R.string.flow_screen_soft_confirm_body))
             },
             confirmButton = {
                 TextButton(
@@ -414,11 +431,11 @@ fun FlowScreen(
                         showSoftArcConfirmDialog = false
                         viewModel.setSoftModeAndConcludeArc()
                     }
-                ) { Text("Enter Soft") }
+                ) { Text(stringResource(R.string.flow_screen_enter_soft)) }
             },
             dismissButton = {
                 TextButton(onClick = { showSoftArcConfirmDialog = false }) {
-                    Text("Stay in Flow")
+                    Text(stringResource(R.string.flow_screen_stay_in_flow))
                 }
             }
         )
@@ -429,10 +446,10 @@ fun FlowScreen(
             onDismissRequest = { showPulseDialog = false },
             title = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Record a Pulse")
+                    Text(stringResource(R.string.story_fab_record_pulse))
                     if (isInFlowState && uiState.title.isNotBlank()) {
                         Text(
-                            text = "Current Flow: ${uiState.title}",
+                            text = stringResource(R.string.flow_screen_current_flow_value, uiState.title),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -445,8 +462,8 @@ fun FlowScreen(
                         value = pulseTitle,
                         onValueChange = { pulseTitle = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Title") },
-                        placeholder = { Text("What was the moment?") },
+                        label = { Text(stringResource(R.string.flow_screen_pulse_title_label)) },
+                        placeholder = { Text(stringResource(R.string.flow_screen_pulse_title_placeholder)) },
                         singleLine = true
                     )
 
@@ -463,8 +480,8 @@ fun FlowScreen(
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 4,
                         maxLines = 8,
-                        label = { Text("Description") },
-                        placeholder = { Text("Capture the thought, learning, or feeling…") }
+                        label = { Text(stringResource(R.string.flow_screen_pulse_description_label)) },
+                        placeholder = { Text(stringResource(R.string.flow_screen_pulse_description_placeholder)) }
                     )
 
                     if (isInFlowState) {
@@ -482,15 +499,15 @@ fun FlowScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Attach to current Flow",
+                                    text = stringResource(R.string.pulse_screen_attach_to_current_flow),
                                     style = MaterialTheme.typography.titleSmall
                                 )
                                 Spacer(Modifier.height(2.dp))
                                 Text(
                                     text = if (attachPulseToCurrentFlow) {
-                                        "This Pulse will appear under the active Flow in Chronicles."
+                                        stringResource(R.string.pulse_screen_attach_enabled)
                                     } else {
-                                        "This Pulse will be saved as its own moment."
+                                        stringResource(R.string.pulse_screen_attach_disabled)
                                     },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
@@ -517,10 +534,12 @@ fun FlowScreen(
                         )
                         showPulseDialog = false
                     }
-                ) { Text("Save") }
+                ) { Text(stringResource(R.string.common_save)) }
             },
             dismissButton = {
-                TextButton(onClick = { showPulseDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showPulseDialog = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
             }
         )
     }
@@ -528,8 +547,8 @@ fun FlowScreen(
     if (showEndDialog) {
         AlertDialog(
             onDismissRequest = { showEndDialog = false },
-            title = { Text("End Focus Session?") },
-            text = { Text("The stopwatch is still running. Are you sure you want to end and leave this screen?") },
+            title = { Text(stringResource(R.string.flow_screen_end_session_title)) },
+            text = { Text(stringResource(R.string.flow_screen_end_session_body)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -539,10 +558,12 @@ fun FlowScreen(
                         showEndDialog = false
                         onCancel()
                     }
-                ) { Text("End") }
+                ) { Text(stringResource(R.string.flow_screen_end)) }
             },
             dismissButton = {
-                TextButton(onClick = { showEndDialog = false }) { Text("Continue") }
+                TextButton(onClick = { showEndDialog = false }) {
+                    Text(stringResource(R.string.flow_screen_continue))
+                }
             }
         )
     }
@@ -552,13 +573,13 @@ fun FlowScreen(
         var showArcSummary by remember(r) { mutableStateOf(r.isArcOnlySummary) }
 
         AlertDialog(
-            onDismissRequest = { },
+            onDismissRequest = {},
             title = {
                 Text(
                     when {
-                        showArcSummary && r.arcSummary != null -> "Arc Reward"
-                        uiState.isSoftMode -> "Soft Flow recorded"
-                        else -> "You did it!"
+                        showArcSummary && r.arcSummary != null -> stringResource(R.string.flow_screen_arc_reward)
+                        uiState.isSoftMode -> stringResource(R.string.flow_screen_soft_flow_recorded)
+                        else -> stringResource(R.string.flow_screen_you_did_it)
                     }
                 )
             },
@@ -608,9 +629,9 @@ fun FlowScreen(
                     }
                 ) {
                     val label = when {
-                        r.isArcOnlySummary -> "Done"
-                        r.arcSummary != null && !showArcSummary -> "Next"
-                        else -> "Done"
+                        r.isArcOnlySummary -> stringResource(R.string.common_done)
+                        r.arcSummary != null && !showArcSummary -> stringResource(R.string.common_next)
+                        else -> stringResource(R.string.common_done)
                     }
                     Text(label)
                 }
@@ -625,24 +646,26 @@ fun FlowScreen(
 
         AlertDialog(
             onDismissRequest = { showSurgeDialog = false },
-            title = { Text("Surge") },
+            title = { Text(stringResource(R.string.help_page_surge_kicker)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (locked) {
-                        Text("Surge is locked on once time starts.")
-                        Text("Planned: $currentMinutes min")
+                        Text(stringResource(R.string.flow_screen_surge_locked_body))
+                        Text(stringResource(R.string.flow_screen_surge_planned_value, currentMinutes))
                     } else {
-                        Text("Set a planned time limit. Finish early to earn Surge Points.")
+                        Text(stringResource(R.string.flow_screen_surge_dialog_body))
 
                         OutlinedTextField(
                             value = surgeMinutesInput,
                             onValueChange = { surgeMinutesInput = it.filter(Char::isDigit) },
-                            label = { Text("Surge Time (minutes)") },
+                            label = { Text(stringResource(R.string.flow_screen_surge_time_label)) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        if (uiState.isSurgeOn) Text("Current: $currentMinutes min")
+                        if (uiState.isSurgeOn) {
+                            Text(stringResource(R.string.flow_screen_surge_current_value, currentMinutes))
+                        }
                     }
                 }
             },
@@ -655,7 +678,12 @@ fun FlowScreen(
                         }
                         showSurgeDialog = false
                     }
-                ) { Text(if (locked) "OK" else "Set") }
+                ) {
+                    Text(
+                        if (locked) stringResource(R.string.common_ok)
+                        else stringResource(R.string.common_set)
+                    )
+                }
             },
             dismissButton = {
                 if (!locked && uiState.isSurgeOn) {
@@ -664,7 +692,7 @@ fun FlowScreen(
                             viewModel.clearSurgeIfAllowed()
                             showSurgeDialog = false
                         }
-                    ) { Text("Turn Off") }
+                    ) { Text(stringResource(R.string.flow_screen_turn_off)) }
                 }
             }
         )
@@ -680,7 +708,7 @@ private fun SessionModeSelector(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            text = "Mode",
+            text = stringResource(R.string.flow_screen_mode_label),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
         )
@@ -693,8 +721,8 @@ private fun SessionModeSelector(
                 modifier = Modifier.weight(1f),
                 selected = !isSoftMode,
                 enabled = !isLocked,
-                title = "Flow",
-                subtitle = "Scored",
+                title = stringResource(R.string.flow_card_type_flow),
+                subtitle = stringResource(R.string.flow_screen_mode_flow_subtitle),
                 icon = Icons.Outlined.AutoAwesome,
                 selectedContainer = MaterialTheme.colorScheme.primary,
                 selectedContent = MaterialTheme.colorScheme.onPrimary,
@@ -705,8 +733,8 @@ private fun SessionModeSelector(
                 modifier = Modifier.weight(1f),
                 selected = isSoftMode,
                 enabled = !isLocked,
-                title = "Soft",
-                subtitle = "Gentle",
+                title = stringResource(R.string.flow_screen_soft_short),
+                subtitle = stringResource(R.string.flow_screen_mode_soft_subtitle),
                 icon = Icons.Outlined.Spa,
                 selectedContainer = MaterialTheme.colorScheme.secondary,
                 selectedContent = MaterialTheme.colorScheme.onSecondary,
@@ -716,7 +744,7 @@ private fun SessionModeSelector(
 
         if (isLocked) {
             Text(
-                text = "Mode locks once time starts.",
+                text = stringResource(R.string.flow_screen_mode_locked_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
             )
@@ -795,11 +823,11 @@ private fun SoftSessionRewardContent(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = "Soft Flow",
+                    text = stringResource(R.string.flow_screen_soft_flow_label),
                     style = MaterialTheme.typography.labelLarge
                 )
                 Text(
-                    text = "You showed up without turning this session into a score chase.",
+                    text = stringResource(R.string.flow_screen_soft_reward_body),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -818,11 +846,11 @@ private fun SoftSessionRewardContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Duration",
+                    text = stringResource(R.string.flow_screen_duration_label),
                     style = MaterialTheme.typography.titleSmall
                 )
                 Text(
-                    text = "${r.minutes} min",
+                    text = stringResource(R.string.flow_screen_minutes_value, r.minutes),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -830,7 +858,7 @@ private fun SoftSessionRewardContent(
         }
 
         Text(
-            text = "This session is part of your Story, but it does not affect score, Surge, Beam, or Arc progression.",
+            text = stringResource(R.string.flow_screen_soft_reward_footer),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
         )

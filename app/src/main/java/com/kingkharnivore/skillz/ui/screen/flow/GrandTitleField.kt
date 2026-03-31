@@ -12,11 +12,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kingkharnivore.skillz.R
 
 @Composable
 fun GrandTitleField(
@@ -24,6 +28,10 @@ fun GrandTitleField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val labelText = stringResource(R.string.flow_title_field_label)
+    val placeholderText = stringResource(R.string.flow_title_field_placeholder)
+    val fieldA11y = stringResource(R.string.flow_title_field_a11y)
+
     val colors = TextFieldDefaults.colors(
         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),
@@ -38,7 +46,7 @@ fun GrandTitleField(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Set the tone…",
+            text = labelText,
             style = MaterialTheme.typography.labelLarge.copy(
                 letterSpacing = 0.6.sp,
                 fontWeight = FontWeight.Medium,
@@ -53,10 +61,14 @@ fun GrandTitleField(
         TextField(
             value = value,
             onValueChange = { onValueChange(it.take(60)) },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    contentDescription = fieldA11y
+                },
             placeholder = {
                 Text(
-                    text = "It begins here.",
+                    text = placeholderText,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleMedium.copy(

@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -17,8 +19,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,8 +27,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.ui.PulseListItemUiModel
 import com.kingkharnivore.skillz.ui.screen.story.SessionEditState
 import com.kingkharnivore.skillz.ui.screen.story.chronicle.PulseCard
@@ -52,6 +59,52 @@ fun FlowDetailsSheet(
     var pulseTagName by rememberSaveable(session.sessionId) { mutableStateOf("") }
     var showPulseComposer by rememberSaveable(session.sessionId) { mutableStateOf(false) }
 
+    val paneTitleText = stringResource(R.string.flow_details_sheet_pane_title)
+    val flowTypeText = stringResource(
+        if (session.isSoftMode) {
+            R.string.flow_details_type_soft_flow
+        } else {
+            R.string.flow_details_type_flow
+        }
+    )
+    val notesTitle = stringResource(R.string.flow_details_notes_title)
+    val notesPlaceholder = stringResource(R.string.flow_details_notes_placeholder)
+    val closeText = stringResource(R.string.common_close)
+    val saveNotesText = stringResource(R.string.flow_details_save_notes)
+    val pulsesTitle = stringResource(R.string.flow_details_pulses_title)
+    val pulsesSubtitle = stringResource(R.string.flow_details_pulses_subtitle)
+    val noPulsesText = stringResource(R.string.flow_details_no_pulses)
+    val hidePulseComposerText = stringResource(R.string.flow_details_hide_pulse_composer)
+    val addPulseText = stringResource(R.string.flow_details_add_pulse)
+    val pulseTitleLabel = stringResource(R.string.flow_details_pulse_title_label)
+    val journeyOptionalLabel = stringResource(R.string.flow_details_journey_optional_label)
+    val pulseDescriptionLabel = stringResource(R.string.flow_details_pulse_description_label)
+    val savePulseText = stringResource(R.string.flow_details_save_pulse)
+    val pulseCountA11y = stringResource(R.string.flow_details_pulse_count_a11y, childPulses.size)
+    val togglePulseComposerA11y = stringResource(R.string.flow_details_toggle_pulse_composer_a11y)
+
+    val flowSummaryA11y = if (session.tagName.isNotBlank()) {
+        stringResource(
+            R.string.flow_details_flow_summary_with_tag_a11y,
+            flowTypeText,
+            session.title,
+            session.tagName
+        )
+    } else {
+        stringResource(
+            R.string.flow_details_flow_summary_a11y,
+            flowTypeText,
+            session.title
+        )
+    }
+
+    val suggestionsText = remember(tags) {
+        tags.map { it.name }
+            .filter { it.isNotBlank() }
+            .take(6)
+            .joinToString(" • ")
+    }
+
     LaunchedEffect(session.sessionId) {
         editState.editText.value = session.description
     }
@@ -62,12 +115,18 @@ fun FlowDetailsSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .semantics { this.paneTitle = paneTitleText }
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Surface(
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clearAndSetSemantics {
+                        contentDescription = flowSummaryA11y
+                    },
+                shape = RoundedCornerShape(20.dp),
                 color = if (session.isSoftMode) {
                     MaterialTheme.colorScheme.secondary
                 } else {
@@ -77,15 +136,14 @@ fun FlowDetailsSheet(
                     MaterialTheme.colorScheme.onSecondary
                 } else {
                     MaterialTheme.colorScheme.onSurface
-                },
-                modifier = Modifier.fillMaxWidth()
+                }
             ) {
                 Column(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = if (session.isSoftMode) "Soft Flow" else "Flow",
+                        text = flowTypeText,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -104,9 +162,10 @@ fun FlowDetailsSheet(
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Notes",
+                    text = notesTitle,
                     style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.semantics { heading() }
                 )
                 OutlinedTextField(
                     value = editState.editText.value,
@@ -115,20 +174,24 @@ fun FlowDetailsSheet(
                     minLines = 4,
                     maxLines = 8,
                     placeholder = {
-                        Text("Refine what happened in this Flow.")
+                        Text(notesPlaceholder)
                     }
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(
                         onClick = { editState.stopEditing() }
-                    ) { Text("Close") }
+                    ) {
+                        Text(closeText)
+                    }
 
                     Button(
                         onClick = {
                             onSaveNotes(session.sessionId, editState.editText.value)
                         }
-                    ) { Text("Save Notes") }
+                    ) {
+                        Text(saveNotesText)
+                    }
                 }
             }
 
@@ -141,12 +204,13 @@ fun FlowDetailsSheet(
                 ) {
                     Column {
                         Text(
-                            text = "Pulses",
+                            text = pulsesTitle,
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.semantics { heading() }
                         )
                         Text(
-                            text = "Moments captured in or added to this Flow",
+                            text = pulsesSubtitle,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
                         )
@@ -155,13 +219,16 @@ fun FlowDetailsSheet(
                     Text(
                         text = childPulses.size.toString(),
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.semantics {
+                            contentDescription = pulseCountA11y
+                        }
                     )
                 }
 
                 if (childPulses.isEmpty()) {
                     Text(
-                        text = "No pulses yet.",
+                        text = noPulsesText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
                     )
@@ -182,9 +249,13 @@ fun FlowDetailsSheet(
 
                 OutlinedButton(
                     onClick = { showPulseComposer = !showPulseComposer },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics {
+                            contentDescription = togglePulseComposerA11y
+                        }
                 ) {
-                    Text(if (showPulseComposer) "Hide Pulse Composer" else "Add Pulse")
+                    Text(if (showPulseComposer) hidePulseComposerText else addPulseText)
                 }
 
                 if (showPulseComposer) {
@@ -192,7 +263,7 @@ fun FlowDetailsSheet(
                         value = pulseTitle,
                         onValueChange = { pulseTitle = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Pulse title") },
+                        label = { Text(pulseTitleLabel) },
                         singleLine = true
                     )
 
@@ -200,12 +271,17 @@ fun FlowDetailsSheet(
                         value = pulseTagName,
                         onValueChange = { pulseTagName = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Journey (optional)") },
+                        label = { Text(journeyOptionalLabel) },
+                        placeholder = { Text(journeyOptionalLabel) },
                         singleLine = true,
                         supportingText = {
-                            val suggestions = tags.take(6).joinToString(" • ") { it.name }
-                            if (suggestions.isNotBlank()) {
-                                Text("Suggestions: $suggestions")
+                            if (suggestionsText.isNotBlank()) {
+                                Text(
+                                    stringResource(
+                                        R.string.flow_details_suggestions,
+                                        suggestionsText
+                                    )
+                                )
                             }
                         }
                     )
@@ -216,7 +292,7 @@ fun FlowDetailsSheet(
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3,
                         maxLines = 6,
-                        label = { Text("Pulse description") }
+                        label = { Text(pulseDescriptionLabel) }
                     )
 
                     Button(
@@ -235,7 +311,7 @@ fun FlowDetailsSheet(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Save Pulse")
+                        Text(savePulseText)
                     }
                 }
             }

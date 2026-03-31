@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.ui.screen.story.chronicle
 
+import android.text.format.DateFormat
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -30,11 +31,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.ui.PulseListItemUiModel
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
@@ -51,6 +63,20 @@ fun PulseCard(
     parentContextIsSoftMode: Boolean = false
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+
+    val deleteEntryLabel = stringResource(R.string.pulse_card_delete_entry)
+    val editEntryLabel = stringResource(R.string.pulse_card_edit_entry)
+    val expandLabel = stringResource(R.string.pulse_card_expand)
+    val collapseLabel = stringResource(R.string.pulse_card_collapse)
+    val openDetailsLabel = stringResource(R.string.pulse_card_open_details)
+    val pulseTypeLabel = stringResource(R.string.pulse_card_type)
+    val expandedStateLabel = stringResource(R.string.a11y_expanded)
+    val collapsedStateLabel = stringResource(R.string.a11y_collapsed)
+
+    val stateLabel = if (isExpanded) expandedStateLabel else collapsedStateLabel
+    val toggleLabel = if (isExpanded) collapseLabel else expandLabel
 
     val containerColor = if (nested) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
@@ -70,9 +96,75 @@ fun PulseCard(
         MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.14f)
     }
 
+    val parentContextText = if (!nested && parentContextTitle != null) {
+        if (parentContextTagName.isNotBlank()) {
+            stringResource(
+                R.string.pulse_card_captured_during_with_tag,
+                parentContextTagName,
+                parentContextTitle
+            )
+        } else {
+            stringResource(
+                R.string.pulse_card_captured_during_without_tag,
+                parentContextTitle
+            )
+        }
+    } else {
+        null
+    }
+
+    val createdAtText = formatPulseTime(
+        context = context,
+        timeMs = pulse.createdAt
+    )
+
+    val cardContentDescription = buildString {
+        if (pulse.title.isNotBlank()) {
+            append(pulse.title)
+            append(", ")
+        } else {
+            append(pulseTypeLabel)
+            append(", ")
+        }
+
+        if (pulse.tagName.isNotBlank()) {
+            append(pulse.tagName)
+            append(", ")
+        }
+
+        append(pulse.description)
+
+        if (parentContextText != null) {
+            append(", ")
+            append(parentContextText)
+        }
+
+        append(", ")
+        append(createdAtText)
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .semantics {
+                role = Role.Button
+                contentDescription = cardContentDescription
+                stateDescription = stateLabel
+                onLongClick(label = editEntryLabel) {
+                    onLongPress()
+                    true
+                }
+                customActions = listOf(
+                    CustomAccessibilityAction(label = toggleLabel) {
+                        onToggleExpand()
+                        true
+                    },
+                    CustomAccessibilityAction(label = openDetailsLabel) {
+                        onToggleExpand()
+                        true
+                    }
+                )
+            }
             .combinedClickable(
                 onClick = onToggleExpand,
                 onLongClick = onLongPress
@@ -117,7 +209,7 @@ fun PulseCard(
                         }
                     }
 
-                    if (!nested && parentContextTitle != null) {
+                    if (parentContextText != null) {
                         Spacer(Modifier.height(8.dp))
 
                         Surface(
@@ -129,14 +221,7 @@ fun PulseCard(
                             }
                         ) {
                             Text(
-                                text = buildString {
-                                    append("Captured during: ")
-                                    if (parentContextTagName.isNotBlank()) {
-                                        append(parentContextTagName)
-                                        append(" • ")
-                                    }
-                                    append(parentContextTitle)
-                                },
+                                text = parentContextText,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = contentColor
@@ -151,7 +236,8 @@ fun PulseCard(
                             text = pulse.title,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = contentColor
+                            color = contentColor,
+                            modifier = Modifier.semantics { heading() }
                         )
                     }
                 }
@@ -160,7 +246,7 @@ fun PulseCard(
                     IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete entry",
+                            contentDescription = deleteEntryLabel,
                             tint = contentColor
                         )
                     }
@@ -182,7 +268,7 @@ fun PulseCard(
             Spacer(Modifier.height(8.dp))
 
             Text(
-                text = formatPulseTime(pulse.createdAt),
+                text = createdAtText,
                 style = MaterialTheme.typography.labelSmall,
                 color = contentColor.copy(alpha = 0.78f)
             )
@@ -192,25 +278,32 @@ fun PulseCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete entry?") },
-            text = { Text("This will permanently delete this entry.") },
+            title = { Text(stringResource(R.string.pulse_card_delete_dialog_title)) },
+            text = { Text(stringResource(R.string.pulse_card_delete_dialog_body)) },
             confirmButton = {
                 TextButton(
                     onClick = {
                         showDeleteDialog = false
                         onDeletePulse()
                     }
-                ) { Text("Delete") }
+                ) {
+                    Text(stringResource(R.string.common_delete))
+                }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )
     }
 }
 
-private fun formatPulseTime(timeMs: Long): String {
-    return SimpleDateFormat("MMM d • h:mm a", Locale.getDefault()).format(Date(timeMs))
+private fun formatPulseTime(
+    context: android.content.Context,
+    timeMs: Long
+): String {
+    val skeleton = "MMMdhmma"
+    val pattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), skeleton)
+    return java.text.SimpleDateFormat(pattern, Locale.getDefault()).format(Date(timeMs))
 }

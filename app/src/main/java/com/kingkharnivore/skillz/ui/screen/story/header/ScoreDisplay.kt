@@ -10,9 +10,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.ui.theme.CaveatSemiBold
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 
@@ -24,8 +28,35 @@ fun ScoreDisplay(
     modifier: Modifier = Modifier,
     calmMode: Boolean = false
 ) {
+    val periodLabel = when (period) {
+        StoryPeriod.DAY -> stringResource(R.string.score_display_label_day)
+        StoryPeriod.WEEK -> stringResource(R.string.score_display_label_week)
+        StoryPeriod.MONTH -> stringResource(R.string.score_display_label_month)
+    }
+
+    val surgeLabel = stringResource(R.string.score_display_surge_bonus, surgeScore)
+
+    val a11yLabel = if (!calmMode && surgeScore > 0) {
+        stringResource(
+            R.string.score_display_a11y_with_surge,
+            score,
+            surgeLabel,
+            periodLabel
+        )
+    } else {
+        stringResource(
+            R.string.score_display_a11y_without_surge,
+            score,
+            periodLabel
+        )
+    }
+
     Box(
-        modifier = modifier.padding(80.dp),
+        modifier = modifier
+            .padding(80.dp)
+            .clearAndSetSemantics {
+                contentDescription = a11yLabel
+            },
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -34,11 +65,10 @@ fun ScoreDisplay(
                 style = MaterialTheme.typography.displayLarge.copy(fontSize = 70.sp)
             )
 
-            // Calm Mode hides bonus breakdown
             if (!calmMode && surgeScore > 0) {
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "+$surgeScore Surge",
+                    text = surgeLabel,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -47,11 +77,7 @@ fun ScoreDisplay(
             Spacer(Modifier.height(6.dp))
 
             Text(
-                text = when (period) {
-                    StoryPeriod.DAY -> "Scyra Score"
-                    StoryPeriod.WEEK -> "This week"
-                    StoryPeriod.MONTH -> "This month"
-                },
+                text = periodLabel,
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontFamily = CaveatSemiBold
                 ),

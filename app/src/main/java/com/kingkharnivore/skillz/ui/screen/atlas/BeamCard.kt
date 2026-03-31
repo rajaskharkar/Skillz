@@ -18,10 +18,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.ui.model.BeamBlockUi
 import com.kingkharnivore.skillz.ui.model.BeamStatus
 import com.kingkharnivore.skillz.utils.time.formatRange
@@ -44,7 +50,10 @@ fun BeamCard(
     val journeyColor = Color(b.journeyColorArgb)
     val bg = when (b.status) {
         BeamStatus.ACTIVE -> journeyColor.copy(alpha = 0.22f)
-        else -> journeyColor.copy(alpha = 0.16f)
+        BeamStatus.UPCOMING -> journeyColor.copy(alpha = 0.16f)
+        BeamStatus.COMPLETED_SUCCESS -> journeyColor.copy(alpha = 0.14f)
+        BeamStatus.COMPLETED_PARTIAL -> journeyColor.copy(alpha = 0.14f)
+        BeamStatus.MISSED -> journeyColor.copy(alpha = 0.10f)
     }
     val accent = journeyColor.copy(alpha = 0.92f)
 
@@ -59,16 +68,60 @@ fun BeamCard(
     )
 
     val mins = ((b.endMs - b.startMs) / 60_000L).coerceAtLeast(1)
+    val minsText = stringResource(R.string.beam_card_minutes_compact, mins)
+
     val title = buildString {
         if (b.clippedTop) append("↑ ")
         append(b.tagName)
         if (b.clippedBottom) append(" ↓")
     }
 
+    val statusText = when (b.status) {
+        BeamStatus.UPCOMING -> stringResource(R.string.beam_status_upcoming)
+        BeamStatus.ACTIVE -> stringResource(R.string.beam_status_active)
+        BeamStatus.COMPLETED_SUCCESS -> stringResource(R.string.beam_status_completed_success)
+        BeamStatus.COMPLETED_PARTIAL -> stringResource(R.string.beam_status_completed_partial)
+        BeamStatus.MISSED -> stringResource(R.string.beam_status_missed)
+    }
+
+    val timeText = stringResource(
+        R.string.beam_card_time_and_minutes,
+        formatRange(b.startMs, b.endMs),
+        minsText
+    )
+
+    val continuationNote = when {
+        b.clippedTop && b.clippedBottom -> stringResource(R.string.beam_card_continues_across_day)
+        b.clippedTop -> stringResource(R.string.beam_card_continues_from_earlier)
+        b.clippedBottom -> stringResource(R.string.beam_card_continues_later)
+        else -> null
+    }
+
+    val cardA11y = if (continuationNote != null) {
+        stringResource(
+            R.string.beam_card_a11y,
+            b.tagName,
+            timeText,
+            statusText,
+            continuationNote
+        )
+    } else {
+        stringResource(
+            R.string.beam_card_a11y_no_note,
+            b.tagName,
+            timeText,
+            statusText
+        )
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(visualHeight),
+            .height(visualHeight)
+            .semantics {
+                role = Role.Button
+                contentDescription = cardA11y
+            },
         onClick = { onBeamClick(b) },
         shape = shape,
         colors = CardDefaults.cardColors(containerColor = bg)
@@ -134,38 +187,20 @@ fun BeamCard(
                         )
 
                         Text(
-                            text = "${formatRange(b.startMs, b.endMs)} • ${mins}m",
+                            text = timeText,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
 
-                        when {
-                            b.clippedTop && b.clippedBottom -> {
-                                Text(
-                                    text = "Continues across this day",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
-                                    maxLines = 1
-                                )
-                            }
-                            b.clippedTop -> {
-                                Text(
-                                    text = "Continues from earlier",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
-                                    maxLines = 1
-                                )
-                            }
-                            b.clippedBottom -> {
-                                Text(
-                                    text = "Continues later",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
-                                    maxLines = 1
-                                )
-                            }
+                        continuationNote?.let {
+                            Text(
+                                text = it,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f),
+                                maxLines = 1
+                            )
                         }
                     }
                 }

@@ -12,10 +12,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kingkharnivore.skillz.R
 import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
@@ -42,9 +46,12 @@ fun CountdownText(
         remainingMs = remainingMs,
         targetTimeMs = targetTimeMs
     )
+    val a11yText = stringResource(R.string.countdown_a11y, headline, countdown)
 
     Column(
-        modifier = modifier,
+        modifier = modifier.semantics {
+            contentDescription = a11yText
+        },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -65,7 +72,7 @@ fun CountdownText(
 
         if (totalSeconds > 0) {
             Text(
-                text = "Until Beam Begins",
+                text = stringResource(R.string.countdown_until_beam_begins),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center
@@ -74,6 +81,7 @@ fun CountdownText(
     }
 }
 
+@Composable
 private fun formatBeamCountdown(
     remainingMs: Long,
     targetTimeMs: Long,
@@ -84,26 +92,38 @@ private fun formatBeamCountdown(
     val hours = (totalSeconds % 86_400) / 3_600
     val minutes = (totalSeconds % 3_600) / 60
     val seconds = totalSeconds % 60
-    val headline = if (totalSeconds <= 0) "BEAM IMMINENT" else "NEXT BEAM"
-    // If it's far out, show "DAY + TIME" vibe
+
+    val headline = if (totalSeconds <= 0) {
+        stringResource(R.string.countdown_headline_beam_imminent)
+    } else {
+        stringResource(R.string.countdown_headline_next_beam)
+    }
+
     if (days >= 3) {
-        val dayFmt = DateTimeFormatter.ofPattern("EEE, MMM d")   // "Fri, Feb 2"
-        val timeFmt = DateTimeFormatter.ofPattern("h:mm a")      // "7:30 PM"
+        val dayFmt = DateTimeFormatter.ofPattern("EEE, MMM d")
+        val timeFmt = DateTimeFormatter.ofPattern("h:mm a")
         val zdt = Instant.ofEpochMilli(targetTimeMs).atZone(zoneId)
-        val whenText = "${zdt.format(dayFmt)} · ${zdt.format(timeFmt)}"
-        val countdownText = "${days}d ${hours}h ${minutes}m"
-        // You asked: "If more than two days, along with above mention Day and time"
-        // So we include day+time AND still show the countdown.
+        val whenText = stringResource(
+            R.string.countdown_day_time_format,
+            zdt.format(dayFmt),
+            zdt.format(timeFmt)
+        )
+        val countdownText = stringResource(
+            R.string.countdown_days_hours_minutes,
+            days,
+            hours,
+            minutes
+        )
         return headline to "$countdownText\n$whenText"
     }
 
-    // Otherwise, normal countdown ladder
     val countdown = when {
-        totalSeconds <= 0 -> "Starting now"
-        days > 0 -> "${days}d ${hours}h ${minutes}m"
-        hours > 0 -> "${hours}h ${minutes}m ${seconds}s"
-        minutes > 0 -> "${minutes}m ${seconds}s"
-        else -> "${seconds}s"
+        totalSeconds <= 0 -> stringResource(R.string.countdown_starting_now)
+        days > 0 -> stringResource(R.string.countdown_days_hours_minutes, days, hours, minutes)
+        hours > 0 -> stringResource(R.string.countdown_hours_minutes_seconds, hours, minutes, seconds)
+        minutes > 0 -> stringResource(R.string.countdown_minutes_seconds, minutes, seconds)
+        else -> stringResource(R.string.countdown_seconds, seconds)
     }
+
     return headline to countdown
 }

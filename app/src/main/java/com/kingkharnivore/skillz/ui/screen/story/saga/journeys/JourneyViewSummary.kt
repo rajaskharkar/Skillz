@@ -12,8 +12,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.utils.time.formatDuration
 
 @Composable
@@ -25,8 +30,62 @@ fun JourneyViewSummary(
     totalScyraScore: Int,
     totalSurge: Int
 ) {
+    val flowsText = pluralStringResource(
+        R.plurals.journey_view_summary_flows_count,
+        flowsCount,
+        flowsCount
+    )
+    val durationText = formatDuration(totalDurationMs)
+    val durationDisplayText = stringResource(
+        R.string.journey_view_summary_duration_value,
+        durationText
+    )
+
+    val baseLabel = stringResource(R.string.journey_view_summary_base)
+    val beamBonusLabel = stringResource(R.string.journey_view_summary_beam_bonus)
+    val scyraScoreLabel = stringResource(R.string.journey_view_summary_scyra_score)
+    val surgeLabel = stringResource(R.string.journey_view_summary_surge)
+
+    val beamBonusValue = stringResource(
+        R.string.journey_view_summary_plus_value,
+        totalBeamBonus
+    )
+    val scyraScoreValue = stringResource(
+        R.string.journey_view_summary_score_value,
+        totalScyraScore
+    )
+    val surgeValue = stringResource(
+        R.string.journey_view_summary_plus_value,
+        totalSurge
+    )
+
+    val a11yText = if (totalSurge > 0) {
+        stringResource(
+            R.string.journey_view_summary_a11y_with_surge,
+            flowsText,
+            durationText,
+            totalBaseScore,
+            totalBeamBonus,
+            totalScyraScore,
+            totalSurge
+        )
+    } else {
+        stringResource(
+            R.string.journey_view_summary_a11y_no_surge,
+            flowsText,
+            durationText,
+            totalBaseScore,
+            totalBeamBonus,
+            totalScyraScore
+        )
+    }
+
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clearAndSetSemantics {
+                contentDescription = a11yText
+            },
         shape = RoundedCornerShape(18.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
         tonalElevation = 1.dp
@@ -37,32 +96,48 @@ fun JourneyViewSummary(
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Row 1: counts + time
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "$flowsCount flow${if (flowsCount == 1) "" else "s"}",
+                    text = flowsText,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "⏱ ${formatDuration(totalDurationMs)}",
+                    text = durationDisplayText,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
             }
 
-            // Row 2: Scoring breakdown (no background pills)
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                ScoreBreakdownRow(label = "Base", value = totalBaseScore.toString())
-                if (totalBeamBonus > 0) ScoreBreakdownRow(label = "Beam bonus", value = "+$totalBeamBonus")
-                ScoreBreakdownRow(label = "Scyra Score", value = "🔥 $totalScyraScore", strong = true)
+                ScoreBreakdownRow(
+                    label = baseLabel,
+                    value = totalBaseScore.toString()
+                )
+
+                if (totalBeamBonus > 0) {
+                    ScoreBreakdownRow(
+                        label = beamBonusLabel,
+                        value = beamBonusValue
+                    )
+                }
+
+                ScoreBreakdownRow(
+                    label = scyraScoreLabel,
+                    value = scyraScoreValue,
+                    strong = true
+                )
 
                 if (totalSurge > 0) {
-                    ScoreBreakdownRow(label = "Surge", value = "+$totalSurge", strong = false)
+                    ScoreBreakdownRow(
+                        label = surgeLabel,
+                        value = surgeValue,
+                        strong = false
+                    )
                 }
             }
         }

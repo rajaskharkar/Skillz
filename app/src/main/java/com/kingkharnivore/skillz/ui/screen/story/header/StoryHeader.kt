@@ -8,7 +8,12 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 
@@ -24,24 +29,34 @@ fun StoryHeader(
     onOpenViewJourneys: (Long) -> Unit,
     extraTopContent: (@Composable () -> Unit)? = null
 ) {
-    TagFilterRow(
-        tags = uiState.tags,
-        selectedTagIds = uiState.selectedTagIds,
-        onTagToggled = onTagToggled,
-        onClearAll = onClearAllTags
-    )
+    val selectedJourneysSubtitle = stringResource(R.string.story_header_time_in_selected_journeys)
+
+    Box(
+        modifier = Modifier.semantics { isTraversalGroup = true }
+    ) {
+        TagFilterRow(
+            tags = uiState.tags,
+            selectedTagIds = uiState.selectedTagIds,
+            onTagToggled = onTagToggled,
+            onClearAll = onClearAllTags
+        )
+    }
 
     Spacer(modifier = Modifier.height(12.dp))
 
-    PeriodAndDateNavigator(
-        period = uiState.period,
-        anchorDayStartMs = uiState.anchorDayStartMs,
-        firstSessionStartMs = uiState.firstSessionStartMs,
-        onPeriodSelected = onPeriodSelected,
-        onPrev = onPrev,
-        onNext = onNext,
-        onToday = onToday
-    )
+    Box(
+        modifier = Modifier.semantics { isTraversalGroup = true }
+    ) {
+        PeriodAndDateNavigator(
+            period = uiState.period,
+            anchorDayStartMs = uiState.anchorDayStartMs,
+            firstSessionStartMs = uiState.firstSessionStartMs,
+            onPeriodSelected = onPeriodSelected,
+            onPrev = onPrev,
+            onNext = onNext,
+            onToday = onToday
+        )
+    }
 
     Spacer(modifier = Modifier.height(12.dp))
 
@@ -49,16 +64,22 @@ fun StoryHeader(
 
     when {
         uiState.selectedTagIds.isNotEmpty() -> {
-            TotalTimeHighlight(
-                totalDurationMs = uiState.totalDurationMs,
-                subtitle = "Time in selected journeys"
-            )
+            Box(
+                modifier = Modifier.semantics { heading() }
+            ) {
+                TotalTimeHighlight(
+                    totalDurationMs = uiState.totalDurationMs,
+                    subtitle = selectedJourneysSubtitle
+                )
+            }
             Spacer(modifier = Modifier.height(12.dp))
         }
 
         uiState.totalDurationMs > 0L -> {
             Box(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { heading() },
                 contentAlignment = Alignment.Center
             ) {
                 SubtleTimeSummary(totalDurationMs = uiState.totalDurationMs)
@@ -69,7 +90,9 @@ fun StoryHeader(
 
     if (uiState.showScoreUi) {
         Box(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { heading() },
             contentAlignment = Alignment.Center
         ) {
             ScoreDisplay(

@@ -22,8 +22,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.ui.PulseListItemUiModel
 
 @Composable
@@ -32,11 +41,24 @@ fun SagaPulseSection(
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
 
+    val titleText = stringResource(R.string.saga_pulse_section_title)
+    val subtitleText = stringResource(R.string.saga_pulse_section_subtitle)
+    val untaggedText = stringResource(R.string.saga_pulse_section_untagged)
+    val expandText = stringResource(R.string.saga_pulse_section_expand)
+    val collapseText = stringResource(R.string.saga_pulse_section_collapse)
+    val stateText = stringResource(R.string.saga_pulse_section_state, titleText, pulses.size)
+
     Surface(
         onClick = { expanded = !expanded },
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                role = Role.Button
+                contentDescription = if (expanded) collapseText else expandText
+                stateDescription = stateText
+            },
         shape = RoundedCornerShape(22.dp),
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -49,13 +71,14 @@ fun SagaPulseSection(
             ) {
                 Column {
                     Text(
-                        text = "Pulses",
+                        text = titleText,
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.semantics { heading() }
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = "Moments captured in this chapter",
+                        text = subtitleText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
                     )
@@ -67,7 +90,6 @@ fun SagaPulseSection(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    Spacer(Modifier.height(0.dp))
                     Icon(
                         imageVector = if (expanded) {
                             Icons.Default.KeyboardArrowDown
@@ -82,11 +104,46 @@ fun SagaPulseSection(
             if (expanded) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     pulses.forEach { pulse ->
+                        val pulseA11y = when {
+                            pulse.description.isNotBlank() && pulse.tagName.isNotBlank() -> {
+                                stringResource(
+                                    R.string.saga_pulse_item_a11y_with_tag,
+                                    pulse.title,
+                                    pulse.description,
+                                    pulse.tagName
+                                )
+                            }
+                            pulse.description.isNotBlank() && pulse.tagName.isBlank() -> {
+                                stringResource(
+                                    R.string.saga_pulse_item_a11y_without_tag,
+                                    pulse.title,
+                                    pulse.description
+                                )
+                            }
+                            pulse.description.isBlank() && pulse.tagName.isNotBlank() -> {
+                                stringResource(
+                                    R.string.saga_pulse_item_a11y_title_only_with_tag,
+                                    pulse.title,
+                                    pulse.tagName
+                                )
+                            }
+                            else -> {
+                                stringResource(
+                                    R.string.saga_pulse_item_a11y_title_only_without_tag,
+                                    pulse.title
+                                )
+                            }
+                        }
+
                         Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clearAndSetSemantics {
+                                    contentDescription = pulseA11y
+                                },
                             shape = RoundedCornerShape(18.dp),
                             color = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.fillMaxWidth()
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         ) {
                             Column(
                                 modifier = Modifier.padding(14.dp),
@@ -105,7 +162,7 @@ fun SagaPulseSection(
                                     )
                                 }
                                 Text(
-                                    text = if (pulse.tagName.isBlank()) "Untagged" else pulse.tagName,
+                                    text = if (pulse.tagName.isBlank()) untaggedText else pulse.tagName,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f)
                                 )
