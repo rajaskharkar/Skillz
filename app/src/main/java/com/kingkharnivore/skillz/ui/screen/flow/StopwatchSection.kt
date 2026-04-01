@@ -16,10 +16,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.kingkharnivore.skillz.viewmodel.FlowViewModel
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.state.flow.StopwatchState
+import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 
 @Composable
 fun StopwatchSection(
@@ -32,23 +37,34 @@ fun StopwatchSection(
 
     val titleAlpha = if (calmMode) 0.55f else 1f
     val timeAlpha = if (calmMode) 0.78f else 1f
+    val titleText = stringResource(
+        if (calmMode) R.string.stopwatch_title_calm
+        else R.string.stopwatch_title_in_flow
+    )
+    val elapsedText = formatElapsed(state.elapsedMs)
+    val timerA11y = stringResource(R.string.stopwatch_timer_a11y, elapsedText)
+    val resetText = stringResource(R.string.stopwatch_reset)
 
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = if (calmMode) "Calm" else "In Flow",
+            text = titleText,
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = titleAlpha)
         )
 
         Text(
-            text = formatElapsed(state.elapsedMs),
+            text = elapsedText,
             style = if (calmMode) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = timeAlpha),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    contentDescription = timerA11y
+                }
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -59,7 +75,9 @@ fun StopwatchSection(
                     else viewModel.resetStopwatch()
                 },
                 enabled = state.elapsedMs > 0L && !state.isRunning
-            ) { Text("Reset") }
+            ) {
+                Text(resetText)
+            }
         }
 
         // If later you add score UI near timer, it must be gated like this:
@@ -67,22 +85,30 @@ fun StopwatchSection(
 
         if (showResetConfirm) {
             val minutes = (state.elapsedMs / 60_000L).toInt()
+            val resetBody = pluralStringResource(
+                R.plurals.stopwatch_reset_confirm_body,
+                minutes,
+                minutes
+            )
+
             AlertDialog(
                 onDismissRequest = { showResetConfirm = false },
-                title = { Text("Reset session?") },
-                text = {
-                    Text("You've already focused for $minutes minute${if (minutes != 1) "s" else ""}. Are you sure you want to reset and lose this progress?")
-                },
+                title = { Text(stringResource(R.string.stopwatch_reset_confirm_title)) },
+                text = { Text(resetBody) },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             showResetConfirm = false
                             viewModel.resetStopwatch()
                         }
-                    ) { Text("Yes, reset") }
+                    ) {
+                        Text(stringResource(R.string.stopwatch_reset_confirm_yes))
+                    }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showResetConfirm = false }) { Text("Cancel") }
+                    TextButton(onClick = { showResetConfirm = false }) {
+                        Text(stringResource(R.string.common_cancel))
+                    }
                 }
             )
         }

@@ -12,14 +12,21 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import com.kingkharnivore.skillz.ui.screen.HelpScreen
 import com.kingkharnivore.skillz.ui.screen.ScheduleBeamScreen
 import com.kingkharnivore.skillz.ui.screen.SkillzHomeScreen
 import com.kingkharnivore.skillz.ui.screen.flow.FlowScreen
-import com.kingkharnivore.skillz.ui.screen.help.HelpScreen
+import com.kingkharnivore.skillz.ui.screen.paths.arc.ArcDetailScreen
+import com.kingkharnivore.skillz.ui.screen.paths.arc.PlanArcScreen
+import com.kingkharnivore.skillz.ui.screen.paths.suggested.SuggestedRouteDetailScreen
+import com.kingkharnivore.skillz.ui.screen.paths.suggested.SuggestedRoutesCatalog
 import com.kingkharnivore.skillz.ui.screen.story.pulse.PulseScreen
+import com.kingkharnivore.skillz.viewmodel.ArcDetailViewModel
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
+import com.kingkharnivore.skillz.viewmodel.PlanArcViewModel
 import com.kingkharnivore.skillz.viewmodel.ScheduleBeamViewModel
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
+import com.kingkharnivore.skillz.viewmodel.SuggestedRouteDetailViewModel
 
 @Composable
 fun SkillzNavHost(
@@ -53,6 +60,31 @@ fun SkillzNavHost(
                         SkillzDestinations.addSkillRoute(prefillJourney = journeyName)
                     )
                 },
+                onOpenPlannedFlow = { title, tagName, isSoftMode ->
+                    navController.navigate(
+                        SkillzDestinations.addSkillRoute(
+                            prefillJourney = tagName,
+                            prefillTitle = title,
+                            prefillSoftMode = isSoftMode
+                        )
+                    )
+                },
+                onPlanArcClick = {
+                    navController.navigate(SkillzDestinations.planArcRoute())
+                },
+                onEditArc = { arcPlanId ->
+                    navController.navigate(SkillzDestinations.planArcRoute(editArcPlanId = arcPlanId))
+                },
+                onOpenArc = { arcPlanId ->
+                    navController.navigate(
+                        SkillzDestinations.arcDetailRoute(arcPlanId)
+                    )
+                },
+                onOpenSuggestedRoute = { routeId ->
+                    navController.navigate(
+                        SkillzDestinations.suggestedRouteDetailRoute(routeId)
+                    )
+                },
                 onGoToActiveSession = {
                     navController.navigate(SkillzDestinations.addSkillRoute())
                 },
@@ -67,7 +99,29 @@ fun SkillzNavHost(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
-                }
+                },
+                navArgument(SkillzDestinations.ADD_SKILL_ARG_PREFILL_TITLE) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument(SkillzDestinations.ADD_SKILL_ARG_PREFILL_SOFT_MODE) {
+                    type = NavType.BoolType
+                    defaultValue = false
+                },
+                navArgument(SkillzDestinations.ADD_SKILL_ARG_PLANNED_ARC_TITLE) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument(SkillzDestinations.ADD_SKILL_ARG_PLANNED_ARC_STEP_INDEX) {
+                    type = NavType.IntType
+                    defaultValue = -1
+                },
+                navArgument(SkillzDestinations.ADD_SKILL_ARG_PLANNED_ARC_TOTAL_STEPS) {
+                    type = NavType.IntType
+                    defaultValue = -1
+                },
             ),
             deepLinks = listOf(
                 navDeepLink { uriPattern = "skillz://flow" }
@@ -80,6 +134,92 @@ fun SkillzNavHost(
                 onDone = { popToHome(navController) },
                 onCancel = { popToHome(navController) }
             )
+        }
+
+        composable(
+            route = SkillzDestinations.ARC_DETAIL_ROUTE,
+            arguments = listOf(
+                navArgument(SkillzDestinations.ARC_DETAIL_ARG_ID) {
+                    type = NavType.StringType
+                }
+            )
+        ) {
+            val vm: ArcDetailViewModel = hiltViewModel()
+            ArcDetailScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() },
+                onEditArc = { arcPlanId ->
+                    navController.navigate(
+                        SkillzDestinations.planArcRoute(editArcPlanId = arcPlanId)
+                    )
+                },
+                onBeginArc = { payload ->
+                    navController.navigate(
+                        SkillzDestinations.addSkillRoute(
+                            prefillJourney = payload.tagName,
+                            prefillTitle = payload.title,
+                            prefillSoftMode = payload.isSoftMode,
+                            plannedArcTitle = payload.plannedArcTitle,
+                            plannedArcStepIndex = payload.plannedArcStepIndex,
+                            plannedArcTotalSteps = payload.plannedArcTotalSteps
+                        )
+                    )
+                }
+            )
+        }
+
+        composable(
+            route = SkillzDestinations.PLAN_ARC_ROUTE,
+            arguments = listOf(
+                navArgument(SkillzDestinations.PLAN_ARC_ARG_EDIT_ID) {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                }
+            )
+        ) {
+            val vm: PlanArcViewModel = hiltViewModel()
+            PlanArcScreen(
+                viewModel = vm,
+                onBack = { navController.popBackStack() },
+                onDone = { popToHome(navController) }
+            )
+        }
+
+        composable(
+            route = SkillzDestinations.SUGGESTED_ROUTE_DETAIL_ROUTE,
+            arguments = listOf(
+                navArgument(SkillzDestinations.SUGGESTED_ROUTE_ID_ARG) {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val routeId = backStackEntry.arguments
+                ?.getString(SkillzDestinations.SUGGESTED_ROUTE_ID_ARG)
+                .orEmpty()
+
+            val route = SuggestedRoutesCatalog.getById(routeId)
+            val vm: SuggestedRouteDetailViewModel = hiltViewModel()
+
+            if (route != null) {
+                SuggestedRouteDetailScreen(
+                    route = route,
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() },
+                    onDone = { popToHome(navController) },
+                    onBeginArc = { payload ->
+                        navController.navigate(
+                            SkillzDestinations.addSkillRoute(
+                                prefillJourney = payload.tagName,
+                                prefillTitle = payload.title,
+                                prefillSoftMode = payload.isSoftMode,
+                                plannedArcTitle = payload.plannedArcTitle,
+                                plannedArcStepIndex = payload.plannedArcStepIndex,
+                                plannedArcTotalSteps = payload.plannedArcTotalSteps
+                            )
+                        )
+                    }
+                )
+            }
         }
 
         composable(SkillzDestinations.ADD_PULSE_ROUTE) {
@@ -105,8 +245,10 @@ fun SkillzNavHost(
 
             HelpScreen(
                 uiState = uiState,
+                selectedLanguageTag = uiState.appLanguageTag,
                 onToggleShowScoreUi = storyViewModel::setShowScoreUi,
                 onToggleCalmMode = storyViewModel::setCalmMode,
+                onSetAppLanguage = storyViewModel::setAppLanguage,
                 modifier = Modifier.fillMaxSize()
             )
         }

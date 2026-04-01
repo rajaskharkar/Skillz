@@ -15,22 +15,75 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.ui.FlowListItemUiModel
 import com.kingkharnivore.skillz.utils.time.formatDuration
 
 @Composable
 fun JourneySessionDetail(
     session: FlowListItemUiModel,
-    onOpenFull: (() -> Unit)? = null // optional
+    onOpenFull: (() -> Unit)? = null
 ) {
     val baseScore = remember(session.score, session.beamBonusPoints) {
         (session.score - session.beamBonusPoints).coerceAtLeast(0)
     }
 
+    val noDescriptionText = stringResource(R.string.journey_session_detail_no_description)
+    val durationLabel = stringResource(R.string.journey_session_detail_duration)
+    val baseScoreLabel = stringResource(R.string.journey_session_detail_base_score)
+    val beamBonusLabel = stringResource(R.string.journey_session_detail_beam_bonus)
+    val scyraScoreLabel = stringResource(R.string.journey_session_detail_scyra_score)
+    val surgeLabel = stringResource(R.string.journey_session_detail_surge)
+    val openFullFlowText = stringResource(R.string.journey_session_detail_open_full_flow)
+
+    val durationText = formatDuration(session.durationMs)
+    val beamBonusValue = stringResource(
+        R.string.journey_session_detail_beam_bonus_value,
+        session.beamBonusPoints
+    )
+    val scyraScoreValue = stringResource(
+        R.string.journey_session_detail_scyra_score_value,
+        session.score
+    )
+    val surgeValue = stringResource(
+        R.string.journey_session_detail_surge_value,
+        session.surgePoints
+    )
+
+    val descriptionText = if (session.description.isNotBlank()) {
+        session.description
+    } else {
+        noDescriptionText
+    }
+
+    val cardA11y = if (session.description.isNotBlank()) {
+        stringResource(
+            R.string.journey_session_detail_a11y_with_description,
+            session.title,
+            durationText,
+            session.description
+        )
+    } else {
+        stringResource(
+            R.string.journey_session_detail_a11y_without_description,
+            session.title,
+            durationText,
+            noDescriptionText
+        )
+    }
+
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clearAndSetSemantics {
+                contentDescription = cardA11y
+            },
         shape = RoundedCornerShape(20.dp),
         tonalElevation = 1.dp,
         color = MaterialTheme.colorScheme.surfaceVariant
@@ -44,10 +97,13 @@ fun JourneySessionDetail(
             Text(
                 text = session.title,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clearAndSetSemantics {
+                    heading()
+                    contentDescription = session.title
+                }
             )
 
-            // If you want: show tag name too (optional)
             if (session.tagName.isNotBlank()) {
                 Text(
                     text = session.tagName,
@@ -56,28 +112,46 @@ fun JourneySessionDetail(
                 )
             }
 
-            if (session.description.isNotBlank()) {
-                Text(text = session.description, style = MaterialTheme.typography.bodyMedium)
-            } else {
-                Text(
-                    text = "No description yet.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
-                )
-            }
+            Text(
+                text = descriptionText,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (session.description.isNotBlank()) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                }
+            )
 
             HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f))
 
-            // Core stats
-            DetailStatRow(label = "Duration", value = formatDuration(session.durationMs))
+            DetailStatRow(
+                label = durationLabel,
+                value = durationText
+            )
 
-            // Score breakdown
-            DetailStatRow(label = "Base score", value = baseScore.toString())
-            if (session.beamBonusPoints > 0) DetailStatRow(label = "Beam bonus", value = "+${session.beamBonusPoints}")
-            DetailStatRow(label = "Scyra Score", value = "🔥 ${session.score}", strong = true)
+            DetailStatRow(
+                label = baseScoreLabel,
+                value = baseScore.toString()
+            )
+
+            if (session.beamBonusPoints > 0) {
+                DetailStatRow(
+                    label = beamBonusLabel,
+                    value = beamBonusValue
+                )
+            }
+
+            DetailStatRow(
+                label = scyraScoreLabel,
+                value = scyraScoreValue,
+                strong = true
+            )
 
             if (session.isSurge && session.surgePoints > 0) {
-                DetailStatRow(label = "Surge", value = "+${session.surgePoints}")
+                DetailStatRow(
+                    label = surgeLabel,
+                    value = surgeValue
+                )
             }
 
             if (onOpenFull != null) {
@@ -87,7 +161,7 @@ fun JourneySessionDetail(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Text("Open full flow")
+                    Text(openFullFlowText)
                 }
             }
         }

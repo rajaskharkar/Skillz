@@ -9,18 +9,31 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.utils.time.formatDuration
 
 @Composable
 fun SubtleTimeSummary(
     totalDurationMs: Long,
     modifier: Modifier = Modifier,
-    label: String = "Time in view"
+    label: String = stringResource(R.string.subtle_time_summary_label)
 ) {
+    val durationText = formatDuration(totalDurationMs)
+    val a11yLabel = stringResource(
+        R.string.subtle_time_summary_a11y,
+        label,
+        durationText
+    )
+
     Surface(
-        modifier = modifier,
+        modifier = modifier.clearAndSetSemantics {
+            contentDescription = a11yLabel
+        },
         shape = RoundedCornerShape(999.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f),
         tonalElevation = 0.dp
@@ -36,7 +49,7 @@ fun SubtleTimeSummary(
             )
 
             Text(
-                text = formatDuration(totalDurationMs),
+                text = durationText,
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontWeight = FontWeight.SemiBold
                 ),

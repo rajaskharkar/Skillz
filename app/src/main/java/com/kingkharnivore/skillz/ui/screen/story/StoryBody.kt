@@ -9,6 +9,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.ui.screen.story.header.StoryHeaderScrollableWithStickyTabs
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
@@ -72,14 +78,27 @@ fun StoryBody(
 
 @Composable
 private fun LoadingState(modifier: Modifier = Modifier) {
-    CircularProgressIndicator(modifier = modifier)
+    val loadingLabel = stringResource(R.string.story_loading)
+
+    CircularProgressIndicator(
+        modifier = modifier.semantics {
+            contentDescription = loadingLabel
+            liveRegion = LiveRegionMode.Polite
+        }
+    )
 }
 
 @Composable
 private fun ErrorState(message: String?, modifier: Modifier = Modifier) {
+    val fallbackError = stringResource(R.string.story_error_generic)
+    val resolvedMessage = message ?: fallbackError
+
     Text(
-        text = message ?: "Error",
-        modifier = modifier,
+        text = resolvedMessage,
+        modifier = modifier.semantics {
+            contentDescription = resolvedMessage
+            liveRegion = LiveRegionMode.Polite
+        },
         color = MaterialTheme.colorScheme.error
     )
 }

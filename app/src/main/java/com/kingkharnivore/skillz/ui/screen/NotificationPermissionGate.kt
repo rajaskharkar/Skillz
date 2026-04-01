@@ -29,10 +29,14 @@ fun NotificationPermissionGate(
 
     LaunchedEffect(Unit) {
         val granted = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.POST_NOTIFICATIONS
+            context,
+            Manifest.permission.POST_NOTIFICATIONS
         ) == PackageManager.PERMISSION_GRANTED
 
-        if (granted) onGranted()
-        else launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        if (granted) {
+            onGranted()
+        } else {
+            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
 }

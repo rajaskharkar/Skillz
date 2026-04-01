@@ -13,24 +13,39 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import com.kingkharnivore.skillz.R
 
 @Composable
 fun FirstTimeUser(
     onAddSessionClick: () -> Unit
 ) {
+    val messageText = stringResource(R.string.first_time_user_message)
+    val ctaText = stringResource(R.string.first_time_user_cta)
+    val cardA11y = stringResource(R.string.first_time_user_card_a11y)
+    val ctaA11y = stringResource(R.string.first_time_user_cta_a11y)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 2.dp, vertical = 6.dp),
+            .padding(horizontal = 2.dp, vertical = 6.dp)
+            .clearAndSetSemantics {
+                contentDescription = cardA11y
+            },
         verticalArrangement = Arrangement.spacedBy(14.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Your Story begins with the first Flow.",
+            text = messageText,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.semantics { heading() }
         )
 
         Button(
@@ -45,9 +60,12 @@ fun FirstTimeUser(
             )
         ) {
             Text(
-                text = "Start your Story!",
+                text = ctaText,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clearAndSetSemantics {
+                    contentDescription = ctaA11y
+                }
             )
         }
     }

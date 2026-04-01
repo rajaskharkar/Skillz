@@ -4,8 +4,21 @@ package com.kingkharnivore.skillz.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -13,17 +26,53 @@ import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FormatBold
+import androidx.compose.material.icons.filled.FormatItalic
+import androidx.compose.material.icons.filled.FormatUnderlined
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Redo
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.StrikethroughS
+import androidx.compose.material.icons.filled.Subscript
+import androidx.compose.material.icons.filled.Superscript
+import androidx.compose.material.icons.filled.Undo
+import androidx.compose.material.icons.filled.VerticalAlignBottom
+import androidx.compose.material.icons.filled.VerticalAlignTop
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontFamily
@@ -38,6 +87,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.kingkharnivore.skillz.R
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
 import kotlinx.coroutines.Job
@@ -51,18 +101,13 @@ import kotlinx.coroutines.launch
 private data class NotepadEditorPrefs(
     val selectionStart: Int = 0,
     val selectionEnd: Int = 0,
-
     val bold: Boolean = false,
     val italic: Boolean = false,
     val underline: Boolean = false,
     val strike: Boolean = false,
     val sub: Boolean = false,
     val sup: Boolean = false,
-
-    // kept for backward-compat with your saver; lists are removed now
     val listMode: Int = 0,
-
-    // 0 normal, 1 H1, 2 H2, 3 cursive, 4 mono
     val preset: Int = 0
 )
 
@@ -99,8 +144,8 @@ private val NotepadEditorPrefsSaver = Saver<NotepadEditorPrefs, Map<String, Any>
 
 @Composable
 fun NotepadScreen(
-    text: String,                  // stored string: HTML or HTML + Scyra meta comment
-    onTextChange: (String) -> Unit, // store the same persisted string
+    text: String,
+    onTextChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
@@ -113,9 +158,36 @@ fun NotepadScreen(
     val focusRequester = remember { FocusRequester() }
     val scrollState = rememberScrollState()
 
-    // ---------------- Scyra font meta persistence ----------------
-    // We store meta inside the persisted string as an HTML comment so it never renders.
-    // Example: <!--SCYRA_FONTS:C:0-5,10-12|M:30-40-->
+    val searchLabel = stringResource(R.string.notepad_action_search)
+    val undoLabel = stringResource(R.string.notepad_action_undo)
+    val redoLabel = stringResource(R.string.notepad_action_redo)
+    val scrollTopLabel = stringResource(R.string.notepad_action_scroll_top)
+    val scrollBottomLabel = stringResource(R.string.notepad_action_scroll_bottom)
+    val searchPlaceholder = stringResource(R.string.notepad_search_placeholder)
+    val previousMatchLabel = stringResource(R.string.notepad_search_previous_match)
+    val nextMatchLabel = stringResource(R.string.notepad_search_next_match)
+    val closeSearchLabel = stringResource(R.string.notepad_search_close)
+
+    val boldLabel = stringResource(R.string.notepad_format_bold)
+    val italicLabel = stringResource(R.string.notepad_format_italic)
+    val underlineLabel = stringResource(R.string.notepad_format_underline)
+    val strikeLabel = stringResource(R.string.notepad_format_strikethrough)
+    val subscriptLabel = stringResource(R.string.notepad_format_subscript)
+    val superscriptLabel = stringResource(R.string.notepad_format_superscript)
+
+    val h1Label = stringResource(R.string.notepad_format_h1)
+    val h2Label = stringResource(R.string.notepad_format_h2)
+    val normalLabel = stringResource(R.string.notepad_format_normal)
+    val cursiveLabel = stringResource(R.string.notepad_format_cursive)
+    val monoLabel = stringResource(R.string.notepad_format_mono)
+
+    val actionToolbarLabel = stringResource(R.string.notepad_toolbar_actions)
+    val formattingToolbarLabel = stringResource(R.string.notepad_toolbar_formatting)
+    val editorAreaLabel = stringResource(R.string.notepad_editor_area)
+
+    val toggleOnText = stringResource(R.string.notepad_toggle_on)
+    val toggleOffText = stringResource(R.string.notepad_toggle_off)
+
     val META_PREFIX = "<!--SCYRA_FONTS:"
     val META_SUFFIX = "-->"
 
@@ -133,7 +205,8 @@ fun NotepadScreen(
             cur = if (r.first <= cur.last + 1) {
                 cur.first..maxOf(cur.last, r.last)
             } else {
-                out.add(cur); r
+                out.add(cur)
+                r
             }
         }
         out.add(cur)
@@ -176,7 +249,7 @@ fun NotepadScreen(
         if (end < 0) return persisted to null
 
         val metaRaw = persisted.substring(idx + META_PREFIX.length, end).trim()
-        val html = (persisted.removeRange(idx, end + META_SUFFIX.length)).trimEnd()
+        val html = persisted.removeRange(idx, end + META_SUFFIX.length).trimEnd()
         return html to runCatching { decodeMeta(metaRaw) }.getOrNull()
     }
 
@@ -215,28 +288,17 @@ fun NotepadScreen(
         }
     }
 
-    /**
-     * Fallback for the default welcome doc when meta is missing and font spans weren't restored.
-     * Applies:
-     *  - "SkratchPad" -> Monospace
-     *  - "Scyra"      -> Cursive
-     */
     suspend fun applyWelcomeFontsFallbackIfNeeded(meta: FontMeta?) {
-        if (meta != null) return // meta will handle it
-
-        // If spans already contain font families, do nothing.
+        if (meta != null) return
         val existing = captureFontMetaFromState()
         if (existing.cursive.isNotEmpty() || existing.mono.isNotEmpty()) return
 
-        // Only apply if these tokens exist (avoids touching normal user docs)
         val txt = state.annotatedString.text
         if (!txt.contains("SkratchPad") && !txt.contains("Scyra")) return
 
         val prevSel = state.selection
-
         applyFamilyToAllOccurrences("SkratchPad", FontFamily.Monospace)
         applyFamilyToAllOccurrences("Hi! Welcome to Scyra!", FontFamily.Cursive)
-
         state.selection = prevSel
     }
 
@@ -257,7 +319,6 @@ fun NotepadScreen(
         state.selection = prevSel
     }
 
-    // ---------------- Undo / Redo (persisted snapshots) ----------------
     val history = remember { DocHistory(maxSize = 120) }
     var suppressHistory by remember { mutableStateOf(false) }
 
@@ -295,7 +356,6 @@ fun NotepadScreen(
         setFromPersisted(next)
     }
 
-    // ---------------- Load once + start at bottom ----------------
     var didLoadOnce by rememberSaveable { mutableStateOf(false) }
     var didInitialScrollToBottom by rememberSaveable { mutableStateOf(false) }
 
@@ -385,7 +445,6 @@ fun NotepadScreen(
         didInitialScrollToBottom = true
     }
 
-    // ---------------- Smooth save (debounced) + coalesced history ----------------
     var saveJob by remember { mutableStateOf<Job?>(null) }
 
     LaunchedEffect(state) {
@@ -456,18 +515,20 @@ fun NotepadScreen(
     fun applyMonospace() = setFontFamilyExclusive(FontFamily.Monospace)
     fun applyNormal() = setFontFamilyExclusive(null)
 
-    // ---------------- Search ----------------
     var searchMode by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var matchIndex by remember { mutableStateOf(0) }
 
     val plainText = state.annotatedString.text
     val matches = remember(searchQuery, plainText) {
-        if (searchQuery.isBlank()) emptyList()
-        else Regex(Regex.escape(searchQuery), RegexOption.IGNORE_CASE)
-            .findAll(plainText)
-            .map { it.range }
-            .toList()
+        if (searchQuery.isBlank()) {
+            emptyList()
+        } else {
+            Regex(Regex.escape(searchQuery), RegexOption.IGNORE_CASE)
+                .findAll(plainText)
+                .map { it.range }
+                .toList()
+        }
     }
 
     LaunchedEffect(matches.size) {
@@ -483,7 +544,6 @@ fun NotepadScreen(
         focusRequester.requestFocus()
     }
 
-    // ---------------- Active toggle states ----------------
     val cs = state.currentSpanStyle
     val deco = cs.textDecoration
 
@@ -504,26 +564,27 @@ fun NotepadScreen(
     val monoOn = cs.fontFamily == FontFamily.Monospace
     val normalOn = !h1On && !h2On && !cursiveOn && !monoOn
 
-    // ---------------- UI ----------------
     Column(modifier = modifier.fillMaxSize()) {
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .semantics {
+                    contentDescription = actionToolbarLabel
+                },
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { searchMode = !searchMode }) {
-                Icon(Icons.Default.Search, contentDescription = "Search")
+                Icon(Icons.Default.Search, contentDescription = searchLabel)
             }
 
             IconButton(enabled = history.canUndo, onClick = { undo() }) {
-                Icon(Icons.Default.Undo, contentDescription = "Undo")
+                Icon(Icons.Default.Undo, contentDescription = undoLabel)
             }
 
             IconButton(enabled = history.canRedo, onClick = { redo() }) {
-                Icon(Icons.Default.Redo, contentDescription = "Redo")
+                Icon(Icons.Default.Redo, contentDescription = redoLabel)
             }
 
             Spacer(Modifier.weight(1f))
@@ -531,15 +592,29 @@ fun NotepadScreen(
             IconButton(
                 enabled = scrollState.value > 0,
                 onClick = { scope.launch { scrollState.animateScrollTo(0) } }
-            ) { Icon(Icons.Default.VerticalAlignTop, contentDescription = "Scroll to top") }
+            ) {
+                Icon(Icons.Default.VerticalAlignTop, contentDescription = scrollTopLabel)
+            }
 
             IconButton(
                 enabled = scrollState.value < scrollState.maxValue,
                 onClick = { scope.launch { scrollState.animateScrollTo(scrollState.maxValue) } }
-            ) { Icon(Icons.Default.VerticalAlignBottom, contentDescription = "Scroll to bottom") }
+            ) {
+                Icon(Icons.Default.VerticalAlignBottom, contentDescription = scrollBottomLabel)
+            }
         }
 
         AnimatedVisibility(visible = searchMode) {
+            val counterText = if (matches.isNotEmpty()) {
+                stringResource(
+                    R.string.notepad_search_match_counter,
+                    matchIndex + 1,
+                    matches.size
+                )
+            } else {
+                ""
+            }
+
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it; matchIndex = 0 },
@@ -547,20 +622,27 @@ fun NotepadScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp),
                 singleLine = true,
-                placeholder = { Text("Search…") },
+                placeholder = { Text(searchPlaceholder) },
                 trailingIcon = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (matches.isNotEmpty()) {
-                            Text("${matchIndex + 1}/${matches.size}", style = MaterialTheme.typography.labelMedium)
-                            IconButton(onClick = { jumpToMatch((matchIndex - 1 + matches.size) % matches.size) }) {
-                                Icon(Icons.Default.KeyboardArrowUp, null)
+                            Text(
+                                counterText,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                            IconButton(onClick = {
+                                jumpToMatch((matchIndex - 1 + matches.size) % matches.size)
+                            }) {
+                                Icon(Icons.Default.KeyboardArrowUp, contentDescription = previousMatchLabel)
                             }
-                            IconButton(onClick = { jumpToMatch((matchIndex + 1) % matches.size) }) {
-                                Icon(Icons.Default.KeyboardArrowDown, null)
+                            IconButton(onClick = {
+                                jumpToMatch((matchIndex + 1) % matches.size)
+                            }) {
+                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = nextMatchLabel)
                             }
                         }
                         IconButton(onClick = { searchMode = false; searchQuery = "" }) {
-                            Icon(Icons.Default.Close, null)
+                            Icon(Icons.Default.Close, contentDescription = closeSearchLabel)
                         }
                     }
                 }
@@ -570,7 +652,8 @@ fun NotepadScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 6.dp),
+                .padding(horizontal = 10.dp, vertical = 6.dp)
+                .semantics { contentDescription = formattingToolbarLabel },
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
@@ -581,31 +664,51 @@ fun NotepadScreen(
                 FormatIconToggle(
                     checked = boldOn,
                     icon = Icons.Default.FormatBold,
-                    contentDescription = "Bold",
-                    onToggle = { runFormatting { state.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold)) } }
+                    contentDescription = boldLabel,
+                    onToggle = {
+                        runFormatting {
+                            state.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                        }
+                    }
                 )
                 FormatIconToggle(
                     checked = italicOn,
                     icon = Icons.Default.FormatItalic,
-                    contentDescription = "Italic",
-                    onToggle = { runFormatting { state.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic)) } }
+                    contentDescription = italicLabel,
+                    onToggle = {
+                        runFormatting {
+                            state.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                        }
+                    }
                 )
                 FormatIconToggle(
                     checked = underlineOn,
                     icon = Icons.Default.FormatUnderlined,
-                    contentDescription = "Underline",
-                    onToggle = { runFormatting { state.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.Underline)) } }
+                    contentDescription = underlineLabel,
+                    onToggle = {
+                        runFormatting {
+                            state.toggleSpanStyle(
+                                SpanStyle(textDecoration = TextDecoration.Underline)
+                            )
+                        }
+                    }
                 )
                 FormatIconToggle(
                     checked = strikeOn,
                     icon = Icons.Default.StrikethroughS,
-                    contentDescription = "Strikethrough",
-                    onToggle = { runFormatting { state.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.LineThrough)) } }
+                    contentDescription = strikeLabel,
+                    onToggle = {
+                        runFormatting {
+                            state.toggleSpanStyle(
+                                SpanStyle(textDecoration = TextDecoration.LineThrough)
+                            )
+                        }
+                    }
                 )
                 FormatIconToggle(
                     checked = subOn,
                     icon = Icons.Default.Subscript,
-                    contentDescription = "Subscript",
+                    contentDescription = subscriptLabel,
                     onToggle = {
                         runFormatting {
                             state.toggleSpanStyle(
@@ -614,11 +717,10 @@ fun NotepadScreen(
                         }
                     }
                 )
-
                 FormatIconToggle(
                     checked = superOn,
                     icon = Icons.Default.Superscript,
-                    contentDescription = "Superscript",
+                    contentDescription = superscriptLabel,
                     onToggle = {
                         runFormatting {
                             state.toggleSpanStyle(
@@ -634,11 +736,11 @@ fun NotepadScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FormatTextToggle(checked = h1On, label = "H1") { applyH1() }
-                FormatTextToggle(checked = h2On, label = "H2") { applyH2() }
-                FormatTextToggle(checked = normalOn, label = "Normal") { applyNormal() }
-                FormatTextToggle(checked = cursiveOn, label = "Cursive") { applyCursive() }
-                FormatTextToggle(checked = monoOn, label = "Mono") { applyMonospace() }
+                FormatTextToggle(checked = h1On, label = h1Label) { applyH1() }
+                FormatTextToggle(checked = h2On, label = h2Label) { applyH2() }
+                FormatTextToggle(checked = normalOn, label = normalLabel) { applyNormal() }
+                FormatTextToggle(checked = cursiveOn, label = cursiveLabel) { applyCursive() }
+                FormatTextToggle(checked = monoOn, label = monoLabel) { applyMonospace() }
             }
         }
 
@@ -657,7 +759,11 @@ fun NotepadScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 220.dp)
-                        .clip(shape),
+                        .clip(shape)
+                        .semantics {
+                            contentDescription = editorAreaLabel
+                            heading()
+                        },
                     shape = shape,
                     tonalElevation = 2.dp,
                     shadowElevation = 0.dp,
@@ -708,21 +814,44 @@ private fun FormatTextToggle(
     modifier: Modifier = Modifier,
     onToggle: () -> Unit
 ) {
-    val bg = if (checked) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.70f)
-    else MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+    val onText = stringResource(R.string.notepad_toggle_on)
+    val offText = stringResource(R.string.notepad_toggle_off)
+    val stateText = stringResource(
+        R.string.notepad_toggle_state,
+        label,
+        if (checked) onText else offText
+    )
 
-    val tint = if (checked) MaterialTheme.colorScheme.secondary
-    else MaterialTheme.colorScheme.onSurfaceVariant
+    val bg = if (checked) {
+        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.70f)
+    } else {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+    }
+
+    val tint = if (checked) {
+        MaterialTheme.colorScheme.secondary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
     Surface(
         onClick = onToggle,
-        modifier = modifier.height(40.dp),
+        modifier = modifier
+            .height(40.dp)
+            .semantics {
+                role = Role.Button
+                contentDescription = label
+                stateDescription = stateText
+            },
         shape = RoundedCornerShape(10.dp),
         color = bg,
         tonalElevation = 0.dp,
         shadowElevation = 0.dp
     ) {
-        Box(Modifier.padding(horizontal = 10.dp), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier.padding(horizontal = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
@@ -741,22 +870,42 @@ private fun FormatIconToggle(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bg = if (checked) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.70f)
-    else MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+    val onText = stringResource(R.string.notepad_toggle_on)
+    val offText = stringResource(R.string.notepad_toggle_off)
+    val stateText = stringResource(
+        R.string.notepad_toggle_state,
+        contentDescription,
+        if (checked) onText else offText
+    )
 
-    val tint = if (checked) MaterialTheme.colorScheme.secondary
-    else MaterialTheme.colorScheme.onSurfaceVariant
+    val bg = if (checked) {
+        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.70f)
+    } else {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+    }
+
+    val tint = if (checked) {
+        MaterialTheme.colorScheme.secondary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
 
     Surface(
         onClick = onToggle,
-        modifier = modifier.size(40.dp),
+        modifier = modifier
+            .size(40.dp)
+            .semantics {
+                role = Role.Button
+                this.contentDescription = contentDescription
+                stateDescription = stateText
+            },
         shape = RoundedCornerShape(10.dp),
         color = bg,
         tonalElevation = 0.dp,
         shadowElevation = 0.dp
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = contentDescription, tint = tint)
+            Icon(icon, contentDescription = null, tint = tint)
         }
     }
 }

@@ -16,11 +16,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.ui.model.AtlasMonthCellUi
 import com.kingkharnivore.skillz.ui.model.AtlasMonthUi
 import java.time.Instant
@@ -28,8 +37,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-private val MONTH_DOW = listOf("S", "M", "T", "W", "T", "F", "S")
 private val MONTH_DAY_FMT = DateTimeFormatter.ofPattern("d")
+private val MONTH_A11Y_DATE_FMT = DateTimeFormatter.ofPattern("EEE, MMM d")
 
 @Composable
 fun AtlasMonthGrid(
@@ -39,6 +48,18 @@ fun AtlasMonthGrid(
     onDayClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val monthDowLabels = remember {
+        listOf(
+            R.string.atlas_month_dow_s,
+            R.string.atlas_month_dow_m,
+            R.string.atlas_month_dow_t,
+            R.string.atlas_month_dow_w,
+            R.string.atlas_month_dow_t,
+            R.string.atlas_month_dow_f,
+            R.string.atlas_month_dow_s
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -49,13 +70,13 @@ fun AtlasMonthGrid(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            MONTH_DOW.forEach { label ->
+            monthDowLabels.forEach { labelRes ->
                 Box(
                     modifier = Modifier.weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = label,
+                        text = stringResource(labelRes),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f)
                     )
@@ -91,12 +112,21 @@ private fun AtlasMonthCell(
     modifier: Modifier = Modifier
 ) {
     val cs = MaterialTheme.colorScheme
-    val zone = ZoneId.systemDefault()
-    val todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant().toEpochMilli()
+    val zone = remember { ZoneId.systemDefault() }
+    val todayStart = remember(nowMs, zone) {
+        Instant.ofEpochMilli(nowMs)
+            .atZone(zone)
+            .toLocalDate()
+            .atStartOfDay(zone)
+            .toInstant()
+            .toEpochMilli()
+    }
     val isToday = cell.dayStartMs == todayStart
     val isSelected = cell.dayStartMs == selectedDayStartMs
 
-    val date = Instant.ofEpochMilli(cell.dayStartMs).atZone(zone)
+    val date = remember(cell.dayStartMs, zone) {
+        Instant.ofEpochMilli(cell.dayStartMs).atZone(zone)
+    }
     val accent = cell.previewColors.firstOrNull()?.let(::Color) ?: cs.primary
 
     val baseColor = when {
@@ -114,6 +144,29 @@ private fun AtlasMonthCell(
         else -> Color.Transparent
     }
 
+    val beamCountText = if (cell.beamsCount > 0) {
+        pluralStringResource(
+            R.plurals.atlas_month_beam_count,
+            cell.beamsCount,
+            cell.beamsCount
+        )
+    } else {
+        ""
+    }
+
+    val a11yDate = remember(date) { date.format(MONTH_A11Y_DATE_FMT) }
+    val contentDesc = if (cell.beamsCount > 0) {
+        stringResource(R.string.atlas_month_cell_a11y_with_beams, a11yDate, beamCountText)
+    } else {
+        stringResource(R.string.atlas_month_cell_a11y_free, a11yDate)
+    }
+
+    val stateParts = buildList {
+        if (isToday) add(stringResource(R.string.atlas_month_cell_state_today))
+        if (isSelected) add(stringResource(R.string.atlas_month_cell_state_selected))
+        if (!cell.isInCurrentMonth) add(stringResource(R.string.atlas_month_cell_state_outside_month))
+    }.joinToString(", ")
+
     Box(
         modifier = modifier
             .aspectRatio(1f)
@@ -124,11 +177,20 @@ private fun AtlasMonthCell(
                     Modifier.border(
                         width = 1.2.dp,
                         color = borderColor,
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp)
+                        shape = RoundedCornerShape(18.dp)
                     )
-                } else Modifier
+                } else {
+                    Modifier
+                }
             )
             .clickable(onClick = onClick)
+            .semantics {
+                role = Role.Button
+                contentDescription = contentDesc
+                if (stateParts.isNotBlank()) {
+                    stateDescription = stateParts
+                }
+            }
             .padding(8.dp)
     ) {
         Column(
@@ -159,13 +221,13 @@ private fun AtlasMonthCell(
 
                 if (cell.beamsCount > 0) {
                     Text(
-                        text = if (cell.beamsCount == 1) "1 beam" else "${cell.beamsCount} beams",
+                        text = beamCountText,
                         style = MaterialTheme.typography.labelSmall,
                         color = accent
                     )
                 } else if (cell.isInCurrentMonth) {
                     Text(
-                        text = "Free",
+                        text = stringResource(R.string.atlas_month_free),
                         style = MaterialTheme.typography.labelSmall,
                         color = cs.onSurface.copy(alpha = 0.42f)
                     )

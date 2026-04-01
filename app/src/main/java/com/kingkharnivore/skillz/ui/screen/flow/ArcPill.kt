@@ -27,9 +27,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
+import java.util.Locale
 import kotlin.math.sqrt
 
 @Composable
@@ -103,6 +110,34 @@ fun ArcPill(
 
     val showPendingChip = isPending && !isInFlow && (graceRemainingMs != null)
 
+    val arcLabel = stringResource(R.string.arc_pill_title)
+    val flowLabel = stringResource(R.string.arc_pill_flow_label)
+    val pendingLabel = stringResource(R.string.arc_pill_pending)
+    val multiplierText = stringResource(
+        R.string.arc_pill_multiplier_value,
+        String.format(Locale.getDefault(), "%.1f", m)
+    )
+    val nextFlowText = arcNextIndex?.let {
+        stringResource(R.string.arc_pill_next_flow_value, it)
+    }
+    val pillA11y = buildString {
+        append(arcLabel)
+        if (!calmMode) {
+            append(". ")
+            append(multiplierText)
+        }
+        if (nextFlowText != null) {
+            append(". ")
+            append(nextFlowText)
+        }
+        if (showPendingChip) {
+            append(". ")
+            append(pendingLabel)
+        }
+        append(". ")
+        append(statusLabel)
+    }
+
     // Calm Mode: simpler background
     val bg = if (calmMode) {
         Brush.linearGradient(
@@ -127,7 +162,10 @@ fun ArcPill(
     }
 
     Surface(
-        modifier = modifier,
+        modifier = modifier.semantics {
+            role = Role.Image
+            contentDescription = pillA11y
+        },
         shape = shape,
         tonalElevation = 1.dp,
         color = MaterialTheme.colorScheme.surface
@@ -161,7 +199,7 @@ fun ArcPill(
                 }
 
                 Text(
-                    text = "Arc",
+                    text = arcLabel,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -171,7 +209,7 @@ fun ArcPill(
                 // Calm Mode: hide ×multiplier
                 if (!calmMode) {
                     Text(
-                        text = "×${"%.1f".format(m)}",
+                        text = multiplierText,
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.ExtraBold,
                         color = accent,
@@ -179,9 +217,9 @@ fun ArcPill(
                     )
                 }
 
-                arcNextIndex?.let {
+                nextFlowText?.let {
                     Text(
-                        text = "• Flow $it",
+                        text = it,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f),
                         maxLines = 1,
@@ -191,21 +229,26 @@ fun ArcPill(
             }
 
             if (showPendingChip) {
-                PendingChip(tint = accent, calmMode = calmMode)
+                PendingChip(
+                    tint = accent,
+                    calmMode = calmMode,
+                    text = pendingLabel
+                )
             }
 
             StatusCapsule(
                 emoji = statusEmoji,
                 text = statusLabel,
                 tint = accent,
-                calmMode = calmMode
+                calmMode = calmMode,
+                contentDescription = statusLabel
             )
         }
     }
 }
 
 @Composable
-private fun PendingChip(tint: Color, calmMode: Boolean) {
+private fun PendingChip(tint: Color, calmMode: Boolean, text: String) {
     val bg = if (calmMode) {
         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f)
     } else {
@@ -232,7 +275,7 @@ private fun PendingChip(tint: Color, calmMode: Boolean) {
             .padding(horizontal = 7.dp, vertical = 2.dp)
     ) {
         Text(
-            text = "PENDING",
+            text = text,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
             color = textColor,
@@ -242,7 +285,7 @@ private fun PendingChip(tint: Color, calmMode: Boolean) {
 }
 
 @Composable
-private fun StatusCapsule(emoji: String, text: String, tint: Color, calmMode: Boolean) {
+private fun StatusCapsule(emoji: String, text: String, tint: Color, calmMode: Boolean, contentDescription: String) {
     val border = if (calmMode) {
         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f)
     } else {
@@ -255,9 +298,10 @@ private fun StatusCapsule(emoji: String, text: String, tint: Color, calmMode: Bo
             .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
             .border(1.dp, border, RoundedCornerShape(999.dp))
             .padding(horizontal = 10.dp, vertical = 6.dp)
+            .semantics { this.contentDescription = contentDescription }
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(emoji, style = MaterialTheme.typography.labelMedium)
+            Text(emoji, style = MaterialTheme.typography.labelMedium, maxLines = 1)
             Spacer(Modifier.width(6.dp))
             Text(
                 text = text,
@@ -279,17 +323,23 @@ private fun buildArcStatus(
     pauseRemainingMs: Long?,
     multiplier: Double
 ): Pair<String, String> {
-    if (!isInFlow && pauseRemainingMs != null) {
-        return "Paused ${formatMmSs(pauseRemainingMs)}" to "⏸️"
+    return when {
+        !isInFlow && pauseRemainingMs != null -> {
+            "Paused ${formatMmSs(pauseRemainingMs)}" to "⏸️"
+        }
+
+        !isInFlow && graceRemainingMs != null -> {
+            "Expires ${formatMmSs(graceRemainingMs)}" to "⏳"
+        }
+
+        isInFlow -> {
+            val emoji = if (multiplier >= 3.5) "👑" else "🔥"
+            "Flow Active" to emoji
+        }
+
+        isPending -> "Wrapping Up" to "🟡"
+        else -> "Ready" to "✅"
     }
-    if (!isInFlow && graceRemainingMs != null) {
-        return "Expires ${formatMmSs(graceRemainingMs)}" to "⏳"
-    }
-    if (isInFlow) {
-        val e = if (multiplier >= 3.5) "👑" else "🔥"
-        return "Flow Active" to e
-    }
-    return if (isPending) "Wrapping Up" to "🟡" else "Ready" to "✅"
 }
 
 private fun multiplierIntensity(multiplier: Double): Float {
@@ -339,5 +389,5 @@ private fun formatMmSs(ms: Long): String {
     val totalSeconds = (ms.coerceAtLeast(0L) / 1000L)
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
-    return String.format("%d:%02d", minutes, seconds)
+    return String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
 }

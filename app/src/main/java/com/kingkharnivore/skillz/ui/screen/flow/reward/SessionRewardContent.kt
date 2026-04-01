@@ -7,10 +7,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.kingkharnivore.skillz.ui.screen.flow.formatMsAsMmSs
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
+import com.kingkharnivore.skillz.ui.screen.flow.formatMsAsMmSs
 
 @Composable
 fun SessionRewardContent(
@@ -20,28 +22,77 @@ fun SessionRewardContent(
 ) {
     val showBeamUi = r.beamBonusPoints > 0
 
+    val titleText = stringResource(
+        if (r.surgePoints > 0) {
+            R.string.session_reward_title_surge_completed
+        } else {
+            R.string.session_reward_title_flow_completed
+        }
+    )
+    val subtitleText = stringResource(R.string.session_reward_subtitle_logged_story)
+    val sessionDetailsTitle = stringResource(R.string.session_reward_card_session_details)
+    val storyInTimeSubtitle = stringResource(R.string.session_reward_card_story_in_time)
+    val totalTimeLabel = stringResource(R.string.session_reward_total_time)
+    val minutesText = stringResource(R.string.session_reward_minutes_value, r.minutes)
+    val timeInBeamLabel = stringResource(R.string.session_reward_time_in_beam)
+    val totalScoreTitle = stringResource(R.string.session_reward_total_score_title)
+    val totalScoreFootnote = stringResource(R.string.session_reward_total_score_footnote)
+    val breakdownTitle = stringResource(R.string.session_reward_breakdown_title)
+    val breakdownSubtitle = stringResource(R.string.session_reward_breakdown_subtitle)
+    val baseScoreLabel = stringResource(R.string.session_reward_base_score)
+    val baseScoreValue = stringResource(R.string.session_reward_points_value, r.baseScyraPoints)
+    val timeBonusesTitle = stringResource(R.string.session_reward_time_bonuses)
+    val tenMinuteBonusLabel = stringResource(R.string.session_reward_10_min_bonus)
+    val thirtyMinuteBonusLabel = stringResource(R.string.session_reward_30_min_bonus)
+    val sixtyMinuteBonusLabel = stringResource(R.string.session_reward_60_min_bonus)
+    val beamSectionTitle = stringResource(R.string.session_reward_beam_section)
+    val beamMultiplierLabel = stringResource(R.string.session_reward_beam_multiplier)
+    val dashText = stringResource(R.string.session_reward_dash)
+    val beamPointsGainedLabel = stringResource(R.string.session_reward_beam_points_gained)
+    val beamPointsGainedValue = stringResource(R.string.session_reward_points_value, r.beamBonusPoints)
+    val arcSectionTitle = stringResource(R.string.session_reward_arc_section)
+    val arcMultiplierUsedLabel = stringResource(R.string.session_reward_arc_multiplier_used)
+    val arcPointsGainedLabel = stringResource(R.string.session_reward_arc_points_gained)
+    val arcPointsGainedValue = stringResource(R.string.session_reward_points_value, r.arcBonusPoints)
+    val arcLevelUpText = stringResource(R.string.session_reward_arc_level_up)
+
+    val beamMultiplierText = r.beamMultiplier?.let {
+        stringResource(R.string.session_reward_multiplier_2dp, it)
+    } ?: dashText
+
+    val arcMultiplierText = r.arcMultiplierUsed?.let {
+        stringResource(R.string.session_reward_multiplier_1dp, it)
+    } ?: dashText
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                text = if (r.surgePoints > 0) "Surge completed." else "Flow completed.",
+                text = titleText,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Logged into your story.",
+                text = subtitleText,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
             )
         }
 
         if (calmMode || isAera) {
-            RewardCard(title = "Session details", subtitle = "Your Story in Time") {
-                MetricLine("Total time", "${r.minutes} min", MetricTone.Neutral)
+            RewardCard(
+                title = sessionDetailsTitle,
+                subtitle = storyInTimeSubtitle
+            ) {
+                MetricLine(totalTimeLabel, minutesText, MetricTone.Neutral)
                 if (showBeamUi) {
-                    MetricLine("Time in Beam ⭐", formatMsAsMmSs(r.beamEligibleMs), MetricTone.Glow)
+                    MetricLine(
+                        timeInBeamLabel,
+                        formatMsAsMmSs(r.beamEligibleMs),
+                        MetricTone.Glow
+                    )
                 }
             }
             return
@@ -57,13 +108,16 @@ fun SessionRewardContent(
         )
 
         RewardTotalCard(
-            title = "Total Scyra Score",
+            title = totalScoreTitle,
             value = r.finalScyraPoints,
-            footnote = "This Flow"
+            footnote = totalScoreFootnote
         )
 
-        RewardCard(title = "Breakdown", subtitle = "How your score was built") {
-            HighlightMetric("Base Scyra score", "+${r.baseScyraPoints}")
+        RewardCard(
+            title = breakdownTitle,
+            subtitle = breakdownSubtitle
+        ) {
+            HighlightMetric(baseScoreLabel, baseScoreValue)
 
             val hasAnyBonus =
                 r.tenMinuteBonuses > 0 || r.thirtyMinuteBonuses > 0 || r.sixtyMinuteBonuses > 0
@@ -71,33 +125,43 @@ fun SessionRewardContent(
             if (hasAnyBonus) {
                 DividerSoft()
                 Text(
-                    text = "Time bonuses",
+                    text = timeBonusesTitle,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
                 )
 
-                if (r.tenMinuteBonuses > 0) BonusLine("10-minute bonus", r.tenMinuteBonuses, 5)
-                if (r.thirtyMinuteBonuses > 0) BonusLine("30-minute bonus", r.thirtyMinuteBonuses, 15)
-                if (r.sixtyMinuteBonuses > 0) BonusLine("60-minute bonus", r.sixtyMinuteBonuses, 50)
+                if (r.tenMinuteBonuses > 0) {
+                    BonusLine(tenMinuteBonusLabel, r.tenMinuteBonuses, 5)
+                }
+                if (r.thirtyMinuteBonuses > 0) {
+                    BonusLine(thirtyMinuteBonusLabel, r.thirtyMinuteBonuses, 15)
+                }
+                if (r.sixtyMinuteBonuses > 0) {
+                    BonusLine(sixtyMinuteBonusLabel, r.sixtyMinuteBonuses, 50)
+                }
             }
 
             if (showBeamUi) {
                 DividerSoft()
                 Text(
-                    text = "Beam ⭐",
+                    text = beamSectionTitle,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
                 )
 
-                MetricLine("Time in Beam", formatMsAsMmSs(r.beamEligibleMs), MetricTone.Glow)
+                MetricLine(
+                    timeInBeamLabel,
+                    formatMsAsMmSs(r.beamEligibleMs),
+                    MetricTone.Glow
+                )
 
                 MetricLine(
-                    "Beam multiplier",
-                    r.beamMultiplier?.let { "×${"%.2f".format(it)}" } ?: "—",
+                    label = beamMultiplierLabel,
+                    value = beamMultiplierText,
                     tone = if (r.beamMultiplier != null) MetricTone.Glow else MetricTone.Muted
                 )
 
-                HighlightMetric("Beam points gained", "+${r.beamBonusPoints}", glow = true)
+                HighlightMetric(beamPointsGainedLabel, beamPointsGainedValue, glow = true)
             }
 
             val showArcUi =
@@ -106,22 +170,22 @@ fun SessionRewardContent(
             if (showArcUi) {
                 DividerSoft()
                 Text(
-                    text = "Arc 🔥",
+                    text = arcSectionTitle,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
                 )
 
                 MetricLine(
-                    label = "Arc multiplier used",
-                    value = r.arcMultiplierUsed?.let { "×${"%.1f".format(it)}" } ?: "—",
+                    label = arcMultiplierUsedLabel,
+                    value = arcMultiplierText,
                     tone = if (r.arcMultiplierUsed != null) MetricTone.Glow else MetricTone.Muted
                 )
 
-                HighlightMetric("Arc points gained", "+${r.arcBonusPoints}", glow = true)
+                HighlightMetric(arcPointsGainedLabel, arcPointsGainedValue, glow = true)
 
                 if (r.arcDidLevelUp) {
                     Text(
-                        text = "Multiplier grew by +0.1",
+                        text = arcLevelUpText,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )

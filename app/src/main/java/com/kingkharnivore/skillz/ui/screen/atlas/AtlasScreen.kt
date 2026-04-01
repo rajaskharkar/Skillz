@@ -20,6 +20,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.ui.model.AtlasUiState
 import com.kingkharnivore.skillz.ui.model.AtlasViewMode
 import com.kingkharnivore.skillz.ui.model.BeamBlockUi
@@ -188,19 +190,23 @@ private data class AtlasHeaderData(
 private fun rememberAtlasHeaderData(uiState: AtlasUiState): AtlasHeaderData {
     val zone = ZoneId.systemDefault()
     val todayStart = java.time.LocalDate.now(zone).atStartOfDay(zone).toInstant().toEpochMilli()
+    val separator = stringResource(R.string.atlas_header_subtitle_separator)
 
     return when (uiState.viewMode) {
         AtlasViewMode.DAY -> {
             val title = if (uiState.day.dayStartMs > 0L) {
                 Instant.ofEpochMilli(uiState.day.dayStartMs).atZone(zone).format(DAY_FMT)
             } else {
-                "Atlas"
+                stringResource(R.string.atlas_screen_title_fallback)
             }
 
             val subtitle = if (uiState.day.beamsCount == 1) {
-                "1 beam"
+                stringResource(R.string.atlas_header_day_beam_count_one)
             } else {
-                "${uiState.day.beamsCount} beams"
+                stringResource(
+                    R.string.atlas_header_day_beam_count_other,
+                    uiState.day.beamsCount
+                )
             }
 
             AtlasHeaderData(
@@ -217,12 +223,31 @@ private fun rememberAtlasHeaderData(uiState: AtlasUiState): AtlasHeaderData {
             val weekStart = Instant.ofEpochMilli(uiState.week.weekStartMs).atZone(zone)
             val weekEnd = Instant.ofEpochMilli(uiState.week.weekEndMs - 1L).atZone(zone)
             val title = "${weekStart.format(WEEK_RANGE_FMT)} – ${weekEnd.format(WEEK_RANGE_FMT)}"
+
+            val beamText = if (uiState.week.beamsCount == 1) {
+                stringResource(R.string.atlas_header_day_beam_count_one)
+            } else {
+                stringResource(
+                    R.string.atlas_header_day_beam_count_other,
+                    uiState.week.beamsCount
+                )
+            }
+
+            val activeDayText = if (uiState.week.activeDaysCount == 1) {
+                stringResource(R.string.atlas_header_week_active_day_one)
+            } else {
+                stringResource(
+                    R.string.atlas_header_week_active_day_other,
+                    uiState.week.activeDaysCount
+                )
+            }
+
             val subtitle = buildString {
-                append(if (uiState.week.beamsCount == 1) "1 beam" else "${uiState.week.beamsCount} beams")
-                append(" • ")
-                append(if (uiState.week.activeDaysCount == 1) "1 active day" else "${uiState.week.activeDaysCount} active days")
+                append(beamText)
+                append(separator)
+                append(activeDayText)
                 if (uiState.week.totalDurationMs > 0L) {
-                    append(" • ")
+                    append(separator)
                     append(formatDuration(uiState.week.totalDurationMs))
                 }
             }
@@ -241,10 +266,29 @@ private fun rememberAtlasHeaderData(uiState: AtlasUiState): AtlasHeaderData {
         AtlasViewMode.MONTH -> {
             val monthStart = Instant.ofEpochMilli(uiState.month.monthStartMs).atZone(zone)
             val title = monthStart.format(MONTH_FMT)
+
+            val beamText = if (uiState.month.beamsCount == 1) {
+                stringResource(R.string.atlas_header_day_beam_count_one)
+            } else {
+                stringResource(
+                    R.string.atlas_header_day_beam_count_other,
+                    uiState.month.beamsCount
+                )
+            }
+
+            val activeDayText = if (uiState.month.activeDaysCount == 1) {
+                stringResource(R.string.atlas_header_month_active_day_one)
+            } else {
+                stringResource(
+                    R.string.atlas_header_month_active_day_other,
+                    uiState.month.activeDaysCount
+                )
+            }
+
             val subtitle = buildString {
-                append(if (uiState.month.beamsCount == 1) "1 beam" else "${uiState.month.beamsCount} beams")
-                append(" • ")
-                append(if (uiState.month.activeDaysCount == 1) "1 active day" else "${uiState.month.activeDaysCount} active days")
+                append(beamText)
+                append(separator)
+                append(activeDayText)
             }
 
             val todayMonthStart = localMonthStartForUi(todayStart)

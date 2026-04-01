@@ -12,7 +12,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 
 @Composable
 fun SegmentedIconTab(
@@ -24,8 +32,22 @@ fun SegmentedIconTab(
     icon: ImageVector,
     contentDescription: String
 ) {
+    val selectedLabel = stringResource(R.string.segmented_tab_selected)
+    val notSelectedLabel = stringResource(R.string.segmented_tab_not_selected)
+    val stateLabel = stringResource(
+        R.string.segmented_tab_state,
+        contentDescription,
+        if (selected) selectedLabel else notSelectedLabel
+    )
+
     Surface(
         onClick = onClick,
+        modifier = Modifier.semantics {
+            role = Role.Tab
+            this.selected = selected
+            this.contentDescription = contentDescription
+            stateDescription = stateLabel
+        },
         shape = RoundedCornerShape(999.dp),
         color = if (selected) selectedBg else Color.Transparent,
         tonalElevation = if (selected) 1.dp else 0.dp
@@ -38,7 +60,7 @@ fun SegmentedIconTab(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = contentDescription,
+                contentDescription = null,
                 modifier = Modifier.size(18.dp),
                 tint = if (selected) selectedFg else unselectedFg
             )

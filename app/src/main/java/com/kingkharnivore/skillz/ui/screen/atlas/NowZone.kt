@@ -31,11 +31,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.ui.model.NowState
 import com.kingkharnivore.skillz.ui.theme.Bronze
 import com.kingkharnivore.skillz.ui.theme.GryffindorRed
@@ -81,14 +85,27 @@ fun NowZone(
                     label = "pulseAlpha"
                 )
                 alpha
-            } else 1f
+            } else {
+                1f
+            }
+
             val minsLeft = (remainingMs / 60_000L).coerceAtLeast(0L)
             val pctLeft = (remainingFrac * 100f).roundToInt()
+            val minsLeftText = stringResource(R.string.now_zone_minutes_left, minsLeft)
+            val activeBeamA11y = stringResource(
+                R.string.now_zone_active_beam_a11y,
+                b.tagName,
+                minsLeftText,
+                pctLeft
+            )
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 2.dp),
+                    .padding(top = 2.dp)
+                    .semantics {
+                        contentDescription = activeBeamA11y
+                    },
                 shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = cs.secondary,
@@ -104,7 +121,7 @@ fun NowZone(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        text = "⭐ BEAM ACTIVE",
+                        text = stringResource(R.string.now_zone_beam_active_title),
                         style = MaterialTheme.typography.labelMedium,
                         letterSpacing = 1.4.sp,
                         color = cs.onSurfaceVariant.copy(alpha = 0.78f)
@@ -141,13 +158,13 @@ fun NowZone(
 
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "$pctLeft%",
+                                text = stringResource(R.string.now_zone_percent_left, pctLeft),
                                 style = MaterialTheme.typography.headlineMedium,
                                 textAlign = TextAlign.Center
                             )
 
                             Text(
-                                text = "$minsLeft min left",
+                                text = minsLeftText,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = cs.onSurfaceVariant.copy(alpha = 0.70f),
                                 textAlign = TextAlign.Center
@@ -172,7 +189,7 @@ fun NowZone(
                         )
                     ) {
                         Text(
-                            text = "Enter flow!",
+                            text = stringResource(R.string.now_zone_enter_flow),
                             letterSpacing = 1.sp
                         )
                     }
@@ -195,7 +212,7 @@ fun NowZone(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "ATLAS",
+                        text = stringResource(R.string.now_zone_atlas_label),
                         style = MaterialTheme.typography.labelSmall,
                         letterSpacing = 2.2.sp,
                         fontFamily = FontFamily.Monospace,
@@ -203,7 +220,7 @@ fun NowZone(
                     )
 
                     Text(
-                        text = "Create your path. Step forward. Walk it without hesitation.",
+                        text = stringResource(R.string.now_zone_intro),
                         fontFamily = FontFamily.Cursive,
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
@@ -223,22 +240,27 @@ fun NowZone(
                             modifier = Modifier.fillMaxWidth()
                         )
                     } ?: Text(
-                        text = "No upcoming Beams scheduled.\n\nCommit your time. Schedule a Beam.\n\nHonor it and unlock up to a 2× Scyra Score multiplier.",
+                        text = stringResource(R.string.now_zone_no_upcoming_beams),
                         style = MaterialTheme.typography.bodyMedium,
                         lineHeight = 20.sp,
                         color = cs.onSurfaceVariant.copy(alpha = 0.85f)
                     )
 
+                    val nowZoneBeamA11y = stringResource(R.string.now_zone_schedule_beam_a11y)
                     Button(
                         onClick = onScheduleBeamClick,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics {
+                                contentDescription = nowZoneBeamA11y
+                            },
                         shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.secondary,
                             contentColor = MaterialTheme.colorScheme.onSecondary
                         )
                     ) {
-                        Text("⭐ Schedule a Beam")
+                        Text(stringResource(R.string.now_zone_schedule_beam))
                     }
                 }
             }

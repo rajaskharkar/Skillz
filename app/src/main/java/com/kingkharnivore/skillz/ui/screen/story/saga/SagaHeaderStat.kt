@@ -6,6 +6,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -15,6 +17,8 @@ fun SagaHeaderStat(
     value: String,
     alignEnd: Boolean = false
 ) {
+    val a11yLabel = "$label: $value"
+
     Column(
         horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -28,7 +32,10 @@ fun SagaHeaderStat(
             text = value,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = androidx.compose.ui.Modifier.clearAndSetSemantics {
+                contentDescription = a11yLabel
+            }
         )
     }
 }

@@ -26,9 +26,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.ui.screen.helpers.formatPeriodSubtitle
 import com.kingkharnivore.skillz.ui.screen.helpers.formatPeriodTitle
@@ -48,23 +55,43 @@ fun ViewJourneysBottomSheet(
         mutableStateOf<Long?>(null)
     }
 
+    val backText = stringResource(R.string.common_back)
+    val closeText = stringResource(R.string.common_close)
+    val fallbackTitle = stringResource(R.string.view_journeys_fallback_title)
+    val emptyText = stringResource(R.string.view_journeys_empty)
+    val paneTitleText = stringResource(R.string.view_journeys_sheet_pane_title)
+
     val sessions = uiState.viewJourneysSessions
     val selected = remember(selectedSessionId, sessions) {
         selectedSessionId?.let { id -> sessions.firstOrNull { it.sessionId == id } }
     }
 
-    val windowTitle = remember(uiState.anchorDayStartMs, uiState.period) {
-        formatPeriodTitle(uiState.period, uiState.anchorDayStartMs)
-    }
-    val windowSubtitle = remember(uiState.anchorDayStartMs, uiState.period) {
-        formatPeriodSubtitle(uiState.period, uiState.anchorDayStartMs)
-    }
+    val windowTitle = formatPeriodTitle(
+        period = uiState.period,
+        anchorDayStartMs = uiState.anchorDayStartMs
+    )
+    val windowSubtitle = formatPeriodSubtitle(
+        period = uiState.period,
+        anchorDayStartMs = uiState.anchorDayStartMs
+    )
+    val windowLabel = stringResource(
+        R.string.view_journeys_window_label,
+        windowTitle,
+        windowSubtitle
+    )
 
     val totalDuration = remember(sessions) { sessions.sumOf { it.durationMs } }
     val totalScyraScore = remember(sessions) { sessions.sumOf { it.score } }
     val totalBeamBonus = remember(sessions) { sessions.sumOf { it.beamBonusPoints } }
     val totalBaseScore = remember(totalScyraScore, totalBeamBonus) { totalScyraScore - totalBeamBonus }
     val totalSurge = remember(sessions) { sessions.sumOf { it.surgePoints } }
+
+    val sheetTitle = uiState.viewJourneysTitle.ifBlank { fallbackTitle }
+    val headerA11y = stringResource(
+        R.string.view_journeys_header_a11y,
+        sheetTitle,
+        windowLabel
+    )
 
     ModalBottomSheet(
         onDismissRequest = onClose,
@@ -74,6 +101,7 @@ fun ViewJourneysBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .semantics { paneTitle = paneTitleText }
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 18.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -83,23 +111,32 @@ fun ViewJourneysBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (selected != null) {
-                    TextButton(onClick = { selectedSessionId = null }) { Text("Back") }
+                    TextButton(onClick = { selectedSessionId = null }) {
+                        Text(backText)
+                    }
                 } else {
                     Spacer(Modifier.width(8.dp))
                 }
 
                 Spacer(Modifier.width(8.dp))
 
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clearAndSetSemantics {
+                            heading()
+                            contentDescription = headerA11y
+                        }
+                ) {
                     Text(
-                        text = uiState.viewJourneysTitle.ifBlank { "Journey" },
+                        text = sheetTitle,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "$windowTitle • $windowSubtitle",
+                        text = windowLabel,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                         maxLines = 1,
@@ -107,7 +144,9 @@ fun ViewJourneysBottomSheet(
                     )
                 }
 
-                TextButton(onClick = onClose) { Text("Close") }
+                TextButton(onClick = onClose) {
+                    Text(closeText)
+                }
             }
 
             if (selected == null) {
@@ -124,10 +163,14 @@ fun ViewJourneysBottomSheet(
 
                 if (sessions.isEmpty()) {
                     Text(
-                        text = "No flows for this journey in this view.",
+                        text = emptyText,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                        modifier = Modifier.padding(vertical = 10.dp)
+                        modifier = Modifier
+                            .padding(vertical = 10.dp)
+                            .clearAndSetSemantics {
+                                contentDescription = emptyText
+                            }
                     )
                 } else {
                     LazyColumn(

@@ -33,5 +33,6 @@ data class FlowListUiState(
     val viewJourneysTitle: String = "",
     val viewJourneysSessions: List<FlowListItemUiModel> = emptyList(),
     val showScoreUi: Boolean = false,
-    val calmMode: Boolean = false
+    val calmMode: Boolean = false,
+    val appLanguageTag: String? = null,
 )

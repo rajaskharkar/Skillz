@@ -28,10 +28,18 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kingkharnivore.skillz.BuildConfig
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.ui.theme.CaveatSemiBold
 
 data class SkillzHomeNavState(
@@ -44,15 +52,16 @@ val LocalSkillzHomeNav = compositionLocalOf<SkillzHomeNavState?> { null }
 @Composable
 fun SkillzTopAppBar() {
     val title = when (BuildConfig.FLAVOR) {
-        "aera" -> "Aera"
-        "scyra" -> "Scyra"
-        else -> "Skillz"
+        "aera" -> stringResource(R.string.home_app_name_aera)
+        "scyra" -> stringResource(R.string.home_app_name_scyra)
+        else -> stringResource(R.string.home_app_name_skillz)
     }
     val nav = LocalSkillzHomeNav.current
+
     TopAppBar(
         title = {
             Text(
-                title,
+                text = title,
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontFamily = CaveatSemiBold,
                     fontSize = 36.sp,
@@ -61,7 +70,6 @@ fun SkillzTopAppBar() {
             )
         },
         actions = {
-            // ✅ Icon-only section switching (no extra vertical real-estate).
             if (nav != null) {
                 HomeNavIcons(
                     selected = nav.currentPage,
@@ -82,40 +90,83 @@ private fun HomeNavIcons(
     selected: Int,
     onSelect: (Int) -> Unit
 ) {
+    val atlasLabel = stringResource(R.string.home_nav_atlas)
+    val storyLabel = stringResource(R.string.home_nav_story)
+    val pathsLabel = stringResource(R.string.home_nav_paths)
+    val notepadLabel = stringResource(R.string.home_nav_notepad)
+    val helpLabel = stringResource(R.string.home_nav_help)
+    val navBarLabel = stringResource(R.string.home_nav_bar)
+
     Row(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier.padding(end = 6.dp)
+        modifier = Modifier
+            .padding(end = 6.dp)
+            .semantics {
+                contentDescription = navBarLabel
+            }
     ) {
         NavIcon(
             selected = selected == 0,
             onClick = { onSelect(0) },
-            contentDescription = "Atlas",
-            icon = { Icon(Icons.Outlined.Map, contentDescription = null, modifier = Modifier.size(22.dp)) }
+            contentDescription = atlasLabel,
+            icon = {
+                Icon(
+                    Icons.Outlined.Map,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
         )
 
         NavIcon(
             selected = selected == 1,
             onClick = { onSelect(1) },
-            contentDescription = "Story",
-            icon = { Icon(Icons.Outlined.AutoStories, contentDescription = null, modifier = Modifier.size(22.dp)) }
+            contentDescription = storyLabel,
+            icon = {
+                Icon(
+                    Icons.Outlined.AutoStories,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
         )
 
         NavIcon(
             selected = selected == 2,
             onClick = { onSelect(2) },
-            contentDescription = "Notepad",
-            icon = { Icon(Icons.Outlined.EditNote, contentDescription = null, modifier = Modifier.size(22.dp)) }
+            contentDescription = pathsLabel,
+            icon = {
+                Icon(
+                    Icons.Outlined.Explore,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
         )
 
-        // ✅ NEW: Help / Settings (last tab)
-        // Roadmap-ish icon.
         NavIcon(
             selected = selected == 3,
             onClick = { onSelect(3) },
-            contentDescription = "Help",
+            contentDescription = notepadLabel,
             icon = {
-                // Prefer Explore for "roadmap", fallback to HelpOutline if you chose that import.
-                Icon(Icons.Outlined.HelpOutline, contentDescription = null, modifier = Modifier.size(22.dp))
+                Icon(
+                    Icons.Outlined.EditNote,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        )
+
+        NavIcon(
+            selected = selected == 4,
+            onClick = { onSelect(4) },
+            contentDescription = helpLabel,
+            icon = {
+                Icon(
+                    Icons.Outlined.HelpOutline,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
             }
         )
     }
@@ -128,7 +179,14 @@ private fun NavIcon(
     contentDescription: String,
     icon: @Composable () -> Unit
 ) {
-    // Sexy + minimal: selected gets a soft capsule behind it.
+    val selectedLabel = stringResource(R.string.home_nav_selected)
+    val notSelectedLabel = stringResource(R.string.home_nav_not_selected)
+    val stateLabel = stringResource(
+        R.string.home_nav_tab_state,
+        contentDescription,
+        if (selected) selectedLabel else notSelectedLabel
+    )
+
     val capsule = if (selected) {
         MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f)
     } else {
@@ -136,12 +194,19 @@ private fun NavIcon(
     }
     val alpha = if (selected) 1f else 0.72f
     val contentColor = LocalContentColor.current.copy(alpha = alpha)
+
     IconButton(
         onClick = onClick,
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(capsule)
             .padding(2.dp)
+            .semantics {
+                role = Role.Tab
+                this.selected = selected
+                this.contentDescription = contentDescription
+                stateDescription = stateLabel
+            }
     ) {
         CompositionLocalProvider(
             LocalContentColor provides contentColor

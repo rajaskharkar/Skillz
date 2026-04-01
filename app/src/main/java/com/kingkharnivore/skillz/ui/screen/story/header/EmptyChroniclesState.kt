@@ -15,8 +15,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 
 @Composable
@@ -27,37 +33,44 @@ fun EmptyChroniclesState(
     modifier: Modifier = Modifier
 ) {
     val title = if (isCurrentPeriod) {
-        "No Flows yet"
+        stringResource(R.string.empty_chronicles_title_current)
     } else {
-        "No Flows in this view"
+        stringResource(R.string.empty_chronicles_title_past)
     }
 
     val subtitle = when (period) {
         StoryPeriod.DAY -> {
             if (isCurrentPeriod) {
-                "No Flows have been recorded today."
+                stringResource(R.string.empty_chronicles_day_current)
             } else {
-                "No Flows were recorded for this day."
+                stringResource(R.string.empty_chronicles_day_past)
             }
         }
         StoryPeriod.WEEK -> {
             if (isCurrentPeriod) {
-                "No Flows have been recorded this week."
+                stringResource(R.string.empty_chronicles_week_current)
             } else {
-                "No Flows were recorded for this week."
+                stringResource(R.string.empty_chronicles_week_past)
             }
         }
         StoryPeriod.MONTH -> {
             if (isCurrentPeriod) {
-                "No Flows have been recorded this month."
+                stringResource(R.string.empty_chronicles_month_current)
             } else {
-                "No Flows were recorded for this month."
+                stringResource(R.string.empty_chronicles_month_past)
             }
         }
     }
 
+    val goToTodayText = stringResource(R.string.empty_chronicles_go_to_today)
+    val a11yText = stringResource(R.string.empty_chronicles_a11y, title, subtitle)
+
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clearAndSetSemantics {
+                contentDescription = a11yText
+            },
         shape = RoundedCornerShape(22.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
         tonalElevation = 0.dp
@@ -79,7 +92,8 @@ fun EmptyChroniclesState(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.semantics { heading() }
             )
 
             Text(
@@ -90,7 +104,7 @@ fun EmptyChroniclesState(
 
             if (!isCurrentPeriod && onTodayClick != null) {
                 TextButton(onClick = onTodayClick) {
-                    Text("Go to Today")
+                    Text(goToTodayText)
                 }
             }
         }

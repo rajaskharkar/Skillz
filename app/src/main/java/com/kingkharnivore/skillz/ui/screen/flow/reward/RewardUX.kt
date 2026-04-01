@@ -13,8 +13,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 
 enum class MetricTone { Neutral, Glow, Muted }
 
@@ -54,7 +56,11 @@ fun HighlightMetric(
     value: String,
     glow: Boolean = true
 ) {
-    val valueColor = if (glow) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    val valueColor = if (glow) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -85,8 +91,15 @@ fun HighlightMetric(
 }
 
 @Composable
-fun BonusLine(label: String, count: Int, pointsEach: Int) {
+fun BonusLine(
+    label: String,
+    count: Int,
+    pointsEach: Int
+) {
     val total = count * pointsEach
+    val countText = stringResource(R.string.reward_bonus_count_multiplier, count)
+    val totalText = stringResource(R.string.reward_bonus_total_points, total)
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -99,14 +112,14 @@ fun BonusLine(label: String, count: Int, pointsEach: Int) {
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
             )
             Text(
-                text = "×$count",
+                text = countText,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f)
             )
         }
 
         Text(
-            text = "+$total",
+            text = totalText,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface
@@ -117,7 +130,9 @@ fun BonusLine(label: String, count: Int, pointsEach: Int) {
 @Composable
 fun DividerSoft() {
     Surface(
-        modifier = Modifier.fillMaxWidth().height(1.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(1.dp),
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
         content = {}
     )

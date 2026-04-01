@@ -14,8 +14,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.utils.time.formatDuration
 
 @Composable
@@ -24,8 +28,20 @@ fun TotalTimeHighlight(
     subtitle: String,
     modifier: Modifier = Modifier
 ) {
+    val title = stringResource(R.string.total_time_highlight_title)
+    val durationText = formatDuration(totalDurationMs)
+    val a11yLabel = stringResource(
+        R.string.total_time_highlight_a11y,
+        subtitle,
+        durationText
+    )
+
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clearAndSetSemantics {
+                contentDescription = a11yLabel
+            },
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.secondary,
         tonalElevation = 2.dp
@@ -39,7 +55,7 @@ fun TotalTimeHighlight(
         ) {
             Column {
                 Text(
-                    text = "TOTAL TIME",
+                    text = title,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -54,7 +70,7 @@ fun TotalTimeHighlight(
             }
 
             Text(
-                text = formatDuration(totalDurationMs),
+                text = durationText,
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.SemiBold
                 ),

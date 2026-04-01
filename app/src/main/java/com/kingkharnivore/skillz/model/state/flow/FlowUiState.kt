@@ -17,5 +17,8 @@ data class FlowUiState(
     val arcProgressMs: Long = 0L,
     val arcNextIndex: Int? = null,
     val arcGraceRemainingMs: Long? = null,
-    val arcPauseRemainingMs: Long? = null
+    val arcPauseRemainingMs: Long? = null,
+    val plannedArcTitle: String? = null,
+    val plannedArcStepIndex: Int? = null,
+    val plannedArcTotalSteps: Int? = null
 )

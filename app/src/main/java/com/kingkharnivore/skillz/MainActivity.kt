@@ -4,9 +4,9 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -27,17 +27,19 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
-    @Inject lateinit var aliveFlowRepository: AliveFlowRepository
-    @Inject lateinit var aliveFlowServiceController: AliveFlowServiceController
+    @Inject
+    lateinit var aliveFlowRepository: AliveFlowRepository
+
+    @Inject
+    lateinit var aliveFlowServiceController: AliveFlowServiceController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // cold start reinstate
         maybeReinstateFlowNotification()
 
         setContent {
@@ -83,6 +85,7 @@ fun SkillzApp(
     onPermissionGranted: () -> Unit
 ) {
     val navController = rememberNavController()
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background

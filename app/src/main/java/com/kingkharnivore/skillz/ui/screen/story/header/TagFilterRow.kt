@@ -13,7 +13,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.viewmodel.TagUiModel
 
 @Composable
@@ -25,31 +31,49 @@ fun TagFilterRow(
 ) {
     if (tags.isEmpty()) return
 
+    val observeJourneysLabel = if (selectedTagIds.isEmpty()) {
+        stringResource(R.string.tag_filter_observe_journeys)
+    } else {
+        stringResource(R.string.tag_filter_observe_journeys_selected, selectedTagIds.size)
+    }
+    val rowA11yLabel = stringResource(R.string.tag_filter_row_a11y)
+    val allLabel = stringResource(R.string.tag_filter_all)
+    val allA11yLabel = stringResource(R.string.tag_filter_all_a11y)
+    val selectedLabel = stringResource(R.string.tag_filter_selected)
+    val notSelectedLabel = stringResource(R.string.tag_filter_not_selected)
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = if (selectedTagIds.isEmpty()) {
-                "Observe journeys:"
-            } else {
-                "Observe journeys (${selectedTagIds.size} selected):"
-            },
-            style = MaterialTheme.typography.labelSmall
+            text = observeJourneysLabel,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.semantics { heading() }
         )
 
         LazyRow(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    contentDescription = rowA11yLabel
+                },
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 8.dp)
         ) {
             item {
+                val allState = stringResource(
+                    R.string.tag_filter_chip_state,
+                    allA11yLabel,
+                    if (selectedTagIds.isEmpty()) selectedLabel else notSelectedLabel
+                )
+
                 FilterChip(
                     selected = selectedTagIds.isEmpty(),
                     onClick = onClearAll,
                     label = {
                         Text(
-                            text = "All",
+                            text = allLabel,
                             style = MaterialTheme.typography.labelLarge
                         )
                     },
@@ -59,7 +83,12 @@ fun TagFilterRow(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
                         labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                     ),
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .semantics {
+                            contentDescription = allA11yLabel
+                            stateDescription = allState
+                        }
                 )
             }
 
@@ -68,6 +97,11 @@ fun TagFilterRow(
                 key = { it.id }
             ) { tag ->
                 val isSelected = tag.id in selectedTagIds
+                val chipState = stringResource(
+                    R.string.tag_filter_chip_state,
+                    tag.name,
+                    if (isSelected) selectedLabel else notSelectedLabel
+                )
 
                 FilterChip(
                     selected = isSelected,
@@ -84,7 +118,12 @@ fun TagFilterRow(
                         containerColor = MaterialTheme.colorScheme.surface,
                         labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
                     ),
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .semantics {
+                            contentDescription = tag.name
+                            stateDescription = chipState
+                        }
                 )
             }
         }

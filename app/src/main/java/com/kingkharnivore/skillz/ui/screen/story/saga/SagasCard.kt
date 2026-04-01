@@ -28,7 +28,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.ui.Journey7dStatUiModel
 import com.kingkharnivore.skillz.ui.screen.helpers.sagaSubtitle
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
@@ -47,8 +56,20 @@ fun SagasCard(
     val totalScore = remember(stats) { stats.sumOf { it.totalScore } }
 
     var expanded by rememberSaveable(period, anchorDayStartMs) {
-        mutableStateOf(true) // dedicated view => expanded feels right
+        mutableStateOf(true)
     }
+
+    val titleText = stringResource(R.string.sagas_card_title)
+    val expandText = stringResource(R.string.sagas_card_expand)
+    val collapseText = stringResource(R.string.sagas_card_collapse)
+    val emptyText = stringResource(R.string.sagas_card_empty)
+    val expandedText = stringResource(R.string.sagas_card_expanded)
+    val collapsedText = stringResource(R.string.sagas_card_collapsed)
+    val toggleStateText = stringResource(
+        R.string.sagas_card_toggle_state,
+        if (expanded) collapseText else expandText,
+        if (expanded) expandedText else collapsedText
+    )
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -64,14 +85,17 @@ fun SagasCard(
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // ── Header row + expand toggle ─────────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Top
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { heading() }
+                ) {
                     SagaHeader(
-                        title = "Your Saga",
+                        title = titleText,
                         subtitle = sagaSubtitle(period, anchorDayStartMs),
                         periodLabel = period.label,
                         totalFlows = totalFlows,
@@ -84,33 +108,42 @@ fun SagasCard(
 
                 FilledTonalIconButton(
                     onClick = { expanded = !expanded },
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier
+                        .size(40.dp)
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = if (expanded) collapseText else expandText
+                            stateDescription = toggleStateText
+                        },
                     colors = IconButtonDefaults.filledTonalIconButtonColors(
                         containerColor = cs.surfaceVariant,
                         contentColor = cs.onSurfaceVariant
                     )
                 ) {
                     Icon(
-                        imageVector = if (expanded)
+                        imageVector = if (expanded) {
                             Icons.Default.KeyboardArrowUp
-                        else
-                            Icons.Default.KeyboardArrowDown,
-                        contentDescription = if (expanded) "Collapse" else "Expand"
+                        } else {
+                            Icons.Default.KeyboardArrowDown
+                        },
+                        contentDescription = null
                     )
                 }
             }
 
-            // ── Body ───────────────────────────────────────────────────
             AnimatedVisibility(visible = expanded) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (stats.isEmpty()) {
                         Surface(
+                            modifier = Modifier.clearAndSetSemantics {
+                                contentDescription = emptyText
+                            },
                             shape = RoundedCornerShape(18.dp),
                             color = cs.surfaceVariant,
                             tonalElevation = 1.dp
                         ) {
                             Text(
-                                text = "No saga data in this view.",
+                                text = emptyText,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = cs.onSurfaceVariant.copy(alpha = 0.78f),
                                 modifier = Modifier

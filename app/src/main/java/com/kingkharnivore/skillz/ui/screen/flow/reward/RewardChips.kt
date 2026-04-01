@@ -13,8 +13,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 
 @Composable
 fun RewardChipRowV2(
@@ -31,13 +33,27 @@ fun RewardChipRowV2(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (isAera) {
-            RewardChip(text = "⏱ $totalMinutes min")
+            RewardChip(
+                text = stringResource(R.string.reward_chip_time_minutes, totalMinutes)
+            )
             return
         }
 
-        RewardChip(text = "🔥 +$totalScyra")
-        if (showBeamUi) RewardChip(text = "⭐ +$beamBonusPoints")
-        if (surgePoints > 0) RewardChip(text = "⚡ +$surgePoints")
+        RewardChip(
+            text = stringResource(R.string.reward_chip_score_points, totalScyra)
+        )
+
+        if (showBeamUi) {
+            RewardChip(
+                text = stringResource(R.string.reward_chip_beam_points, beamBonusPoints)
+            )
+        }
+
+        if (surgePoints > 0) {
+            RewardChip(
+                text = stringResource(R.string.reward_chip_surge_points, surgePoints)
+            )
+        }
     }
 }
 
@@ -63,6 +79,8 @@ fun RewardTotalCard(
     value: Int,
     footnote: String
 ) {
+    val valueText = stringResource(R.string.reward_total_value_points, value)
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -92,7 +110,7 @@ fun RewardTotalCard(
                 }
 
                 Text(
-                    text = "+$value",
+                    text = valueText,
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.primary
@@ -119,7 +137,11 @@ fun RewardCard(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
                 if (subtitle != null) {
                     Text(
                         text = subtitle,

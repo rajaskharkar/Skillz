@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.ui.screen.help
+package com.kingkharnivore.skillz.ui.screen
 
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateDpAsState
@@ -17,73 +17,102 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButtonDefaults.Icon
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
+import com.kingkharnivore.skillz.localization.AppLanguage
 import com.kingkharnivore.skillz.model.state.FlowListUiState
-import kotlin.math.absoluteValue
 import kotlinx.coroutines.launch
+import kotlin.math.absoluteValue
 
 @Composable
 fun HelpScreen(
     uiState: FlowListUiState,
+    selectedLanguageTag: String?,
     onToggleShowScoreUi: (Boolean) -> Unit,
     onToggleCalmMode: (Boolean) -> Unit,
+    onSetAppLanguage: (String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val pages = remember { helpPages() }
+    val pages = helpPages()
+
+    val titleText = stringResource(R.string.help_screen_title)
+    val keepScoreTitle = stringResource(R.string.help_pref_keep_score_title)
+    val keepScoreDescription = stringResource(R.string.help_pref_keep_score_description)
+    val calmModeTitle = stringResource(R.string.help_pref_calm_mode_title)
+    val calmModeDescription = stringResource(R.string.help_pref_calm_mode_description)
+
+    var showLanguageDialog by rememberSaveable { mutableStateOf(false) }
 
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 18.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Text(
-            text = "Help",
+            text = titleText,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f),
+            modifier = Modifier.semantics { heading() }
         )
 
         Spacer(Modifier.height(2.dp))
 
         PreferenceToggleRow(
-            title = "Keep Score Visible",
-            description = "Show score totals in Story, and score labels in cards.",
+            title = keepScoreTitle,
+            description = keepScoreDescription,
             checked = uiState.showScoreUi,
             onCheckedChange = onToggleShowScoreUi
         )
 
         PreferenceToggleRow(
-            title = "Calm Mode",
-            description = "Hides Arc information and timer in Flow.",
+            title = calmModeTitle,
+            description = calmModeDescription,
             checked = uiState.calmMode,
             onCheckedChange = onToggleCalmMode
+        )
+
+        LanguagePreferenceRow(
+            selectedLanguageTag = selectedLanguageTag,
+            onClick = { showLanguageDialog = true }
         )
 
         HelpConceptCarousel(
@@ -91,6 +120,140 @@ fun HelpScreen(
             modifier = Modifier.fillMaxWidth()
         )
     }
+
+    if (showLanguageDialog) {
+        LanguagePickerDialog(
+            selectedLanguageTag = selectedLanguageTag,
+            onDismiss = { showLanguageDialog = false },
+            onLanguageSelected = { tag ->
+                showLanguageDialog = false
+                onSetAppLanguage(tag)
+            }
+        )
+    }
+}
+
+@Composable
+private fun LanguagePreferenceRow(
+    selectedLanguageTag: String?,
+    onClick: () -> Unit
+) {
+    val title = stringResource(R.string.help_language_title)
+    val description = stringResource(R.string.help_language_description)
+    val currentLanguage = AppLanguage.fromTag(selectedLanguageTag)
+    val currentLabel = stringResource(currentLanguage.labelRes)
+
+    val rowA11y = stringResource(
+        R.string.help_language_row_a11y,
+        title,
+        description,
+        currentLabel
+    )
+
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 0.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .semantics {
+                role = Role.Button
+                contentDescription = rowA11y
+            }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
+                    )
+                }
+
+                Spacer(Modifier.width(16.dp))
+
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = currentLabel,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LanguagePickerDialog(
+    selectedLanguageTag: String?,
+    onDismiss: () -> Unit,
+    onLanguageSelected: (String?) -> Unit
+) {
+    val current = AppLanguage.fromTag(selectedLanguageTag)
+    var pending by rememberSaveable { mutableStateOf(current) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(stringResource(R.string.help_language_dialog_title))
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                AppLanguage.entries.forEach { language ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { pending = language }
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = pending == language,
+                            onClick = { pending = language }
+                        )
+                        Text(
+                            text = stringResource(language.labelRes),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onLanguageSelected(pending.tag) }
+            ) {
+                Text(stringResource(R.string.help_language_dialog_confirm))
+            }
+        }
+    )
 }
 
 @Composable
@@ -101,8 +264,23 @@ private fun HelpConceptCarousel(
     val pagerState = rememberPagerState(pageCount = { pages.size })
     val scope = rememberCoroutineScope()
 
+    val carouselA11y = stringResource(R.string.help_carousel_a11y)
+    val counterText = stringResource(
+        R.string.help_carousel_counter,
+        pagerState.currentPage + 1,
+        pages.size
+    )
+    val currentPageA11y = stringResource(
+        R.string.help_carousel_page_a11y,
+        pagerState.currentPage + 1,
+        pages.size
+    )
+
     Column(
-        modifier = modifier,
+        modifier = modifier.semantics {
+            contentDescription = carouselA11y
+            stateDescription = currentPageA11y
+        },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -145,7 +323,7 @@ private fun HelpConceptCarousel(
                 shadowElevation = 6.dp
             ) {
                 Text(
-                    text = "${pagerState.currentPage + 1}/${pages.size}",
+                    text = counterText,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
@@ -171,6 +349,9 @@ private fun ElegantPagerIndicator(
     onPageSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val onText = stringResource(R.string.pref_toggle_on)
+    val offText = stringResource(R.string.pref_toggle_off)
+
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(999.dp),
@@ -188,11 +369,18 @@ private fun ElegantPagerIndicator(
                     targetValue = if (selected) 18.dp else 6.dp,
                     label = "help_indicator_width"
                 )
+                val dotA11y = stringResource(R.string.help_carousel_select_page, index + 1)
+                val stateText = if (selected) onText else offText
 
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
                         .clickable { onPageSelected(index) }
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = dotA11y
+                            stateDescription = stateText
+                        }
                         .background(
                             if (selected) {
                                 MaterialTheme.colorScheme.primary
@@ -252,10 +440,23 @@ private fun HelpInfoCard(
     page: HelpPage,
     modifier: Modifier = Modifier
 ) {
+    val tipA11y = stringResource(R.string.help_card_tip_a11y, page.tip)
+    val cardA11y = stringResource(
+        R.string.help_card_a11y,
+        page.kicker,
+        page.title,
+        page.subtitle,
+        page.body,
+        page.tip
+    )
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 245.dp),
+            .heightIn(min = 245.dp)
+            .clearAndSetSemantics {
+                contentDescription = cardA11y
+            },
         shape = RoundedCornerShape(28.dp),
         tonalElevation = 0.dp,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f)
@@ -276,7 +477,8 @@ private fun HelpInfoCard(
                     text = page.title,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() }
                 )
 
                 Text(
@@ -295,6 +497,9 @@ private fun HelpInfoCard(
             Spacer(Modifier.weight(1f))
 
             Surface(
+                modifier = Modifier.clearAndSetSemantics {
+                    contentDescription = tipA11y
+                },
                 shape = RoundedCornerShape(18.dp),
                 color = MaterialTheme.colorScheme.background.copy(alpha = 0.60f)
             ) {
@@ -319,10 +524,23 @@ private fun PreferenceToggleRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
+    val onText = stringResource(R.string.pref_toggle_on)
+    val offText = stringResource(R.string.pref_toggle_off)
+    val stateText = if (checked) onText else offText
+    val a11yText = stringResource(
+        R.string.pref_toggle_a11y,
+        title,
+        description,
+        stateText
+    )
+
     Surface(
         shape = RoundedCornerShape(18.dp),
         tonalElevation = 0.dp,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        modifier = Modifier.semantics {
+            contentDescription = a11yText
+        }
     ) {
         Row(
             modifier = Modifier
@@ -346,7 +564,10 @@ private fun PreferenceToggleRow(
 
             Switch(
                 checked = checked,
-                onCheckedChange = onCheckedChange
+                onCheckedChange = onCheckedChange,
+                modifier = Modifier.semantics {
+                    stateDescription = stateText
+                }
             )
         }
     }
@@ -361,53 +582,54 @@ private data class HelpPage(
     val tip: String
 )
 
+@Composable
 private fun helpPages(): List<HelpPage> = listOf(
     HelpPage(
         iconRes = R.drawable.scyra_turtle,
-        kicker = "Flow",
-        title = "A Flow is one focused session.",
-        subtitle = "Start a Flow when you want to intentionally spend time on something that matters.",
-        body = "A Flow tracks your time, keeps the session alive in the background, and lets you add notes so the work becomes part of your Story. Every Flow is a clean, deliberate chapter of effort.",
-        tip = "Use Flow for deep work, practice, study, writing, workouts, or anything you want to do with intention."
+        kicker = stringResource(R.string.help_page_flow_kicker),
+        title = stringResource(R.string.help_page_flow_title),
+        subtitle = stringResource(R.string.help_page_flow_subtitle),
+        body = stringResource(R.string.help_page_flow_body),
+        tip = stringResource(R.string.help_page_flow_tip)
     ),
     HelpPage(
         iconRes = R.drawable.scyra_turtle,
-        kicker = "Soft Flow",
-        title = "Soft Flow is a gentler session.",
-        subtitle = "Use Soft Flow when you want to stay present with an activity without turning it into a scored push.",
-        body = "Soft Flow still tracks time and lets the moment become part of your Story, but it does not award score. It is designed for quieter sessions where the goal is simply to show up, breathe, recover, reflect, or move gently without pressure.",
-        tip = "Use Soft Flow for walks, stretching, journaling, meditation, light reading, recovery time, or any session you want to honor without gamifying."
+        kicker = stringResource(R.string.help_page_soft_flow_kicker),
+        title = stringResource(R.string.help_page_soft_flow_title),
+        subtitle = stringResource(R.string.help_page_soft_flow_subtitle),
+        body = stringResource(R.string.help_page_soft_flow_body),
+        tip = stringResource(R.string.help_page_soft_flow_tip)
     ),
     HelpPage(
         iconRes = R.drawable.scyra_turtle,
-        kicker = "Pulse",
-        title = "A Pulse is a quick moment log.",
-        subtitle = "Use a Pulse when you want to capture something small, meaningful, or immediate without starting a full Flow.",
-        body = "A Pulse helps you record a thought, feeling, realization, event, or micro-win in seconds. It is lighter than a Flow, but still becomes part of your Story, helping you remember the moments that shaped your day.",
-        tip = "Use Pulse for quick reflections, ideas, breakthroughs, emotions, check-ins, or little moments you do not want to lose."
+        kicker = stringResource(R.string.help_page_pulse_kicker),
+        title = stringResource(R.string.help_page_pulse_title),
+        subtitle = stringResource(R.string.help_page_pulse_subtitle),
+        body = stringResource(R.string.help_page_pulse_body),
+        tip = stringResource(R.string.help_page_pulse_tip)
     ),
     HelpPage(
         iconRes = R.drawable.scyra_turtle,
-        kicker = "Arc",
-        title = "Arcs reward continuity.",
-        subtitle = "An Arc forms when you continue your momentum across consecutive Flows.",
-        body = "Keep going and your Arc grows. After each completed Flow of 10 minutes or more, the Arc multiplier increases by +0.1. You have a short grace window between Flows, so continuing quickly helps preserve the chain.",
-        tip = "Think of an Arc as momentum across sessions. Save Flow, continue, and keep the chain alive."
+        kicker = stringResource(R.string.help_page_arc_kicker),
+        title = stringResource(R.string.help_page_arc_title),
+        subtitle = stringResource(R.string.help_page_arc_subtitle),
+        body = stringResource(R.string.help_page_arc_body),
+        tip = stringResource(R.string.help_page_arc_tip)
     ),
     HelpPage(
         iconRes = R.drawable.scyra_turtle,
-        kicker = "Beam",
-        title = "Beams are planned boost windows.",
-        subtitle = "Set up a Beam when you know you want a protected pocket of time for focused effort.",
-        body = "When your Flow overlaps with a Beam, that overlapping time receives a score boost. Beams help you turn planned time into higher-value time, especially when you want structure around important work.",
-        tip = "Use Beams for study blocks, training sessions, writing time, or any window you want to treat as special."
+        kicker = stringResource(R.string.help_page_beam_kicker),
+        title = stringResource(R.string.help_page_beam_title),
+        subtitle = stringResource(R.string.help_page_beam_subtitle),
+        body = stringResource(R.string.help_page_beam_body),
+        tip = stringResource(R.string.help_page_beam_tip)
     ),
     HelpPage(
         iconRes = R.drawable.scyra_turtle,
-        kicker = "Surge",
-        title = "Surge rewards precision.",
-        subtitle = "Set a target duration before you begin and try to finish close to it.",
-        body = "Surge is for sessions where you want to commit to a specific amount of time. The closer your actual session is to the planned duration, the better the reward. It adds a satisfying sense of control and intentional execution.",
-        tip = "Use Surge when you want a clear mission, such as 20 minutes of reading, 45 minutes of coding, or 30 minutes of practice."
+        kicker = stringResource(R.string.help_page_surge_kicker),
+        title = stringResource(R.string.help_page_surge_title),
+        subtitle = stringResource(R.string.help_page_surge_subtitle),
+        body = stringResource(R.string.help_page_surge_body),
+        tip = stringResource(R.string.help_page_surge_tip)
     )
 )
