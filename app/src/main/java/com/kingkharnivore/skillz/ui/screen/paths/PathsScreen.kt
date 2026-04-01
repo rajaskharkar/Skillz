@@ -19,10 +19,13 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -73,6 +76,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -83,6 +87,7 @@ import com.kingkharnivore.skillz.model.state.paths.PathsUiState
 import com.kingkharnivore.skillz.model.ui.ArcPlanListItemUiModel
 import com.kingkharnivore.skillz.model.ui.FlowPlanListItemUiModel
 import com.kingkharnivore.skillz.ui.screen.paths.suggested.SuggestedRoutesCatalog
+import com.kingkharnivore.skillz.ui.theme.color
 import com.kingkharnivore.skillz.viewmodel.PathsViewModel
 import com.kingkharnivore.skillz.viewmodel.TagUiModel
 
@@ -182,8 +187,8 @@ private fun PathsScreenContent(
     val planArcText = stringResource(R.string.paths_plan_arc)
     val studioTitle = stringResource(R.string.paths_studio_title)
     val studioSubtitle = stringResource(R.string.paths_studio_subtitle)
-    val suggestedRoutesTitle = stringResource(R.string.paths_suggested_routes_title)
-    val suggestedRoutesSubtitle = stringResource(R.string.paths_suggested_routes_subtitle)
+    val suggestedRoutesTitle = stringResource(R.string.paths_suggested_scenes_title)
+    val suggestedRoutesSubtitle = stringResource(R.string.paths_suggested_scenes_subtitle)
     val yourArcsTitle = stringResource(R.string.paths_your_arcs_title)
     val yourArcsSubtitle = stringResource(R.string.paths_your_arcs_subtitle)
     val emptyMoreArcsBody = stringResource(R.string.paths_empty_more_arcs_body)
@@ -254,19 +259,12 @@ private fun PathsScreenContent(
                     } else {
                         if (uiState.flowPlans.isNotEmpty()) {
                             item {
-                                SectionHeader(
+                                PlannedFlowsHeader(
                                     title = plannedFlowsTitle,
-                                    subtitle = plannedFlowsSubtitle
+                                    subtitle = plannedFlowsSubtitle,
+                                    cta = planFlowText,
+                                    onClick = onPlanFlowClick
                                 )
-                            }
-
-                            item {
-                                Button(
-                                    onClick = onPlanFlowClick,
-                                    shape = RoundedCornerShape(999.dp)
-                                ) {
-                                    Text(planFlowText)
-                                }
                             }
 
                             items(uiState.flowPlans, key = { it.id }) { plan ->
@@ -355,19 +353,12 @@ private fun PathsScreenContent(
                         }
 
                         item {
-                            SectionHeader(
+                            YourArcsHeader(
                                 title = yourArcsTitle,
-                                subtitle = yourArcsSubtitle
+                                subtitle = yourArcsSubtitle,
+                                cta = planArcText,
+                                onClick = onPlanArcClick
                             )
-                        }
-
-                        item {
-                            Button(
-                                onClick = onPlanArcClick,
-                                shape = RoundedCornerShape(999.dp)
-                            ) {
-                                Text(planArcText)
-                            }
                         }
 
                         if (uiState.arcPlans.isEmpty()) {
@@ -403,6 +394,111 @@ private fun PathsScreenContent(
 }
 
 @Composable
+private fun PlannedFlowsHeader(
+    title: String,
+    subtitle: String,
+    cta: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.AutoAwesome,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
+            )
+        }
+
+        Button(
+            onClick = onClick,
+            shape = RoundedCornerShape(999.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+        ) {
+            Text(cta)
+        }
+    }
+}
+
+@Composable
+private fun YourArcsHeader(
+    title: String,
+    subtitle: String,
+    cta: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.AutoGraph,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
+            )
+        }
+
+        Button(
+            onClick = onClick,
+            shape = RoundedCornerShape(999.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)
+        ) {
+            Text(cta)
+        }
+    }
+}
+
+@Composable
 private fun PlanFlowSheet(
     tags: List<TagUiModel>,
     isSaving: Boolean,
@@ -421,7 +517,6 @@ private fun PlanFlowSheet(
     var isSoftMode by rememberSaveable { mutableStateOf(false) }
     var targetMinutesText by rememberSaveable { mutableStateOf("") }
     var launchWithSurge by rememberSaveable { mutableStateOf(false) }
-    val chipListState = rememberLazyListState()
 
     val selectedText = stringResource(R.string.paths_selected)
     val notSelectedText = stringResource(R.string.paths_not_selected)
@@ -429,210 +524,103 @@ private fun PlanFlowSheet(
     val launchWithSurgeSwitchA11y = stringResource(R.string.paths_launch_with_surge_switch_a11y)
     val onText = stringResource(R.string.paths_on)
     val offText = stringResource(R.string.paths_off)
-    val planFlowSheetTitle = stringResource(R.string.paths_plan_flow_sheet_title)
-    val planFlowSheetSubtitle = stringResource(R.string.paths_plan_flow_sheet_subtitle)
-    val titleLabel = stringResource(R.string.paths_title_label)
-    val titlePlaceholder = stringResource(R.string.paths_title_placeholder)
-    val journeyTagLabel = stringResource(R.string.paths_journey_tag_label)
-    val journeyTagPlaceholder = stringResource(R.string.paths_journey_tag_placeholder)
-    val recentTagsText = stringResource(R.string.paths_recent_tags)
-    val softFlowTitle = stringResource(R.string.paths_soft_flow_title)
-    val softFlowBody = stringResource(R.string.paths_soft_flow_body)
-    val targetMinutesLabel = stringResource(R.string.paths_target_minutes_label)
-    val targetMinutesPlaceholder = stringResource(R.string.paths_target_minutes_placeholder)
-    val launchWithSurgeTitle = stringResource(R.string.paths_launch_with_surge_title)
-    val launchWithSurgeDisabledSoft = stringResource(R.string.paths_launch_with_surge_disabled_soft)
-    val launchWithSurgeDisabledNoTarget = stringResource(R.string.paths_launch_with_surge_disabled_no_target)
-    val launchWithSurgeEnabledBody = stringResource(R.string.paths_launch_with_surge_enabled_body)
     val cancelText = stringResource(R.string.paths_cancel)
     val savingText = stringResource(R.string.paths_saving)
     val saveText = stringResource(R.string.paths_save)
 
-    val hasTargetMinutes = targetMinutesText.trim().isNotBlank()
-    val surgeEnabled = !isSoftMode && hasTargetMinutes
-
-    if (!surgeEnabled && launchWithSurge) {
-        launchWithSurge = false
+    val cleanedTargetMinutes = targetMinutesText.filter(Char::isDigit).take(3)
+    if (cleanedTargetMinutes != targetMinutesText) {
+        targetMinutesText = cleanedTargetMinutes
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    if (isSoftMode && launchWithSurge) {
+        launchWithSurge = false
+        targetMinutesText = ""
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .imePadding()
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(horizontal = 20.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            Text(
-                text = planFlowSheetTitle,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Text(
-                text = planFlowSheetSubtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
-            )
-
-            OutlinedTextField(
+            FlowIntentField(
                 value = title,
                 onValueChange = { title = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(titleLabel) },
-                placeholder = { Text(titlePlaceholder) },
-                singleLine = true
+                placeholder = "Deep work, gym, reading, writing…"
             )
 
-            OutlinedTextField(
+            MinimalSectionLabel("Journey")
+
+            JourneyInlineField(
                 value = tagName,
                 onValueChange = { tagName = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(journeyTagLabel) },
-                placeholder = { Text(journeyTagPlaceholder) },
-                singleLine = true
+                tags = tags,
+                selectedText = selectedText,
+                notSelectedText = notSelectedText
             )
 
-            if (tags.isNotEmpty()) {
-                Text(
-                    text = recentTagsText,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
-                )
-
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    state = chipListState,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    userScrollEnabled = false
-                ) {
-                    item {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            tags.take(3).forEach { tag ->
-                                val chipA11y = stringResource(
-                                    R.string.paths_recent_tag_chip_a11y,
-                                    tag.name
-                                )
-                                val chipState = if (tagName == tag.name) selectedText else notSelectedText
-
-                                FilterChip(
-                                    selected = tagName == tag.name,
-                                    onClick = { tagName = tag.name },
-                                    label = { Text(tag.name) },
-                                    modifier = Modifier.semantics {
-                                        role = Role.Button
-                                        contentDescription = chipA11y
-                                        stateDescription = chipState
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    if (tags.size > 3) {
-                        item {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                tags.drop(3).take(3).forEach { tag ->
-                                    val chipA11y = stringResource(
-                                        R.string.paths_recent_tag_chip_a11y,
-                                        tag.name
-                                    )
-                                    val chipState = if (tagName == tag.name) selectedText else notSelectedText
-
-                                    FilterChip(
-                                        selected = tagName == tag.name,
-                                        onClick = { tagName = tag.name },
-                                        label = { Text(tag.name) },
-                                        modifier = Modifier.semantics {
-                                            role = Role.Button
-                                            contentDescription = chipA11y
-                                            stateDescription = chipState
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            MinimalSectionLabel("Start")
 
             Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 14.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = softFlowTitle,
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        Text(
-                            text = softFlowBody,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
-                        )
-                    }
-                    Switch(
+                    InlineToggleRow(
+                        title = stringResource(R.string.paths_soft_flow_title),
+                        subtitle = stringResource(R.string.paths_soft_flow_body),
                         checked = isSoftMode,
                         onCheckedChange = {
                             isSoftMode = it
-                            if (it) launchWithSurge = false
+                            if (it) {
+                                launchWithSurge = false
+                                targetMinutesText = ""
+                            }
                         },
-                        modifier = Modifier.semantics {
-                            contentDescription = softFlowSwitchA11y
-                            stateDescription = if (isSoftMode) onText else offText
-                        }
+                        a11yDescription = softFlowSwitchA11y,
+                        onText = onText,
+                        offText = offText
                     )
-                }
-            }
 
-            OutlinedTextField(
-                value = targetMinutesText,
-                onValueChange = { targetMinutesText = it.filter(Char::isDigit) },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(targetMinutesLabel) },
-                placeholder = { Text(targetMinutesPlaceholder) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
 
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = launchWithSurgeTitle,
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        Text(
-                            text = when {
-                                isSoftMode -> launchWithSurgeDisabledSoft
-                                !hasTargetMinutes -> launchWithSurgeDisabledNoTarget
-                                else -> launchWithSurgeEnabledBody
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
-                        )
-                    }
-                    Switch(
+                    InlineToggleRow(
+                        title = "Surge",
+                        subtitle = when {
+                            isSoftMode -> "Unavailable for Soft flows."
+                            launchWithSurge -> "A timed start with a defined target."
+                            else -> "Add a target to begin with more intention."
+                        },
                         checked = launchWithSurge,
-                        onCheckedChange = { launchWithSurge = it },
-                        enabled = surgeEnabled,
-                        modifier = Modifier.semantics {
-                            contentDescription = launchWithSurgeSwitchA11y
-                            stateDescription = if (launchWithSurge) onText else offText
+                        onCheckedChange = { enabled ->
+                            if (!isSoftMode) {
+                                launchWithSurge = enabled
+                                if (!enabled) targetMinutesText = ""
+                            }
+                        },
+                        enabled = !isSoftMode,
+                        a11yDescription = launchWithSurgeSwitchA11y,
+                        onText = onText,
+                        offText = offText,
+                        trailingContent = {
+                            if (launchWithSurge && !isSoftMode) {
+                                CompactMinutesField(
+                                    value = targetMinutesText,
+                                    onValueChange = {
+                                        targetMinutesText = it.filter(Char::isDigit).take(3)
+                                    }
+                                )
+                            }
                         }
                     )
                 }
@@ -657,15 +645,15 @@ private fun PlanFlowSheet(
                 Button(
                     onClick = {
                         onSave(
-                            title,
-                            tagName,
+                            title.trim(),
+                            tagName.trim(),
                             isSoftMode,
-                            targetMinutesText,
+                            if (launchWithSurge) targetMinutesText.trim() else "",
                             launchWithSurge
                         )
                     },
                     modifier = Modifier.weight(1f),
-                    enabled = !isSaving,
+                    enabled = !isSaving && title.trim().isNotEmpty(),
                     shape = RoundedCornerShape(999.dp)
                 ) {
                     Text(if (isSaving) savingText else saveText)
@@ -676,9 +664,388 @@ private fun PlanFlowSheet(
 }
 
 @Composable
+private fun MinimalSectionLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f),
+        fontWeight = FontWeight.SemiBold
+    )
+}
+
+@Composable
+private fun JourneyInlineField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    tags: List<TagUiModel>,
+    selectedText: String,
+    notSelectedText: String
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(
+                    color = MaterialTheme.colorScheme.onSurface
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                decorationBox = { innerTextField ->
+                    Box(Modifier.fillMaxWidth()) {
+                        if (value.isBlank()) {
+                            Text(
+                                text = stringResource(R.string.paths_journey_inline_placeholder),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.34f)
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            )
+        }
+
+        if (tags.isNotEmpty()) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(end = 4.dp)
+            ) {
+                items(tags.take(8), key = { it.id }) { tag ->
+                    val chipA11y = stringResource(
+                        R.string.paths_recent_tag_chip_a11y,
+                        tag.name
+                    )
+                    val chipState = if (value == tag.name) selectedText else notSelectedText
+
+                    FilterChip(
+                        selected = value == tag.name,
+                        onClick = { onValueChange(if (value == tag.name) "" else tag.name) },
+                        label = { Text(tag.name) },
+                        modifier = Modifier.semantics {
+                            role = Role.Button
+                            contentDescription = chipA11y
+                            stateDescription = chipState
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InlineToggleRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    a11yDescription: String,
+    onText: String,
+    offText: String,
+    enabled: Boolean = true,
+    trailingContent: (@Composable () -> Unit)? = null
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f)
+                )
+            }
+
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                enabled = enabled,
+                modifier = Modifier.semantics {
+                    contentDescription = a11yDescription
+                    stateDescription = if (checked) onText else offText
+                }
+            )
+        }
+
+        trailingContent?.invoke()
+    }
+}
+
+@Composable
+private fun CompactMinutesField(
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Row(
+            modifier = Modifier
+                .widthIn(min = 96.dp, max = 120.dp)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                textStyle = MaterialTheme.typography.titleMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                modifier = Modifier.weight(1f),
+                decorationBox = { innerTextField ->
+                    Box(Modifier.fillMaxWidth()) {
+                        if (value.isBlank()) {
+                            Text(
+                                text = stringResource(R.string.paths_minutes_field_placeholder),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.32f)
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            )
+
+            Text(
+                text = stringResource(R.string.common_minutes_short),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.56f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SheetSection(
+    title: String,
+    subtitle: String,
+    content: @Composable () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.64f)
+            )
+        }
+
+        content()
+    }
+}
+
+@Composable
+private fun FlowIntentField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String
+) {
+    Surface(
+        shape = RoundedCornerShape(30.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.paths_flow_intent_prompt),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.48f),
+                fontWeight = FontWeight.Medium
+            )
+
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.headlineSmall.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                decorationBox = { innerTextField ->
+                    Box(Modifier.fillMaxWidth()) {
+                        if (value.isBlank()) {
+                            Text(
+                                text = placeholder,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f),
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
+                        innerTextField()
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun JourneyTagField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    tags: List<TagUiModel>,
+    selectedText: String,
+    notSelectedText: String
+) {
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.paths_journey_label),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 14.dp),
+                    decorationBox = { innerTextField ->
+                        if (value.isBlank()) {
+                            Text(
+                                text = stringResource(R.string.paths_journey_optional_placeholder),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.42f)
+                            )
+                        }
+                        innerTextField()
+                    }
+                )
+            }
+
+            if (tags.isNotEmpty()) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(end = 4.dp)
+                ) {
+                    items(tags.take(8), key = { it.id }) { tag ->
+                        val chipA11y = stringResource(
+                            R.string.paths_recent_tag_chip_a11y,
+                            tag.name
+                        )
+                        val chipState = if (value == tag.name) selectedText else notSelectedText
+
+                        FilterChip(
+                            selected = value == tag.name,
+                            onClick = { onValueChange(if (value == tag.name) "" else tag.name) },
+                            label = { Text(tag.name) },
+                            modifier = Modifier.semantics {
+                                role = Role.Button
+                                contentDescription = chipA11y
+                                stateDescription = chipState
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniMinutesField(
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Row(
+            modifier = Modifier
+                .widthIn(min = 110.dp, max = 132.dp)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                textStyle = MaterialTheme.typography.titleMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                modifier = Modifier.weight(1f),
+                decorationBox = { innerTextField ->
+                    if (value.isBlank()) {
+                        Text(
+                            text = stringResource(R.string.paths_minutes_field_placeholder),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f)
+                        )
+                    }
+                    innerTextField()
+                }
+            )
+
+            Text(
+                text = stringResource(R.string.common_minutes_short),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f)
+            )
+        }
+    }
+}
+
+@Composable
 private fun PathsHeader() {
-    val title = stringResource(R.string.paths_title)
-    val body = stringResource(R.string.paths_header_body)
+    val title = stringResource(R.string.horizon_title)
+    val body = stringResource(R.string.horizon_header_body)
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(
@@ -693,7 +1060,9 @@ private fun PathsHeader() {
             Text(
                 text = title,
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.secondary,
+                fontFamily = FontFamily.Monospace
             )
         }
 

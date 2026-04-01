@@ -401,7 +401,7 @@
     <string name="paths_suggested_routes_title">Rutas sugeridas</string>
     <string name="paths_suggested_routes_subtitle">Rutinas pensadas para adaptarlas a tu propia vida</string>
     <string name="paths_your_arcs_title">Tus Arcs</string>
-    <string name="paths_your_arcs_subtitle">Rutas esperando ser vividas</string>
+    <string name="paths_your_arcs_subtitle">Arcos esperando ser vividos</string>
     <string name="paths_plan_flow_sheet_title">Planificar Flow</string>
     <string name="paths_plan_flow_sheet_subtitle">Guarda una actividad para que siempre esté lista para comenzar.</string>
     <string name="paths_title_label">Título</string>
@@ -877,4 +877,15 @@
     <string name="atlas_week_empty_panel_a11y_title">No hay beams planificados</string>
     <string name="atlas_week_empty_panel_a11y">%1$s. %2$s</string>
     <string name="atlas_week_beam_row_a11y">%1$s. %2$s.</string>
+    <!-- values-es/strings.xml -->
+    <string name="horizon_header_body">Explora qué hacer después</string>
+    <string name="horizon_title">Horizonte</string>
+    <string name="paths_suggested_scenes_subtitle">Arcos guiados que puedes adaptar a tu propia vida.</string>
+    <string name="paths_suggested_scenes_title">Escenas sugeridas</string>
+    <string name="paths_journey_inline_placeholder">Etiqueta de journey opcional</string>
+    <string name="paths_minutes_field_placeholder">25</string>
+    <string name="common_minutes_short">min</string>
+    <string name="paths_flow_intent_prompt">¿En qué quieres entrar en flow?</string>
+    <string name="paths_journey_label">Journey</string>
+    <string name="paths_journey_optional_placeholder">Opcional</string>
 </resources>

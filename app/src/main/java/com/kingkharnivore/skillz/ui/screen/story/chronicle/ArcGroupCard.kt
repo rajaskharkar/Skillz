@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.ui.screen.story.chronicle
 
+import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +36,8 @@ import com.kingkharnivore.skillz.model.ui.ChronicleUiModel
 import com.kingkharnivore.skillz.model.ui.FlowListItemUiModel
 import com.kingkharnivore.skillz.model.ui.PulseListItemUiModel
 import com.kingkharnivore.skillz.utils.time.formatDuration
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 @Composable
@@ -53,6 +56,7 @@ fun ArcGroupCard(
     onLongPress: (FlowListItemUiModel) -> Unit,
     onClick: (Long) -> Unit
 ) {
+    val arcTimeRangeLabel = rememberArcTimeRangeLabel(group.visibleFlows.map { it.flow.createdAt })
     val wrapperBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f)
     val cardBg = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
     val headerAccent = group.headerAccentColor ?: MaterialTheme.colorScheme.secondary
@@ -172,11 +176,21 @@ fun ArcGroupCard(
                             )
                         }
 
-                        Text(
-                            text = totalTimeLabel,
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.86f)
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = totalTimeLabel,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.86f)
+                            )
+
+                            arcTimeRangeLabel?.let {
+                                Text(
+                                    text = it,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
+                                )
+                            }
+                        }
                     }
 
                     if (!isExpandedByFilter) {
@@ -312,4 +326,24 @@ private fun ArcStatChip(
             )
         }
     }
+}
+
+@Composable
+private fun rememberArcTimeRangeLabel(times: List<Long>): String? {
+    if (times.isEmpty()) return null
+
+    val sorted = times.sorted()
+    val start = sorted.first()
+    val end = sorted.last()
+
+    return if (start == end) {
+        formatChronicleTime(start)
+    } else {
+        "${formatChronicleTime(start)} --> ${formatChronicleTime(end)}"
+    }
+}
+
+private fun formatChronicleTime(timeMs: Long): String {
+    val pattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), "MMMdhmma")
+    return SimpleDateFormat(pattern, Locale.getDefault()).format(Date(timeMs))
 }

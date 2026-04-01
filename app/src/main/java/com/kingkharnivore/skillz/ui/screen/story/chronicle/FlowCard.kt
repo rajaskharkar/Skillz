@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.ui.screen.story.chronicle
 
+import android.text.format.DateFormat
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -51,6 +53,8 @@ import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.ui.FlowListItemUiModel
 import com.kingkharnivore.skillz.model.ui.PulseListItemUiModel
 import com.kingkharnivore.skillz.utils.time.formatDuration
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 @Composable
@@ -72,6 +76,8 @@ fun FlowCard(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var expandedChildPulseIds by rememberSaveable(session.sessionId) { mutableStateOf(setOf<Long>()) }
+
+    val context = LocalContext.current
 
     val isSoft = session.isSoftMode
     val showSurgeStat = !isSoft && session.isSurge && session.surgePoints > 0
@@ -129,6 +135,11 @@ fun FlowCard(
     val durationLabel = stringResource(
         R.string.flow_card_duration_value,
         formatDuration(session.durationMs)
+    )
+
+    val createdAtText = formatFlowTime(
+        context = context,
+        timeMs = session.createdAt
     )
 
     val multiplierLabel = session.arcMultiplierUsed?.let {
@@ -326,6 +337,13 @@ fun FlowCard(
                 color = contentColor
             )
 
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = createdAtText,
+                style = MaterialTheme.typography.labelSmall,
+                color = contentColor.copy(alpha = 0.78f)
+            )
+
             if (!isSoft && !calmMode && session.arcMultiplierUsed != null && multiplierLabel != null) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
@@ -416,4 +434,13 @@ fun FlowCard(
             }
         )
     }
+}
+
+private fun formatFlowTime(
+    context: android.content.Context,
+    timeMs: Long
+): String {
+    val skeleton = "MMMdhmma"
+    val pattern = DateFormat.getBestDateTimePattern(Locale.getDefault(), skeleton)
+    return SimpleDateFormat(pattern, Locale.getDefault()).format(Date(timeMs))
 }

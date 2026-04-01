@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
@@ -77,7 +78,7 @@ fun PlanArcScreen(
 
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing
-            .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
+            .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
         bottomBar = {
             PlanArcFooter(
                 uiState = uiState,
@@ -100,7 +101,8 @@ fun PlanArcScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(horizontal = 20.dp)
+                .padding(top = 32.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             RouteStudioHeader(
@@ -108,81 +110,111 @@ fun PlanArcScreen(
                 totalSteps = uiState.totalSteps
             )
 
-            when (uiState.currentStep) {
-                0 -> {
-                    RouteStudioStageTitle(
-                        title = stringResource(R.string.plan_arc_stage_name_title),
-                        subtitle = stringResource(R.string.plan_arc_stage_name_subtitle)
-                    )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                when (uiState.currentStep) {
+                    0 -> {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            RouteStudioStageTitle(
+                                title = stringResource(R.string.plan_arc_stage_name_title),
+                                subtitle = stringResource(R.string.plan_arc_stage_name_subtitle)
+                            )
 
-                    ArcIdentityCard(
-                        title = uiState.title,
-                        errorMessage = uiState.errorMessage,
-                        onTitleChange = viewModel::onTitleChange
-                    )
+                            ArcIdentityCard(
+                                title = uiState.title,
+                                errorMessage = uiState.errorMessage,
+                                onTitleChange = viewModel::onTitleChange
+                            )
 
-                    RouteStudioPreviewCard(
-                        text = stringResource(R.string.plan_arc_preview_body)
-                    )
-                }
+                            RouteStudioPreviewCard(
+                                text = stringResource(R.string.plan_arc_preview_body)
+                            )
+                        }
+                    }
 
-                1 -> {
-                    RouteStudioStageTitle(
-                        title = stringResource(R.string.plan_arc_stage_choose_title),
-                        subtitle = stringResource(R.string.plan_arc_stage_choose_subtitle)
-                    )
+                    1 -> {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            RouteStudioStageTitle(
+                                title = stringResource(R.string.plan_arc_stage_choose_title),
+                                subtitle = stringResource(R.string.plan_arc_stage_choose_subtitle)
+                            )
 
-                    FlowPickerSection(
-                        availableTags = uiState.availableTags,
-                        selectedTagId = uiState.selectedTagId,
-                        availableFlows = uiState.availableFlows,
-                        selectedFlowIdsInOrder = uiState.selectedFlowIdsInOrder,
-                        errorMessage = uiState.errorMessage,
-                        onTagSelected = viewModel::onTagFilterSelected,
-                        onFlowToggled = viewModel::onFlowToggled
-                    )
-                }
+                            FlowPickerSection(
+                                availableTags = uiState.availableTags,
+                                selectedTagId = uiState.selectedTagId,
+                                availableFlows = uiState.availableFlows,
+                                selectedFlowIdsInOrder = uiState.selectedFlowIdsInOrder,
+                                errorMessage = uiState.errorMessage,
+                                onTagSelected = viewModel::onTagFilterSelected,
+                                onFlowToggled = viewModel::onFlowToggled
+                            )
+                        }
+                    }
 
-                2 -> {
-                    RouteStudioStageTitle(
-                        title = stringResource(R.string.plan_arc_stage_shape_title),
-                        subtitle = stringResource(R.string.plan_arc_stage_shape_subtitle)
-                    )
+                    2 -> {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            RouteStudioStageTitle(
+                                title = stringResource(R.string.plan_arc_stage_shape_title),
+                                subtitle = stringResource(R.string.plan_arc_stage_shape_subtitle)
+                            )
 
-                    RouteShapeSection(
-                        selectedFlowIdsInOrder = uiState.selectedFlowIdsInOrder,
-                        availableFlows = uiState.availableFlows,
-                        errorMessage = uiState.errorMessage,
-                        onMoveUp = viewModel::moveSelectedFlowUp,
-                        onMoveDown = viewModel::moveSelectedFlowDown,
-                        onRemove = viewModel::removeSelectedFlow
-                    )
-                }
+                            RouteShapeSection(
+                                selectedFlowIdsInOrder = uiState.selectedFlowIdsInOrder,
+                                availableFlows = uiState.availableFlows,
+                                errorMessage = uiState.errorMessage,
+                                onMoveUp = viewModel::moveSelectedFlowUp,
+                                onMoveDown = viewModel::moveSelectedFlowDown,
+                                onRemove = viewModel::removeSelectedFlow
+                            )
+                        }
+                    }
 
-                3 -> {
-                    RouteStudioStageTitle(
-                        title = stringResource(R.string.plan_arc_stage_timing_title),
-                        subtitle = stringResource(R.string.plan_arc_stage_timing_subtitle)
-                    )
+                    3 -> {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            RouteStudioStageTitle(
+                                title = stringResource(R.string.plan_arc_stage_timing_title),
+                                subtitle = stringResource(R.string.plan_arc_stage_timing_subtitle)
+                            )
 
-                    TimingIntentSection(
-                        uiState = uiState,
-                        onTargetMinutesChanged = viewModel::onStepTargetMinutesChanged,
-                        onLaunchWithSurgeChanged = viewModel::onStepLaunchWithSurgeChanged
-                    )
-                }
+                            TimingIntentSection(
+                                uiState = uiState,
+                                onTargetMinutesChanged = viewModel::onStepTargetMinutesChanged,
+                                onLaunchWithSurgeChanged = viewModel::onStepLaunchWithSurgeChanged
+                            )
+                        }
+                    }
 
-                else -> {
-                    RouteStudioStageTitle(
-                        title = stringResource(R.string.plan_arc_stage_review_title),
-                        subtitle = stringResource(R.string.plan_arc_stage_review_subtitle)
-                    )
+                    else -> {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            RouteStudioStageTitle(
+                                title = stringResource(R.string.plan_arc_stage_review_title),
+                                subtitle = stringResource(R.string.plan_arc_stage_review_subtitle)
+                            )
 
-                    ReviewArcSection(
-                        uiState = uiState,
-                        onRecurrenceTypeSelected = viewModel::onRecurrenceTypeSelected,
-                        onCustomDayToggled = viewModel::onCustomDayToggled
-                    )
+                            ReviewArcSection(
+                                uiState = uiState,
+                                onRecurrenceTypeSelected = viewModel::onRecurrenceTypeSelected,
+                                onCustomDayToggled = viewModel::onCustomDayToggled
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -355,7 +387,10 @@ private fun FlowPickerSection(
             )
         }
 
-        SelectionSummaryCard(label = summaryLabel)
+        SelectionSummaryCard(
+            label = summaryLabel,
+            modifier = Modifier.padding(top = 2.dp)
+        )
 
         if (!errorMessage.isNullOrBlank()) {
             ErrorInlineCard(message = errorMessage)
@@ -366,7 +401,7 @@ private fun FlowPickerSection(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 12.dp),
+                contentPadding = PaddingValues(top = 2.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(filteredFlows, key = { it.id }) { flow ->
@@ -410,7 +445,7 @@ private fun RouteShapeSection(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        SelectionSummaryCard(label = summaryLabel)
+        SelectionSummaryCard(label = summaryLabel, modifier = Modifier.padding(top = 2.dp))
 
         if (!errorMessage.isNullOrBlank()) {
             ErrorInlineCard(message = errorMessage)
@@ -745,7 +780,8 @@ private fun TagFilterRow(
 
 @Composable
 private fun SelectionSummaryCard(
-    label: String
+    label: String,
+    modifier: Modifier = Modifier
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -1601,7 +1637,13 @@ private fun PlanArcFooter(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp)
+                .padding(
+                    bottom = WindowInsets.safeDrawing
+                        .only(WindowInsetsSides.Bottom)
+                        .asPaddingValues()
+                        .calculateBottomPadding()
+                )
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

@@ -409,6 +409,8 @@
     <string name="paths_error_generic">Something went wrong</string>
     <string name="paths_title">Paths</string>
     <string name="paths_header_body">Prepare what you want ready to live next.</string>
+    <string name="horizon_header_body">Explore what to do next</string>
+    <string name="horizon_title">Horizon</string>
     <string name="paths_tab_flows">Flows</string>
     <string name="paths_tab_arcs">Arcs</string>
     <string name="paths_selected">Selected</string>
@@ -430,8 +432,10 @@
     <string name="paths_studio_subtitle">Routes you keep close</string>
     <string name="paths_suggested_routes_title">Suggested Routes</string>
     <string name="paths_suggested_routes_subtitle">Thoughtful routines to adapt into your own life</string>
+    <string name="paths_suggested_scenes_subtitle">Guided arcs you can adapt to your own life.</string>
+    <string name="paths_suggested_scenes_title">Suggested Scenes</string>
     <string name="paths_your_arcs_title">Your Arcs</string>
-    <string name="paths_your_arcs_subtitle">Routes waiting to be lived</string>
+    <string name="paths_your_arcs_subtitle">Arcs waiting to be lived</string>
     <string name="paths_plan_flow_sheet_title">Plan Flow</string>
     <string name="paths_plan_flow_sheet_subtitle">Save an activity so it’s always ready to begin.</string>
     <string name="paths_title_label">Title</string>
@@ -920,4 +924,11 @@
     <string name="atlas_week_empty_panel_a11y_title">No beams planned</string>
     <string name="atlas_week_empty_panel_a11y">%1$s. %2$s</string>
     <string name="atlas_week_beam_row_a11y">%1$s. %2$s.</string>
+
+    <string name="paths_journey_inline_placeholder">Optional journey tag</string>
+    <string name="paths_minutes_field_placeholder">25</string>
+    <string name="common_minutes_short">min</string>
+    <string name="paths_flow_intent_prompt">What do you want to flow into?</string>
+    <string name="paths_journey_label">Journey</string>
+    <string name="paths_journey_optional_placeholder">Optional</string>
 </resources>

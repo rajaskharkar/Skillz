@@ -2,6 +2,13 @@
 
 package com.kingkharnivore.skillz.ui.screen.flow
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -706,40 +713,95 @@ private fun SessionModeSelector(
     onFlowSelected: () -> Unit,
     onSoftSelected: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    val selectedTitle = if (isSoftMode) {
+        stringResource(R.string.flow_screen_soft_short)
+    } else {
+        stringResource(R.string.flow_card_type_flow)
+    }
+
+    val selectedSubtitle = if (isSoftMode) {
+        stringResource(R.string.flow_screen_mode_soft_subtitle)
+    } else {
+        stringResource(R.string.flow_screen_mode_flow_subtitle)
+    }
+
+    val selectedIcon = if (isSoftMode) {
+        Icons.Outlined.Spa
+    } else {
+        Icons.Outlined.AutoAwesome
+    }
+
+    val selectedContainer = if (isSoftMode) {
+        MaterialTheme.colorScheme.secondary
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+
+    val selectedContent = if (isSoftMode) {
+        MaterialTheme.colorScheme.onSecondary
+    } else {
+        MaterialTheme.colorScheme.onPrimary
+    }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.animateContentSize()
+    ) {
         Text(
             text = stringResource(R.string.flow_screen_mode_label),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            ModeOptionCard(
-                modifier = Modifier.weight(1f),
-                selected = !isSoftMode,
-                enabled = !isLocked,
-                title = stringResource(R.string.flow_card_type_flow),
-                subtitle = stringResource(R.string.flow_screen_mode_flow_subtitle),
-                icon = Icons.Outlined.AutoAwesome,
-                selectedContainer = MaterialTheme.colorScheme.primary,
-                selectedContent = MaterialTheme.colorScheme.onPrimary,
-                onClick = onFlowSelected
-            )
+        AnimatedContent(
+            targetState = isLocked,
+            label = "session_mode_selector_lock_transition",
+            transitionSpec = {
+                fadeIn() + expandVertically() togetherWith fadeOut() + shrinkVertically()
+            }
+        ) { locked ->
+            if (locked) {
+                ModeOptionCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    selected = true,
+                    enabled = true,
+                    title = selectedTitle,
+                    subtitle = selectedSubtitle,
+                    icon = selectedIcon,
+                    selectedContainer = selectedContainer,
+                    selectedContent = selectedContent,
+                    onClick = {}
+                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    ModeOptionCard(
+                        modifier = Modifier.weight(1f),
+                        selected = !isSoftMode,
+                        enabled = true,
+                        title = stringResource(R.string.flow_card_type_flow),
+                        subtitle = stringResource(R.string.flow_screen_mode_flow_subtitle),
+                        icon = Icons.Outlined.AutoAwesome,
+                        selectedContainer = MaterialTheme.colorScheme.primary,
+                        selectedContent = MaterialTheme.colorScheme.onPrimary,
+                        onClick = onFlowSelected
+                    )
 
-            ModeOptionCard(
-                modifier = Modifier.weight(1f),
-                selected = isSoftMode,
-                enabled = !isLocked,
-                title = stringResource(R.string.flow_screen_soft_short),
-                subtitle = stringResource(R.string.flow_screen_mode_soft_subtitle),
-                icon = Icons.Outlined.Spa,
-                selectedContainer = MaterialTheme.colorScheme.secondary,
-                selectedContent = MaterialTheme.colorScheme.onSecondary,
-                onClick = onSoftSelected
-            )
+                    ModeOptionCard(
+                        modifier = Modifier.weight(1f),
+                        selected = isSoftMode,
+                        enabled = true,
+                        title = stringResource(R.string.flow_screen_soft_short),
+                        subtitle = stringResource(R.string.flow_screen_mode_soft_subtitle),
+                        icon = Icons.Outlined.Spa,
+                        selectedContainer = MaterialTheme.colorScheme.secondary,
+                        selectedContent = MaterialTheme.colorScheme.onSecondary,
+                        onClick = onSoftSelected
+                    )
+                }
+            }
         }
 
         if (isLocked) {
