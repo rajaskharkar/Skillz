@@ -848,7 +848,6 @@
         <item quantity="one">1 बीम</item>
         <item quantity="other">%1$d बीम</item>
     </plurals>
-    <string name="atlas_month_beam_count">1 बीम</string>
     <string name="atlas_month_free">मुक्त</string>
     <string name="atlas_month_cell_a11y_with_beams">%1$s. %2$s.</string>
     <string name="atlas_month_cell_a11y_free">%1$s. मुक्त दिन।</string>
