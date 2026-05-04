@@ -15,7 +15,6 @@ data class FlowListItemUiModel(
     val isSoftMode: Boolean = false,
     val isSurge: Boolean,
     val surgePoints: Int,
-    val beamBonusPoints: Int,
     val arcId: Long? = null,
     val arcIndex: Int? = null,
     val arcMultiplierUsed: Double? = null,

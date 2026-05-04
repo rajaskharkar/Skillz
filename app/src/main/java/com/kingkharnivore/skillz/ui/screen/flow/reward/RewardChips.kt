@@ -23,8 +23,6 @@ fun RewardChipRowV2(
     isAera: Boolean,
     totalMinutes: Int,
     totalScyra: Int,
-    beamBonusPoints: Int,
-    showBeamUi: Boolean,
     surgePoints: Int
 ) {
     Row(
@@ -36,18 +34,12 @@ fun RewardChipRowV2(
             RewardChip(
                 text = stringResource(R.string.reward_chip_time_minutes, totalMinutes)
             )
-            return
+            return@Row
         }
 
         RewardChip(
             text = stringResource(R.string.reward_chip_score_points, totalScyra)
         )
-
-        if (showBeamUi) {
-            RewardChip(
-                text = stringResource(R.string.reward_chip_beam_points, beamBonusPoints)
-            )
-        }
 
         if (surgePoints > 0) {
             RewardChip(

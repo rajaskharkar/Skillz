@@ -82,8 +82,7 @@ fun ViewJourneysBottomSheet(
 
     val totalDuration = remember(sessions) { sessions.sumOf { it.durationMs } }
     val totalScyraScore = remember(sessions) { sessions.sumOf { it.score } }
-    val totalBeamBonus = remember(sessions) { sessions.sumOf { it.beamBonusPoints } }
-    val totalBaseScore = remember(totalScyraScore, totalBeamBonus) { totalScyraScore - totalBeamBonus }
+    val totalBaseScore = totalScyraScore
     val totalSurge = remember(sessions) { sessions.sumOf { it.surgePoints } }
 
     val sheetTitle = uiState.viewJourneysTitle.ifBlank { fallbackTitle }
@@ -154,7 +153,6 @@ fun ViewJourneysBottomSheet(
                     flowsCount = sessions.size,
                     totalDurationMs = totalDuration,
                     totalBaseScore = totalBaseScore,
-                    totalBeamBonus = totalBeamBonus,
                     totalScyraScore = totalScyraScore,
                     totalSurge = totalSurge
                 )

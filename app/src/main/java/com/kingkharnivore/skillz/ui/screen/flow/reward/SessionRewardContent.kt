@@ -12,7 +12,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
-import com.kingkharnivore.skillz.ui.screen.flow.formatMsAsMmSs
 
 @Composable
 fun SessionRewardContent(
@@ -20,8 +19,6 @@ fun SessionRewardContent(
     isAera: Boolean,
     calmMode: Boolean
 ) {
-    val showBeamUi = r.beamBonusPoints > 0
-
     val titleText = stringResource(
         if (r.surgePoints > 0) {
             R.string.session_reward_title_surge_completed
@@ -34,7 +31,6 @@ fun SessionRewardContent(
     val storyInTimeSubtitle = stringResource(R.string.session_reward_card_story_in_time)
     val totalTimeLabel = stringResource(R.string.session_reward_total_time)
     val minutesText = stringResource(R.string.session_reward_minutes_value, r.minutes)
-    val timeInBeamLabel = stringResource(R.string.session_reward_time_in_beam)
     val totalScoreTitle = stringResource(R.string.session_reward_total_score_title)
     val totalScoreFootnote = stringResource(R.string.session_reward_total_score_footnote)
     val breakdownTitle = stringResource(R.string.session_reward_breakdown_title)
@@ -45,20 +41,12 @@ fun SessionRewardContent(
     val tenMinuteBonusLabel = stringResource(R.string.session_reward_10_min_bonus)
     val thirtyMinuteBonusLabel = stringResource(R.string.session_reward_30_min_bonus)
     val sixtyMinuteBonusLabel = stringResource(R.string.session_reward_60_min_bonus)
-    val beamSectionTitle = stringResource(R.string.session_reward_beam_section)
-    val beamMultiplierLabel = stringResource(R.string.session_reward_beam_multiplier)
-    val dashText = stringResource(R.string.session_reward_dash)
-    val beamPointsGainedLabel = stringResource(R.string.session_reward_beam_points_gained)
-    val beamPointsGainedValue = stringResource(R.string.session_reward_points_value, r.beamBonusPoints)
     val arcSectionTitle = stringResource(R.string.session_reward_arc_section)
     val arcMultiplierUsedLabel = stringResource(R.string.session_reward_arc_multiplier_used)
     val arcPointsGainedLabel = stringResource(R.string.session_reward_arc_points_gained)
     val arcPointsGainedValue = stringResource(R.string.session_reward_points_value, r.arcBonusPoints)
     val arcLevelUpText = stringResource(R.string.session_reward_arc_level_up)
-
-    val beamMultiplierText = r.beamMultiplier?.let {
-        stringResource(R.string.session_reward_multiplier_2dp, it)
-    } ?: dashText
+    val dashText = stringResource(R.string.session_reward_dash)
 
     val arcMultiplierText = r.arcMultiplierUsed?.let {
         stringResource(R.string.session_reward_multiplier_1dp, it)
@@ -87,13 +75,6 @@ fun SessionRewardContent(
                 subtitle = storyInTimeSubtitle
             ) {
                 MetricLine(totalTimeLabel, minutesText, MetricTone.Neutral)
-                if (showBeamUi) {
-                    MetricLine(
-                        timeInBeamLabel,
-                        formatMsAsMmSs(r.beamEligibleMs),
-                        MetricTone.Glow
-                    )
-                }
             }
             return
         }
@@ -102,8 +83,6 @@ fun SessionRewardContent(
             isAera = isAera,
             totalMinutes = r.minutes,
             totalScyra = r.finalScyraPoints,
-            beamBonusPoints = r.beamBonusPoints,
-            showBeamUi = showBeamUi,
             surgePoints = r.surgePoints
         )
 
@@ -141,31 +120,9 @@ fun SessionRewardContent(
                 }
             }
 
-            if (showBeamUi) {
-                DividerSoft()
-                Text(
-                    text = beamSectionTitle,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
-                )
-
-                MetricLine(
-                    timeInBeamLabel,
-                    formatMsAsMmSs(r.beamEligibleMs),
-                    MetricTone.Glow
-                )
-
-                MetricLine(
-                    label = beamMultiplierLabel,
-                    value = beamMultiplierText,
-                    tone = if (r.beamMultiplier != null) MetricTone.Glow else MetricTone.Muted
-                )
-
-                HighlightMetric(beamPointsGainedLabel, beamPointsGainedValue, glow = true)
-            }
-
             val showArcUi =
-                (r.arcIndexInArc ?: 0) >= 2 && (r.arcBonusPoints > 0 || r.arcMultiplierUsed != null)
+                (r.arcIndexInArc ?: 0) >= 2 &&
+                        (r.arcBonusPoints > 0 || r.arcMultiplierUsed != null)
 
             if (showArcUi) {
                 DividerSoft()

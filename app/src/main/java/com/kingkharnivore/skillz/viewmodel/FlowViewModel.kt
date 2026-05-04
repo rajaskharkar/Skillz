@@ -3,13 +3,11 @@ package com.kingkharnivore.skillz.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kingkharnivore.skillz.data.model.entity.BeamEntity
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.repository.ActiveArcRunRepository
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.ArcPlanRepository
-import com.kingkharnivore.skillz.data.repository.BeamRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.data.repository.PulseRepository
@@ -41,20 +39,11 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
-private data class BeamOutcome(
-    val beamId: Long? = null,
-    val eligibleMs: Long = 0L,
-    val bonusPoints: Int = 0,
-    val multiplier: Double? = null
-)
-
 enum class FlowEndAction {
     SAVE_FLOW,
     CONTINUE_ARC,
     COMPLETE_ARC
 }
-
-const val BEAM_MIN_ELIGIBLE_MS = 60_000L // 1 minute
 
 @HiltViewModel
 class FlowViewModel @Inject constructor(
@@ -65,7 +54,6 @@ class FlowViewModel @Inject constructor(
     private val activeArcRunRepository: ActiveArcRunRepository,
     private val arcPlanRepository: ArcPlanRepository,
     private val aliveFlowServiceController: AliveFlowServiceController,
-    private val beamRepository: BeamRepository,
     private val arcPrefs: ArcPrefs,
     private val userPrefs: UserPrefs,
     private val surgeHapticsManager: SurgeHapticsManager,
@@ -431,7 +419,8 @@ class FlowViewModel @Inject constructor(
                     accumulatedBeforeStartMs = entity.accumulatedBeforeStartMs
 
                     val elapsed = if (entity.isRunning && baseStartTimeMs != null) {
-                        accumulatedBeforeStartMs + (System.currentTimeMillis() - baseStartTimeMs!!).coerceAtLeast(0L)
+                        accumulatedBeforeStartMs +
+                                (System.currentTimeMillis() - baseStartTimeMs!!).coerceAtLeast(0L)
                     } else {
                         accumulatedBeforeStartMs
                     }
@@ -566,7 +555,9 @@ class FlowViewModel @Inject constructor(
                     peakMultiplier = arcSessions.mapNotNull { it.arcMultiplierUsed }.maxOrNull()
                         ?: 1.0
                 )
-            } else null
+            } else {
+                null
+            }
 
             if (summary != null) {
                 _lastReward.value = FlowRewardUiModel(
@@ -575,9 +566,6 @@ class FlowViewModel @Inject constructor(
                     tenMinuteBonuses = 0,
                     thirtyMinuteBonuses = 0,
                     sixtyMinuteBonuses = 0,
-                    beamEligibleMs = 0L,
-                    beamBonusPoints = 0,
-                    beamMultiplier = null,
                     finalScyraPoints = 0,
                     surgePoints = 0,
                     arcSummary = summary,
@@ -617,7 +605,11 @@ class FlowViewModel @Inject constructor(
         baseStartTimeMs = null
 
         arcState = arcState?.let { s ->
-            if (s.pauseStartedAtMs == null) s.copy(pauseStartedAtMs = now) else s
+            if (s.pauseStartedAtMs == null) {
+                s.copy(pauseStartedAtMs = now)
+            } else {
+                s
+            }
         }
 
         arcState?.let { s ->
@@ -626,7 +618,12 @@ class FlowViewModel @Inject constructor(
         syncArcUi()
 
         _uiState.update {
-            it.copy(stopwatch = it.stopwatch.copy(isRunning = false, elapsedMs = accumulatedBeforeStartMs))
+            it.copy(
+                stopwatch = it.stopwatch.copy(
+                    isRunning = false,
+                    elapsedMs = accumulatedBeforeStartMs
+                )
+            )
         }
         stopTicker()
         startArcCountdown()
@@ -675,7 +672,7 @@ class FlowViewModel @Inject constructor(
     }
 
     private fun ensureArcCountdownRunningIfNeeded() {
-        val s = arcState ?: return
+        arcState ?: return
         if (_uiState.value.stopwatch.isRunning) return
         startArcCountdown()
     }
@@ -704,7 +701,14 @@ class FlowViewModel @Inject constructor(
     fun resetStopwatch() {
         baseStartTimeMs = null
         accumulatedBeforeStartMs = 0L
-        _uiState.update { it.copy(stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L)) }
+        _uiState.update {
+            it.copy(
+                stopwatch = StopwatchState(
+                    isRunning = false,
+                    elapsedMs = 0L
+                )
+            )
+        }
         stopTicker()
         saveOngoing()
     }
@@ -721,7 +725,11 @@ class FlowViewModel @Inject constructor(
                 } else {
                     accumulatedBeforeStartMs
                 }
-                _uiState.update { it.copy(stopwatch = it.stopwatch.copy(elapsedMs = elapsed)) }
+                _uiState.update {
+                    it.copy(
+                        stopwatch = it.stopwatch.copy(elapsedMs = elapsed)
+                    )
+                }
             }
         }
     }
@@ -796,67 +804,16 @@ class FlowViewModel @Inject constructor(
 
     fun clearSurgeIfAllowed() {
         if (_uiState.value.stopwatch.elapsedMs > 0L) return
-        _uiState.update { it.copy(isSurgeOn = false, surgePlannedMs = null) }
+        _uiState.update {
+            it.copy(
+                isSurgeOn = false,
+                surgePlannedMs = null
+            )
+        }
         saveOngoing()
     }
 
     fun isSurgeLocked(): Boolean = _uiState.value.stopwatch.elapsedMs > 0L
-
-    private suspend fun computeBeamOutcomeForSession(
-        tagId: Long,
-        sessionStart: Long,
-        sessionEnd: Long,
-        sessionDurationMs: Long
-    ): BeamOutcome {
-        val beams = beamRepository.getBeamsOverlappingWindow(sessionStart, sessionEnd)
-
-        val candidates = beams.asSequence()
-            .filter { it.tagId == tagId }
-            .map { beam ->
-                val overlap = ScoreCalculator.overlapMs(
-                    aStart = sessionStart,
-                    aEnd = sessionEnd,
-                    bStart = beam.startTime,
-                    bEnd = beam.endTime
-                )
-                beam to overlap
-            }
-            .filter { (_, overlap) -> overlap > 0L }
-            .toList()
-
-        val (bestBeam, eligibleMs) = candidates
-            .maxWithOrNull(
-                compareBy<Pair<BeamEntity, Long>> { it.second }
-                    .thenByDescending { -kotlin.math.abs(it.first.startTime - sessionStart) }
-            )
-            ?: return BeamOutcome()
-
-        if (eligibleMs < BEAM_MIN_ELIGIBLE_MS) {
-            return BeamOutcome(
-                beamId = bestBeam.id,
-                eligibleMs = eligibleMs,
-                bonusPoints = 0,
-                multiplier = null
-            )
-        }
-
-        val res = ScoreCalculator.scoreWithBeam(
-            sessionStart = sessionStart,
-            sessionEnd = sessionEnd,
-            sessionDurationMs = sessionDurationMs,
-            beamStart = bestBeam.startTime,
-            beamEnd = bestBeam.endTime,
-            beamDurationMs = bestBeam.durationMs,
-            continuousEngagedMsInThisSession = eligibleMs
-        )
-
-        return BeamOutcome(
-            beamId = bestBeam.id,
-            eligibleMs = eligibleMs,
-            bonusPoints = res.beamBonusPoints.coerceAtLeast(0),
-            multiplier = res.appliedMultiplier
-        )
-    }
 
     fun beginNextFlowAfterContinue() {
         if (!_awaitingNextFlowAfterContinue.value) return
@@ -966,19 +923,7 @@ class FlowViewModel @Inject constructor(
 
             val breakdown = ScoreCalculator.breakdownFromDuration(realDurationMs)
             val baseScyra = if (isSoft) 0 else breakdown.totalPoints
-
-            val beam = if (isSoft) {
-                BeamOutcome()
-            } else {
-                computeBeamOutcomeForSession(
-                    tagId = tagId,
-                    sessionStart = sessionStart,
-                    sessionEnd = sessionEnd,
-                    sessionDurationMs = realDurationMs
-                )
-            }
-
-            val beforeArc = if (isSoft) 0 else (baseScyra + beam.bonusPoints)
+            val beforeArc = baseScyra
 
             var localArc = arcState
             if (localArc != null && isArcExpired(sessionStart, localArc)) {
@@ -996,10 +941,10 @@ class FlowViewModel @Inject constructor(
             }
 
             val arcIdForSummary: Long? = localArc?.arcId
-            val isInExistingArc = (localArc != null)
+            val isInExistingArc = localArc != null
 
             if (!state.isSoftMode && !isInExistingArc && endMode == FlowEndAction.CONTINUE_ARC) {
-                val sessionId1 = sessionRepository.addSession(
+                val firstSessionId = sessionRepository.addSession(
                     title = title,
                     description = description,
                     tagId = tagId,
@@ -1008,10 +953,6 @@ class FlowViewModel @Inject constructor(
                     durationMs = realDurationMs,
                     surgePlannedMs = state.surgePlannedMs,
                     surgePoints = surgePoints,
-                    beamId = beam.beamId,
-                    beamEligibleMs = beam.eligibleMs,
-                    beamBonusPoints = beam.bonusPoints,
-                    beamMultiplier = beam.multiplier,
                     scyraPoints = beforeArc,
                     isSoftMode = state.isSoftMode
                 )
@@ -1019,7 +960,7 @@ class FlowViewModel @Inject constructor(
                 val arcId = System.currentTimeMillis()
 
                 sessionRepository.updateArcFields(
-                    sessionId = sessionId1,
+                    sessionId = firstSessionId,
                     arcId = arcId,
                     arcIndex = 1,
                     arcMultiplierUsed = 1.0,
@@ -1029,7 +970,7 @@ class FlowViewModel @Inject constructor(
 
                 pulseRepository.attachLivePulsesToSession(
                     flowInstanceId = currentFlowInstanceId,
-                    sessionId = sessionId1,
+                    sessionId = firstSessionId,
                     arcId = arcId
                 )
 
@@ -1050,9 +991,6 @@ class FlowViewModel @Inject constructor(
                     tenMinuteBonuses = breakdown.tenMinuteBonuses,
                     thirtyMinuteBonuses = breakdown.thirtyMinuteBonuses,
                     sixtyMinuteBonuses = breakdown.sixtyMinuteBonuses,
-                    beamEligibleMs = beam.eligibleMs,
-                    beamBonusPoints = beam.bonusPoints,
-                    beamMultiplier = beam.multiplier,
                     finalScyraPoints = beforeArc,
                     surgePoints = surgePoints,
                     arcIndexInArc = 1,
@@ -1114,10 +1052,6 @@ class FlowViewModel @Inject constructor(
                 durationMs = realDurationMs,
                 surgePlannedMs = state.surgePlannedMs,
                 surgePoints = surgePoints,
-                beamId = beam.beamId,
-                beamEligibleMs = beam.eligibleMs,
-                beamBonusPoints = beam.bonusPoints,
-                beamMultiplier = beam.multiplier,
                 scyraPoints = finalScyra,
                 isSoftMode = state.isSoftMode
             )
@@ -1160,9 +1094,6 @@ class FlowViewModel @Inject constructor(
                 tenMinuteBonuses = breakdown.tenMinuteBonuses,
                 thirtyMinuteBonuses = breakdown.thirtyMinuteBonuses,
                 sixtyMinuteBonuses = breakdown.sixtyMinuteBonuses,
-                beamEligibleMs = beam.eligibleMs,
-                beamBonusPoints = beam.bonusPoints,
-                beamMultiplier = beam.multiplier,
                 finalScyraPoints = finalScyra,
                 surgePoints = surgePoints,
                 arcIndexInArc = arcIndex,
@@ -1174,7 +1105,6 @@ class FlowViewModel @Inject constructor(
             )
 
             when (if (state.isSoftMode) FlowEndAction.SAVE_FLOW else endMode) {
-
                 FlowEndAction.COMPLETE_ARC -> {
                     if (!state.isSoftMode && state.isSurgeOn && state.surgePlannedMs != null) {
                         if (surgeSucceeded) {
@@ -1196,8 +1126,12 @@ class FlowViewModel @Inject constructor(
                                 peakMultiplier = arcSessions.mapNotNull { it.arcMultiplierUsed }
                                     .maxOrNull() ?: 1.0
                             )
-                        } else null
-                    } else null
+                        } else {
+                            null
+                        }
+                    } else {
+                        null
+                    }
 
                     _lastReward.value = baseReward.copy(arcSummary = summary)
                     _exitAfterReward.value = true

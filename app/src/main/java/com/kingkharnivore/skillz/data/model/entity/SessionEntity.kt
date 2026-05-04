@@ -15,7 +15,10 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.Companion.CASCADE
         )
     ],
-    indices = [Index("tagId")]
+    indices = [
+        Index("tagId"),
+        Index("arcId")
+    ]
 )
 data class SessionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -27,10 +30,6 @@ data class SessionEntity(
     val durationMs: Long,
     val surgePlannedMs: Long? = null,
     val surgePoints: Int = 0,
-    val beamId: Long? = null,
-    val beamEligibleMs: Long = 0L,
-    val beamBonusPoints: Int = 0,
-    val beamMultiplier: Double? = null,
     val scyraPoints: Int = 0,
     val isSoftMode: Boolean = false,
     val arcId: Long? = null,

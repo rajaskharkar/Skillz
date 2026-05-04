@@ -13,7 +13,6 @@ import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.HelpOutline
-import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -90,7 +89,6 @@ private fun HomeNavIcons(
     selected: Int,
     onSelect: (Int) -> Unit
 ) {
-    val atlasLabel = stringResource(R.string.home_nav_atlas)
     val storyLabel = stringResource(R.string.home_nav_story)
     val pathsLabel = stringResource(R.string.home_nav_paths)
     val notepadLabel = stringResource(R.string.home_nav_notepad)
@@ -106,21 +104,8 @@ private fun HomeNavIcons(
             }
     ) {
         NavIcon(
-            selected = selected == 0,
-            onClick = { onSelect(0) },
-            contentDescription = atlasLabel,
-            icon = {
-                Icon(
-                    Icons.Outlined.Map,
-                    contentDescription = null,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-        )
-
-        NavIcon(
-            selected = selected == 1,
-            onClick = { onSelect(1) },
+            selected = selected == PAGE_STORY,
+            onClick = { onSelect(PAGE_STORY) },
             contentDescription = storyLabel,
             icon = {
                 Icon(
@@ -132,8 +117,8 @@ private fun HomeNavIcons(
         )
 
         NavIcon(
-            selected = selected == 2,
-            onClick = { onSelect(2) },
+            selected = selected == PAGE_PATHS,
+            onClick = { onSelect(PAGE_PATHS) },
             contentDescription = pathsLabel,
             icon = {
                 Icon(
@@ -145,8 +130,8 @@ private fun HomeNavIcons(
         )
 
         NavIcon(
-            selected = selected == 3,
-            onClick = { onSelect(3) },
+            selected = selected == PAGE_NOTEPAD,
+            onClick = { onSelect(PAGE_NOTEPAD) },
             contentDescription = notepadLabel,
             icon = {
                 Icon(
@@ -158,8 +143,8 @@ private fun HomeNavIcons(
         )
 
         NavIcon(
-            selected = selected == 4,
-            onClick = { onSelect(4) },
+            selected = selected == PAGE_HELP,
+            onClick = { onSelect(PAGE_HELP) },
             contentDescription = helpLabel,
             icon = {
                 Icon(

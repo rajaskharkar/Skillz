@@ -13,7 +13,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.kingkharnivore.skillz.ui.screen.HelpScreen
-import com.kingkharnivore.skillz.ui.screen.ScheduleBeamScreen
 import com.kingkharnivore.skillz.ui.screen.SkillzHomeScreen
 import com.kingkharnivore.skillz.ui.screen.flow.FlowScreen
 import com.kingkharnivore.skillz.ui.screen.paths.arc.ArcDetailScreen
@@ -24,7 +23,6 @@ import com.kingkharnivore.skillz.ui.screen.story.pulse.PulseScreen
 import com.kingkharnivore.skillz.viewmodel.ArcDetailViewModel
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.viewmodel.PlanArcViewModel
-import com.kingkharnivore.skillz.viewmodel.ScheduleBeamViewModel
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
 import com.kingkharnivore.skillz.viewmodel.SuggestedRouteDetailViewModel
 
@@ -52,14 +50,6 @@ fun SkillzNavHost(
                 onAddPulseClick = {
                     navController.navigate(SkillzDestinations.ADD_PULSE_ROUTE)
                 },
-                onScheduleBeamClick = {
-                    navController.navigate(SkillzDestinations.SCHEDULE_BEAM)
-                },
-                onStartFlowFromActiveBeam = { journeyName ->
-                    navController.navigate(
-                        SkillzDestinations.addSkillRoute(prefillJourney = journeyName)
-                    )
-                },
                 onOpenPlannedFlow = { title, tagName, isSoftMode ->
                     navController.navigate(
                         SkillzDestinations.addSkillRoute(
@@ -71,9 +61,6 @@ fun SkillzNavHost(
                 },
                 onPlanArcClick = {
                     navController.navigate(SkillzDestinations.planArcRoute())
-                },
-                onEditArc = { arcPlanId ->
-                    navController.navigate(SkillzDestinations.planArcRoute(editArcPlanId = arcPlanId))
                 },
                 onOpenArc = { arcPlanId ->
                     navController.navigate(
@@ -226,15 +213,6 @@ fun SkillzNavHost(
             PulseScreen(
                 viewModel = storyViewModel,
                 isFlowStateActive = isFocusModeOn,
-                onDone = { popToHome(navController) },
-                onCancel = { navController.popBackStack() }
-            )
-        }
-
-        composable(SkillzDestinations.SCHEDULE_BEAM) {
-            val vm: ScheduleBeamViewModel = hiltViewModel()
-            ScheduleBeamScreen(
-                vm = vm,
                 onDone = { popToHome(navController) },
                 onCancel = { navController.popBackStack() }
             )

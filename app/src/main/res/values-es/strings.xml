@@ -284,8 +284,8 @@
     <string name="journey_view_summary_surge">Surge</string>
     <string name="journey_view_summary_plus_value">+%1$d</string>
     <string name="journey_view_summary_score_value">🔥 %1$d</string>
-    <string name="journey_view_summary_a11y_no_surge">%1$s. Duración %2$s. Base %3$d. Bonus de Beam %4$d. Scyra Score %5$d.</string>
-    <string name="journey_view_summary_a11y_with_surge">%1$s. Duración %2$s. Base %3$d. Bonus de Beam %4$d. Scyra Score %5$d. Surge %6$d.</string>
+    <string name="journey_view_summary_a11y_no_surge">%1$s. Duración %2$s. Base %3$d. Puntuación Scyra %4$d.</string>
+    <string name="journey_view_summary_a11y_with_surge">%1$s. Duración %2$s. Base %3$d. Puntuación Scyra %4$d. Surge %5$d.</string>
     <string name="view_journeys_sheet_pane_title">Detalles del journey</string>
     <string name="view_journeys_fallback_title">Journey</string>
     <string name="view_journeys_window_label">%1$s • %2$s</string>
@@ -321,11 +321,6 @@
     <string name="help_page_arc_subtitle">Un Arc se forma cuando mantienes tu impulso a lo largo de Flows consecutivos.</string>
     <string name="help_page_arc_body">Sigue adelante y tu Arc crecerá. Después de cada Flow completado de 10 minutos o más, el multiplicador del Arc aumenta +0.1. Tienes una breve ventana de gracia entre Flows, así que continuar rápido ayuda a preservar la cadena.</string>
     <string name="help_page_arc_tip">Piensa en un Arc como el impulso a través de sesiones. Guarda el Flow, continúa y mantén viva la cadena.</string>
-    <string name="help_page_beam_kicker">Beam</string>
-    <string name="help_page_beam_title">Los Beams son ventanas de impulso planificadas.</string>
-    <string name="help_page_beam_subtitle">Configura un Beam cuando sepas que quieres un bloque protegido de tiempo para esfuerzo enfocado.</string>
-    <string name="help_page_beam_body">Cuando tu Flow se superpone con un Beam, ese tiempo superpuesto recibe un impulso de puntuación. Los Beams te ayudan a convertir tiempo planificado en tiempo de mayor valor, especialmente cuando quieres estructura para trabajo importante.</string>
-    <string name="help_page_beam_tip">Usa Beams para bloques de estudio, sesiones de entrenamiento, tiempo de escritura o cualquier ventana que quieras tratar como especial.</string>
     <string name="help_page_surge_kicker">Surge</string>
     <string name="help_page_surge_title">Surge recompensa la precisión.</string>
     <string name="help_page_surge_subtitle">Establece una duración objetivo antes de empezar e intenta terminar cerca de ella.</string>

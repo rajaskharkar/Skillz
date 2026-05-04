@@ -26,7 +26,6 @@ fun JourneyViewSummary(
     flowsCount: Int,
     totalDurationMs: Long,
     totalBaseScore: Int,
-    totalBeamBonus: Int,
     totalScyraScore: Int,
     totalSurge: Int
 ) {
@@ -42,14 +41,9 @@ fun JourneyViewSummary(
     )
 
     val baseLabel = stringResource(R.string.journey_view_summary_base)
-    val beamBonusLabel = stringResource(R.string.journey_view_summary_beam_bonus)
     val scyraScoreLabel = stringResource(R.string.journey_view_summary_scyra_score)
     val surgeLabel = stringResource(R.string.journey_view_summary_surge)
 
-    val beamBonusValue = stringResource(
-        R.string.journey_view_summary_plus_value,
-        totalBeamBonus
-    )
     val scyraScoreValue = stringResource(
         R.string.journey_view_summary_score_value,
         totalScyraScore
@@ -65,7 +59,6 @@ fun JourneyViewSummary(
             flowsText,
             durationText,
             totalBaseScore,
-            totalBeamBonus,
             totalScyraScore,
             totalSurge
         )
@@ -75,7 +68,6 @@ fun JourneyViewSummary(
             flowsText,
             durationText,
             totalBaseScore,
-            totalBeamBonus,
             totalScyraScore
         )
     }
@@ -118,13 +110,6 @@ fun JourneyViewSummary(
                     label = baseLabel,
                     value = totalBaseScore.toString()
                 )
-
-                if (totalBeamBonus > 0) {
-                    ScoreBreakdownRow(
-                        label = beamBonusLabel,
-                        value = beamBonusValue
-                    )
-                }
 
                 ScoreBreakdownRow(
                     label = scyraScoreLabel,

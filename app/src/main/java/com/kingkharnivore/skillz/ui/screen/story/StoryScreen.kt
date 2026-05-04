@@ -13,10 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.PsychologyAlt
-import androidx.compose.material.icons.outlined.Timelapse
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -109,7 +107,6 @@ fun StoryScreen(
     viewModel: StoryViewModel,
     onAddSessionClick: () -> Unit,
     onAddPulseClick: () -> Unit,
-    onScheduleBeamClick: () -> Unit,
     onSessionClick: (Long) -> Unit,
     onGoToActiveSession: () -> Unit,
     isFlowStateActive: Boolean
@@ -132,7 +129,6 @@ fun StoryScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.Bottom
             ) {
-                BeamFab(onClick = onScheduleBeamClick)
                 PulseFab(onClick = onAddPulseClick)
                 FlowFab(onClick = onAddSessionClick)
             }
@@ -190,25 +186,6 @@ fun rememberSessionEditState(): SessionEditState {
 fun rememberExpandedArcIdsState(): ExpandedArcIdsState {
     val ids = remember { mutableStateOf(setOf<Long>()) }
     return remember { ExpandedArcIdsState(ids) }
-}
-
-@Composable
-private fun BeamFab(onClick: () -> Unit) {
-    val contentDesc = stringResource(R.string.story_fab_schedule_beam)
-
-    FloatingActionButton(
-        onClick = onClick,
-        modifier = Modifier.semantics {
-            contentDescription = contentDesc
-        },
-        containerColor = MaterialTheme.colorScheme.secondary,
-        contentColor = MaterialTheme.colorScheme.onSecondary
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Timer,
-            contentDescription = null
-        )
-    }
 }
 
 @Composable

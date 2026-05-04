@@ -308,8 +308,8 @@
     <string name="journey_view_summary_surge">सर्ज</string>
     <string name="journey_view_summary_plus_value">+%1$d</string>
     <string name="journey_view_summary_score_value">🔥 %1$d</string>
-    <string name="journey_view_summary_a11y_no_surge">%1$s. कालावधी %2$s. मूळ %3$d. बीम बोनस %4$d. Scyra स्कोअर %5$d.</string>
-    <string name="journey_view_summary_a11y_with_surge">%1$s. कालावधी %2$s. मूळ %3$d. बीम बोनस %4$d. Scyra स्कोअर %5$d. सर्ज %6$d.</string>
+    <string name="journey_view_summary_a11y_no_surge">%1$s. कालावधी %2$s. मूळ %3$d. Scyra स्कोअर %4$d.</string>
+    <string name="journey_view_summary_a11y_with_surge">%1$s. कालावधी %2$s. मूळ %3$d. Scyra स्कोअर %4$d. सर्ज %5$d.</string>
 
     <string name="view_journeys_sheet_pane_title">प्रवास तपशील</string>
     <string name="view_journeys_fallback_title">प्रवास</string>
@@ -347,11 +347,6 @@
     <string name="help_page_arc_subtitle">जेव्हा तुम्ही सलग फ्लोंमधून तुमची गती टिकवता तेव्हा आर्क तयार होतो.</string>
     <string name="help_page_arc_body">सतत पुढे जा आणि तुमचा आर्क वाढतो. 10 मिनिटे किंवा त्याहून जास्त प्रत्येक पूर्ण फ्लोनंतर आर्क गुणक +0.1 ने वाढतो. फ्लोंदरम्यान थोडी grace window असते, त्यामुळे पटकन पुढे गेल्यास साखळी टिकून राहते.</string>
     <string name="help_page_arc_tip">आर्क म्हणजे सत्रांमधील गती असे समजा. फ्लो जतन करा, पुढे चालू ठेवा आणि साखळी जिवंत ठेवा.</string>
-    <string name="help_page_beam_kicker">बीम</string>
-    <string name="help_page_beam_title">बीम म्हणजे नियोजित बूस्ट विंडोज.</string>
-    <string name="help_page_beam_subtitle">जेव्हा तुम्हाला माहित असते की केंद्रित प्रयत्नासाठी वेळेचा संरक्षित तुकडा हवा आहे तेव्हा बीम सेट करा.</string>
-    <string name="help_page_beam_body">तुमचा फ्लो बीमशी ओव्हरलॅप झाला की त्या ओव्हरलॅप वेळेला स्कोअर बूस्ट मिळतो. विशेषतः महत्त्वाच्या कामासाठी रचना हवी असेल तेव्हा बीम नियोजित वेळेला अधिक मूल्यवान वेळेत बदलतात.</string>
-    <string name="help_page_beam_tip">अभ्यास ब्लॉक्स, ट्रेनिंग सत्रे, लेखन वेळ किंवा ज्या विंडोला तुम्ही खास मानू इच्छिता त्यासाठी बीम वापरा.</string>
     <string name="help_page_surge_kicker">सर्ज</string>
     <string name="help_page_surge_title">सर्ज अचूकतेला बक्षीस देते.</string>
     <string name="help_page_surge_subtitle">सुरू करण्यापूर्वी लक्ष्य कालावधी ठेवा आणि त्याच्या शक्य तितक्या जवळ पूर्ण करण्याचा प्रयत्न करा.</string>

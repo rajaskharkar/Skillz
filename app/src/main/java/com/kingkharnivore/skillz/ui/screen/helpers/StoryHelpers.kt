@@ -16,10 +16,6 @@ import java.time.format.DateTimeFormatter
 fun journeySessionMeta(session: FlowListItemUiModel): String {
     val parts = buildList {
         add(stringResource(R.string.story_helpers_journey_duration, formatDuration(session.durationMs)))
-
-        if (session.beamBonusPoints > 0) {
-            add(stringResource(R.string.story_helpers_journey_beam_bonus, session.beamBonusPoints))
-        }
         if (session.isSurge && session.surgePoints > 0) {
             add(stringResource(R.string.story_helpers_journey_surge_bonus, session.surgePoints))
         }

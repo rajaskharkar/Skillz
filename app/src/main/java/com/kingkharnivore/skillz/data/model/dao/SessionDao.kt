@@ -33,11 +33,9 @@ interface SessionDao {
     @Query("DELETE FROM sessions WHERE id = :sessionId")
     suspend fun deleteSessionById(sessionId: Long)
 
-    // 👇 NEW: get one session by id (to know its tag)
     @Query("SELECT * FROM sessions WHERE id = :sessionId LIMIT 1")
     suspend fun getSessionById(sessionId: Long): SessionEntity?
 
-    // 👇 NEW: count sessions for a given tag
     @Query("SELECT COUNT(*) FROM sessions WHERE tagId = :tagId")
     suspend fun getSessionCountForTag(tagId: Long): Int
 
@@ -47,8 +45,8 @@ interface SessionDao {
     @Query("DELETE FROM sessions WHERE id = :id")
     suspend fun deleteSession(id: Long)
 
-    // ✅ ARC: update a session after insert (retro-tag session #1, or set arc data)
-    @Query("""
+    @Query(
+        """
         UPDATE sessions
         SET arcId = :arcId,
             arcIndex = :arcIndex,
@@ -56,7 +54,8 @@ interface SessionDao {
             arcBonusPoints = :arcBonusPoints,
             scyraPoints = :finalScyraPoints
         WHERE id = :sessionId
-    """)
+        """
+    )
     suspend fun updateArcFields(
         sessionId: Long,
         arcId: Long,
@@ -66,23 +65,25 @@ interface SessionDao {
         finalScyraPoints: Int
     )
 
-    // ✅ ARC: get arc sessions for summary
-    @Query("""
+    @Query(
+        """
         SELECT * FROM sessions
         WHERE arcId = :arcId
         ORDER BY arcIndex ASC
-    """)
+        """
+    )
     suspend fun getSessionsForArc(arcId: Long): List<SessionEntity>
 
-    @Query("""
+    @Query(
+        """
         SELECT * FROM sessions
         WHERE arcId = :arcId
         ORDER BY arcIndex DESC
         LIMIT 1
-    """)
+        """
+    )
     suspend fun getLastSessionInArc(arcId: Long): SessionEntity?
 
     @Query("SELECT MAX(arcIndex) FROM sessions WHERE arcId = :arcId")
     suspend fun getMaxArcIndex(arcId: Long): Int?
-
 }
