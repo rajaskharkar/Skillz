@@ -106,6 +106,13 @@ fun FlowScreen(
         if (reward != null) showPointsDialog = true
     }
 
+    LaunchedEffect(uiState.recentlyResumedArcMessage) {
+        if (uiState.recentlyResumedArcMessage != null) {
+            kotlinx.coroutines.delay(3_000L)
+            viewModel.consumeRecentlyResumedArcMessage()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -199,6 +206,24 @@ fun FlowScreen(
                             )
                         }
                     }
+                    Spacer(Modifier.height(10.dp))
+                }
+
+                if (!uiState.recentlyResumedArcMessage.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = uiState.recentlyResumedArcMessage!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                        )
+                    }
+
                     Spacer(Modifier.height(10.dp))
                 }
 
