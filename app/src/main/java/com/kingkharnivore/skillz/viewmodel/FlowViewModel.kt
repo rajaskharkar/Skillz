@@ -365,18 +365,7 @@ class FlowViewModel @Inject constructor(
                 )
                 arcPrefs.save(arcState!!)
             } else {
-                arcState = arcPrefs.load()
-
-                val now = System.currentTimeMillis()
-                if (ongoing == null) {
-                    arcState?.let { s ->
-                        if (isArcExpired(now, s)) {
-                            arcState = null
-                            syncArcUi()
-                            arcPrefs.clear()
-                        }
-                    }
-                }
+                arcState = loadActiveArcOrRestoreRecentIfEligible(ongoing)
             }
 
             syncArcUi()
@@ -959,6 +948,8 @@ class FlowViewModel @Inject constructor(
 
                 val arcId = System.currentTimeMillis()
 
+                arcPrefs.clearRecentlyEnded()
+
                 sessionRepository.updateArcFields(
                     sessionId = firstSessionId,
                     arcId = arcId,
@@ -1136,6 +1127,11 @@ class FlowViewModel @Inject constructor(
                     _lastReward.value = baseReward.copy(arcSummary = summary)
                     _exitAfterReward.value = true
 
+                    saveRecentlyEndedArcSnapshot(
+                        state = arcState,
+                        endedAtMs = sessionEnd
+                    )
+
                     clearArcPersistedAsync()
                     arcState = null
 
@@ -1176,6 +1172,11 @@ class FlowViewModel @Inject constructor(
                     _exitAfterReward.value = true
 
                     if (arcState != null) {
+                        saveRecentlyEndedArcSnapshot(
+                            state = arcState,
+                            endedAtMs = sessionEnd
+                        )
+
                         clearArcPersistedAsync()
                         arcState = null
                     }
@@ -1315,5 +1316,79 @@ class FlowViewModel @Inject constructor(
     private suspend fun isLastPlannedArcStep(): Boolean {
         val activeRun = activeArcRunRepository.getActiveArcRunOnce() ?: return false
         return activeRun.currentStepIndex >= activeRun.totalSteps - 1
+    }
+
+    private fun isPlannedArcLaunch(): Boolean {
+        return !plannedArcTitleOverride.isNullOrBlank() ||
+                plannedArcStepIndexOverride != null ||
+                plannedArcTotalStepsOverride != null
+    }
+
+    private fun canRestoreRecentlyEndedArcForFreshFlow(
+        ongoing: OngoingSessionEntity?
+    ): Boolean {
+        if (ongoing != null) return false
+        if (prefillSoftModeOverride) return false
+        if (isPlannedArcLaunch()) return false
+        return true
+    }
+
+    private suspend fun loadActiveArcOrRestoreRecentIfEligible(
+        ongoing: OngoingSessionEntity?
+    ): ArcRuntimeState? {
+        val now = System.currentTimeMillis()
+
+        val active = arcPrefs.load()
+        if (active != null) {
+            if (ongoing == null && isArcExpired(now, active)) {
+                arcPrefs.clear()
+                return null
+            }
+
+            return active
+        }
+
+        if (!canRestoreRecentlyEndedArcForFreshFlow(ongoing)) {
+            return null
+        }
+
+        val recent = arcPrefs.loadRecentlyEnded() ?: return null
+
+        if (isArcExpired(now, recent)) {
+            arcPrefs.clearRecentlyEnded()
+            return null
+        }
+
+        arcPrefs.save(recent)
+        arcPrefs.clearRecentlyEnded()
+
+        _uiState.update {
+            it.copy(
+                recentlyResumedArcMessage = "Arc resumed. Momentum preserved."
+            )
+        }
+
+        return recent
+    }
+
+    private suspend fun saveRecentlyEndedArcSnapshot(
+        state: ArcRuntimeState?,
+        endedAtMs: Long
+    ) {
+        if (state == null) return
+
+        arcPrefs.saveRecentlyEnded(
+            state = state.copy(
+                lastSessionEndTimeMs = endedAtMs,
+                progressMs = 0L
+            ),
+            completedAtMs = endedAtMs
+        )
+    }
+
+    fun consumeRecentlyResumedArcMessage() {
+        _uiState.update {
+            it.copy(recentlyResumedArcMessage = null)
+        }
     }
 }
