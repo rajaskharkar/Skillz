@@ -81,7 +81,6 @@ fun FlowCard(
 
     val isSoft = session.isSoftMode
     val showSurgeStat = !isSoft && session.isSurge && session.surgePoints > 0
-    val isBeamed = !isSoft && session.beamBonusPoints > 0
 
     val journeyTint = lerp(
         MaterialTheme.colorScheme.surface,
@@ -278,11 +277,6 @@ fun FlowCard(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    if (!calmMode && isBeamed) {
-                        BeamBonusChip(bonusPoints = session.beamBonusPoints)
-                        Spacer(Modifier.height(6.dp))
-                    }
-
                     if (!calmMode && showSurgeStat) {
                         val dark = isSystemInDarkTheme()
 

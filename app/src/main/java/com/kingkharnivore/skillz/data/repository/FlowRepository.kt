@@ -28,10 +28,6 @@ class FlowRepository @Inject constructor(
         durationMs: Long,
         surgePlannedMs: Long?,
         surgePoints: Int,
-        beamId: Long?,
-        beamEligibleMs: Long,
-        beamBonusPoints: Int,
-        beamMultiplier: Double?,
         scyraPoints: Int,
         isSoftMode: Boolean = false
     ): Long {
@@ -44,10 +40,6 @@ class FlowRepository @Inject constructor(
             durationMs = durationMs,
             surgePlannedMs = surgePlannedMs,
             surgePoints = surgePoints,
-            beamId = beamId,
-            beamEligibleMs = beamEligibleMs,
-            beamBonusPoints = beamBonusPoints,
-            beamMultiplier = beamMultiplier,
             scyraPoints = scyraPoints,
             isSoftMode = isSoftMode
         )

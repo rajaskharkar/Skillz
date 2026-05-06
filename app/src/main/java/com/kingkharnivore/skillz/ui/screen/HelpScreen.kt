@@ -618,14 +618,6 @@ private fun helpPages(): List<HelpPage> = listOf(
     ),
     HelpPage(
         iconRes = R.drawable.scyra_turtle,
-        kicker = stringResource(R.string.help_page_beam_kicker),
-        title = stringResource(R.string.help_page_beam_title),
-        subtitle = stringResource(R.string.help_page_beam_subtitle),
-        body = stringResource(R.string.help_page_beam_body),
-        tip = stringResource(R.string.help_page_beam_tip)
-    ),
-    HelpPage(
-        iconRes = R.drawable.scyra_turtle,
         kicker = stringResource(R.string.help_page_surge_kicker),
         title = stringResource(R.string.help_page_surge_title),
         subtitle = stringResource(R.string.help_page_surge_subtitle),

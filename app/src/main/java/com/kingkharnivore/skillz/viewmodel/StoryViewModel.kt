@@ -597,7 +597,6 @@ class StoryViewModel @Inject constructor(
                 isSoftMode = session.isSoftMode,
                 isSurge = session.surgePlannedMs != null,
                 surgePoints = session.surgePoints,
-                beamBonusPoints = session.beamBonusPoints,
                 arcId = session.arcId,
                 arcIndex = session.arcIndex,
                 arcMultiplierUsed = session.arcMultiplierUsed,

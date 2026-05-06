@@ -13,14 +13,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.ui.FlowListItemUiModel
 import com.kingkharnivore.skillz.utils.time.formatDuration
@@ -30,23 +29,16 @@ fun JourneySessionDetail(
     session: FlowListItemUiModel,
     onOpenFull: (() -> Unit)? = null
 ) {
-    val baseScore = remember(session.score, session.beamBonusPoints) {
-        (session.score - session.beamBonusPoints).coerceAtLeast(0)
-    }
-
     val noDescriptionText = stringResource(R.string.journey_session_detail_no_description)
     val durationLabel = stringResource(R.string.journey_session_detail_duration)
     val baseScoreLabel = stringResource(R.string.journey_session_detail_base_score)
-    val beamBonusLabel = stringResource(R.string.journey_session_detail_beam_bonus)
     val scyraScoreLabel = stringResource(R.string.journey_session_detail_scyra_score)
     val surgeLabel = stringResource(R.string.journey_session_detail_surge)
     val openFullFlowText = stringResource(R.string.journey_session_detail_open_full_flow)
 
     val durationText = formatDuration(session.durationMs)
-    val beamBonusValue = stringResource(
-        R.string.journey_session_detail_beam_bonus_value,
-        session.beamBonusPoints
-    )
+    val baseScoreValue = session.score.toString()
+
     val scyraScoreValue = stringResource(
         R.string.journey_session_detail_scyra_score_value,
         session.score
@@ -131,15 +123,8 @@ fun JourneySessionDetail(
 
             DetailStatRow(
                 label = baseScoreLabel,
-                value = baseScore.toString()
+                value = baseScoreValue
             )
-
-            if (session.beamBonusPoints > 0) {
-                DetailStatRow(
-                    label = beamBonusLabel,
-                    value = beamBonusValue
-                )
-            }
 
             DetailStatRow(
                 label = scyraScoreLabel,

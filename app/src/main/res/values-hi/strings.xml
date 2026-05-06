@@ -282,8 +282,8 @@
     <string name="journey_view_summary_surge">सर्ज</string>
     <string name="journey_view_summary_plus_value">+%1$d</string>
     <string name="journey_view_summary_score_value">🔥 %1$d</string>
-    <string name="journey_view_summary_a11y_no_surge">%1$s. अवधि %2$s. आधार %3$d. बीम बोनस %4$d. Scyra स्कोर %5$d.</string>
-    <string name="journey_view_summary_a11y_with_surge">%1$s. अवधि %2$s. आधार %3$d. बीम बोनस %4$d. Scyra स्कोर %5$d. सर्ज %6$d.</string>
+    <string name="journey_view_summary_a11y_no_surge">%1$s. अवधि %2$s. आधार %3$d. Scyra स्कोर %4$d.</string>
+    <string name="journey_view_summary_a11y_with_surge">%1$s. अवधि %2$s. आधार %3$d. Scyra स्कोर %4$d. सर्ज %5$d.</string>
     <string name="view_journeys_sheet_pane_title">यात्रा विवरण</string>
     <string name="view_journeys_fallback_title">यात्रा</string>
     <string name="view_journeys_window_label">%1$s • %2$s</string>
@@ -318,11 +318,6 @@
     <string name="help_page_arc_subtitle">जब आप लगातार फ्लो के बीच momentum बनाए रखते हैं, तब आर्क बनता है।</string>
     <string name="help_page_arc_body">जारी रखें और आपका आर्क बढ़ता जाएगा। 10 मिनट या उससे अधिक के हर completed फ्लो के बाद आर्क गुणक +0.1 बढ़ता है। फ्लो के बीच एक छोटी grace window होती है, इसलिए जल्दी जारी रखने से chain बनी रहती है।</string>
     <string name="help_page_arc_tip">आर्क को सत्रों के बीच momentum की तरह सोचें। फ्लो save करें, continue करें, और chain को जीवित रखें।</string>
-    <string name="help_page_beam_kicker">बीम</string>
-    <string name="help_page_beam_title">बीम नियोजित boost windows हैं।</string>
-    <string name="help_page_beam_subtitle">जब आपको focused effort के लिए सुरक्षित समय चाहिए हो, तब बीम सेट करें।</string>
-    <string name="help_page_beam_body">जब आपका फ्लो किसी बीम से overlap करता है, तो वह overlapping समय पर स्कोर boost पाता है। बीम आपको planned time को higher-value time में बदलने में मदद करते हैं, खासकर तब जब आपको महत्वपूर्ण काम के लिए structure चाहिए।</string>
-    <string name="help_page_beam_tip">बीम का उपयोग study blocks, training sessions, writing time, या किसी भी ऐसी अवधि के लिए करें जिसे आप विशेष मानना चाहते हों।</string>
     <string name="help_page_surge_kicker">सर्ज</string>
     <string name="help_page_surge_title">सर्ज precision को reward करता है।</string>
     <string name="help_page_surge_subtitle">शुरू करने से पहले एक लक्षित अवधि सेट करें और उसके करीब समाप्त करने की कोशिश करें।</string>

@@ -309,8 +309,8 @@
     <string name="journey_view_summary_surge">Surge</string>
     <string name="journey_view_summary_plus_value">+%1$d</string>
     <string name="journey_view_summary_score_value">🔥 %1$d</string>
-    <string name="journey_view_summary_a11y_no_surge">%1$s. Duration %2$s. Base %3$d. Beam bonus %4$d. Scyra Score %5$d.</string>
-    <string name="journey_view_summary_a11y_with_surge">%1$s. Duration %2$s. Base %3$d. Beam bonus %4$d. Scyra Score %5$d. Surge %6$d.</string>
+    <string name="journey_view_summary_a11y_no_surge">%1$s, %2$s, base score %3$d, total Scyra score %4$d.</string>
+    <string name="journey_view_summary_a11y_with_surge">%1$s, %2$s, base score %3$d, total Scyra score %4$d, surge bonus %5$d.</string>
 
     <string name="view_journeys_sheet_pane_title">Journey details</string>
     <string name="view_journeys_fallback_title">Journey</string>
@@ -348,11 +348,6 @@
     <string name="help_page_arc_subtitle">An Arc forms when you continue your momentum across consecutive Flows.</string>
     <string name="help_page_arc_body">Keep going and your Arc grows. After each completed Flow of 10 minutes or more, the Arc multiplier increases by +0.1. You have a short grace window between Flows, so continuing quickly helps preserve the chain.</string>
     <string name="help_page_arc_tip">Think of an Arc as momentum across sessions. Save Flow, continue, and keep the chain alive.</string>
-    <string name="help_page_beam_kicker">Beam</string>
-    <string name="help_page_beam_title">Beams are planned boost windows.</string>
-    <string name="help_page_beam_subtitle">Set up a Beam when you know you want a protected pocket of time for focused effort.</string>
-    <string name="help_page_beam_body">When your Flow overlaps with a Beam, that overlapping time receives a score boost. Beams help you turn planned time into higher-value time, especially when you want structure around important work.</string>
-    <string name="help_page_beam_tip">Use Beams for study blocks, training sessions, writing time, or any window you want to treat as special.</string>
     <string name="help_page_surge_kicker">Surge</string>
     <string name="help_page_surge_title">Surge rewards precision.</string>
     <string name="help_page_surge_subtitle">Set a target duration before you begin and try to finish close to it.</string>
