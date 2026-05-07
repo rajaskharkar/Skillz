@@ -125,7 +125,10 @@ fun PulseScreen(
                 Column(modifier = Modifier.padding(14.dp)) {
                     GrandTitleField(
                         value = title,
-                        onValueChange = { title = it }
+                        onValueChange = { title = it },
+                        labelRes = R.string.pulse_title_field_label,
+                        placeholderRes = R.string.pulse_title_field_placeholder,
+                        a11yRes = R.string.pulse_title_field_a11y
                     )
                 }
             }
@@ -354,7 +357,7 @@ private fun PulseJourneyLean(
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontFamily = FontFamily.Cursive,
+                    fontFamily = FontFamily.Default,
                     fontWeight = FontWeight.SemiBold
                 ),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f)
@@ -363,7 +366,7 @@ private fun PulseJourneyLean(
         shape = RoundedCornerShape(999.dp),
         singleLine = true,
         textStyle = MaterialTheme.typography.headlineSmall.copy(
-            fontFamily = FontFamily.Cursive,
+            fontFamily = FontFamily.Default,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
             letterSpacing = 0.2.sp

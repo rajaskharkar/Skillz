@@ -192,7 +192,7 @@ private fun PulseEditTitleField(
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontFamily = FontFamily.Cursive,
+                        fontFamily = FontFamily.Default,
                         fontWeight = FontWeight.SemiBold
                     ),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f)
@@ -201,7 +201,7 @@ private fun PulseEditTitleField(
             shape = RoundedCornerShape(24.dp),
             singleLine = true,
             textStyle = MaterialTheme.typography.headlineSmall.copy(
-                fontFamily = FontFamily.Cursive,
+                fontFamily = FontFamily.Default,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,
                 letterSpacing = 0.2.sp

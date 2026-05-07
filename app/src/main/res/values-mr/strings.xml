@@ -720,9 +720,12 @@
     <string name="flow_screen_minutes_value">%1$d मिनिटे</string>
     <string name="flow_screen_soft_reward_footer">हे सत्र तुमच्या कथेत सामील आहे, पण याचा स्कोअर, सर्ज, बीम किंवा आर्क प्रगतीवर परिणाम होत नाही.</string>
 
-    <string name="flow_title_field_label">स्वर ठरवा…</string>
-    <string name="flow_title_field_placeholder">याची सुरुवात येथे होते.</string>
+    <string name="flow_title_field_label">लक्ष</string>
+    <string name="flow_title_field_placeholder">तुम्ही कशातून वाहत आहात?</string>
     <string name="flow_title_field_a11y">फ्लो शीर्षक. %1$s</string>
+    <string name="pulse_title_field_label">कल्पना</string>
+    <string name="pulse_title_field_placeholder">तुमच्या कल्पनेला नाव द्या</string>
+    <string name="pulse_title_field_a11y">Pulse कल्पनेच्या शीर्षकाचे फील्ड</string>
 
     <plurals name="flow_journey_label">
         <item quantity="one">प्रवास</item>

@@ -79,14 +79,14 @@ fun ChronicleField(
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Start,
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontFamily = FontFamily.Cursive,
+                        fontFamily = FontFamily.Default,
                         fontWeight = FontWeight.Normal
                     ),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f)
                 )
             },
             textStyle = MaterialTheme.typography.headlineSmall.copy(
-                fontFamily = FontFamily.Cursive,
+                fontFamily = FontFamily.Default,
                 fontWeight = FontWeight.Thin,
                 letterSpacing = 0.2.sp,
                 lineHeight = 30.sp
