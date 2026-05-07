@@ -728,6 +728,9 @@
     <string name="flow_title_field_label">Focus</string>
     <string name="flow_title_field_placeholder">What are you flowing through?</string>
     <string name="flow_title_field_a11y">Flow title. %1$s</string>
+    <string name="pulse_title_field_label">Idea</string>
+    <string name="pulse_title_field_placeholder">Title your brainwave</string>
+    <string name="pulse_title_field_a11y">Pulse idea title field</string>
 
     <plurals name="flow_journey_label">
         <item quantity="one">Journey</item>

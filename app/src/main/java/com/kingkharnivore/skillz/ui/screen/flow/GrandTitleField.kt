@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.ui.screen.flow
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -26,11 +27,14 @@ import com.kingkharnivore.skillz.R
 fun GrandTitleField(
     value: String,
     onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    @StringRes labelRes: Int = R.string.flow_title_field_label,
+    @StringRes placeholderRes: Int = R.string.flow_title_field_placeholder,
+    @StringRes a11yRes: Int = R.string.flow_title_field_a11y
 ) {
-    val labelText = stringResource(R.string.flow_title_field_label)
-    val placeholderText = stringResource(R.string.flow_title_field_placeholder)
-    val fieldA11y = stringResource(R.string.flow_title_field_a11y)
+    val labelText = stringResource(labelRes)
+    val placeholderText = stringResource(placeholderRes)
+    val fieldA11y = stringResource(a11yRes)
 
     val colors = TextFieldDefaults.colors(
         focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f),

@@ -686,6 +686,9 @@
     <string name="flow_title_field_label">ध्यान</string>
     <string name="flow_title_field_placeholder">आप किसमें बह रहे हैं?</string>
     <string name="flow_title_field_a11y">फ्लो शीर्षक। %1$s</string>
+    <string name="pulse_title_field_label">विचार</string>
+    <string name="pulse_title_field_placeholder">अपने विचार को नाम दें</string>
+    <string name="pulse_title_field_a11y">Pulse के विचार का शीर्षक फ़ील्ड</string>
     <plurals name="flow_journey_label">
         <item quantity="one">यात्रा</item>
         <item quantity="other">यात्राएँ</item>

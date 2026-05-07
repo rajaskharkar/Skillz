@@ -692,6 +692,9 @@
     <string name="flow_title_field_label">Enfoque</string>
     <string name="flow_title_field_placeholder">¿A través de qué estás fluyendo?</string>
     <string name="flow_title_field_a11y">Título del flow. %1$s</string>
+    <string name="pulse_title_field_label">Idea</string>
+    <string name="pulse_title_field_placeholder">Ponle título a tu idea</string>
+    <string name="pulse_title_field_a11y">Campo de título de la idea de Pulse</string>
     <plurals name="flow_journey_label">
         <item quantity="one">Journey</item>
         <item quantity="other">Journeys</item>
