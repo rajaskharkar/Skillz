@@ -38,7 +38,7 @@ fun GrandTitleField(
         focusedIndicatorColor = Color.Transparent,
         unfocusedIndicatorColor = Color.Transparent,
         disabledIndicatorColor = Color.Transparent,
-        cursorColor = MaterialTheme.colorScheme.tertiary
+        cursorColor = MaterialTheme.colorScheme.primary
     )
 
     Column(
@@ -72,8 +72,8 @@ fun GrandTitleField(
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontFamily = FontFamily.Cursive,
-                        fontWeight = FontWeight.SemiBold
+                        fontFamily = FontFamily.Default,
+                        fontWeight = FontWeight.Normal
                     ),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f)
                 )
@@ -81,8 +81,8 @@ fun GrandTitleField(
             shape = RoundedCornerShape(28.dp),
             singleLine = true,
             textStyle = MaterialTheme.typography.headlineSmall.copy(
-                fontFamily = FontFamily.Cursive,
-                fontWeight = FontWeight.SemiBold,
+                fontFamily = FontFamily.Default,
+                fontWeight = FontWeight.Normal,
                 textAlign = TextAlign.Center,
                 letterSpacing = 0.2.sp
             ),

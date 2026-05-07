@@ -105,7 +105,7 @@ fun JourneyLean(
         focusedIndicatorColor = Color.Transparent,
         unfocusedIndicatorColor = Color.Transparent,
         disabledIndicatorColor = Color.Transparent,
-        cursorColor = MaterialTheme.colorScheme.tertiary
+        cursorColor = MaterialTheme.colorScheme.primary
     )
 
     val journeyNameA11y = stringResource(R.string.flow_journey_input_a11y)
@@ -124,8 +124,8 @@ fun JourneyLean(
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontFamily = FontFamily.Cursive,
-                    fontWeight = FontWeight.SemiBold
+                    fontFamily = FontFamily.Default,
+                    fontWeight = FontWeight.Normal
                 ),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.40f)
             )
@@ -133,8 +133,8 @@ fun JourneyLean(
         shape = RoundedCornerShape(999.dp),
         singleLine = true,
         textStyle = MaterialTheme.typography.headlineSmall.copy(
-            fontFamily = FontFamily.Cursive,
-            fontWeight = FontWeight.SemiBold,
+            fontFamily = FontFamily.Default,
+            fontWeight = FontWeight.Normal,
             textAlign = TextAlign.Center,
             letterSpacing = 0.2.sp
         ),

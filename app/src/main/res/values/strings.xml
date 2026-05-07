@@ -725,8 +725,8 @@
     <string name="flow_screen_minutes_value">%1$d min</string>
     <string name="flow_screen_soft_reward_footer">This session is part of your Story, but it does not affect score, Surge, Beam, or Arc progression.</string>
 
-    <string name="flow_title_field_label">Set the tone…</string>
-    <string name="flow_title_field_placeholder">It begins here.</string>
+    <string name="flow_title_field_label">Focus</string>
+    <string name="flow_title_field_placeholder">What are you flowing through?</string>
     <string name="flow_title_field_a11y">Flow title. %1$s</string>
 
     <plurals name="flow_journey_label">
