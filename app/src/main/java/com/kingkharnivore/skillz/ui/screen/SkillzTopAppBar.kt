@@ -2,6 +2,7 @@
 
 package com.kingkharnivore.skillz.ui.screen
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -13,7 +14,6 @@ import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.HelpOutline
-import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,6 +28,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -35,12 +36,8 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.R
-import com.kingkharnivore.skillz.ui.theme.CaveatSemiBold
 
 data class SkillzHomeNavState(
     val currentPage: Int,
@@ -51,30 +48,30 @@ val LocalSkillzHomeNav = compositionLocalOf<SkillzHomeNavState?> { null }
 
 @Composable
 fun SkillzTopAppBar(onOpenShell: (() -> Unit)? = null) {
-    val title = when (BuildConfig.FLAVOR) {
-        "aera" -> stringResource(R.string.home_app_name_aera)
-        "scyra" -> stringResource(R.string.home_app_name_scyra)
-        else -> stringResource(R.string.home_app_name_skillz)
-    }
     val nav = LocalSkillzHomeNav.current
+    val shellLabel = stringResource(R.string.shell_icon_a11y)
 
     TopAppBar(
         title = {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontFamily = CaveatSemiBold,
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.SemiBold
+            IconButton(
+                onClick = { onOpenShell?.invoke() },
+                enabled = onOpenShell != null,
+                modifier = Modifier.semantics {
+                    contentDescription = shellLabel
+                }
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.scyra_turtle),
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp)
                 )
-            )
+            }
         },
         actions = {
             if (nav != null) {
                 HomeNavIcons(
                     selected = nav.currentPage,
-                    onSelect = nav.onSelectPage,
-                    onOpenShell = onOpenShell
+                    onSelect = nav.onSelectPage
                 )
             }
         },
@@ -89,14 +86,12 @@ fun SkillzTopAppBar(onOpenShell: (() -> Unit)? = null) {
 @Composable
 private fun HomeNavIcons(
     selected: Int,
-    onSelect: (Int) -> Unit,
-    onOpenShell: (() -> Unit)?
+    onSelect: (Int) -> Unit
 ) {
     val storyLabel = stringResource(R.string.home_nav_story)
     val pathsLabel = stringResource(R.string.home_nav_paths)
     val notepadLabel = stringResource(R.string.home_nav_notepad)
     val helpLabel = stringResource(R.string.home_nav_help)
-    val shellLabel = stringResource(R.string.shell_icon_a11y)
     val navBarLabel = stringResource(R.string.home_nav_bar)
 
     Row(
@@ -158,21 +153,6 @@ private fun HomeNavIcons(
                 )
             }
         )
-
-        if (onOpenShell != null) {
-            NavIcon(
-                selected = false,
-                onClick = onOpenShell,
-                contentDescription = shellLabel,
-                icon = {
-                    Icon(
-                        Icons.Outlined.Spa,
-                        contentDescription = null,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            )
-        }
     }
 }
 
