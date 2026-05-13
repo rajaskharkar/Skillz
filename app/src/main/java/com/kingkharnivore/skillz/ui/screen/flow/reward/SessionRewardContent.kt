@@ -170,7 +170,7 @@ fun SessionRewardContent(
                     val def = ShellContentCatalog.discovery(discoveryId)
                     MetricLine(
                         label = stringResource(R.string.session_reward_shell_discovery),
-                        value = def?.let { stringResource(it.revealRes) } ?: discoveryId,
+                        value = def?.let { stringResource(it.revealCopyRes) } ?: discoveryId,
                         tone = MetricTone.Glow
                     )
                 }
