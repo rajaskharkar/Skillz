@@ -30,7 +30,7 @@ import com.kingkharnivore.skillz.data.model.entity.TagEntity
         ActiveArcRunEntity::class
     ],
     version = 13,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase() {
     abstract fun tagDao(): TagDao
