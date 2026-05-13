@@ -19,6 +19,14 @@ import com.kingkharnivore.skillz.data.model.dao.shell.StillwaterPreferenceDao
 import com.kingkharnivore.skillz.data.model.dao.shell.UserBadgeDao
 import com.kingkharnivore.skillz.data.model.dao.shell.UserDiscoveryDao
 import com.kingkharnivore.skillz.data.model.dao.shell.UserShellRoomStateDao
+import com.kingkharnivore.skillz.data.model.entity.ActiveArcRunEntity
+import com.kingkharnivore.skillz.data.model.entity.ArcPlanEntity
+import com.kingkharnivore.skillz.data.model.entity.ArcPlanStepEntity
+import com.kingkharnivore.skillz.data.model.entity.FlowPlanEntity
+import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
+import com.kingkharnivore.skillz.data.model.entity.PulseEntity
+import com.kingkharnivore.skillz.data.model.entity.SessionEntity
+import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.PearlLedgerEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellFindUpgradeEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellPlacementEntity
@@ -29,14 +37,6 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserDiscoveryEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindStackEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellRoomStateEntity
-import com.kingkharnivore.skillz.data.model.entity.ActiveArcRunEntity
-import com.kingkharnivore.skillz.data.model.entity.ArcPlanEntity
-import com.kingkharnivore.skillz.data.model.entity.ArcPlanStepEntity
-import com.kingkharnivore.skillz.data.model.entity.FlowPlanEntity
-import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
-import com.kingkharnivore.skillz.data.model.entity.PulseEntity
-import com.kingkharnivore.skillz.data.model.entity.SessionEntity
-import com.kingkharnivore.skillz.data.model.entity.TagEntity
 
 @Database(
     entities = [
