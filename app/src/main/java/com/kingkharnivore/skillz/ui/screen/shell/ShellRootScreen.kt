@@ -5,13 +5,13 @@ package com.kingkharnivore.skillz.ui.screen.shell
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -121,6 +121,8 @@ private fun ShellTopBar(destination: ShellDestination, pearlBalance: Int, onBack
         ShellDestination.IdeaGrovePreview -> stringResource(R.string.shell_room_idea_title)
         ShellDestination.LookoutPreview -> stringResource(R.string.shell_room_lookout_title)
     }
+    val pearlBalanceDescription = stringResource(R.string.shell_pearl_balance_a11y, pearlBalance)
+
     TopAppBar(
         title = { Text(title, fontWeight = FontWeight.SemiBold) },
         navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.shell_back_a11y)) } },
@@ -129,7 +131,7 @@ private fun ShellTopBar(destination: ShellDestination, pearlBalance: Int, onBack
                 onClick = {},
                 label = { Text(stringResource(R.string.shell_pearl_balance, pearlBalance)) },
                 leadingIcon = { Icon(Icons.Outlined.Spa, contentDescription = null) },
-                modifier = Modifier.semantics { contentDescription = stringResource(R.string.shell_pearl_balance_a11y, pearlBalance) }
+                modifier = Modifier.semantics { contentDescription = pearlBalanceDescription }
             )
             IconButton(onClick = onChest) { Icon(Icons.Outlined.Inventory2, contentDescription = stringResource(R.string.shell_chest_a11y)) }
         }
@@ -177,12 +179,14 @@ private fun ShellHeroCard(uiState: ShellUiState, onNavigate: (ShellDestination) 
 
 @Composable
 private fun PearlBasin(uiState: ShellUiState, onNavigate: (ShellDestination) -> Unit) {
+    val basinDescription = stringResource(R.string.shell_pearl_basin_a11y)
+
     ElevatedCard(
         onClick = { onNavigate(ShellDestination.Focus) },
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 12.dp)
-            .semantics { contentDescription = stringResource(R.string.shell_pearl_basin_a11y) }
+            .semantics { contentDescription = basinDescription }
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(Icons.Outlined.Spa, contentDescription = null)
@@ -280,7 +284,11 @@ private fun FocusRoomScreen(uiState: ShellUiState, onPlace: (String, String) -> 
 @Composable
 private fun SlotChip(slot: ShellSlotDefinition, find: UserShellFindInstanceEntity?, modifier: Modifier, onEmpty: () -> Unit, onFind: () -> Unit) {
     val def = find?.let { ShellContentCatalog.find(it.findId) }
-    val label = def?.let { stringResource(it.titleRes) } ?: stringResource(R.string.shell_empty_slot)
+    val label = if (def != null) {
+        stringResource(def.titleRes)
+    } else {
+        stringResource(R.string.shell_empty_slot)
+    }
     Surface(
         modifier = modifier.semantics { contentDescription = label }.clickable { if (find == null) onEmpty() else onFind() },
         shape = RoundedCornerShape(18.dp), color = if (find == null) Color.White.copy(.16f) else Color(0xFFE7FFF8).copy(.92f)
@@ -315,15 +323,20 @@ private fun PlacedFindSheet(item: UserShellFindInstanceEntity, onDismiss: () -> 
     val def = ShellContentCatalog.find(item.findId)
     val current = def?.let { ShellContentCatalog.upgradesFor(it.findId).firstOrNull { stage -> stage.upgradeStageId == item.currentUpgradeStageId } }
     val next = def?.let { ShellContentCatalog.nextUpgrade(it.findId, item.currentUpgradeStageId) }
+    val findTitle = if (def != null) stringResource(def.titleRes) else item.findId
+    val currentTitle = if (current != null) stringResource(current.titleRes) else findTitle
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(def?.let { stringResource(it.titleRes) } ?: item.findId, style = MaterialTheme.typography.titleLarge)
+            Text(findTitle, style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.shell_earned_from_flow))
-            Text(stringResource(R.string.shell_current_form, current?.let { stringResource(it.titleRes) } ?: def?.let { stringResource(it.titleRes) } ?: item.findId))
+            Text(stringResource(R.string.shell_current_form, currentTitle))
             if (next != null) {
-                Text(stringResource(R.string.shell_next_form, stringResource(next.titleRes)))
-                Button(onClick = { onUpgrade(item.instanceId) }, modifier = Modifier.semantics { contentDescription = stringResource(R.string.shell_upgrade_a11y) }) {
-                    Text(stringResource(R.string.shell_upgrade_with_pearls, stringResource(next.upgradeVerbRes), next.pearlCost))
+                val nextTitle = stringResource(next.titleRes)
+                val upgradeVerb = stringResource(next.upgradeVerbRes)
+                val upgradeDescription = stringResource(R.string.shell_upgrade_a11y)
+                Text(stringResource(R.string.shell_next_form, nextTitle))
+                Button(onClick = { onUpgrade(item.instanceId) }, modifier = Modifier.semantics { contentDescription = upgradeDescription }) {
+                    Text(stringResource(R.string.shell_upgrade_with_pearls, upgradeVerb, next.pearlCost))
                 }
             } else {
                 Text(stringResource(R.string.shell_no_more_forms))
@@ -347,11 +360,18 @@ private fun ShellChestScreen(uiState: ShellUiState, onPlaceInFocus: () -> Unit) 
         }
         items(items) { instance ->
             val def = ShellContentCatalog.find(instance.findId) ?: return@items
-            ElevatedCard(onClick = { if (def.primaryRoomId == ShellRoomId.FOCUS) onPlaceInFocus() }, modifier = Modifier.semantics { contentDescription = stringResource(def.titleRes) }) {
+            val title = stringResource(def.titleRes)
+            val categoryLabel = stringResource(categoryLabelFor(def.category))
+            val status = if (uiState.focusPlacements.any { it.instanceId == instance.instanceId }) {
+                stringResource(R.string.shell_status_placed)
+            } else {
+                stringResource(R.string.shell_status_unplaced)
+            }
+            ElevatedCard(onClick = { if (def.primaryRoomId == ShellRoomId.FOCUS) onPlaceInFocus() }, modifier = Modifier.semantics { contentDescription = title }) {
                 ListItem(
                     leadingContent = { Icon(iconFor(def.category), contentDescription = null) },
-                    headlineContent = { Text(stringResource(def.titleRes)) },
-                    supportingContent = { Text(stringResource(R.string.shell_chest_item_status, stringResource(categoryLabelFor(def.category)), if (uiState.focusPlacements.any { it.instanceId == instance.instanceId }) stringResource(R.string.shell_status_placed) else stringResource(R.string.shell_status_unplaced))) }
+                    headlineContent = { Text(title) },
+                    supportingContent = { Text(stringResource(R.string.shell_chest_item_status, categoryLabel, status)) }
                 )
             }
         }
@@ -368,8 +388,10 @@ private fun BadgesScreen(uiState: ShellUiState) {
         item { RoomHeader(R.string.shell_badges_title, R.string.shell_badges_body) }
         items(uiState.badges) { badge ->
             val def = ShellContentCatalog.badge(badge.badgeId) ?: return@items
-            ElevatedCard(modifier = Modifier.semantics { contentDescription = stringResource(R.string.shell_badge_a11y, stringResource(def.titleRes), badge.count) }) {
-                ListItem(leadingContent = { Icon(Icons.Outlined.MilitaryTech, contentDescription = null) }, headlineContent = { Text(stringResource(def.titleRes)) }, supportingContent = { Text(stringResource(def.descriptionRes, badge.count)) })
+            val title = stringResource(def.titleRes)
+            val badgeDescription = stringResource(R.string.shell_badge_a11y, title, badge.count)
+            ElevatedCard(modifier = Modifier.semantics { contentDescription = badgeDescription }) {
+                ListItem(leadingContent = { Icon(Icons.Outlined.MilitaryTech, contentDescription = null) }, headlineContent = { Text(title) }, supportingContent = { Text(stringResource(def.descriptionRes, badge.count)) })
             }
         }
     }
@@ -381,9 +403,10 @@ private fun DiscoveryJournalScreen(uiState: ShellUiState) {
         item { RoomHeader(R.string.shell_journal_title, R.string.shell_journal_body) }
         items(uiState.discoveries) { discovery ->
             val def = ShellContentCatalog.discovery(discovery.discoveryId) ?: return@items
-            ElevatedCard(modifier = Modifier.semantics { contentDescription = stringResource(def.titleRes) }) {
+            val title = stringResource(def.titleRes)
+            ElevatedCard(modifier = Modifier.semantics { contentDescription = title }) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(def.titleRes), fontWeight = FontWeight.SemiBold)
+                    Text(title, fontWeight = FontWeight.SemiBold)
                     Text(stringResource(def.explanationRes))
                 }
             }
@@ -404,7 +427,8 @@ private fun StillwaterRoomScreen(uiState: ShellUiState, onPerspective: (Stillwat
             }
         }
         Text(stringResource(R.string.shell_view_as), color = MaterialTheme.colorScheme.onPrimary)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState()).semantics { contentDescription = stringResource(R.string.shell_stillwater_selector_a11y) }) {
+        val selectorDescription = stringResource(R.string.shell_stillwater_selector_a11y)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState()).semantics { contentDescription = selectorDescription }) {
             StillwaterPerspective.entries.forEach { perspective ->
                 FilterChip(selected = uiState.perspective == perspective, onClick = { onPerspective(perspective) }, label = { Text(stringResource(labelFor(perspective))) })
             }
