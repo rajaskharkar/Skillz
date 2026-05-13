@@ -24,6 +24,7 @@ object SkillzDestinations {
                 "$ADD_SKILL_ARG_PLANNED_ARC_TOTAL_STEPS={$ADD_SKILL_ARG_PLANNED_ARC_TOTAL_STEPS}"
 
     const val HOME_SCREEN = "home_screen"
+    const val SHELL = "shell"
     const val ADD_PULSE_ROUTE = "add_pulse"
 
     const val PLAN_ARC_ROUTE_BASE = "plan_arc"

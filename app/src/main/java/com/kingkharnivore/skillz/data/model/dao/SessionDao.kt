@@ -86,4 +86,10 @@ interface SessionDao {
 
     @Query("SELECT MAX(arcIndex) FROM sessions WHERE arcId = :arcId")
     suspend fun getMaxArcIndex(arcId: Long): Int?
+
+    @Query("SELECT COUNT(*) FROM sessions WHERE isSoftMode = 0")
+    suspend fun getRegularSessionCount(): Int
+
+    @Query("SELECT endTime FROM sessions WHERE isSoftMode = 0 AND endTime < :endTime ORDER BY endTime DESC LIMIT 1")
+    suspend fun getLastRegularSessionEndBefore(endTime: Long): Long?
 }

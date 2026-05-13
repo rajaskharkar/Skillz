@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
+import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.repository.ActiveArcRunRepository
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
@@ -11,6 +12,7 @@ import com.kingkharnivore.skillz.data.repository.ArcPlanRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.data.repository.PulseRepository
+import com.kingkharnivore.skillz.domain.shell.ShellRewardOrchestrator
 import com.kingkharnivore.skillz.model.state.flow.ArcSummaryUiModel
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 import com.kingkharnivore.skillz.model.state.flow.FlowUiState
@@ -57,6 +59,7 @@ class FlowViewModel @Inject constructor(
     private val arcPrefs: ArcPrefs,
     private val userPrefs: UserPrefs,
     private val surgeHapticsManager: SurgeHapticsManager,
+    private val shellRewardOrchestrator: ShellRewardOrchestrator,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -965,6 +968,24 @@ class FlowViewModel @Inject constructor(
                     arcId = arcId
                 )
 
+                shellRewardOrchestrator.onSessionCompleted(
+                    SessionEntity(
+                        id = firstSessionId,
+                        title = title,
+                        description = description,
+                        tagId = tagId,
+                        startTime = sessionStart,
+                        endTime = sessionEnd,
+                        durationMs = realDurationMs,
+                        surgePlannedMs = state.surgePlannedMs,
+                        surgePoints = surgePoints,
+                        scyraPoints = beforeArc,
+                        isSoftMode = state.isSoftMode,
+                        arcId = arcId,
+                        arcIndex = 1
+                    )
+                )
+
                 arcState = ArcRuntimeState(
                     arcId = arcId,
                     isPending = true,
@@ -1078,6 +1099,26 @@ class FlowViewModel @Inject constructor(
                 arcPrefs.save(arcState!!)
                 syncArcUi()
             }
+
+            shellRewardOrchestrator.onSessionCompleted(
+                SessionEntity(
+                    id = insertedId,
+                    title = title,
+                    description = description,
+                    tagId = tagId,
+                    startTime = sessionStart,
+                    endTime = sessionEnd,
+                    durationMs = realDurationMs,
+                    surgePlannedMs = state.surgePlannedMs,
+                    surgePoints = surgePoints,
+                    scyraPoints = finalScyra,
+                    isSoftMode = state.isSoftMode,
+                    arcId = localArc?.arcId,
+                    arcIndex = arcIndex,
+                    arcMultiplierUsed = arcMultiplierUsed,
+                    arcBonusPoints = arcBonusPoints
+                )
+            )
 
             val baseReward = FlowRewardUiModel(
                 minutes = breakdown.minutes,
