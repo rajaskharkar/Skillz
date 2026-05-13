@@ -14,6 +14,7 @@ import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
 import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.dao.TagDao
+import com.kingkharnivore.skillz.data.model.migration.SkillzDatabaseMigrations
 import com.kingkharnivore.skillz.utils.arc.ArcPrefs
 import dagger.Module
 import dagger.Provides
@@ -60,7 +61,8 @@ object DatabaseModule {
     fun provideArcPlanDao(db: SkillzDatabase): ArcPlanDao = db.arcPlanDao()
 
     @Provides
-    fun provideActiveArcRunDao(db: SkillzDatabase): ActiveArcRunDao = db.activeArcRunDao()
+    fun provideActiveArcRunDao(db: SkillzDatabase): ActiveArcRunDao =
+        db.activeArcRunDao()
 
     @Provides
     @Singleton
