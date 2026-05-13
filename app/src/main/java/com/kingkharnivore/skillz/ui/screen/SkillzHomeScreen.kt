@@ -50,7 +50,8 @@ fun SkillzHomeScreen(
     onOpenArc: (Long) -> Unit,
     onOpenSuggestedRoute: (String) -> Unit,
     onGoToActiveSession: () -> Unit,
-    isFlowModeOn: Boolean
+    isFlowModeOn: Boolean,
+    onOpenShell: () -> Unit
 ) {
     val notepadText by notepadViewModel.notepadText.collectAsStateWithLifecycle()
 
@@ -98,7 +99,7 @@ fun SkillzHomeScreen(
         )
     ) {
         Scaffold(
-            topBar = { SkillzTopAppBar() }
+            topBar = { SkillzTopAppBar(onOpenShell = onOpenShell) }
         ) { innerPadding ->
             Box(
                 modifier = Modifier

@@ -13,6 +13,7 @@ import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,7 +50,7 @@ data class SkillzHomeNavState(
 val LocalSkillzHomeNav = compositionLocalOf<SkillzHomeNavState?> { null }
 
 @Composable
-fun SkillzTopAppBar() {
+fun SkillzTopAppBar(onOpenShell: (() -> Unit)? = null) {
     val title = when (BuildConfig.FLAVOR) {
         "aera" -> stringResource(R.string.home_app_name_aera)
         "scyra" -> stringResource(R.string.home_app_name_scyra)
@@ -72,7 +73,8 @@ fun SkillzTopAppBar() {
             if (nav != null) {
                 HomeNavIcons(
                     selected = nav.currentPage,
-                    onSelect = nav.onSelectPage
+                    onSelect = nav.onSelectPage,
+                    onOpenShell = onOpenShell
                 )
             }
         },
@@ -87,12 +89,14 @@ fun SkillzTopAppBar() {
 @Composable
 private fun HomeNavIcons(
     selected: Int,
-    onSelect: (Int) -> Unit
+    onSelect: (Int) -> Unit,
+    onOpenShell: (() -> Unit)?
 ) {
     val storyLabel = stringResource(R.string.home_nav_story)
     val pathsLabel = stringResource(R.string.home_nav_paths)
     val notepadLabel = stringResource(R.string.home_nav_notepad)
     val helpLabel = stringResource(R.string.home_nav_help)
+    val shellLabel = stringResource(R.string.shell_icon_a11y)
     val navBarLabel = stringResource(R.string.home_nav_bar)
 
     Row(
@@ -154,6 +158,21 @@ private fun HomeNavIcons(
                 )
             }
         )
+
+        if (onOpenShell != null) {
+            NavIcon(
+                selected = false,
+                onClick = onOpenShell,
+                contentDescription = shellLabel,
+                icon = {
+                    Icon(
+                        Icons.Outlined.Spa,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            )
+        }
     }
 }
 
