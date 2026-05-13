@@ -73,7 +73,8 @@ import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 fun FlowScreen(
     viewModel: FlowViewModel,
     onDone: () -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onOpenShell: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
@@ -668,7 +669,17 @@ fun FlowScreen(
                     Text(label)
                 }
             },
-            dismissButton = {}
+            dismissButton = {
+                if (r.hasShellReward()) {
+                    TextButton(
+                        onClick = {
+                            showPointsDialog = false
+                            viewModel.clearLastReward()
+                            onOpenShell()
+                        }
+                    ) { Text(stringResource(R.string.session_reward_enter_shell)) }
+                }
+            }
         )
     }
 
@@ -891,6 +902,10 @@ private fun ModeOptionCard(
     }
 }
 
+private fun FlowRewardUiModel.hasShellReward(): Boolean =
+    shellPearlsEarned > 0 || shellStillwaterUnits > 0L ||
+        shellGrantedFindIds.isNotEmpty() || shellDiscoveryIds.isNotEmpty() || shellBadgeIds.isNotEmpty()
+
 @Composable
 private fun SoftSessionRewardContent(
     r: FlowRewardUiModel
@@ -914,9 +929,20 @@ private fun SoftSessionRewardContent(
                     style = MaterialTheme.typography.labelLarge
                 )
                 Text(
+                    text = stringResource(R.string.session_reward_shell_soft_message),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
                     text = stringResource(R.string.flow_screen_soft_reward_body),
                     style = MaterialTheme.typography.bodyMedium
                 )
+                if (r.shellStillwaterUnits > 0L) {
+                    Text(
+                        text = stringResource(R.string.session_reward_shell_stillwater_units, r.shellStillwaterUnits),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
 
