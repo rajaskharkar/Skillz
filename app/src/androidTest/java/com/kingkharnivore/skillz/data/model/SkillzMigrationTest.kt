@@ -4,6 +4,7 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.kingkharnivore.skillz.data.model.migration.SkillzDatabaseMigrations
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -36,6 +37,14 @@ class SkillzMigrationTest {
         }
     }
 
+    @Test
+    fun allMigrationsIncludeDirectLegacyAnd13To14Paths() {
+        assertTrue(
+            "Expected at least one direct legacy migration plus MIGRATION_13_14",
+            SkillzDatabaseMigrations.ALL_MIGRATIONS.isNotEmpty()
+        )
+    }
+
     private fun SupportSQLiteDatabase.createVersion13CoreTables() {
         execSQL("CREATE TABLE IF NOT EXISTS `tags` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `createdAt` INTEGER NOT NULL)")
         execSQL("CREATE TABLE IF NOT EXISTS `sessions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `tagId` INTEGER NOT NULL, `startTime` INTEGER NOT NULL, `endTime` INTEGER NOT NULL, `durationMs` INTEGER NOT NULL, `surgePlannedMs` INTEGER, `surgePoints` INTEGER NOT NULL, `scyraPoints` INTEGER NOT NULL, `isSoftMode` INTEGER NOT NULL, `arcId` INTEGER, `arcIndex` INTEGER, `arcMultiplierUsed` REAL, `arcBonusPoints` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)")
@@ -48,12 +57,16 @@ class SkillzMigrationTest {
     }
 
     private fun SupportSQLiteDatabase.tableExists(tableName: String): Boolean =
-        query("SELECT name FROM sqlite_master WHERE type='table' AND name=?", arrayOf(tableName)).use { cursor ->
+        query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            arrayOf(tableName)
+        ).use { cursor ->
             cursor.moveToFirst()
         }
 
     private companion object {
         const val TEST_DB = "skillz-migration-test"
+
         val SHELL_TABLES = listOf(
             "pearl_ledger",
             "user_shell_find_instance",

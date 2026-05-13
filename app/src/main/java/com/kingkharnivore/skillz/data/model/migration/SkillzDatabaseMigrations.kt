@@ -6,38 +6,32 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * We do not know exactly which DB version users may have installed.
+     * Current database version is 14.
      *
-     * So every historical version from 1 through 12 gets a direct safe rebuild
-     * into the current schema: version 13.
+     * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
+     * directly into the current v14 schema using a safe rebuild strategy.
      *
-     * This avoids destructive migration while still letting Room validate the
-     * final schema.
+     * Version 13 is the known pre-Shell schema, so it only needs the new Shell
+     * tables added.
      */
-    val ALL_MIGRATIONS: Array<Migration> = arrayOf(
-        migrationTo13(1),
-        migrationTo13(2),
-        migrationTo13(3),
-        migrationTo13(4),
-        migrationTo13(5),
-        migrationTo13(6),
-        migrationTo13(7),
-        migrationTo13(8),
-        migrationTo13(9),
-        migrationTo13(10),
-        migrationTo13(11),
-        migrationTo13(12)
-    )
-
-    private fun migrationTo13(fromVersion: Int): Migration {
-        return object : Migration(fromVersion, 13) {
+    val LEGACY_TO_14_MIGRATIONS: Array<Migration> = (1..12).map { startVersion ->
+        object : Migration(startVersion, 14) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                rebuildToVersion13(db)
+                migrateLegacyDatabaseTo14(db)
             }
+        }
+    }.toTypedArray()
+
+    val MIGRATION_13_14 = object : Migration(13, 14) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            createShellTables(db)
         }
     }
 
-    private fun rebuildToVersion13(db: SupportSQLiteDatabase) {
+    val ALL_MIGRATIONS: Array<Migration> =
+        LEGACY_TO_14_MIGRATIONS + MIGRATION_13_14
+
+    private fun migrateLegacyDatabaseTo14(db: SupportSQLiteDatabase) {
         db.execSQL("PRAGMA foreign_keys=OFF")
 
         createLegacySafetyTagIfNeeded(db)
@@ -51,16 +45,19 @@ object SkillzDatabaseMigrations {
         rebuildActiveArcRun(db)
         rebuildPulses(db)
 
+        createCurrentCoreIndices(db)
+        createShellTables(db)
+
         db.execSQL("PRAGMA foreign_keys=ON")
     }
 
     // ------------------------------------------------------------------------
-    // Rebuild tables
+    // Core table rebuilds
     // ------------------------------------------------------------------------
 
     private fun rebuildTags(db: SupportSQLiteDatabase) {
         val oldTable = "tags"
-        val newTable = "tags_v13"
+        val newTable = "tags_v14"
 
         db.execSQL("DROP TABLE IF EXISTS `$newTable`")
         db.execSQL(
@@ -73,29 +70,50 @@ object SkillzDatabaseMigrations {
             """.trimIndent()
         )
 
-        if (tableExists(db, oldTable)) {
-            val columns = columns(db, oldTable)
+        when {
+            tableExists(db, oldTable) -> {
+                val columns = columns(db, oldTable)
+                db.execSQL(
+                    """
+                    INSERT OR IGNORE INTO `$newTable` (`id`, `name`, `createdAt`)
+                    SELECT
+                        ${expr(columns, "id", "NULL")},
+                        ${expr(columns, "name", "'Legacy'")},
+                        ${expr(columns, "createdAt", nowSql())}
+                    FROM `$oldTable`
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE `$oldTable`")
+            }
 
-            db.execSQL(
-                """
-                INSERT INTO `$newTable` (`id`, `name`, `createdAt`)
-                SELECT
-                    ${expr(columns, "id", "NULL")},
-                    ${expr(columns, "name", "'Legacy'")},
-                    ${expr(columns, "createdAt", "strftime('%s','now') * 1000")}
-                FROM `$oldTable`
-                """.trimIndent()
-            )
-
-            db.execSQL("DROP TABLE `$oldTable`")
+            tableExists(db, "skills") -> {
+                val columns = columns(db, "skills")
+                db.execSQL(
+                    """
+                    INSERT OR IGNORE INTO `$newTable` (`id`, `name`, `createdAt`)
+                    SELECT
+                        ${expr(columns, "id", "NULL")},
+                        ${expr(columns, "name", "'Legacy'")},
+                        ${expr(columns, "createdAt", nowSql())}
+                    FROM `skills`
+                    """.trimIndent()
+                )
+            }
         }
+
+        db.execSQL(
+            """
+            INSERT OR IGNORE INTO `$newTable` (`id`, `name`, `createdAt`)
+            VALUES (1, 'Flow', ${nowSql()})
+            """.trimIndent()
+        )
 
         db.execSQL("ALTER TABLE `$newTable` RENAME TO `$oldTable`")
     }
 
     private fun rebuildSessions(db: SupportSQLiteDatabase) {
         val oldTable = "sessions"
-        val newTable = "sessions_v13"
+        val newTable = "sessions_v14"
 
         db.execSQL("DROP TABLE IF EXISTS `$newTable`")
         db.execSQL(
@@ -125,9 +143,21 @@ object SkillzDatabaseMigrations {
         if (tableExists(db, oldTable)) {
             val columns = columns(db, oldTable)
 
+            val title = when {
+                "title" in columns -> "`title`"
+                "notes" in columns -> "COALESCE(`notes`, 'Untitled Flow')"
+                else -> "'Untitled Flow'"
+            }
+
+            val description = when {
+                "description" in columns -> "`description`"
+                "notes" in columns -> "COALESCE(`notes`, '')"
+                else -> "''"
+            }
+
             db.execSQL(
                 """
-                INSERT INTO `$newTable` (
+                INSERT OR IGNORE INTO `$newTable` (
                     `id`,
                     `title`,
                     `description`,
@@ -147,11 +177,11 @@ object SkillzDatabaseMigrations {
                 )
                 SELECT
                     ${expr(columns, "id", "NULL")},
-                    ${expr(columns, "title", "'Untitled Flow'")},
-                    ${expr(columns, "description", "''")},
+                    $title,
+                    $description,
                     ${validTagExpr(columns)},
-                    ${expr(columns, "startTime", "strftime('%s','now') * 1000")},
-                    ${expr(columns, "endTime", "strftime('%s','now') * 1000")},
+                    ${expr(columns, "startTime", nowSql())},
+                    ${expr(columns, "endTime", nowSql())},
                     ${expr(columns, "durationMs", "0")},
                     ${expr(columns, "surgePlannedMs", "NULL")},
                     ${expr(columns, "surgePoints", "0")},
@@ -161,7 +191,7 @@ object SkillzDatabaseMigrations {
                     ${expr(columns, "arcIndex", "NULL")},
                     ${expr(columns, "arcMultiplierUsed", "NULL")},
                     ${expr(columns, "arcBonusPoints", "0")},
-                    ${expr(columns, "createdAt", "strftime('%s','now') * 1000")}
+                    ${expr(columns, "createdAt", nowSql())}
                 FROM `$oldTable`
                 """.trimIndent()
             )
@@ -170,13 +200,11 @@ object SkillzDatabaseMigrations {
         }
 
         db.execSQL("ALTER TABLE `$newTable` RENAME TO `$oldTable`")
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_sessions_tagId` ON `sessions` (`tagId`)")
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_sessions_arcId` ON `sessions` (`arcId`)")
     }
 
     private fun rebuildOngoingSession(db: SupportSQLiteDatabase) {
         val oldTable = "ongoing_session"
-        val newTable = "ongoing_session_v13"
+        val newTable = "ongoing_session_v14"
 
         db.execSQL("DROP TABLE IF EXISTS `$newTable`")
         db.execSQL(
@@ -210,10 +238,15 @@ object SkillzDatabaseMigrations {
 
         if (tableExists(db, oldTable)) {
             val columns = columns(db, oldTable)
+            val isInFlowMode = when {
+                "isInFlowMode" in columns -> "`isInFlowMode`"
+                "isInFocusMode" in columns -> "`isInFocusMode`"
+                else -> "0"
+            }
 
             db.execSQL(
                 """
-                INSERT INTO `$newTable` (
+                INSERT OR REPLACE INTO `$newTable` (
                     `id`,
                     `flowInstanceId`,
                     `title`,
@@ -238,11 +271,11 @@ object SkillzDatabaseMigrations {
                 )
                 SELECT
                     ${expr(columns, "id", "1")},
-                    ${expr(columns, "flowInstanceId", "lower(hex(randomblob(16)))")},
-                    ${expr(columns, "title", "'Untitled Flow'")},
+                    ${expr(columns, "flowInstanceId", "'legacy-' || lower(hex(randomblob(16)))")},
+                    ${expr(columns, "title", "''")},
                     ${expr(columns, "description", "''")},
                     ${expr(columns, "tagName", "''")},
-                    ${expr(columns, "isInFlowMode", "1")},
+                    $isInFlowMode,
                     ${expr(columns, "isRunning", "0")},
                     ${expr(columns, "isSoftMode", "0")},
                     ${expr(columns, "baseStartTimeMs", "NULL")},
@@ -253,7 +286,7 @@ object SkillzDatabaseMigrations {
                     ${expr(columns, "surgeTargetReached", "0")},
                     ${expr(columns, "surgeTargetReachedAtMs", "NULL")},
                     ${expr(columns, "surgeFinalCountdownStarted", "0")},
-                    ${expr(columns, "createdAt", "strftime('%s','now') * 1000")},
+                    ${expr(columns, "createdAt", nowSql())},
                     ${expr(columns, "arcId", "NULL")},
                     ${expr(columns, "arcChainBase", "NULL")},
                     ${expr(columns, "arcSessionCountInArc", "NULL")},
@@ -272,7 +305,7 @@ object SkillzDatabaseMigrations {
 
     private fun rebuildFlowPlans(db: SupportSQLiteDatabase) {
         val oldTable = "flow_plans"
-        val newTable = "flow_plans_v13"
+        val newTable = "flow_plans_v14"
 
         db.execSQL("DROP TABLE IF EXISTS `$newTable`")
         db.execSQL(
@@ -295,52 +328,33 @@ object SkillzDatabaseMigrations {
             """.trimIndent()
         )
 
-        if (tableExists(db, oldTable)) {
-            val columns = columns(db, oldTable)
-
-            db.execSQL(
-                """
-                INSERT INTO `$newTable` (
-                    `id`,
-                    `title`,
-                    `tagId`,
-                    `isSoftMode`,
-                    `targetMinutes`,
-                    `launchWithSurge`,
-                    `pinned`,
-                    `archived`,
-                    `launchCount`,
-                    `lastLaunchedAt`,
-                    `createdAt`,
-                    `updatedAt`
-                )
-                SELECT
-                    ${expr(columns, "id", "NULL")},
-                    ${expr(columns, "title", "'Untitled Flow'")},
-                    ${nullableValidTagExpr(columns, "tagId")},
-                    ${expr(columns, "isSoftMode", "0")},
-                    ${expr(columns, "targetMinutes", "NULL")},
-                    ${expr(columns, "launchWithSurge", "0")},
-                    ${expr(columns, "pinned", "0")},
-                    ${expr(columns, "archived", "0")},
-                    ${expr(columns, "launchCount", "0")},
-                    ${expr(columns, "lastLaunchedAt", "NULL")},
-                    ${expr(columns, "createdAt", "strftime('%s','now') * 1000")},
-                    ${expr(columns, "updatedAt", "strftime('%s','now') * 1000")}
-                FROM `$oldTable`
-                """.trimIndent()
-            )
-
-            db.execSQL("DROP TABLE `$oldTable`")
-        }
+        copyIfExists(
+            db = db,
+            sourceTable = oldTable,
+            targetTable = newTable,
+            columnsWithDefaults = listOf(
+                "id" to "NULL",
+                "title" to "'Untitled Flow'",
+                "tagId" to "NULL",
+                "isSoftMode" to "0",
+                "targetMinutes" to "NULL",
+                "launchWithSurge" to "0",
+                "pinned" to "0",
+                "archived" to "0",
+                "launchCount" to "0",
+                "lastLaunchedAt" to "NULL",
+                "createdAt" to nowSql(),
+                "updatedAt" to nowSql()
+            ),
+            sourceCleanup = true
+        )
 
         db.execSQL("ALTER TABLE `$newTable` RENAME TO `$oldTable`")
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_flow_plans_tagId` ON `flow_plans` (`tagId`)")
     }
 
     private fun rebuildArcPlans(db: SupportSQLiteDatabase) {
         val oldTable = "arc_plans"
-        val newTable = "arc_plans_v13"
+        val newTable = "arc_plans_v14"
 
         db.execSQL("DROP TABLE IF EXISTS `$newTable`")
         db.execSQL(
@@ -360,47 +374,31 @@ object SkillzDatabaseMigrations {
             """.trimIndent()
         )
 
-        if (tableExists(db, oldTable)) {
-            val columns = columns(db, oldTable)
-
-            db.execSQL(
-                """
-                INSERT INTO `$newTable` (
-                    `id`,
-                    `title`,
-                    `isInStudio`,
-                    `archived`,
-                    `launchCount`,
-                    `lastLaunchedAt`,
-                    `recurrenceType`,
-                    `recurrenceDaysCsv`,
-                    `createdAt`,
-                    `updatedAt`
-                )
-                SELECT
-                    ${expr(columns, "id", "NULL")},
-                    ${expr(columns, "title", "'Untitled Arc'")},
-                    ${expr(columns, "isInStudio", "0")},
-                    ${expr(columns, "archived", "0")},
-                    ${expr(columns, "launchCount", "0")},
-                    ${expr(columns, "lastLaunchedAt", "NULL")},
-                    ${expr(columns, "recurrenceType", "'one_time'")},
-                    ${expr(columns, "recurrenceDaysCsv", "''")},
-                    ${expr(columns, "createdAt", "strftime('%s','now') * 1000")},
-                    ${expr(columns, "updatedAt", "strftime('%s','now') * 1000")}
-                FROM `$oldTable`
-                """.trimIndent()
-            )
-
-            db.execSQL("DROP TABLE `$oldTable`")
-        }
+        copyIfExists(
+            db = db,
+            sourceTable = oldTable,
+            targetTable = newTable,
+            columnsWithDefaults = listOf(
+                "id" to "NULL",
+                "title" to "'Untitled Arc'",
+                "isInStudio" to "0",
+                "archived" to "0",
+                "launchCount" to "0",
+                "lastLaunchedAt" to "NULL",
+                "recurrenceType" to "'one_time'",
+                "recurrenceDaysCsv" to "''",
+                "createdAt" to nowSql(),
+                "updatedAt" to nowSql()
+            ),
+            sourceCleanup = true
+        )
 
         db.execSQL("ALTER TABLE `$newTable` RENAME TO `$oldTable`")
     }
 
     private fun rebuildArcPlanSteps(db: SupportSQLiteDatabase) {
         val oldTable = "arc_plan_steps"
-        val newTable = "arc_plan_steps_v13"
+        val newTable = "arc_plan_steps_v14"
 
         db.execSQL("DROP TABLE IF EXISTS `$newTable`")
         db.execSQL(
@@ -430,7 +428,7 @@ object SkillzDatabaseMigrations {
 
             db.execSQL(
                 """
-                INSERT INTO `$newTable` (
+                INSERT OR IGNORE INTO `$newTable` (
                     `id`,
                     `arcPlanId`,
                     `orderIndex`,
@@ -455,8 +453,8 @@ object SkillzDatabaseMigrations {
                     ${expr(columns, "targetMinutesSnapshot", "NULL")},
                     ${expr(columns, "launchWithSurgeSnapshot", "0")},
                     ${expr(columns, "linkState", "'linked'")},
-                    ${expr(columns, "createdAt", "strftime('%s','now') * 1000")},
-                    ${expr(columns, "updatedAt", "strftime('%s','now') * 1000")}
+                    ${expr(columns, "createdAt", nowSql())},
+                    ${expr(columns, "updatedAt", nowSql())}
                 FROM `$oldTable`
                 WHERE ${validArcPlanWhereExpr(columns)}
                 """.trimIndent()
@@ -466,14 +464,11 @@ object SkillzDatabaseMigrations {
         }
 
         db.execSQL("ALTER TABLE `$newTable` RENAME TO `$oldTable`")
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_arc_plan_steps_arcPlanId` ON `arc_plan_steps` (`arcPlanId`)")
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_arc_plan_steps_sourceFlowPlanId` ON `arc_plan_steps` (`sourceFlowPlanId`)")
-        db.execSQL("CREATE INDEX IF NOT EXISTS `index_arc_plan_steps_tagIdSnapshot` ON `arc_plan_steps` (`tagIdSnapshot`)")
     }
 
     private fun rebuildActiveArcRun(db: SupportSQLiteDatabase) {
         val oldTable = "active_arc_run"
-        val newTable = "active_arc_run_v13"
+        val newTable = "active_arc_run_v14"
 
         db.execSQL("DROP TABLE IF EXISTS `$newTable`")
         db.execSQL(
@@ -499,7 +494,7 @@ object SkillzDatabaseMigrations {
 
             db.execSQL(
                 """
-                INSERT INTO `$newTable` (
+                INSERT OR REPLACE INTO `$newTable` (
                     `id`,
                     `arcPlanId`,
                     `arcTitle`,
@@ -520,8 +515,8 @@ object SkillzDatabaseMigrations {
                     ${expr(columns, "currentStepTitle", "'Untitled Flow'")},
                     ${expr(columns, "currentTagName", "''")},
                     ${expr(columns, "currentIsSoftMode", "0")},
-                    ${expr(columns, "startedAt", "strftime('%s','now') * 1000")},
-                    ${expr(columns, "updatedAt", "strftime('%s','now') * 1000")}
+                    ${expr(columns, "startedAt", nowSql())},
+                    ${expr(columns, "updatedAt", nowSql())}
                 FROM `$oldTable`
                 WHERE ${validArcPlanWhereExpr(columns, "arcPlanId")}
                 LIMIT 1
@@ -536,7 +531,7 @@ object SkillzDatabaseMigrations {
 
     private fun rebuildPulses(db: SupportSQLiteDatabase) {
         val oldTable = "pulses"
-        val newTable = "pulses_v13"
+        val newTable = "pulses_v14"
 
         db.execSQL("DROP TABLE IF EXISTS `$newTable`")
         db.execSQL(
@@ -562,7 +557,7 @@ object SkillzDatabaseMigrations {
 
             db.execSQL(
                 """
-                INSERT INTO `$newTable` (
+                INSERT OR IGNORE INTO `$newTable` (
                     `id`,
                     `title`,
                     `description`,
@@ -581,8 +576,8 @@ object SkillzDatabaseMigrations {
                     ${nullableValidSessionExpr(columns, "parentSessionId")},
                     ${expr(columns, "parentFlowInstanceId", "NULL")},
                     ${expr(columns, "arcId", "NULL")},
-                    ${expr(columns, "createdAt", "strftime('%s','now') * 1000")},
-                    ${expr(columns, "updatedAt", "strftime('%s','now') * 1000")}
+                    ${expr(columns, "createdAt", nowSql())},
+                    ${expr(columns, "updatedAt", nowSql())}
                 FROM `$oldTable`
                 """.trimIndent()
             )
@@ -591,16 +586,210 @@ object SkillzDatabaseMigrations {
         }
 
         db.execSQL("ALTER TABLE `$newTable` RENAME TO `$oldTable`")
+    }
+
+    // ------------------------------------------------------------------------
+    // Shell tables
+    // ------------------------------------------------------------------------
+
+    private fun createShellTables(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `pearl_ledger` (
+                `id` TEXT NOT NULL,
+                `delta` INTEGER NOT NULL,
+                `reason` TEXT NOT NULL,
+                `sourceType` TEXT NOT NULL,
+                `sourceId` TEXT,
+                `createdAt` INTEGER NOT NULL,
+                `note` TEXT,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `user_shell_find_instance` (
+                `instanceId` TEXT NOT NULL,
+                `findId` TEXT NOT NULL,
+                `acquiredAt` INTEGER NOT NULL,
+                `sourceType` TEXT NOT NULL,
+                `sourceId` TEXT,
+                `currentUpgradeStageId` TEXT,
+                `customName` TEXT,
+                `isNew` INTEGER NOT NULL,
+                `isArchivedInChest` INTEGER NOT NULL,
+                PRIMARY KEY(`instanceId`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_user_shell_find_instance_findId` ON `user_shell_find_instance` (`findId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_user_shell_find_instance_sourceType` ON `user_shell_find_instance` (`sourceType`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_user_shell_find_instance_sourceId` ON `user_shell_find_instance` (`sourceId`)")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `user_shell_find_stack` (
+                `findId` TEXT NOT NULL,
+                `quantity` INTEGER NOT NULL,
+                `firstAcquiredAt` INTEGER NOT NULL,
+                `lastAcquiredAt` INTEGER NOT NULL,
+                `isNew` INTEGER NOT NULL,
+                PRIMARY KEY(`findId`)
+            )
+            """.trimIndent()
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `shell_placement` (
+                `placementId` TEXT NOT NULL,
+                `roomId` TEXT NOT NULL,
+                `slotId` TEXT NOT NULL,
+                `instanceId` TEXT NOT NULL,
+                `placedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`placementId`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_shell_placement_roomId` ON `shell_placement` (`roomId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_shell_placement_slotId` ON `shell_placement` (`slotId`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_shell_placement_roomId_slotId` ON `shell_placement` (`roomId`, `slotId`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_shell_placement_instanceId` ON `shell_placement` (`instanceId`)")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `shell_find_upgrade` (
+                `upgradeEventId` TEXT NOT NULL,
+                `instanceId` TEXT NOT NULL,
+                `fromStageId` TEXT,
+                `toStageId` TEXT NOT NULL,
+                `pearlCost` INTEGER NOT NULL,
+                `upgradedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`upgradeEventId`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_shell_find_upgrade_instanceId` ON `shell_find_upgrade` (`instanceId`)")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `user_badge` (
+                `badgeId` TEXT NOT NULL,
+                `count` INTEGER NOT NULL,
+                `firstEarnedAt` INTEGER NOT NULL,
+                `lastEarnedAt` INTEGER NOT NULL,
+                `isNew` INTEGER NOT NULL,
+                PRIMARY KEY(`badgeId`)
+            )
+            """.trimIndent()
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `user_discovery` (
+                `userDiscoveryId` TEXT NOT NULL,
+                `discoveryId` TEXT NOT NULL,
+                `discoveredAt` INTEGER NOT NULL,
+                `sourceType` TEXT NOT NULL,
+                `sourceId` TEXT,
+                `grantedFindInstanceId` TEXT,
+                `isNew` INTEGER NOT NULL,
+                PRIMARY KEY(`userDiscoveryId`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_user_discovery_discoveryId` ON `user_discovery` (`discoveryId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_user_discovery_sourceType` ON `user_discovery` (`sourceType`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_user_discovery_sourceId` ON `user_discovery` (`sourceId`)")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `stillwater_ledger` (
+                `id` TEXT NOT NULL,
+                `units` INTEGER NOT NULL,
+                `sourceType` TEXT NOT NULL,
+                `sourceId` TEXT,
+                `createdAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_stillwater_ledger_sourceType` ON `stillwater_ledger` (`sourceType`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_stillwater_ledger_sourceId` ON `stillwater_ledger` (`sourceId`)")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `stillwater_preference` (
+                `id` INTEGER NOT NULL,
+                `perspective` TEXT NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `user_shell_room_state` (
+                `roomId` TEXT NOT NULL,
+                `firstOpenedAt` INTEGER,
+                `lastOpenedAt` INTEGER,
+                `visualMaturityScore` INTEGER NOT NULL,
+                `ambientLifeScore` INTEGER NOT NULL,
+                `lastChangedAt` INTEGER,
+                PRIMARY KEY(`roomId`)
+            )
+            """.trimIndent()
+        )
+    }
+
+    private fun createCurrentCoreIndices(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_sessions_tagId` ON `sessions` (`tagId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_sessions_arcId` ON `sessions` (`arcId`)")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_pulses_tagId` ON `pulses` (`tagId`)")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_pulses_parentSessionId` ON `pulses` (`parentSessionId`)")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_pulses_parentFlowInstanceId` ON `pulses` (`parentFlowInstanceId`)")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_pulses_arcId` ON `pulses` (`arcId`)")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_pulses_createdAt` ON `pulses` (`createdAt`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_flow_plans_tagId` ON `flow_plans` (`tagId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_arc_plan_steps_arcPlanId` ON `arc_plan_steps` (`arcPlanId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_arc_plan_steps_sourceFlowPlanId` ON `arc_plan_steps` (`sourceFlowPlanId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_arc_plan_steps_tagIdSnapshot` ON `arc_plan_steps` (`tagIdSnapshot`)")
     }
 
     // ------------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------------
+
+    private fun copyIfExists(
+        db: SupportSQLiteDatabase,
+        sourceTable: String,
+        targetTable: String,
+        columnsWithDefaults: List<Pair<String, String>>,
+        sourceCleanup: Boolean
+    ) {
+        if (!tableExists(db, sourceTable)) return
+
+        val sourceColumns = columns(db, sourceTable)
+        val targetColumns = columnsWithDefaults.joinToString(", ") { "`${it.first}`" }
+        val selectExpressions = columnsWithDefaults.joinToString(", ") { (column, default) ->
+            selectExpr(sourceColumns, column, default)
+        }
+
+        db.execSQL(
+            """
+            INSERT OR IGNORE INTO `$targetTable` ($targetColumns)
+            SELECT $selectExpressions
+            FROM `$sourceTable`
+            """.trimIndent()
+        )
+
+        if (sourceCleanup) {
+            db.execSQL("DROP TABLE `$sourceTable`")
+        }
+    }
 
     private fun tableExists(db: SupportSQLiteDatabase, tableName: String): Boolean {
         db.query(
@@ -632,10 +821,10 @@ object SkillzDatabaseMigrations {
         }
     }
 
-    /**
-     * If an ancient version somehow has sessions but no usable tagId, we need a
-     * valid tag because SessionEntity.tagId is NOT NULL and foreign-keyed.
-     */
+    private fun selectExpr(sourceColumns: Set<String>, column: String, default: String): String {
+        return if (column in sourceColumns) "`$column`" else default
+    }
+
     private fun createLegacySafetyTagIfNeeded(db: SupportSQLiteDatabase) {
         if (!tableExists(db, "tags")) {
             db.execSQL(
@@ -654,23 +843,34 @@ object SkillzDatabaseMigrations {
         if (!hasTags) {
             db.execSQL(
                 """
-                INSERT INTO `tags` (`name`, `createdAt`)
-                VALUES ('Legacy', strftime('%s','now') * 1000)
+                INSERT INTO `tags` (`id`, `name`, `createdAt`)
+                VALUES (1, 'Legacy', ${nowSql()})
                 """.trimIndent()
             )
         }
     }
 
     private fun validTagExpr(columns: Set<String>): String {
-        return if (columns.contains("tagId")) {
-            """
-            CASE
-                WHEN `tagId` IN (SELECT `id` FROM `tags`) THEN `tagId`
-                ELSE (SELECT `id` FROM `tags` ORDER BY `id` ASC LIMIT 1)
-            END
-            """.trimIndent()
-        } else {
-            "(SELECT `id` FROM `tags` ORDER BY `id` ASC LIMIT 1)"
+        return when {
+            "tagId" in columns -> {
+                """
+                CASE
+                    WHEN `tagId` IN (SELECT `id` FROM `tags`) THEN `tagId`
+                    ELSE (SELECT `id` FROM `tags` ORDER BY `id` ASC LIMIT 1)
+                END
+                """.trimIndent()
+            }
+
+            "skillId" in columns -> {
+                """
+                CASE
+                    WHEN `skillId` IN (SELECT `id` FROM `tags`) THEN `skillId`
+                    ELSE (SELECT `id` FROM `tags` ORDER BY `id` ASC LIMIT 1)
+                END
+                """.trimIndent()
+            }
+
+            else -> "(SELECT `id` FROM `tags` ORDER BY `id` ASC LIMIT 1)"
         }
     }
 
@@ -734,11 +934,11 @@ object SkillzDatabaseMigrations {
         columnName: String = "arcPlanId"
     ): String {
         return if (columns.contains(columnName)) {
-            """
-            `$columnName` IN (SELECT `id` FROM `arc_plans`)
-            """.trimIndent()
+            "`$columnName` IN (SELECT `id` FROM `arc_plans`)"
         } else {
             "EXISTS (SELECT 1 FROM `arc_plans` LIMIT 1)"
         }
     }
+
+    private fun nowSql(): String = "CAST(strftime('%s','now') AS INTEGER) * 1000"
 }
