@@ -2,6 +2,7 @@
 
 package com.kingkharnivore.skillz.ui.screen
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -27,6 +28,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -34,12 +36,8 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.R
-import com.kingkharnivore.skillz.ui.theme.CaveatSemiBold
 
 data class SkillzHomeNavState(
     val currentPage: Int,
@@ -49,24 +47,25 @@ data class SkillzHomeNavState(
 val LocalSkillzHomeNav = compositionLocalOf<SkillzHomeNavState?> { null }
 
 @Composable
-fun SkillzTopAppBar() {
-    val title = when (BuildConfig.FLAVOR) {
-        "aera" -> stringResource(R.string.home_app_name_aera)
-        "scyra" -> stringResource(R.string.home_app_name_scyra)
-        else -> stringResource(R.string.home_app_name_skillz)
-    }
+fun SkillzTopAppBar(onOpenShell: (() -> Unit)? = null) {
     val nav = LocalSkillzHomeNav.current
+    val shellLabel = stringResource(R.string.shell_icon_a11y)
 
     TopAppBar(
         title = {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontFamily = CaveatSemiBold,
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.SemiBold
+            IconButton(
+                onClick = { onOpenShell?.invoke() },
+                enabled = onOpenShell != null,
+                modifier = Modifier.semantics {
+                    contentDescription = shellLabel
+                }
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.scyra_turtle),
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp)
                 )
-            )
+            }
         },
         actions = {
             if (nav != null) {

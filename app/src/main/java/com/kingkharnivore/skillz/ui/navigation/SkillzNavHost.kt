@@ -16,6 +16,7 @@ import com.kingkharnivore.skillz.ui.screen.HelpScreen
 import com.kingkharnivore.skillz.ui.screen.SkillzHomeScreen
 import com.kingkharnivore.skillz.ui.screen.flow.FlowScreen
 import com.kingkharnivore.skillz.ui.screen.paths.arc.ArcDetailScreen
+import com.kingkharnivore.skillz.ui.screen.shell.ShellRootScreen
 import com.kingkharnivore.skillz.ui.screen.paths.arc.PlanArcScreen
 import com.kingkharnivore.skillz.ui.screen.paths.suggested.SuggestedRouteDetailScreen
 import com.kingkharnivore.skillz.ui.screen.paths.suggested.SuggestedRoutesCatalog
@@ -75,7 +76,8 @@ fun SkillzNavHost(
                 onGoToActiveSession = {
                     navController.navigate(SkillzDestinations.addSkillRoute())
                 },
-                isFlowModeOn = isFocusModeOn
+                isFlowModeOn = isFocusModeOn,
+                onOpenShell = { navController.navigate(SkillzDestinations.SHELL) }
             )
         }
 
@@ -207,6 +209,10 @@ fun SkillzNavHost(
                     }
                 )
             }
+        }
+
+        composable(SkillzDestinations.SHELL) {
+            ShellRootScreen(onBack = { navController.popBackStack() })
         }
 
         composable(SkillzDestinations.ADD_PULSE_ROUTE) {
