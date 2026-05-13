@@ -12,6 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
+import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 
 @Composable
 fun SessionRewardContent(
@@ -123,6 +124,64 @@ fun SessionRewardContent(
             val showArcUi =
                 (r.arcIndexInArc ?: 0) >= 2 &&
                         (r.arcBonusPoints > 0 || r.arcMultiplierUsed != null)
+
+            if (r.shellPearlsEarned > 0 || r.shellStillwaterUnits > 0L ||
+                r.shellGrantedFindIds.isNotEmpty() || r.shellDiscoveryIds.isNotEmpty() || r.shellBadgeIds.isNotEmpty()
+            ) {
+                DividerSoft()
+                Text(
+                    text = stringResource(R.string.session_reward_shell_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
+                )
+                val shellMessage = if (r.shellStillwaterUnits > 0L && r.shellPearlsEarned == 0) {
+                    stringResource(R.string.session_reward_shell_soft_message)
+                } else {
+                    stringResource(R.string.session_reward_shell_regular_message)
+                }
+                Text(
+                    text = shellMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
+                )
+                if (r.shellPearlsEarned > 0) {
+                    MetricLine(
+                        label = stringResource(R.string.session_reward_shell_pearls),
+                        value = stringResource(R.string.session_reward_shell_pearls_value, r.shellPearlsEarned),
+                        tone = MetricTone.Glow
+                    )
+                }
+                if (r.shellStillwaterUnits > 0L) {
+                    MetricLine(
+                        label = stringResource(R.string.session_reward_shell_stillwater),
+                        value = stringResource(R.string.session_reward_shell_stillwater_units, r.shellStillwaterUnits),
+                        tone = MetricTone.Neutral
+                    )
+                }
+                r.shellGrantedFindIds.forEach { findId ->
+                    val def = ShellContentCatalog.find(findId)
+                    MetricLine(
+                        label = stringResource(R.string.session_reward_shell_find),
+                        value = def?.let { stringResource(it.titleRes) } ?: findId,
+                        tone = MetricTone.Glow
+                    )
+                }
+                r.shellDiscoveryIds.forEach { discoveryId ->
+                    val def = ShellContentCatalog.discovery(discoveryId)
+                    MetricLine(
+                        label = stringResource(R.string.session_reward_shell_discovery),
+                        value = def?.let { stringResource(it.revealCopyRes) } ?: discoveryId,
+                        tone = MetricTone.Glow
+                    )
+                }
+                if (r.shellBadgeIds.isNotEmpty()) {
+                    MetricLine(
+                        label = stringResource(R.string.session_reward_shell_badges),
+                        value = stringResource(R.string.session_reward_shell_badges_value, r.shellBadgeIds.size),
+                        tone = MetricTone.Neutral
+                    )
+                }
+            }
 
             if (showArcUi) {
                 DividerSoft()
