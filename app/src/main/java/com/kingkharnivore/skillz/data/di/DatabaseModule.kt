@@ -15,7 +15,7 @@ import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
 import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.dao.TagDao
-import com.kingkharnivore.skillz.data.model.dao.shell.*
+import com.kingkharnivore.skillz.data.model.migration.SkillzDatabaseMigrations
 import com.kingkharnivore.skillz.utils.arc.ArcPrefs
 import dagger.Module
 import dagger.Provides
@@ -51,7 +51,9 @@ object DatabaseModule {
             context,
             SkillzDatabase::class.java,
             "skillz_db"
-        ).addMigrations(*LEGACY_TO_14_MIGRATIONS, MIGRATION_13_14).build()
+        )
+            .addMigrations(*SkillzDatabaseMigrations.ALL_MIGRATIONS)
+            .build()
     }
 
     @Provides
@@ -74,7 +76,8 @@ object DatabaseModule {
     fun provideArcPlanDao(db: SkillzDatabase): ArcPlanDao = db.arcPlanDao()
 
     @Provides
-    fun provideActiveArcRunDao(db: SkillzDatabase): ActiveArcRunDao = db.activeArcRunDao()
+    fun provideActiveArcRunDao(db: SkillzDatabase): ActiveArcRunDao =
+        db.activeArcRunDao()
 
     @Provides fun providePearlLedgerDao(db: SkillzDatabase): PearlLedgerDao = db.pearlLedgerDao()
     @Provides fun provideShellFindInstanceDao(db: SkillzDatabase): ShellFindInstanceDao = db.shellFindInstanceDao()
