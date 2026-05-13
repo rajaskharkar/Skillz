@@ -16,6 +16,11 @@ data class FlowRewardUiModel(
     val arcNextMultiplier: Double? = null,
     val arcProgressTowardNextMs: Long = 0L,
     val arcDidLevelUp: Boolean = false,
+    val shellPearlsEarned: Int = 0,
+    val shellStillwaterUnits: Long = 0L,
+    val shellGrantedFindIds: List<String> = emptyList(),
+    val shellDiscoveryIds: List<String> = emptyList(),
+    val shellBadgeIds: List<String> = emptyList(),
     val arcSummary: ArcSummaryUiModel? = null,
     val isArcOnlySummary: Boolean = false
 )
