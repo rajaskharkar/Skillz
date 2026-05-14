@@ -95,7 +95,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
+import com.kingkharnivore.skillz.data.model.shell.ShellDepthTier
 import com.kingkharnivore.skillz.data.model.shell.ShellFindCategory
+import com.kingkharnivore.skillz.data.model.shell.ShellFindDefinition
+import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.data.model.shell.ShellSlotDefinition
 import com.kingkharnivore.skillz.data.model.shell.StillwaterPerspective
@@ -167,6 +170,57 @@ private fun hasEmptyNookForRestingObject(uiState: ShellUiState): Boolean {
         val def = ShellContentCatalog.find(item.findId) ?: return@any false
         def.placeable && emptySlots.any { slot -> slot.slotType in def.acceptedSlotTypes && def.category in slot.acceptsCategories }
     }
+}
+
+@Composable
+private fun kindLabel(kind: ShellRewardKind): String = when (kind) {
+    ShellRewardKind.ANIMAL -> stringResource(R.string.shell_kind_animal)
+    ShellRewardKind.OBJECT -> stringResource(R.string.shell_kind_object)
+    ShellRewardKind.TRINKET -> stringResource(R.string.shell_kind_trinket)
+    ShellRewardKind.DISCOVERY -> stringResource(R.string.shell_kind_discovery)
+}
+
+@Composable
+private fun depthLabel(depth: ShellDepthTier?): String? = when (depth) {
+    ShellDepthTier.REEF -> stringResource(R.string.shell_depth_reef)
+    ShellDepthTier.DEEPER_REEF -> stringResource(R.string.shell_depth_deeper_reef)
+    ShellDepthTier.OPEN_BLUE -> stringResource(R.string.shell_depth_open_blue)
+    ShellDepthTier.DEEP_OCEAN -> stringResource(R.string.shell_depth_deep_ocean)
+    null -> null
+}
+
+@Composable
+private fun sourceReasonFor(def: ShellFindDefinition): String = when (def.findId) {
+    ShellContentCatalog.FOCUS_MINNOW -> stringResource(R.string.shell_find_minnow_description)
+    ShellContentCatalog.FOCUS_SEAHORSE -> stringResource(R.string.shell_find_seahorse_description)
+    ShellContentCatalog.FOCUS_MANTA -> stringResource(R.string.shell_find_manta_description)
+    ShellContentCatalog.FOCUS_WHALE -> stringResource(R.string.shell_find_whale_description)
+    ShellContentCatalog.FOCUS_OCTOPUS -> stringResource(R.string.shell_find_octopus_description)
+    ShellContentCatalog.FOCUS_PEBBLE -> stringResource(R.string.shell_find_pebble_description)
+    ShellContentCatalog.FOCUS_LAMP -> stringResource(R.string.shell_source_invited_with_pearls, def.pearlCost ?: 0)
+    ShellContentCatalog.FOCUS_PERCH -> stringResource(R.string.shell_source_invited_with_pearls, def.pearlCost ?: 0)
+    ShellContentCatalog.FOCUS_PEBBLES -> stringResource(R.string.shell_source_invited_with_pearls, def.pearlCost ?: 0)
+    ShellContentCatalog.FOCUS_CURTAIN -> stringResource(R.string.shell_source_invited_with_pearls, def.pearlCost ?: 0)
+    ShellContentCatalog.FOCUS_BUBBLES -> stringResource(R.string.shell_source_invited_with_pearls, def.pearlCost ?: 0)
+    else -> stringResource(def.descriptionRes)
+}
+
+@Composable
+private fun notificationTitleFor(def: ShellFindDefinition): String {
+    val title = stringResource(def.titleRes)
+    return when (def.kind) {
+        ShellRewardKind.ANIMAL -> stringResource(R.string.shell_notification_title_encountered, title)
+        ShellRewardKind.OBJECT -> if (def.isPearlObject) stringResource(R.string.shell_notification_title_invited, title) else stringResource(R.string.shell_notification_title_found, title)
+        ShellRewardKind.TRINKET -> title
+        ShellRewardKind.DISCOVERY -> title
+    }
+}
+
+@Composable
+private fun notificationBodyFor(def: ShellFindDefinition): String {
+    val depth = depthLabel(def.depthTier)
+    val reason = sourceReasonFor(def)
+    return if (depth != null) stringResource(R.string.shell_notification_depth_body, depth, reason) else reason
 }
 
 @Composable
@@ -437,10 +491,12 @@ private fun HeartRoomScreen(
     onOpenPearlBasin: () -> Unit
 ) {
     var showHeartDetail by remember { mutableStateOf(false) }
-    val hasRestingFinds = hasRestingPlaceableFinds(uiState)
+    val displayedIds = displayedInstanceIds(uiState)
+    val chestHasIndicator = restingFinds(uiState).any { it.isNew } || uiState.stacks.any { it.isNew }
     val hasNewDiscovery = uiState.discoveries.any { it.isNew }
-    val hasAffordableShape = hasAffordablePearlShape(uiState)
-    val focusChanged = hasAffordableShape || hasRestingFinds || uiState.focusPlacements.isNotEmpty()
+    val focusChanged = hasDisplayedAffordableUpgrade(uiState) ||
+            hasEmptyNookForRestingObject(uiState) ||
+            uiState.finds.any { it.isNew && it.instanceId in displayedIds }
 
     Box(
         modifier = Modifier
@@ -568,7 +624,7 @@ private fun HeartRoomScreen(
             )
 
             HeartShortcutDock(
-                chestHasIndicator = hasRestingFinds,
+                chestHasIndicator = chestHasIndicator,
                 journalHasIndicator = hasNewDiscovery,
                 onChest = { onNavigate(ShellDestination.ShellChest) },
                 onBadges = { onNavigate(ShellDestination.Badges) },
@@ -667,14 +723,14 @@ private fun RoomOrbitNode(
         ) {
             TurtleShellCardPattern(Modifier.matchParentSize())
 
-            if (dormant || hasIndicator) {
+            if (hasIndicator) {
                 Surface(
                     shape = CircleShape,
-                    color = if (hasIndicator) scheme.tertiary else scheme.secondary.copy(alpha = 0.72f),
+                    color = scheme.tertiary,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
-                        .size(if (hasIndicator) 10.dp else 7.dp),
+                        .size(10.dp),
                     content = {}
                 )
             }
@@ -814,10 +870,11 @@ private fun ShellWhisperDock(
     onClick: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
+    val displayedIds = displayedInstanceIds(uiState)
     val affordableUpgrade = uiState.finds.firstOrNull { item ->
         val def = ShellContentCatalog.find(item.findId) ?: return@firstOrNull false
         val next = ShellContentCatalog.nextUpgrade(def.findId, item.currentUpgradeStageId) ?: return@firstOrNull false
-        next.pearlCost <= uiState.pearlBalance
+        item.instanceId in displayedIds && next.pearlCost <= uiState.pearlBalance
     }
     val restingCount = restingFinds(uiState).count { item -> ShellContentCatalog.find(item.findId)?.placeable == true }
     val hasEmptyNook = uiState.focusPlacements.size < ShellContentCatalog.focusSlots.size
@@ -1041,34 +1098,6 @@ private fun HeartDetailSheet(
 }
 
 @Composable
-private fun DiscoveryRevealSheet(
-    discovery: com.kingkharnivore.skillz.data.model.entity.shell.UserDiscoveryEntity,
-    onDismiss: () -> Unit,
-    onView: () -> Unit
-) {
-    val def = ShellContentCatalog.discovery(discovery.discoveryId)
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.shell_discovery_reveal_title),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = def?.let { stringResource(it.revealCopyRes) } ?: stringResource(R.string.shell_whisper_new_discovery),
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Button(onClick = onView) {
-                Text(stringResource(R.string.shell_discovery_reveal_view))
-            }
-        }
-    }
-}
-
-@Composable
 private fun PearlBasinSheet(
     uiState: ShellUiState,
     onDismiss: () -> Unit,
@@ -1077,6 +1106,8 @@ private fun PearlBasinSheet(
     onOpenObject: () -> Unit,
     onInviteObject: (String) -> Unit
 ) {
+    var inviteConfirmation by remember { mutableStateOf<ShellFindDefinition?>(null) }
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -1131,7 +1162,7 @@ private fun PearlBasinSheet(
                     SuggestionRow(
                         title = stringResource(R.string.shell_basin_invite_suggestion, stringResource(def.titleRes)),
                         cost = def.pearlCost ?: 0,
-                        onClick = { onInviteObject(def.findId) }
+                        onClick = { inviteConfirmation = def }
                     )
                 }
             } else {
@@ -1171,6 +1202,53 @@ private fun PearlBasinSheet(
                 ) {
                     Text(stringResource(R.string.shell_chest_title))
                 }
+            }
+        }
+    }
+
+    inviteConfirmation?.let { def ->
+        InvitePearlObjectConfirmationSheet(
+            definition = def,
+            onDismiss = { inviteConfirmation = null },
+            onConfirm = {
+                inviteConfirmation = null
+                onInviteObject(def.findId)
+            }
+        )
+    }
+}
+
+@Composable
+private fun InvitePearlObjectConfirmationSheet(
+    definition: ShellFindDefinition,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val title = stringResource(definition.titleRes)
+    val cost = definition.pearlCost ?: 0
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.shell_invite_confirm_title, title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(stringResource(R.string.shell_invite_confirm_body, title))
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
+                )
+            ) {
+                Text(stringResource(R.string.shell_invite_confirm_cta, cost))
+            }
+            OutlinedButton(onClick = onDismiss) {
+                Text(stringResource(R.string.shell_cancel))
             }
         }
     }
@@ -1915,11 +1993,13 @@ private fun ObjectCopySheet(
                 style = MaterialTheme.typography.titleLarge
             )
 
+            def?.let { Text(kindLabel(it.kind)) }
             Text(
                 if (displayed) stringResource(R.string.shell_status_displayed_focus)
                 else stringResource(R.string.shell_status_resting)
             )
-            Text(stringResource(R.string.shell_current_form, currentTitle))
+            Text(stringResource(R.string.shell_form_label, currentTitle))
+            def?.let { Text(stringResource(R.string.shell_source_label, sourceReasonFor(it))) }
 
             if (next != null) {
                 val nextTitle = stringResource(next.titleRes)
@@ -2026,7 +2106,7 @@ private fun ShellChestScreen(
         items(groupedItems) { (findId, copies) ->
             val def = ShellContentCatalog.find(findId) ?: return@items
             val title = stringResource(def.titleRes)
-            val categoryLabel = stringResource(categoryLabelFor(def.category))
+            val categoryLabel = kindLabel(def.kind) + (depthLabel(def.depthTier)?.let { " · $it" } ?: "")
             val displayedCount = copies.count { it.instanceId in displayedIds }
             val restingCount = copies.size - displayedCount
             val bestCopy = copies.maxByOrNull { currentFormOrder(it) }
@@ -2068,7 +2148,7 @@ private fun ShellChestScreen(
                                 displayedCount,
                                 restingCount,
                                 categoryLabel
-                            )
+                            ) + "\n" + sourceReasonFor(def)
                         )
                     }
                 )
@@ -2088,7 +2168,7 @@ private fun ShellChestScreen(
                     leadingContent = { ShellObjectIcon(def.iconKey, Modifier.size(36.dp)) },
                     headlineContent = { Text(stringResource(R.string.shell_chest_group_title, title, stack.quantity)) },
                     supportingContent = {
-                        Text(stringResource(R.string.shell_stack_quantity, stack.quantity))
+                        Text("${kindLabel(def.kind)} · ${stringResource(R.string.shell_stack_quantity, stack.quantity)}\n${sourceReasonFor(def)}")
                     }
                 )
             }
@@ -2303,9 +2383,9 @@ private fun BadgesScreen(uiState: ShellUiState) {
                             tint = MaterialTheme.colorScheme.secondary
                         )
                     },
-                    headlineContent = { Text(title) },
+                    headlineContent = { Text(stringResource(R.string.shell_badge_row_title, title, badge.count)) },
                     supportingContent = {
-                        Text(stringResource(def.descriptionRes, badge.count))
+                        Text(stringResource(def.descriptionRes))
                     }
                 )
             }
@@ -2397,11 +2477,10 @@ private fun ShellNotificationsScreen(uiState: ShellUiState) {
 
         items(newFinds, key = { it.instanceId }) { find ->
             val def = ShellContentCatalog.find(find.findId) ?: return@items
-            val title = stringResource(def.titleRes)
             ShellNotificationCard(
                 icon = iconFor(def.category),
-                title = title,
-                body = stringResource(R.string.shell_notification_find_body, title)
+                title = notificationTitleFor(def),
+                body = notificationBodyFor(def)
             )
         }
 
@@ -2410,7 +2489,7 @@ private fun ShellNotificationsScreen(uiState: ShellUiState) {
             val title = stringResource(def.titleRes)
             ShellNotificationCard(
                 icon = iconFor(def.category),
-                title = title,
+                title = stringResource(R.string.shell_chest_group_title, title, stack.quantity),
                 body = stringResource(R.string.shell_notification_stack_body, stack.quantity)
             )
         }
@@ -2420,8 +2499,8 @@ private fun ShellNotificationsScreen(uiState: ShellUiState) {
             val title = stringResource(def.titleRes)
             ShellNotificationCard(
                 icon = Icons.Outlined.MilitaryTech,
-                title = title,
-                body = stringResource(R.string.shell_notification_badge_body, badge.count)
+                title = stringResource(R.string.shell_badge_notification_title, title),
+                body = stringResource(R.string.shell_badge_notification_body, badge.count, stringResource(def.descriptionRes))
             )
         }
 
@@ -2430,8 +2509,8 @@ private fun ShellNotificationsScreen(uiState: ShellUiState) {
             val title = stringResource(def.titleRes)
             ShellNotificationCard(
                 icon = Icons.Outlined.AutoStories,
-                title = title,
-                body = stringResource(R.string.shell_notification_discovery_body)
+                title = stringResource(R.string.shell_discovery_notification_title, title),
+                body = stringResource(def.explanationRes)
             )
         }
     }

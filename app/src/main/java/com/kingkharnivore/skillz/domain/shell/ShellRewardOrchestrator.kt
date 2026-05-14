@@ -52,22 +52,22 @@ class ShellRewardOrchestrator @Inject constructor(
                 if (granted != null) grantedFinds += findId
             }
 
-            if (minutes >= 10) thresholdReward("badge_flow_10_min", ShellContentCatalog.FOCUS_GLOW_SHELL)
-            if (minutes >= 30) thresholdReward("badge_flow_30_min", ShellContentCatalog.FOCUS_CURRENT_CONCH)
-            if (minutes >= 60) thresholdReward("badge_flow_60_min", ShellContentCatalog.FOCUS_ANCHOR_CORAL)
-            if (minutes >= 120) thresholdReward("badge_flow_120_min", ShellContentCatalog.FOCUS_ABYSS_LANTERNFISH)
+            if (minutes >= 10) thresholdReward("badge_flow_10_min", ShellContentCatalog.FOCUS_MINNOW)
+            if (minutes >= 30) thresholdReward("badge_flow_30_min", ShellContentCatalog.FOCUS_SEAHORSE)
+            if (minutes >= 60) thresholdReward("badge_flow_60_min", ShellContentCatalog.FOCUS_MANTA)
+            if (minutes >= 120) thresholdReward("badge_flow_120_min", ShellContentCatalog.FOCUS_WHALE)
 
-            if (minutes >= 30 && shellRepository.grantDiscoveryOnce("discovery_threshold_seahorse", "session", sourceId) != null) {
-                discoveries += "discovery_threshold_seahorse"
-                grantedFinds += ShellContentCatalog.FOCUS_THRESHOLD_SEAHORSE
+            if (minutes >= 30 && shellRepository.grantDiscoveryOnce("discovery_octopus", "session", sourceId) != null) {
+                discoveries += "discovery_octopus"
+                grantedFinds += ShellContentCatalog.FOCUS_OCTOPUS
             }
 
             val previousEnd = shellRepository.lastRegularFlowBefore(session.endTime)
             if (previousEnd != null && session.endTime - previousEnd >= RETURN_GAP_MS &&
-                shellRepository.grantDiscoveryOnce("discovery_return_turtle_stone", "session", sourceId) != null
+                shellRepository.grantDiscoveryOnce("discovery_pebble", "session", sourceId) != null
             ) {
-                discoveries += "discovery_return_turtle_stone"
-                grantedFinds += ShellContentCatalog.FOCUS_RETURN_TURTLE_STONE
+                discoveries += "discovery_pebble"
+                grantedFinds += ShellContentCatalog.FOCUS_PEBBLE
             }
 
             val count = shellRepository.regularFlowCount()

@@ -15,6 +15,8 @@ data class ShellRoomDefinition(
 )
 
 enum class ShellFindCategory { CREATURES, SHELLS, CORAL, PLANTS, TROPHIES, TRINKETS, DISCOVERIES }
+enum class ShellRewardKind { ANIMAL, OBJECT, TRINKET, DISCOVERY }
+enum class ShellDepthTier { REEF, DEEPER_REEF, OPEN_BLUE, DEEP_OCEAN }
 
 data class ShellFindDefinition(
     val findId: String,
@@ -29,7 +31,9 @@ data class ShellFindDefinition(
     val stackable: Boolean,
     val acceptedSlotTypes: Set<ShellSlotType>,
     val pearlCost: Int? = null,
-    val isPearlObject: Boolean = false
+    val isPearlObject: Boolean = false,
+    val kind: ShellRewardKind = ShellRewardKind.OBJECT,
+    val depthTier: ShellDepthTier? = null
 )
 
 enum class ShellSlotType { REEF_SHELF, SHELL_WALL, CREATURE_PERCH, CORAL_BED, TIDEPOOL_EDGE, CURRENT_PATH, CENTERPIECE, MEMORY_NOOK }
@@ -83,19 +87,19 @@ data class DiscoveryDefinition(
 enum class StillwaterPerspective { CUPS, BOWLS, TANK, POOL, LAKE, LAKE_TAHOE_PERCENT, WORLD_OCEAN_PERCENT, STREAM_TIME }
 
 object ShellContentCatalog {
-    const val FOCUS_GLOW_SHELL = "focus_glow_shell"
-    const val FOCUS_CURRENT_CONCH = "focus_current_conch"
-    const val FOCUS_ANCHOR_CORAL = "focus_anchor_coral"
-    const val FOCUS_ABYSS_LANTERNFISH = "focus_abyss_lanternfish"
-    const val FOCUS_THRESHOLD_SEAHORSE = "focus_threshold_seahorse"
-    const val FOCUS_RETURN_TURTLE_STONE = "focus_return_turtle_stone"
+    const val FOCUS_MINNOW = "focus_minnow"
+    const val FOCUS_SEAHORSE = "focus_seahorse"
+    const val FOCUS_MANTA = "focus_manta"
+    const val FOCUS_WHALE = "focus_whale"
+    const val FOCUS_OCTOPUS = "focus_octopus"
+    const val FOCUS_PEBBLE = "focus_pebble"
     const val TRINKET_SEA_GLASS_SHARD = "trinket_sea_glass_shard"
     const val TRINKET_PEARL_CLUSTER = "trinket_pearl_cluster"
-    const val FOCUS_MOON_CORAL_LIGHT = "focus_moon_coral_light"
-    const val FOCUS_SEAHORSE_PERCH = "focus_seahorse_perch"
-    const val FOCUS_REEF_PEBBLE_BED = "focus_reef_pebble_bed"
-    const val FOCUS_KELP_CURTAIN = "focus_kelp_curtain"
-    const val FOCUS_BUBBLE_TRAIL = "focus_bubble_trail"
+    const val FOCUS_LAMP = "focus_lamp"
+    const val FOCUS_PERCH = "focus_perch"
+    const val FOCUS_PEBBLES = "focus_pebbles"
+    const val FOCUS_CURTAIN = "focus_curtain"
+    const val FOCUS_BUBBLES = "focus_bubbles"
 
     val rooms = listOf(
         ShellRoomDefinition(ShellRoomId.HEART, R.string.shell_room_heart_title, R.string.shell_room_heart_description, "shell_heart", null, null),
@@ -108,45 +112,60 @@ object ShellContentCatalog {
     )
 
     val finds = listOf(
-        ShellFindDefinition(FOCUS_GLOW_SHELL, R.string.shell_find_glow_shell_title, R.string.shell_find_glow_shell_description, ShellFindCategory.SHELLS, ShellRoomId.FOCUS, "glow_shell", "glow_shell", true, true, false, setOf(ShellSlotType.REEF_SHELF, ShellSlotType.SHELL_WALL, ShellSlotType.CENTERPIECE)),
-        ShellFindDefinition(FOCUS_CURRENT_CONCH, R.string.shell_find_current_conch_title, R.string.shell_find_current_conch_description, ShellFindCategory.SHELLS, ShellRoomId.FOCUS, "current_conch", "current_conch", true, true, false, setOf(ShellSlotType.REEF_SHELF, ShellSlotType.SHELL_WALL, ShellSlotType.MEMORY_NOOK)),
-        ShellFindDefinition(FOCUS_ANCHOR_CORAL, R.string.shell_find_anchor_coral_title, R.string.shell_find_anchor_coral_description, ShellFindCategory.CORAL, ShellRoomId.FOCUS, "anchor_coral", "anchor_coral", true, true, false, setOf(ShellSlotType.CORAL_BED, ShellSlotType.CENTERPIECE)),
-        ShellFindDefinition(FOCUS_ABYSS_LANTERNFISH, R.string.shell_find_abyss_lanternfish_title, R.string.shell_find_abyss_lanternfish_description, ShellFindCategory.CREATURES, ShellRoomId.FOCUS, "abyss_lanternfish", "abyss_lanternfish", true, true, false, setOf(ShellSlotType.CREATURE_PERCH, ShellSlotType.CENTERPIECE)),
-        ShellFindDefinition(FOCUS_THRESHOLD_SEAHORSE, R.string.shell_find_threshold_seahorse_title, R.string.shell_find_threshold_seahorse_description, ShellFindCategory.CREATURES, ShellRoomId.FOCUS, "threshold_seahorse", "threshold_seahorse", true, false, false, setOf(ShellSlotType.CREATURE_PERCH, ShellSlotType.MEMORY_NOOK)),
-        ShellFindDefinition(FOCUS_RETURN_TURTLE_STONE, R.string.shell_find_return_turtle_stone_title, R.string.shell_find_return_turtle_stone_description, ShellFindCategory.TRINKETS, ShellRoomId.FOCUS, "return_turtle_stone", "return_turtle_stone", true, false, false, setOf(ShellSlotType.MEMORY_NOOK, ShellSlotType.REEF_SHELF)),
-        ShellFindDefinition(TRINKET_SEA_GLASS_SHARD, R.string.shell_find_sea_glass_title, R.string.shell_find_sea_glass_description, ShellFindCategory.TRINKETS, null, "sea_glass", "sea_glass", false, false, true, emptySet()),
-        ShellFindDefinition(TRINKET_PEARL_CLUSTER, R.string.shell_find_pearl_cluster_title, R.string.shell_find_pearl_cluster_description, ShellFindCategory.TRINKETS, null, "pearl_cluster", "pearl_cluster", false, false, true, emptySet()),
-        ShellFindDefinition(FOCUS_MOON_CORAL_LIGHT, R.string.shell_object_moon_coral_light_title, R.string.shell_object_moon_coral_light_description, ShellFindCategory.CORAL, ShellRoomId.FOCUS, "moon_coral_light", "moon_coral_light", true, false, false, setOf(ShellSlotType.SHELL_WALL, ShellSlotType.CORAL_BED, ShellSlotType.CENTERPIECE), 80, true),
-        ShellFindDefinition(FOCUS_SEAHORSE_PERCH, R.string.shell_object_seahorse_perch_title, R.string.shell_object_seahorse_perch_description, ShellFindCategory.CREATURES, ShellRoomId.FOCUS, "seahorse_perch", "seahorse_perch", true, false, false, setOf(ShellSlotType.CREATURE_PERCH, ShellSlotType.MEMORY_NOOK), 120, true),
-        ShellFindDefinition(FOCUS_REEF_PEBBLE_BED, R.string.shell_object_reef_pebble_bed_title, R.string.shell_object_reef_pebble_bed_description, ShellFindCategory.TRINKETS, ShellRoomId.FOCUS, "reef_pebble_bed", "reef_pebble_bed", true, false, false, setOf(ShellSlotType.REEF_SHELF, ShellSlotType.MEMORY_NOOK), 60, true),
-        ShellFindDefinition(FOCUS_KELP_CURTAIN, R.string.shell_object_kelp_curtain_title, R.string.shell_object_kelp_curtain_description, ShellFindCategory.PLANTS, ShellRoomId.FOCUS, "kelp_curtain", "kelp_curtain", true, false, false, setOf(ShellSlotType.CORAL_BED, ShellSlotType.SHELL_WALL), 140, true),
-        ShellFindDefinition(FOCUS_BUBBLE_TRAIL, R.string.shell_object_bubble_trail_title, R.string.shell_object_bubble_trail_description, ShellFindCategory.TRINKETS, ShellRoomId.FOCUS, "bubble_trail", "bubble_trail", true, false, false, setOf(ShellSlotType.CURRENT_PATH, ShellSlotType.CENTERPIECE, ShellSlotType.MEMORY_NOOK), 100, true)
+        ShellFindDefinition(FOCUS_MINNOW, R.string.shell_find_minnow_title, R.string.shell_find_minnow_description, ShellFindCategory.CREATURES, ShellRoomId.FOCUS, "minnow", "minnow", true, true, false, setOf(ShellSlotType.CREATURE_PERCH, ShellSlotType.TIDEPOOL_EDGE), kind = ShellRewardKind.ANIMAL, depthTier = ShellDepthTier.REEF),
+        ShellFindDefinition(FOCUS_SEAHORSE, R.string.shell_find_seahorse_title, R.string.shell_find_seahorse_description, ShellFindCategory.CREATURES, ShellRoomId.FOCUS, "seahorse", "seahorse", true, true, false, setOf(ShellSlotType.CREATURE_PERCH, ShellSlotType.TIDEPOOL_EDGE), kind = ShellRewardKind.ANIMAL, depthTier = ShellDepthTier.DEEPER_REEF),
+        ShellFindDefinition(FOCUS_MANTA, R.string.shell_find_manta_title, R.string.shell_find_manta_description, ShellFindCategory.CREATURES, ShellRoomId.FOCUS, "manta", "manta", true, true, false, setOf(ShellSlotType.CURRENT_PATH, ShellSlotType.CENTERPIECE, ShellSlotType.TIDEPOOL_EDGE), kind = ShellRewardKind.ANIMAL, depthTier = ShellDepthTier.OPEN_BLUE),
+        ShellFindDefinition(FOCUS_WHALE, R.string.shell_find_whale_title, R.string.shell_find_whale_description, ShellFindCategory.CREATURES, ShellRoomId.FOCUS, "whale", "whale", true, true, false, setOf(ShellSlotType.CURRENT_PATH, ShellSlotType.CENTERPIECE), kind = ShellRewardKind.ANIMAL, depthTier = ShellDepthTier.DEEP_OCEAN),
+        ShellFindDefinition(FOCUS_OCTOPUS, R.string.shell_find_octopus_title, R.string.shell_find_octopus_description, ShellFindCategory.CREATURES, ShellRoomId.FOCUS, "octopus", "octopus", true, true, false, setOf(ShellSlotType.CREATURE_PERCH, ShellSlotType.MEMORY_NOOK), kind = ShellRewardKind.ANIMAL),
+        ShellFindDefinition(FOCUS_PEBBLE, R.string.shell_find_pebble_title, R.string.shell_find_pebble_description, ShellFindCategory.TRINKETS, ShellRoomId.FOCUS, "pebble", "pebble", true, true, false, setOf(ShellSlotType.MEMORY_NOOK, ShellSlotType.REEF_SHELF), kind = ShellRewardKind.OBJECT),
+        ShellFindDefinition(TRINKET_SEA_GLASS_SHARD, R.string.shell_find_sea_glass_title, R.string.shell_find_sea_glass_description, ShellFindCategory.TRINKETS, null, "sea_glass", "sea_glass", false, false, true, emptySet(), kind = ShellRewardKind.TRINKET),
+        ShellFindDefinition(TRINKET_PEARL_CLUSTER, R.string.shell_find_pearl_cluster_title, R.string.shell_find_pearl_cluster_description, ShellFindCategory.TRINKETS, null, "pearl_cluster", "pearl_cluster", false, false, true, emptySet(), kind = ShellRewardKind.TRINKET),
+        ShellFindDefinition(FOCUS_LAMP, R.string.shell_object_lamp_title, R.string.shell_object_lamp_description, ShellFindCategory.CORAL, ShellRoomId.FOCUS, "lamp", "lamp", true, true, false, setOf(ShellSlotType.SHELL_WALL, ShellSlotType.CORAL_BED, ShellSlotType.CENTERPIECE), 80, true, ShellRewardKind.OBJECT),
+        ShellFindDefinition(FOCUS_PERCH, R.string.shell_object_perch_title, R.string.shell_object_perch_description, ShellFindCategory.CREATURES, ShellRoomId.FOCUS, "perch", "perch", true, false, false, setOf(ShellSlotType.CREATURE_PERCH, ShellSlotType.MEMORY_NOOK), 120, true, ShellRewardKind.OBJECT),
+        ShellFindDefinition(FOCUS_PEBBLES, R.string.shell_object_pebbles_title, R.string.shell_object_pebbles_description, ShellFindCategory.TRINKETS, ShellRoomId.FOCUS, "pebbles", "pebbles", true, false, false, setOf(ShellSlotType.REEF_SHELF, ShellSlotType.MEMORY_NOOK), 60, true, ShellRewardKind.OBJECT),
+        ShellFindDefinition(FOCUS_CURTAIN, R.string.shell_object_curtain_title, R.string.shell_object_curtain_description, ShellFindCategory.PLANTS, ShellRoomId.FOCUS, "curtain", "curtain", true, false, false, setOf(ShellSlotType.CORAL_BED, ShellSlotType.SHELL_WALL), 140, true, ShellRewardKind.OBJECT),
+        ShellFindDefinition(FOCUS_BUBBLES, R.string.shell_object_bubbles_title, R.string.shell_object_bubbles_description, ShellFindCategory.TRINKETS, ShellRoomId.FOCUS, "bubbles", "bubbles", true, false, false, setOf(ShellSlotType.CURRENT_PATH, ShellSlotType.CENTERPIECE, ShellSlotType.MEMORY_NOOK), 100, true, ShellRewardKind.OBJECT)
     )
 
     val focusSlots = listOf(
-        ShellSlotDefinition("left_reef_shelf", ShellRoomId.FOCUS, ShellSlotType.REEF_SHELF, R.string.shell_slot_left_reef_shelf, .18f, .34f, .28f, .14f, 2, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS)),
-        ShellSlotDefinition("right_reef_shelf", ShellRoomId.FOCUS, ShellSlotType.REEF_SHELF, R.string.shell_slot_right_reef_shelf, .82f, .36f, .28f, .14f, 2, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS)),
-        ShellSlotDefinition("shell_wall_nook", ShellRoomId.FOCUS, ShellSlotType.SHELL_WALL, R.string.shell_slot_shell_wall_nook, .50f, .20f, .26f, .14f, 1, setOf(ShellFindCategory.SHELLS)),
+        ShellSlotDefinition("left_reef_shelf", ShellRoomId.FOCUS, ShellSlotType.REEF_SHELF, R.string.shell_slot_left_reef_shelf, .18f, .34f, .28f, .14f, 2, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS, ShellFindCategory.CORAL)),
+        ShellSlotDefinition("right_reef_shelf", ShellRoomId.FOCUS, ShellSlotType.REEF_SHELF, R.string.shell_slot_right_reef_shelf, .82f, .36f, .28f, .14f, 2, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS, ShellFindCategory.CORAL)),
+        ShellSlotDefinition("shell_wall_nook", ShellRoomId.FOCUS, ShellSlotType.SHELL_WALL, R.string.shell_slot_shell_wall_nook, .50f, .20f, .26f, .14f, 1, setOf(ShellFindCategory.SHELLS, ShellFindCategory.CORAL, ShellFindCategory.PLANTS)),
         ShellSlotDefinition("coral_bed", ShellRoomId.FOCUS, ShellSlotType.CORAL_BED, R.string.shell_slot_coral_bed, .26f, .72f, .30f, .16f, 4, setOf(ShellFindCategory.CORAL, ShellFindCategory.PLANTS)),
         ShellSlotDefinition("creature_perch_left", ShellRoomId.FOCUS, ShellSlotType.CREATURE_PERCH, R.string.shell_slot_creature_perch_left, .24f, .52f, .24f, .14f, 3, setOf(ShellFindCategory.CREATURES)),
         ShellSlotDefinition("creature_perch_right", ShellRoomId.FOCUS, ShellSlotType.CREATURE_PERCH, R.string.shell_slot_creature_perch_right, .76f, .54f, .24f, .14f, 3, setOf(ShellFindCategory.CREATURES)),
-        ShellSlotDefinition("center_focus_nook", ShellRoomId.FOCUS, ShellSlotType.CENTERPIECE, R.string.shell_slot_center_focus_nook, .50f, .58f, .32f, .18f, 5, setOf(ShellFindCategory.SHELLS, ShellFindCategory.CORAL, ShellFindCategory.CREATURES, ShellFindCategory.TROPHIES)),
+        ShellSlotDefinition("center_focus_nook", ShellRoomId.FOCUS, ShellSlotType.CENTERPIECE, R.string.shell_slot_center_focus_nook, .50f, .58f, .32f, .18f, 5, setOf(ShellFindCategory.SHELLS, ShellFindCategory.CORAL, ShellFindCategory.CREATURES, ShellFindCategory.TROPHIES, ShellFindCategory.TRINKETS)),
         ShellSlotDefinition("memory_nook", ShellRoomId.FOCUS, ShellSlotType.MEMORY_NOOK, R.string.shell_slot_memory_nook, .50f, .80f, .30f, .14f, 6, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS, ShellFindCategory.DISCOVERIES, ShellFindCategory.CREATURES))
     )
 
     val upgrades = listOf(
-        ShellFindUpgradeDefinition("focus_glow_shell_form_1", FOCUS_GLOW_SHELL, 0, R.string.shell_find_glow_shell_title, R.string.shell_upgrade_glow_1_description, "glow_shell", "glow_shell", 0, R.string.shell_action_brighten),
-        ShellFindUpgradeDefinition("focus_glow_shell_form_2", FOCUS_GLOW_SHELL, 1, R.string.shell_upgrade_glow_2_title, R.string.shell_upgrade_glow_2_description, "bright_glow_shell", "bright_glow_shell", 80, R.string.shell_action_brighten),
-        ShellFindUpgradeDefinition("focus_glow_shell_form_3", FOCUS_GLOW_SHELL, 2, R.string.shell_upgrade_glow_3_title, R.string.shell_upgrade_glow_3_description, "living_glow_shell", "living_glow_shell", 160, R.string.shell_action_awaken),
-        ShellFindUpgradeDefinition("focus_current_conch_form_1", FOCUS_CURRENT_CONCH, 0, R.string.shell_find_current_conch_title, R.string.shell_upgrade_conch_1_description, "current_conch", "current_conch", 0, R.string.shell_action_enrich),
-        ShellFindUpgradeDefinition("focus_current_conch_form_2", FOCUS_CURRENT_CONCH, 1, R.string.shell_upgrade_conch_2_title, R.string.shell_upgrade_conch_2_description, "singing_current_conch", "singing_current_conch", 100, R.string.shell_action_enrich),
-        ShellFindUpgradeDefinition("focus_current_conch_form_3", FOCUS_CURRENT_CONCH, 2, R.string.shell_upgrade_conch_3_title, R.string.shell_upgrade_conch_3_description, "echoing_current_conch", "echoing_current_conch", 200, R.string.shell_action_awaken),
-        ShellFindUpgradeDefinition("focus_anchor_coral_form_1", FOCUS_ANCHOR_CORAL, 0, R.string.shell_find_anchor_coral_title, R.string.shell_upgrade_coral_1_description, "anchor_coral", "anchor_coral", 0, R.string.shell_action_grow),
-        ShellFindUpgradeDefinition("focus_anchor_coral_form_2", FOCUS_ANCHOR_CORAL, 1, R.string.shell_upgrade_coral_2_title, R.string.shell_upgrade_coral_2_description, "rooted_anchor_coral", "rooted_anchor_coral", 120, R.string.shell_action_grow),
-        ShellFindUpgradeDefinition("focus_anchor_coral_form_3", FOCUS_ANCHOR_CORAL, 2, R.string.shell_upgrade_coral_3_title, R.string.shell_upgrade_coral_3_description, "guardian_anchor_coral", "guardian_anchor_coral", 240, R.string.shell_action_awaken),
-        ShellFindUpgradeDefinition("focus_abyss_lanternfish_form_1", FOCUS_ABYSS_LANTERNFISH, 0, R.string.shell_find_abyss_lanternfish_title, R.string.shell_upgrade_lantern_1_description, "abyss_lanternfish", "abyss_lanternfish", 0, R.string.shell_action_brighten),
-        ShellFindUpgradeDefinition("focus_abyss_lanternfish_form_2", FOCUS_ABYSS_LANTERNFISH, 1, R.string.shell_upgrade_lantern_2_title, R.string.shell_upgrade_lantern_2_description, "radiant_abyss_lanternfish", "radiant_abyss_lanternfish", 180, R.string.shell_action_brighten),
-        ShellFindUpgradeDefinition("focus_abyss_lanternfish_form_3", FOCUS_ABYSS_LANTERNFISH, 2, R.string.shell_upgrade_lantern_3_title, R.string.shell_upgrade_lantern_3_description, "elder_abyss_lanternfish", "elder_abyss_lanternfish", 320, R.string.shell_action_awaken)
+        ShellFindUpgradeDefinition("focus_minnow_base", FOCUS_MINNOW, 0, R.string.shell_form_base, R.string.shell_upgrade_minnow_base_description, "minnow", "minnow", 0, R.string.shell_action_brighten),
+        ShellFindUpgradeDefinition("focus_minnow_bright", FOCUS_MINNOW, 1, R.string.shell_form_bright, R.string.shell_upgrade_minnow_bright_description, "minnow_bright", "minnow_bright", 80, R.string.shell_action_brighten),
+        ShellFindUpgradeDefinition("focus_minnow_glimmer", FOCUS_MINNOW, 2, R.string.shell_form_glimmer, R.string.shell_upgrade_minnow_glimmer_description, "minnow_glimmer", "minnow_glimmer", 160, R.string.shell_action_brighten),
+        ShellFindUpgradeDefinition("focus_minnow_luminous", FOCUS_MINNOW, 3, R.string.shell_form_luminous, R.string.shell_upgrade_minnow_luminous_description, "minnow_luminous", "minnow_luminous", 260, R.string.shell_action_awaken),
+        ShellFindUpgradeDefinition("focus_seahorse_base", FOCUS_SEAHORSE, 0, R.string.shell_form_base, R.string.shell_upgrade_seahorse_base_description, "seahorse", "seahorse", 0, R.string.shell_action_brighten),
+        ShellFindUpgradeDefinition("focus_seahorse_bright", FOCUS_SEAHORSE, 1, R.string.shell_form_bright, R.string.shell_upgrade_seahorse_bright_description, "seahorse_bright", "seahorse_bright", 100, R.string.shell_action_brighten),
+        ShellFindUpgradeDefinition("focus_seahorse_glimmer", FOCUS_SEAHORSE, 2, R.string.shell_form_glimmer, R.string.shell_upgrade_seahorse_glimmer_description, "seahorse_glimmer", "seahorse_glimmer", 200, R.string.shell_action_brighten),
+        ShellFindUpgradeDefinition("focus_seahorse_crowned", FOCUS_SEAHORSE, 3, R.string.shell_form_crowned, R.string.shell_upgrade_seahorse_crowned_description, "seahorse_crowned", "seahorse_crowned", 320, R.string.shell_action_awaken),
+        ShellFindUpgradeDefinition("focus_manta_base", FOCUS_MANTA, 0, R.string.shell_form_base, R.string.shell_upgrade_manta_base_description, "manta", "manta", 0, R.string.shell_action_brighten),
+        ShellFindUpgradeDefinition("focus_manta_bright", FOCUS_MANTA, 1, R.string.shell_form_bright, R.string.shell_upgrade_manta_bright_description, "manta_bright", "manta_bright", 120, R.string.shell_action_brighten),
+        ShellFindUpgradeDefinition("focus_manta_moonlit", FOCUS_MANTA, 2, R.string.shell_form_moonlit, R.string.shell_upgrade_manta_moonlit_description, "manta_moonlit", "manta_moonlit", 240, R.string.shell_action_awaken),
+        ShellFindUpgradeDefinition("focus_manta_radiant", FOCUS_MANTA, 3, R.string.shell_form_radiant, R.string.shell_upgrade_manta_radiant_description, "manta_radiant", "manta_radiant", 380, R.string.shell_action_awaken),
+        ShellFindUpgradeDefinition("focus_whale_base", FOCUS_WHALE, 0, R.string.shell_form_base, R.string.shell_upgrade_whale_base_description, "whale", "whale", 0, R.string.shell_action_deepen),
+        ShellFindUpgradeDefinition("focus_whale_deep", FOCUS_WHALE, 1, R.string.shell_form_deep, R.string.shell_upgrade_whale_deep_description, "whale_deep", "whale_deep", 180, R.string.shell_action_deepen),
+        ShellFindUpgradeDefinition("focus_whale_elder", FOCUS_WHALE, 2, R.string.shell_form_elder, R.string.shell_upgrade_whale_elder_description, "whale_elder", "whale_elder", 320, R.string.shell_action_awaken),
+        ShellFindUpgradeDefinition("focus_whale_ancient", FOCUS_WHALE, 3, R.string.shell_form_ancient, R.string.shell_upgrade_whale_ancient_description, "whale_ancient", "whale_ancient", 520, R.string.shell_action_awaken),
+        ShellFindUpgradeDefinition("focus_octopus_base", FOCUS_OCTOPUS, 0, R.string.shell_form_base, R.string.shell_upgrade_octopus_base_description, "octopus", "octopus", 0, R.string.shell_action_brighten),
+        ShellFindUpgradeDefinition("focus_octopus_glimmer", FOCUS_OCTOPUS, 1, R.string.shell_form_glimmer, R.string.shell_upgrade_octopus_glimmer_description, "octopus_glimmer", "octopus_glimmer", 120, R.string.shell_action_brighten),
+        ShellFindUpgradeDefinition("focus_octopus_crowned", FOCUS_OCTOPUS, 2, R.string.shell_form_crowned, R.string.shell_upgrade_octopus_crowned_description, "octopus_crowned", "octopus_crowned", 260, R.string.shell_action_awaken),
+        ShellFindUpgradeDefinition("focus_octopus_oracle", FOCUS_OCTOPUS, 3, R.string.shell_form_oracle, R.string.shell_upgrade_octopus_oracle_description, "octopus_oracle", "octopus_oracle", 420, R.string.shell_action_awaken),
+        ShellFindUpgradeDefinition("focus_pebble_base", FOCUS_PEBBLE, 0, R.string.shell_form_base, R.string.shell_upgrade_pebble_base_description, "pebble", "pebble", 0, R.string.shell_action_polish),
+        ShellFindUpgradeDefinition("focus_pebble_polished", FOCUS_PEBBLE, 1, R.string.shell_form_polished, R.string.shell_upgrade_pebble_polished_description, "pebble_polished", "pebble_polished", 60, R.string.shell_action_polish),
+        ShellFindUpgradeDefinition("focus_pebble_tidemarked", FOCUS_PEBBLE, 2, R.string.shell_form_tidemarked, R.string.shell_upgrade_pebble_tidemarked_description, "pebble_tidemarked", "pebble_tidemarked", 140, R.string.shell_action_polish),
+        ShellFindUpgradeDefinition("focus_pebble_moonlit", FOCUS_PEBBLE, 3, R.string.shell_form_moonlit, R.string.shell_upgrade_pebble_moonlit_description, "pebble_moonlit", "pebble_moonlit", 260, R.string.shell_action_awaken),
+        ShellFindUpgradeDefinition("focus_lamp_base", FOCUS_LAMP, 0, R.string.shell_form_base, R.string.shell_upgrade_lamp_base_description, "lamp", "lamp", 0, R.string.shell_action_brighten),
+        ShellFindUpgradeDefinition("focus_lamp_bright", FOCUS_LAMP, 1, R.string.shell_form_bright, R.string.shell_upgrade_lamp_bright_description, "lamp_bright", "lamp_bright", 80, R.string.shell_action_brighten),
+        ShellFindUpgradeDefinition("focus_lamp_moonlit", FOCUS_LAMP, 2, R.string.shell_form_moonlit, R.string.shell_upgrade_lamp_moonlit_description, "lamp_moonlit", "lamp_moonlit", 160, R.string.shell_action_awaken)
     )
 
     val badges = listOf(
@@ -161,8 +180,8 @@ object ShellContentCatalog {
     val discoveries = listOf(
         DiscoveryDefinition("discovery_sea_glass_shard", R.string.shell_find_sea_glass_title, R.string.shell_discovery_sea_glass_reveal, R.string.shell_discovery_sea_glass_explanation, null, TRINKET_SEA_GLASS_SHARD, "sea_glass", false),
         DiscoveryDefinition("discovery_pearl_cluster", R.string.shell_find_pearl_cluster_title, R.string.shell_discovery_pearl_cluster_reveal, R.string.shell_discovery_pearl_cluster_explanation, null, TRINKET_PEARL_CLUSTER, "pearl_cluster", false),
-        DiscoveryDefinition("discovery_threshold_seahorse", R.string.shell_find_threshold_seahorse_title, R.string.shell_discovery_threshold_reveal, R.string.shell_discovery_threshold_explanation, ShellRoomId.FOCUS, FOCUS_THRESHOLD_SEAHORSE, "threshold_seahorse", true),
-        DiscoveryDefinition("discovery_return_turtle_stone", R.string.shell_find_return_turtle_stone_title, R.string.shell_discovery_return_reveal, R.string.shell_discovery_return_explanation, ShellRoomId.FOCUS, FOCUS_RETURN_TURTLE_STONE, "return_turtle_stone", true)
+        DiscoveryDefinition("discovery_octopus", R.string.shell_find_octopus_title, R.string.shell_discovery_octopus_reveal, R.string.shell_discovery_octopus_explanation, ShellRoomId.FOCUS, FOCUS_OCTOPUS, "octopus", true),
+        DiscoveryDefinition("discovery_pebble", R.string.shell_find_pebble_title, R.string.shell_discovery_pebble_reveal, R.string.shell_discovery_pebble_explanation, ShellRoomId.FOCUS, FOCUS_PEBBLE, "pebble", true)
     )
 
     val focusPearlObjects = finds.filter { it.isPearlObject && it.primaryRoomId == ShellRoomId.FOCUS }
