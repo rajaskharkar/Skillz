@@ -29,8 +29,7 @@ class ShellRewardOrchestrator @Inject constructor(
             if (!shellRepository.addStillwater(units, "session", sourceId)) {
                 return ShellRewardResult()
             }
-            shellRepository.incrementBadge("badge_soft_flow")
-            ShellRewardResult(stillwaterUnits = units, badgeIds = listOf("badge_soft_flow"))
+            ShellRewardResult(stillwaterUnits = units)
         } else {
             val grantedFinds = mutableListOf<String>()
             val badges = mutableListOf<String>()
@@ -41,7 +40,7 @@ class ShellRewardOrchestrator @Inject constructor(
             }
 
             suspend fun badge(id: String) { shellRepository.incrementBadge(id); badges += id }
-            suspend fun grant(findId: String) { if (shellRepository.grantFindOnce(findId, "session", sourceId) != null) grantedFinds += findId }
+            suspend fun grant(findId: String) { shellRepository.grantFindCopy(findId, "session", sourceId); grantedFinds += findId }
 
             if (minutes >= 10) { badge("badge_flow_10_min"); grant(ShellContentCatalog.FOCUS_GLOW_SHELL) }
             if (minutes >= 30) { badge("badge_flow_30_min"); grant(ShellContentCatalog.FOCUS_CURRENT_CONCH) }

@@ -27,7 +27,9 @@ data class ShellFindDefinition(
     val placeable: Boolean,
     val upgradeable: Boolean,
     val stackable: Boolean,
-    val acceptedSlotTypes: Set<ShellSlotType>
+    val acceptedSlotTypes: Set<ShellSlotType>,
+    val pearlCost: Int? = null,
+    val isPearlObject: Boolean = false
 )
 
 enum class ShellSlotType { REEF_SHELF, SHELL_WALL, CREATURE_PERCH, CORAL_BED, TIDEPOOL_EDGE, CURRENT_PATH, CENTERPIECE, MEMORY_NOOK }
@@ -36,6 +38,7 @@ data class ShellSlotDefinition(
     val slotId: String,
     val roomId: ShellRoomId,
     val slotType: ShellSlotType,
+    @StringRes val titleRes: Int,
     val anchorX: Float,
     val anchorY: Float,
     val widthFraction: Float,
@@ -88,6 +91,11 @@ object ShellContentCatalog {
     const val FOCUS_RETURN_TURTLE_STONE = "focus_return_turtle_stone"
     const val TRINKET_SEA_GLASS_SHARD = "trinket_sea_glass_shard"
     const val TRINKET_PEARL_CLUSTER = "trinket_pearl_cluster"
+    const val FOCUS_MOON_CORAL_LIGHT = "focus_moon_coral_light"
+    const val FOCUS_SEAHORSE_PERCH = "focus_seahorse_perch"
+    const val FOCUS_REEF_PEBBLE_BED = "focus_reef_pebble_bed"
+    const val FOCUS_KELP_CURTAIN = "focus_kelp_curtain"
+    const val FOCUS_BUBBLE_TRAIL = "focus_bubble_trail"
 
     val rooms = listOf(
         ShellRoomDefinition(ShellRoomId.HEART, R.string.shell_room_heart_title, R.string.shell_room_heart_description, "shell_heart", null, null),
@@ -107,18 +115,23 @@ object ShellContentCatalog {
         ShellFindDefinition(FOCUS_THRESHOLD_SEAHORSE, R.string.shell_find_threshold_seahorse_title, R.string.shell_find_threshold_seahorse_description, ShellFindCategory.CREATURES, ShellRoomId.FOCUS, "threshold_seahorse", "threshold_seahorse", true, false, false, setOf(ShellSlotType.CREATURE_PERCH, ShellSlotType.MEMORY_NOOK)),
         ShellFindDefinition(FOCUS_RETURN_TURTLE_STONE, R.string.shell_find_return_turtle_stone_title, R.string.shell_find_return_turtle_stone_description, ShellFindCategory.TRINKETS, ShellRoomId.FOCUS, "return_turtle_stone", "return_turtle_stone", true, false, false, setOf(ShellSlotType.MEMORY_NOOK, ShellSlotType.REEF_SHELF)),
         ShellFindDefinition(TRINKET_SEA_GLASS_SHARD, R.string.shell_find_sea_glass_title, R.string.shell_find_sea_glass_description, ShellFindCategory.TRINKETS, null, "sea_glass", "sea_glass", false, false, true, emptySet()),
-        ShellFindDefinition(TRINKET_PEARL_CLUSTER, R.string.shell_find_pearl_cluster_title, R.string.shell_find_pearl_cluster_description, ShellFindCategory.TRINKETS, null, "pearl_cluster", "pearl_cluster", false, false, true, emptySet())
+        ShellFindDefinition(TRINKET_PEARL_CLUSTER, R.string.shell_find_pearl_cluster_title, R.string.shell_find_pearl_cluster_description, ShellFindCategory.TRINKETS, null, "pearl_cluster", "pearl_cluster", false, false, true, emptySet()),
+        ShellFindDefinition(FOCUS_MOON_CORAL_LIGHT, R.string.shell_object_moon_coral_light_title, R.string.shell_object_moon_coral_light_description, ShellFindCategory.CORAL, ShellRoomId.FOCUS, "moon_coral_light", "moon_coral_light", true, false, false, setOf(ShellSlotType.SHELL_WALL, ShellSlotType.CORAL_BED, ShellSlotType.CENTERPIECE), 80, true),
+        ShellFindDefinition(FOCUS_SEAHORSE_PERCH, R.string.shell_object_seahorse_perch_title, R.string.shell_object_seahorse_perch_description, ShellFindCategory.CREATURES, ShellRoomId.FOCUS, "seahorse_perch", "seahorse_perch", true, false, false, setOf(ShellSlotType.CREATURE_PERCH, ShellSlotType.MEMORY_NOOK), 120, true),
+        ShellFindDefinition(FOCUS_REEF_PEBBLE_BED, R.string.shell_object_reef_pebble_bed_title, R.string.shell_object_reef_pebble_bed_description, ShellFindCategory.TRINKETS, ShellRoomId.FOCUS, "reef_pebble_bed", "reef_pebble_bed", true, false, false, setOf(ShellSlotType.REEF_SHELF, ShellSlotType.MEMORY_NOOK), 60, true),
+        ShellFindDefinition(FOCUS_KELP_CURTAIN, R.string.shell_object_kelp_curtain_title, R.string.shell_object_kelp_curtain_description, ShellFindCategory.PLANTS, ShellRoomId.FOCUS, "kelp_curtain", "kelp_curtain", true, false, false, setOf(ShellSlotType.CORAL_BED, ShellSlotType.SHELL_WALL), 140, true),
+        ShellFindDefinition(FOCUS_BUBBLE_TRAIL, R.string.shell_object_bubble_trail_title, R.string.shell_object_bubble_trail_description, ShellFindCategory.TRINKETS, ShellRoomId.FOCUS, "bubble_trail", "bubble_trail", true, false, false, setOf(ShellSlotType.CURRENT_PATH, ShellSlotType.CENTERPIECE, ShellSlotType.MEMORY_NOOK), 100, true)
     )
 
     val focusSlots = listOf(
-        ShellSlotDefinition("left_reef_shelf", ShellRoomId.FOCUS, ShellSlotType.REEF_SHELF, .18f, .34f, .28f, .14f, 2, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS)),
-        ShellSlotDefinition("right_reef_shelf", ShellRoomId.FOCUS, ShellSlotType.REEF_SHELF, .82f, .36f, .28f, .14f, 2, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS)),
-        ShellSlotDefinition("shell_wall_nook", ShellRoomId.FOCUS, ShellSlotType.SHELL_WALL, .50f, .20f, .26f, .14f, 1, setOf(ShellFindCategory.SHELLS)),
-        ShellSlotDefinition("coral_bed", ShellRoomId.FOCUS, ShellSlotType.CORAL_BED, .26f, .72f, .30f, .16f, 4, setOf(ShellFindCategory.CORAL, ShellFindCategory.PLANTS)),
-        ShellSlotDefinition("creature_perch_left", ShellRoomId.FOCUS, ShellSlotType.CREATURE_PERCH, .24f, .52f, .24f, .14f, 3, setOf(ShellFindCategory.CREATURES)),
-        ShellSlotDefinition("creature_perch_right", ShellRoomId.FOCUS, ShellSlotType.CREATURE_PERCH, .76f, .54f, .24f, .14f, 3, setOf(ShellFindCategory.CREATURES)),
-        ShellSlotDefinition("center_focus_nook", ShellRoomId.FOCUS, ShellSlotType.CENTERPIECE, .50f, .58f, .32f, .18f, 5, setOf(ShellFindCategory.SHELLS, ShellFindCategory.CORAL, ShellFindCategory.CREATURES, ShellFindCategory.TROPHIES)),
-        ShellSlotDefinition("memory_nook", ShellRoomId.FOCUS, ShellSlotType.MEMORY_NOOK, .50f, .80f, .30f, .14f, 6, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS, ShellFindCategory.DISCOVERIES, ShellFindCategory.CREATURES))
+        ShellSlotDefinition("left_reef_shelf", ShellRoomId.FOCUS, ShellSlotType.REEF_SHELF, R.string.shell_slot_left_reef_shelf, .18f, .34f, .28f, .14f, 2, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS)),
+        ShellSlotDefinition("right_reef_shelf", ShellRoomId.FOCUS, ShellSlotType.REEF_SHELF, R.string.shell_slot_right_reef_shelf, .82f, .36f, .28f, .14f, 2, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS)),
+        ShellSlotDefinition("shell_wall_nook", ShellRoomId.FOCUS, ShellSlotType.SHELL_WALL, R.string.shell_slot_shell_wall_nook, .50f, .20f, .26f, .14f, 1, setOf(ShellFindCategory.SHELLS)),
+        ShellSlotDefinition("coral_bed", ShellRoomId.FOCUS, ShellSlotType.CORAL_BED, R.string.shell_slot_coral_bed, .26f, .72f, .30f, .16f, 4, setOf(ShellFindCategory.CORAL, ShellFindCategory.PLANTS)),
+        ShellSlotDefinition("creature_perch_left", ShellRoomId.FOCUS, ShellSlotType.CREATURE_PERCH, R.string.shell_slot_creature_perch_left, .24f, .52f, .24f, .14f, 3, setOf(ShellFindCategory.CREATURES)),
+        ShellSlotDefinition("creature_perch_right", ShellRoomId.FOCUS, ShellSlotType.CREATURE_PERCH, R.string.shell_slot_creature_perch_right, .76f, .54f, .24f, .14f, 3, setOf(ShellFindCategory.CREATURES)),
+        ShellSlotDefinition("center_focus_nook", ShellRoomId.FOCUS, ShellSlotType.CENTERPIECE, R.string.shell_slot_center_focus_nook, .50f, .58f, .32f, .18f, 5, setOf(ShellFindCategory.SHELLS, ShellFindCategory.CORAL, ShellFindCategory.CREATURES, ShellFindCategory.TROPHIES)),
+        ShellSlotDefinition("memory_nook", ShellRoomId.FOCUS, ShellSlotType.MEMORY_NOOK, R.string.shell_slot_memory_nook, .50f, .80f, .30f, .14f, 6, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS, ShellFindCategory.DISCOVERIES, ShellFindCategory.CREATURES))
     )
 
     val upgrades = listOf(
@@ -152,6 +165,7 @@ object ShellContentCatalog {
         DiscoveryDefinition("discovery_return_turtle_stone", R.string.shell_find_return_turtle_stone_title, R.string.shell_discovery_return_reveal, R.string.shell_discovery_return_explanation, ShellRoomId.FOCUS, FOCUS_RETURN_TURTLE_STONE, "return_turtle_stone", true)
     )
 
+    val focusPearlObjects = finds.filter { it.isPearlObject && it.primaryRoomId == ShellRoomId.FOCUS }
     fun find(findId: String) = finds.firstOrNull { it.findId == findId }
     fun badge(badgeId: String) = badges.firstOrNull { it.badgeId == badgeId }
     fun discovery(discoveryId: String) = discoveries.firstOrNull { it.discoveryId == discoveryId }

@@ -939,7 +939,7 @@
     <string name="shell_room_heart_title">Heart Room</string>
     <string name="shell_room_heart_description">A glowing chamber where Scyra rests inside The Shell.</string>
     <string name="shell_room_focus_title">Focus Room</string>
-    <string name="shell_room_focus_description">A calm reef study where regular Flows become placed Shell Finds.</string>
+    <string name="shell_room_focus_description">A calm reef study where regular Flows become displayed Shell Finds.</string>
     <string name="shell_room_stillwater_title">Stillwater Room</string>
     <string name="shell_room_stillwater_description">A quiet room where Soft Flows gather as calm water.</string>
     <string name="shell_room_voyage_title">Voyage Hall</string>
@@ -965,28 +965,28 @@
     <string name="shell_pulse_title">Shell Pulse</string>
     <string name="shell_pulse_recent">Recent Shell change: %1$d finds and fragments are resting here.</string>
     <string name="shell_pulse_mystery">Mystery hint: something stirs when a current deepens.</string>
-    <string name="shell_focus_body">Place owned Shell Finds in fixed reef slots, then shape their forms with Pearls.</string>
-    <string name="shell_focus_summary">%1$d Shell Finds are placed in the Focus Room.</string>
-    <string name="shell_empty_slot">Empty slot</string>
-    <string name="shell_empty_slot_title">Empty Reef Shelf</string>
+    <string name="shell_focus_body">Display owned Shell Finds and Room Objects in Focus nooks, then shape their forms with Pearls.</string>
+    <string name="shell_focus_summary">Displayed: %1$d. Resting in Chest: %2$d.</string>
+    <string name="shell_empty_slot">Empty nook</string>
+    <string name="shell_empty_slot_title">Empty Nook</string>
     <string name="shell_place_something_here">Place something here.</string>
-    <string name="shell_place_free">Placed from the Shell Chest with no Pearls needed.</string>
-    <string name="shell_no_owned_finds_fit">No owned Shell Finds fit this space yet.</string>
+    <string name="shell_place_free">Place from the Shell Chest with no Pearls needed.</string>
+    <string name="shell_no_owned_finds_fit">No resting Shell Finds fit this nook yet.</string>
     <string name="shell_shape_with_pearls">Shape this space with Pearls</string>
     <string name="shell_contextual_invites_preview">Moon Coral Light — 80 Pearls\nSeahorse Perch — 120 Pearls\nReef Pebble Bed — 60 Pearls</string>
-    <string name="shell_earned_from_flow">Earned from your Flow and placed in the Focus Room.</string>
+    <string name="shell_earned_from_flow">Brought back by Scyra and owned in The Shell.</string>
     <string name="shell_current_form">Current form: %1$s</string>
     <string name="shell_next_form">Next form: %1$s</string>
     <string name="shell_upgrade_with_pearls">%1$s with %2$d Pearls</string>
     <string name="shell_upgrade_a11y">Shape this Shell Find with Pearls</string>
-    <string name="shell_no_more_forms">This Shell Find is resting in its final form.</string>
-    <string name="shell_return_to_chest">Move back to Shell Chest</string>
+    <string name="shell_no_more_forms">This Shell Find is resting in its current form.</string>
+    <string name="shell_return_to_chest">Return to Chest</string>
     <string name="shell_chest_title">Shell Chest</string>
-    <string name="shell_chest_body">Everything you own inside The Shell rests here when it is not placed.</string>
+    <string name="shell_chest_body">Everything you own inside The Shell rests here when it is not displayed.</string>
     <string name="shell_filter_all">All</string>
     <string name="shell_chest_item_status">Type: %1$s. Status: %2$s.</string>
-    <string name="shell_status_placed">Placed</string>
-    <string name="shell_status_unplaced">Unplaced</string>
+    <string name="shell_status_placed">Displayed</string>
+    <string name="shell_status_unplaced">Resting</string>
     <string name="shell_stack_quantity">Gathered fragments: %1$d</string>
     <string name="shell_badges_title">Badges</string>
     <string name="shell_badges_body">Badges are records of what happened. They are not gates.</string>
@@ -1094,10 +1094,81 @@
     <string name="session_reward_shell_discovery">Discovery revealed</string>
     <string name="session_reward_shell_badges">Badges updated</string>
     <string name="session_reward_shell_badges_value">%1$d badge updates</string>
-    <string name="shell_feedback_place_success">Placed in the Focus Room.</string>
-    <string name="shell_feedback_upgrade_success">The Shell Find changed form.</string>
+    <string name="shell_feedback_place_success">Displayed in the Focus Room.</string>
+    <string name="shell_feedback_upgrade_success">Your Pearls added warmth to its light.</string>
     <string name="shell_feedback_return_success">Returned to the Shell Chest.</string>
     <string name="shell_place_in_slot">Place in %1$s</string>
     <string name="shell_compatible_slots">Compatible Focus Room slots</string>
+
+
+    <string name="shell_object_moon_coral_light_title">Moon Coral Light</string>
+    <string name="shell_object_moon_coral_light_description">A small coral lamp that warms a quiet nook.</string>
+    <string name="shell_object_seahorse_perch_title">Seahorse Perch</string>
+    <string name="shell_object_seahorse_perch_description">A gentle place where tiny visitors can pause.</string>
+    <string name="shell_object_reef_pebble_bed_title">Reef Pebble Bed</string>
+    <string name="shell_object_reef_pebble_bed_description">Smooth pebbles that make a shelf feel tended.</string>
+    <string name="shell_object_kelp_curtain_title">Kelp Curtain</string>
+    <string name="shell_object_kelp_curtain_description">Soft strands that sway at the edge of the room.</string>
+    <string name="shell_object_bubble_trail_title">Bubble Trail</string>
+    <string name="shell_object_bubble_trail_description">A small path of bubbles drifting through the chamber.</string>
+    <string name="shell_slot_left_reef_shelf">Left Reef Shelf</string>
+    <string name="shell_slot_right_reef_shelf">Right Reef Shelf</string>
+    <string name="shell_slot_shell_wall_nook">Shell Wall Nook</string>
+    <string name="shell_slot_coral_bed">Coral Bed</string>
+    <string name="shell_slot_creature_perch_left">Left Creature Perch</string>
+    <string name="shell_slot_creature_perch_right">Right Creature Perch</string>
+    <string name="shell_slot_center_focus_nook">Center Focus Nook</string>
+    <string name="shell_slot_memory_nook">Memory Nook</string>
+    <string name="shell_slot_named_title">Space: %1$s</string>
+    <string name="shell_shape_space_with_pearls">Shape this space with Pearls</string>
+    <string name="shell_invite_with_pearls">Invite with %1$d Pearls</string>
+    <string name="shell_need_more_pearls">Need %1$d more Pearls.</string>
+    <string name="shell_available_now">Available now</string>
+    <string name="shell_affordable_soon">Soon</string>
+    <string name="shell_pearl_cost">%1$d Pearls</string>
+    <string name="shell_basin_brighten_suggestion">Brighten %1$s</string>
+    <string name="shell_basin_invite_suggestion">Invite %1$s</string>
+    <string name="shell_no_available_shapes">Nothing is ready this moment. A few more Pearls will wake a new shape.</string>
+    <string name="shell_empty_slot_a11y">%1$s. Empty Focus Room space. Opens placement and Pearl shaping options.</string>
+    <string name="shell_placed_object_a11y">%1$s. Displayed in Focus Room. Opens object details.</string>
+    <string name="shell_stillwater_same_water">Same Stillwater, different view.</string>
+    <string name="shell_quiet_for_now">Quiet for now</string>
+
+
+    <string name="shell_whisper_new_discovery">Something stirred inside The Shell.</string>
+    <string name="shell_whisper_upgrade_ready">A %1$s is ready to brighten.</string>
+    <string name="shell_whisper_chest_waiting">%1$d finds are resting in the Shell Chest.</string>
+    <string name="shell_whisper_empty_focus">An empty nook waits in Focus.</string>
+
+
+    <string name="shell_heart_detail_title">Heart of The Shell</string>
+    <string name="shell_heart_pearls_gathered">Pearls gathered: %1$d</string>
+    <string name="shell_heart_finds_owned">Shell Finds owned: %1$d</string>
+    <string name="shell_heart_discoveries_awakened">Discoveries awakened: %1$d</string>
+    <string name="shell_heart_focus_objects_placed">Focus objects displayed: %1$d</string>
+
+
+    <string name="shell_discovery_reveal_title">Something stirred inside The Shell…</string>
+    <string name="shell_discovery_reveal_view">View</string>
+
+
+    <string name="shell_pearl_basin_chip_a11y">Pearl Basin. %1$d Pearls. Opens shaping suggestions.</string>
+    <string name="shell_room_active_a11y">%1$s. Active room. Opens %1$s.</string>
+    <string name="shell_room_preview_a11y">%1$s. Quiet for now. Opens preview.</string>
+    <string name="shell_heart_center_a11y">Heart of The Shell. Opens Heart detail.</string>
+    <string name="shell_heart_objects_displayed_resting">Objects displayed: %1$d. Resting in Chest: %2$d.</string>
+    <string name="shell_all_nooks_holding">All nooks are holding something. Swap, brighten, or keep gathering more in the Shell Chest. Resting in Chest: %1$d.</string>
+    <string name="shell_empty_nook_choices">Choose how this nook should change.</string>
+    <string name="shell_place_from_chest">Place from Chest</string>
+    <string name="shell_leave_empty">Leave empty</string>
+    <string name="shell_no_resting_finds_fit">No resting Shell Finds fit this nook yet.</string>
+    <string name="shell_status_displayed_focus">Displayed in Focus</string>
+    <string name="shell_status_resting">Resting in the Shell Chest</string>
+    <string name="shell_chest_group_title">%1$s ×%2$d</string>
+    <string name="shell_chest_group_status">Best form: %1$s. Displayed: %2$d. Resting: %3$d. Category: %4$s.</string>
+    <string name="shell_chest_group_a11y">%1$s. Owned: %2$d. Displayed: %3$d. Resting in Chest: %4$d.</string>
+    <string name="shell_choose_something_to_swap">Choose something to swap.</string>
+    <string name="shell_swap_with">Swap with %1$s</string>
+    <string name="shell_no_compatible_nooks">No compatible nooks yet. This copy can keep resting in the Shell Chest.</string>
 
 </resources>
