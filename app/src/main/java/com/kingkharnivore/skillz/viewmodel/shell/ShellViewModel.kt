@@ -92,13 +92,13 @@ class ShellViewModel @Inject constructor(
     fun place(instanceId: String, slotId: String) = viewModelScope.launch {
         runCatching { repository.placeInstance(instanceId, ShellRoomId.FOCUS, slotId) }
             .onSuccess { _events.emit("Placed in the Focus Room.") }
-            .onFailure { _events.emit(it.message ?: "Could not place that Shell Find.") }
+            .onFailure { _events.emit(it.message ?: "Could not display that reward.") }
     }
 
     fun returnToChest(instanceId: String) = viewModelScope.launch {
         runCatching { repository.removePlacement(instanceId) }
             .onSuccess { _events.emit("Returned to the Shell Chest.") }
-            .onFailure { _events.emit(it.message ?: "Could not return that Shell Find.") }
+            .onFailure { _events.emit(it.message ?: "Could not return that reward.") }
     }
 
     fun invitePearlObject(findId: String, slotId: String) = viewModelScope.launch {
@@ -116,7 +116,7 @@ class ShellViewModel @Inject constructor(
     fun upgrade(instanceId: String) = viewModelScope.launch {
         runCatching { repository.upgradeInstance(instanceId) }
             .onSuccess { _events.emit("Your Pearls added warmth to its light.") }
-            .onFailure { _events.emit(it.message ?: "Could not shape that Shell Find.") }
+            .onFailure { _events.emit(it.message ?: "Could not shape that reward.") }
     }
 
     fun setPerspective(perspective: StillwaterPerspective) = viewModelScope.launch {

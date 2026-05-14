@@ -90,10 +90,43 @@ class ShellContentCatalogTest {
             "Seahorse Perch",
             "Reef Pebble Bed",
             "Kelp Curtain",
-            "Bubble Trail"
+            "Bubble Trail",
+            "Pearl Cluster"
         ).forEach { retired ->
             assertFalse("Visible strings should not contain $retired", strings.contains(retired))
         }
+    }
+
+    @Test
+    fun slotCompatibility_respectsRewardKind() {
+        val creaturePerch = ShellContentCatalog.focusSlots.first { it.slotType == ShellSlotType.CREATURE_PERCH }
+        val currentPath = ShellSlotDefinition("test_current_path", ShellRoomId.FOCUS, ShellSlotType.CURRENT_PATH, 0, 0f, 0f, 0f, 0f, 0, setOf(ShellFindCategory.CREATURES, ShellFindCategory.TRINKETS))
+        val memoryNook = ShellContentCatalog.focusSlots.first { it.slotType == ShellSlotType.MEMORY_NOOK }
+        val reefShelf = ShellContentCatalog.focusSlots.first { it.slotType == ShellSlotType.REEF_SHELF }
+
+        assertTrue(ShellContentCatalog.isCompatibleWithSlot(creaturePerch, ShellContentCatalog.find(ShellContentCatalog.FOCUS_MINNOW)!!))
+        assertFalse(ShellContentCatalog.isCompatibleWithSlot(creaturePerch, ShellContentCatalog.find(ShellContentCatalog.FOCUS_BUBBLES)!!))
+        assertTrue(ShellContentCatalog.isCompatibleWithSlot(creaturePerch, ShellContentCatalog.find(ShellContentCatalog.FOCUS_PERCH)!!))
+        assertTrue(ShellContentCatalog.isCompatibleWithSlot(memoryNook, ShellContentCatalog.find(ShellContentCatalog.FOCUS_PEBBLE)!!))
+        assertTrue(ShellContentCatalog.isCompatibleWithSlot(currentPath, ShellContentCatalog.find(ShellContentCatalog.FOCUS_BUBBLES)!!))
+        assertFalse(ShellContentCatalog.isCompatibleWithSlot(reefShelf, ShellContentCatalog.find(ShellContentCatalog.FOCUS_WHALE)!!))
+    }
+
+    @Test
+    fun trinketsUseDistinctOceanNames() {
+        assertEquals("trinket_glimmer", ShellContentCatalog.TRINKET_GLIMMER)
+        assertEquals(ShellRewardKind.TRINKET, ShellContentCatalog.find(ShellContentCatalog.TRINKET_GLIMMER)?.kind)
+        assertEquals(ShellRewardKind.TRINKET, ShellContentCatalog.find(ShellContentCatalog.TRINKET_SEA_GLASS_SHARD)?.kind)
+        assertEquals(ShellContentCatalog.TRINKET_GLIMMER, ShellContentCatalog.discovery("discovery_glimmer")?.grantsFindId)
+        val strings = File("app/src/main/res/values/strings.xml").readText()
+        assertTrue(strings.contains(">Seaglass</string>"))
+        assertTrue(strings.contains(">Glimmers</string>"))
+        assertFalse(strings.contains(">Pearls</string>"))
+    }
+
+    @Test
+    fun softFlowBadgeIsHiddenFromV1Catalog() {
+        assertFalse(ShellContentCatalog.badges.any { it.badgeId == "badge_soft_flow" })
     }
 
 }

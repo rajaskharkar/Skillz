@@ -94,7 +94,7 @@ object ShellContentCatalog {
     const val FOCUS_OCTOPUS = "focus_octopus"
     const val FOCUS_PEBBLE = "focus_pebble"
     const val TRINKET_SEA_GLASS_SHARD = "trinket_sea_glass_shard"
-    const val TRINKET_PEARL_CLUSTER = "trinket_pearl_cluster"
+    const val TRINKET_GLIMMER = "trinket_glimmer"
     const val FOCUS_LAMP = "focus_lamp"
     const val FOCUS_PERCH = "focus_perch"
     const val FOCUS_PEBBLES = "focus_pebbles"
@@ -119,7 +119,7 @@ object ShellContentCatalog {
         ShellFindDefinition(FOCUS_OCTOPUS, R.string.shell_find_octopus_title, R.string.shell_find_octopus_description, ShellFindCategory.CREATURES, ShellRoomId.FOCUS, "octopus", "octopus", true, true, false, setOf(ShellSlotType.CREATURE_PERCH, ShellSlotType.MEMORY_NOOK), kind = ShellRewardKind.ANIMAL),
         ShellFindDefinition(FOCUS_PEBBLE, R.string.shell_find_pebble_title, R.string.shell_find_pebble_description, ShellFindCategory.TRINKETS, ShellRoomId.FOCUS, "pebble", "pebble", true, true, false, setOf(ShellSlotType.MEMORY_NOOK, ShellSlotType.REEF_SHELF), kind = ShellRewardKind.OBJECT),
         ShellFindDefinition(TRINKET_SEA_GLASS_SHARD, R.string.shell_find_sea_glass_title, R.string.shell_find_sea_glass_description, ShellFindCategory.TRINKETS, null, "sea_glass", "sea_glass", false, false, true, emptySet(), kind = ShellRewardKind.TRINKET),
-        ShellFindDefinition(TRINKET_PEARL_CLUSTER, R.string.shell_find_pearl_cluster_title, R.string.shell_find_pearl_cluster_description, ShellFindCategory.TRINKETS, null, "pearl_cluster", "pearl_cluster", false, false, true, emptySet(), kind = ShellRewardKind.TRINKET),
+        ShellFindDefinition(TRINKET_GLIMMER, R.string.shell_find_glimmer_title, R.string.shell_find_glimmer_description, ShellFindCategory.TRINKETS, null, "glimmer", "glimmer", false, false, true, emptySet(), kind = ShellRewardKind.TRINKET),
         ShellFindDefinition(FOCUS_LAMP, R.string.shell_object_lamp_title, R.string.shell_object_lamp_description, ShellFindCategory.CORAL, ShellRoomId.FOCUS, "lamp", "lamp", true, true, false, setOf(ShellSlotType.SHELL_WALL, ShellSlotType.CORAL_BED, ShellSlotType.CENTERPIECE), 80, true, ShellRewardKind.OBJECT),
         ShellFindDefinition(FOCUS_PERCH, R.string.shell_object_perch_title, R.string.shell_object_perch_description, ShellFindCategory.CREATURES, ShellRoomId.FOCUS, "perch", "perch", true, false, false, setOf(ShellSlotType.CREATURE_PERCH, ShellSlotType.MEMORY_NOOK), 120, true, ShellRewardKind.OBJECT),
         ShellFindDefinition(FOCUS_PEBBLES, R.string.shell_object_pebbles_title, R.string.shell_object_pebbles_description, ShellFindCategory.TRINKETS, ShellRoomId.FOCUS, "pebbles", "pebbles", true, false, false, setOf(ShellSlotType.REEF_SHELF, ShellSlotType.MEMORY_NOOK), 60, true, ShellRewardKind.OBJECT),
@@ -173,16 +173,29 @@ object ShellContentCatalog {
         BadgeDefinition("badge_flow_30_min", R.string.shell_badge_flow_30_title, R.string.shell_badge_flow_30_description, "badge_current_30", BadgeCategory.FLOW),
         BadgeDefinition("badge_flow_60_min", R.string.shell_badge_flow_60_title, R.string.shell_badge_flow_60_description, "badge_current_60", BadgeCategory.FLOW),
         BadgeDefinition("badge_flow_120_min", R.string.shell_badge_flow_120_title, R.string.shell_badge_flow_120_description, "badge_current_120", BadgeCategory.FLOW),
-        BadgeDefinition("badge_soft_flow", R.string.shell_badge_soft_title, R.string.shell_badge_soft_description, "badge_soft", BadgeCategory.SOFT_FLOW),
         BadgeDefinition("badge_discovery", R.string.shell_badge_discovery_title, R.string.shell_badge_discovery_description, "badge_discovery", BadgeCategory.DISCOVERY)
     )
 
     val discoveries = listOf(
         DiscoveryDefinition("discovery_sea_glass_shard", R.string.shell_find_sea_glass_title, R.string.shell_discovery_sea_glass_reveal, R.string.shell_discovery_sea_glass_explanation, null, TRINKET_SEA_GLASS_SHARD, "sea_glass", false),
-        DiscoveryDefinition("discovery_pearl_cluster", R.string.shell_find_pearl_cluster_title, R.string.shell_discovery_pearl_cluster_reveal, R.string.shell_discovery_pearl_cluster_explanation, null, TRINKET_PEARL_CLUSTER, "pearl_cluster", false),
+        DiscoveryDefinition("discovery_glimmer", R.string.shell_find_glimmer_title, R.string.shell_discovery_glimmer_reveal, R.string.shell_discovery_glimmer_explanation, null, TRINKET_GLIMMER, "glimmer", false),
         DiscoveryDefinition("discovery_octopus", R.string.shell_find_octopus_title, R.string.shell_discovery_octopus_reveal, R.string.shell_discovery_octopus_explanation, ShellRoomId.FOCUS, FOCUS_OCTOPUS, "octopus", true),
         DiscoveryDefinition("discovery_pebble", R.string.shell_find_pebble_title, R.string.shell_discovery_pebble_reveal, R.string.shell_discovery_pebble_explanation, ShellRoomId.FOCUS, FOCUS_PEBBLE, "pebble", true)
     )
+
+    fun isCompatibleWithSlot(slot: ShellSlotDefinition, definition: ShellFindDefinition): Boolean {
+        if (slot.slotType !in definition.acceptedSlotTypes || definition.category !in slot.acceptsCategories) return false
+        return when (slot.slotType) {
+            ShellSlotType.CREATURE_PERCH -> definition.kind == ShellRewardKind.ANIMAL || definition.findId == FOCUS_PERCH
+            ShellSlotType.CURRENT_PATH -> definition.kind == ShellRewardKind.ANIMAL || definition.findId == FOCUS_BUBBLES
+            ShellSlotType.TIDEPOOL_EDGE -> definition.kind == ShellRewardKind.ANIMAL
+            ShellSlotType.MEMORY_NOOK -> definition.kind in setOf(ShellRewardKind.OBJECT, ShellRewardKind.TRINKET, ShellRewardKind.DISCOVERY) || definition.findId == FOCUS_OCTOPUS
+            ShellSlotType.REEF_SHELF -> definition.kind in setOf(ShellRewardKind.OBJECT, ShellRewardKind.TRINKET, ShellRewardKind.DISCOVERY)
+            ShellSlotType.SHELL_WALL -> definition.kind == ShellRewardKind.OBJECT
+            ShellSlotType.CORAL_BED -> definition.kind == ShellRewardKind.OBJECT
+            ShellSlotType.CENTERPIECE -> definition.kind in setOf(ShellRewardKind.ANIMAL, ShellRewardKind.OBJECT)
+        }
+    }
 
     val focusPearlObjects = finds.filter { it.isPearlObject && it.primaryRoomId == ShellRoomId.FOCUS }
     fun find(findId: String) = finds.firstOrNull { it.findId == findId }

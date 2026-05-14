@@ -938,7 +938,7 @@
     <string name="shell_room_heart_title">Heart Room</string>
     <string name="shell_room_heart_description">A glowing chamber where Scyra rests inside The Shell.</string>
     <string name="shell_room_focus_title">Focus Room</string>
-    <string name="shell_room_focus_description">A calm reef study where regular Flows become displayed Shell Finds.</string>
+    <string name="shell_room_focus_description">A calm reef study where regular Flows become displayed Animals and Objects.</string>
     <string name="shell_room_stillwater_title">Stillwater Room</string>
     <string name="shell_room_stillwater_description">A quiet room where Soft Flows gather as calm water.</string>
     <string name="shell_room_voyage_title">Voyage Hall</string>
@@ -962,23 +962,23 @@
     <string name="shell_pearl_basin_a11y">Pearl Basin. Suggestions for shaping The Shell with Pearls.</string>
     <string name="shell_room_entrances">Room entrances</string>
     <string name="shell_pulse_title">Shell Pulse</string>
-    <string name="shell_pulse_recent">Recent Shell change: %1$d finds and fragments are resting here.</string>
+    <string name="shell_pulse_recent">%1$d things and fragments are resting in the Shell Chest.</string>
     <string name="shell_pulse_mystery">Mystery hint: something stirs when a current deepens.</string>
-    <string name="shell_focus_body">Display owned Shell Finds and Room Objects in Focus nooks, then shape their forms with Pearls.</string>
+    <string name="shell_focus_body">Display owned Animals and Objects in Focus nooks, then shape their forms with Pearls.</string>
     <string name="shell_focus_summary">Displayed: %1$d. Resting in Chest: %2$d.</string>
     <string name="shell_empty_slot">Empty nook</string>
     <string name="shell_empty_slot_title">Empty Nook</string>
     <string name="shell_place_something_here">Place something here.</string>
-    <string name="shell_place_free">Place from the Shell Chest with no Pearls needed.</string>
-    <string name="shell_no_owned_finds_fit">No resting Shell Finds fit this nook yet.</string>
+    <string name="shell_place_free">Display or place from the Shell Chest with no Pearls needed.</string>
+    <string name="shell_no_owned_finds_fit">Nothing resting in the Shell Chest fits this nook yet.</string>
     <string name="shell_shape_with_pearls">Shape this space with Pearls</string>
     <string name="shell_contextual_invites_preview">Lamp — 80 Pearls\nPerch — 120 Pearls\nPebbles — 60 Pearls</string>
     <string name="shell_earned_from_flow">Brought back by Scyra and owned in The Shell.</string>
     <string name="shell_current_form">Current form: %1$s</string>
     <string name="shell_next_form">Next form: %1$s</string>
     <string name="shell_upgrade_with_pearls">%1$s with %2$d Pearls</string>
-    <string name="shell_upgrade_a11y">Shape this Shell Find with Pearls</string>
-    <string name="shell_no_more_forms">This Shell Find is resting in its current form.</string>
+    <string name="shell_upgrade_a11y">Shape this reward with Pearls</string>
+    <string name="shell_no_more_forms">This reward is resting in its current form.</string>
     <string name="shell_return_to_chest">Return to Chest</string>
     <string name="shell_chest_title">Shell Chest</string>
     <string name="shell_chest_body">Everything you own inside The Shell rests here when it is not displayed.</string>
@@ -1028,10 +1028,8 @@
     <string name="shell_find_threshold_seahorse_description">A hidden creature that appears after crossing into a deeper current.</string>
     <string name="shell_find_return_turtle_stone_title">Pebble</string>
     <string name="shell_find_return_turtle_stone_description">A small stone that remembers return after time away.</string>
-    <string name="shell_find_sea_glass_title">Sea Glass Shard</string>
+    <string name="shell_find_sea_glass_title">Seaglass</string>
     <string name="shell_find_sea_glass_description">A softened fragment carried in by regular effort.</string>
-    <string name="shell_find_pearl_cluster_title">Pearl Cluster</string>
-    <string name="shell_find_pearl_cluster_description">A small cluster found in the quiet after focus.</string>
     <string name="shell_upgrade_glow_1_description">The Minnow rests with a gentle light.</string>
     <string name="shell_upgrade_glow_2_title">Bright</string>
     <string name="shell_upgrade_glow_2_description">The Minnow brightened. Your Pearls added warmth to its light.</string>
@@ -1060,14 +1058,10 @@
     <string name="shell_badge_flow_60_description">Earned each time a regular Flow lasts 60 minutes or more.</string>
     <string name="shell_badge_flow_120_title">2-hour Flow</string>
     <string name="shell_badge_flow_120_description">Earned each time a regular Flow lasts 2 hours or more.</string>
-    <string name="shell_badge_soft_title">Soft Flow</string>
-    <string name="shell_badge_soft_description">Recorded each time a Soft Flow completes. Soft Flows add Stillwater only.</string>
     <string name="shell_badge_discovery_title">Discovery Awakened</string>
     <string name="shell_badge_discovery_description">Earned each time The Shell records a new discovery.</string>
     <string name="shell_discovery_sea_glass_reveal">A Sea Glass Shard was found through regular Flow activity.</string>
     <string name="shell_discovery_sea_glass_explanation">Discovered because regular effort softened a small fragment into something worth keeping.</string>
-    <string name="shell_discovery_pearl_cluster_reveal">A Pearl Cluster was found through regular Flow activity.</string>
-    <string name="shell_discovery_pearl_cluster_explanation">Discovered because steady focus left a small glow behind.</string>
     <string name="shell_discovery_threshold_reveal">An Octopus appeared near the Focus Room.</string>
     <string name="shell_discovery_threshold_explanation">Discovered after you pushed past your usual stopping point and crossed into a deeper current. The Shell noticed. The Focus Room grew quieter, deeper, and more alive.</string>
     <string name="shell_discovery_return_reveal">A Pebble found its way into The Shell.</string>
@@ -1115,15 +1109,15 @@
     <string name="shell_quiet_for_now">Quiet for now</string>
 
 
-    <string name="shell_whisper_new_discovery">Octopus discovered after crossing 30 minutes.</string>
+    <string name="shell_whisper_new_discovery">Octopus discovered after 3 regular Flows lasting 30 minutes or more.</string>
     <string name="shell_whisper_upgrade_ready">%1$s can brighten — you have enough Pearls.</string>
-    <string name="shell_whisper_chest_waiting">%1$d finds are resting in the Shell Chest.</string>
+    <string name="shell_whisper_chest_waiting">%1$d things are resting in the Shell Chest.</string>
     <string name="shell_whisper_empty_focus">Focus has empty nooks.</string>
 
 
     <string name="shell_heart_detail_title">Heart of The Shell</string>
     <string name="shell_heart_pearls_gathered">Pearls gathered: %1$d</string>
-    <string name="shell_heart_finds_owned">Shell Finds owned: %1$d</string>
+    <string name="shell_heart_finds_owned">Owned in The Shell: %1$d</string>
     <string name="shell_heart_discoveries_awakened">Discoveries awakened: %1$d</string>
     <string name="shell_heart_focus_objects_placed">Focus objects displayed: %1$d</string>
 
@@ -1139,9 +1133,9 @@
     <string name="shell_heart_objects_displayed_resting">Objects displayed: %1$d. Resting in Chest: %2$d.</string>
     <string name="shell_all_nooks_holding">All nooks are holding something. Swap, brighten, or keep gathering more in the Shell Chest. Resting in Chest: %1$d.</string>
     <string name="shell_empty_nook_choices">Choose how this nook should change.</string>
-    <string name="shell_place_from_chest">Place from Chest</string>
+    <string name="shell_place_from_chest">Display or place from Chest</string>
     <string name="shell_leave_empty">Leave empty</string>
-    <string name="shell_no_resting_finds_fit">No resting Shell Finds fit this nook yet.</string>
+    <string name="shell_no_resting_finds_fit">Nothing resting in the Shell Chest fits this nook yet.</string>
     <string name="shell_status_displayed_focus">Displayed in Focus</string>
     <string name="shell_status_resting">Resting in the Shell Chest</string>
     <string name="shell_chest_group_title">%1$s ×%2$d</string>

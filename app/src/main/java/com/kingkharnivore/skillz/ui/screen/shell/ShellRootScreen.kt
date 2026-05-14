@@ -162,13 +162,13 @@ private fun hasDisplayedAffordableUpgrade(uiState: ShellUiState): Boolean {
     }
 }
 
-private fun hasEmptyNookForRestingObject(uiState: ShellUiState): Boolean {
+private fun hasEmptyNookForNewRestingObject(uiState: ShellUiState): Boolean {
     val occupied = uiState.focusPlacements.map { it.slotId }.toSet()
     val emptySlots = ShellContentCatalog.focusSlots.filter { it.slotId !in occupied }
     if (emptySlots.isEmpty()) return false
     return restingFinds(uiState).any { item ->
         val def = ShellContentCatalog.find(item.findId) ?: return@any false
-        def.placeable && emptySlots.any { slot -> slot.slotType in def.acceptedSlotTypes && def.category in slot.acceptsCategories }
+        item.isNew && def.placeable && emptySlots.any { slot -> ShellContentCatalog.isCompatibleWithSlot(slot, def) }
     }
 }
 
@@ -221,6 +221,32 @@ private fun notificationBodyFor(def: ShellFindDefinition): String {
     val depth = depthLabel(def.depthTier)
     val reason = sourceReasonFor(def)
     return if (depth != null) stringResource(R.string.shell_notification_depth_body, depth, reason) else reason
+}
+
+@Composable
+private fun returnToChestLabel(def: ShellFindDefinition?): String = when (def?.kind) {
+    ShellRewardKind.ANIMAL -> stringResource(R.string.shell_let_rest_in_chest)
+    else -> stringResource(R.string.shell_return_to_chest)
+}
+
+@Composable
+private fun placeInFocusLabel(def: ShellFindDefinition?): String = when (def?.kind) {
+    ShellRewardKind.ANIMAL -> stringResource(R.string.shell_display_in_focus)
+    else -> stringResource(R.string.shell_place_in_focus)
+}
+
+@Composable
+private fun restingCurrentFormLabel(def: ShellFindDefinition?): String = when (def?.kind) {
+    ShellRewardKind.ANIMAL -> stringResource(R.string.shell_animal_no_more_forms)
+    ShellRewardKind.OBJECT -> stringResource(R.string.shell_object_no_more_forms)
+    else -> stringResource(R.string.shell_reward_no_more_forms)
+}
+
+@Composable
+private fun upgradeA11yLabel(def: ShellFindDefinition?): String = when (def?.kind) {
+    ShellRewardKind.ANIMAL -> stringResource(R.string.shell_upgrade_animal_a11y)
+    ShellRewardKind.OBJECT -> stringResource(R.string.shell_upgrade_object_a11y)
+    else -> stringResource(R.string.shell_upgrade_reward_a11y)
 }
 
 @Composable
@@ -495,7 +521,7 @@ private fun HeartRoomScreen(
     val chestHasIndicator = restingFinds(uiState).any { it.isNew } || uiState.stacks.any { it.isNew }
     val hasNewDiscovery = uiState.discoveries.any { it.isNew }
     val focusChanged = hasDisplayedAffordableUpgrade(uiState) ||
-            hasEmptyNookForRestingObject(uiState) ||
+            hasEmptyNookForNewRestingObject(uiState) ||
             uiState.finds.any { it.isNew && it.instanceId in displayedIds }
 
     Box(
@@ -1141,9 +1167,10 @@ private fun PearlBasinSheet(
                 val next = ShellContentCatalog.nextUpgrade(def.findId, item.currentUpgradeStageId) ?: return@mapNotNull null
                 Triple(item, def, next)
             }.sortedBy { it.third.pearlCost }
+            val displayedUpgradeSuggestions = upgradeSuggestions.filter { it.first.instanceId in displayedIds }
             val objectSuggestions = ShellContentCatalog.focusPearlObjects
                 .sortedBy { it.pearlCost ?: Int.MAX_VALUE }
-            val allCosts = upgradeSuggestions.map { it.third.pearlCost } + objectSuggestions.mapNotNull { it.pearlCost }
+            val allCosts = displayedUpgradeSuggestions.map { it.third.pearlCost } + objectSuggestions.mapNotNull { it.pearlCost }
             val hasAvailable = allCosts.any { it <= uiState.pearlBalance }
 
             Text(
@@ -1151,11 +1178,11 @@ private fun PearlBasinSheet(
                 fontWeight = FontWeight.SemiBold
             )
             if (hasAvailable) {
-                upgradeSuggestions.filter { it.third.pearlCost <= uiState.pearlBalance }.take(2).forEach { (item, def, next) ->
+                displayedUpgradeSuggestions.filter { it.third.pearlCost <= uiState.pearlBalance }.take(2).forEach { (item, def, next) ->
                     SuggestionRow(
                         title = stringResource(R.string.shell_basin_brighten_suggestion, stringResource(def.titleRes)),
                         cost = next.pearlCost,
-                        onClick = if (item.instanceId in displayedIds) onOpenObject else onOpenChest
+                        onClick = onOpenObject
                     )
                 }
                 objectSuggestions.filter { (it.pearlCost ?: 0) <= uiState.pearlBalance }.take(2).forEach { def ->
@@ -1173,12 +1200,18 @@ private fun PearlBasinSheet(
                 text = stringResource(R.string.shell_affordable_soon),
                 fontWeight = FontWeight.SemiBold
             )
-            (upgradeSuggestions.filter { it.third.pearlCost > uiState.pearlBalance }.map { stringResource(it.third.titleRes) to it.third.pearlCost } +
+            (displayedUpgradeSuggestions.filter { it.third.pearlCost > uiState.pearlBalance }.map { stringResource(it.third.titleRes) to it.third.pearlCost } +
                     objectSuggestions.filter { (it.pearlCost ?: 0) > uiState.pearlBalance }.map { stringResource(it.titleRes) to (it.pearlCost ?: 0) })
                 .sortedBy { it.second }
                 .take(3)
                 .forEach { (title, cost) ->
-                    SuggestionRow(title = title, cost = cost, onClick = onOpenFocus)
+                    SuggestionRow(
+                        title = title,
+                        cost = cost,
+                        enabled = false,
+                        supportingText = stringResource(R.string.shell_need_more_pearls, cost - uiState.pearlBalance),
+                        onClick = {}
+                    )
                 }
 
             Row(
@@ -1258,13 +1291,15 @@ private fun InvitePearlObjectConfirmationSheet(
 private fun SuggestionRow(
     title: String,
     cost: Int,
+    enabled: Boolean = true,
+    supportingText: String? = null,
     onClick: () -> Unit
 ) {
     ListItem(
         headlineContent = { Text(title) },
-        supportingContent = { Text(stringResource(R.string.shell_pearl_cost, cost)) },
+        supportingContent = { Text(supportingText ?: stringResource(R.string.shell_pearl_cost, cost)) },
         modifier = Modifier
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .semantics { role = Role.Button }
     )
 }
@@ -1878,14 +1913,14 @@ private fun EmptySlotSheet(
     val compatible = uiState.finds.filter { instance ->
         val def = ShellContentCatalog.find(instance.findId)
 
-        instance.instanceId !in placedIds &&
-                def?.placeable == true &&
-                slot.slotType in def.acceptedSlotTypes &&
-                def.category in slot.acceptsCategories
+        def != null &&
+                instance.instanceId !in placedIds &&
+                def.placeable &&
+                ShellContentCatalog.isCompatibleWithSlot(slot, def)
     }
 
     val invitable = ShellContentCatalog.focusPearlObjects.filter { def ->
-        slot.slotType in def.acceptedSlotTypes && def.category in slot.acceptsCategories
+        ShellContentCatalog.isCompatibleWithSlot(slot, def)
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -2004,7 +2039,7 @@ private fun ObjectCopySheet(
             if (next != null) {
                 val nextTitle = stringResource(next.titleRes)
                 val upgradeVerb = stringResource(next.upgradeVerbRes)
-                val upgradeDescription = stringResource(R.string.shell_upgrade_a11y)
+                val upgradeDescription = upgradeA11yLabel(def)
                 val canAfford = pearlBalance >= next.pearlCost
 
                 Text(stringResource(R.string.shell_next_form, nextTitle))
@@ -2032,16 +2067,16 @@ private fun ObjectCopySheet(
                     )
                 }
             } else {
-                Text(stringResource(R.string.shell_no_more_forms))
+                Text(restingCurrentFormLabel(def))
             }
 
             if (displayed) {
                 OutlinedButton(onClick = { onReturn(item.instanceId) }) {
-                    Text(stringResource(R.string.shell_return_to_chest))
+                    Text(returnToChestLabel(def))
                 }
             } else if (onPlaceInFocus != null) {
                 OutlinedButton(onClick = onPlaceInFocus) {
-                    Text(stringResource(R.string.shell_place_in_focus))
+                    Text(placeInFocusLabel(def))
                 }
             }
         }
@@ -2295,7 +2330,7 @@ private fun ChestPlacementSheet(
         emptyList()
     } else {
         ShellContentCatalog.focusSlots.filter { slot ->
-            slot.slotType in def.acceptedSlotTypes && def.category in slot.acceptsCategories
+            ShellContentCatalog.isCompatibleWithSlot(slot, def)
         }
     }
 

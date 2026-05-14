@@ -17,6 +17,22 @@ data class ShellRewardResult(
     val discoveryIds: List<String> = emptyList()
 )
 
+object ShellRewardPolicy {
+    const val OCTOPUS_DISCOVERY_BADGE_COUNT = 3
+
+    fun shouldDiscoverOctopus(minutes: Int, flow30BadgeCount: Int): Boolean =
+        minutes >= 30 && flow30BadgeCount == OCTOPUS_DISCOVERY_BADGE_COUNT
+
+    fun milestoneFindsForMinutes(minutes: Int): List<String> {
+        val findIds = mutableListOf<String>()
+        if (minutes >= 10) findIds += ShellContentCatalog.FOCUS_MINNOW
+        if (minutes >= 30) findIds += ShellContentCatalog.FOCUS_SEAHORSE
+        if (minutes >= 60) findIds += ShellContentCatalog.FOCUS_MANTA
+        if (minutes >= 120) findIds += ShellContentCatalog.FOCUS_WHALE
+        return findIds
+    }
+}
+
 @Singleton
 class ShellRewardOrchestrator @Inject constructor(
     private val shellRepository: ShellRepository
@@ -39,7 +55,7 @@ class ShellRewardOrchestrator @Inject constructor(
                 return ShellRewardResult()
             }
 
-            suspend fun thresholdReward(badgeId: String, findId: String) {
+            suspend fun thresholdReward(badgeId: String, findId: String): Int {
                 val badgeCount = shellRepository.incrementBadge(badgeId)
                 badges += badgeId
                 val granted = if (badgeCount == 1) {
@@ -50,14 +66,17 @@ class ShellRewardOrchestrator @Inject constructor(
                     null
                 }
                 if (granted != null) grantedFinds += findId
+                return badgeCount
             }
 
             if (minutes >= 10) thresholdReward("badge_flow_10_min", ShellContentCatalog.FOCUS_MINNOW)
-            if (minutes >= 30) thresholdReward("badge_flow_30_min", ShellContentCatalog.FOCUS_SEAHORSE)
+            val flow30BadgeCount = if (minutes >= 30) thresholdReward("badge_flow_30_min", ShellContentCatalog.FOCUS_SEAHORSE) else 0
             if (minutes >= 60) thresholdReward("badge_flow_60_min", ShellContentCatalog.FOCUS_MANTA)
             if (minutes >= 120) thresholdReward("badge_flow_120_min", ShellContentCatalog.FOCUS_WHALE)
 
-            if (minutes >= 30 && shellRepository.grantDiscoveryOnce("discovery_octopus", "session", sourceId) != null) {
+            if (ShellRewardPolicy.shouldDiscoverOctopus(minutes, flow30BadgeCount) &&
+                shellRepository.grantDiscoveryOnce("discovery_octopus", "session", sourceId) != null
+            ) {
                 discoveries += "discovery_octopus"
                 grantedFinds += ShellContentCatalog.FOCUS_OCTOPUS
             }
@@ -72,7 +91,7 @@ class ShellRewardOrchestrator @Inject constructor(
 
             val count = shellRepository.regularFlowCount()
             if (discoveries.isEmpty() && count > 0 && count % 3 == 0) {
-                val discoveryId = if ((count / 3) % 2 == 0) "discovery_pearl_cluster" else "discovery_sea_glass_shard"
+                val discoveryId = if ((count / 3) % 2 == 0) "discovery_glimmer" else "discovery_sea_glass_shard"
                 if (shellRepository.grantDiscoveryOnce(discoveryId, "session", sourceId) != null) discoveries += discoveryId
             }
 
