@@ -1109,4 +1109,6 @@
     <string name="shell_swap_with">Swap with %1$s</string>
     <string name="shell_no_compatible_nooks">No compatible nooks yet. This copy can keep resting in the Shell Chest.</string>
 
+    <string name="shell_place_in_focus">Place in Focus</string>
+
 </resources>

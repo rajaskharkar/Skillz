@@ -1484,7 +1484,7 @@ private fun FocusRoomScreen(
     }
 
     if (selectedInstance != null) {
-        DisplayedFindSheet(
+        ObjectCopySheet(
             item = selectedInstance!!,
             pearlBalance = uiState.pearlBalance,
             displayed = true,
@@ -1496,7 +1496,8 @@ private fun FocusRoomScreen(
             onUpgrade = {
                 onUpgrade(it)
                 selectedInstance = null
-            }
+            },
+            onPlaceInFocus = null
         )
     }
 }
@@ -1818,13 +1819,14 @@ private fun EmptySlotSheet(
 }
 
 @Composable
-private fun DisplayedFindSheet(
+private fun ObjectCopySheet(
     item: UserShellFindInstanceEntity,
     pearlBalance: Int,
     displayed: Boolean,
     onDismiss: () -> Unit,
     onReturn: (String) -> Unit,
-    onUpgrade: (String) -> Unit
+    onUpgrade: (String) -> Unit,
+    onPlaceInFocus: (() -> Unit)?
 ) {
     val def = ShellContentCatalog.find(item.findId)
     val current = def?.let {
@@ -1897,8 +1899,14 @@ private fun DisplayedFindSheet(
                 Text(stringResource(R.string.shell_no_more_forms))
             }
 
-            OutlinedButton(onClick = { onReturn(item.instanceId) }) {
-                Text(stringResource(R.string.shell_return_to_chest))
+            if (displayed) {
+                OutlinedButton(onClick = { onReturn(item.instanceId) }) {
+                    Text(stringResource(R.string.shell_return_to_chest))
+                }
+            } else if (onPlaceInFocus != null) {
+                OutlinedButton(onClick = onPlaceInFocus) {
+                    Text(stringResource(R.string.shell_place_in_focus))
+                }
             }
         }
     }
@@ -1915,6 +1923,7 @@ private fun ShellChestScreen(
     var category by remember { mutableStateOf<ShellFindCategory?>(null) }
     var selectedGroupFindId by remember { mutableStateOf<String?>(null) }
     var selectedInstance by remember { mutableStateOf<UserShellFindInstanceEntity?>(null) }
+    var placingInstance by remember { mutableStateOf<UserShellFindInstanceEntity?>(null) }
 
     val displayedIds = displayedInstanceIds(uiState)
     val groupedItems = uiState.finds
@@ -2044,37 +2053,45 @@ private fun ShellChestScreen(
 
     selectedInstance?.let { instance ->
         val isDisplayed = uiState.focusPlacements.any { it.instanceId == instance.instanceId }
-        if (isDisplayed) {
-            DisplayedFindSheet(
-                item = instance,
-                pearlBalance = uiState.pearlBalance,
-                displayed = true,
-                onDismiss = { selectedInstance = null },
-                onReturn = {
-                    onReturn(it)
-                    selectedInstance = null
-                },
-                onUpgrade = {
-                    onUpgrade(it)
+        ObjectCopySheet(
+            item = instance,
+            pearlBalance = uiState.pearlBalance,
+            displayed = isDisplayed,
+            onDismiss = { selectedInstance = null },
+            onReturn = {
+                onReturn(it)
+                selectedInstance = null
+            },
+            onUpgrade = {
+                onUpgrade(it)
+                selectedInstance = null
+            },
+            onPlaceInFocus = if (isDisplayed) {
+                null
+            } else {
+                {
+                    placingInstance = instance
                     selectedInstance = null
                 }
-            )
-        } else {
-            ChestPlacementSheet(
-                instance = instance,
-                uiState = uiState,
-                onDismiss = { selectedInstance = null },
-                onPlace = { slotId ->
-                    onPlace(instance.instanceId, slotId)
-                    selectedInstance = null
-                    onOpenFocus()
-                },
-                onOpenFocus = {
-                    selectedInstance = null
-                    onOpenFocus()
-                }
-            )
-        }
+            }
+        )
+    }
+
+    placingInstance?.let { instance ->
+        ChestPlacementSheet(
+            instance = instance,
+            uiState = uiState,
+            onDismiss = { placingInstance = null },
+            onPlace = { slotId ->
+                onPlace(instance.instanceId, slotId)
+                placingInstance = null
+                onOpenFocus()
+            },
+            onOpenFocus = {
+                placingInstance = null
+                onOpenFocus()
+            }
+        )
     }
 }
 
