@@ -36,6 +36,7 @@ import androidx.compose.material.icons.outlined.FilterVintage
 import androidx.compose.material.icons.outlined.Grass
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.MilitaryTech
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Pets
 import androidx.compose.material.icons.outlined.PsychologyAlt
 import androidx.compose.material.icons.outlined.Route
@@ -108,6 +109,7 @@ sealed class ShellDestination {
     data object ShellChest : ShellDestination()
     data object Badges : ShellDestination()
     data object DiscoveryJournal : ShellDestination()
+    data object Notifications : ShellDestination()
     data object VoyagePreview : ShellDestination()
     data object CoralReefPreview : ShellDestination()
     data object IdeaGrovePreview : ShellDestination()
@@ -139,6 +141,34 @@ private fun currentFormOrder(instance: UserShellFindInstanceEntity): Int =
         .firstOrNull { it.upgradeStageId == instance.currentUpgradeStageId }
         ?.orderIndex ?: 0
 
+private fun unseenNotificationCount(uiState: ShellUiState): Int =
+    uiState.finds.count { it.isNew } +
+            uiState.stacks.count { it.isNew } +
+            uiState.badges.count { it.isNew } +
+            uiState.discoveries.count { it.isNew }
+
+private fun hasDisplayedAffordableUpgrade(uiState: ShellUiState): Boolean {
+    val displayed = displayedInstanceIds(uiState)
+    return uiState.finds.any { item ->
+        item.instanceId in displayed &&
+                ShellContentCatalog.find(item.findId)?.let { def ->
+                    ShellContentCatalog.nextUpgrade(def.findId, item.currentUpgradeStageId)?.pearlCost?.let { cost ->
+                        cost <= uiState.pearlBalance
+                    } == true
+                } == true
+    }
+}
+
+private fun hasEmptyNookForRestingObject(uiState: ShellUiState): Boolean {
+    val occupied = uiState.focusPlacements.map { it.slotId }.toSet()
+    val emptySlots = ShellContentCatalog.focusSlots.filter { it.slotId !in occupied }
+    if (emptySlots.isEmpty()) return false
+    return restingFinds(uiState).any { item ->
+        val def = ShellContentCatalog.find(item.findId) ?: return@any false
+        def.placeable && emptySlots.any { slot -> slot.slotType in def.acceptedSlotTypes && def.category in slot.acceptsCategories }
+    }
+}
+
 @Composable
 fun ShellRootScreen(
     onBack: () -> Unit,
@@ -149,7 +179,8 @@ fun ShellRootScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var destination by remember { mutableStateOf<ShellDestination>(ShellDestination.Heart) }
     var showPearlBasin by remember { mutableStateOf(false) }
-    var dismissedDiscoveryRevealId by remember { mutableStateOf<String?>(null) }
+    var shouldMarkNotificationsSeenOnExit by remember { mutableStateOf(false) }
+    val notificationCount = if (destination == ShellDestination.Notifications) 0 else unseenNotificationCount(uiState)
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { message ->
@@ -170,6 +201,12 @@ fun ShellRootScreen(
         }
 
         room?.let(viewModel::markRoomOpened)
+        if (destination == ShellDestination.Notifications) {
+            shouldMarkNotificationsSeenOnExit = true
+        } else if (shouldMarkNotificationsSeenOnExit) {
+            viewModel.markNotificationsSeen()
+            shouldMarkNotificationsSeenOnExit = false
+        }
     }
 
     Scaffold(
@@ -179,6 +216,7 @@ fun ShellRootScreen(
                 destination = destination,
                 pearlBalance = uiState.pearlBalance,
                 pearlBasinHasIndicator = hasAffordablePearlShape(uiState),
+                notificationCount = notificationCount,
                 onBack = {
                     if (destination == ShellDestination.Heart) {
                         onBack()
@@ -187,6 +225,7 @@ fun ShellRootScreen(
                     }
                 },
                 onPearls = { showPearlBasin = true },
+                onNotifications = { destination = ShellDestination.Notifications },
                 onChest = { destination = ShellDestination.ShellChest }
             )
         },
@@ -228,6 +267,7 @@ fun ShellRootScreen(
 
                 ShellDestination.Badges -> BadgesScreen(uiState)
                 ShellDestination.DiscoveryJournal -> DiscoveryJournalScreen(uiState)
+                ShellDestination.Notifications -> ShellNotificationsScreen(uiState)
 
                 ShellDestination.VoyagePreview -> DormantPreviewScreen(
                     titleRes = R.string.shell_room_voyage_title,
@@ -253,18 +293,6 @@ fun ShellRootScreen(
                     icon = Icons.Outlined.Visibility
                 )
             }
-        }
-
-        val revealDiscovery = uiState.discoveries.firstOrNull { it.isNew && it.userDiscoveryId != dismissedDiscoveryRevealId }
-        if (revealDiscovery != null) {
-            DiscoveryRevealSheet(
-                discovery = revealDiscovery,
-                onDismiss = { dismissedDiscoveryRevealId = revealDiscovery.userDiscoveryId },
-                onView = {
-                    dismissedDiscoveryRevealId = revealDiscovery.userDiscoveryId
-                    destination = ShellDestination.DiscoveryJournal
-                }
-            )
         }
 
         if (showPearlBasin) {
@@ -298,8 +326,10 @@ private fun ShellTopBar(
     destination: ShellDestination,
     pearlBalance: Int,
     pearlBasinHasIndicator: Boolean,
+    notificationCount: Int,
     onBack: () -> Unit,
     onPearls: () -> Unit,
+    onNotifications: () -> Unit,
     onChest: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -311,6 +341,7 @@ private fun ShellTopBar(
         ShellDestination.ShellChest -> stringResource(R.string.shell_chest_title)
         ShellDestination.Badges -> stringResource(R.string.shell_badges_title)
         ShellDestination.DiscoveryJournal -> stringResource(R.string.shell_journal_title)
+        ShellDestination.Notifications -> stringResource(R.string.shell_notifications_title)
         ShellDestination.VoyagePreview -> stringResource(R.string.shell_room_voyage_title)
         ShellDestination.CoralReefPreview -> stringResource(R.string.shell_room_coral_title)
         ShellDestination.IdeaGrovePreview -> stringResource(R.string.shell_room_idea_title)
@@ -363,6 +394,31 @@ private fun ShellTopBar(
                     role = Role.Button
                 }
             )
+
+            IconButton(onClick = onNotifications) {
+                Box(contentAlignment = Alignment.TopEnd) {
+                    Icon(
+                        imageVector = Icons.Outlined.Notifications,
+                        contentDescription = stringResource(R.string.shell_notifications_a11y, notificationCount)
+                    )
+                    if (notificationCount > 0) {
+                        Surface(
+                            shape = CircleShape,
+                            color = scheme.tertiary,
+                            modifier = Modifier.size(18.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = notificationCount.coerceAtMost(9).toString(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = scheme.onTertiary,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             IconButton(onClick = onChest) {
                 Icon(
@@ -2295,6 +2351,117 @@ private fun DiscoveryJournalScreen(uiState: ShellUiState) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ShellNotificationsScreen(uiState: ShellUiState) {
+    val newFinds = uiState.finds.filter { it.isNew }
+    val newStacks = uiState.stacks.filter { it.isNew }
+    val newBadges = uiState.badges.filter { it.isNew }
+    val newDiscoveries = uiState.discoveries.filter { it.isNew }
+    val hasNotifications = newFinds.isNotEmpty() || newStacks.isNotEmpty() || newBadges.isNotEmpty() || newDiscoveries.isNotEmpty()
+
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item {
+            RoomHeader(
+                title = R.string.shell_notifications_title,
+                body = R.string.shell_notifications_body
+            )
+        }
+
+        if (!hasNotifications) {
+            item {
+                ElevatedCard(
+                    colors = CardDefaults.elevatedCardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    ListItem(
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.Notifications,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
+                        },
+                        headlineContent = { Text(stringResource(R.string.shell_notifications_empty_title)) },
+                        supportingContent = { Text(stringResource(R.string.shell_notifications_empty_body)) }
+                    )
+                }
+            }
+        }
+
+        items(newFinds, key = { it.instanceId }) { find ->
+            val def = ShellContentCatalog.find(find.findId) ?: return@items
+            val title = stringResource(def.titleRes)
+            ShellNotificationCard(
+                icon = iconFor(def.category),
+                title = title,
+                body = stringResource(R.string.shell_notification_find_body, title)
+            )
+        }
+
+        items(newStacks, key = { it.findId }) { stack ->
+            val def = ShellContentCatalog.find(stack.findId) ?: return@items
+            val title = stringResource(def.titleRes)
+            ShellNotificationCard(
+                icon = iconFor(def.category),
+                title = title,
+                body = stringResource(R.string.shell_notification_stack_body, stack.quantity)
+            )
+        }
+
+        items(newBadges, key = { it.badgeId }) { badge ->
+            val def = ShellContentCatalog.badge(badge.badgeId) ?: return@items
+            val title = stringResource(def.titleRes)
+            ShellNotificationCard(
+                icon = Icons.Outlined.MilitaryTech,
+                title = title,
+                body = stringResource(R.string.shell_notification_badge_body, badge.count)
+            )
+        }
+
+        items(newDiscoveries, key = { it.userDiscoveryId }) { discovery ->
+            val def = ShellContentCatalog.discovery(discovery.discoveryId) ?: return@items
+            val title = stringResource(def.titleRes)
+            ShellNotificationCard(
+                icon = Icons.Outlined.AutoStories,
+                title = title,
+                body = stringResource(R.string.shell_notification_discovery_body)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShellNotificationCard(
+    icon: ImageVector,
+    title: String,
+    body: String
+) {
+    ElevatedCard(
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        modifier = Modifier.semantics {
+            contentDescription = title
+        }
+    ) {
+        ListItem(
+            leadingContent = {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary
+                )
+            },
+            headlineContent = { Text(title) },
+            supportingContent = { Text(body) }
+        )
     }
 }
 

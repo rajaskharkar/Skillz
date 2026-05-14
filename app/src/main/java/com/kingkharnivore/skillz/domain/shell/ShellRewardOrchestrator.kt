@@ -39,13 +39,23 @@ class ShellRewardOrchestrator @Inject constructor(
                 return ShellRewardResult()
             }
 
-            suspend fun badge(id: String) { shellRepository.incrementBadge(id); badges += id }
-            suspend fun grant(findId: String) { shellRepository.grantFindCopy(findId, "session", sourceId); grantedFinds += findId }
+            suspend fun thresholdReward(badgeId: String, findId: String) {
+                val badgeCount = shellRepository.incrementBadge(badgeId)
+                badges += badgeId
+                val granted = if (badgeCount == 1) {
+                    shellRepository.grantFindOnce(findId, "session", sourceId)
+                } else if (badgeCount % 5 == 0) {
+                    shellRepository.grantFindCopy(findId, "session", sourceId)
+                } else {
+                    null
+                }
+                if (granted != null) grantedFinds += findId
+            }
 
-            if (minutes >= 10) { badge("badge_flow_10_min"); grant(ShellContentCatalog.FOCUS_GLOW_SHELL) }
-            if (minutes >= 30) { badge("badge_flow_30_min"); grant(ShellContentCatalog.FOCUS_CURRENT_CONCH) }
-            if (minutes >= 60) { badge("badge_flow_60_min"); grant(ShellContentCatalog.FOCUS_ANCHOR_CORAL) }
-            if (minutes >= 120) { badge("badge_flow_120_min"); grant(ShellContentCatalog.FOCUS_ABYSS_LANTERNFISH) }
+            if (minutes >= 10) thresholdReward("badge_flow_10_min", ShellContentCatalog.FOCUS_GLOW_SHELL)
+            if (minutes >= 30) thresholdReward("badge_flow_30_min", ShellContentCatalog.FOCUS_CURRENT_CONCH)
+            if (minutes >= 60) thresholdReward("badge_flow_60_min", ShellContentCatalog.FOCUS_ANCHOR_CORAL)
+            if (minutes >= 120) thresholdReward("badge_flow_120_min", ShellContentCatalog.FOCUS_ABYSS_LANTERNFISH)
 
             if (minutes >= 30 && shellRepository.grantDiscoveryOnce("discovery_threshold_seahorse", "session", sourceId) != null) {
                 discoveries += "discovery_threshold_seahorse"

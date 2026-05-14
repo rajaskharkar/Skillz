@@ -123,5 +123,9 @@ class ShellViewModel @Inject constructor(
         repository.updateStillwaterPerspective(perspective)
     }
 
+    fun markNotificationsSeen() = viewModelScope.launch {
+        repository.markAllNotificationsSeen()
+    }
+
     fun markRoomOpened(roomId: ShellRoomId) = viewModelScope.launch { repository.markRoomOpened(roomId) }
 }

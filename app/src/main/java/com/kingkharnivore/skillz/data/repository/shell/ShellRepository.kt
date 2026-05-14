@@ -66,13 +66,15 @@ class ShellRepository @Inject constructor(
         true
     }
 
-    suspend fun incrementBadge(badgeId: String, by: Int = 1) {
+    suspend fun incrementBadge(badgeId: String, by: Int = 1): Int {
         val now = System.currentTimeMillis()
         val current = badgeDao.get(badgeId)
+        val newCount = (current?.count ?: 0) + by
         badgeDao.upsert(
-            current?.copy(count = current.count + by, lastEarnedAt = now, isNew = true)
+            current?.copy(count = newCount, lastEarnedAt = now, isNew = true)
                 ?: UserBadgeEntity(badgeId, by, now, now, true)
         )
+        return newCount
     }
 
     suspend fun grantFindCopy(findId: String, sourceType: String, sourceId: String?): UserShellFindInstanceEntity {
@@ -132,12 +134,26 @@ class ShellRepository @Inject constructor(
         require(slot.slotType in find.acceptedSlotTypes && find.category in slot.acceptsCategories) { "Invalid slot for this Shell Find." }
         val currentInSlot = placementDao.getBySlot(roomId.name, slotId)
         if (currentInSlot?.instanceId == instanceId) return@withTransaction
-        currentInSlot?.let { placementDao.removeByInstance(it.instanceId) }
+        currentInSlot?.let {
+            placementDao.removeByInstance(it.instanceId)
+            findInstanceDao.updateArchivedState(it.instanceId, true)
+        }
         placementDao.removeByInstance(instanceId)
+        findInstanceDao.updateArchivedState(instanceId, false)
         placementDao.insert(ShellPlacementEntity(UUID.randomUUID().toString(), roomId.name, slotId, instanceId, System.currentTimeMillis()))
     }
 
-    suspend fun removePlacement(instanceId: String) = placementDao.removeByInstance(instanceId)
+    suspend fun removePlacement(instanceId: String) = db.withTransaction {
+        placementDao.removeByInstance(instanceId)
+        findInstanceDao.updateArchivedState(instanceId, true)
+    }
+
+    suspend fun markAllNotificationsSeen() = db.withTransaction {
+        findInstanceDao.markAllSeen()
+        findStackDao.markAllSeen()
+        badgeDao.markAllSeen()
+        discoveryDao.markAllSeen()
+    }
 
     suspend fun invitePearlObject(findId: String, roomId: ShellRoomId, slotId: String) = db.withTransaction {
         val def = ShellContentCatalog.find(findId) ?: error("Shell object definition missing")

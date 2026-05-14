@@ -27,6 +27,8 @@ interface ShellFindInstanceDao {
     @Query("SELECT COUNT(*) FROM user_shell_find_instance WHERE findId = :findId") suspend fun countByFindId(findId: String): Int
     @Query("SELECT * FROM user_shell_find_instance WHERE instanceId NOT IN (SELECT instanceId FROM shell_placement) ORDER BY acquiredAt DESC") fun observeUnplaced(): Flow<List<UserShellFindInstanceEntity>>
     @Query("UPDATE user_shell_find_instance SET currentUpgradeStageId = :stageId WHERE instanceId = :instanceId") suspend fun updateUpgradeStage(instanceId: String, stageId: String)
+    @Query("UPDATE user_shell_find_instance SET isArchivedInChest = :archived WHERE instanceId = :instanceId") suspend fun updateArchivedState(instanceId: String, archived: Boolean)
+    @Query("UPDATE user_shell_find_instance SET isNew = 0") suspend fun markAllSeen()
 }
 
 @Dao
@@ -34,6 +36,7 @@ interface ShellFindStackDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsert(entity: UserShellFindStackEntity)
     @Query("SELECT * FROM user_shell_find_stack WHERE findId = :findId LIMIT 1") suspend fun get(findId: String): UserShellFindStackEntity?
     @Query("SELECT * FROM user_shell_find_stack ORDER BY lastAcquiredAt DESC") fun observeAll(): Flow<List<UserShellFindStackEntity>>
+    @Query("UPDATE user_shell_find_stack SET isNew = 0") suspend fun markAllSeen()
 }
 
 @Dao
@@ -58,6 +61,7 @@ interface UserBadgeDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsert(entity: UserBadgeEntity)
     @Query("SELECT * FROM user_badge WHERE badgeId = :badgeId LIMIT 1") suspend fun get(badgeId: String): UserBadgeEntity?
     @Query("SELECT * FROM user_badge ORDER BY firstEarnedAt DESC") fun observeEarned(): Flow<List<UserBadgeEntity>>
+    @Query("UPDATE user_badge SET isNew = 0") suspend fun markAllSeen()
 }
 
 @Dao
@@ -66,6 +70,7 @@ interface UserDiscoveryDao {
     @Query("SELECT * FROM user_discovery ORDER BY discoveredAt DESC") fun observeAll(): Flow<List<UserDiscoveryEntity>>
     @Query("SELECT * FROM user_discovery WHERE discoveryId = :discoveryId LIMIT 1") suspend fun getFirst(discoveryId: String): UserDiscoveryEntity?
     @Query("SELECT COUNT(*) FROM user_discovery") suspend fun countAll(): Int
+    @Query("UPDATE user_discovery SET isNew = 0") suspend fun markAllSeen()
 }
 
 @Dao

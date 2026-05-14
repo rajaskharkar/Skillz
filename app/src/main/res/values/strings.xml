@@ -993,6 +993,15 @@
     <string name="shell_badge_a11y">%1$s badge. Count: %2$d.</string>
     <string name="shell_journal_title">Discovery Journal</string>
     <string name="shell_journal_body">The Journal remembers how discoveries happened.</string>
+    <string name="shell_notifications_title">Shell Notifications</string>
+    <string name="shell_notifications_body">New finds, fragments, badges, and discoveries gather here until you visit.</string>
+    <string name="shell_notifications_a11y">Shell Notifications. %1$d new.</string>
+    <string name="shell_notifications_empty_title">No new Shell notifications</string>
+    <string name="shell_notifications_empty_body">The Shell is quiet for now. New rewards will appear here after future Flows.</string>
+    <string name="shell_notification_find_body">%1$s is resting in your Shell Chest.</string>
+    <string name="shell_notification_stack_body">Fragment stack updated. Total gathered: %1$d.</string>
+    <string name="shell_notification_badge_body">Badge progress updated. Count: %1$d.</string>
+    <string name="shell_notification_discovery_body">A new Discovery Journal entry is ready.</string>
     <string name="shell_stillwater_body">Soft Flows fill Stillwater. No score. No pressure. Just calm water carried into The Shell.</string>
     <string name="shell_view_as">View as:</string>
     <string name="shell_soft_flow_copy">Your Soft Flow added to the stream.</string>
