@@ -3455,19 +3455,65 @@ private fun DrawScope.drawSeahorse(origin: Offset, scale: Float, bob: Float, glo
 }
 
 private fun DrawScope.drawManta(origin: Offset, scale: Float, drift: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
-    val wing = sin((drift * 6.28f).toDouble()).toFloat() * 8f * scale
-    if (glowing) drawCircle(scheme.secondary.copy(alpha = 0.10f), 76f * scale, origin)
-    val color = scheme.primary.copy(alpha = 0.44f)
-    val body = Path().apply {
-        moveTo(origin.x - 64f * scale, origin.y + wing)
-        cubicTo(origin.x - 20f * scale, origin.y - 36f * scale, origin.x + 22f * scale, origin.y - 36f * scale, origin.x + 64f * scale, origin.y - wing)
-        cubicTo(origin.x + 40f * scale, origin.y + 18f * scale, origin.x + 16f * scale, origin.y + 26f * scale, origin.x, origin.y + 26f * scale)
-        cubicTo(origin.x - 16f * scale, origin.y + 26f * scale, origin.x - 40f * scale, origin.y + 18f * scale, origin.x - 64f * scale, origin.y + wing)
+    val wingPulse = sin((drift * 6.28f).toDouble()).toFloat()
+    val wingLift = wingPulse * 7f * scale
+    val bodyColor = scheme.primary.copy(alpha = 0.48f)
+    val wingColor = scheme.primary.copy(alpha = 0.40f)
+    val accent = scheme.secondary.copy(alpha = if (glowing) 0.34f else 0.18f)
+
+    if (glowing) {
+        drawOval(
+            color = scheme.secondary.copy(alpha = 0.10f),
+            topLeft = Offset(origin.x - 94f * scale, origin.y - 54f * scale),
+            size = Size(188f * scale, 118f * scale)
+        )
+    }
+
+    val manta = Path().apply {
+        // Top-view / three-quarter-top-view ray silhouette: broad wings first, then body taper.
+        moveTo(origin.x, origin.y - 42f * scale)
+        cubicTo(origin.x - 18f * scale, origin.y - 45f * scale, origin.x - 55f * scale, origin.y - 42f * scale + wingLift, origin.x - 98f * scale, origin.y - 8f * scale + wingLift)
+        cubicTo(origin.x - 66f * scale, origin.y + 2f * scale, origin.x - 36f * scale, origin.y + 24f * scale, origin.x - 10f * scale, origin.y + 42f * scale)
+        cubicTo(origin.x - 4f * scale, origin.y + 47f * scale, origin.x + 4f * scale, origin.y + 47f * scale, origin.x + 10f * scale, origin.y + 42f * scale)
+        cubicTo(origin.x + 36f * scale, origin.y + 24f * scale, origin.x + 66f * scale, origin.y + 2f * scale, origin.x + 98f * scale, origin.y - 8f * scale - wingLift)
+        cubicTo(origin.x + 55f * scale, origin.y - 42f * scale - wingLift, origin.x + 18f * scale, origin.y - 45f * scale, origin.x, origin.y - 42f * scale)
         close()
     }
-    drawPath(body, color)
-    drawOval(scheme.secondary.copy(alpha = 0.22f), Offset(origin.x - 20f * scale, origin.y - 4f * scale), Size(40f * scale, 18f * scale))
-    drawLine(color.copy(alpha = 0.55f), Offset(origin.x, origin.y + 22f * scale), Offset(origin.x - 8f * scale, origin.y + 74f * scale), strokeWidth = 2f * scale)
+    drawPath(manta, wingColor)
+
+    val center = Path().apply {
+        moveTo(origin.x, origin.y - 36f * scale)
+        cubicTo(origin.x - 20f * scale, origin.y - 18f * scale, origin.x - 18f * scale, origin.y + 22f * scale, origin.x, origin.y + 40f * scale)
+        cubicTo(origin.x + 18f * scale, origin.y + 22f * scale, origin.x + 20f * scale, origin.y - 18f * scale, origin.x, origin.y - 36f * scale)
+        close()
+    }
+    drawPath(center, bodyColor)
+
+    val underside = Path().apply {
+        moveTo(origin.x, origin.y - 18f * scale)
+        cubicTo(origin.x - 12f * scale, origin.y - 2f * scale, origin.x - 10f * scale, origin.y + 18f * scale, origin.x, origin.y + 29f * scale)
+        cubicTo(origin.x + 10f * scale, origin.y + 18f * scale, origin.x + 12f * scale, origin.y - 2f * scale, origin.x, origin.y - 18f * scale)
+        close()
+    }
+    drawPath(underside, accent)
+
+    // Cephalic-lobe suggestion and small eyes make it read as a manta, not a flat diamond.
+    drawLine(bodyColor.copy(alpha = 0.62f), Offset(origin.x - 9f * scale, origin.y - 37f * scale), Offset(origin.x - 24f * scale, origin.y - 48f * scale), strokeWidth = 3f * scale)
+    drawLine(bodyColor.copy(alpha = 0.62f), Offset(origin.x + 9f * scale, origin.y - 37f * scale), Offset(origin.x + 24f * scale, origin.y - 48f * scale), strokeWidth = 3f * scale)
+    drawCircle(scheme.onSurface.copy(alpha = 0.34f), 1.8f * scale, Offset(origin.x - 9f * scale, origin.y - 25f * scale))
+    drawCircle(scheme.onSurface.copy(alpha = 0.34f), 1.8f * scale, Offset(origin.x + 9f * scale, origin.y - 25f * scale))
+
+    val tailSway = sin((drift * 6.28f - 0.8f).toDouble()).toFloat() * 9f * scale
+    val tail = Path().apply {
+        moveTo(origin.x, origin.y + 38f * scale)
+        cubicTo(origin.x + tailSway * 0.25f, origin.y + 72f * scale, origin.x + tailSway, origin.y + 94f * scale, origin.x + tailSway * 0.65f, origin.y + 126f * scale)
+    }
+    drawPath(tail, bodyColor.copy(alpha = 0.52f), style = Stroke(width = 2.4f * scale))
+
+    if (glowing) {
+        drawLine(accent, Offset(origin.x - 74f * scale, origin.y - 6f * scale + wingLift), Offset(origin.x - 18f * scale, origin.y + 22f * scale), strokeWidth = 2f * scale)
+        drawLine(accent, Offset(origin.x + 74f * scale, origin.y - 6f * scale - wingLift), Offset(origin.x + 18f * scale, origin.y + 22f * scale), strokeWidth = 2f * scale)
+    }
 }
 
 private fun DrawScope.drawWhale(origin: Offset, scale: Float, drift: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
