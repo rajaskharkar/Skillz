@@ -36,6 +36,7 @@ import androidx.compose.material.icons.outlined.FilterVintage
 import androidx.compose.material.icons.outlined.Grass
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.MilitaryTech
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Pets
 import androidx.compose.material.icons.outlined.PsychologyAlt
 import androidx.compose.material.icons.outlined.Route
@@ -81,7 +82,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -92,12 +95,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
+import com.kingkharnivore.skillz.data.model.shell.ShellDepthTier
 import com.kingkharnivore.skillz.data.model.shell.ShellFindCategory
+import com.kingkharnivore.skillz.data.model.shell.ShellFindDefinition
+import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.data.model.shell.ShellSlotDefinition
+import com.kingkharnivore.skillz.data.model.shell.ShellSlotType
 import com.kingkharnivore.skillz.data.model.shell.StillwaterPerspective
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.ShellViewModel
+import kotlin.math.pow
 
 sealed class ShellDestination {
     data object Heart : ShellDestination()
@@ -106,10 +114,160 @@ sealed class ShellDestination {
     data object ShellChest : ShellDestination()
     data object Badges : ShellDestination()
     data object DiscoveryJournal : ShellDestination()
+    data object Notifications : ShellDestination()
     data object VoyagePreview : ShellDestination()
     data object CoralReefPreview : ShellDestination()
     data object IdeaGrovePreview : ShellDestination()
     data object LookoutPreview : ShellDestination()
+}
+
+private fun displayedInstanceIds(uiState: ShellUiState): Set<String> =
+    uiState.focusPlacements.map { it.instanceId }.toSet()
+
+private fun restingFinds(uiState: ShellUiState): List<UserShellFindInstanceEntity> {
+    val displayed = displayedInstanceIds(uiState)
+    return uiState.finds.filter { it.instanceId !in displayed }
+}
+
+private fun hasRestingPlaceableFinds(uiState: ShellUiState): Boolean = restingFinds(uiState).any { item ->
+    val def = ShellContentCatalog.find(item.findId)
+    def?.placeable == true
+}
+
+private fun hasAffordablePearlShape(uiState: ShellUiState): Boolean =
+    uiState.finds.any { item ->
+        val def = ShellContentCatalog.find(item.findId) ?: return@any false
+        val next = ShellContentCatalog.nextUpgrade(def.findId, item.currentUpgradeStageId) ?: return@any false
+        next.pearlCost <= uiState.pearlBalance
+    } || ShellContentCatalog.focusPearlObjects.any { (it.pearlCost ?: Int.MAX_VALUE) <= uiState.pearlBalance }
+
+private fun currentFormOrder(instance: UserShellFindInstanceEntity): Int =
+    ShellContentCatalog.upgradesFor(instance.findId)
+        .firstOrNull { it.upgradeStageId == instance.currentUpgradeStageId }
+        ?.orderIndex ?: 0
+
+private fun unseenNotificationCount(uiState: ShellUiState): Int =
+    uiState.finds.count { it.isNew } +
+            uiState.stacks.count { it.isNew } +
+            uiState.badges.count { it.isNew } +
+            uiState.discoveries.count { it.isNew }
+
+internal fun hasAffordableFocusPearlAction(uiState: ShellUiState): Boolean {
+    val displayed = displayedInstanceIds(uiState)
+
+    val hasAffordableDisplayedUpgrade = uiState.finds.any { item ->
+        if (item.instanceId !in displayed) return@any false
+
+        val def = ShellContentCatalog.find(item.findId) ?: return@any false
+        val next = ShellContentCatalog.nextUpgrade(
+            findId = def.findId,
+            currentStageId = item.currentUpgradeStageId
+        ) ?: return@any false
+
+        next.pearlCost <= uiState.pearlBalance
+    }
+
+    if (hasAffordableDisplayedUpgrade) return true
+
+    val occupiedSlots = uiState.focusPlacements.map { it.slotId }.toSet()
+    val emptySlots = ShellContentCatalog.focusSlots.filter { slot ->
+        slot.slotId !in occupiedSlots
+    }
+
+    if (emptySlots.isEmpty()) return false
+
+    return ShellContentCatalog.focusPearlObjects.any { def ->
+        val cost = def.pearlCost ?: return@any false
+        cost <= uiState.pearlBalance &&
+                emptySlots.any { slot -> ShellContentCatalog.isCompatibleWithSlot(slot, def) }
+    }
+}
+
+private fun hasEmptyNookForNewRestingObject(uiState: ShellUiState): Boolean {
+    val occupied = uiState.focusPlacements.map { it.slotId }.toSet()
+    val emptySlots = ShellContentCatalog.focusSlots.filter { it.slotId !in occupied }
+    if (emptySlots.isEmpty()) return false
+    return restingFinds(uiState).any { item ->
+        val def = ShellContentCatalog.find(item.findId) ?: return@any false
+        item.isNew && def.placeable && emptySlots.any { slot -> ShellContentCatalog.isCompatibleWithSlot(slot, def) }
+    }
+}
+
+@Composable
+private fun kindLabel(kind: ShellRewardKind): String = when (kind) {
+    ShellRewardKind.ANIMAL -> stringResource(R.string.shell_kind_animal)
+    ShellRewardKind.OBJECT -> stringResource(R.string.shell_kind_object)
+    ShellRewardKind.TRINKET -> stringResource(R.string.shell_kind_trinket)
+    ShellRewardKind.DISCOVERY -> stringResource(R.string.shell_kind_discovery)
+}
+
+@Composable
+private fun depthLabel(depth: ShellDepthTier?): String? = when (depth) {
+    ShellDepthTier.REEF -> stringResource(R.string.shell_depth_reef)
+    ShellDepthTier.DEEPER_REEF -> stringResource(R.string.shell_depth_deeper_reef)
+    ShellDepthTier.OPEN_BLUE -> stringResource(R.string.shell_depth_open_blue)
+    ShellDepthTier.DEEP_OCEAN -> stringResource(R.string.shell_depth_deep_ocean)
+    null -> null
+}
+
+@Composable
+private fun sourceReasonFor(def: ShellFindDefinition): String = when (def.findId) {
+    ShellContentCatalog.FOCUS_MINNOW -> stringResource(R.string.shell_find_minnow_description)
+    ShellContentCatalog.FOCUS_SEAHORSE -> stringResource(R.string.shell_find_seahorse_description)
+    ShellContentCatalog.FOCUS_MANTA -> stringResource(R.string.shell_find_manta_description)
+    ShellContentCatalog.FOCUS_WHALE -> stringResource(R.string.shell_find_whale_description)
+    ShellContentCatalog.FOCUS_OCTOPUS -> stringResource(R.string.shell_find_octopus_description)
+    ShellContentCatalog.FOCUS_PEBBLE -> stringResource(R.string.shell_find_pebble_description)
+    ShellContentCatalog.FOCUS_LAMP -> stringResource(R.string.shell_source_invited_with_pearls, def.pearlCost ?: 0)
+    ShellContentCatalog.FOCUS_PERCH -> stringResource(R.string.shell_source_invited_with_pearls, def.pearlCost ?: 0)
+    ShellContentCatalog.FOCUS_PEBBLES -> stringResource(R.string.shell_source_invited_with_pearls, def.pearlCost ?: 0)
+    ShellContentCatalog.FOCUS_CURTAIN -> stringResource(R.string.shell_source_invited_with_pearls, def.pearlCost ?: 0)
+    ShellContentCatalog.FOCUS_BUBBLES -> stringResource(R.string.shell_source_invited_with_pearls, def.pearlCost ?: 0)
+    else -> stringResource(def.descriptionRes)
+}
+
+@Composable
+private fun notificationTitleFor(def: ShellFindDefinition): String {
+    val title = stringResource(def.titleRes)
+    return when (def.kind) {
+        ShellRewardKind.ANIMAL -> stringResource(R.string.shell_notification_title_encountered, title)
+        ShellRewardKind.OBJECT -> if (def.isPearlObject) stringResource(R.string.shell_notification_title_invited, title) else stringResource(R.string.shell_notification_title_found, title)
+        ShellRewardKind.TRINKET -> title
+        ShellRewardKind.DISCOVERY -> title
+    }
+}
+
+@Composable
+private fun notificationBodyFor(def: ShellFindDefinition): String {
+    val depth = depthLabel(def.depthTier)
+    val reason = sourceReasonFor(def)
+    return if (depth != null) stringResource(R.string.shell_notification_depth_body, depth, reason) else reason
+}
+
+@Composable
+private fun returnToChestLabel(def: ShellFindDefinition?): String = when (def?.kind) {
+    ShellRewardKind.ANIMAL -> stringResource(R.string.shell_let_rest_in_chest)
+    else -> stringResource(R.string.shell_return_to_chest)
+}
+
+@Composable
+private fun placeInFocusLabel(def: ShellFindDefinition?): String = when (def?.kind) {
+    ShellRewardKind.ANIMAL -> stringResource(R.string.shell_display_in_focus)
+    else -> stringResource(R.string.shell_place_in_focus)
+}
+
+@Composable
+private fun restingCurrentFormLabel(def: ShellFindDefinition?): String = when (def?.kind) {
+    ShellRewardKind.ANIMAL -> stringResource(R.string.shell_animal_no_more_forms)
+    ShellRewardKind.OBJECT -> stringResource(R.string.shell_object_no_more_forms)
+    else -> stringResource(R.string.shell_reward_no_more_forms)
+}
+
+@Composable
+private fun upgradeA11yLabel(def: ShellFindDefinition?): String = when (def?.kind) {
+    ShellRewardKind.ANIMAL -> stringResource(R.string.shell_upgrade_animal_a11y)
+    ShellRewardKind.OBJECT -> stringResource(R.string.shell_upgrade_object_a11y)
+    else -> stringResource(R.string.shell_upgrade_reward_a11y)
 }
 
 @Composable
@@ -122,6 +280,8 @@ fun ShellRootScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     var destination by remember { mutableStateOf<ShellDestination>(ShellDestination.Heart) }
     var showPearlBasin by remember { mutableStateOf(false) }
+    var shouldMarkNotificationsSeenOnExit by remember { mutableStateOf(false) }
+    val notificationCount = if (destination == ShellDestination.Notifications) 0 else unseenNotificationCount(uiState)
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { message ->
@@ -142,6 +302,12 @@ fun ShellRootScreen(
         }
 
         room?.let(viewModel::markRoomOpened)
+        if (destination == ShellDestination.Notifications) {
+            shouldMarkNotificationsSeenOnExit = true
+        } else if (shouldMarkNotificationsSeenOnExit) {
+            viewModel.markNotificationsSeen()
+            shouldMarkNotificationsSeenOnExit = false
+        }
     }
 
     Scaffold(
@@ -150,6 +316,8 @@ fun ShellRootScreen(
             ShellTopBar(
                 destination = destination,
                 pearlBalance = uiState.pearlBalance,
+                pearlBasinHasIndicator = hasAffordablePearlShape(uiState),
+                notificationCount = notificationCount,
                 onBack = {
                     if (destination == ShellDestination.Heart) {
                         onBack()
@@ -158,6 +326,7 @@ fun ShellRootScreen(
                     }
                 },
                 onPearls = { showPearlBasin = true },
+                onNotifications = { destination = ShellDestination.Notifications },
                 onChest = { destination = ShellDestination.ShellChest }
             )
         },
@@ -179,6 +348,7 @@ fun ShellRootScreen(
                 ShellDestination.Focus -> FocusRoomScreen(
                     uiState = uiState,
                     onPlace = viewModel::place,
+                    onInvite = viewModel::invitePearlObject,
                     onReturn = viewModel::returnToChest,
                     onUpgrade = viewModel::upgrade
                 )
@@ -191,11 +361,14 @@ fun ShellRootScreen(
                 ShellDestination.ShellChest -> ShellChestScreen(
                     uiState = uiState,
                     onPlace = viewModel::place,
+                    onReturn = viewModel::returnToChest,
+                    onUpgrade = viewModel::upgrade,
                     onOpenFocus = { destination = ShellDestination.Focus }
                 )
 
                 ShellDestination.Badges -> BadgesScreen(uiState)
                 ShellDestination.DiscoveryJournal -> DiscoveryJournalScreen(uiState)
+                ShellDestination.Notifications -> ShellNotificationsScreen(uiState)
 
                 ShellDestination.VoyagePreview -> DormantPreviewScreen(
                     titleRes = R.string.shell_room_voyage_title,
@@ -234,6 +407,15 @@ fun ShellRootScreen(
                 onOpenChest = {
                     showPearlBasin = false
                     destination = ShellDestination.ShellChest
+                },
+                onOpenObject = {
+                    showPearlBasin = false
+                    destination = ShellDestination.Focus
+                },
+                onInviteObject = { findId ->
+                    viewModel.invitePearlObjectToChest(findId)
+                    showPearlBasin = false
+                    destination = ShellDestination.ShellChest
                 }
             )
         }
@@ -244,8 +426,11 @@ fun ShellRootScreen(
 private fun ShellTopBar(
     destination: ShellDestination,
     pearlBalance: Int,
+    pearlBasinHasIndicator: Boolean,
+    notificationCount: Int,
     onBack: () -> Unit,
     onPearls: () -> Unit,
+    onNotifications: () -> Unit,
     onChest: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -257,13 +442,14 @@ private fun ShellTopBar(
         ShellDestination.ShellChest -> stringResource(R.string.shell_chest_title)
         ShellDestination.Badges -> stringResource(R.string.shell_badges_title)
         ShellDestination.DiscoveryJournal -> stringResource(R.string.shell_journal_title)
+        ShellDestination.Notifications -> stringResource(R.string.shell_notifications_title)
         ShellDestination.VoyagePreview -> stringResource(R.string.shell_room_voyage_title)
         ShellDestination.CoralReefPreview -> stringResource(R.string.shell_room_coral_title)
         ShellDestination.IdeaGrovePreview -> stringResource(R.string.shell_room_idea_title)
         ShellDestination.LookoutPreview -> stringResource(R.string.shell_room_lookout_title)
     }
 
-    val pearlBalanceDescription = stringResource(R.string.shell_pearl_balance_a11y, pearlBalance)
+    val pearlBalanceDescription = stringResource(R.string.shell_pearl_basin_chip_a11y, pearlBalance)
 
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(
@@ -302,12 +488,38 @@ private fun ShellTopBar(
                 ),
                 border = BorderStroke(
                     width = 1.dp,
-                    color = scheme.secondary.copy(alpha = 0.45f)
+                    color = if (pearlBasinHasIndicator) shellIndicatorColor() else scheme.secondary.copy(alpha = 0.45f)
                 ),
                 modifier = Modifier.semantics {
                     contentDescription = pearlBalanceDescription
+                    role = Role.Button
                 }
             )
+
+            IconButton(onClick = onNotifications) {
+                Box(contentAlignment = Alignment.TopEnd) {
+                    Icon(
+                        imageVector = Icons.Outlined.Notifications,
+                        contentDescription = stringResource(R.string.shell_notifications_a11y, notificationCount)
+                    )
+                    if (notificationCount > 0) {
+                        Surface(
+                            shape = CircleShape,
+                            color = scheme.tertiary,
+                            modifier = Modifier.size(18.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = notificationCount.coerceAtMost(9).toString(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = scheme.onTertiary,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             IconButton(onClick = onChest) {
                 Icon(
@@ -326,6 +538,9 @@ private fun HeartRoomScreen(
     onOpenPearlBasin: () -> Unit
 ) {
     var showHeartDetail by remember { mutableStateOf(false) }
+    val chestHasIndicator = restingFinds(uiState).any { it.isNew } || uiState.stacks.any { it.isNew }
+    val hasNewDiscovery = uiState.discoveries.any { it.isNew }
+    val focusChanged = hasAffordableFocusPearlAction(uiState)
 
     Box(
         modifier = Modifier
@@ -406,6 +621,7 @@ private fun HeartRoomScreen(
                             labelRes = R.string.shell_room_focus_title,
                             icon = Icons.Outlined.CenterFocusStrong,
                             dormant = false,
+                            hasIndicator = focusChanged,
                             nodeWidth = nodeWidth,
                             nodeHeight = nodeHeight,
                             onClick = { onNavigate(ShellDestination.Focus) }
@@ -440,18 +656,20 @@ private fun HeartRoomScreen(
                 uiState = uiState,
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
-                    val totalFinds = uiState.finds.size + uiState.stacks.sumOf { it.quantity }
-                    if (uiState.discoveries.isNotEmpty()) {
-                        onNavigate(ShellDestination.DiscoveryJournal)
-                    } else if (totalFinds > 0) {
-                        onNavigate(ShellDestination.ShellChest)
-                    } else {
-                        onNavigate(ShellDestination.Focus)
+                    val hasEmptyNook = uiState.focusPlacements.size < ShellContentCatalog.focusSlots.size
+                    when {
+                        uiState.discoveries.any { it.isNew } -> onNavigate(ShellDestination.DiscoveryJournal)
+                        hasAffordablePearlShape(uiState) -> onNavigate(ShellDestination.Focus)
+                        hasRestingPlaceableFinds(uiState) -> onNavigate(ShellDestination.ShellChest)
+                        hasEmptyNook -> onNavigate(ShellDestination.Focus)
+                        else -> onNavigate(ShellDestination.Focus)
                     }
                 }
             )
 
             HeartShortcutDock(
+                chestHasIndicator = chestHasIndicator,
+                journalHasIndicator = hasNewDiscovery,
                 onChest = { onNavigate(ShellDestination.ShellChest) },
                 onBadges = { onNavigate(ShellDestination.Badges) },
                 onJournal = { onNavigate(ShellDestination.DiscoveryJournal) },
@@ -511,6 +729,7 @@ private fun RoomOrbitNode(
     labelRes: Int,
     icon: ImageVector,
     dormant: Boolean,
+    hasIndicator: Boolean = false,
     nodeWidth: Dp,
     nodeHeight: Dp,
     modifier: Modifier = Modifier,
@@ -518,6 +737,11 @@ private fun RoomOrbitNode(
 ) {
     val scheme = MaterialTheme.colorScheme
     val label = stringResource(labelRes)
+    val nodeDescription = if (dormant) {
+        stringResource(R.string.shell_room_preview_a11y, label)
+    } else {
+        stringResource(R.string.shell_room_active_a11y, label)
+    }
 
     ElevatedCard(
         onClick = onClick,
@@ -532,7 +756,10 @@ private fun RoomOrbitNode(
         modifier = modifier
             .width(nodeWidth)
             .height(nodeHeight)
-            .semantics { contentDescription = label }
+            .semantics {
+                contentDescription = nodeDescription
+                role = Role.Button
+            }
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -540,14 +767,14 @@ private fun RoomOrbitNode(
         ) {
             TurtleShellCardPattern(Modifier.matchParentSize())
 
-            if (dormant) {
+            if (hasIndicator) {
                 Surface(
                     shape = CircleShape,
-                    color = scheme.secondary.copy(alpha = 0.72f),
+                    color = shellIndicatorColor(),
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
-                        .size(7.dp),
+                        .size(10.dp),
                     content = {}
                 )
             }
@@ -588,6 +815,15 @@ private fun RoomOrbitNode(
                     textAlign = TextAlign.Center,
                     maxLines = 2
                 )
+
+                if (dormant) {
+                    Text(
+                        text = stringResource(R.string.shell_quiet_for_now),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = scheme.secondary,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
@@ -601,8 +837,8 @@ private fun HeartCenter(
     onPearlClick: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
-    val heartDescription = stringResource(R.string.shell_title)
-    val pearlBalanceDescription = stringResource(R.string.shell_pearl_balance_a11y, uiState.pearlBalance)
+    val heartDescription = stringResource(R.string.shell_heart_center_a11y)
+    val pearlBalanceDescription = stringResource(R.string.shell_pearl_basin_chip_a11y, uiState.pearlBalance)
 
     ElevatedCard(
         onClick = onClick,
@@ -612,10 +848,15 @@ private fun HeartCenter(
         ),
         modifier = modifier
             .width(214.dp)
-            .semantics { contentDescription = heartDescription }
+            .semantics {
+                contentDescription = heartDescription
+                role = Role.Button
+            }
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(9.dp)
         ) {
@@ -639,13 +880,17 @@ private fun HeartCenter(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = scheme.onSurface,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
 
             AssistChip(
                 onClick = onPearlClick,
                 label = {
-                    Text(stringResource(R.string.shell_pearl_balance, uiState.pearlBalance))
+                    Text(
+                        text = stringResource(R.string.shell_pearl_balance, uiState.pearlBalance),
+                        textAlign = TextAlign.Center
+                    )
                 },
                 leadingIcon = {
                     ShellPearlMiniIcon(Modifier.size(18.dp))
@@ -661,6 +906,7 @@ private fun HeartCenter(
                 ),
                 modifier = Modifier.semantics {
                     contentDescription = pearlBalanceDescription
+                    role = Role.Button
                 }
             )
         }
@@ -674,11 +920,20 @@ private fun ShellWhisperDock(
     onClick: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
-    val totalFinds = uiState.finds.size + uiState.stacks.sumOf { it.quantity }
+    val displayedIds = displayedInstanceIds(uiState)
+    val affordableUpgrade = uiState.finds.firstOrNull { item ->
+        val def = ShellContentCatalog.find(item.findId) ?: return@firstOrNull false
+        val next = ShellContentCatalog.nextUpgrade(def.findId, item.currentUpgradeStageId) ?: return@firstOrNull false
+        item.instanceId in displayedIds && next.pearlCost <= uiState.pearlBalance
+    }
+    val restingCount = restingFinds(uiState).count { item -> ShellContentCatalog.find(item.findId)?.placeable == true }
+    val hasEmptyNook = uiState.focusPlacements.size < ShellContentCatalog.focusSlots.size
 
     val text = when {
-        uiState.discoveries.isNotEmpty() -> stringResource(R.string.shell_pulse_mystery)
-        totalFinds > 0 -> stringResource(R.string.shell_pulse_recent, totalFinds)
+        uiState.discoveries.any { it.isNew } -> stringResource(R.string.shell_whisper_new_discovery)
+        affordableUpgrade != null -> stringResource(R.string.shell_whisper_upgrade_ready, ShellContentCatalog.find(affordableUpgrade.findId)?.let { stringResource(it.titleRes) } ?: stringResource(R.string.shell_empty_slot))
+        restingCount > 0 -> stringResource(R.string.shell_whisper_chest_waiting, restingCount)
+        hasEmptyNook -> stringResource(R.string.shell_whisper_empty_focus)
         else -> stringResource(R.string.shell_pulse_mystery)
     }
 
@@ -686,7 +941,9 @@ private fun ShellWhisperDock(
         shape = RoundedCornerShape(999.dp),
         color = scheme.surface.copy(alpha = 0.92f),
         border = BorderStroke(1.dp, scheme.secondary.copy(alpha = 0.35f)),
-        modifier = modifier.clickable(onClick = onClick)
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .semantics { role = Role.Button }
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
@@ -712,6 +969,8 @@ private fun ShellWhisperDock(
 
 @Composable
 private fun HeartShortcutDock(
+    chestHasIndicator: Boolean,
+    journalHasIndicator: Boolean,
     onChest: () -> Unit,
     onBadges: () -> Unit,
     onJournal: () -> Unit,
@@ -733,18 +992,21 @@ private fun HeartShortcutDock(
             HeartShortcut(
                 icon = Icons.Outlined.Inventory2,
                 labelRes = R.string.shell_chest_title,
+                hasIndicator = chestHasIndicator,
                 onClick = onChest
             )
 
             HeartShortcut(
                 icon = Icons.Outlined.MilitaryTech,
                 labelRes = R.string.shell_badges_title,
+                hasIndicator = false,
                 onClick = onBadges
             )
 
             HeartShortcut(
                 icon = Icons.Outlined.AutoStories,
                 labelRes = R.string.shell_journal_title,
+                hasIndicator = journalHasIndicator,
                 onClick = onJournal
             )
         }
@@ -755,6 +1017,7 @@ private fun HeartShortcutDock(
 private fun HeartShortcut(
     icon: ImageVector,
     labelRes: Int,
+    hasIndicator: Boolean,
     onClick: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -769,12 +1032,24 @@ private fun HeartShortcut(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = scheme.primary,
-            modifier = Modifier.size(22.dp)
-        )
+        Box {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = scheme.primary,
+                modifier = Modifier.size(22.dp)
+            )
+            if (hasIndicator) {
+                Surface(
+                    shape = CircleShape,
+                    color = shellIndicatorColor(),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(7.dp),
+                    content = {}
+                )
+            }
+        }
 
         Text(
             text = label,
@@ -802,27 +1077,30 @@ private fun HeartDetailSheet(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
-                text = stringResource(R.string.shell_title),
+                text = stringResource(R.string.shell_heart_detail_title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
 
             Text(
-                text = stringResource(R.string.shell_pearl_balance, uiState.pearlBalance),
+                text = stringResource(R.string.shell_heart_pearls_gathered, uiState.pearlBalance),
                 style = MaterialTheme.typography.bodyLarge
             )
 
             Text(
-                text = stringResource(R.string.shell_pulse_recent, totalFinds),
+                text = stringResource(R.string.shell_heart_finds_owned, totalFinds),
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            if (uiState.discoveries.isNotEmpty()) {
-                Text(
-                    text = stringResource(R.string.shell_pulse_mystery),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
+            Text(
+                text = stringResource(R.string.shell_heart_discoveries_awakened, uiState.discoveries.size),
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Text(
+                text = stringResource(R.string.shell_heart_objects_displayed_resting, uiState.focusPlacements.size, restingFinds(uiState).size),
+                style = MaterialTheme.typography.bodyMedium
+            )
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -874,8 +1152,12 @@ private fun PearlBasinSheet(
     uiState: ShellUiState,
     onDismiss: () -> Unit,
     onOpenFocus: () -> Unit,
-    onOpenChest: () -> Unit
+    onOpenChest: () -> Unit,
+    onOpenObject: () -> Unit,
+    onInviteObject: (String) -> Unit
 ) {
+    var inviteConfirmation by remember { mutableStateOf<ShellFindDefinition?>(null) }
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -901,13 +1183,63 @@ private fun PearlBasinSheet(
                 }
             }
 
+            Text(stringResource(R.string.shell_pearl_basin_copy))
+
+            val displayedIds = displayedInstanceIds(uiState)
+            val upgradeSuggestions = uiState.finds.mapNotNull { item ->
+                val def = ShellContentCatalog.find(item.findId) ?: return@mapNotNull null
+                val next = ShellContentCatalog.nextUpgrade(def.findId, item.currentUpgradeStageId) ?: return@mapNotNull null
+                Triple(item, def, next)
+            }.sortedBy { it.third.pearlCost }
+            val displayedUpgradeSuggestions = upgradeSuggestions.filter { it.first.instanceId in displayedIds }
+            val objectSuggestions = ShellContentCatalog.focusPearlObjects
+                .sortedBy { it.pearlCost ?: Int.MAX_VALUE }
+            val allCosts = displayedUpgradeSuggestions.map { it.third.pearlCost } + objectSuggestions.mapNotNull { it.pearlCost }
+            val hasAvailable = allCosts.any { it <= uiState.pearlBalance }
+
             Text(
-                text = if (uiState.pearlBalance >= 80) {
-                    stringResource(R.string.shell_pearl_basin_suggestion)
-                } else {
-                    stringResource(R.string.shell_pearl_basin_copy)
-                }
+                text = stringResource(R.string.shell_available_now),
+                fontWeight = FontWeight.SemiBold
             )
+            if (hasAvailable) {
+                displayedUpgradeSuggestions.filter { it.third.pearlCost <= uiState.pearlBalance }.take(2).forEach { (item, def, next) ->
+                    SuggestionRow(
+                        title = stringResource(R.string.shell_basin_brighten_suggestion, stringResource(def.titleRes)),
+                        cost = next.pearlCost,
+                        onClick = onOpenObject
+                    )
+                }
+                objectSuggestions.filter { (it.pearlCost ?: 0) <= uiState.pearlBalance }.take(2).forEach { def ->
+                    SuggestionRow(
+                        title = stringResource(R.string.shell_basin_invite_suggestion, stringResource(def.titleRes)),
+                        cost = def.pearlCost ?: 0,
+                        onClick = { inviteConfirmation = def }
+                    )
+                }
+            } else {
+                Text(stringResource(R.string.shell_no_available_shapes))
+            }
+
+            Text(
+                text = stringResource(R.string.shell_affordable_soon),
+                fontWeight = FontWeight.SemiBold
+            )
+            (displayedUpgradeSuggestions.filter { it.third.pearlCost > uiState.pearlBalance }.map { (_, def, next) ->
+                stringResource(R.string.shell_basin_soon_upgrade, stringResource(def.titleRes), stringResource(next.titleRes)) to next.pearlCost
+            } + objectSuggestions.filter { (it.pearlCost ?: 0) > uiState.pearlBalance }.map { def ->
+                stringResource(R.string.shell_basin_invite_suggestion, stringResource(def.titleRes)) to (def.pearlCost ?: 0)
+            })
+                .sortedBy { it.second }
+                .take(3)
+                .forEach { (title, cost) ->
+                    SuggestionRow(
+                        title = title,
+                        cost = cost,
+                        enabled = false,
+                        supportingText = stringResource(R.string.shell_need_more_pearls, cost - uiState.pearlBalance),
+                        onClick = {}
+                    )
+                }
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -933,6 +1265,70 @@ private fun PearlBasinSheet(
             }
         }
     }
+
+    inviteConfirmation?.let { def ->
+        InvitePearlObjectConfirmationSheet(
+            definition = def,
+            onDismiss = { inviteConfirmation = null },
+            onConfirm = {
+                inviteConfirmation = null
+                onInviteObject(def.findId)
+            }
+        )
+    }
+}
+
+@Composable
+private fun InvitePearlObjectConfirmationSheet(
+    definition: ShellFindDefinition,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    val title = stringResource(definition.titleRes)
+    val cost = definition.pearlCost ?: 0
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.shell_invite_confirm_title, title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(stringResource(R.string.shell_invite_confirm_body, title))
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
+                )
+            ) {
+                Text(stringResource(R.string.shell_invite_confirm_cta, cost))
+            }
+            OutlinedButton(onClick = onDismiss) {
+                Text(stringResource(R.string.shell_cancel))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SuggestionRow(
+    title: String,
+    cost: Int,
+    enabled: Boolean = true,
+    supportingText: String? = null,
+    onClick: () -> Unit
+) {
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = { Text(supportingText ?: stringResource(R.string.shell_pearl_cost, cost)) },
+        modifier = Modifier
+            .clickable(enabled = enabled, onClick = onClick)
+            .semantics { role = Role.Button }
+    )
 }
 
 @Composable
@@ -1072,6 +1468,34 @@ private fun ShellPearlBasinIcon(
 }
 
 @Composable
+private fun shellIndicatorColor(): Color {
+    val scheme = MaterialTheme.colorScheme
+    val secondaryContrast = contrastRatio(scheme.secondary, scheme.surface)
+    return if (secondaryContrast >= 3f) scheme.secondary else scheme.primary
+}
+
+private fun contrastRatio(a: Color, b: Color): Float {
+    fun channel(v: Float): Float = if (v <= 0.03928f) {
+        v / 12.92f
+    } else {
+        ((v + 0.055f) / 1.055f).pow(2.4f)
+    }
+
+    fun luminance(color: Color): Float {
+        val r = channel(color.red)
+        val g = channel(color.green)
+        val b = channel(color.blue)
+        return 0.2126f * r + 0.7152f * g + 0.0722f * b
+    }
+
+    val l1 = luminance(a)
+    val l2 = luminance(b)
+    val lighter = maxOf(l1, l2)
+    val darker = minOf(l1, l2)
+    return (lighter + 0.05f) / (darker + 0.05f)
+}
+
+@Composable
 private fun ShellPearlMiniIcon(
     modifier: Modifier = Modifier
 ) {
@@ -1089,6 +1513,112 @@ private fun ShellPearlMiniIcon(
             radius = size.minDimension * 0.16f,
             center = Offset(size.width * 0.60f, size.height * 0.38f)
         )
+    }
+}
+
+private enum class ShellAnimalIcon { MINNOW, SEAHORSE, MANTA, WHALE, OCTOPUS }
+
+@Composable
+private fun ShellObjectIcon(
+    iconKey: String,
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+    val animalIcon = when {
+        "minnow" in iconKey -> ShellAnimalIcon.MINNOW
+        "seahorse" in iconKey -> ShellAnimalIcon.SEAHORSE
+        "manta" in iconKey -> ShellAnimalIcon.MANTA
+        "whale" in iconKey -> ShellAnimalIcon.WHALE
+        "octopus" in iconKey -> ShellAnimalIcon.OCTOPUS
+        else -> null
+    }
+    val vector = when {
+        animalIcon != null -> null
+        "kelp" in iconKey || "curtain" in iconKey -> Icons.Outlined.Grass
+        "bubble" in iconKey || "current" in iconKey -> Icons.Outlined.Waves
+        "coral" in iconKey || "perch" in iconKey -> Icons.Outlined.FilterVintage
+        else -> Icons.Outlined.Diamond
+    }
+    Surface(shape = CircleShape, color = scheme.primary.copy(alpha = 0.16f), modifier = modifier) {
+        Box(contentAlignment = Alignment.Center) {
+            if (animalIcon != null) {
+                ShellAnimalCanvasIcon(animalIcon, Modifier.fillMaxSize().padding(5.dp))
+            } else if (vector != null) {
+                Icon(imageVector = vector, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(18.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShellAnimalCanvasIcon(
+    animalIcon: ShellAnimalIcon,
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+    Canvas(modifier) {
+        val w = size.width
+        val h = size.height
+        val ink = scheme.primary
+        val accent = scheme.primary.copy(alpha = 0.55f)
+
+        when (animalIcon) {
+            ShellAnimalIcon.MINNOW -> {
+                drawOval(ink, topLeft = Offset(w * 0.22f, h * 0.34f), size = Size(w * 0.44f, h * 0.30f))
+                drawPath(Path().apply {
+                    moveTo(w * 0.20f, h * 0.50f)
+                    lineTo(w * 0.02f, h * 0.34f)
+                    lineTo(w * 0.02f, h * 0.66f)
+                    close()
+                }, ink)
+                drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.58f, h * 0.44f))
+                drawOval(accent, topLeft = Offset(w * 0.66f, h * 0.24f), size = Size(w * 0.18f, h * 0.12f))
+                drawOval(accent, topLeft = Offset(w * 0.72f, h * 0.62f), size = Size(w * 0.20f, h * 0.12f))
+            }
+            ShellAnimalIcon.SEAHORSE -> {
+                drawCircle(ink, radius = w * 0.17f, center = Offset(w * 0.56f, h * 0.24f))
+                drawLine(ink, Offset(w * 0.64f, h * 0.25f), Offset(w * 0.86f, h * 0.20f), strokeWidth = w * 0.09f)
+                drawPath(Path().apply {
+                    moveTo(w * 0.54f, h * 0.36f)
+                    cubicTo(w * 0.30f, h * 0.44f, w * 0.38f, h * 0.78f, w * 0.58f, h * 0.70f)
+                    cubicTo(w * 0.78f, h * 0.62f, w * 0.68f, h * 0.48f, w * 0.54f, h * 0.56f)
+                }, ink, style = Stroke(width = w * 0.13f))
+                drawCircle(scheme.surface, radius = w * 0.032f, center = Offset(w * 0.61f, h * 0.20f))
+                drawLine(accent, Offset(w * 0.37f, h * 0.48f), Offset(w * 0.18f, h * 0.40f), strokeWidth = w * 0.08f)
+            }
+            ShellAnimalIcon.MANTA -> {
+                drawPath(Path().apply {
+                    moveTo(w * 0.50f, h * 0.22f)
+                    cubicTo(w * 0.20f, h * 0.30f, w * 0.08f, h * 0.58f, w * 0.02f, h * 0.74f)
+                    cubicTo(w * 0.28f, h * 0.66f, w * 0.38f, h * 0.62f, w * 0.50f, h * 0.78f)
+                    cubicTo(w * 0.62f, h * 0.62f, w * 0.72f, h * 0.66f, w * 0.98f, h * 0.74f)
+                    cubicTo(w * 0.92f, h * 0.58f, w * 0.80f, h * 0.30f, w * 0.50f, h * 0.22f)
+                    close()
+                }, ink)
+                drawLine(accent, Offset(w * 0.50f, h * 0.72f), Offset(w * 0.50f, h * 0.96f), strokeWidth = w * 0.05f)
+            }
+            ShellAnimalIcon.WHALE -> {
+                drawOval(ink, topLeft = Offset(w * 0.12f, h * 0.34f), size = Size(w * 0.68f, h * 0.34f))
+                drawPath(Path().apply {
+                    moveTo(w * 0.78f, h * 0.50f)
+                    lineTo(w * 0.98f, h * 0.30f)
+                    lineTo(w * 0.92f, h * 0.50f)
+                    lineTo(w * 0.98f, h * 0.70f)
+                    close()
+                }, ink)
+                drawCircle(scheme.surface, radius = w * 0.03f, center = Offset(w * 0.24f, h * 0.44f))
+                drawLine(accent, Offset(w * 0.36f, h * 0.34f), Offset(w * 0.44f, h * 0.18f), strokeWidth = w * 0.05f)
+                drawLine(accent, Offset(w * 0.44f, h * 0.18f), Offset(w * 0.54f, h * 0.34f), strokeWidth = w * 0.05f)
+            }
+            ShellAnimalIcon.OCTOPUS -> {
+                drawOval(ink, topLeft = Offset(w * 0.26f, h * 0.14f), size = Size(w * 0.48f, h * 0.42f))
+                listOf(0.20f, 0.36f, 0.52f, 0.68f).forEach { x ->
+                    drawLine(ink, Offset(w * (x + 0.06f), h * 0.52f), Offset(w * x, h * 0.86f), strokeWidth = w * 0.08f)
+                }
+                drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.42f, h * 0.32f))
+                drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.58f, h * 0.32f))
+            }
+        }
     }
 }
 
@@ -1165,6 +1695,7 @@ private fun FocusRoomScreen(
     uiState: ShellUiState,
     onPlace: (String, String) -> Unit,
     onReturn: (String) -> Unit,
+    onInvite: (String, String) -> Unit,
     onUpgrade: (String) -> Unit
 ) {
     var selectedSlot by remember { mutableStateOf<String?>(null) }
@@ -1231,8 +1762,14 @@ private fun FocusRoomScreen(
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.24f))
         ) {
+            val restingCount = restingFinds(uiState).size
+            val allNooksHolding = uiState.focusPlacements.size >= ShellContentCatalog.focusSlots.size
             Text(
-                text = stringResource(R.string.shell_focus_summary, uiState.focusPlacements.size),
+                text = if (allNooksHolding) {
+                    stringResource(R.string.shell_all_nooks_holding, restingCount)
+                } else {
+                    stringResource(R.string.shell_focus_summary, uiState.focusPlacements.size, restingCount)
+                },
                 color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -1248,14 +1785,19 @@ private fun FocusRoomScreen(
             onPlace = { id ->
                 onPlace(id, selectedSlot!!)
                 selectedSlot = null
+            },
+            onInvite = { findId ->
+                onInvite(findId, selectedSlot!!)
+                selectedSlot = null
             }
         )
     }
 
     if (selectedInstance != null) {
-        PlacedFindSheet(
+        ObjectCopySheet(
             item = selectedInstance!!,
             pearlBalance = uiState.pearlBalance,
+            displayed = true,
             onDismiss = { selectedInstance = null },
             onReturn = {
                 onReturn(it)
@@ -1264,7 +1806,8 @@ private fun FocusRoomScreen(
             onUpgrade = {
                 onUpgrade(it)
                 selectedInstance = null
-            }
+            },
+            onPlaceInFocus = null
         )
     }
 }
@@ -1431,17 +1974,23 @@ private fun SlotChip(
     val scheme = MaterialTheme.colorScheme
     val def = find?.let { ShellContentCatalog.find(it.findId) }
 
+    val slotTitle = stringResource(slot.titleRes)
     val label = if (def != null) {
         stringResource(def.titleRes)
     } else {
-        stringResource(R.string.shell_empty_slot)
+        slotTitle
+    }
+    val placedDescription = if (def != null) {
+        stringResource(R.string.shell_placed_object_a11y, label)
+    } else {
+        stringResource(R.string.shell_empty_slot_a11y, slotTitle)
     }
 
     val isFilled = def != null
 
     Surface(
         modifier = modifier
-            .semantics { contentDescription = label }
+            .semantics { contentDescription = placedDescription }
             .clickable {
                 if (find == null) {
                     onEmpty()
@@ -1468,17 +2017,25 @@ private fun SlotChip(
             contentAlignment = Alignment.Center,
             modifier = Modifier.padding(6.dp)
         ) {
-            Text(
-                text = label,
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = if (isFilled) FontWeight.SemiBold else FontWeight.Normal,
-                color = if (isFilled) {
-                    scheme.onSurface
-                } else {
-                    scheme.onPrimary.copy(alpha = 0.82f)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                if (def != null) {
+                    ShellObjectIcon(def.iconKey, Modifier.size(28.dp))
                 }
-            )
+                Text(
+                    text = label,
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = if (isFilled) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isFilled) {
+                        scheme.onSurface
+                    } else {
+                        scheme.onPrimary.copy(alpha = 0.82f)
+                    }
+                )
+            }
         }
     }
 }
@@ -1488,7 +2045,8 @@ private fun EmptySlotSheet(
     slotId: String,
     uiState: ShellUiState,
     onDismiss: () -> Unit,
-    onPlace: (String) -> Unit
+    onPlace: (String) -> Unit,
+    onInvite: (String) -> Unit
 ) {
     val slot = ShellContentCatalog.focusSlots.first { it.slotId == slotId }
     val placedIds = uiState.focusPlacements.map { it.instanceId }.toSet()
@@ -1496,10 +2054,14 @@ private fun EmptySlotSheet(
     val compatible = uiState.finds.filter { instance ->
         val def = ShellContentCatalog.find(instance.findId)
 
-        instance.instanceId !in placedIds &&
-                def?.placeable == true &&
-                slot.slotType in def.acceptedSlotTypes &&
-                def.category in slot.acceptsCategories
+        def != null &&
+                instance.instanceId !in placedIds &&
+                def.placeable &&
+                ShellContentCatalog.isCompatibleWithSlot(slot, def)
+    }
+
+    val invitable = ShellContentCatalog.focusPearlObjects.filter { def ->
+        ShellContentCatalog.isCompatibleWithSlot(slot, def)
     }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -1512,7 +2074,17 @@ private fun EmptySlotSheet(
                 style = MaterialTheme.typography.titleLarge
             )
 
-            Text(stringResource(R.string.shell_place_something_here))
+            Text(stringResource(R.string.shell_slot_named_title, stringResource(slot.titleRes)))
+            if (slot.slotType == ShellSlotType.SURGE_CURRENT) {
+                Text(stringResource(R.string.shell_surge_current_reserved_body))
+            } else {
+                Text(stringResource(R.string.shell_empty_nook_choices))
+            }
+
+            Text(
+                text = stringResource(R.string.shell_place_from_chest),
+                fontWeight = FontWeight.SemiBold
+            )
 
             compatible.forEach { item ->
                 val def = ShellContentCatalog.find(item.findId) ?: return@forEach
@@ -1525,19 +2097,50 @@ private fun EmptySlotSheet(
             }
 
             if (compatible.isEmpty()) {
-                Text(stringResource(R.string.shell_no_owned_finds_fit))
+                Text(stringResource(R.string.shell_no_resting_finds_fit))
+            }
+
+            if (invitable.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.shell_shape_space_with_pearls),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            invitable.forEach { def ->
+                val cost = def.pearlCost ?: return@forEach
+                val canAfford = uiState.pearlBalance >= cost
+                ListItem(
+                    leadingContent = { ShellObjectIcon(def.iconKey, Modifier.size(30.dp)) },
+                    headlineContent = { Text(stringResource(def.titleRes)) },
+                    supportingContent = {
+                        Text(
+                            if (canAfford) stringResource(R.string.shell_invite_with_pearls, cost)
+                            else stringResource(R.string.shell_need_more_pearls, cost - uiState.pearlBalance)
+                        )
+                    },
+                    modifier = Modifier
+                        .clickable(enabled = canAfford) { onInvite(def.findId) }
+                        .semantics { role = Role.Button }
+                )
+            }
+
+            OutlinedButton(onClick = onDismiss) {
+                Text(stringResource(R.string.shell_leave_empty))
             }
         }
     }
 }
 
 @Composable
-private fun PlacedFindSheet(
+private fun ObjectCopySheet(
     item: UserShellFindInstanceEntity,
     pearlBalance: Int,
+    displayed: Boolean,
     onDismiss: () -> Unit,
     onReturn: (String) -> Unit,
-    onUpgrade: (String) -> Unit
+    onUpgrade: (String) -> Unit,
+    onPlaceInFocus: (() -> Unit)?
 ) {
     val def = ShellContentCatalog.find(item.findId)
     val current = def?.let {
@@ -1570,16 +2173,24 @@ private fun PlacedFindSheet(
                 style = MaterialTheme.typography.titleLarge
             )
 
-            Text(stringResource(R.string.shell_earned_from_flow))
-            Text(stringResource(R.string.shell_current_form, currentTitle))
+            def?.let { Text(kindLabel(it.kind)) }
+            Text(
+                if (displayed) stringResource(R.string.shell_status_displayed_focus)
+                else stringResource(R.string.shell_status_resting)
+            )
+            Text(stringResource(R.string.shell_form_label, currentTitle))
+            def?.let { Text(stringResource(R.string.shell_source_label, sourceReasonFor(it))) }
 
             if (next != null) {
                 val nextTitle = stringResource(next.titleRes)
                 val upgradeVerb = stringResource(next.upgradeVerbRes)
-                val upgradeDescription = stringResource(R.string.shell_upgrade_a11y)
+                val upgradeDescription = upgradeA11yLabel(def)
                 val canAfford = pearlBalance >= next.pearlCost
 
                 Text(stringResource(R.string.shell_next_form, nextTitle))
+                if (!canAfford) {
+                    Text(stringResource(R.string.shell_need_more_pearls, next.pearlCost - pearlBalance))
+                }
 
                 Button(
                     onClick = { onUpgrade(item.instanceId) },
@@ -1601,11 +2212,17 @@ private fun PlacedFindSheet(
                     )
                 }
             } else {
-                Text(stringResource(R.string.shell_no_more_forms))
+                Text(restingCurrentFormLabel(def))
             }
 
-            OutlinedButton(onClick = { onReturn(item.instanceId) }) {
-                Text(stringResource(R.string.shell_return_to_chest))
+            if (displayed) {
+                OutlinedButton(onClick = { onReturn(item.instanceId) }) {
+                    Text(returnToChestLabel(def))
+                }
+            } else if (onPlaceInFocus != null) {
+                OutlinedButton(onClick = onPlaceInFocus) {
+                    Text(placeInFocusLabel(def))
+                }
             }
         }
     }
@@ -1615,12 +2232,22 @@ private fun PlacedFindSheet(
 private fun ShellChestScreen(
     uiState: ShellUiState,
     onPlace: (String, String) -> Unit,
+    onReturn: (String) -> Unit,
+    onUpgrade: (String) -> Unit,
     onOpenFocus: () -> Unit
 ) {
     var category by remember { mutableStateOf<ShellFindCategory?>(null) }
+    var selectedGroupFindId by remember { mutableStateOf<String?>(null) }
     var selectedInstance by remember { mutableStateOf<UserShellFindInstanceEntity?>(null) }
+    var placingInstance by remember { mutableStateOf<UserShellFindInstanceEntity?>(null) }
 
-    val items = uiState.finds.filter {
+    val displayedIds = displayedInstanceIds(uiState)
+    val groupedItems = uiState.finds
+        .filter { category == null || ShellContentCatalog.find(it.findId)?.category == category }
+        .groupBy { it.findId }
+        .toList()
+        .sortedBy { (findId, _) -> ShellContentCatalog.find(findId)?.titleRes ?: 0 }
+    val stackItems = uiState.stacks.filter {
         category == null || ShellContentCatalog.find(it.findId)?.category == category
     }
 
@@ -1656,49 +2283,61 @@ private fun ShellChestScreen(
             }
         }
 
-        items(items) { instance ->
-            val def = ShellContentCatalog.find(instance.findId) ?: return@items
+        items(groupedItems) { (findId, copies) ->
+            val def = ShellContentCatalog.find(findId) ?: return@items
             val title = stringResource(def.titleRes)
-            val categoryLabel = stringResource(categoryLabelFor(def.category))
-            val status = if (uiState.focusPlacements.any { it.instanceId == instance.instanceId }) {
-                stringResource(R.string.shell_status_placed)
-            } else {
-                stringResource(R.string.shell_status_unplaced)
-            }
+            val categoryLabel = kindLabel(def.kind) + (depthLabel(def.depthTier)?.let { " · $it" } ?: "")
+            val displayedCount = copies.count { it.instanceId in displayedIds }
+            val restingCount = copies.size - displayedCount
+            val bestCopy = copies.maxByOrNull { currentFormOrder(it) }
+            val bestFormTitle = bestCopy?.let { copy ->
+                ShellContentCatalog.upgradesFor(copy.findId)
+                    .firstOrNull { it.upgradeStageId == copy.currentUpgradeStageId }
+                    ?.let { stringResource(it.titleRes) }
+            } ?: title
+            val rowDescription = stringResource(
+                R.string.shell_chest_group_a11y,
+                title,
+                copies.size,
+                displayedCount,
+                restingCount
+            )
 
             ElevatedCard(
-                onClick = { selectedInstance = instance },
+                onClick = { selectedGroupFindId = findId },
                 colors = CardDefaults.elevatedCardColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 ),
                 modifier = Modifier.semantics {
-                    contentDescription = title
+                    contentDescription = rowDescription
+                    role = Role.Button
                 }
             ) {
                 ListItem(
                     leadingContent = {
-                        Icon(
-                            imageVector = iconFor(def.category),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        ShellObjectIcon(def.iconKey, Modifier.size(36.dp))
                     },
-                    headlineContent = { Text(title) },
+                    headlineContent = {
+                        Text(stringResource(R.string.shell_chest_group_title, title, copies.size))
+                    },
                     supportingContent = {
                         Text(
                             stringResource(
-                                R.string.shell_chest_item_status,
-                                categoryLabel,
-                                status
-                            )
+                                R.string.shell_chest_group_status,
+                                bestFormTitle,
+                                displayedCount,
+                                restingCount,
+                                categoryLabel
+                            ) + "\n" + sourceReasonFor(def)
                         )
                     }
                 )
             }
         }
 
-        items(uiState.stacks) { stack ->
+        items(stackItems) { stack ->
             val def = ShellContentCatalog.find(stack.findId) ?: return@items
+            val title = stringResource(def.titleRes)
 
             ElevatedCard(
                 colors = CardDefaults.elevatedCardColors(
@@ -1706,30 +2345,117 @@ private fun ShellChestScreen(
                 )
             ) {
                 ListItem(
-                    headlineContent = { Text(stringResource(def.titleRes)) },
+                    leadingContent = { ShellObjectIcon(def.iconKey, Modifier.size(36.dp)) },
+                    headlineContent = { Text(stringResource(R.string.shell_chest_group_title, title, stack.quantity)) },
                     supportingContent = {
-                        Text(stringResource(R.string.shell_stack_quantity, stack.quantity))
+                        Text("${kindLabel(def.kind)} · ${stringResource(R.string.shell_stack_quantity, stack.quantity)}\n${sourceReasonFor(def)}")
                     }
                 )
             }
         }
     }
 
+    selectedGroupFindId?.let { findId ->
+        CopyGroupSheet(
+            findId = findId,
+            uiState = uiState,
+            onDismiss = { selectedGroupFindId = null },
+            onSelectCopy = { instance ->
+                selectedGroupFindId = null
+                selectedInstance = instance
+            }
+        )
+    }
+
     selectedInstance?.let { instance ->
+        val isDisplayed = uiState.focusPlacements.any { it.instanceId == instance.instanceId }
+        ObjectCopySheet(
+            item = instance,
+            pearlBalance = uiState.pearlBalance,
+            displayed = isDisplayed,
+            onDismiss = { selectedInstance = null },
+            onReturn = {
+                onReturn(it)
+                selectedInstance = null
+            },
+            onUpgrade = {
+                onUpgrade(it)
+                selectedInstance = null
+            },
+            onPlaceInFocus = if (isDisplayed) {
+                null
+            } else {
+                {
+                    placingInstance = instance
+                    selectedInstance = null
+                }
+            }
+        )
+    }
+
+    placingInstance?.let { instance ->
         ChestPlacementSheet(
             instance = instance,
             uiState = uiState,
-            onDismiss = { selectedInstance = null },
+            onDismiss = { placingInstance = null },
             onPlace = { slotId ->
                 onPlace(instance.instanceId, slotId)
-                selectedInstance = null
+                placingInstance = null
                 onOpenFocus()
             },
             onOpenFocus = {
-                selectedInstance = null
+                placingInstance = null
                 onOpenFocus()
             }
         )
+    }
+}
+
+@Composable
+private fun CopyGroupSheet(
+    findId: String,
+    uiState: ShellUiState,
+    onDismiss: () -> Unit,
+    onSelectCopy: (UserShellFindInstanceEntity) -> Unit
+) {
+    val def = ShellContentCatalog.find(findId)
+    val copies = uiState.finds.filter { it.findId == findId }.sortedWith(
+        compareByDescending<UserShellFindInstanceEntity> { currentFormOrder(it) }.thenByDescending { it.acquiredAt }
+    )
+    val displayedIds = displayedInstanceIds(uiState)
+    val title = def?.let { stringResource(it.titleRes) } ?: findId
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.shell_chest_group_title, title, copies.size),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            copies.forEach { copy ->
+                val formTitle = ShellContentCatalog.upgradesFor(copy.findId)
+                    .firstOrNull { it.upgradeStageId == copy.currentUpgradeStageId }
+                    ?.let { stringResource(it.titleRes) } ?: title
+                val status = if (copy.instanceId in displayedIds) {
+                    stringResource(R.string.shell_status_displayed_focus)
+                } else {
+                    stringResource(R.string.shell_status_resting)
+                }
+
+                ListItem(
+                    leadingContent = { ShellObjectIcon(def?.iconKey ?: "shell", Modifier.size(30.dp)) },
+                    headlineContent = { Text(formTitle) },
+                    supportingContent = { Text(status) },
+                    modifier = Modifier
+                        .clickable { onSelectCopy(copy) }
+                        .semantics { role = Role.Button }
+                )
+            }
+        }
     }
 }
 
@@ -1742,15 +2468,14 @@ private fun ChestPlacementSheet(
     onOpenFocus: () -> Unit
 ) {
     val def = ShellContentCatalog.find(instance.findId)
-    val occupied = uiState.focusPlacements.map { it.slotId }.toSet()
+    val placementsBySlot = uiState.focusPlacements.associateBy { it.slotId }
+    val findsById = uiState.finds.associateBy { it.instanceId }
 
     val slots = if (def == null) {
         emptyList()
     } else {
         ShellContentCatalog.focusSlots.filter { slot ->
-            slot.slotId !in occupied &&
-                    slot.slotType in def.acceptedSlotTypes &&
-                    def.category in slot.acceptsCategories
+            ShellContentCatalog.isCompatibleWithSlot(slot, def)
         }
     }
 
@@ -1764,26 +2489,37 @@ private fun ChestPlacementSheet(
                 style = MaterialTheme.typography.titleLarge
             )
 
-            Text(stringResource(R.string.shell_compatible_slots))
+            Text(
+                text = if (slots.any { placementsBySlot[it.slotId] != null }) {
+                    stringResource(R.string.shell_choose_something_to_swap)
+                } else {
+                    stringResource(R.string.shell_compatible_slots)
+                }
+            )
 
             slots.forEach { slot ->
+                val slotTitle = stringResource(slot.titleRes)
+                val displayedCopy = placementsBySlot[slot.slotId]?.let { placement -> findsById[placement.instanceId] }
+                val displayedDef = displayedCopy?.let { ShellContentCatalog.find(it.findId) }
                 ListItem(
-                    headlineContent = {
-                        Text(slot.slotId.replace('_', ' ').replaceFirstChar { it.titlecase() })
-                    },
+                    headlineContent = { Text(slotTitle) },
                     supportingContent = {
-                        Text(stringResource(R.string.shell_place_free))
+                        Text(
+                            displayedDef?.let { stringResource(R.string.shell_swap_with, stringResource(it.titleRes)) }
+                                ?: stringResource(R.string.shell_place_free)
+                        )
                     },
                     modifier = Modifier
                         .clickable { onPlace(slot.slotId) }
                         .semantics {
-                            contentDescription = slot.slotId
+                            contentDescription = slotTitle
+                            role = Role.Button
                         }
                 )
             }
 
             if (slots.isEmpty()) {
-                Text(stringResource(R.string.shell_no_owned_finds_fit))
+                Text(stringResource(R.string.shell_no_compatible_nooks))
             }
 
             OutlinedButton(onClick = onOpenFocus) {
@@ -1827,9 +2563,9 @@ private fun BadgesScreen(uiState: ShellUiState) {
                             tint = MaterialTheme.colorScheme.secondary
                         )
                     },
-                    headlineContent = { Text(title) },
+                    headlineContent = { Text(stringResource(R.string.shell_badge_row_title, title, badge.count)) },
                     supportingContent = {
-                        Text(stringResource(def.descriptionRes, badge.count))
+                        Text(stringResource(def.descriptionRes))
                     }
                 )
             }
@@ -1875,6 +2611,116 @@ private fun DiscoveryJournalScreen(uiState: ShellUiState) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ShellNotificationsScreen(uiState: ShellUiState) {
+    val newFinds = uiState.finds.filter { it.isNew }
+    val newStacks = uiState.stacks.filter { it.isNew }
+    val newBadges = uiState.badges.filter { it.isNew }
+    val newDiscoveries = uiState.discoveries.filter { it.isNew }
+    val hasNotifications = newFinds.isNotEmpty() || newStacks.isNotEmpty() || newBadges.isNotEmpty() || newDiscoveries.isNotEmpty()
+
+    LazyColumn(
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item {
+            RoomHeader(
+                title = R.string.shell_notifications_title,
+                body = R.string.shell_notifications_body
+            )
+        }
+
+        if (!hasNotifications) {
+            item {
+                ElevatedCard(
+                    colors = CardDefaults.elevatedCardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                ) {
+                    ListItem(
+                        leadingContent = {
+                            Icon(
+                                imageVector = Icons.Outlined.Notifications,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
+                        },
+                        headlineContent = { Text(stringResource(R.string.shell_notifications_empty_title)) },
+                        supportingContent = { Text(stringResource(R.string.shell_notifications_empty_body)) }
+                    )
+                }
+            }
+        }
+
+        items(newFinds, key = { it.instanceId }) { find ->
+            val def = ShellContentCatalog.find(find.findId) ?: return@items
+            ShellNotificationCard(
+                icon = iconFor(def.category),
+                title = notificationTitleFor(def),
+                body = notificationBodyFor(def)
+            )
+        }
+
+        items(newStacks, key = { it.findId }) { stack ->
+            val def = ShellContentCatalog.find(stack.findId) ?: return@items
+            val title = stringResource(def.titleRes)
+            ShellNotificationCard(
+                icon = iconFor(def.category),
+                title = stringResource(R.string.shell_chest_group_title, title, stack.quantity),
+                body = stringResource(R.string.shell_notification_stack_body, stack.quantity)
+            )
+        }
+
+        items(newBadges, key = { it.badgeId }) { badge ->
+            val def = ShellContentCatalog.badge(badge.badgeId) ?: return@items
+            val title = stringResource(def.titleRes)
+            ShellNotificationCard(
+                icon = Icons.Outlined.MilitaryTech,
+                title = stringResource(R.string.shell_badge_notification_title, title),
+                body = stringResource(R.string.shell_badge_notification_body, badge.count, stringResource(def.descriptionRes))
+            )
+        }
+
+        items(newDiscoveries, key = { it.userDiscoveryId }) { discovery ->
+            val def = ShellContentCatalog.discovery(discovery.discoveryId) ?: return@items
+            val title = stringResource(def.titleRes)
+            ShellNotificationCard(
+                icon = Icons.Outlined.AutoStories,
+                title = stringResource(R.string.shell_discovery_notification_title, title),
+                body = stringResource(def.explanationRes)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ShellNotificationCard(
+    icon: ImageVector,
+    title: String,
+    body: String
+) {
+    ElevatedCard(
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        modifier = Modifier.semantics {
+            contentDescription = title
+        }
+    ) {
+        ListItem(
+            leadingContent = {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary
+                )
+            },
+            headlineContent = { Text(title) },
+            supportingContent = { Text(body) }
+        )
     }
 }
 
@@ -1971,6 +2817,12 @@ private fun StillwaterRoomScreen(
                 }
 
                 Text(
+                    text = stringResource(R.string.shell_stillwater_same_water),
+                    color = scheme.secondary,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Text(
                     text = stringResource(R.string.shell_soft_flow_copy),
                     color = scheme.onSurface.copy(alpha = 0.76f)
                 )
@@ -2038,6 +2890,16 @@ private fun DormantPreviewScreen(
                 )
 
                 Spacer(Modifier.height(8.dp))
+
+                Text(
+                    text = stringResource(R.string.shell_quiet_for_now),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = scheme.secondary,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                Spacer(Modifier.height(6.dp))
 
                 Text(
                     text = stringResource(bodyRes),

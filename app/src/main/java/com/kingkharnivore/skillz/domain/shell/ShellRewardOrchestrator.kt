@@ -17,6 +17,22 @@ data class ShellRewardResult(
     val discoveryIds: List<String> = emptyList()
 )
 
+object ShellRewardPolicy {
+    const val OCTOPUS_DISCOVERY_BADGE_COUNT = 3
+
+    fun shouldDiscoverOctopus(minutes: Int, flow30BadgeCount: Int): Boolean =
+        minutes >= 30 && flow30BadgeCount == OCTOPUS_DISCOVERY_BADGE_COUNT
+
+    fun milestoneFindsForMinutes(minutes: Int): List<String> {
+        val findIds = mutableListOf<String>()
+        if (minutes >= 10) findIds += ShellContentCatalog.FOCUS_MINNOW
+        if (minutes >= 30) findIds += ShellContentCatalog.FOCUS_SEAHORSE
+        if (minutes >= 60) findIds += ShellContentCatalog.FOCUS_MANTA
+        if (minutes >= 120) findIds += ShellContentCatalog.FOCUS_WHALE
+        return findIds
+    }
+}
+
 @Singleton
 class ShellRewardOrchestrator @Inject constructor(
     private val shellRepository: ShellRepository
@@ -29,8 +45,7 @@ class ShellRewardOrchestrator @Inject constructor(
             if (!shellRepository.addStillwater(units, "session", sourceId)) {
                 return ShellRewardResult()
             }
-            shellRepository.incrementBadge("badge_soft_flow")
-            ShellRewardResult(stillwaterUnits = units, badgeIds = listOf("badge_soft_flow"))
+            ShellRewardResult(stillwaterUnits = units)
         } else {
             val grantedFinds = mutableListOf<String>()
             val badges = mutableListOf<String>()
@@ -40,30 +55,43 @@ class ShellRewardOrchestrator @Inject constructor(
                 return ShellRewardResult()
             }
 
-            suspend fun badge(id: String) { shellRepository.incrementBadge(id); badges += id }
-            suspend fun grant(findId: String) { if (shellRepository.grantFindOnce(findId, "session", sourceId) != null) grantedFinds += findId }
+            suspend fun thresholdReward(badgeId: String, findId: String): Int {
+                val badgeCount = shellRepository.incrementBadge(badgeId)
+                badges += badgeId
+                val granted = if (badgeCount == 1) {
+                    shellRepository.grantFindOnce(findId, "session", sourceId)
+                } else if (badgeCount % 5 == 0) {
+                    shellRepository.grantFindCopy(findId, "session", sourceId)
+                } else {
+                    null
+                }
+                if (granted != null) grantedFinds += findId
+                return badgeCount
+            }
 
-            if (minutes >= 10) { badge("badge_flow_10_min"); grant(ShellContentCatalog.FOCUS_GLOW_SHELL) }
-            if (minutes >= 30) { badge("badge_flow_30_min"); grant(ShellContentCatalog.FOCUS_CURRENT_CONCH) }
-            if (minutes >= 60) { badge("badge_flow_60_min"); grant(ShellContentCatalog.FOCUS_ANCHOR_CORAL) }
-            if (minutes >= 120) { badge("badge_flow_120_min"); grant(ShellContentCatalog.FOCUS_ABYSS_LANTERNFISH) }
+            if (minutes >= 10) thresholdReward("badge_flow_10_min", ShellContentCatalog.FOCUS_MINNOW)
+            val flow30BadgeCount = if (minutes >= 30) thresholdReward("badge_flow_30_min", ShellContentCatalog.FOCUS_SEAHORSE) else 0
+            if (minutes >= 60) thresholdReward("badge_flow_60_min", ShellContentCatalog.FOCUS_MANTA)
+            if (minutes >= 120) thresholdReward("badge_flow_120_min", ShellContentCatalog.FOCUS_WHALE)
 
-            if (minutes >= 30 && shellRepository.grantDiscoveryOnce("discovery_threshold_seahorse", "session", sourceId) != null) {
-                discoveries += "discovery_threshold_seahorse"
-                grantedFinds += ShellContentCatalog.FOCUS_THRESHOLD_SEAHORSE
+            if (ShellRewardPolicy.shouldDiscoverOctopus(minutes, flow30BadgeCount) &&
+                shellRepository.grantDiscoveryOnce("discovery_octopus", "session", sourceId) != null
+            ) {
+                discoveries += "discovery_octopus"
+                grantedFinds += ShellContentCatalog.FOCUS_OCTOPUS
             }
 
             val previousEnd = shellRepository.lastRegularFlowBefore(session.endTime)
             if (previousEnd != null && session.endTime - previousEnd >= RETURN_GAP_MS &&
-                shellRepository.grantDiscoveryOnce("discovery_return_turtle_stone", "session", sourceId) != null
+                shellRepository.grantDiscoveryOnce("discovery_pebble", "session", sourceId) != null
             ) {
-                discoveries += "discovery_return_turtle_stone"
-                grantedFinds += ShellContentCatalog.FOCUS_RETURN_TURTLE_STONE
+                discoveries += "discovery_pebble"
+                grantedFinds += ShellContentCatalog.FOCUS_PEBBLE
             }
 
             val count = shellRepository.regularFlowCount()
             if (discoveries.isEmpty() && count > 0 && count % 3 == 0) {
-                val discoveryId = if ((count / 3) % 2 == 0) "discovery_pearl_cluster" else "discovery_sea_glass_shard"
+                val discoveryId = if ((count / 3) % 2 == 0) "discovery_glimmer" else "discovery_sea_glass_shard"
                 if (shellRepository.grantDiscoveryOnce(discoveryId, "session", sourceId) != null) discoveries += discoveryId
             }
 

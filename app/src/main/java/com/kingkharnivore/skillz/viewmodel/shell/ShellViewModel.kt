@@ -92,23 +92,39 @@ class ShellViewModel @Inject constructor(
     fun place(instanceId: String, slotId: String) = viewModelScope.launch {
         runCatching { repository.placeInstance(instanceId, ShellRoomId.FOCUS, slotId) }
             .onSuccess { _events.emit("Placed in the Focus Room.") }
-            .onFailure { _events.emit(it.message ?: "Could not place that Shell Find.") }
+            .onFailure { _events.emit(it.message ?: "Could not display that reward.") }
     }
 
     fun returnToChest(instanceId: String) = viewModelScope.launch {
         runCatching { repository.removePlacement(instanceId) }
             .onSuccess { _events.emit("Returned to the Shell Chest.") }
-            .onFailure { _events.emit(it.message ?: "Could not return that Shell Find.") }
+            .onFailure { _events.emit(it.message ?: "Could not return that reward.") }
+    }
+
+    fun invitePearlObject(findId: String, slotId: String) = viewModelScope.launch {
+        runCatching { repository.invitePearlObject(findId, ShellRoomId.FOCUS, slotId) }
+            .onSuccess { _events.emit("Your Pearls shaped the Focus Room.") }
+            .onFailure { _events.emit(it.message ?: "Could not shape that space.") }
+    }
+
+    fun invitePearlObjectToChest(findId: String) = viewModelScope.launch {
+        runCatching { repository.invitePearlObjectToChest(findId) }
+            .onSuccess { _events.emit("A new Room Object is resting in the Shell Chest.") }
+            .onFailure { _events.emit(it.message ?: "Could not invite that object.") }
     }
 
     fun upgrade(instanceId: String) = viewModelScope.launch {
         runCatching { repository.upgradeInstance(instanceId) }
-            .onSuccess { _events.emit("The Shell Find changed form.") }
-            .onFailure { _events.emit(it.message ?: "Could not shape that Shell Find.") }
+            .onSuccess { _events.emit("Your Pearls added warmth to its light.") }
+            .onFailure { _events.emit(it.message ?: "Could not shape that reward.") }
     }
 
     fun setPerspective(perspective: StillwaterPerspective) = viewModelScope.launch {
         repository.updateStillwaterPerspective(perspective)
+    }
+
+    fun markNotificationsSeen() = viewModelScope.launch {
+        repository.markAllNotificationsSeen()
     }
 
     fun markRoomOpened(roomId: ShellRoomId) = viewModelScope.launch { repository.markRoomOpened(roomId) }

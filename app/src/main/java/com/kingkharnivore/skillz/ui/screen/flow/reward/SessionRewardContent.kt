@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
+import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
 
 @Composable
 fun SessionRewardContent(
@@ -160,9 +161,16 @@ fun SessionRewardContent(
                 }
                 r.shellGrantedFindIds.forEach { findId ->
                     val def = ShellContentCatalog.find(findId)
+                    val title = def?.let { stringResource(it.titleRes) } ?: findId
+                    val label = when (def?.kind) {
+                        ShellRewardKind.ANIMAL -> stringResource(R.string.shell_notification_title_encountered, title)
+                        ShellRewardKind.OBJECT -> stringResource(R.string.shell_notification_title_found, title)
+                        ShellRewardKind.TRINKET -> title
+                        ShellRewardKind.DISCOVERY, null -> stringResource(R.string.session_reward_shell_find)
+                    }
                     MetricLine(
-                        label = stringResource(R.string.session_reward_shell_find),
-                        value = def?.let { stringResource(it.titleRes) } ?: findId,
+                        label = label,
+                        value = def?.let { stringResource(it.descriptionRes) } ?: title,
                         tone = MetricTone.Glow
                     )
                 }

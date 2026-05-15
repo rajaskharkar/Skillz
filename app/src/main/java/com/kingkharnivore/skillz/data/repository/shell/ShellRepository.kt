@@ -66,17 +66,18 @@ class ShellRepository @Inject constructor(
         true
     }
 
-    suspend fun incrementBadge(badgeId: String, by: Int = 1) {
+    suspend fun incrementBadge(badgeId: String, by: Int = 1): Int {
         val now = System.currentTimeMillis()
         val current = badgeDao.get(badgeId)
+        val newCount = (current?.count ?: 0) + by
         badgeDao.upsert(
-            current?.copy(count = current.count + by, lastEarnedAt = now, isNew = true)
+            current?.copy(count = newCount, lastEarnedAt = now, isNew = true)
                 ?: UserBadgeEntity(badgeId, by, now, now, true)
         )
+        return newCount
     }
 
-    suspend fun grantFindOnce(findId: String, sourceType: String, sourceId: String?): UserShellFindInstanceEntity? {
-        if (findInstanceDao.countByFindId(findId) > 0) return null
+    suspend fun grantFindCopy(findId: String, sourceType: String, sourceId: String?): UserShellFindInstanceEntity {
         val now = System.currentTimeMillis()
         val firstStage = ShellContentCatalog.upgradesFor(findId).firstOrNull()?.upgradeStageId
         val entity = UserShellFindInstanceEntity(
@@ -92,6 +93,11 @@ class ShellRepository @Inject constructor(
         )
         findInstanceDao.insert(entity)
         return entity
+    }
+
+    suspend fun grantFindOnce(findId: String, sourceType: String, sourceId: String?): UserShellFindInstanceEntity? {
+        if (findInstanceDao.countByFindId(findId) > 0) return null
+        return grantFindCopy(findId, sourceType, sourceId)
     }
 
     suspend fun addStack(findId: String, quantity: Int = 1) {
@@ -121,26 +127,94 @@ class ShellRepository @Inject constructor(
     }
 
     suspend fun placeInstance(instanceId: String, roomId: ShellRoomId, slotId: String) = db.withTransaction {
-        val instance = findInstanceDao.getById(instanceId) ?: error("Shell Find not found")
-        val find = ShellContentCatalog.find(instance.findId) ?: error("Shell Find definition missing")
+        val instance = findInstanceDao.getById(instanceId) ?: error("Shell reward not found")
+        val find = ShellContentCatalog.find(instance.findId) ?: error("Shell reward definition missing")
         val slot = ShellContentCatalog.focusSlots.firstOrNull { it.roomId == roomId && it.slotId == slotId } ?: error("Invalid slot.")
-        require(find.placeable) { "This Shell Find rests in the Shell Chest." }
-        require(slot.slotType in find.acceptedSlotTypes && find.category in slot.acceptsCategories) { "Invalid slot for this Shell Find." }
-        require(placementDao.getBySlot(roomId.name, slotId) == null) { "This space already holds something." }
+        require(find.placeable) { "This reward rests in the Shell Chest." }
+        require(ShellContentCatalog.isCompatibleWithSlot(slot, find)) { "Invalid nook for this reward." }
+        val currentInSlot = placementDao.getBySlot(roomId.name, slotId)
+        if (currentInSlot?.instanceId == instanceId) return@withTransaction
+        currentInSlot?.let {
+            placementDao.removeByInstance(it.instanceId)
+            findInstanceDao.updateArchivedState(it.instanceId, true)
+        }
         placementDao.removeByInstance(instanceId)
+        findInstanceDao.updateArchivedState(instanceId, false)
         placementDao.insert(ShellPlacementEntity(UUID.randomUUID().toString(), roomId.name, slotId, instanceId, System.currentTimeMillis()))
     }
 
-    suspend fun removePlacement(instanceId: String) = placementDao.removeByInstance(instanceId)
+    suspend fun removePlacement(instanceId: String) = db.withTransaction {
+        placementDao.removeByInstance(instanceId)
+        findInstanceDao.updateArchivedState(instanceId, true)
+    }
+
+    suspend fun markAllNotificationsSeen() = db.withTransaction {
+        findInstanceDao.markAllSeen()
+        findStackDao.markAllSeen()
+        badgeDao.markAllSeen()
+        discoveryDao.markAllSeen()
+    }
+
+    suspend fun invitePearlObject(findId: String, roomId: ShellRoomId, slotId: String) = db.withTransaction {
+        val def = ShellContentCatalog.find(findId) ?: error("Shell object definition missing")
+        val cost = def.pearlCost ?: error("This object cannot be shaped with Pearls.")
+        val slot = ShellContentCatalog.focusSlots.firstOrNull { it.roomId == roomId && it.slotId == slotId } ?: error("Invalid slot.")
+        require(def.isPearlObject) { "This object cannot be invited with Pearls." }
+        require(def.placeable) { "This object cannot rest here." }
+        require(ShellContentCatalog.isCompatibleWithSlot(slot, def)) { "Invalid nook for this object." }
+        require(placementDao.getBySlot(roomId.name, slotId) == null) { "Choose something to swap." }
+        val balance = pearlLedgerDao.getBalance()
+        require(balance >= cost) { "Insufficient Pearls." }
+        val now = System.currentTimeMillis()
+        val firstStage = ShellContentCatalog.upgradesFor(findId).firstOrNull()?.upgradeStageId
+        val instance = UserShellFindInstanceEntity(
+            instanceId = UUID.randomUUID().toString(),
+            findId = findId,
+            acquiredAt = now,
+            sourceType = "pearl_basin",
+            sourceId = slotId,
+            currentUpgradeStageId = firstStage,
+            customName = null,
+            isNew = true,
+            isArchivedInChest = false
+        )
+        pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), -cost, "invite_object", "shell_reward", instance.instanceId, now, null))
+        findInstanceDao.insert(instance)
+        placementDao.insert(ShellPlacementEntity(UUID.randomUUID().toString(), roomId.name, slotId, instance.instanceId, now))
+    }
+
+
+    suspend fun invitePearlObjectToChest(findId: String) = db.withTransaction {
+        val def = ShellContentCatalog.find(findId) ?: error("Shell object definition missing")
+        val cost = def.pearlCost ?: error("This object cannot be shaped with Pearls.")
+        require(def.isPearlObject) { "This object cannot be invited with Pearls." }
+        val balance = pearlLedgerDao.getBalance()
+        require(balance >= cost) { "Insufficient Pearls." }
+        val now = System.currentTimeMillis()
+        val firstStage = ShellContentCatalog.upgradesFor(findId).firstOrNull()?.upgradeStageId
+        val instance = UserShellFindInstanceEntity(
+            instanceId = UUID.randomUUID().toString(),
+            findId = findId,
+            acquiredAt = now,
+            sourceType = "pearl_basin",
+            sourceId = null,
+            currentUpgradeStageId = firstStage,
+            customName = null,
+            isNew = true,
+            isArchivedInChest = true
+        )
+        pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), -cost, "invite_object", "shell_reward", instance.instanceId, now, null))
+        findInstanceDao.insert(instance)
+    }
 
     suspend fun upgradeInstance(instanceId: String) = db.withTransaction {
-        val instance = findInstanceDao.getById(instanceId) ?: error("Shell Find not found")
-        val find = ShellContentCatalog.find(instance.findId) ?: error("Shell Find definition missing")
-        require(find.upgradeable) { "Object already complete." }
-        val next = ShellContentCatalog.nextUpgrade(find.findId, instance.currentUpgradeStageId) ?: error("Object already complete.")
+        val instance = findInstanceDao.getById(instanceId) ?: error("Shell reward not found")
+        val find = ShellContentCatalog.find(instance.findId) ?: error("Shell reward definition missing")
+        require(find.upgradeable) { "This object is resting in its current form." }
+        val next = ShellContentCatalog.nextUpgrade(find.findId, instance.currentUpgradeStageId) ?: error("This object is resting in its current form.")
         val balance = pearlLedgerDao.getBalance()
         require(balance >= next.pearlCost) { "Insufficient Pearls." }
-        pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), -next.pearlCost, "shape_find", "shell_find", instanceId, System.currentTimeMillis(), null))
+        pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), -next.pearlCost, "shape_find", "shell_reward", instanceId, System.currentTimeMillis(), null))
         upgradeDao.insert(ShellFindUpgradeEntity(UUID.randomUUID().toString(), instanceId, instance.currentUpgradeStageId, next.upgradeStageId, next.pearlCost, System.currentTimeMillis()))
         findInstanceDao.updateUpgradeStage(instanceId, next.upgradeStageId)
     }
