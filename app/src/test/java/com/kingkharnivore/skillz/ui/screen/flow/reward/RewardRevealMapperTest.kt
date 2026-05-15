@@ -34,7 +34,7 @@ class RewardRevealMapperTest {
     }
 
     @Test
-    fun nonAnimalFallbackCardsDoNotUseCoralReefDestination() {
+    fun nonAnimalFallbackCardsDoNotUseTheBlueDestination() {
         val shellBridgeCards = buildSessionRewardCards(
             reward = reward(shellPearlsEarned = 482),
             isAera = false,
@@ -56,7 +56,7 @@ class RewardRevealMapperTest {
 
         assertEquals("Shape The Shell with Pearls.", shellBridgeCards.first { it.type == RewardRevealCardType.SHELL_BRIDGE }.destinationHint)
         assertEquals("View inside The Shell.", unknownCards.first { it.type == RewardRevealCardType.EMPTY_SHELL_MEANING }.destinationHint)
-        assertFalse((shellBridgeCards + unknownCards).filter { it.type != RewardRevealCardType.ANIMAL }.any { it.destinationHint == "View later in Coral Reef." })
+        assertFalse((shellBridgeCards + unknownCards).filter { it.type != RewardRevealCardType.ANIMAL }.any { it.destinationHint == "View later in The Blue." })
     }
 
     @Test
@@ -75,7 +75,7 @@ class RewardRevealMapperTest {
         val whale = cards.first { it.id.startsWith("animal-${ShellContentCatalog.FOCUS_WHALE}") }
         assertEquals(RewardRevealCardType.ANIMAL, minnow.type)
         assertEquals("Animal · Reef", minnow.subtitle)
-        assertEquals("View later in Coral Reef.", minnow.destinationHint)
+        assertEquals("View later in The Blue.", minnow.destinationHint)
         assertEquals("Animal · Deep Ocean", whale.subtitle)
     }
 
@@ -107,7 +107,7 @@ class RewardRevealMapperTest {
         assertTrue(cards.any { it.type == RewardRevealCardType.SOFT_RULE })
         assertEquals("View in Stillwater Room.", cards[0].destinationHint)
         assertEquals("View in Stillwater Room.", cards[2].destinationHint)
-        assertFalse(cards.any { it.destinationHint == "View later in Coral Reef." })
+        assertFalse(cards.any { it.destinationHint == "View later in The Blue." })
         assertFalse(cards.any { it.title.contains("Scyra") || it.title.contains("Pearl") })
     }
 
@@ -148,7 +148,7 @@ class RewardRevealMapperTest {
 
         assertTrue(cards.size >= 2)
         assertTrue(cards.any { it.title.contains("Shell reward recorded") || it.body?.contains("Recorded inside The Shell.") == true })
-        assertTrue(cards.filter { it.type != RewardRevealCardType.ANIMAL }.all { it.destinationHint != "View later in Coral Reef." })
+        assertTrue(cards.filter { it.type != RewardRevealCardType.ANIMAL }.all { it.destinationHint != "View later in The Blue." })
     }
 
     @Test
@@ -175,7 +175,7 @@ class RewardRevealMapperTest {
 
 
     @Test
-    fun arcSummaryGroupsAnimalsAndKeepsAnimalDestinationAtCoralReef() {
+    fun arcSummaryGroupsAnimalsAndKeepsAnimalDestinationAtTheBlue() {
         val cards = buildArcSummaryRewardCards(
             arc = arcSummary(
                 shellSummary = ArcShellRewardSummaryUiModel(
@@ -195,7 +195,7 @@ class RewardRevealMapperTest {
         )
 
         val animalCard = cards.first { it.type == RewardRevealCardType.ARC_ANIMALS }
-        assertEquals("View later in Coral Reef.", animalCard.destinationHint)
+        assertEquals("View later in The Blue.", animalCard.destinationHint)
         assertTrue(animalCard.body.orEmpty().contains("Minnow ×2"))
         assertTrue(animalCard.body.orEmpty().contains("Seahorse ×1"))
     }
@@ -229,7 +229,7 @@ class RewardRevealMapperTest {
         assertEquals("Recorded in Badges.", cards.first { it.type == RewardRevealCardType.ARC_BADGES }.destinationHint)
         assertEquals("Recorded in the Discovery Journal.", cards.first { it.type == RewardRevealCardType.ARC_DISCOVERIES }.destinationHint)
         assertEquals("View in Stillwater Room.", cards.first { it.type == RewardRevealCardType.ARC_STILLWATER }.destinationHint)
-        assertTrue(cards.filter { it.type != RewardRevealCardType.ARC_ANIMALS }.all { it.destinationHint != "View later in Coral Reef." })
+        assertTrue(cards.filter { it.type != RewardRevealCardType.ARC_ANIMALS }.all { it.destinationHint != "View later in The Blue." })
         assertTrue(cards.first { it.type == RewardRevealCardType.ARC_BADGES }.body.orEmpty().contains("10-minute Flow ×3"))
         assertTrue(cards.first { it.type == RewardRevealCardType.ARC_TRINKETS }.body.orEmpty().contains("Seaglass ×2"))
         assertTrue(cards.first { it.type == RewardRevealCardType.ARC_DISCOVERIES }.body.orEmpty().contains("Octopus ×1"))
@@ -359,7 +359,7 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun trinketReason() = "Found through regular Flow activity."
     override fun discoveryReason(discoveryId: String) = "Discovered after 3 regular Flows lasting 30 minutes or more."
     override fun badgeReason(badgeId: String) = "Earned each time a regular Flow lasts 30 minutes or more."
-    override fun coralReefHint() = "View later in Coral Reef."
+    override fun theBlueHint() = "View later in The Blue."
     override fun stillwaterHint() = "View in Stillwater Room."
     override fun shellHint() = "View inside The Shell."
     override fun pearlBasinHint() = "Shape The Shell with Pearls."

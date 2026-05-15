@@ -63,7 +63,7 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         "badge_flow_120_min" to stringResource(R.string.reward_card_badge_reason_120),
         "badge_discovery" to stringResource(R.string.reward_card_badge_reason_discovery)
     )
-    val coralReefHint = stringResource(R.string.reward_card_coral_reef_hint)
+    val theBlueHint = stringResource(R.string.reward_card_the_blue_hint)
     val stillwaterHint = stringResource(R.string.reward_card_stillwater_hint)
     val shellHint = stringResource(R.string.reward_card_shell_hint)
     val pearlBasinHint = stringResource(R.string.reward_card_pearl_basin_hint)
@@ -136,7 +136,7 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         override fun trinketReason() = trinketReason
         override fun discoveryReason(discoveryId: String) = discoveryReasons[discoveryId] ?: shellRewardRecordedBody
         override fun badgeReason(badgeId: String) = badgeReasons[badgeId] ?: shellRewardRecordedBody
-        override fun coralReefHint() = coralReefHint
+        override fun theBlueHint() = theBlueHint
         override fun stillwaterHint() = stillwaterHint
         override fun shellHint() = shellHint
         override fun pearlBasinHint() = pearlBasinHint

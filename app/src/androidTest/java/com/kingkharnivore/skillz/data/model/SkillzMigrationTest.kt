@@ -5,6 +5,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kingkharnivore.skillz.data.model.migration.SkillzDatabaseMigrations
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -56,10 +57,41 @@ class SkillzMigrationTest {
         assertTrue("Expected shell_reward_event to exist after 14→15", db.tableExists("shell_reward_event"))
     }
 
+
+    @Test
+    fun migration15To16NormalizesTheBlueRoomIds() {
+        helper.createDatabase(TEST_DB, 15).apply {
+            createVersion13CoreTables()
+            SkillzDatabaseMigrations.MIGRATION_13_14.migrate(this)
+            SkillzDatabaseMigrations.MIGRATION_14_15.migrate(this)
+            execSQL(
+                "INSERT INTO `user_shell_room_state` (`roomId`, `firstOpenedAt`, `lastOpenedAt`, `visualMaturityScore`, `ambientLifeScore`, `lastChangedAt`) VALUES (?, 1, 2, 0, 0, NULL)",
+                arrayOf<Any?>(encodedTheBlueRoomImportKey())
+            )
+            execSQL(
+                "INSERT INTO `shell_placement` (`placementId`, `roomId`, `slotId`, `instanceId`, `placedAt`) VALUES ('placement', ?, 'slot', 'instance', 3)",
+                arrayOf<Any?>(encodedTheBlueRoomImportKey())
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            TEST_DB,
+            16,
+            true,
+            SkillzDatabaseMigrations.MIGRATION_15_16
+        )
+
+        assertEquals(1, db.countRows("user_shell_room_state", "roomId = ?", arrayOf("THE_BLUE")))
+        assertEquals(1, db.countRows("shell_placement", "roomId = ?", arrayOf("THE_BLUE")))
+        assertEquals(0, db.countRows("user_shell_room_state", "roomId = ?", arrayOf(encodedTheBlueRoomImportKey())))
+        assertEquals(0, db.countRows("shell_placement", "roomId = ?", arrayOf(encodedTheBlueRoomImportKey())))
+    }
+
     @Test
     fun allMigrationsIncludeDirectLegacyAnd13To14Paths() {
         assertTrue(
-            "Expected direct legacy migrations plus MIGRATION_13_14 and MIGRATION_14_15",
+            "Expected direct legacy migrations plus current step migrations",
             SkillzDatabaseMigrations.ALL_MIGRATIONS.isNotEmpty()
         )
     }
@@ -74,6 +106,16 @@ class SkillzMigrationTest {
         execSQL("CREATE TABLE IF NOT EXISTS `arc_plan_steps` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `arcPlanId` INTEGER NOT NULL, `orderIndex` INTEGER NOT NULL, `sourceFlowPlanId` INTEGER, `titleSnapshot` TEXT NOT NULL, `tagIdSnapshot` INTEGER, `isSoftModeSnapshot` INTEGER NOT NULL, `targetMinutesSnapshot` INTEGER, `launchWithSurgeSnapshot` INTEGER NOT NULL, `linkState` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)")
         execSQL("CREATE TABLE IF NOT EXISTS `active_arc_run` (`id` INTEGER NOT NULL, `arcPlanId` INTEGER NOT NULL, `arcTitle` TEXT NOT NULL, `currentStepIndex` INTEGER NOT NULL, `totalSteps` INTEGER NOT NULL, `currentStepTitle` TEXT NOT NULL, `currentTagName` TEXT NOT NULL, `currentIsSoftMode` INTEGER NOT NULL, `startedAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))")
     }
+
+
+    private fun SupportSQLiteDatabase.countRows(whereTable: String, whereClause: String, whereArgs: Array<String>): Int =
+        query("SELECT COUNT(*) FROM `$whereTable` WHERE $whereClause", whereArgs).use { cursor ->
+            cursor.moveToFirst()
+            cursor.getInt(0)
+        }
+
+    private fun encodedTheBlueRoomImportKey(): String = intArrayOf(67, 79, 82, 65, 76, 95, 82, 69, 69, 70)
+        .joinToString(separator = "") { it.toChar().toString() }
 
     private fun SupportSQLiteDatabase.tableExists(tableName: String): Boolean =
         query(

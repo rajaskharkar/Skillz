@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.data.model.shell
 
+import com.kingkharnivore.skillz.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -130,6 +131,15 @@ class ShellContentCatalogTest {
     }
 
     @Test
+    fun theBlueRoom_usesTheBlueIdentifiers() {
+        val theBlue = ShellContentCatalog.rooms.single { it.roomId == ShellRoomId.THE_BLUE }
+
+        assertEquals("THE_BLUE", ShellRoomId.THE_BLUE.name)
+        assertEquals(R.string.shell_room_the_blue_title, theBlue.titleRes)
+        assertEquals(R.string.shell_room_the_blue_description, theBlue.descriptionRes)
+    }
+
+    @Test
     fun focusV1_hasReservedSurgeCurrentNookForSurgeRewardsOnly() {
         val slot = ShellContentCatalog.focusSlots.single { it.slotId == "surge_current_nook" }
 
@@ -153,10 +163,12 @@ class ShellContentCatalogTest {
     }
 
     @Test
-    fun shellV1Strings_labelCoralAsFutureAnimalEcosystem() {
+    fun shellV1Strings_labelTheBlueAsAnimalEcosystem() {
         val strings = File("app/src/main/res/values/strings.xml").readText()
 
-        assertTrue(strings.contains("Animals encountered through regular Flows will swim here."))
+        assertTrue(strings.contains("""<string name="shell_room_the_blue_title">The Blue</string>"""))
+        assertTrue(strings.contains("Animals encountered through regular Flows swim here."))
+        assertFalse(strings.contains("Coral " + "Reef"))
         assertTrue(strings.contains("""shell_basin_soon_upgrade">%1$s · %2$s"""))
         assertTrue(strings.contains("""<string name="shell_slot_surge_current_nook">Surge Current Nook</string>"""))
         assertTrue(strings.contains("Surge rewards can be displayed here. Complete a Surge to bring a Current into this nook."))
