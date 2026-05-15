@@ -129,4 +129,28 @@ class ShellContentCatalogTest {
         assertFalse(ShellContentCatalog.badges.any { it.badgeId == "badge_soft_flow" })
     }
 
+    @Test
+    fun focusV1_hasReservedSurgeCurrentNookForCurrentPathFinds() {
+        val slot = ShellContentCatalog.focusSlots.single { it.slotId == "surge_current_nook" }
+
+        assertEquals(ShellSlotType.CURRENT_PATH, slot.slotType)
+        assertTrue(slot.acceptsCategories.contains(ShellFindCategory.CREATURES))
+        assertTrue(slot.acceptsCategories.contains(ShellFindCategory.TRINKETS))
+        assertTrue(ShellContentCatalog.isCompatibleWithSlot(slot, ShellContentCatalog.find(ShellContentCatalog.FOCUS_MANTA)!!))
+        assertTrue(ShellContentCatalog.isCompatibleWithSlot(slot, ShellContentCatalog.find(ShellContentCatalog.FOCUS_WHALE)!!))
+        assertTrue(ShellContentCatalog.isCompatibleWithSlot(slot, ShellContentCatalog.find(ShellContentCatalog.FOCUS_BUBBLES)!!))
+        assertFalse(ShellContentCatalog.isCompatibleWithSlot(slot, ShellContentCatalog.find(ShellContentCatalog.FOCUS_PERCH)!!))
+        assertFalse(ShellContentCatalog.isCompatibleWithSlot(slot, ShellContentCatalog.find(ShellContentCatalog.FOCUS_PEBBLES)!!))
+    }
+
+    @Test
+    fun shellV1Strings_labelCoralAndPearlBasinFutureStatesClearly() {
+        val strings = File("app/src/main/res/values/strings.xml").readText()
+
+        assertTrue(strings.contains("Reserved for Surge and Current echoes in a future Shell update."))
+        assertTrue(strings.contains("shell_basin_soon_suggestion\">Soon: %1"))
+        assertTrue(strings.contains("""<string name="shell_slot_surge_current_nook">Surge Current Nook</string>"""))
+        assertFalse(strings.contains("Surge energy will bring the reef alive."))
+    }
+
 }

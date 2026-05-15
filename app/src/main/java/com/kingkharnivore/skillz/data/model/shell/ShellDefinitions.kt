@@ -135,7 +135,8 @@ object ShellContentCatalog {
         ShellSlotDefinition("creature_perch_left", ShellRoomId.FOCUS, ShellSlotType.CREATURE_PERCH, R.string.shell_slot_creature_perch_left, .24f, .52f, .24f, .14f, 3, setOf(ShellFindCategory.CREATURES)),
         ShellSlotDefinition("creature_perch_right", ShellRoomId.FOCUS, ShellSlotType.CREATURE_PERCH, R.string.shell_slot_creature_perch_right, .76f, .54f, .24f, .14f, 3, setOf(ShellFindCategory.CREATURES)),
         ShellSlotDefinition("center_focus_nook", ShellRoomId.FOCUS, ShellSlotType.CENTERPIECE, R.string.shell_slot_center_focus_nook, .50f, .58f, .32f, .18f, 5, setOf(ShellFindCategory.SHELLS, ShellFindCategory.CORAL, ShellFindCategory.CREATURES, ShellFindCategory.TROPHIES, ShellFindCategory.TRINKETS)),
-        ShellSlotDefinition("memory_nook", ShellRoomId.FOCUS, ShellSlotType.MEMORY_NOOK, R.string.shell_slot_memory_nook, .50f, .80f, .30f, .14f, 6, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS, ShellFindCategory.DISCOVERIES, ShellFindCategory.CREATURES))
+        ShellSlotDefinition("surge_current_nook", ShellRoomId.FOCUS, ShellSlotType.CURRENT_PATH, R.string.shell_slot_surge_current_nook, .74f, .72f, .30f, .16f, 6, setOf(ShellFindCategory.CREATURES, ShellFindCategory.TRINKETS)),
+        ShellSlotDefinition("memory_nook", ShellRoomId.FOCUS, ShellSlotType.MEMORY_NOOK, R.string.shell_slot_memory_nook, .50f, .82f, .30f, .14f, 7, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS, ShellFindCategory.DISCOVERIES, ShellFindCategory.CREATURES))
     )
 
     val upgrades = listOf(

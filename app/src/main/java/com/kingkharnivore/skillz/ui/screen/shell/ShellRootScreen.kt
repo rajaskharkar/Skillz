@@ -1200,8 +1200,11 @@ private fun PearlBasinSheet(
                 text = stringResource(R.string.shell_affordable_soon),
                 fontWeight = FontWeight.SemiBold
             )
-            (displayedUpgradeSuggestions.filter { it.third.pearlCost > uiState.pearlBalance }.map { stringResource(it.third.titleRes) to it.third.pearlCost } +
-                    objectSuggestions.filter { (it.pearlCost ?: 0) > uiState.pearlBalance }.map { stringResource(it.titleRes) to (it.pearlCost ?: 0) })
+            (displayedUpgradeSuggestions.filter { it.third.pearlCost > uiState.pearlBalance }.map { (_, def, next) ->
+                stringResource(R.string.shell_basin_soon_suggestion, stringResource(R.string.shell_basin_brighten_suggestion, stringResource(def.titleRes))) to next.pearlCost
+            } + objectSuggestions.filter { (it.pearlCost ?: 0) > uiState.pearlBalance }.map { def ->
+                stringResource(R.string.shell_basin_soon_suggestion, stringResource(R.string.shell_basin_invite_suggestion, stringResource(def.titleRes))) to (def.pearlCost ?: 0)
+            })
                 .sortedBy { it.second }
                 .take(3)
                 .forEach { (title, cost) ->
@@ -1467,16 +1470,34 @@ private fun ShellObjectIcon(
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
+    val animalGlyph = when {
+        "minnow" in iconKey -> "><>"
+        "seahorse" in iconKey -> "♞"
+        "manta" in iconKey -> "⌁"
+        "whale" in iconKey -> "◠"
+        "octopus" in iconKey -> "✹"
+        else -> null
+    }
     val vector = when {
-        "seahorse" in iconKey || "fish" in iconKey -> Icons.Outlined.Pets
-        "kelp" in iconKey -> Icons.Outlined.Grass
+        animalGlyph != null -> null
+        "kelp" in iconKey || "curtain" in iconKey -> Icons.Outlined.Grass
         "bubble" in iconKey || "current" in iconKey -> Icons.Outlined.Waves
-        "coral" in iconKey -> Icons.Outlined.FilterVintage
+        "coral" in iconKey || "perch" in iconKey -> Icons.Outlined.FilterVintage
         else -> Icons.Outlined.Diamond
     }
     Surface(shape = CircleShape, color = scheme.primary.copy(alpha = 0.16f), modifier = modifier) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(imageVector = vector, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(18.dp))
+            if (animalGlyph != null) {
+                Text(
+                    text = animalGlyph,
+                    color = scheme.primary,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+            } else if (vector != null) {
+                Icon(imageVector = vector, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(18.dp))
+            }
         }
     }
 }
