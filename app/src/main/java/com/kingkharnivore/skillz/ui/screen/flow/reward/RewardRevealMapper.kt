@@ -47,7 +47,9 @@ interface RewardRevealTextProvider {
     fun discoveryReason(discoveryId: String): String
     fun badgeReason(badgeId: String): String
     fun coralReefHint(): String
-    fun stillwaterRoomHint(): String
+    fun stillwaterHint(): String
+    fun shellHint(): String
+    fun pearlBasinHint(): String
     fun shellChestHint(): String
     fun discoveryJournalHint(): String
     fun badgesHint(): String
@@ -128,7 +130,12 @@ fun buildSessionRewardCards(
             title = text.shellWasShapedTitle(),
             body = if (reward.shellPearlsEarned > 0) text.shellWasShapedBody() else text.loggedStory(),
             iconKey = "shell",
-            contentDescription = listOf(text.shellWasShapedTitle(), if (reward.shellPearlsEarned > 0) text.shellWasShapedBody() else text.loggedStory()).joinToString(". "),
+            destinationHint = if (reward.shellPearlsEarned > 0) text.pearlBasinHint() else text.shellHint(),
+            contentDescription = listOf(
+                text.shellWasShapedTitle(),
+                if (reward.shellPearlsEarned > 0) text.shellWasShapedBody() else text.loggedStory(),
+                if (reward.shellPearlsEarned > 0) text.pearlBasinHint() else text.shellHint()
+            ).joinToString(". "),
             animationStyle = RewardRevealAnimationStyle.PEARL_GLOW
         )
     }
@@ -149,7 +156,8 @@ fun buildSoftRewardCards(
             subtitle = quietMinutes,
             amountText = text.minutes(reward.minutes),
             iconKey = "stillwater",
-            contentDescription = listOf(text.stillwaterAddedTitle(), quietMinutes, text.softRuleBody()).joinToString(". "),
+            destinationHint = text.stillwaterHint(),
+            contentDescription = listOf(text.stillwaterAddedTitle(), quietMinutes, text.softRuleBody(), text.stillwaterHint()).joinToString(". "),
             animationStyle = RewardRevealAnimationStyle.STILLWATER_RIPPLE
         ),
         RewardRevealCardUiModel(
@@ -166,8 +174,8 @@ fun buildSoftRewardCards(
             title = text.stillwaterPerspectiveTitle(),
             body = text.stillwaterPerspectiveBody(),
             iconKey = "stillwater",
-            destinationHint = text.stillwaterRoomHint(),
-            contentDescription = listOf(text.stillwaterPerspectiveTitle(), text.stillwaterPerspectiveBody(), text.stillwaterRoomHint()).joinToString(". "),
+            destinationHint = text.stillwaterHint(),
+            contentDescription = listOf(text.stillwaterPerspectiveTitle(), text.stillwaterPerspectiveBody(), text.stillwaterHint()).joinToString(". "),
             animationStyle = RewardRevealAnimationStyle.STILLWATER_RIPPLE
         )
     )
@@ -341,7 +349,8 @@ private fun buildShellRewardCards(
             title = title,
             subtitle = body,
             iconKey = "stillwater",
-            contentDescription = listOf(title, body).joinToString(". "),
+            destinationHint = text.stillwaterHint(),
+            contentDescription = listOf(title, body, text.stillwaterHint()).joinToString(". "),
             animationStyle = RewardRevealAnimationStyle.STILLWATER_RIPPLE
         )
     }
@@ -353,8 +362,8 @@ private fun buildShellRewardCards(
             title = text.shellWasShapedTitle(),
             body = text.shellWasShapedBody(),
             iconKey = "pearl",
-            destinationHint = text.coralReefHint(),
-            contentDescription = listOf(text.shellWasShapedTitle(), text.shellWasShapedBody()).joinToString(". "),
+            destinationHint = text.pearlBasinHint(),
+            contentDescription = listOf(text.shellWasShapedTitle(), text.shellWasShapedBody(), text.pearlBasinHint()).joinToString(". "),
             animationStyle = RewardRevealAnimationStyle.PEARL_GLOW
         )
     }
@@ -366,8 +375,8 @@ private fun unknownCard(id: String, text: RewardRevealTextProvider) = RewardReve
     type = RewardRevealCardType.EMPTY_SHELL_MEANING,
     title = text.shellRewardRecordedTitle(),
     body = text.shellRewardRecordedBody(),
-    destinationHint = text.coralReefHint(),
-    contentDescription = listOf(text.shellRewardRecordedTitle(), text.shellRewardRecordedBody()).joinToString(". ")
+    destinationHint = text.shellHint(),
+    contentDescription = listOf(text.shellRewardRecordedTitle(), text.shellRewardRecordedBody(), text.shellHint()).joinToString(". ")
 )
 
 private fun depthText(depthTier: ShellDepthTier?, text: RewardRevealTextProvider): String = when (depthTier) {

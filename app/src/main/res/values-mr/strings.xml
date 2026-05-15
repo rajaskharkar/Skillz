@@ -1196,7 +1196,9 @@
     <string name="reward_card_badge_reason_120">प्रत्येक वेळी नियमित Flow 2 तास किंवा अधिक चालला की मिळते.</string>
     <string name="reward_card_badge_reason_discovery">या Flow मधून नोंदी अपडेट झाल्या.</string>
     <string name="reward_card_coral_reef_hint">नंतर Coral Reef मध्ये पहा.</string>
-    <string name="reward_card_stillwater_room_hint">Stillwater Room मध्ये पहा.</string>
+    <string name="reward_card_stillwater_hint">Stillwater Room मध्ये पहा.</string>
+    <string name="reward_card_shell_hint">The Shell मध्ये पहा.</string>
+    <string name="reward_card_pearl_basin_hint">Pearls वापरून The Shell आकारा.</string>
     <string name="reward_card_shell_chest_hint">Shell Chest मध्ये विसावले आहे.</string>
     <string name="reward_card_discovery_journal_hint">Discovery Journal मध्ये नोंदले आहे.</string>
     <string name="reward_card_badges_hint">Badges मध्ये नोंदले आहे.</string>

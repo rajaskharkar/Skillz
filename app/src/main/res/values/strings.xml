@@ -1286,7 +1286,9 @@
     <string name="reward_card_badge_reason_120">Earned each time a regular Flow lasts 2 hours or more.</string>
     <string name="reward_card_badge_reason_discovery">Records updated from this Flow.</string>
     <string name="reward_card_coral_reef_hint">View later in Coral Reef.</string>
-    <string name="reward_card_stillwater_room_hint">View in Stillwater Room.</string>
+    <string name="reward_card_stillwater_hint">View in Stillwater Room.</string>
+    <string name="reward_card_shell_hint">View inside The Shell.</string>
+    <string name="reward_card_pearl_basin_hint">Shape The Shell with Pearls.</string>
     <string name="reward_card_shell_chest_hint">Resting in the Shell Chest.</string>
     <string name="reward_card_discovery_journal_hint">Recorded in the Discovery Journal.</string>
     <string name="reward_card_badges_hint">Recorded in Badges.</string>

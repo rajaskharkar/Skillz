@@ -1143,7 +1143,9 @@
     <string name="reward_card_badge_reason_120">हर बार जब नियमित Flow 2 घंटे या अधिक चलता है, यह मिलता है।</string>
     <string name="reward_card_badge_reason_discovery">इस Flow से रिकॉर्ड अपडेट हुए।</string>
     <string name="reward_card_coral_reef_hint">बाद में Coral Reef में देखें।</string>
-    <string name="reward_card_stillwater_room_hint">Stillwater Room में देखें।</string>
+    <string name="reward_card_stillwater_hint">Stillwater Room में देखें।</string>
+    <string name="reward_card_shell_hint">The Shell के अंदर देखें।</string>
+    <string name="reward_card_pearl_basin_hint">Pearls से The Shell को आकार दें।</string>
     <string name="reward_card_shell_chest_hint">Shell Chest में रखा है।</string>
     <string name="reward_card_discovery_journal_hint">Discovery Journal में दर्ज है।</string>
     <string name="reward_card_badges_hint">Badges में दर्ज है।</string>

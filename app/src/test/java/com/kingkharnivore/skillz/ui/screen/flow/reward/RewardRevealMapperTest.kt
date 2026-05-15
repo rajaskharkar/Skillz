@@ -26,7 +26,34 @@ class RewardRevealMapperTest {
 
         assertEquals("482 Scyra Points", cards.first().title)
         assertEquals("Carried into The Shell as Pearls.", cards.first().subtitle)
+        assertEquals("Shape The Shell with Pearls.", cards.first { it.type == RewardRevealCardType.SHELL_BRIDGE }.destinationHint)
         assertFalse(cards.drop(1).any { it.amountText?.contains("482") == true && it.title.contains("Pearl") })
+    }
+
+    @Test
+    fun nonAnimalFallbackCardsDoNotUseCoralReefDestination() {
+        val shellBridgeCards = buildSessionRewardCards(
+            reward = reward(shellPearlsEarned = 482),
+            isAera = false,
+            calmMode = false,
+            text = text,
+            findTitle = ::findTitle,
+            badgeTitle = ::badgeTitle,
+            discoveryTitle = ::discoveryTitle
+        )
+        val unknownCards = buildSessionRewardCards(
+            reward = reward(shellPearlsEarned = 0, shellGrantedFindIds = listOf("missing")),
+            isAera = false,
+            calmMode = false,
+            text = text,
+            findTitle = ::findTitle,
+            badgeTitle = ::badgeTitle,
+            discoveryTitle = ::discoveryTitle
+        )
+
+        assertEquals("Shape The Shell with Pearls.", shellBridgeCards.first { it.type == RewardRevealCardType.SHELL_BRIDGE }.destinationHint)
+        assertEquals("View inside The Shell.", unknownCards.first { it.type == RewardRevealCardType.EMPTY_SHELL_MEANING }.destinationHint)
+        assertFalse((shellBridgeCards + unknownCards).filter { it.type != RewardRevealCardType.ANIMAL }.any { it.destinationHint == "View later in Coral Reef." })
     }
 
     @Test
@@ -75,7 +102,9 @@ class RewardRevealMapperTest {
         assertEquals("Stillwater added", cards[0].title)
         assertEquals("22 quiet minutes carried into the stream.", cards[0].subtitle)
         assertTrue(cards.any { it.type == RewardRevealCardType.SOFT_RULE })
+        assertEquals("View in Stillwater Room.", cards[0].destinationHint)
         assertEquals("View in Stillwater Room.", cards[2].destinationHint)
+        assertFalse(cards.any { it.destinationHint == "View later in Coral Reef." })
         assertFalse(cards.any { it.title.contains("Scyra") || it.title.contains("Pearl") })
     }
 
@@ -116,6 +145,7 @@ class RewardRevealMapperTest {
 
         assertTrue(cards.size >= 2)
         assertTrue(cards.any { it.title.contains("Shell reward recorded") || it.body?.contains("Recorded inside The Shell.") == true })
+        assertTrue(cards.filter { it.type != RewardRevealCardType.ANIMAL }.all { it.destinationHint != "View later in Coral Reef." })
     }
 
     @Test
@@ -223,7 +253,9 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun discoveryReason(discoveryId: String) = "Discovered after 3 regular Flows lasting 30 minutes or more."
     override fun badgeReason(badgeId: String) = "Earned each time a regular Flow lasts 30 minutes or more."
     override fun coralReefHint() = "View later in Coral Reef."
-    override fun stillwaterRoomHint() = "View in Stillwater Room."
+    override fun stillwaterHint() = "View in Stillwater Room."
+    override fun shellHint() = "View inside The Shell."
+    override fun pearlBasinHint() = "Shape The Shell with Pearls."
     override fun shellChestHint() = "Resting in the Shell Chest."
     override fun discoveryJournalHint() = "Recorded in the Discovery Journal."
     override fun badgesHint() = "Recorded in Badges."

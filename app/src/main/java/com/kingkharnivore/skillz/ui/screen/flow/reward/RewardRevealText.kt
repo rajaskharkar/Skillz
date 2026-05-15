@@ -64,7 +64,9 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         "badge_discovery" to stringResource(R.string.reward_card_badge_reason_discovery)
     )
     val coralReefHint = stringResource(R.string.reward_card_coral_reef_hint)
-    val stillwaterRoomHint = stringResource(R.string.reward_card_stillwater_room_hint)
+    val stillwaterHint = stringResource(R.string.reward_card_stillwater_hint)
+    val shellHint = stringResource(R.string.reward_card_shell_hint)
+    val pearlBasinHint = stringResource(R.string.reward_card_pearl_basin_hint)
     val shellChestHint = stringResource(R.string.reward_card_shell_chest_hint)
     val discoveryJournalHint = stringResource(R.string.reward_card_discovery_journal_hint)
     val badgesHint = stringResource(R.string.reward_card_badges_hint)
@@ -127,7 +129,9 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         override fun discoveryReason(discoveryId: String) = discoveryReasons[discoveryId] ?: shellRewardRecordedBody
         override fun badgeReason(badgeId: String) = badgeReasons[badgeId] ?: shellRewardRecordedBody
         override fun coralReefHint() = coralReefHint
-        override fun stillwaterRoomHint() = stillwaterRoomHint
+        override fun stillwaterHint() = stillwaterHint
+        override fun shellHint() = shellHint
+        override fun pearlBasinHint() = pearlBasinHint
         override fun shellChestHint() = shellChestHint
         override fun discoveryJournalHint() = discoveryJournalHint
         override fun badgesHint() = badgesHint
