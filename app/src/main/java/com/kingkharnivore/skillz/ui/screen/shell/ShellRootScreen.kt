@@ -815,15 +815,6 @@ private fun RoomOrbitNode(
                     textAlign = TextAlign.Center,
                     maxLines = 2
                 )
-
-                if (dormant) {
-                    Text(
-                        text = stringResource(R.string.shell_quiet_for_now),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = scheme.secondary,
-                        maxLines = 1
-                    )
-                }
             }
         }
     }
@@ -2890,16 +2881,6 @@ private fun DormantPreviewScreen(
                 )
 
                 Spacer(Modifier.height(8.dp))
-
-                Text(
-                    text = stringResource(R.string.shell_quiet_for_now),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = scheme.secondary,
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Spacer(Modifier.height(6.dp))
 
                 Text(
                     text = stringResource(bodyRes),
