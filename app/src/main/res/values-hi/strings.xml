@@ -941,6 +941,9 @@
     <string name="the_blue_octopus_hidden">Hidden in the Deeper Reef.</string>
     <string name="the_blue_header_a11y">The Blue. Animals encountered through regular Flows swim here.</string>
     <string name="the_blue_zone_a11y">%1$s. %2$s. %3$d animal species.</string>
+    <string name="the_blue_zone_scene_a11y">%1$s. %2$s. %3$s.</string>
+    <string name="the_blue_animal_overlay_a11y">%1$s. Animal. %2$s. Count %3$d. %4$s Opens details.</string>
+    <string name="the_blue_tap_for_details">Tap for details</string>
     <string name="the_blue_animal_card_a11y">%1$s. Animal. Count %2$d. %3$s. %4$s Displayed in Focus: %5$d.</string>
     <string name="the_blue_detail_a11y">%1$s. %2$s. %3$s</string>
     <string name="the_blue_depth_rail_a11y">Depth rail: Sunlit Reef, Deeper Reef, Open Blue, Great Blue.</string>

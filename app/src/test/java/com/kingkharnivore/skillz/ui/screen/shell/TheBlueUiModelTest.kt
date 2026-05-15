@@ -76,10 +76,21 @@ class TheBlueUiModelTest {
     @Test
     fun activeDepthRailZoneFollowsVisibleListIndex() {
         assertEquals(TheBlueZoneId.SUNLIT_REEF, activeTheBlueZoneForListIndex(0))
-        assertEquals(TheBlueZoneId.SUNLIT_REEF, activeTheBlueZoneForListIndex(1))
-        assertEquals(TheBlueZoneId.DEEPER_REEF, activeTheBlueZoneForListIndex(2))
-        assertEquals(TheBlueZoneId.OPEN_BLUE, activeTheBlueZoneForListIndex(3))
+        assertEquals(TheBlueZoneId.DEEPER_REEF, activeTheBlueZoneForListIndex(1))
+        assertEquals(TheBlueZoneId.OPEN_BLUE, activeTheBlueZoneForListIndex(2))
+        assertEquals(TheBlueZoneId.GREAT_BLUE, activeTheBlueZoneForListIndex(3))
         assertEquals(TheBlueZoneId.GREAT_BLUE, activeTheBlueZoneForListIndex(4))
+    }
+
+    @Test
+    fun representativeVisibleCountUsesDensityTiersWithoutRenderingEveryCopy() {
+        assertEquals(0, representativeVisibleCount(0, maxVisible = 12))
+        assertEquals(1, representativeVisibleCount(1, maxVisible = 12))
+        assertEquals(4, representativeVisibleCount(4, maxVisible = 12))
+        assertEquals(6, representativeVisibleCount(8, maxVisible = 12))
+        assertEquals(9, representativeVisibleCount(30, maxVisible = 12))
+        assertEquals(12, representativeVisibleCount(100, maxVisible = 12))
+        assertEquals(3, representativeVisibleCount(10, maxVisible = 3))
     }
 
     @Test
