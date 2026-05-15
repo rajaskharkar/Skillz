@@ -6,13 +6,15 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 15.
+     * Current database version is 16.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
-     * directly into the current v15 schema using a safe rebuild strategy.
+     * directly into the v15 schema using a safe rebuild strategy, then v16
+     * normalizes room identifiers.
      *
      * Version 13 is the known pre-Shell schema, so it first adds the Shell
-     * tables, then v14 adds the Shell reward event read model.
+     * tables, v14 adds the Shell reward event read model, then v16 normalizes
+     * room identifiers.
      */
     val LEGACY_TO_15_MIGRATIONS: Array<Migration> = (1..12).map { startVersion ->
         object : Migration(startVersion, 15) {
@@ -34,8 +36,30 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_15_16 = object : Migration(15, 16) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            normalizeTheBlueRoomIdentifiers(db)
+        }
+    }
+
     val ALL_MIGRATIONS: Array<Migration> =
-        LEGACY_TO_15_MIGRATIONS + MIGRATION_13_14 + MIGRATION_14_15
+        LEGACY_TO_15_MIGRATIONS + MIGRATION_13_14 + MIGRATION_14_15 + MIGRATION_15_16
+
+
+    private fun normalizeTheBlueRoomIdentifiers(db: SupportSQLiteDatabase) {
+        val importRoomKey = encodedTheBlueRoomImportKey()
+        db.execSQL(
+            "UPDATE `shell_placement` SET `roomId` = ? WHERE `roomId` = ?",
+            arrayOf<Any?>("THE_BLUE", importRoomKey)
+        )
+        db.execSQL(
+            "UPDATE `user_shell_room_state` SET `roomId` = ? WHERE `roomId` = ?",
+            arrayOf<Any?>("THE_BLUE", importRoomKey)
+        )
+    }
+
+    private fun encodedTheBlueRoomImportKey(): String = intArrayOf(67, 79, 82, 65, 76, 95, 82, 69, 69, 70)
+        .joinToString(separator = "") { it.toChar().toString() }
 
     private fun migrateLegacyDatabaseTo15(db: SupportSQLiteDatabase) {
         db.execSQL("PRAGMA foreign_keys=OFF")

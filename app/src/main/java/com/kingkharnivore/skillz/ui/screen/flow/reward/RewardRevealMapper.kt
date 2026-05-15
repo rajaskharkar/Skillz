@@ -47,7 +47,7 @@ interface RewardRevealTextProvider {
     fun trinketReason(): String
     fun discoveryReason(discoveryId: String): String
     fun badgeReason(badgeId: String): String
-    fun coralReefHint(): String
+    fun theBlueHint(): String
     fun stillwaterHint(): String
     fun shellHint(): String
     fun pearlBasinHint(): String
@@ -227,7 +227,7 @@ fun buildArcSummaryRewardCards(
     )
 
     val shell = arc.shellSummary
-    cards += aggregateCountCard("arc-animals", RewardRevealCardType.ARC_ANIMALS, text.arcAnimalsTitle(), shell.animals, text.flowMilestonesAcrossArc(), text.coralReefHint(), "animal", text, findTitle)
+    cards += aggregateCountCard("arc-animals", RewardRevealCardType.ARC_ANIMALS, text.arcAnimalsTitle(), shell.animals, text.flowMilestonesAcrossArc(), text.theBlueHint(), "animal", text, findTitle)
     cards += aggregateCountCard("arc-discoveries", RewardRevealCardType.ARC_DISCOVERIES, text.arcDiscoveriesTitle(), shell.discoveries, text.recordedInJournal(), text.discoveryJournalHint(), "discovery", text, discoveryTitle)
     cards += aggregateCountCard("arc-objects", RewardRevealCardType.ARC_OBJECTS, text.arcObjectsTitle(), shell.objects, text.foundAcrossArc(), text.shellChestHint(), "object", text, findTitle)
     cards += aggregateCountCard("arc-trinkets", RewardRevealCardType.ARC_TRINKETS, text.arcTrinketsTitle(), shell.trinkets, text.trinketReason(), text.shellChestHint(), "trinket", text, findTitle)
@@ -334,8 +334,8 @@ private fun buildShellRewardCards(
                     body = body,
                     chip = depth,
                     iconKey = def.iconKey,
-                    destinationHint = text.coralReefHint(),
-                    contentDescription = listOf(title, text.animalChip(depth), body, text.coralReefHint()).joinToString(". "),
+                    destinationHint = text.theBlueHint(),
+                    contentDescription = listOf(title, text.animalChip(depth), body, text.theBlueHint()).joinToString(". "),
                     animationStyle = animalAnimation(findId)
                 )
             }

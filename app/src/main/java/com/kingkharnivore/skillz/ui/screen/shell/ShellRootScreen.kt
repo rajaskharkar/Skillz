@@ -116,7 +116,7 @@ sealed class ShellDestination {
     data object DiscoveryJournal : ShellDestination()
     data object Notifications : ShellDestination()
     data object VoyagePreview : ShellDestination()
-    data object CoralReefPreview : ShellDestination()
+    data object TheBluePreview : ShellDestination()
     data object IdeaGrovePreview : ShellDestination()
     data object LookoutPreview : ShellDestination()
 }
@@ -295,7 +295,7 @@ fun ShellRootScreen(
             ShellDestination.Focus -> ShellRoomId.FOCUS
             ShellDestination.Stillwater -> ShellRoomId.STILLWATER
             ShellDestination.VoyagePreview -> ShellRoomId.VOYAGE
-            ShellDestination.CoralReefPreview -> ShellRoomId.CORAL_REEF
+            ShellDestination.TheBluePreview -> ShellRoomId.THE_BLUE
             ShellDestination.IdeaGrovePreview -> ShellRoomId.IDEA_GROVE
             ShellDestination.LookoutPreview -> ShellRoomId.LOOKOUT
             else -> null
@@ -376,9 +376,9 @@ fun ShellRootScreen(
                     icon = Icons.Outlined.Route
                 )
 
-                ShellDestination.CoralReefPreview -> DormantPreviewScreen(
-                    titleRes = R.string.shell_room_coral_title,
-                    bodyRes = R.string.shell_preview_coral,
+                ShellDestination.TheBluePreview -> DormantPreviewScreen(
+                    titleRes = R.string.shell_room_the_blue_title,
+                    bodyRes = R.string.shell_preview_the_blue,
                     icon = Icons.Outlined.FilterVintage
                 )
 
@@ -444,7 +444,7 @@ private fun ShellTopBar(
         ShellDestination.DiscoveryJournal -> stringResource(R.string.shell_journal_title)
         ShellDestination.Notifications -> stringResource(R.string.shell_notifications_title)
         ShellDestination.VoyagePreview -> stringResource(R.string.shell_room_voyage_title)
-        ShellDestination.CoralReefPreview -> stringResource(R.string.shell_room_coral_title)
+        ShellDestination.TheBluePreview -> stringResource(R.string.shell_room_the_blue_title)
         ShellDestination.IdeaGrovePreview -> stringResource(R.string.shell_room_idea_title)
         ShellDestination.LookoutPreview -> stringResource(R.string.shell_room_lookout_title)
     }
@@ -640,7 +640,7 @@ private fun HeartRoomScreen(
                 )
 
                 RoomOrbitNode(
-                    labelRes = R.string.shell_room_coral_title,
+                    labelRes = R.string.shell_room_the_blue_title,
                     icon = Icons.Outlined.FilterVintage,
                     dormant = true,
                     nodeWidth = nodeWidth,
@@ -648,7 +648,7 @@ private fun HeartRoomScreen(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .offset(y = maxHeight * 0.80f),
-                    onClick = { onNavigate(ShellDestination.CoralReefPreview) }
+                    onClick = { onNavigate(ShellDestination.TheBluePreview) }
                 )
             }
 
