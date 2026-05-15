@@ -21,6 +21,7 @@ import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.PearlLedgerEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellFindUpgradeEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellPlacementEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.ShellRewardEventEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.StillwaterLedgerEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.StillwaterPreferenceEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserBadgeEntity
@@ -48,9 +49,10 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellRoomStateEntit
         UserDiscoveryEntity::class,
         StillwaterLedgerEntity::class,
         StillwaterPreferenceEntity::class,
-        UserShellRoomStateEntity::class
+        UserShellRoomStateEntity::class,
+        ShellRewardEventEntity::class
     ],
-    version = 14,
+    version = 15,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
@@ -61,4 +63,5 @@ abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
     abstract fun flowPlanDao(): FlowPlanDao
     abstract fun arcPlanDao(): ArcPlanDao
     abstract fun activeArcRunDao(): ActiveArcRunDao
+    override abstract fun shellRewardEventDao(): com.kingkharnivore.skillz.data.model.dao.shell.ShellRewardEventDao
 }

@@ -37,10 +37,29 @@ class SkillzMigrationTest {
         }
     }
 
+
+    @Test
+    fun migration14To15CreatesShellRewardEventTable() {
+        helper.createDatabase(TEST_DB, 14).apply {
+            createVersion13CoreTables()
+            SkillzDatabaseMigrations.MIGRATION_13_14.migrate(this)
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            TEST_DB,
+            15,
+            true,
+            SkillzDatabaseMigrations.MIGRATION_14_15
+        )
+
+        assertTrue("Expected shell_reward_event to exist after 14→15", db.tableExists("shell_reward_event"))
+    }
+
     @Test
     fun allMigrationsIncludeDirectLegacyAnd13To14Paths() {
         assertTrue(
-            "Expected at least one direct legacy migration plus MIGRATION_13_14",
+            "Expected direct legacy migrations plus MIGRATION_13_14 and MIGRATION_14_15",
             SkillzDatabaseMigrations.ALL_MIGRATIONS.isNotEmpty()
         )
     }

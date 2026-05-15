@@ -12,6 +12,7 @@ import com.kingkharnivore.skillz.data.repository.ArcPlanRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.data.repository.PulseRepository
+import com.kingkharnivore.skillz.domain.shell.ShellRewardEventRecorder
 import com.kingkharnivore.skillz.domain.shell.ShellRewardOrchestrator
 import com.kingkharnivore.skillz.domain.shell.ShellRewardResult
 import com.kingkharnivore.skillz.model.state.flow.ArcSummaryUiModel
@@ -69,6 +70,7 @@ class FlowViewModel @Inject constructor(
     private val userPrefs: UserPrefs,
     private val surgeHapticsManager: SurgeHapticsManager,
     private val shellRewardOrchestrator: ShellRewardOrchestrator,
+    private val shellRewardEventRecorder: ShellRewardEventRecorder,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -554,7 +556,8 @@ class FlowViewModel @Inject constructor(
                     totalFinalPoints = arcSessions.sumOf { it.scyraPoints },
                     totalArcBonusPoints = arcSessions.sumOf { it.arcBonusPoints },
                     peakMultiplier = arcSessions.mapNotNull { it.arcMultiplierUsed }.maxOrNull()
-                        ?: 1.0
+                        ?: 1.0,
+                    shellSummary = shellRewardEventRecorder.summaryForArc(arcId)
                 )
             } else {
                 null
@@ -1167,7 +1170,8 @@ class FlowViewModel @Inject constructor(
                                 totalFinalPoints = arcSessions.sumOf { it.scyraPoints },
                                 totalArcBonusPoints = arcSessions.sumOf { it.arcBonusPoints },
                                 peakMultiplier = arcSessions.mapNotNull { it.arcMultiplierUsed }
-                                    .maxOrNull() ?: 1.0
+                                    .maxOrNull() ?: 1.0,
+                                shellSummary = shellRewardEventRecorder.summaryForArc(arcId)
                             )
                         } else {
                             null

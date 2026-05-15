@@ -1215,6 +1215,14 @@
     <string name="reward_card_arc_total_duration">एकूण %1$s</string>
     <string name="reward_card_arc_peak_multiplier">सर्वोच्च गुणक: %1$.1f×</string>
     <string name="reward_card_arc_bonus_line">Arc बोनस: +%1$d</string>
+    <string name="reward_card_arc_animals_title">Animals encountered</string>
+    <string name="reward_card_arc_objects_title">Objects found</string>
+    <string name="reward_card_arc_trinkets_title">Trinkets gathered</string>
+    <string name="reward_card_arc_badges_title">Badges updated</string>
+    <string name="reward_card_arc_discoveries_title">Discoveries recorded</string>
+    <string name="reward_card_arc_shell_shaped_body">Scyra Points from this Arc were carried into The Shell as Pearls.</string>
+    <string name="reward_card_found_across_arc">Found across this Arc.</string>
+    <string name="reward_card_recorded_in_journal">Recorded in the Discovery Journal.</string>
     <string name="reward_card_arc_placeholder_title">हा Arc तुमच्या कथेचा भाग झाला</string>
     <string name="reward_card_arc_placeholder_body">भविष्यातील Shell अपडेटमध्ये Voyage Hall Arc प्रवास गोळा करेल.</string>
     <string name="reward_card_trinkets_grouped_title">ट्रिंकेट्स गोळा झाले</string>

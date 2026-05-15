@@ -11,4 +11,5 @@ interface ShellDaoProvider {
     fun stillwaterLedgerDao(): StillwaterLedgerDao
     fun stillwaterPreferenceDao(): StillwaterPreferenceDao
     fun userShellRoomStateDao(): UserShellRoomStateDao
+    fun shellRewardEventDao(): ShellRewardEventDao
 }

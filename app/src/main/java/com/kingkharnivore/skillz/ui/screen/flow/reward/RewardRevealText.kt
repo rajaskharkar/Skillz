@@ -90,6 +90,14 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
     val recordsUpdatedFromFlow = stringResource(R.string.reward_card_records_updated_from_flow)
     val flowMilestonesAcrossArc = stringResource(R.string.reward_card_flow_milestones_across_arc)
     val recordsUpdatedAcrossArc = stringResource(R.string.reward_card_records_updated_across_arc)
+    val arcAnimalsTitle = stringResource(R.string.reward_card_arc_animals_title)
+    val arcObjectsTitle = stringResource(R.string.reward_card_arc_objects_title)
+    val arcTrinketsTitle = stringResource(R.string.reward_card_arc_trinkets_title)
+    val arcBadgesTitle = stringResource(R.string.reward_card_arc_badges_title)
+    val arcDiscoveriesTitle = stringResource(R.string.reward_card_arc_discoveries_title)
+    val foundAcrossArc = stringResource(R.string.reward_card_found_across_arc)
+    val recordedInJournal = stringResource(R.string.reward_card_recorded_in_journal)
+    val arcShellShapedBody = stringResource(R.string.reward_card_arc_shell_shaped_body)
 
         return object : RewardRevealTextProvider {
         override fun scyraPoints(points: Int) = scyraPointsTemplate.format(points)
@@ -155,5 +163,13 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         override fun recordsUpdatedFromFlow() = recordsUpdatedFromFlow
         override fun flowMilestonesAcrossArc() = flowMilestonesAcrossArc
         override fun recordsUpdatedAcrossArc() = recordsUpdatedAcrossArc
+        override fun arcAnimalsTitle() = arcAnimalsTitle
+        override fun arcObjectsTitle() = arcObjectsTitle
+        override fun arcTrinketsTitle() = arcTrinketsTitle
+        override fun arcBadgesTitle() = arcBadgesTitle
+        override fun arcDiscoveriesTitle() = arcDiscoveriesTitle
+        override fun foundAcrossArc() = foundAcrossArc
+        override fun recordedInJournal() = recordedInJournal
+        override fun arcShellShapedBody() = arcShellShapedBody
     }
 }

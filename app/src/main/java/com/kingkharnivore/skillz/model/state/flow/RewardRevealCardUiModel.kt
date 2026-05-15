@@ -31,6 +31,7 @@ enum class RewardRevealCardType {
     ARC_TRINKETS,
     ARC_DISCOVERIES,
     ARC_BADGES,
+    ARC_STILLWATER,
     EMPTY_SHELL_MEANING,
     ARC_STORY_PLACEHOLDER
 }
