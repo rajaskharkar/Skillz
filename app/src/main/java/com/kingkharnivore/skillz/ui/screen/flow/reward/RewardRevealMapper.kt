@@ -47,6 +47,7 @@ interface RewardRevealTextProvider {
     fun discoveryReason(discoveryId: String): String
     fun badgeReason(badgeId: String): String
     fun coralReefHint(): String
+    fun stillwaterRoomHint(): String
     fun shellChestHint(): String
     fun discoveryJournalHint(): String
     fun badgesHint(): String
@@ -165,8 +166,8 @@ fun buildSoftRewardCards(
             title = text.stillwaterPerspectiveTitle(),
             body = text.stillwaterPerspectiveBody(),
             iconKey = "stillwater",
-            destinationHint = text.coralReefHint(),
-            contentDescription = listOf(text.stillwaterPerspectiveTitle(), text.stillwaterPerspectiveBody()).joinToString(". "),
+            destinationHint = text.stillwaterRoomHint(),
+            contentDescription = listOf(text.stillwaterPerspectiveTitle(), text.stillwaterPerspectiveBody(), text.stillwaterRoomHint()).joinToString(". "),
             animationStyle = RewardRevealAnimationStyle.STILLWATER_RIPPLE
         )
     )

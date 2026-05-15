@@ -1143,6 +1143,7 @@
     <string name="reward_card_badge_reason_120">हर बार जब नियमित Flow 2 घंटे या अधिक चलता है, यह मिलता है।</string>
     <string name="reward_card_badge_reason_discovery">इस Flow से रिकॉर्ड अपडेट हुए।</string>
     <string name="reward_card_coral_reef_hint">बाद में Coral Reef में देखें।</string>
+    <string name="reward_card_stillwater_room_hint">Stillwater Room में देखें।</string>
     <string name="reward_card_shell_chest_hint">Shell Chest में रखा है।</string>
     <string name="reward_card_discovery_journal_hint">Discovery Journal में दर्ज है।</string>
     <string name="reward_card_badges_hint">Badges में दर्ज है।</string>
@@ -1160,7 +1161,7 @@
     <string name="reward_card_arc_peak_multiplier">शीर्ष गुणक: %1$.1f×</string>
     <string name="reward_card_arc_bonus_line">Arc बोनस: +%1$d</string>
     <string name="reward_card_arc_placeholder_title">यह Arc आपकी कहानी का हिस्सा बन गया</string>
-    <string name="reward_card_arc_placeholder_body">Voyage Hall भविष्य के Shell अपडेट में Arc यात्राएं इकट्ठा करेगा। Arc इनाम aggregation तैयार होने पर Shell इनाम यहां दिखाई देंगे।</string>
+    <string name="reward_card_arc_placeholder_body">Voyage Hall भविष्य के Shell अपडेट में Arc यात्राएं इकट्ठा करेगा।</string>
     <string name="reward_card_trinkets_grouped_title">ट्रिंकेट इकट्ठे हुए</string>
     <string name="reward_card_badges_grouped_title">बैज अपडेट हुए</string>
     <string name="reward_card_item_count">%1$s ×%2$d</string>

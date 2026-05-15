@@ -75,6 +75,7 @@ class RewardRevealMapperTest {
         assertEquals("Stillwater added", cards[0].title)
         assertEquals("22 quiet minutes carried into the stream.", cards[0].subtitle)
         assertTrue(cards.any { it.type == RewardRevealCardType.SOFT_RULE })
+        assertEquals("View in Stillwater Room.", cards[2].destinationHint)
         assertFalse(cards.any { it.title.contains("Scyra") || it.title.contains("Pearl") })
     }
 
@@ -222,6 +223,7 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun discoveryReason(discoveryId: String) = "Discovered after 3 regular Flows lasting 30 minutes or more."
     override fun badgeReason(badgeId: String) = "Earned each time a regular Flow lasts 30 minutes or more."
     override fun coralReefHint() = "View later in Coral Reef."
+    override fun stillwaterRoomHint() = "View in Stillwater Room."
     override fun shellChestHint() = "Resting in the Shell Chest."
     override fun discoveryJournalHint() = "Recorded in the Discovery Journal."
     override fun badgesHint() = "Recorded in Badges."

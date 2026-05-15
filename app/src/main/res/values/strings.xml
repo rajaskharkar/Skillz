@@ -1286,6 +1286,7 @@
     <string name="reward_card_badge_reason_120">Earned each time a regular Flow lasts 2 hours or more.</string>
     <string name="reward_card_badge_reason_discovery">Records updated from this Flow.</string>
     <string name="reward_card_coral_reef_hint">View later in Coral Reef.</string>
+    <string name="reward_card_stillwater_room_hint">View in Stillwater Room.</string>
     <string name="reward_card_shell_chest_hint">Resting in the Shell Chest.</string>
     <string name="reward_card_discovery_journal_hint">Recorded in the Discovery Journal.</string>
     <string name="reward_card_badges_hint">Recorded in Badges.</string>
@@ -1303,7 +1304,7 @@
     <string name="reward_card_arc_peak_multiplier">Peak multiplier: %1$.1f×</string>
     <string name="reward_card_arc_bonus_line">Arc bonus: +%1$d</string>
     <string name="reward_card_arc_placeholder_title">This Arc became part of your story</string>
-    <string name="reward_card_arc_placeholder_body">Voyage Hall will gather Arc journeys in a future Shell update. Arc Shell rewards will appear here once Arc reward aggregation is ready.</string>
+    <string name="reward_card_arc_placeholder_body">Voyage Hall will gather Arc journeys in a future Shell update.</string>
     <string name="reward_card_trinkets_grouped_title">Trinkets gathered</string>
     <string name="reward_card_badges_grouped_title">Badges updated</string>
     <string name="reward_card_item_count">%1$s ×%2$d</string>
