@@ -7,6 +7,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -74,6 +76,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -311,6 +314,9 @@ fun ShellRootScreen(
         }
 
         room?.let(viewModel::markRoomOpened)
+        if (destination == ShellDestination.TheBluePreview) {
+            viewModel.markTheBlueAnimalsSeen()
+        }
         if (destination == ShellDestination.Notifications) {
             shouldMarkNotificationsSeenOnExit = true
         } else if (shouldMarkNotificationsSeenOnExit) {
@@ -2843,12 +2849,17 @@ private fun TheBlueRoomScreen(
         buildTheBlueUiState(uiState.finds, uiState.focusPlacements)
     }
     var selectedAnimal by remember { mutableStateOf<TheBlueAnimalGroupUiModel?>(null) }
+    val listState = rememberLazyListState()
+    val activeZone by remember(theBlueState.zones, listState) {
+        derivedStateOf { activeTheBlueZoneForListIndex(listState.firstVisibleItemIndex) }
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(shellBackground())
     ) {
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
@@ -2857,7 +2868,11 @@ private fun TheBlueRoomScreen(
                 TheBlueHeader(state = theBlueState)
             }
 
-            if (!theBlueState.isEmpty) {
+            if (theBlueState.isEmpty) {
+                item {
+                    TheBlueEmptyWaterPanel()
+                }
+            } else {
                 items(theBlueState.zones, key = { it.zoneId.name }) { zone ->
                     TheBlueZoneSection(
                         zone = zone,
@@ -2870,7 +2885,7 @@ private fun TheBlueRoomScreen(
         if (!theBlueState.isEmpty) {
             TheBlueDepthRail(
                 zones = theBlueState.zones.map { it.zoneId },
-                activeZone = theBlueState.deepestZoneId ?: TheBlueZoneId.SUNLIT_REEF,
+                activeZone = activeZone,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .padding(end = 6.dp)
@@ -2897,6 +2912,77 @@ private fun TheBlueRoomScreen(
                 firstRestingInstanceId(animal.findId, uiState)
             }
         )
+    }
+}
+
+
+internal fun activeTheBlueZoneForListIndex(firstVisibleItemIndex: Int): TheBlueZoneId = when ((firstVisibleItemIndex - 1).coerceAtLeast(0)) {
+    0 -> TheBlueZoneId.SUNLIT_REEF
+    1 -> TheBlueZoneId.DEEPER_REEF
+    2 -> TheBlueZoneId.OPEN_BLUE
+    else -> TheBlueZoneId.GREAT_BLUE
+}
+
+@Composable
+private fun TheBlueEmptyWaterPanel() {
+    val scheme = MaterialTheme.colorScheme
+    val transition = rememberInfiniteTransition(label = "the-blue-empty-motion")
+    val drift by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(18000, easing = LinearEasing), RepeatMode.Restart),
+        label = "empty-water-drift"
+    )
+    Surface(
+        shape = RoundedCornerShape(34.dp),
+        color = scheme.surface.copy(alpha = 0.86f),
+        border = BorderStroke(1.dp, scheme.primary.copy(alpha = 0.16f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            scheme.primary.copy(alpha = 0.10f),
+                            scheme.background.copy(alpha = 0.30f)
+                        )
+                    )
+                )
+        ) {
+            Canvas(Modifier.matchParentSize()) {
+                val w = size.width
+                val h = size.height
+                repeat(10) { i ->
+                    val x = ((i * 59f + drift * w * 0.35f) % (w + 48f)) - 24f
+                    val y = h - ((i * 31f + drift * h) % h)
+                    drawCircle(
+                        color = scheme.primary.copy(alpha = 0.10f + (i % 3) * 0.025f),
+                        radius = 3f + (i % 4),
+                        center = Offset(x, y)
+                    )
+                }
+                val shimmer = Path().apply {
+                    moveTo(w * 0.12f, 0f)
+                    lineTo(w * (0.24f + drift * 0.06f), h)
+                    lineTo(w * (0.38f + drift * 0.06f), h)
+                    lineTo(w * 0.20f, 0f)
+                    close()
+                }
+                drawPath(shimmer, scheme.secondary.copy(alpha = 0.07f))
+            }
+            Text(
+                text = stringResource(R.string.the_blue_empty_water_caption),
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.onSurface.copy(alpha = 0.68f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(24.dp)
+            )
+        }
     }
 }
 
@@ -3155,6 +3241,7 @@ private fun TheBlueAnimalDetailSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 12.dp)
                 .semantics { contentDescription = detailDescription },
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -3197,8 +3284,16 @@ private fun TheBlueAnimalDetailSheet(
                     Text(stringResource(R.string.the_blue_view_in_chest))
                 }
             }
-            if (firstRestingInstanceId == null || focusSlotId == null) {
-                Text(stringResource(R.string.the_blue_no_focus_slot, name), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
+            when (theBlueDisplayDisabledReason(focusSlotId, firstRestingInstanceId)) {
+                TheBlueDisplayDisabledReason.NO_FOCUS_SLOT -> Text(
+                    stringResource(R.string.the_blue_no_focus_slot, name),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                )
+                TheBlueDisplayDisabledReason.NO_RESTING_COPY -> Text(
+                    stringResource(R.string.the_blue_no_resting_copy),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                )
+                null -> Unit
             }
             Spacer(Modifier.height(18.dp))
         }

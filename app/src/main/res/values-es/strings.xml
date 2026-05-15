@@ -937,6 +937,7 @@
     <string name="the_blue_display_one_in_focus">Display one in Focus</string>
     <string name="the_blue_view_in_chest">View in Shell Chest</string>
     <string name="the_blue_no_focus_slot">No open Focus nook right now. Return something from Focus to display a %1$s.</string>
+    <string name="the_blue_no_resting_copy">No resting copy is available in the Shell Chest.</string>
     <string name="the_blue_all_first_form">All %1$s are in their first form.</string>
     <string name="the_blue_forms_unavailable">Form information is not available yet.</string>
     <string name="the_blue_source_minnow">From regular Flows lasting 10 minutes or more.</string>
@@ -954,6 +955,7 @@
     <string name="the_blue_animal_card_a11y">%1$s. Animal. Count %2$d. %3$s. %4$s Displayed in Focus: %5$d.</string>
     <string name="the_blue_detail_a11y">%1$s. %2$s. %3$s</string>
     <string name="the_blue_depth_rail_a11y">Depth rail: Sunlit Reef, Deeper Reef, Open Blue, Great Blue.</string>
+    <string name="the_blue_empty_water_caption">Quiet water waits for the first regular Flow Animal.</string>
     <string name="shell_room_idea_title">Idea Grove</string>
     <string name="shell_room_idea_description">A quiet patch of kelp waiting for Pulses.</string>
     <string name="shell_room_lookout_title">The Lookout</string>
@@ -1185,7 +1187,7 @@
     <string name="reward_card_depth_reef">Arrecife</string>
     <string name="reward_card_depth_deeper_reef">Arrecife profundo</string>
     <string name="reward_card_depth_open_blue">Azul abierto</string>
-    <string name="reward_card_depth_deep_ocean">Océano profundo</string>
+    <string name="reward_card_depth_deep_ocean">Great Blue</string>
     <string name="reward_card_animal_reason_minnow">De un Flow regular de 10 minutos o más.</string>
     <string name="reward_card_animal_reason_seahorse">De un Flow regular de 30 minutos o más.</string>
     <string name="reward_card_animal_reason_manta">De un Flow regular de 1 hora o más.</string>

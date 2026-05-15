@@ -50,6 +50,46 @@ class TheBlueUiModelTest {
         assertFalse(state.zones.any { zone -> zone.animals.any { it.findId == ShellContentCatalog.TRINKET_SEA_GLASS_SHARD } })
     }
 
+
+    @Test
+    fun markingTheBlueAnimalsSeenClearsOnlyAnimalNewFlags() {
+        val finds = listOf(
+            find("minnow-1", ShellContentCatalog.FOCUS_MINNOW, isNew = true),
+            find("pebble-1", ShellContentCatalog.FOCUS_PEBBLE, isNew = true)
+        )
+
+        assertEquals(1, buildTheBlueUiState(finds, emptyList()).newAnimalCount)
+
+        val afterMark = finds.map { instance ->
+            if (instance.findId in ShellContentCatalog.animalFindIds) {
+                instance.copy(isNew = false)
+            } else {
+                instance
+            }
+        }
+
+        assertEquals(0, buildTheBlueUiState(afterMark, emptyList()).newAnimalCount)
+        assertFalse(afterMark.first { it.findId == ShellContentCatalog.FOCUS_MINNOW }.isNew)
+        assertTrue(afterMark.first { it.findId == ShellContentCatalog.FOCUS_PEBBLE }.isNew)
+    }
+
+    @Test
+    fun activeDepthRailZoneFollowsVisibleListIndex() {
+        assertEquals(TheBlueZoneId.SUNLIT_REEF, activeTheBlueZoneForListIndex(0))
+        assertEquals(TheBlueZoneId.SUNLIT_REEF, activeTheBlueZoneForListIndex(1))
+        assertEquals(TheBlueZoneId.DEEPER_REEF, activeTheBlueZoneForListIndex(2))
+        assertEquals(TheBlueZoneId.OPEN_BLUE, activeTheBlueZoneForListIndex(3))
+        assertEquals(TheBlueZoneId.GREAT_BLUE, activeTheBlueZoneForListIndex(4))
+    }
+
+    @Test
+    fun displayDisabledReasonDistinguishesNoSlotFromNoRestingCopy() {
+        assertEquals(TheBlueDisplayDisabledReason.NO_FOCUS_SLOT, theBlueDisplayDisabledReason(null, null))
+        assertEquals(TheBlueDisplayDisabledReason.NO_FOCUS_SLOT, theBlueDisplayDisabledReason(null, "copy-1"))
+        assertEquals(TheBlueDisplayDisabledReason.NO_RESTING_COPY, theBlueDisplayDisabledReason("slot-1", null))
+        assertNull(theBlueDisplayDisabledReason("slot-1", "copy-1"))
+    }
+
     @Test
     fun emptyStateAppearsWhenNoAnimalsAreOwned() {
         val state = buildTheBlueUiState(

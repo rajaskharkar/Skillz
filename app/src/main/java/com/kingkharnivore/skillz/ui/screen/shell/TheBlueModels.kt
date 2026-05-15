@@ -30,6 +30,17 @@ data class TheBlueZoneUiModel(
     val animals: List<TheBlueAnimalGroupUiModel>
 )
 
+enum class TheBlueDisplayDisabledReason { NO_FOCUS_SLOT, NO_RESTING_COPY }
+
+internal fun theBlueDisplayDisabledReason(
+    focusSlotId: String?,
+    firstRestingInstanceId: String?
+): TheBlueDisplayDisabledReason? = when {
+    focusSlotId == null -> TheBlueDisplayDisabledReason.NO_FOCUS_SLOT
+    firstRestingInstanceId == null -> TheBlueDisplayDisabledReason.NO_RESTING_COPY
+    else -> null
+}
+
 data class TheBlueUiState(
     val totalAnimals: Int,
     val speciesCount: Int,

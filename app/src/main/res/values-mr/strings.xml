@@ -979,6 +979,7 @@
     <string name="the_blue_display_one_in_focus">Display one in Focus</string>
     <string name="the_blue_view_in_chest">View in Shell Chest</string>
     <string name="the_blue_no_focus_slot">No open Focus nook right now. Return something from Focus to display a %1$s.</string>
+    <string name="the_blue_no_resting_copy">No resting copy is available in the Shell Chest.</string>
     <string name="the_blue_all_first_form">All %1$s are in their first form.</string>
     <string name="the_blue_forms_unavailable">Form information is not available yet.</string>
     <string name="the_blue_source_minnow">From regular Flows lasting 10 minutes or more.</string>
@@ -996,6 +997,7 @@
     <string name="the_blue_animal_card_a11y">%1$s. Animal. Count %2$d. %3$s. %4$s Displayed in Focus: %5$d.</string>
     <string name="the_blue_detail_a11y">%1$s. %2$s. %3$s</string>
     <string name="the_blue_depth_rail_a11y">Depth rail: Sunlit Reef, Deeper Reef, Open Blue, Great Blue.</string>
+    <string name="the_blue_empty_water_caption">Quiet water waits for the first regular Flow Animal.</string>
     <string name="shell_room_idea_title">Idea Grove</string>
     <string name="shell_room_idea_description">A quiet patch of kelp waiting for Pulses.</string>
     <string name="shell_room_lookout_title">The Lookout</string>
@@ -1227,7 +1229,7 @@
     <string name="reward_card_depth_reef">रीफ</string>
     <string name="reward_card_depth_deeper_reef">खोल रीफ</string>
     <string name="reward_card_depth_open_blue">मोकळा निळा</string>
-    <string name="reward_card_depth_deep_ocean">खोल महासागर</string>
+    <string name="reward_card_depth_deep_ocean">Great Blue</string>
     <string name="reward_card_animal_reason_minnow">10 मिनिटे किंवा अधिक चाललेल्या नियमित Flow मधून.</string>
     <string name="reward_card_animal_reason_seahorse">30 मिनिटे किंवा अधिक चाललेल्या नियमित Flow मधून.</string>
     <string name="reward_card_animal_reason_manta">1 तास किंवा अधिक चाललेल्या नियमित Flow मधून.</string>
