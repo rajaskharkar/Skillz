@@ -949,10 +949,10 @@
     <string name="shell_room_idea_description">A quiet patch of kelp waiting for Pulses.</string>
     <string name="shell_room_lookout_title">The Lookout</string>
     <string name="shell_room_lookout_description">A shell window facing tomorrow.</string>
-    <string name="shell_preview_voyage">Quiet for now. Arc journeys will gather here.</string>
+    <string name="shell_preview_voyage">Arc journeys will gather here.</string>
     <string name="shell_preview_the_blue">Animals encountered through regular Flows swim here.</string>
-    <string name="shell_preview_idea">Quiet for now. Pulses will grow here.</string>
-    <string name="shell_preview_lookout">Quiet for now. Plans on your Horizon will appear here.</string>
+    <string name="shell_preview_idea">Pulses will grow here.</string>
+    <string name="shell_preview_lookout">Plans on your Horizon will appear here.</string>
     <string name="shell_welcome">Welcome inside The Shell.</string>
     <string name="shell_welcome_body">Scyra leaves the Shell to make progress. When Scyra returns, your effort becomes part of this world.</string>
     <string name="shell_enter_focus">Enter the Focus Room</string>
@@ -1106,7 +1106,6 @@
     <string name="shell_empty_slot_a11y">%1$s. Empty Focus Room space. Opens placement and Pearl shaping options.</string>
     <string name="shell_placed_object_a11y">%1$s. Displayed in Focus Room. Opens object details.</string>
     <string name="shell_stillwater_same_water">Same Stillwater, different view.</string>
-    <string name="shell_quiet_for_now">Quiet for now</string>
 
 
     <string name="shell_whisper_new_discovery">Octopus discovered after 3 regular Flows lasting 30 minutes or more.</string>
@@ -1128,7 +1127,7 @@
 
     <string name="shell_pearl_basin_chip_a11y">Pearl Basin. %1$d Pearls. Opens shaping suggestions.</string>
     <string name="shell_room_active_a11y">%1$s. Active room. Opens %1$s.</string>
-    <string name="shell_room_preview_a11y">%1$s. Quiet for now. Opens preview.</string>
+    <string name="shell_room_preview_a11y">%1$s. Opens preview.</string>
     <string name="shell_heart_center_a11y">Heart of The Shell. Opens Heart detail.</string>
     <string name="shell_heart_objects_displayed_resting">Objects displayed: %1$d. Resting in Chest: %2$d.</string>
     <string name="shell_all_nooks_holding">All nooks are holding something. Swap, brighten, or keep gathering more in the Shell Chest. Resting in Chest: %1$d.</string>
