@@ -3,6 +3,7 @@ package com.kingkharnivore.skillz.data.di
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.dao.shell.PearlLedgerDao
 import com.kingkharnivore.skillz.data.model.dao.shell.ShellFindInstanceDao
+import com.kingkharnivore.skillz.data.model.dao.shell.ShellRewardEventDao
 import com.kingkharnivore.skillz.data.model.dao.shell.ShellFindStackDao
 import com.kingkharnivore.skillz.data.model.dao.shell.ShellFindUpgradeDao
 import com.kingkharnivore.skillz.data.model.dao.shell.ShellPlacementDao
@@ -53,4 +54,8 @@ object ShellDatabaseModule {
     @Provides
     fun provideUserShellRoomStateDao(db: SkillzDatabase): UserShellRoomStateDao =
         db.userShellRoomStateDao()
+
+    @Provides
+    fun provideShellRewardEventDao(db: SkillzDatabase): ShellRewardEventDao =
+        db.shellRewardEventDao()
 }

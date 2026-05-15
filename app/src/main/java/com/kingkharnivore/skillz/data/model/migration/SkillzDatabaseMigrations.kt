@@ -6,18 +6,18 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 14.
+     * Current database version is 15.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
-     * directly into the current v14 schema using a safe rebuild strategy.
+     * directly into the current v15 schema using a safe rebuild strategy.
      *
-     * Version 13 is the known pre-Shell schema, so it only needs the new Shell
-     * tables added.
+     * Version 13 is the known pre-Shell schema, so it first adds the Shell
+     * tables, then v14 adds the Shell reward event read model.
      */
-    val LEGACY_TO_14_MIGRATIONS: Array<Migration> = (1..12).map { startVersion ->
-        object : Migration(startVersion, 14) {
+    val LEGACY_TO_15_MIGRATIONS: Array<Migration> = (1..12).map { startVersion ->
+        object : Migration(startVersion, 15) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                migrateLegacyDatabaseTo14(db)
+                migrateLegacyDatabaseTo15(db)
             }
         }
     }.toTypedArray()
@@ -28,10 +28,16 @@ object SkillzDatabaseMigrations {
         }
     }
 
-    val ALL_MIGRATIONS: Array<Migration> =
-        LEGACY_TO_14_MIGRATIONS + MIGRATION_13_14
+    val MIGRATION_14_15 = object : Migration(14, 15) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            createShellRewardEventTable(db)
+        }
+    }
 
-    private fun migrateLegacyDatabaseTo14(db: SupportSQLiteDatabase) {
+    val ALL_MIGRATIONS: Array<Migration> =
+        LEGACY_TO_15_MIGRATIONS + MIGRATION_13_14 + MIGRATION_14_15
+
+    private fun migrateLegacyDatabaseTo15(db: SupportSQLiteDatabase) {
         db.execSQL("PRAGMA foreign_keys=OFF")
 
         createLegacySafetyTagIfNeeded(db)
@@ -47,6 +53,7 @@ object SkillzDatabaseMigrations {
 
         createCurrentCoreIndices(db)
         createShellTables(db)
+        createShellRewardEventTable(db)
 
         db.execSQL("PRAGMA foreign_keys=ON")
     }
@@ -743,6 +750,28 @@ object SkillzDatabaseMigrations {
             )
             """.trimIndent()
         )
+    }
+
+
+    private fun createShellRewardEventTable(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `shell_reward_event` (
+                `id` TEXT NOT NULL,
+                `sourceSessionId` INTEGER NOT NULL,
+                `arcId` INTEGER,
+                `rewardType` TEXT NOT NULL,
+                `rewardId` TEXT,
+                `quantity` INTEGER NOT NULL,
+                `occurredAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_shell_reward_event_sourceSessionId` ON `shell_reward_event` (`sourceSessionId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_shell_reward_event_arcId` ON `shell_reward_event` (`arcId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_shell_reward_event_rewardType` ON `shell_reward_event` (`rewardType`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_shell_reward_event_sourceSessionId_rewardType_rewardId` ON `shell_reward_event` (`sourceSessionId`, `rewardType`, `rewardId`)")
     }
 
     private fun createCurrentCoreIndices(db: SupportSQLiteDatabase) {

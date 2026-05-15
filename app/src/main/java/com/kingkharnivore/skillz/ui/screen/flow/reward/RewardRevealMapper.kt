@@ -3,6 +3,7 @@ package com.kingkharnivore.skillz.ui.screen.flow.reward
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellDepthTier
 import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
+import com.kingkharnivore.skillz.model.state.flow.ArcShellRewardCountUiModel
 import com.kingkharnivore.skillz.model.state.flow.ArcSummaryUiModel
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 import com.kingkharnivore.skillz.model.state.flow.RewardRevealAnimationStyle
@@ -73,6 +74,14 @@ interface RewardRevealTextProvider {
     fun recordsUpdatedFromFlow(): String
     fun flowMilestonesAcrossArc(): String
     fun recordsUpdatedAcrossArc(): String
+    fun arcAnimalsTitle(): String
+    fun arcObjectsTitle(): String
+    fun arcTrinketsTitle(): String
+    fun arcBadgesTitle(): String
+    fun arcDiscoveriesTitle(): String
+    fun foundAcrossArc(): String
+    fun recordedInJournal(): String
+    fun arcShellShapedBody(): String
 }
 
 fun buildSessionRewardCards(
@@ -186,7 +195,10 @@ fun buildArcSummaryRewardCards(
     isAera: Boolean,
     calmMode: Boolean,
     text: RewardRevealTextProvider,
-    durationText: String
+    durationText: String,
+    findTitle: (String) -> String? = { null },
+    badgeTitle: (String) -> String? = { null },
+    discoveryTitle: (String) -> String? = { null }
 ): List<RewardRevealCardUiModel> {
     val showScore = !isAera && !calmMode
     val body = buildList {
@@ -200,7 +212,7 @@ fun buildArcSummaryRewardCards(
             add(text.swipeArcHint())
         }
     }.joinToString("\n")
-    return listOf(
+    val cards = mutableListOf(
         RewardRevealCardUiModel(
             id = "arc-score",
             type = RewardRevealCardType.ARC_SCORE,
@@ -211,14 +223,86 @@ fun buildArcSummaryRewardCards(
             iconKey = "arc",
             contentDescription = listOf(text.arcCompleteTitle(), body).joinToString(". "),
             animationStyle = if (showScore) RewardRevealAnimationStyle.PEARL_GLOW else RewardRevealAnimationStyle.NONE
-        ),
+        )
+    )
+
+    val shell = arc.shellSummary
+    cards += aggregateCountCard("arc-animals", RewardRevealCardType.ARC_ANIMALS, text.arcAnimalsTitle(), shell.animals, text.flowMilestonesAcrossArc(), text.coralReefHint(), "animal", text, findTitle)
+    cards += aggregateCountCard("arc-discoveries", RewardRevealCardType.ARC_DISCOVERIES, text.arcDiscoveriesTitle(), shell.discoveries, text.recordedInJournal(), text.discoveryJournalHint(), "discovery", text, discoveryTitle)
+    cards += aggregateCountCard("arc-objects", RewardRevealCardType.ARC_OBJECTS, text.arcObjectsTitle(), shell.objects, text.foundAcrossArc(), text.shellChestHint(), "object", text, findTitle)
+    cards += aggregateCountCard("arc-trinkets", RewardRevealCardType.ARC_TRINKETS, text.arcTrinketsTitle(), shell.trinkets, text.trinketReason(), text.shellChestHint(), "trinket", text, findTitle)
+    cards += aggregateCountCard("arc-badges", RewardRevealCardType.ARC_BADGES, text.arcBadgesTitle(), shell.badges, text.recordsUpdatedAcrossArc(), text.badgesHint(), "badge", text, badgeTitle)
+
+    if (shell.stillwaterAdded > 0L) {
+        val bodyText = text.quietMinutes(shell.stillwaterAdded.toInt())
+        cards += RewardRevealCardUiModel(
+            id = "arc-stillwater",
+            type = RewardRevealCardType.ARC_STILLWATER,
+            title = text.stillwaterAddedTitle(),
+            body = bodyText,
+            iconKey = "stillwater",
+            destinationHint = text.stillwaterHint(),
+            contentDescription = listOf(text.stillwaterAddedTitle(), bodyText, text.stillwaterHint()).joinToString(". "),
+            animationStyle = RewardRevealAnimationStyle.STILLWATER_RIPPLE
+        )
+    }
+
+    cards += shell.unknownRewards.map { unknownCard("arc-unknown-${it.id}", text) }
+
+    if (cards.size == 1) {
+        if (shell.pearlsCarried > 0) {
+            cards += RewardRevealCardUiModel(
+                id = "arc-shell-shaped",
+                type = RewardRevealCardType.SHELL_BRIDGE,
+                title = text.shellWasShapedTitle(),
+                body = text.arcShellShapedBody(),
+                iconKey = "pearl",
+                destinationHint = text.pearlBasinHint(),
+                contentDescription = listOf(text.shellWasShapedTitle(), text.arcShellShapedBody(), text.pearlBasinHint()).joinToString(". "),
+                animationStyle = RewardRevealAnimationStyle.PEARL_GLOW
+            )
+        } else {
+            cards += RewardRevealCardUiModel(
+                id = "arc-shell-placeholder",
+                type = RewardRevealCardType.ARC_STORY_PLACEHOLDER,
+                title = text.arcStoryPlaceholderTitle(),
+                body = text.arcStoryPlaceholderBody(),
+                iconKey = "voyage",
+                contentDescription = listOf(text.arcStoryPlaceholderTitle(), text.arcStoryPlaceholderBody()).joinToString(". ")
+            )
+        }
+    }
+
+    return cards
+}
+
+
+private fun aggregateCountCard(
+    id: String,
+    type: RewardRevealCardType,
+    title: String,
+    rewards: List<ArcShellRewardCountUiModel>,
+    footer: String,
+    destination: String,
+    iconKey: String,
+    text: RewardRevealTextProvider,
+    titleForId: (String) -> String?
+): List<RewardRevealCardUiModel> {
+    if (rewards.isEmpty()) return emptyList()
+    val lines = rewards.map { reward ->
+        val name = titleForId(reward.id) ?: text.shellRewardRecordedTitle()
+        text.itemCount(name, reward.count)
+    }
+    val body = (lines + footer).joinToString("\n")
+    return listOf(
         RewardRevealCardUiModel(
-            id = "arc-shell-placeholder",
-            type = RewardRevealCardType.ARC_STORY_PLACEHOLDER,
-            title = text.arcStoryPlaceholderTitle(),
-            body = text.arcStoryPlaceholderBody(),
-            iconKey = "voyage",
-            contentDescription = listOf(text.arcStoryPlaceholderTitle(), text.arcStoryPlaceholderBody()).joinToString(". ")
+            id = id,
+            type = type,
+            title = title,
+            body = body,
+            iconKey = iconKey,
+            destinationHint = destination,
+            contentDescription = listOf(title, body, destination).joinToString(". ")
         )
     )
 }

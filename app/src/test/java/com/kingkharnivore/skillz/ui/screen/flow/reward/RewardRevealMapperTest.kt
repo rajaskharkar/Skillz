@@ -1,8 +1,11 @@
 package com.kingkharnivore.skillz.ui.screen.flow.reward
 
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
+import com.kingkharnivore.skillz.model.state.flow.ArcShellRewardCountUiModel
+import com.kingkharnivore.skillz.model.state.flow.ArcShellRewardSummaryUiModel
 import com.kingkharnivore.skillz.model.state.flow.ArcSummaryUiModel
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
+import com.kingkharnivore.skillz.model.state.flow.RewardRevealAnimationStyle
 import com.kingkharnivore.skillz.model.state.flow.RewardRevealCardType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -149,7 +152,7 @@ class RewardRevealMapperTest {
     }
 
     @Test
-    fun arcSummaryUsesDeckWithExplicitAggregationPlaceholder() {
+    fun arcSummaryUsesDeckWithUserFriendlyPlaceholder() {
         val cards = buildArcSummaryRewardCards(
             arc = ArcSummaryUiModel(
                 totalSessions = 3,
@@ -168,6 +171,100 @@ class RewardRevealMapperTest {
         assertTrue(cards.first().body.orEmpty().contains("1240 Scyra Points"))
         assertTrue(cards.first().body.orEmpty().contains("Carried into The Shell as Pearls."))
         assertEquals(RewardRevealCardType.ARC_STORY_PLACEHOLDER, cards[1].type)
+    }
+
+
+    @Test
+    fun arcSummaryGroupsAnimalsAndKeepsAnimalDestinationAtCoralReef() {
+        val cards = buildArcSummaryRewardCards(
+            arc = arcSummary(
+                shellSummary = ArcShellRewardSummaryUiModel(
+                    animals = listOf(
+                        ArcShellRewardCountUiModel(ShellContentCatalog.FOCUS_MINNOW, 2),
+                        ArcShellRewardCountUiModel(ShellContentCatalog.FOCUS_SEAHORSE, 1)
+                    )
+                )
+            ),
+            isAera = false,
+            calmMode = false,
+            text = text,
+            durationText = "1h 25m",
+            findTitle = ::findTitle,
+            badgeTitle = ::badgeTitle,
+            discoveryTitle = ::discoveryTitle
+        )
+
+        val animalCard = cards.first { it.type == RewardRevealCardType.ARC_ANIMALS }
+        assertEquals("View later in Coral Reef.", animalCard.destinationHint)
+        assertTrue(animalCard.body.orEmpty().contains("Minnow ×2"))
+        assertTrue(animalCard.body.orEmpty().contains("Seahorse ×1"))
+    }
+
+    @Test
+    fun arcSummaryUsesCorrectDestinationsForNonAnimalAggregates() {
+        val cards = buildArcSummaryRewardCards(
+            arc = arcSummary(
+                shellSummary = ArcShellRewardSummaryUiModel(
+                    objects = listOf(ArcShellRewardCountUiModel(ShellContentCatalog.FOCUS_PEBBLE, 1)),
+                    trinkets = listOf(
+                        ArcShellRewardCountUiModel(ShellContentCatalog.TRINKET_SEA_GLASS_SHARD, 2),
+                        ArcShellRewardCountUiModel(ShellContentCatalog.TRINKET_GLIMMER, 1)
+                    ),
+                    badges = listOf(ArcShellRewardCountUiModel("badge_flow_10_min", 3)),
+                    discoveries = listOf(ArcShellRewardCountUiModel("discovery_octopus", 1)),
+                    stillwaterAdded = 42L
+                )
+            ),
+            isAera = false,
+            calmMode = false,
+            text = text,
+            durationText = "1h 25m",
+            findTitle = ::findTitle,
+            badgeTitle = ::badgeTitle,
+            discoveryTitle = ::discoveryTitle
+        )
+
+        assertEquals("Resting in the Shell Chest.", cards.first { it.type == RewardRevealCardType.ARC_OBJECTS }.destinationHint)
+        assertEquals("Resting in the Shell Chest.", cards.first { it.type == RewardRevealCardType.ARC_TRINKETS }.destinationHint)
+        assertEquals("Recorded in Badges.", cards.first { it.type == RewardRevealCardType.ARC_BADGES }.destinationHint)
+        assertEquals("Recorded in the Discovery Journal.", cards.first { it.type == RewardRevealCardType.ARC_DISCOVERIES }.destinationHint)
+        assertEquals("View in Stillwater Room.", cards.first { it.type == RewardRevealCardType.ARC_STILLWATER }.destinationHint)
+        assertTrue(cards.filter { it.type != RewardRevealCardType.ARC_ANIMALS }.all { it.destinationHint != "View later in Coral Reef." })
+        assertTrue(cards.first { it.type == RewardRevealCardType.ARC_BADGES }.body.orEmpty().contains("10-minute Flow ×3"))
+        assertTrue(cards.first { it.type == RewardRevealCardType.ARC_TRINKETS }.body.orEmpty().contains("Seaglass ×2"))
+        assertTrue(cards.first { it.type == RewardRevealCardType.ARC_DISCOVERIES }.body.orEmpty().contains("Octopus ×1"))
+    }
+
+    @Test
+    fun arcSummaryWithOnlyPearlsShowsShellShapedCardWithoutPearlDuplicate() {
+        val cards = buildArcSummaryRewardCards(
+            arc = arcSummary(shellSummary = ArcShellRewardSummaryUiModel(pearlsCarried = 482)),
+            isAera = false,
+            calmMode = false,
+            text = text,
+            durationText = "30m",
+            findTitle = ::findTitle,
+            badgeTitle = ::badgeTitle,
+            discoveryTitle = ::discoveryTitle
+        )
+
+        assertEquals(2, cards.size)
+        assertEquals(RewardRevealCardType.SHELL_BRIDGE, cards[1].type)
+        assertEquals("Shape The Shell with Pearls.", cards[1].destinationHint)
+        assertEquals(1, cards.count { it.animationStyle == RewardRevealAnimationStyle.PEARL_GLOW && it.type != RewardRevealCardType.ARC_SCORE })
+    }
+
+    @Test
+    fun arcSummaryUnknownRewardUsesShellFallbackWithoutCrashing() {
+        val cards = buildArcSummaryRewardCards(
+            arc = arcSummary(shellSummary = ArcShellRewardSummaryUiModel(unknownRewards = listOf(ArcShellRewardCountUiModel("missing", 1)))),
+            isAera = false,
+            calmMode = false,
+            text = text,
+            durationText = "30m"
+        )
+
+        assertTrue(cards.any { it.title == "Shell reward recorded" && it.destinationHint == "View inside The Shell." })
     }
 
     private fun reward(
@@ -194,8 +291,18 @@ class RewardRevealMapperTest {
         shellBadgeIds = shellBadgeIds
     )
 
+    private fun arcSummary(shellSummary: ArcShellRewardSummaryUiModel = ArcShellRewardSummaryUiModel()) = ArcSummaryUiModel(
+        totalSessions = 3,
+        totalDurationMs = 5_100_000L,
+        totalFinalPoints = 1240,
+        totalArcBonusPoints = 220,
+        peakMultiplier = 1.4,
+        shellSummary = shellSummary
+    )
+
     private fun findTitle(id: String): String? = when (id) {
         ShellContentCatalog.FOCUS_MINNOW -> "Minnow"
+        ShellContentCatalog.FOCUS_SEAHORSE -> "Seahorse"
         ShellContentCatalog.FOCUS_WHALE -> "Whale"
         ShellContentCatalog.FOCUS_PEBBLE -> "Pebble"
         ShellContentCatalog.TRINKET_SEA_GLASS_SHARD -> "Seaglass"
@@ -279,4 +386,12 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun recordsUpdatedFromFlow() = "Records updated from this Flow."
     override fun flowMilestonesAcrossArc() = "From Flow milestones across this Arc."
     override fun recordsUpdatedAcrossArc() = "Records updated across this Arc."
+    override fun arcAnimalsTitle() = "Animals encountered"
+    override fun arcObjectsTitle() = "Objects found"
+    override fun arcTrinketsTitle() = "Trinkets gathered"
+    override fun arcBadgesTitle() = "Badges updated"
+    override fun arcDiscoveriesTitle() = "Discoveries recorded"
+    override fun foundAcrossArc() = "Found across this Arc."
+    override fun recordedInJournal() = "Recorded in the Discovery Journal."
+    override fun arcShellShapedBody() = "Scyra Points from this Arc were carried into The Shell as Pearls."
 }

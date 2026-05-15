@@ -35,67 +35,71 @@ object ShellRewardPolicy {
 
 @Singleton
 class ShellRewardOrchestrator @Inject constructor(
-    private val shellRepository: ShellRepository
+    private val shellRepository: ShellRepository,
+    private val shellRewardEventRecorder: ShellRewardEventRecorder
 ) {
     suspend fun onSessionCompleted(session: SessionEntity): ShellRewardResult {
         val sourceId = session.id.toString()
         val minutes = (session.durationMs / MILLIS_PER_MINUTE).toInt().coerceAtLeast(0)
-        return if (session.isSoftMode) {
+        val result = if (session.isSoftMode) {
             val units = minutes * 10L
             if (!shellRepository.addStillwater(units, "session", sourceId)) {
-                return ShellRewardResult()
+                ShellRewardResult()
+            } else {
+                ShellRewardResult(stillwaterUnits = units)
             }
-            ShellRewardResult(stillwaterUnits = units)
         } else {
             val grantedFinds = mutableListOf<String>()
             val badges = mutableListOf<String>()
             val discoveries = mutableListOf<String>()
 
             if (!shellRepository.addPearls(session.scyraPoints, "flow_reward", "session", sourceId)) {
-                return ShellRewardResult()
-            }
-
-            suspend fun thresholdReward(badgeId: String, findId: String): Int {
-                val badgeCount = shellRepository.incrementBadge(badgeId)
-                badges += badgeId
-                val granted = if (badgeCount == 1) {
-                    shellRepository.grantFindOnce(findId, "session", sourceId)
-                } else if (badgeCount % 5 == 0) {
-                    shellRepository.grantFindCopy(findId, "session", sourceId)
-                } else {
-                    null
+                ShellRewardResult()
+            } else {
+                suspend fun thresholdReward(badgeId: String, findId: String): Int {
+                    val badgeCount = shellRepository.incrementBadge(badgeId)
+                    badges += badgeId
+                    val granted = if (badgeCount == 1) {
+                        shellRepository.grantFindOnce(findId, "session", sourceId)
+                    } else if (badgeCount % 5 == 0) {
+                        shellRepository.grantFindCopy(findId, "session", sourceId)
+                    } else {
+                        null
+                    }
+                    if (granted != null) grantedFinds += findId
+                    return badgeCount
                 }
-                if (granted != null) grantedFinds += findId
-                return badgeCount
+
+                if (minutes >= 10) thresholdReward("badge_flow_10_min", ShellContentCatalog.FOCUS_MINNOW)
+                val flow30BadgeCount = if (minutes >= 30) thresholdReward("badge_flow_30_min", ShellContentCatalog.FOCUS_SEAHORSE) else 0
+                if (minutes >= 60) thresholdReward("badge_flow_60_min", ShellContentCatalog.FOCUS_MANTA)
+                if (minutes >= 120) thresholdReward("badge_flow_120_min", ShellContentCatalog.FOCUS_WHALE)
+
+                if (ShellRewardPolicy.shouldDiscoverOctopus(minutes, flow30BadgeCount) &&
+                    shellRepository.grantDiscoveryOnce("discovery_octopus", "session", sourceId) != null
+                ) {
+                    discoveries += "discovery_octopus"
+                    grantedFinds += ShellContentCatalog.FOCUS_OCTOPUS
+                }
+
+                val previousEnd = shellRepository.lastRegularFlowBefore(session.endTime)
+                if (previousEnd != null && session.endTime - previousEnd >= RETURN_GAP_MS &&
+                    shellRepository.grantDiscoveryOnce("discovery_pebble", "session", sourceId) != null
+                ) {
+                    discoveries += "discovery_pebble"
+                    grantedFinds += ShellContentCatalog.FOCUS_PEBBLE
+                }
+
+                val count = shellRepository.regularFlowCount()
+                if (discoveries.isEmpty() && count > 0 && count % 3 == 0) {
+                    val discoveryId = if ((count / 3) % 2 == 0) "discovery_glimmer" else "discovery_sea_glass_shard"
+                    if (shellRepository.grantDiscoveryOnce(discoveryId, "session", sourceId) != null) discoveries += discoveryId
+                }
+
+                ShellRewardResult(session.scyraPoints, 0, grantedFinds, badges, discoveries)
             }
-
-            if (minutes >= 10) thresholdReward("badge_flow_10_min", ShellContentCatalog.FOCUS_MINNOW)
-            val flow30BadgeCount = if (minutes >= 30) thresholdReward("badge_flow_30_min", ShellContentCatalog.FOCUS_SEAHORSE) else 0
-            if (minutes >= 60) thresholdReward("badge_flow_60_min", ShellContentCatalog.FOCUS_MANTA)
-            if (minutes >= 120) thresholdReward("badge_flow_120_min", ShellContentCatalog.FOCUS_WHALE)
-
-            if (ShellRewardPolicy.shouldDiscoverOctopus(minutes, flow30BadgeCount) &&
-                shellRepository.grantDiscoveryOnce("discovery_octopus", "session", sourceId) != null
-            ) {
-                discoveries += "discovery_octopus"
-                grantedFinds += ShellContentCatalog.FOCUS_OCTOPUS
-            }
-
-            val previousEnd = shellRepository.lastRegularFlowBefore(session.endTime)
-            if (previousEnd != null && session.endTime - previousEnd >= RETURN_GAP_MS &&
-                shellRepository.grantDiscoveryOnce("discovery_pebble", "session", sourceId) != null
-            ) {
-                discoveries += "discovery_pebble"
-                grantedFinds += ShellContentCatalog.FOCUS_PEBBLE
-            }
-
-            val count = shellRepository.regularFlowCount()
-            if (discoveries.isEmpty() && count > 0 && count % 3 == 0) {
-                val discoveryId = if ((count / 3) % 2 == 0) "discovery_glimmer" else "discovery_sea_glass_shard"
-                if (shellRepository.grantDiscoveryOnce(discoveryId, "session", sourceId) != null) discoveries += discoveryId
-            }
-
-            ShellRewardResult(session.scyraPoints, 0, grantedFinds.distinct(), badges.distinct(), discoveries.distinct())
         }
+        shellRewardEventRecorder.recordSessionRewards(session, result)
+        return result
     }
 }

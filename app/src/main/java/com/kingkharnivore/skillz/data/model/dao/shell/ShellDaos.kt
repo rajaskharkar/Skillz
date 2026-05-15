@@ -90,6 +90,13 @@ interface StillwaterPreferenceDao {
 }
 
 @Dao
+interface ShellRewardEventDao {
+    @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertAll(events: List<ShellRewardEventEntity>)
+    @Query("SELECT * FROM shell_reward_event WHERE arcId = :arcId ORDER BY occurredAt ASC") suspend fun getEventsForArc(arcId: Long): List<ShellRewardEventEntity>
+    @Query("SELECT * FROM shell_reward_event WHERE sourceSessionId = :sourceSessionId ORDER BY occurredAt ASC") suspend fun getEventsForSession(sourceSessionId: Long): List<ShellRewardEventEntity>
+}
+
+@Dao
 interface UserShellRoomStateDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsert(entity: UserShellRoomStateEntity)
     @Query("SELECT * FROM user_shell_room_state WHERE roomId = :roomId LIMIT 1") suspend fun get(roomId: String): UserShellRoomStateEntity?
