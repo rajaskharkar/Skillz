@@ -104,6 +104,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellSlotDefinition
 import com.kingkharnivore.skillz.data.model.shell.StillwaterPerspective
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.ShellViewModel
+import kotlin.math.pow
 
 sealed class ShellDestination {
     data object Heart : ShellDestination()
@@ -150,15 +151,34 @@ private fun unseenNotificationCount(uiState: ShellUiState): Int =
             uiState.badges.count { it.isNew } +
             uiState.discoveries.count { it.isNew }
 
-private fun hasDisplayedAffordableUpgrade(uiState: ShellUiState): Boolean {
+internal fun hasAffordableFocusPearlAction(uiState: ShellUiState): Boolean {
     val displayed = displayedInstanceIds(uiState)
-    return uiState.finds.any { item ->
-        item.instanceId in displayed &&
-                ShellContentCatalog.find(item.findId)?.let { def ->
-                    ShellContentCatalog.nextUpgrade(def.findId, item.currentUpgradeStageId)?.pearlCost?.let { cost ->
-                        cost <= uiState.pearlBalance
-                    } == true
-                } == true
+
+    val hasAffordableDisplayedUpgrade = uiState.finds.any { item ->
+        if (item.instanceId !in displayed) return@any false
+
+        val def = ShellContentCatalog.find(item.findId) ?: return@any false
+        val next = ShellContentCatalog.nextUpgrade(
+            findId = def.findId,
+            currentStageId = item.currentUpgradeStageId
+        ) ?: return@any false
+
+        next.pearlCost <= uiState.pearlBalance
+    }
+
+    if (hasAffordableDisplayedUpgrade) return true
+
+    val occupiedSlots = uiState.focusPlacements.map { it.slotId }.toSet()
+    val emptySlots = ShellContentCatalog.focusSlots.filter { slot ->
+        slot.slotId !in occupiedSlots
+    }
+
+    if (emptySlots.isEmpty()) return false
+
+    return ShellContentCatalog.focusPearlObjects.any { def ->
+        val cost = def.pearlCost ?: return@any false
+        cost <= uiState.pearlBalance &&
+                emptySlots.any { slot -> ShellContentCatalog.isCompatibleWithSlot(slot, def) }
     }
 }
 
@@ -467,7 +487,7 @@ private fun ShellTopBar(
                 ),
                 border = BorderStroke(
                     width = 1.dp,
-                    color = if (pearlBasinHasIndicator) scheme.tertiary else scheme.secondary.copy(alpha = 0.45f)
+                    color = if (pearlBasinHasIndicator) shellIndicatorColor() else scheme.secondary.copy(alpha = 0.45f)
                 ),
                 modifier = Modifier.semantics {
                     contentDescription = pearlBalanceDescription
@@ -517,12 +537,9 @@ private fun HeartRoomScreen(
     onOpenPearlBasin: () -> Unit
 ) {
     var showHeartDetail by remember { mutableStateOf(false) }
-    val displayedIds = displayedInstanceIds(uiState)
     val chestHasIndicator = restingFinds(uiState).any { it.isNew } || uiState.stacks.any { it.isNew }
     val hasNewDiscovery = uiState.discoveries.any { it.isNew }
-    val focusChanged = hasDisplayedAffordableUpgrade(uiState) ||
-            hasEmptyNookForNewRestingObject(uiState) ||
-            uiState.finds.any { it.isNew && it.instanceId in displayedIds }
+    val focusChanged = hasAffordableFocusPearlAction(uiState)
 
     Box(
         modifier = Modifier
@@ -752,7 +769,7 @@ private fun RoomOrbitNode(
             if (hasIndicator) {
                 Surface(
                     shape = CircleShape,
-                    color = scheme.tertiary,
+                    color = shellIndicatorColor(),
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
@@ -1024,7 +1041,7 @@ private fun HeartShortcut(
             if (hasIndicator) {
                 Surface(
                     shape = CircleShape,
-                    color = scheme.tertiary,
+                    color = shellIndicatorColor(),
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .size(7.dp),
@@ -1447,6 +1464,34 @@ private fun ShellPearlBasinIcon(
             center = Offset(w * 0.56f, h * 0.31f)
         )
     }
+}
+
+@Composable
+private fun shellIndicatorColor(): Color {
+    val scheme = MaterialTheme.colorScheme
+    val secondaryContrast = contrastRatio(scheme.secondary, scheme.surface)
+    return if (secondaryContrast >= 3f) scheme.secondary else scheme.primary
+}
+
+private fun contrastRatio(a: Color, b: Color): Float {
+    fun channel(v: Float): Float = if (v <= 0.03928f) {
+        v / 12.92f
+    } else {
+        ((v + 0.055f) / 1.055f).pow(2.4f)
+    }
+
+    fun luminance(color: Color): Float {
+        val r = channel(color.red)
+        val g = channel(color.green)
+        val b = channel(color.blue)
+        return 0.2126f * r + 0.7152f * g + 0.0722f * b
+    }
+
+    val l1 = luminance(a)
+    val l2 = luminance(b)
+    val lighter = maxOf(l1, l2)
+    val darker = minOf(l1, l2)
+    return (lighter + 0.05f) / (darker + 0.05f)
 }
 
 @Composable
