@@ -3516,6 +3516,196 @@ private fun DrawScope.drawRoundRockColumn(x: Float, top: Float, bottom: Float, w
     drawOval(color.copy(alpha = color.alpha * 0.7f), Offset(x - width * 0.65f, top + 60f), Size(width * 1.3f, width * 0.75f))
 }
 
+
+@Composable
+private fun TheBlueAnimalDetailSheet(
+    animal: TheBlueAnimalGroupUiModel,
+    focusSlotId: String?,
+    firstRestingInstanceId: String?,
+    onDismiss: () -> Unit,
+    onDisplayInFocus: (String, String) -> Unit,
+    onOpenChest: () -> Unit
+) {
+    val name = findName(animal.findId)
+    val zone = zoneTitle(animal.zoneId)
+    val title = stringResource(R.string.the_blue_animal_count, name, animal.totalCount)
+    val source = theBlueEncounteredReason(animal.findId)
+    val detailDescription = stringResource(R.string.the_blue_detail_a11y, title, zone, source)
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 12.dp)
+                .semantics { contentDescription = detailDescription },
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(
+                text = if (animal.findId == ShellContentCatalog.FOCUS_OCTOPUS) {
+                    stringResource(R.string.the_blue_discovery_animal_zone, zone)
+                } else {
+                    stringResource(R.string.the_blue_animal_zone, zone)
+                },
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(source)
+
+            Text(stringResource(R.string.the_blue_forms), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            if (animal.formCounts.isEmpty()) {
+                Text(stringResource(R.string.the_blue_forms_unavailable))
+            } else if (animal.formCounts.size == 1 && animal.formCounts.first().formStageId == null) {
+                Text(stringResource(R.string.the_blue_all_first_form, name))
+            } else {
+                animal.formCounts
+                    .sortedBy { form -> form.formStageId?.let { id -> ShellContentCatalog.upgradesFor(animal.findId).firstOrNull { stage -> stage.upgradeStageId == id }?.orderIndex } ?: 0 }
+                    .forEach { form -> Text(stringResource(R.string.the_blue_form_count, formName(animal.findId, form.formStageId), form.count)) }
+            }
+
+            Text(stringResource(R.string.the_blue_displayed_in_focus_heading), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(animal.displayedInFocusCount.toString())
+            Text(stringResource(R.string.the_blue_resting_in_chest_heading), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(animal.restingCount.toString())
+
+            Text(stringResource(R.string.the_blue_actions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        if (firstRestingInstanceId != null && focusSlotId != null) {
+                            onDisplayInFocus(firstRestingInstanceId, focusSlotId)
+                        }
+                    },
+                    enabled = firstRestingInstanceId != null && focusSlotId != null,
+                    modifier = Modifier.weight(1f)
+                ) { Text(stringResource(R.string.the_blue_display_one_in_focus)) }
+                OutlinedButton(onClick = onOpenChest, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.the_blue_view_in_chest))
+                }
+            }
+            when (theBlueDisplayDisabledReason(focusSlotId, firstRestingInstanceId)) {
+                TheBlueDisplayDisabledReason.NO_FOCUS_SLOT -> Text(
+                    stringResource(R.string.the_blue_no_focus_slot, name),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                )
+                TheBlueDisplayDisabledReason.NO_RESTING_COPY -> Text(
+                    stringResource(R.string.the_blue_no_resting_copy),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                )
+                null -> Unit
+            }
+            Spacer(Modifier.height(18.dp))
+        }
+    }
+}
+
+@Composable
+private fun TheBlueDepthRail(zones: List<TheBlueZoneId>, activeZone: TheBlueZoneId, modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    val railDescription = stringResource(R.string.the_blue_depth_rail_a11y)
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = scheme.surface.copy(alpha = 0.68f),
+        border = BorderStroke(1.dp, scheme.primary.copy(alpha = 0.18f)),
+        modifier = modifier
+            .fillMaxHeight(0.48f)
+            .width(52.dp)
+            .semantics { contentDescription = railDescription }
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            zones.forEach { zone ->
+                val active = zone == activeZone
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Surface(
+                        shape = CircleShape,
+                        color = if (active) scheme.primary else scheme.primary.copy(alpha = 0.24f),
+                        modifier = Modifier.size(if (active) 12.dp else 8.dp),
+                        content = {}
+                    )
+                    Text(
+                        text = zoneRailLabel(zone),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (active) scheme.primary else scheme.onSurface.copy(alpha = 0.54f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .graphicsLayer(rotationZ = -90f)
+                            .width(44.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun zoneTitle(zoneId: TheBlueZoneId): String = when (zoneId) {
+    TheBlueZoneId.SUNLIT_REEF -> stringResource(R.string.the_blue_zone_sunlit_reef_title)
+    TheBlueZoneId.DEEPER_REEF -> stringResource(R.string.the_blue_zone_deeper_reef_title)
+    TheBlueZoneId.OPEN_BLUE -> stringResource(R.string.the_blue_zone_open_blue_title)
+    TheBlueZoneId.GREAT_BLUE -> stringResource(R.string.the_blue_zone_great_blue_title)
+}
+
+@Composable
+private fun zoneRailLabel(zoneId: TheBlueZoneId): String = when (zoneId) {
+    TheBlueZoneId.SUNLIT_REEF -> stringResource(R.string.the_blue_zone_sunlit_reef_rail)
+    TheBlueZoneId.DEEPER_REEF -> stringResource(R.string.the_blue_zone_deeper_reef_rail)
+    TheBlueZoneId.OPEN_BLUE -> stringResource(R.string.the_blue_zone_open_blue_rail)
+    TheBlueZoneId.GREAT_BLUE -> stringResource(R.string.the_blue_zone_great_blue_rail)
+}
+
+@Composable
+private fun zoneSubtitle(zoneId: TheBlueZoneId): String = when (zoneId) {
+    TheBlueZoneId.SUNLIT_REEF -> stringResource(R.string.the_blue_zone_sunlit_reef_subtitle)
+    TheBlueZoneId.DEEPER_REEF -> stringResource(R.string.the_blue_zone_deeper_reef_subtitle)
+    TheBlueZoneId.OPEN_BLUE -> stringResource(R.string.the_blue_zone_open_blue_subtitle)
+    TheBlueZoneId.GREAT_BLUE -> stringResource(R.string.the_blue_zone_great_blue_subtitle)
+}
+
+@Composable
+private fun findName(findId: String): String = ShellContentCatalog.find(findId)?.let { stringResource(it.titleRes) } ?: stringResource(R.string.reward_card_shell_recorded_title)
+
+@Composable
+private fun formName(findId: String, stageId: String?): String =
+    ShellContentCatalog.upgradesFor(findId).firstOrNull { it.upgradeStageId == stageId }?.let { stringResource(it.titleRes) }
+        ?: stringResource(R.string.shell_form_base)
+
+@Composable
+private fun theBlueSourceReason(findId: String): String = when (findId) {
+    ShellContentCatalog.FOCUS_MINNOW -> stringResource(R.string.the_blue_source_minnow)
+    ShellContentCatalog.FOCUS_SEAHORSE -> stringResource(R.string.the_blue_source_seahorse)
+    ShellContentCatalog.FOCUS_MANTA -> stringResource(R.string.the_blue_source_manta)
+    ShellContentCatalog.FOCUS_WHALE -> stringResource(R.string.the_blue_source_whale)
+    ShellContentCatalog.FOCUS_OCTOPUS -> stringResource(R.string.the_blue_source_octopus)
+    else -> ShellContentCatalog.find(findId)?.let { stringResource(it.descriptionRes) } ?: stringResource(R.string.reward_card_shell_recorded_body)
+}
+
+@Composable
+private fun theBlueEncounteredReason(findId: String): String = when (findId) {
+    ShellContentCatalog.FOCUS_MINNOW -> stringResource(R.string.the_blue_encountered_minnow)
+    ShellContentCatalog.FOCUS_SEAHORSE -> stringResource(R.string.the_blue_encountered_seahorse)
+    ShellContentCatalog.FOCUS_MANTA -> stringResource(R.string.the_blue_encountered_manta)
+    ShellContentCatalog.FOCUS_WHALE -> stringResource(R.string.the_blue_encountered_whale)
+    ShellContentCatalog.FOCUS_OCTOPUS -> stringResource(R.string.the_blue_source_octopus)
+    else -> theBlueSourceReason(findId)
+}
+
+private fun firstOpenFocusSlotFor(findId: String, uiState: ShellUiState): String? {
+    val definition = ShellContentCatalog.find(findId) ?: return null
+    val occupied = uiState.focusPlacements.map { it.slotId }.toSet()
+    return ShellContentCatalog.focusSlots.firstOrNull { slot ->
+        slot.slotId !in occupied && ShellContentCatalog.isCompatibleWithSlot(slot, definition)
+    }?.slotId
+}
+
+private fun firstRestingInstanceId(findId: String, uiState: ShellUiState): String? {
+    val displayed = uiState.focusPlacements.map { it.instanceId }.toSet()
+    return uiState.finds.firstOrNull { it.findId == findId && it.instanceId !in displayed }?.instanceId
+}
+
 @Composable
 private fun DormantPreviewScreen(
     titleRes: Int,
