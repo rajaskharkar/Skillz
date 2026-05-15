@@ -130,27 +130,38 @@ class ShellContentCatalogTest {
     }
 
     @Test
-    fun focusV1_hasReservedSurgeCurrentNookForCurrentPathFinds() {
+    fun focusV1_hasReservedSurgeCurrentNookForSurgeRewardsOnly() {
         val slot = ShellContentCatalog.focusSlots.single { it.slotId == "surge_current_nook" }
 
-        assertEquals(ShellSlotType.CURRENT_PATH, slot.slotType)
-        assertTrue(slot.acceptsCategories.contains(ShellFindCategory.CREATURES))
-        assertTrue(slot.acceptsCategories.contains(ShellFindCategory.TRINKETS))
-        assertTrue(ShellContentCatalog.isCompatibleWithSlot(slot, ShellContentCatalog.find(ShellContentCatalog.FOCUS_MANTA)!!))
-        assertTrue(ShellContentCatalog.isCompatibleWithSlot(slot, ShellContentCatalog.find(ShellContentCatalog.FOCUS_WHALE)!!))
-        assertTrue(ShellContentCatalog.isCompatibleWithSlot(slot, ShellContentCatalog.find(ShellContentCatalog.FOCUS_BUBBLES)!!))
-        assertFalse(ShellContentCatalog.isCompatibleWithSlot(slot, ShellContentCatalog.find(ShellContentCatalog.FOCUS_PERCH)!!))
-        assertFalse(ShellContentCatalog.isCompatibleWithSlot(slot, ShellContentCatalog.find(ShellContentCatalog.FOCUS_PEBBLES)!!))
+        assertEquals(ShellSlotType.SURGE_CURRENT, slot.slotType)
+        assertTrue(slot.titleRes != 0)
+        listOf(
+            ShellContentCatalog.FOCUS_MINNOW,
+            ShellContentCatalog.FOCUS_SEAHORSE,
+            ShellContentCatalog.FOCUS_MANTA,
+            ShellContentCatalog.FOCUS_WHALE,
+            ShellContentCatalog.FOCUS_OCTOPUS,
+            ShellContentCatalog.FOCUS_BUBBLES,
+            ShellContentCatalog.FOCUS_PERCH,
+            ShellContentCatalog.FOCUS_PEBBLES,
+            ShellContentCatalog.FOCUS_LAMP,
+            ShellContentCatalog.FOCUS_CURTAIN
+        ).forEach { findId ->
+            assertFalse("$findId should not fit the reserved Surge Current Nook", ShellContentCatalog.isCompatibleWithSlot(slot, ShellContentCatalog.find(findId)!!))
+        }
+        assertFalse("No current V1 reward should fit the reserved Surge Current Nook", ShellContentCatalog.finds.any { ShellContentCatalog.isCompatibleWithSlot(slot, it) })
     }
 
     @Test
-    fun shellV1Strings_labelCoralAndPearlBasinFutureStatesClearly() {
+    fun shellV1Strings_labelCoralAsFutureAnimalEcosystem() {
         val strings = File("app/src/main/res/values/strings.xml").readText()
 
-        assertTrue(strings.contains("Reserved for Surge and Current echoes in a future Shell update."))
-        assertTrue(strings.contains("shell_basin_soon_suggestion\">Soon: %1"))
+        assertTrue(strings.contains("Animals encountered through regular Flows will swim here."))
+        assertTrue(strings.contains("""shell_basin_soon_upgrade">%1$s · %2$s"""))
         assertTrue(strings.contains("""<string name="shell_slot_surge_current_nook">Surge Current Nook</string>"""))
+        assertTrue(strings.contains("Surge rewards can be displayed here. Complete a Surge to bring a Current into this nook."))
         assertFalse(strings.contains("Surge energy will bring the reef alive."))
+        assertFalse(strings.contains("Reserved for Surge and Current echoes."))
     }
 
 }

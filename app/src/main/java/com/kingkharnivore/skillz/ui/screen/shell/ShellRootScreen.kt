@@ -836,7 +836,9 @@ private fun HeartCenter(
             }
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(9.dp)
         ) {
@@ -860,13 +862,17 @@ private fun HeartCenter(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = scheme.onSurface,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
             )
 
             AssistChip(
                 onClick = onPearlClick,
                 label = {
-                    Text(stringResource(R.string.shell_pearl_balance, uiState.pearlBalance))
+                    Text(
+                        text = stringResource(R.string.shell_pearl_balance, uiState.pearlBalance),
+                        textAlign = TextAlign.Center
+                    )
                 },
                 leadingIcon = {
                     ShellPearlMiniIcon(Modifier.size(18.dp))
@@ -1201,9 +1207,9 @@ private fun PearlBasinSheet(
                 fontWeight = FontWeight.SemiBold
             )
             (displayedUpgradeSuggestions.filter { it.third.pearlCost > uiState.pearlBalance }.map { (_, def, next) ->
-                stringResource(R.string.shell_basin_soon_suggestion, stringResource(R.string.shell_basin_brighten_suggestion, stringResource(def.titleRes))) to next.pearlCost
+                stringResource(R.string.shell_basin_soon_upgrade, stringResource(def.titleRes), stringResource(next.titleRes)) to next.pearlCost
             } + objectSuggestions.filter { (it.pearlCost ?: 0) > uiState.pearlBalance }.map { def ->
-                stringResource(R.string.shell_basin_soon_suggestion, stringResource(R.string.shell_basin_invite_suggestion, stringResource(def.titleRes))) to (def.pearlCost ?: 0)
+                stringResource(R.string.shell_basin_invite_suggestion, stringResource(def.titleRes)) to (def.pearlCost ?: 0)
             })
                 .sortedBy { it.second }
                 .take(3)
@@ -1464,22 +1470,24 @@ private fun ShellPearlMiniIcon(
     }
 }
 
+private enum class ShellAnimalIcon { MINNOW, SEAHORSE, MANTA, WHALE, OCTOPUS }
+
 @Composable
 private fun ShellObjectIcon(
     iconKey: String,
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
-    val animalGlyph = when {
-        "minnow" in iconKey -> "><>"
-        "seahorse" in iconKey -> "♞"
-        "manta" in iconKey -> "⌁"
-        "whale" in iconKey -> "◠"
-        "octopus" in iconKey -> "✹"
+    val animalIcon = when {
+        "minnow" in iconKey -> ShellAnimalIcon.MINNOW
+        "seahorse" in iconKey -> ShellAnimalIcon.SEAHORSE
+        "manta" in iconKey -> ShellAnimalIcon.MANTA
+        "whale" in iconKey -> ShellAnimalIcon.WHALE
+        "octopus" in iconKey -> ShellAnimalIcon.OCTOPUS
         else -> null
     }
     val vector = when {
-        animalGlyph != null -> null
+        animalIcon != null -> null
         "kelp" in iconKey || "curtain" in iconKey -> Icons.Outlined.Grass
         "bubble" in iconKey || "current" in iconKey -> Icons.Outlined.Waves
         "coral" in iconKey || "perch" in iconKey -> Icons.Outlined.FilterVintage
@@ -1487,16 +1495,82 @@ private fun ShellObjectIcon(
     }
     Surface(shape = CircleShape, color = scheme.primary.copy(alpha = 0.16f), modifier = modifier) {
         Box(contentAlignment = Alignment.Center) {
-            if (animalGlyph != null) {
-                Text(
-                    text = animalGlyph,
-                    color = scheme.primary,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
+            if (animalIcon != null) {
+                ShellAnimalCanvasIcon(animalIcon, Modifier.fillMaxSize().padding(5.dp))
             } else if (vector != null) {
                 Icon(imageVector = vector, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(18.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShellAnimalCanvasIcon(
+    animalIcon: ShellAnimalIcon,
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+    Canvas(modifier) {
+        val w = size.width
+        val h = size.height
+        val ink = scheme.primary
+        val accent = scheme.primary.copy(alpha = 0.55f)
+
+        when (animalIcon) {
+            ShellAnimalIcon.MINNOW -> {
+                drawOval(ink, topLeft = Offset(w * 0.22f, h * 0.34f), size = Size(w * 0.44f, h * 0.30f))
+                drawPath(Path().apply {
+                    moveTo(w * 0.20f, h * 0.50f)
+                    lineTo(w * 0.02f, h * 0.34f)
+                    lineTo(w * 0.02f, h * 0.66f)
+                    close()
+                }, ink)
+                drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.58f, h * 0.44f))
+                drawOval(accent, topLeft = Offset(w * 0.66f, h * 0.24f), size = Size(w * 0.18f, h * 0.12f))
+                drawOval(accent, topLeft = Offset(w * 0.72f, h * 0.62f), size = Size(w * 0.20f, h * 0.12f))
+            }
+            ShellAnimalIcon.SEAHORSE -> {
+                drawCircle(ink, radius = w * 0.17f, center = Offset(w * 0.56f, h * 0.24f))
+                drawLine(ink, Offset(w * 0.64f, h * 0.25f), Offset(w * 0.86f, h * 0.20f), strokeWidth = w * 0.09f)
+                drawPath(Path().apply {
+                    moveTo(w * 0.54f, h * 0.36f)
+                    cubicTo(w * 0.30f, h * 0.44f, w * 0.38f, h * 0.78f, w * 0.58f, h * 0.70f)
+                    cubicTo(w * 0.78f, h * 0.62f, w * 0.68f, h * 0.48f, w * 0.54f, h * 0.56f)
+                }, ink, style = Stroke(width = w * 0.13f))
+                drawCircle(scheme.surface, radius = w * 0.032f, center = Offset(w * 0.61f, h * 0.20f))
+                drawLine(accent, Offset(w * 0.37f, h * 0.48f), Offset(w * 0.18f, h * 0.40f), strokeWidth = w * 0.08f)
+            }
+            ShellAnimalIcon.MANTA -> {
+                drawPath(Path().apply {
+                    moveTo(w * 0.50f, h * 0.22f)
+                    cubicTo(w * 0.20f, h * 0.30f, w * 0.08f, h * 0.58f, w * 0.02f, h * 0.74f)
+                    cubicTo(w * 0.28f, h * 0.66f, w * 0.38f, h * 0.62f, w * 0.50f, h * 0.78f)
+                    cubicTo(w * 0.62f, h * 0.62f, w * 0.72f, h * 0.66f, w * 0.98f, h * 0.74f)
+                    cubicTo(w * 0.92f, h * 0.58f, w * 0.80f, h * 0.30f, w * 0.50f, h * 0.22f)
+                    close()
+                }, ink)
+                drawLine(accent, Offset(w * 0.50f, h * 0.72f), Offset(w * 0.50f, h * 0.96f), strokeWidth = w * 0.05f)
+            }
+            ShellAnimalIcon.WHALE -> {
+                drawOval(ink, topLeft = Offset(w * 0.12f, h * 0.34f), size = Size(w * 0.68f, h * 0.34f))
+                drawPath(Path().apply {
+                    moveTo(w * 0.78f, h * 0.50f)
+                    lineTo(w * 0.98f, h * 0.30f)
+                    lineTo(w * 0.92f, h * 0.50f)
+                    lineTo(w * 0.98f, h * 0.70f)
+                    close()
+                }, ink)
+                drawCircle(scheme.surface, radius = w * 0.03f, center = Offset(w * 0.24f, h * 0.44f))
+                drawLine(accent, Offset(w * 0.36f, h * 0.34f), Offset(w * 0.44f, h * 0.18f), strokeWidth = w * 0.05f)
+                drawLine(accent, Offset(w * 0.44f, h * 0.18f), Offset(w * 0.54f, h * 0.34f), strokeWidth = w * 0.05f)
+            }
+            ShellAnimalIcon.OCTOPUS -> {
+                drawOval(ink, topLeft = Offset(w * 0.26f, h * 0.14f), size = Size(w * 0.48f, h * 0.42f))
+                listOf(0.20f, 0.36f, 0.52f, 0.68f).forEach { x ->
+                    drawLine(ink, Offset(w * (x + 0.06f), h * 0.52f), Offset(w * x, h * 0.86f), strokeWidth = w * 0.08f)
+                }
+                drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.42f, h * 0.32f))
+                drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.58f, h * 0.32f))
             }
         }
     }
@@ -1955,7 +2029,11 @@ private fun EmptySlotSheet(
             )
 
             Text(stringResource(R.string.shell_slot_named_title, stringResource(slot.titleRes)))
-            Text(stringResource(R.string.shell_empty_nook_choices))
+            if (slot.slotType == ShellSlotType.SURGE_CURRENT) {
+                Text(stringResource(R.string.shell_surge_current_reserved_body))
+            } else {
+                Text(stringResource(R.string.shell_empty_nook_choices))
+            }
 
             Text(
                 text = stringResource(R.string.shell_place_from_chest),

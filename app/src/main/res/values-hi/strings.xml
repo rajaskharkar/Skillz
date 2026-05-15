@@ -891,13 +891,13 @@
     <string name="shell_room_voyage_title">Voyage Hall</string>
     <string name="shell_room_voyage_description">Quiet routes waiting for future Arcs.</string>
     <string name="shell_room_coral_title">Coral Reef</string>
-    <string name="shell_room_coral_description">A still reef waiting for movement.</string>
+    <string name="shell_room_coral_description">Quiet for now. Animals encountered through regular Flows will swim here.</string>
     <string name="shell_room_idea_title">Idea Grove</string>
     <string name="shell_room_idea_description">A quiet patch of kelp waiting for Pulses.</string>
     <string name="shell_room_lookout_title">The Lookout</string>
     <string name="shell_room_lookout_description">A shell window facing tomorrow.</string>
     <string name="shell_preview_voyage">Quiet for now. Arc journeys will gather here.</string>
-    <string name="shell_preview_coral">Quiet for now. Surge energy will bring the reef alive.</string>
+    <string name="shell_preview_coral">Quiet for now. Animals encountered through regular Flows will swim here.</string>
     <string name="shell_preview_idea">Quiet for now. Pulses will grow here.</string>
     <string name="shell_preview_lookout">Quiet for now. Plans on your Horizon will appear here.</string>
     <string name="shell_welcome">Welcome inside The Shell.</string>

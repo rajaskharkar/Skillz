@@ -36,7 +36,7 @@ data class ShellFindDefinition(
     val depthTier: ShellDepthTier? = null
 )
 
-enum class ShellSlotType { REEF_SHELF, SHELL_WALL, CREATURE_PERCH, CORAL_BED, TIDEPOOL_EDGE, CURRENT_PATH, CENTERPIECE, MEMORY_NOOK }
+enum class ShellSlotType { REEF_SHELF, SHELL_WALL, CREATURE_PERCH, CORAL_BED, TIDEPOOL_EDGE, CURRENT_PATH, SURGE_CURRENT, CENTERPIECE, MEMORY_NOOK }
 
 data class ShellSlotDefinition(
     val slotId: String,
@@ -135,7 +135,7 @@ object ShellContentCatalog {
         ShellSlotDefinition("creature_perch_left", ShellRoomId.FOCUS, ShellSlotType.CREATURE_PERCH, R.string.shell_slot_creature_perch_left, .24f, .52f, .24f, .14f, 3, setOf(ShellFindCategory.CREATURES)),
         ShellSlotDefinition("creature_perch_right", ShellRoomId.FOCUS, ShellSlotType.CREATURE_PERCH, R.string.shell_slot_creature_perch_right, .76f, .54f, .24f, .14f, 3, setOf(ShellFindCategory.CREATURES)),
         ShellSlotDefinition("center_focus_nook", ShellRoomId.FOCUS, ShellSlotType.CENTERPIECE, R.string.shell_slot_center_focus_nook, .50f, .58f, .32f, .18f, 5, setOf(ShellFindCategory.SHELLS, ShellFindCategory.CORAL, ShellFindCategory.CREATURES, ShellFindCategory.TROPHIES, ShellFindCategory.TRINKETS)),
-        ShellSlotDefinition("surge_current_nook", ShellRoomId.FOCUS, ShellSlotType.CURRENT_PATH, R.string.shell_slot_surge_current_nook, .74f, .72f, .30f, .16f, 6, setOf(ShellFindCategory.CREATURES, ShellFindCategory.TRINKETS)),
+        ShellSlotDefinition("surge_current_nook", ShellRoomId.FOCUS, ShellSlotType.SURGE_CURRENT, R.string.shell_slot_surge_current_nook, .74f, .72f, .30f, .16f, 6, setOf(ShellFindCategory.TROPHIES)),
         ShellSlotDefinition("memory_nook", ShellRoomId.FOCUS, ShellSlotType.MEMORY_NOOK, R.string.shell_slot_memory_nook, .50f, .82f, .30f, .14f, 7, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS, ShellFindCategory.DISCOVERIES, ShellFindCategory.CREATURES))
     )
 
@@ -184,11 +184,15 @@ object ShellContentCatalog {
         DiscoveryDefinition("discovery_pebble", R.string.shell_find_pebble_title, R.string.shell_discovery_pebble_reveal, R.string.shell_discovery_pebble_explanation, ShellRoomId.FOCUS, FOCUS_PEBBLE, "pebble", true)
     )
 
+    private val surgeRewardIds = emptySet<String>()
+
     fun isCompatibleWithSlot(slot: ShellSlotDefinition, definition: ShellFindDefinition): Boolean {
+        if (slot.slotType == ShellSlotType.SURGE_CURRENT) return definition.findId in surgeRewardIds
         if (slot.slotType !in definition.acceptedSlotTypes || definition.category !in slot.acceptsCategories) return false
         return when (slot.slotType) {
             ShellSlotType.CREATURE_PERCH -> definition.kind == ShellRewardKind.ANIMAL || definition.findId == FOCUS_PERCH
             ShellSlotType.CURRENT_PATH -> definition.kind == ShellRewardKind.ANIMAL || definition.findId == FOCUS_BUBBLES
+            ShellSlotType.SURGE_CURRENT -> definition.findId in surgeRewardIds
             ShellSlotType.TIDEPOOL_EDGE -> definition.kind == ShellRewardKind.ANIMAL
             ShellSlotType.MEMORY_NOOK -> definition.kind in setOf(ShellRewardKind.OBJECT, ShellRewardKind.TRINKET, ShellRewardKind.DISCOVERY) || definition.findId == FOCUS_OCTOPUS
             ShellSlotType.REEF_SHELF -> definition.kind in setOf(ShellRewardKind.OBJECT, ShellRewardKind.TRINKET, ShellRewardKind.DISCOVERY)
