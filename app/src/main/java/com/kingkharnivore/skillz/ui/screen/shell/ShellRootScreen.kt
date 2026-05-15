@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -65,6 +66,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -80,6 +87,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -105,6 +113,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellSlotType
 import com.kingkharnivore.skillz.data.model.shell.StillwaterPerspective
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.ShellViewModel
+import kotlin.math.min
 import kotlin.math.pow
 
 sealed class ShellDestination {
@@ -376,10 +385,10 @@ fun ShellRootScreen(
                     icon = Icons.Outlined.Route
                 )
 
-                ShellDestination.TheBluePreview -> DormantPreviewScreen(
-                    titleRes = R.string.shell_room_the_blue_title,
-                    bodyRes = R.string.shell_preview_the_blue,
-                    icon = Icons.Outlined.FilterVintage
+                ShellDestination.TheBluePreview -> TheBlueRoomScreen(
+                    uiState = uiState,
+                    onDisplayInFocus = viewModel::place,
+                    onOpenChest = { destination = ShellDestination.ShellChest }
                 )
 
                 ShellDestination.IdeaGrovePreview -> DormantPreviewScreen(
@@ -642,7 +651,8 @@ private fun HeartRoomScreen(
                 RoomOrbitNode(
                     labelRes = R.string.shell_room_the_blue_title,
                     icon = Icons.Outlined.FilterVintage,
-                    dormant = true,
+                    dormant = false,
+                    hasIndicator = buildTheBlueUiState(uiState.finds, uiState.focusPlacements).newAnimalCount > 0,
                     nodeWidth = nodeWidth,
                     nodeHeight = nodeHeight,
                     modifier = Modifier
@@ -2820,6 +2830,486 @@ private fun StillwaterRoomScreen(
             }
         }
     }
+}
+
+
+@Composable
+private fun TheBlueRoomScreen(
+    uiState: ShellUiState,
+    onDisplayInFocus: (String, String) -> Unit,
+    onOpenChest: () -> Unit
+) {
+    val theBlueState = remember(uiState.finds, uiState.focusPlacements) {
+        buildTheBlueUiState(uiState.finds, uiState.focusPlacements)
+    }
+    var selectedAnimal by remember { mutableStateOf<TheBlueAnimalGroupUiModel?>(null) }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(shellBackground())
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            item {
+                TheBlueHeader(state = theBlueState)
+            }
+
+            if (!theBlueState.isEmpty) {
+                items(theBlueState.zones, key = { it.zoneId.name }) { zone ->
+                    TheBlueZoneSection(
+                        zone = zone,
+                        onAnimalClick = { selectedAnimal = it }
+                    )
+                }
+            }
+        }
+
+        if (!theBlueState.isEmpty) {
+            TheBlueDepthRail(
+                zones = theBlueState.zones.map { it.zoneId },
+                activeZone = theBlueState.deepestZoneId ?: TheBlueZoneId.SUNLIT_REEF,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 6.dp)
+            )
+        }
+    }
+
+    selectedAnimal?.let { animal ->
+        TheBlueAnimalDetailSheet(
+            animal = animal,
+            focusSlotId = remember(uiState.focusPlacements, animal.findId) {
+                firstOpenFocusSlotFor(animal.findId, uiState)
+            },
+            onDismiss = { selectedAnimal = null },
+            onDisplayInFocus = { instanceId, slotId ->
+                onDisplayInFocus(instanceId, slotId)
+                selectedAnimal = null
+            },
+            onOpenChest = {
+                selectedAnimal = null
+                onOpenChest()
+            },
+            firstRestingInstanceId = remember(uiState.finds, uiState.focusPlacements, animal.findId) {
+                firstRestingInstanceId(animal.findId, uiState)
+            }
+        )
+    }
+}
+
+@Composable
+private fun TheBlueHeader(
+    state: TheBlueUiState
+) {
+    val scheme = MaterialTheme.colorScheme
+    val headerDescription = stringResource(R.string.the_blue_header_a11y)
+    Surface(
+        shape = RoundedCornerShape(30.dp),
+        color = scheme.surface.copy(alpha = 0.94f),
+        border = BorderStroke(1.dp, scheme.secondary.copy(alpha = 0.28f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = headerDescription }
+    ) {
+        Column(
+            modifier = Modifier.padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.shell_room_the_blue_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = scheme.onSurface
+            )
+            if (state.isEmpty) {
+                Text(
+                    text = stringResource(R.string.shell_room_the_blue_empty_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = scheme.onSurface
+                )
+                Text(
+                    text = stringResource(R.string.shell_room_the_blue_empty_body),
+                    color = scheme.onSurface.copy(alpha = 0.78f)
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.shell_room_the_blue_description),
+                    color = scheme.onSurface.copy(alpha = 0.78f)
+                )
+                Text(
+                    text = stringResource(
+                        R.string.the_blue_stat_row,
+                        state.totalAnimals,
+                        state.speciesCount,
+                        zoneTitle(state.deepestZoneId ?: TheBlueZoneId.SUNLIT_REEF)
+                    ),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = scheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                if (state.newAnimalCount > 0) {
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(stringResource(R.string.the_blue_new_arrivals)) },
+                        leadingIcon = { Icon(Icons.Outlined.Pets, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TheBlueZoneSection(
+    zone: TheBlueZoneUiModel,
+    onAnimalClick: (TheBlueAnimalGroupUiModel) -> Unit
+) {
+    val scheme = MaterialTheme.colorScheme
+    val title = zoneTitle(zone.zoneId)
+    val subtitle = zoneSubtitle(zone.zoneId)
+    val zoneDescription = stringResource(R.string.the_blue_zone_a11y, title, subtitle, zone.animals.size)
+    Surface(
+        shape = RoundedCornerShape(34.dp),
+        color = scheme.surface.copy(alpha = 0.90f - zone.zoneId.depthOrder() * 0.06f),
+        border = BorderStroke(1.dp, scheme.primary.copy(alpha = 0.18f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = zoneDescription }
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(subtitle, color = scheme.onSurface.copy(alpha = 0.72f))
+            }
+
+            TheBlueLivingWater(zone)
+
+            if (zone.animals.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.the_blue_zone_waiting),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurface.copy(alpha = 0.62f)
+                )
+            } else {
+                zone.animals.forEach { animal ->
+                    TheBlueAnimalCard(animal = animal, onClick = { onAnimalClick(animal) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TheBlueLivingWater(zone: TheBlueZoneUiModel) {
+    val scheme = MaterialTheme.colorScheme
+    val transition = rememberInfiniteTransition(label = "the-blue-motion")
+    val drift by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(14000 + zone.zoneId.depthOrder() * 5000, easing = LinearEasing), RepeatMode.Restart),
+        label = "water-drift"
+    )
+    val depthAlpha = 0.10f + zone.zoneId.depthOrder() * 0.09f
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height((132 + zone.zoneId.depthOrder() * 22).dp)
+            .clip(RoundedCornerShape(28.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        scheme.primary.copy(alpha = 0.18f - zone.zoneId.depthOrder() * 0.025f),
+                        scheme.background.copy(alpha = 0.22f + depthAlpha)
+                    )
+                )
+            )
+    ) {
+        Canvas(Modifier.matchParentSize()) {
+            val w = size.width
+            val h = size.height
+            val primary = scheme.primary.copy(alpha = 0.32f)
+            val secondary = scheme.secondary.copy(alpha = 0.28f)
+            for (i in 0..5) {
+                val x = ((i * 73f + drift * w * (0.25f + i * 0.02f)) % (w + 80f)) - 40f
+                drawCircle(primary.copy(alpha = 0.12f + i * 0.015f), radius = 3f + i, center = Offset(x, h - ((i * 27f + drift * h) % h)))
+            }
+            val rayPath = Path().apply {
+                moveTo(w * 0.10f, 0f)
+                lineTo(w * (0.24f + drift * 0.05f), h)
+                lineTo(w * (0.36f + drift * 0.05f), h)
+                lineTo(w * 0.18f, 0f)
+                close()
+            }
+            drawPath(rayPath, secondary.copy(alpha = 0.08f))
+            val animalCount = zone.animals.sumOf { it.totalCount }
+            val representative = min(maxRepresentativeFor(zone.zoneId), animalCount.coerceAtLeast(if (zone.zoneId == TheBlueZoneId.DEEPER_REEF && zone.animals.isNotEmpty()) 1 else 0))
+            repeat(representative) { index ->
+                val progress = (drift + index * 0.17f) % 1f
+                val x = if (zone.zoneId == TheBlueZoneId.GREAT_BLUE) w * (1f - progress) else w * progress
+                val y = h * (0.24f + (index % 5) * 0.13f)
+                val radius = when (zone.zoneId) {
+                    TheBlueZoneId.SUNLIT_REEF -> 5f
+                    TheBlueZoneId.DEEPER_REEF -> 7f
+                    TheBlueZoneId.OPEN_BLUE -> 15f
+                    TheBlueZoneId.GREAT_BLUE -> 28f
+                }
+                drawOval(
+                    color = if (zone.zoneId == TheBlueZoneId.GREAT_BLUE) scheme.onSurface.copy(alpha = 0.18f) else scheme.primary.copy(alpha = 0.36f),
+                    topLeft = Offset(x - radius * 1.8f, y - radius * 0.55f),
+                    size = Size(radius * 3.6f, radius * 1.1f)
+                )
+                if (zone.animals.any { it.bestFormStageId != null && it.bestFormStageId !in setOf("focus_minnow_base", "focus_seahorse_base", "focus_manta_base", "focus_whale_base", "focus_octopus_base") }) {
+                    drawCircle(scheme.secondary.copy(alpha = 0.30f), radius = radius * 0.35f, center = Offset(x + radius, y))
+                }
+            }
+            if (zone.zoneId == TheBlueZoneId.DEEPER_REEF) {
+                drawOval(scheme.onSurface.copy(alpha = 0.16f), topLeft = Offset(w * 0.66f, h * 0.62f), size = Size(w * 0.22f, h * 0.18f))
+            }
+        }
+    }
+}
+
+private fun maxRepresentativeFor(zoneId: TheBlueZoneId): Int = when (zoneId) {
+    TheBlueZoneId.SUNLIT_REEF -> 10
+    TheBlueZoneId.DEEPER_REEF -> 6
+    TheBlueZoneId.OPEN_BLUE -> 3
+    TheBlueZoneId.GREAT_BLUE -> 2
+}
+
+@Composable
+private fun TheBlueAnimalCard(animal: TheBlueAnimalGroupUiModel, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val name = findName(animal.findId)
+    val source = theBlueSourceReason(animal.findId)
+    val zone = zoneTitle(animal.zoneId)
+    val title = stringResource(R.string.the_blue_animal_count, name, animal.totalCount)
+    val bestForm = animal.bestFormStageId?.let { formName(animal.findId, it) }
+    val contentDescription = stringResource(
+        R.string.the_blue_animal_card_a11y,
+        name,
+        animal.totalCount,
+        zone,
+        source,
+        animal.displayedInFocusCount
+    )
+    ElevatedCard(
+        onClick = onClick,
+        colors = CardDefaults.elevatedCardColors(containerColor = scheme.surface.copy(alpha = 0.96f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                this.contentDescription = contentDescription
+                role = Role.Button
+            }
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                if (animal.isNew) {
+                    AssistChip(onClick = {}, label = { Text(stringResource(R.string.the_blue_new_chip)) })
+                }
+            }
+            Text(
+                text = if (animal.findId == ShellContentCatalog.FOCUS_OCTOPUS) {
+                    stringResource(R.string.the_blue_discovery_animal_zone, zone)
+                } else {
+                    stringResource(R.string.the_blue_animal_zone, zone)
+                },
+                color = scheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (bestForm != null) {
+                Text(stringResource(R.string.the_blue_best_form, bestForm), color = scheme.onSurface.copy(alpha = 0.76f))
+            }
+            Text(stringResource(R.string.the_blue_displayed_in_focus, animal.displayedInFocusCount), color = scheme.onSurface.copy(alpha = 0.76f))
+            Text(stringResource(R.string.the_blue_swimming_here, animal.totalCount), color = scheme.onSurface.copy(alpha = 0.76f))
+            Text(source, color = scheme.onSurface.copy(alpha = 0.78f))
+            if (animal.findId == ShellContentCatalog.FOCUS_OCTOPUS) {
+                Text(stringResource(R.string.the_blue_octopus_hidden), color = scheme.secondary, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun TheBlueAnimalDetailSheet(
+    animal: TheBlueAnimalGroupUiModel,
+    focusSlotId: String?,
+    firstRestingInstanceId: String?,
+    onDismiss: () -> Unit,
+    onDisplayInFocus: (String, String) -> Unit,
+    onOpenChest: () -> Unit
+) {
+    val name = findName(animal.findId)
+    val zone = zoneTitle(animal.zoneId)
+    val title = stringResource(R.string.the_blue_animal_count, name, animal.totalCount)
+    val source = theBlueEncounteredReason(animal.findId)
+    val detailDescription = stringResource(R.string.the_blue_detail_a11y, title, zone, source)
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 12.dp)
+                .semantics { contentDescription = detailDescription },
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(
+                text = if (animal.findId == ShellContentCatalog.FOCUS_OCTOPUS) stringResource(R.string.the_blue_discovery_animal_zone, zone) else stringResource(R.string.the_blue_animal_zone, zone),
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(source)
+
+            Text(stringResource(R.string.the_blue_forms), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            if (animal.formCounts.isEmpty()) {
+                Text(stringResource(R.string.the_blue_forms_unavailable))
+            } else if (animal.formCounts.size == 1 && animal.formCounts.first().formStageId == null) {
+                Text(stringResource(R.string.the_blue_all_first_form, name))
+            } else {
+                animal.formCounts.sortedBy { it.formStageId?.let { id -> ShellContentCatalog.upgradesFor(animal.findId).firstOrNull { stage -> stage.upgradeStageId == id }?.orderIndex } ?: 0 }
+                    .forEach { form -> Text(stringResource(R.string.the_blue_form_count, formName(animal.findId, form.formStageId), form.count)) }
+            }
+
+            Text(stringResource(R.string.the_blue_displayed_in_focus_heading), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(animal.displayedInFocusCount.toString())
+            Text(stringResource(R.string.the_blue_resting_in_chest_heading), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(animal.restingCount.toString())
+
+            Text(stringResource(R.string.the_blue_actions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        if (firstRestingInstanceId != null && focusSlotId != null) {
+                            onDisplayInFocus(firstRestingInstanceId, focusSlotId)
+                        }
+                    },
+                    enabled = firstRestingInstanceId != null && focusSlotId != null,
+                    modifier = Modifier.weight(1f)
+                ) { Text(stringResource(R.string.the_blue_display_one_in_focus)) }
+                OutlinedButton(onClick = onOpenChest, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.the_blue_view_in_chest))
+                }
+            }
+            if (firstRestingInstanceId == null || focusSlotId == null) {
+                Text(stringResource(R.string.the_blue_no_focus_slot, name), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
+            }
+            Spacer(Modifier.height(18.dp))
+        }
+    }
+}
+
+@Composable
+private fun TheBlueDepthRail(zones: List<TheBlueZoneId>, activeZone: TheBlueZoneId, modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    val railDescription = stringResource(R.string.the_blue_depth_rail_a11y)
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = scheme.surface.copy(alpha = 0.68f),
+        border = BorderStroke(1.dp, scheme.primary.copy(alpha = 0.18f)),
+        modifier = modifier
+            .fillMaxHeight(0.48f)
+            .width(52.dp)
+            .semantics { contentDescription = railDescription }
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            zones.forEach { zone ->
+                val active = zone == activeZone
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Surface(
+                        shape = CircleShape,
+                        color = if (active) scheme.primary else scheme.primary.copy(alpha = 0.24f),
+                        modifier = Modifier.size(if (active) 12.dp else 8.dp),
+                        content = {}
+                    )
+                    Text(
+                        text = zoneRailLabel(zone),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (active) scheme.primary else scheme.onSurface.copy(alpha = 0.54f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .graphicsLayer(rotationZ = -90f)
+                            .width(44.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun zoneTitle(zoneId: TheBlueZoneId): String = when (zoneId) {
+    TheBlueZoneId.SUNLIT_REEF -> stringResource(R.string.the_blue_zone_sunlit_reef_title)
+    TheBlueZoneId.DEEPER_REEF -> stringResource(R.string.the_blue_zone_deeper_reef_title)
+    TheBlueZoneId.OPEN_BLUE -> stringResource(R.string.the_blue_zone_open_blue_title)
+    TheBlueZoneId.GREAT_BLUE -> stringResource(R.string.the_blue_zone_great_blue_title)
+}
+
+@Composable
+private fun zoneRailLabel(zoneId: TheBlueZoneId): String = when (zoneId) {
+    TheBlueZoneId.SUNLIT_REEF -> stringResource(R.string.the_blue_zone_sunlit_reef_rail)
+    TheBlueZoneId.DEEPER_REEF -> stringResource(R.string.the_blue_zone_deeper_reef_rail)
+    TheBlueZoneId.OPEN_BLUE -> stringResource(R.string.the_blue_zone_open_blue_rail)
+    TheBlueZoneId.GREAT_BLUE -> stringResource(R.string.the_blue_zone_great_blue_rail)
+}
+
+@Composable
+private fun zoneSubtitle(zoneId: TheBlueZoneId): String = when (zoneId) {
+    TheBlueZoneId.SUNLIT_REEF -> stringResource(R.string.the_blue_zone_sunlit_reef_subtitle)
+    TheBlueZoneId.DEEPER_REEF -> stringResource(R.string.the_blue_zone_deeper_reef_subtitle)
+    TheBlueZoneId.OPEN_BLUE -> stringResource(R.string.the_blue_zone_open_blue_subtitle)
+    TheBlueZoneId.GREAT_BLUE -> stringResource(R.string.the_blue_zone_great_blue_subtitle)
+}
+
+@Composable
+private fun findName(findId: String): String = ShellContentCatalog.find(findId)?.let { stringResource(it.titleRes) } ?: stringResource(R.string.reward_card_shell_recorded_title)
+
+@Composable
+private fun formName(findId: String, stageId: String?): String =
+    ShellContentCatalog.upgradesFor(findId).firstOrNull { it.upgradeStageId == stageId }?.let { stringResource(it.titleRes) }
+        ?: stringResource(R.string.shell_form_base)
+
+@Composable
+private fun theBlueSourceReason(findId: String): String = when (findId) {
+    ShellContentCatalog.FOCUS_MINNOW -> stringResource(R.string.the_blue_source_minnow)
+    ShellContentCatalog.FOCUS_SEAHORSE -> stringResource(R.string.the_blue_source_seahorse)
+    ShellContentCatalog.FOCUS_MANTA -> stringResource(R.string.the_blue_source_manta)
+    ShellContentCatalog.FOCUS_WHALE -> stringResource(R.string.the_blue_source_whale)
+    ShellContentCatalog.FOCUS_OCTOPUS -> stringResource(R.string.the_blue_source_octopus)
+    else -> ShellContentCatalog.find(findId)?.let { stringResource(it.descriptionRes) } ?: stringResource(R.string.reward_card_shell_recorded_body)
+}
+
+@Composable
+private fun theBlueEncounteredReason(findId: String): String = when (findId) {
+    ShellContentCatalog.FOCUS_MINNOW -> stringResource(R.string.the_blue_encountered_minnow)
+    ShellContentCatalog.FOCUS_SEAHORSE -> stringResource(R.string.the_blue_encountered_seahorse)
+    ShellContentCatalog.FOCUS_MANTA -> stringResource(R.string.the_blue_encountered_manta)
+    ShellContentCatalog.FOCUS_WHALE -> stringResource(R.string.the_blue_encountered_whale)
+    ShellContentCatalog.FOCUS_OCTOPUS -> stringResource(R.string.the_blue_source_octopus)
+    else -> theBlueSourceReason(findId)
+}
+
+private fun firstOpenFocusSlotFor(findId: String, uiState: ShellUiState): String? {
+    val definition = ShellContentCatalog.find(findId) ?: return null
+    val occupied = uiState.focusPlacements.map { it.slotId }.toSet()
+    return ShellContentCatalog.focusSlots.firstOrNull { slot ->
+        slot.slotId !in occupied && ShellContentCatalog.isCompatibleWithSlot(slot, definition)
+    }?.slotId
+}
+
+private fun firstRestingInstanceId(findId: String, uiState: ShellUiState): String? {
+    val displayed = uiState.focusPlacements.map { it.instanceId }.toSet()
+    return uiState.finds.firstOrNull { it.findId == findId && it.instanceId !in displayed }?.instanceId
 }
 
 @Composable
