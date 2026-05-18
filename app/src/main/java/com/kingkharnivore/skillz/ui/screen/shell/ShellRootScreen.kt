@@ -2300,9 +2300,9 @@ private fun ObjectCopySheet(
     }
 }
 
-@Composable
 private enum class ShellChestTab { ALL, ANIMALS, ROOM_OBJECTS }
 
+@Composable
 private fun ShellChestScreen(
     uiState: ShellUiState,
     onPlace: (String, String) -> Unit,
@@ -3517,11 +3517,12 @@ private fun DrawScope.drawMantaGlides(
     accentCount: Int,
     scheme: androidx.compose.material3.ColorScheme,
     drift: Float,
-    mantaLoop: Float
+    mantaLoop: Float,
+    levelScale: Float = 1f
 ) {
     val visible = representativeVisibleCount(count, maxVisible = 3)
     repeat(visible) { i ->
-        val scale = 1.0f + i * 0.16f
+        val scale = (1.0f + i * 0.16f) * levelScale
         val mantaWidth = 132f * scale
         val progress = (mantaLoop + 0.20f + i * 0.28f) % 1f
         val x = offscreenHorizontalPassX(
@@ -3541,11 +3542,12 @@ private fun DrawScope.drawWhalePasses(
     accentCount: Int,
     scheme: androidx.compose.material3.ColorScheme,
     drift: Float,
-    whaleLoop: Float
+    whaleLoop: Float,
+    levelScale: Float = 1f
 ) {
     val visible = representativeVisibleCount(count, maxVisible = 2)
     repeat(visible) { i ->
-        val scale = 1.28f + i * 0.12f
+        val scale = (1.28f + i * 0.12f) * levelScale
         val whaleWidth = 176f * scale
         val progress = (whaleLoop + 0.22f + i * 0.48f) % 1f
         val x = offscreenHorizontalPassX(
@@ -3728,9 +3730,9 @@ private fun DrawScope.drawRoundRockColumn(x: Float, top: Float, bottom: Float, w
 }
 
 
-@Composable
 private fun formatMinutesCompact(minutes: Int): String = if (minutes % 60 == 0) "${minutes / 60}h" else "${minutes}m"
 
+@Composable
 private fun TheBlueAnimalDetailSheet(
     animal: TheBlueAnimalGroupUiModel,
     focusSlotId: String?,
