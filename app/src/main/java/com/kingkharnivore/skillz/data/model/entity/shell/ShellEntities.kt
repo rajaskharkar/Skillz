@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.data.model.entity.shell
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -29,7 +30,9 @@ data class UserShellFindInstanceEntity(
     val customName: String?,
     val isNew: Boolean,
     val isArchivedInChest: Boolean,
+    @ColumnInfo(defaultValue = "1")
     val animalLevel: Int = 1,
+    @ColumnInfo(defaultValue = "'ACTIVE'")
     val creatureStatus: String = "ACTIVE",
     val creatureSource: String? = null,
     val flowTimeValueMinutes: Int? = null
