@@ -120,6 +120,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellSlotType
 import com.kingkharnivore.skillz.data.model.shell.StillwaterPerspective
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.ShellViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.min
 import kotlin.math.pow
@@ -2864,8 +2865,14 @@ private fun TheBlueRoomScreen(
         buildTheBlueUiState(uiState.finds, uiState.focusPlacements)
     }
     var selectedAnimal by remember { mutableStateOf<TheBlueAnimalGroupUiModel?>(null) }
-    val entryNewAnimalFindIds = remember {
-        theBlueState.zones.flatMap { zone -> zone.animals.filter { it.isNew }.map { it.findId } }.toSet()
+    var entryNewAnimalFindIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var railNavigationJob by remember { mutableStateOf<Job?>(null) }
+    LaunchedEffect(theBlueState.newAnimalCount, theBlueState.zones) {
+        if (entryNewAnimalFindIds.isEmpty() && theBlueState.newAnimalCount > 0) {
+            entryNewAnimalFindIds = theBlueState.zones
+                .flatMap { zone -> zone.animals.filter { it.isNew }.map { it.findId } }
+                .toSet()
+        }
     }
     val pageCount = if (theBlueState.isEmpty) 1 else theBlueState.zones.size
     val pagerState = rememberPagerState(pageCount = { pageCount })
@@ -2904,7 +2911,8 @@ private fun TheBlueRoomScreen(
                 zones = theBlueState.zones.map { it.zoneId },
                 activeZone = activeZone,
                 onZoneClick = { target ->
-                    scope.launch {
+                    railNavigationJob?.cancel()
+                    railNavigationJob = scope.launch {
                         for (zone in theBlueSequentialNavigationPath(theBlueZoneForPage(pagerState.currentPage), target)) {
                             pagerState.animateScrollToPage(zone.depthOrder())
                         }
@@ -2937,13 +2945,6 @@ private fun TheBlueRoomScreen(
             }
         )
     }
-}
-
-internal fun activeTheBlueZoneForListIndex(firstVisibleItemIndex: Int): TheBlueZoneId = when (firstVisibleItemIndex.coerceAtLeast(0)) {
-    0 -> TheBlueZoneId.SUNLIT_REEF
-    1 -> TheBlueZoneId.DEEPER_REEF
-    2 -> TheBlueZoneId.OPEN_BLUE
-    else -> TheBlueZoneId.GREAT_BLUE
 }
 
 @Composable

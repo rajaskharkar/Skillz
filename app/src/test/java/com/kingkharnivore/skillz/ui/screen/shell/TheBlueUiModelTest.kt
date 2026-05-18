@@ -73,15 +73,6 @@ class TheBlueUiModelTest {
         assertTrue(afterMark.first { it.findId == ShellContentCatalog.FOCUS_PEBBLE }.isNew)
     }
 
-    @Test
-    fun activeDepthRailZoneFollowsVisibleListIndex() {
-        assertEquals(TheBlueZoneId.SUNLIT_REEF, activeTheBlueZoneForListIndex(0))
-        assertEquals(TheBlueZoneId.DEEPER_REEF, activeTheBlueZoneForListIndex(1))
-        assertEquals(TheBlueZoneId.OPEN_BLUE, activeTheBlueZoneForListIndex(2))
-        assertEquals(TheBlueZoneId.GREAT_BLUE, activeTheBlueZoneForListIndex(3))
-        assertEquals(TheBlueZoneId.GREAT_BLUE, activeTheBlueZoneForListIndex(4))
-    }
-
 
     @Test
     fun pagerPageIndexMapsToTheBlueZones() {
