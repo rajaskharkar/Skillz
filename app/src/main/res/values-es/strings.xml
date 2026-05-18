@@ -958,6 +958,7 @@
     <string name="the_blue_animal_card_a11y">%1$s. Animal. Count %2$d. %3$s. %4$s Displayed in Focus: %5$d.</string>
     <string name="the_blue_detail_a11y">%1$s. %2$s. %3$s</string>
     <string name="the_blue_depth_rail_a11y">Depth rail: Sunlit Reef, Deeper Reef, Open Blue, Great Blue.</string>
+    <string name="the_blue_depth_rail_go_to_zone_a11y">Go to %1$s</string>
     <string name="the_blue_empty_water_caption">Quiet water waits for the first regular Flow Animal.</string>
     <string name="shell_room_idea_title">Idea Grove</string>
     <string name="shell_room_idea_description">A quiet patch of kelp waiting for Pulses.</string>

@@ -82,6 +82,46 @@ class TheBlueUiModelTest {
         assertEquals(TheBlueZoneId.GREAT_BLUE, activeTheBlueZoneForListIndex(4))
     }
 
+
+    @Test
+    fun pagerPageIndexMapsToTheBlueZones() {
+        assertEquals(TheBlueZoneId.SUNLIT_REEF, theBlueZoneForPage(-1))
+        assertEquals(TheBlueZoneId.SUNLIT_REEF, theBlueZoneForPage(0))
+        assertEquals(TheBlueZoneId.DEEPER_REEF, theBlueZoneForPage(1))
+        assertEquals(TheBlueZoneId.OPEN_BLUE, theBlueZoneForPage(2))
+        assertEquals(TheBlueZoneId.GREAT_BLUE, theBlueZoneForPage(3))
+        assertEquals(TheBlueZoneId.GREAT_BLUE, theBlueZoneForPage(99))
+    }
+
+    @Test
+    fun depthRailNavigationPathVisitsIntermediateZonesWhenDescendingOrRising() {
+        assertEquals(
+            listOf(TheBlueZoneId.DEEPER_REEF, TheBlueZoneId.OPEN_BLUE, TheBlueZoneId.GREAT_BLUE),
+            theBlueSequentialNavigationPath(TheBlueZoneId.SUNLIT_REEF, TheBlueZoneId.GREAT_BLUE)
+        )
+        assertEquals(
+            listOf(TheBlueZoneId.OPEN_BLUE, TheBlueZoneId.DEEPER_REEF, TheBlueZoneId.SUNLIT_REEF),
+            theBlueSequentialNavigationPath(TheBlueZoneId.GREAT_BLUE, TheBlueZoneId.SUNLIT_REEF)
+        )
+        assertEquals(
+            listOf(TheBlueZoneId.OPEN_BLUE),
+            theBlueSequentialNavigationPath(TheBlueZoneId.DEEPER_REEF, TheBlueZoneId.OPEN_BLUE)
+        )
+        assertTrue(theBlueSequentialNavigationPath(TheBlueZoneId.OPEN_BLUE, TheBlueZoneId.OPEN_BLUE).isEmpty())
+    }
+
+    @Test
+    fun offscreenHorizontalPassStartsAndEndsPastAnimalBounds() {
+        val screenWidth = 1000f
+        val animalWidth = 200f
+        val margin = 50f
+
+        assertEquals(-250f, offscreenHorizontalPassX(0f, screenWidth, animalWidth, margin, leftToRight = true), 0.001f)
+        assertEquals(1250f, offscreenHorizontalPassX(1f, screenWidth, animalWidth, margin, leftToRight = true), 0.001f)
+        assertEquals(1250f, offscreenHorizontalPassX(0f, screenWidth, animalWidth, margin, leftToRight = false), 0.001f)
+        assertEquals(-250f, offscreenHorizontalPassX(1f, screenWidth, animalWidth, margin, leftToRight = false), 0.001f)
+    }
+
     @Test
     fun representativeVisibleCountUsesDensityTiersWithoutRenderingEveryCopy() {
         assertEquals(0, representativeVisibleCount(0, maxVisible = 12))

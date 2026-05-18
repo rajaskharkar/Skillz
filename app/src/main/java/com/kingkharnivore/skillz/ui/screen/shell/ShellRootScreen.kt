@@ -8,6 +8,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -25,7 +27,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -80,6 +81,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -102,6 +104,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.BackHandler
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kingkharnivore.skillz.R
@@ -117,6 +120,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellSlotType
 import com.kingkharnivore.skillz.data.model.shell.StillwaterPerspective
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.ShellViewModel
+import kotlinx.coroutines.launch
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sin
@@ -327,6 +331,14 @@ fun ShellRootScreen(
         }
     }
 
+    BackHandler(enabled = showPearlBasin || destination != ShellDestination.Heart) {
+        if (showPearlBasin) {
+            showPearlBasin = false
+        } else {
+            destination = ShellDestination.Heart
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -522,14 +534,14 @@ private fun ShellTopBar(
                     if (notificationCount > 0) {
                         Surface(
                             shape = CircleShape,
-                            color = scheme.tertiary,
+                            color = scheme.secondary,
                             modifier = Modifier.size(18.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
                                     text = notificationCount.coerceAtMost(9).toString(),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = scheme.onTertiary,
+                                    color = scheme.onSecondary,
                                     textAlign = TextAlign.Center
                                 )
                             }
@@ -2855,9 +2867,11 @@ private fun TheBlueRoomScreen(
     val entryNewAnimalFindIds = remember {
         theBlueState.zones.flatMap { zone -> zone.animals.filter { it.isNew }.map { it.findId } }.toSet()
     }
-    val listState = rememberLazyListState()
-    val activeZone by remember(listState) {
-        derivedStateOf { activeTheBlueZoneForListIndex(listState.firstVisibleItemIndex) }
+    val pageCount = if (theBlueState.isEmpty) 1 else theBlueState.zones.size
+    val pagerState = rememberPagerState(pageCount = { pageCount })
+    val scope = rememberCoroutineScope()
+    val activeZone by remember(pagerState) {
+        derivedStateOf { theBlueZoneForPage(pagerState.currentPage) }
     }
 
     BoxWithConstraints(
@@ -2866,27 +2880,22 @@ private fun TheBlueRoomScreen(
             .background(shellBackground())
     ) {
         val pageHeight = maxHeight
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(0.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
-        ) {
+        VerticalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
             if (theBlueState.isEmpty) {
-                item(key = "the-blue-empty") {
-                    TheBlueEmptyOceanPage(pageHeight = pageHeight)
-                }
+                TheBlueEmptyOceanPage(pageHeight = pageHeight)
             } else {
-                items(theBlueState.zones, key = { it.zoneId.name }) { zone ->
-                    TheBlueZonePage(
-                        zone = zone,
-                        state = theBlueState,
-                        pageHeight = pageHeight,
-                        showRoomHeader = zone.zoneId == TheBlueZoneId.SUNLIT_REEF,
-                        entryNewAnimalFindIds = entryNewAnimalFindIds,
-                        onAnimalClick = { selectedAnimal = it }
-                    )
-                }
+                val zone = theBlueState.zones[page]
+                TheBlueZonePage(
+                    zone = zone,
+                    state = theBlueState,
+                    pageHeight = pageHeight,
+                    showRoomHeader = zone.zoneId == TheBlueZoneId.SUNLIT_REEF,
+                    entryNewAnimalFindIds = entryNewAnimalFindIds,
+                    onAnimalClick = { selectedAnimal = it }
+                )
             }
         }
 
@@ -2894,6 +2903,13 @@ private fun TheBlueRoomScreen(
             TheBlueDepthRail(
                 zones = theBlueState.zones.map { it.zoneId },
                 activeZone = activeZone,
+                onZoneClick = { target ->
+                    scope.launch {
+                        for (zone in theBlueSequentialNavigationPath(theBlueZoneForPage(pagerState.currentPage), target)) {
+                            pagerState.animateScrollToPage(zone.depthOrder())
+                        }
+                    }
+                },
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .padding(end = 8.dp)
@@ -3024,6 +3040,18 @@ private fun TheBlueZonePage(
         ),
         label = "zone-drift"
     )
+    val mantaLoop by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(18000, easing = LinearEasing), RepeatMode.Restart),
+        label = "manta-offscreen-loop"
+    )
+    val whaleLoop by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(32000, easing = LinearEasing), RepeatMode.Restart),
+        label = "whale-offscreen-loop"
+    )
 
     Box(
         modifier = Modifier
@@ -3034,7 +3062,7 @@ private fun TheBlueZonePage(
         Canvas(Modifier.matchParentSize()) {
             drawTheBlueWaterBackground(zone.zoneId, scheme, drift)
             drawZoneEnvironment(zone.zoneId, scheme, drift, zone.animals.sumOf { it.totalCount })
-            drawZoneAnimals(zone, scheme, drift)
+            drawZoneAnimals(zone, scheme, drift, mantaLoop, whaleLoop)
             if (zoneHasNewArrival) {
                 drawRect(scheme.secondary.copy(alpha = 0.045f))
             }
@@ -3339,7 +3367,9 @@ private fun DrawScope.drawGreatBlueEnvironment(
 private fun DrawScope.drawZoneAnimals(
     zone: TheBlueZoneUiModel,
     scheme: androidx.compose.material3.ColorScheme,
-    drift: Float
+    drift: Float,
+    mantaLoop: Float,
+    whaleLoop: Float
 ) {
     zone.animals.forEach { animal ->
         val accentCount = animal.formCounts.filter { it.formStageId != null && !it.formStageId.endsWith("_base") }.sumOf { it.count }
@@ -3347,8 +3377,8 @@ private fun DrawScope.drawZoneAnimals(
             ShellContentCatalog.FOCUS_MINNOW -> drawMinnowSchool(animal.totalCount, accentCount, scheme, drift)
             ShellContentCatalog.FOCUS_SEAHORSE -> drawSeahorseColony(animal.totalCount, accentCount, scheme, drift)
             ShellContentCatalog.FOCUS_OCTOPUS -> drawHiddenOctopus(accentCount, scheme, drift)
-            ShellContentCatalog.FOCUS_MANTA -> drawMantaGlides(animal.totalCount, accentCount, scheme, drift)
-            ShellContentCatalog.FOCUS_WHALE -> drawWhalePasses(animal.totalCount, accentCount, scheme, drift)
+            ShellContentCatalog.FOCUS_MANTA -> drawMantaGlides(animal.totalCount, accentCount, scheme, drift, mantaLoop)
+            ShellContentCatalog.FOCUS_WHALE -> drawWhalePasses(animal.totalCount, accentCount, scheme, drift, whaleLoop)
         }
     }
 }
@@ -3375,23 +3405,51 @@ private fun DrawScope.drawSeahorseColony(count: Int, accentCount: Int, scheme: a
     }
 }
 
-private fun DrawScope.drawMantaGlides(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float) {
+private fun DrawScope.drawMantaGlides(
+    count: Int,
+    accentCount: Int,
+    scheme: androidx.compose.material3.ColorScheme,
+    drift: Float,
+    mantaLoop: Float
+) {
     val visible = representativeVisibleCount(count, maxVisible = 3)
     repeat(visible) { i ->
-        val progress = (drift * (0.55f + i * 0.08f) + i * 0.31f) % 1f
-        val x = progress * (size.width + 220f) - 110f
+        val scale = 1.0f + i * 0.16f
+        val mantaWidth = 132f * scale
+        val progress = (mantaLoop + 0.20f + i * 0.28f) % 1f
+        val x = offscreenHorizontalPassX(
+            progress = progress,
+            screenWidth = size.width,
+            animalWidth = mantaWidth,
+            margin = 56f,
+            leftToRight = true
+        )
         val y = size.height * (0.32f + i * 0.18f) + sin((drift * 6.28f + i).toDouble()).toFloat() * 18f
-        drawManta(Offset(x, y), 1.0f + i * 0.16f, drift + i * 0.2f, i < accentCount.coerceAtMost(visible), scheme)
+        drawManta(Offset(x, y), scale, drift + i * 0.2f, i < accentCount.coerceAtMost(visible), scheme)
     }
 }
 
-private fun DrawScope.drawWhalePasses(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float) {
+private fun DrawScope.drawWhalePasses(
+    count: Int,
+    accentCount: Int,
+    scheme: androidx.compose.material3.ColorScheme,
+    drift: Float,
+    whaleLoop: Float
+) {
     val visible = representativeVisibleCount(count, maxVisible = 2)
     repeat(visible) { i ->
-        val progress = (drift * (0.25f + i * 0.05f) + i * 0.42f) % 1f
-        val x = size.width + 190f - progress * (size.width + 420f)
+        val scale = 1.28f + i * 0.12f
+        val whaleWidth = 176f * scale
+        val progress = (whaleLoop + 0.22f + i * 0.48f) % 1f
+        val x = offscreenHorizontalPassX(
+            progress = progress,
+            screenWidth = size.width,
+            animalWidth = whaleWidth,
+            margin = 72f,
+            leftToRight = false
+        )
         val y = size.height * (0.42f + i * 0.16f) + sin((drift * 6.28f + i).toDouble()).toFloat() * 10f
-        drawWhale(Offset(x, y), 1.15f + i * 0.12f, drift + i, accentCount > 0, scheme)
+        drawWhale(Offset(x, y), scale, drift + i, accentCount > 0, scheme)
     }
 }
 
@@ -3646,7 +3704,12 @@ private fun TheBlueAnimalDetailSheet(
 }
 
 @Composable
-private fun TheBlueDepthRail(zones: List<TheBlueZoneId>, activeZone: TheBlueZoneId, modifier: Modifier = Modifier) {
+private fun TheBlueDepthRail(
+    zones: List<TheBlueZoneId>,
+    activeZone: TheBlueZoneId,
+    onZoneClick: (TheBlueZoneId) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val scheme = MaterialTheme.colorScheme
     val railDescription = stringResource(R.string.the_blue_depth_rail_a11y)
     Surface(
@@ -3655,7 +3718,7 @@ private fun TheBlueDepthRail(zones: List<TheBlueZoneId>, activeZone: TheBlueZone
         border = BorderStroke(1.dp, scheme.primary.copy(alpha = 0.18f)),
         modifier = modifier
             .fillMaxHeight(0.48f)
-            .width(52.dp)
+            .width(58.dp)
             .semantics { contentDescription = railDescription }
     ) {
         Column(
@@ -3665,17 +3728,29 @@ private fun TheBlueDepthRail(zones: List<TheBlueZoneId>, activeZone: TheBlueZone
         ) {
             zones.forEach { zone ->
                 val active = zone == activeZone
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                val title = zoneTitle(zone)
+                val goToDescription = stringResource(R.string.the_blue_depth_rail_go_to_zone_a11y, title)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .clickable(role = Role.Button) { onZoneClick(zone) }
+                        .padding(horizontal = 4.dp, vertical = 6.dp)
+                        .semantics {
+                            contentDescription = goToDescription
+                            role = Role.Button
+                        }
+                ) {
                     Surface(
                         shape = CircleShape,
-                        color = if (active) scheme.primary else scheme.primary.copy(alpha = 0.24f),
+                        color = if (active) scheme.secondary else scheme.primary.copy(alpha = 0.24f),
                         modifier = Modifier.size(if (active) 12.dp else 8.dp),
                         content = {}
                     )
                     Text(
                         text = zoneRailLabel(zone),
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (active) scheme.primary else scheme.onSurface.copy(alpha = 0.54f),
+                        color = if (active) scheme.secondary else scheme.onSurface.copy(alpha = 0.58f),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .graphicsLayer(rotationZ = -90f)

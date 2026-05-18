@@ -122,6 +122,40 @@ internal fun zoneForFind(findId: String): TheBlueZoneId? = when (findId) {
     }
 }
 
+
+internal fun theBlueSequentialNavigationPath(
+    current: TheBlueZoneId,
+    target: TheBlueZoneId
+): List<TheBlueZoneId> {
+    val currentOrder = current.depthOrder()
+    val targetOrder = target.depthOrder()
+    if (currentOrder == targetOrder) return emptyList()
+    val step = if (targetOrder > currentOrder) 1 else -1
+    return generateSequence(currentOrder + step) { order ->
+        val next = order + step
+        if ((step > 0 && next <= targetOrder) || (step < 0 && next >= targetOrder)) next else null
+    }.map(::theBlueZoneForPage).toList()
+}
+
+internal fun theBlueZoneForPage(page: Int): TheBlueZoneId = when (page.coerceIn(0, TheBlueZoneId.values().lastIndex)) {
+    0 -> TheBlueZoneId.SUNLIT_REEF
+    1 -> TheBlueZoneId.DEEPER_REEF
+    2 -> TheBlueZoneId.OPEN_BLUE
+    else -> TheBlueZoneId.GREAT_BLUE
+}
+
+internal fun offscreenHorizontalPassX(
+    progress: Float,
+    screenWidth: Float,
+    animalWidth: Float,
+    margin: Float,
+    leftToRight: Boolean
+): Float {
+    val start = if (leftToRight) -animalWidth - margin else screenWidth + animalWidth + margin
+    val end = if (leftToRight) screenWidth + animalWidth + margin else -animalWidth - margin
+    return start + (end - start) * progress.coerceIn(0f, 1f)
+}
+
 internal fun TheBlueZoneId.depthOrder(): Int = when (this) {
     TheBlueZoneId.SUNLIT_REEF -> 0
     TheBlueZoneId.DEEPER_REEF -> 1
