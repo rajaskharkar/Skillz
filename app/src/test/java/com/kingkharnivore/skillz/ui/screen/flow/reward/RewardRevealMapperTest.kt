@@ -74,9 +74,9 @@ class RewardRevealMapperTest {
         val minnow = cards.first { it.id.startsWith("animal-${ShellContentCatalog.FOCUS_MINNOW}") }
         val whale = cards.first { it.id.startsWith("animal-${ShellContentCatalog.FOCUS_WHALE}") }
         assertEquals(RewardRevealCardType.ANIMAL, minnow.type)
-        assertEquals("Animal · Reef", minnow.subtitle)
+        assertEquals("Animal · Sunlit Reef", minnow.subtitle)
         assertEquals("View later in The Blue.", minnow.destinationHint)
-        assertEquals("Animal · Deep Ocean", whale.subtitle)
+        assertEquals("Animal · Great Blue", whale.subtitle)
     }
 
     @Test
@@ -350,10 +350,10 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun trinketChip() = "Trinket"
     override fun discoveryChip() = "Discovery"
     override fun badgeChip() = "Badge"
-    override fun reef() = "Reef"
+    override fun reef() = "Sunlit Reef"
     override fun deeperReef() = "Deeper Reef"
     override fun openBlue() = "Open Blue"
-    override fun deepOcean() = "Deep Ocean"
+    override fun deepOcean() = "Great Blue"
     override fun animalReason(findId: String) = "From a regular Flow lasting 10 minutes or more."
     override fun objectReason(findId: String) = "Found after you returned to regular Flow."
     override fun trinketReason() = "Found through regular Flow activity."

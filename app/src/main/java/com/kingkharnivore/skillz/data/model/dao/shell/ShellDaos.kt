@@ -29,6 +29,7 @@ interface ShellFindInstanceDao {
     @Query("UPDATE user_shell_find_instance SET currentUpgradeStageId = :stageId WHERE instanceId = :instanceId") suspend fun updateUpgradeStage(instanceId: String, stageId: String)
     @Query("UPDATE user_shell_find_instance SET isArchivedInChest = :archived WHERE instanceId = :instanceId") suspend fun updateArchivedState(instanceId: String, archived: Boolean)
     @Query("UPDATE user_shell_find_instance SET isNew = 0") suspend fun markAllSeen()
+    @Query("UPDATE user_shell_find_instance SET isNew = 0 WHERE findId IN (:findIds)") suspend fun markFindIdsSeen(findIds: List<String>)
 }
 
 @Dao

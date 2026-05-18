@@ -127,5 +127,9 @@ class ShellViewModel @Inject constructor(
         repository.markAllNotificationsSeen()
     }
 
+    fun markTheBlueAnimalsSeen() = viewModelScope.launch {
+        repository.markTheBlueAnimalsSeen()
+    }
+
     fun markRoomOpened(roomId: ShellRoomId) = viewModelScope.launch { repository.markRoomOpened(roomId) }
 }

@@ -155,6 +155,13 @@ class ShellRepository @Inject constructor(
         discoveryDao.markAllSeen()
     }
 
+    suspend fun markTheBlueAnimalsSeen() = db.withTransaction {
+        val animalFindIds = ShellContentCatalog.animalFindIds.toList()
+        if (animalFindIds.isNotEmpty()) {
+            findInstanceDao.markFindIdsSeen(animalFindIds)
+        }
+    }
+
     suspend fun invitePearlObject(findId: String, roomId: ShellRoomId, slotId: String) = db.withTransaction {
         val def = ShellContentCatalog.find(findId) ?: error("Shell object definition missing")
         val cost = def.pearlCost ?: error("This object cannot be shaped with Pearls.")

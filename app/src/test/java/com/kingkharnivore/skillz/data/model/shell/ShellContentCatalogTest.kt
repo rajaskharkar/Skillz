@@ -114,6 +114,16 @@ class ShellContentCatalogTest {
     }
 
     @Test
+    fun visibleWhaleAndDepthCopyUseGreatBlueInsteadOfRetiredDepthName() {
+        val strings = File("app/src/main/res/values/strings.xml").readText()
+
+        assertFalse(strings.contains("Deep " + "Ocean"))
+        assertFalse(strings.contains("deep " + "ocean"))
+        assertTrue(strings.contains("Encountered in the Great Blue after a regular Flow lasting 2 hours or more."))
+        assertTrue(strings.contains("""<string name="reward_card_depth_deep_ocean">Great Blue</string>"""))
+    }
+
+    @Test
     fun trinketsUseDistinctOceanNames() {
         assertEquals("trinket_glimmer", ShellContentCatalog.TRINKET_GLIMMER)
         assertEquals(ShellRewardKind.TRINKET, ShellContentCatalog.find(ShellContentCatalog.TRINKET_GLIMMER)?.kind)

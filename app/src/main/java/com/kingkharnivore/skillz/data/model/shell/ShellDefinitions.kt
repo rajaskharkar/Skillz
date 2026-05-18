@@ -203,6 +203,7 @@ object ShellContentCatalog {
     }
 
     val focusPearlObjects = finds.filter { it.isPearlObject && it.primaryRoomId == ShellRoomId.FOCUS }
+    val animalFindIds = finds.filter { it.kind == ShellRewardKind.ANIMAL }.map { it.findId }.toSet()
     fun find(findId: String) = finds.firstOrNull { it.findId == findId }
     fun badge(badgeId: String) = badges.firstOrNull { it.badgeId == badgeId }
     fun discovery(discoveryId: String) = discoveries.firstOrNull { it.discoveryId == discoveryId }
