@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 16.
+     * Current database version is 17.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -42,9 +42,26 @@ object SkillzDatabaseMigrations {
         }
     }
 
-    val ALL_MIGRATIONS: Array<Migration> =
-        LEGACY_TO_15_MIGRATIONS + MIGRATION_13_14 + MIGRATION_14_15 + MIGRATION_15_16
+    val MIGRATION_16_17 = object : Migration(16, 17) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            addCreatureEconomyFields(db)
+        }
+    }
 
+    val ALL_MIGRATIONS: Array<Migration> =
+        LEGACY_TO_15_MIGRATIONS + MIGRATION_13_14 + MIGRATION_14_15 + MIGRATION_15_16 + MIGRATION_16_17
+
+
+    private fun addCreatureEconomyFields(db: SupportSQLiteDatabase) {
+        addColumnIfMissing(db, "user_shell_find_instance", "animalLevel", "INTEGER NOT NULL DEFAULT 1")
+        addColumnIfMissing(db, "user_shell_find_instance", "creatureStatus", "TEXT NOT NULL DEFAULT 'ACTIVE'")
+        addColumnIfMissing(db, "user_shell_find_instance", "creatureSource", "TEXT")
+        addColumnIfMissing(db, "user_shell_find_instance", "flowTimeValueMinutes", "INTEGER")
+    }
+
+    private fun addColumnIfMissing(db: SupportSQLiteDatabase, table: String, column: String, definition: String) {
+        if (column !in columns(db, table)) db.execSQL("ALTER TABLE `$table` ADD COLUMN `$column` $definition")
+    }
 
     private fun normalizeTheBlueRoomIdentifiers(db: SupportSQLiteDatabase) {
         val importRoomKey = encodedTheBlueRoomImportKey()
@@ -651,6 +668,10 @@ object SkillzDatabaseMigrations {
                 `customName` TEXT,
                 `isNew` INTEGER NOT NULL,
                 `isArchivedInChest` INTEGER NOT NULL,
+                `animalLevel` INTEGER NOT NULL DEFAULT 1,
+                `creatureStatus` TEXT NOT NULL DEFAULT 'ACTIVE',
+                `creatureSource` TEXT,
+                `flowTimeValueMinutes` INTEGER,
                 PRIMARY KEY(`instanceId`)
             )
             """.trimIndent()

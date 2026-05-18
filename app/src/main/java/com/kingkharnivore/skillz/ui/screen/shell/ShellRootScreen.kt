@@ -118,6 +118,8 @@ import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.data.model.shell.ShellSlotDefinition
 import com.kingkharnivore.skillz.data.model.shell.ShellSlotType
 import com.kingkharnivore.skillz.data.model.shell.StillwaterPerspective
+import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
+import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.ShellViewModel
 import kotlinx.coroutines.Job
@@ -1538,7 +1540,7 @@ private fun ShellPearlMiniIcon(
     }
 }
 
-private enum class ShellAnimalIcon { MINNOW, SEAHORSE, MANTA, WHALE, OCTOPUS }
+private enum class ShellAnimalIcon { MINNOW, SEAHORSE, MANTA, WHALE, OCTOPUS, JELLYFISH, TURTLE, SHARK, DOLPHIN, SQUID, STARFISH, URCHIN, EEL, FISH }
 
 @Composable
 private fun ShellObjectIcon(
@@ -1552,6 +1554,15 @@ private fun ShellObjectIcon(
         "manta" in iconKey -> ShellAnimalIcon.MANTA
         "whale" in iconKey -> ShellAnimalIcon.WHALE
         "octopus" in iconKey -> ShellAnimalIcon.OCTOPUS
+        "jellyfish" in iconKey -> ShellAnimalIcon.JELLYFISH
+        "turtle" in iconKey -> ShellAnimalIcon.TURTLE
+        "shark" in iconKey || "megalodon" in iconKey -> ShellAnimalIcon.SHARK
+        "dolphin" in iconKey || "orca" in iconKey -> ShellAnimalIcon.DOLPHIN
+        "squid" in iconKey || "kraken" in iconKey || "leviathan" in iconKey -> ShellAnimalIcon.SQUID
+        "starfish" in iconKey -> ShellAnimalIcon.STARFISH
+        "urchin" in iconKey -> ShellAnimalIcon.URCHIN
+        "eel" in iconKey || "snake" in iconKey -> ShellAnimalIcon.EEL
+        "creature_icon" in iconKey || "fish" in iconKey || "tang" in iconKey || "seal" in iconKey || "otter" in iconKey || "penguin" in iconKey -> ShellAnimalIcon.FISH
         else -> null
     }
     val vector = when {
@@ -1639,6 +1650,45 @@ private fun ShellAnimalCanvasIcon(
                 }
                 drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.42f, h * 0.32f))
                 drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.58f, h * 0.32f))
+            }
+            ShellAnimalIcon.JELLYFISH -> {
+                drawArc(ink, 180f, 180f, true, topLeft = Offset(w * 0.20f, h * 0.18f), size = Size(w * 0.60f, h * 0.46f))
+                listOf(0.28f, 0.42f, 0.56f, 0.70f).forEach { x -> drawLine(accent, Offset(w * x, h * 0.48f), Offset(w * (x - 0.05f), h * 0.88f), strokeWidth = w * 0.045f) }
+            }
+            ShellAnimalIcon.TURTLE -> {
+                drawOval(ink, Offset(w * 0.26f, h * 0.24f), Size(w * 0.48f, h * 0.42f))
+                drawOval(accent, Offset(w * 0.42f, h * 0.08f), Size(w * 0.16f, h * 0.16f))
+                listOf(0.18f to 0.30f, 0.74f to 0.30f, 0.18f to 0.62f, 0.74f to 0.62f).forEach { (x,y) -> drawOval(accent, Offset(w*x,h*y), Size(w*0.18f,h*0.12f)) }
+            }
+            ShellAnimalIcon.SHARK -> {
+                drawOval(ink, Offset(w * 0.16f, h * 0.38f), Size(w * 0.62f, h * 0.24f))
+                drawPath(Path().apply { moveTo(w*0.72f,h*0.50f); lineTo(w*0.98f,h*0.30f); lineTo(w*0.90f,h*0.50f); lineTo(w*0.98f,h*0.70f); close() }, ink)
+                drawPath(Path().apply { moveTo(w*0.42f,h*0.38f); lineTo(w*0.50f,h*0.12f); lineTo(w*0.58f,h*0.40f); close() }, accent)
+            }
+            ShellAnimalIcon.DOLPHIN -> {
+                drawArc(ink, 195f, 205f, false, topLeft = Offset(w*0.14f,h*0.18f), size = Size(w*0.72f,h*0.52f), style = Stroke(width = w*0.16f))
+                drawPath(Path().apply { moveTo(w*0.76f,h*0.43f); lineTo(w*0.98f,h*0.28f); lineTo(w*0.90f,h*0.48f); lineTo(w*0.98f,h*0.66f); close() }, ink)
+            }
+            ShellAnimalIcon.SQUID -> {
+                drawOval(ink, Offset(w*0.34f,h*0.10f), Size(w*0.32f,h*0.42f))
+                repeat(5) { i -> drawLine(ink, Offset(w*(0.36f+i*0.07f), h*0.50f), Offset(w*(0.22f+i*0.14f), h*0.90f), strokeWidth = w*0.055f) }
+            }
+            ShellAnimalIcon.STARFISH -> {
+                val path = Path(); repeat(10) { i -> val r= if (i%2==0) .43f else .18f; val a=(-90+i*36)*Math.PI/180; val x=w*.5f+Math.cos(a).toFloat()*w*r; val y=h*.5f+Math.sin(a).toFloat()*h*r; if(i==0) path.moveTo(x,y) else path.lineTo(x,y) }; path.close(); drawPath(path, ink)
+            }
+            ShellAnimalIcon.URCHIN -> {
+                repeat(14) { i -> val a=i*6.28f/14f; drawLine(ink, Offset(w*.5f,h*.5f), Offset(w*(.5f+kotlin.math.cos(a)*.43f), h*(.5f+kotlin.math.sin(a)*.43f)), strokeWidth=w*.035f) }
+                drawCircle(ink, w*.24f, Offset(w*.5f,h*.5f))
+            }
+            ShellAnimalIcon.EEL -> {
+                drawArc(ink, 180f, 240f, false, topLeft = Offset(w*.10f,h*.20f), size=Size(w*.76f,h*.58f), style=Stroke(width=w*.13f))
+                drawCircle(ink, w*.10f, Offset(w*.76f,h*.38f))
+            }
+            ShellAnimalIcon.FISH -> {
+                drawOval(ink, topLeft = Offset(w * 0.20f, h * 0.34f), size = Size(w * 0.52f, h * 0.30f))
+                drawPath(Path().apply { moveTo(w*0.18f,h*0.50f); lineTo(w*0.02f,h*0.34f); lineTo(w*0.02f,h*0.66f); close() }, ink)
+                drawPath(Path().apply { moveTo(w*0.54f,h*0.34f); lineTo(w*0.62f,h*0.16f); lineTo(w*0.66f,h*0.38f); close() }, accent)
+                drawCircle(scheme.surface, radius = w * 0.03f, center = Offset(w * 0.60f, h * 0.44f))
             }
         }
     }
@@ -2251,6 +2301,8 @@ private fun ObjectCopySheet(
 }
 
 @Composable
+private enum class ShellChestTab { ALL, ANIMALS, ROOM_OBJECTS }
+
 private fun ShellChestScreen(
     uiState: ShellUiState,
     onPlace: (String, String) -> Unit,
@@ -2258,20 +2310,26 @@ private fun ShellChestScreen(
     onUpgrade: (String) -> Unit,
     onOpenFocus: () -> Unit
 ) {
-    var category by remember { mutableStateOf<ShellFindCategory?>(null) }
+    var category by remember { mutableStateOf(ShellChestTab.ALL) }
     var selectedGroupFindId by remember { mutableStateOf<String?>(null) }
     var selectedInstance by remember { mutableStateOf<UserShellFindInstanceEntity?>(null) }
     var placingInstance by remember { mutableStateOf<UserShellFindInstanceEntity?>(null) }
 
+    fun isVisibleInTab(def: ShellFindDefinition?): Boolean {
+        if (def == null || def.kind == ShellRewardKind.TRINKET) return false
+        return when (category) {
+            ShellChestTab.ALL -> true
+            ShellChestTab.ANIMALS -> def.kind == ShellRewardKind.ANIMAL
+            ShellChestTab.ROOM_OBJECTS -> def.kind == ShellRewardKind.OBJECT
+        }
+    }
     val displayedIds = displayedInstanceIds(uiState)
     val groupedItems = uiState.finds
-        .filter { category == null || ShellContentCatalog.find(it.findId)?.category == category }
+        .filter { isVisibleInTab(ShellContentCatalog.find(it.findId)) }
         .groupBy { it.findId }
         .toList()
         .sortedBy { (findId, _) -> ShellContentCatalog.find(findId)?.titleRes ?: 0 }
-    val stackItems = uiState.stacks.filter {
-        category == null || ShellContentCatalog.find(it.findId)?.category == category
-    }
+    val stackItems = uiState.stacks.filter { isVisibleInTab(ShellContentCatalog.find(it.findId)) }
 
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
@@ -2290,18 +2348,20 @@ private fun ShellChestScreen(
                 modifier = Modifier.horizontalScroll(rememberScrollState())
             ) {
                 FilterChip(
-                    selected = category == null,
-                    onClick = { category = null },
+                    selected = category == ShellChestTab.ALL,
+                    onClick = { category = ShellChestTab.ALL },
                     label = { Text(stringResource(R.string.shell_filter_all)) }
                 )
-
-                ShellFindCategory.entries.forEach { cat ->
-                    FilterChip(
-                        selected = category == cat,
-                        onClick = { category = cat },
-                        label = { Text(stringResource(categoryLabelFor(cat))) }
-                    )
-                }
+                FilterChip(
+                    selected = category == ShellChestTab.ANIMALS,
+                    onClick = { category = ShellChestTab.ANIMALS },
+                    label = { Text("Animals") }
+                )
+                FilterChip(
+                    selected = category == ShellChestTab.ROOM_OBJECTS,
+                    onClick = { category = ShellChestTab.ROOM_OBJECTS },
+                    label = { Text("Room Objects") }
+                )
             }
         }
 
@@ -3373,18 +3433,64 @@ private fun DrawScope.drawZoneAnimals(
     whaleLoop: Float
 ) {
     zone.animals.forEach { animal ->
-        val accentCount = animal.formCounts.filter { it.formStageId != null && !it.formStageId.endsWith("_base") }.sumOf { it.count }
+        val accentCount = animal.levelCounts.filter { (it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 1) > 1 }.sumOf { it.count }
+        val visualScale = CreatureEconomy.animalVisualScale(animal.findId, animal.highestLevel)
         when (animal.findId) {
-            ShellContentCatalog.FOCUS_MINNOW -> drawMinnowSchool(animal.totalCount, accentCount, scheme, drift)
-            ShellContentCatalog.FOCUS_SEAHORSE -> drawSeahorseColony(animal.totalCount, accentCount, scheme, drift)
-            ShellContentCatalog.FOCUS_OCTOPUS -> drawHiddenOctopus(accentCount, scheme, drift)
-            ShellContentCatalog.FOCUS_MANTA -> drawMantaGlides(animal.totalCount, accentCount, scheme, drift, mantaLoop)
-            ShellContentCatalog.FOCUS_WHALE -> drawWhalePasses(animal.totalCount, accentCount, scheme, drift, whaleLoop)
+            ShellContentCatalog.FOCUS_MINNOW -> drawMinnowSchool(animal.totalCount, accentCount, scheme, drift, visualScale)
+            ShellContentCatalog.FOCUS_SEAHORSE -> drawSeahorseColony(animal.totalCount, accentCount, scheme, drift, visualScale)
+            ShellContentCatalog.FOCUS_OCTOPUS -> drawHiddenOctopus(accentCount + 1, scheme, drift)
+            ShellContentCatalog.FOCUS_MANTA -> drawMantaGlides(animal.totalCount, accentCount, scheme, drift, mantaLoop, visualScale)
+            ShellContentCatalog.FOCUS_WHALE -> drawWhalePasses(animal.totalCount, accentCount, scheme, drift, whaleLoop, visualScale)
+            else -> drawRenderFamilyCreatures(animal, scheme, drift, mantaLoop, whaleLoop, visualScale)
         }
     }
 }
 
-private fun DrawScope.drawMinnowSchool(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float) {
+
+private fun DrawScope.drawRenderFamilyCreatures(
+    animal: TheBlueAnimalGroupUiModel,
+    scheme: androidx.compose.material3.ColorScheme,
+    drift: Float,
+    mantaLoop: Float,
+    whaleLoop: Float,
+    levelScale: Float
+) {
+    val definition = CreatureCatalog.get(animal.findId) ?: return
+    val visible = representativeVisibleCount(animal.totalCount, maxVisible = 5)
+    repeat(visible) { i ->
+        val progress = ((drift * (0.55f + i * 0.05f)) + i * 0.19f) % 1f
+        val x = offscreenHorizontalPassX(progress, size.width, 82f, 36f, i % 2 == 0)
+        val y = size.height * (0.22f + ((i * 17) % 52) / 100f)
+        val scale = (0.85f + (i % 3) * 0.10f) * levelScale
+        when (definition.renderFamily.key) {
+            "ray" -> drawManta(Offset(x, y), scale * 0.72f, drift + i, false, scheme)
+            "whale" -> drawWhale(Offset(x, y), scale * 0.58f, drift + i, false, scheme)
+            "octopus" -> drawOctopus(Offset(size.width * 0.62f, size.height * 0.72f), drift, false, scheme)
+            else -> drawGenericFish(Offset(x, y), scale, drift + i, scheme, definition.renderFamily.key)
+        }
+    }
+}
+
+private fun DrawScope.drawGenericFish(origin: Offset, scale: Float, drift: Float, scheme: androidx.compose.material3.ColorScheme, familyKey: String) {
+    val ink = when (familyKey) {
+        "jellyfish", "giant_tentacle", "legendary" -> scheme.secondary.copy(alpha = 0.66f)
+        "shark", "orca", "anglerfish" -> scheme.onSurface.copy(alpha = 0.52f)
+        else -> scheme.primary.copy(alpha = 0.60f)
+    }
+    val w = 34f * scale
+    val h = 18f * scale
+    val bob = sin((drift * 6.28f).toDouble()).toFloat() * 5f
+    if (familyKey == "jellyfish") {
+        drawCircle(ink, w * 0.42f, Offset(origin.x, origin.y + bob))
+        repeat(4) { t -> drawLine(ink, Offset(origin.x - w * .30f + t*w*.20f, origin.y + bob + h*.30f), Offset(origin.x - w * .38f + t*w*.22f, origin.y + bob + h*1.4f), strokeWidth = 2.4f * scale) }
+    } else {
+        drawOval(ink, Offset(origin.x - w * 0.50f, origin.y - h * 0.50f + bob), Size(w, h))
+        drawPath(Path().apply { moveTo(origin.x - w*.50f, origin.y + bob); lineTo(origin.x - w*.82f, origin.y - h*.50f + bob); lineTo(origin.x - w*.82f, origin.y + h*.50f + bob); close() }, ink)
+        drawPath(Path().apply { moveTo(origin.x, origin.y - h*.48f + bob); lineTo(origin.x + w*.12f, origin.y - h*1.05f + bob); lineTo(origin.x + w*.22f, origin.y - h*.35f + bob); close() }, scheme.secondary.copy(alpha = 0.38f))
+    }
+}
+
+private fun DrawScope.drawMinnowSchool(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float, levelScale: Float = 1f) {
     val visible = representativeVisibleCount(count, maxVisible = 12)
     repeat(visible) { i ->
         val group = i / 4
@@ -3392,17 +3498,17 @@ private fun DrawScope.drawMinnowSchool(count: Int, accentCount: Int, scheme: and
         val wiggle = sin((drift * 18f + i).toDouble()).toFloat()
         val x = progress * (size.width + 140f) - 70f
         val y = size.height * (0.34f + group * 0.12f) + (i % 4) * 20f + wiggle * 8f
-        drawMinnow(Offset(x, y), 1f + (i % 3) * 0.08f, wiggle, i < accentCount.coerceAtMost(visible), scheme)
+        drawMinnow(Offset(x, y), (1f + (i % 3) * 0.08f) * levelScale, wiggle, i < accentCount.coerceAtMost(visible), scheme)
     }
 }
 
-private fun DrawScope.drawSeahorseColony(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float) {
+private fun DrawScope.drawSeahorseColony(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float, levelScale: Float = 1f) {
     val visible = representativeVisibleCount(count, maxVisible = 6)
     repeat(visible) { i ->
         val bob = sin((drift * 6.28f + i * 0.9f).toDouble()).toFloat()
         val x = size.width * (0.22f + (i % 3) * 0.16f)
         val y = size.height * (0.46f + (i / 3) * 0.16f) + bob * 14f
-        drawSeahorse(Offset(x, y), 1f + (i % 2) * 0.08f, bob, i < accentCount.coerceAtMost(visible), scheme)
+        drawSeahorse(Offset(x, y), (1f + (i % 2) * 0.08f) * levelScale, bob, i < accentCount.coerceAtMost(visible), scheme)
     }
 }
 
@@ -3623,6 +3729,8 @@ private fun DrawScope.drawRoundRockColumn(x: Float, top: Float, bottom: Float, w
 
 
 @Composable
+private fun formatMinutesCompact(minutes: Int): String = if (minutes % 60 == 0) "${minutes / 60}h" else "${minutes}m"
+
 private fun TheBlueAnimalDetailSheet(
     animal: TheBlueAnimalGroupUiModel,
     focusSlotId: String?,
@@ -3657,15 +3765,20 @@ private fun TheBlueAnimalDetailSheet(
             )
             Text(source)
 
-            Text(stringResource(R.string.the_blue_forms), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            if (animal.formCounts.isEmpty()) {
-                Text(stringResource(R.string.the_blue_forms_unavailable))
-            } else if (animal.formCounts.size == 1 && animal.formCounts.first().formStageId == null) {
-                Text(stringResource(R.string.the_blue_all_first_form, name))
+            Text("Swimming now: ${animal.totalCount}")
+            Text("Lifetime encountered: ${animal.lifetimeEncounteredCount}")
+            if (animal.releasedCount > 0) Text("Released: ${animal.releasedCount}")
+            if (animal.usedBeyondBlueCount > 0) Text("Used Beyond Blue: ${animal.usedBeyondBlueCount}")
+            Text("Highest level: Level ${animal.highestLevel}")
+            animal.flowTimeValueMinutes?.let { Text("Flow Time Value: ${formatMinutesCompact(it)} each") }
+            animal.releaseValuePearls?.let { Text("Release value: $it Pearls each") }
+
+            Text("Levels", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            if (animal.levelCounts.isEmpty()) {
+                Text("Level information is not available yet.")
             } else {
-                animal.formCounts
-                    .sortedBy { form -> form.formStageId?.let { id -> ShellContentCatalog.upgradesFor(animal.findId).firstOrNull { stage -> stage.upgradeStageId == id }?.orderIndex } ?: 0 }
-                    .forEach { form -> Text(stringResource(R.string.the_blue_form_count, formName(animal.findId, form.formStageId), form.count)) }
+                animal.levelCounts.sortedBy { it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 0 }
+                    .forEach { level -> Text("${level.formStageId} ×${level.count}") }
             }
 
             Text(stringResource(R.string.the_blue_displayed_in_focus_heading), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -3674,6 +3787,7 @@ private fun TheBlueAnimalDetailSheet(
             Text(animal.restingCount.toString())
 
             Text(stringResource(R.string.the_blue_actions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Grow with Pearls · Encounter Beyond the Blue · Release for Pearls")
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {

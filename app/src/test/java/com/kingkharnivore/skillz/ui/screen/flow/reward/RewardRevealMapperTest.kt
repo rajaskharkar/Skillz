@@ -112,7 +112,7 @@ class RewardRevealMapperTest {
     }
 
     @Test
-    fun duplicateTrinketsAndBadgesAreGrouped() {
+    fun trinketsAreHiddenWhileBadgesAreGrouped() {
         val cards = buildSessionRewardCards(
             reward = reward(
                 shellGrantedFindIds = listOf(
@@ -130,7 +130,7 @@ class RewardRevealMapperTest {
             discoveryTitle = ::discoveryTitle
         )
 
-        assertTrue(cards.any { it.type == RewardRevealCardType.TRINKET && it.body?.contains("Seaglass ×2") == true })
+        assertFalse(cards.any { it.type == RewardRevealCardType.TRINKET })
         assertTrue(cards.any { it.type == RewardRevealCardType.BADGE && it.title == "Badges updated" })
     }
 
@@ -225,13 +225,12 @@ class RewardRevealMapperTest {
         )
 
         assertEquals("Resting in the Shell Chest.", cards.first { it.type == RewardRevealCardType.ARC_OBJECTS }.destinationHint)
-        assertEquals("Resting in the Shell Chest.", cards.first { it.type == RewardRevealCardType.ARC_TRINKETS }.destinationHint)
+        assertFalse(cards.any { it.type == RewardRevealCardType.ARC_TRINKETS })
         assertEquals("Recorded in Badges.", cards.first { it.type == RewardRevealCardType.ARC_BADGES }.destinationHint)
         assertEquals("Recorded in the Discovery Journal.", cards.first { it.type == RewardRevealCardType.ARC_DISCOVERIES }.destinationHint)
         assertEquals("View in Stillwater Room.", cards.first { it.type == RewardRevealCardType.ARC_STILLWATER }.destinationHint)
         assertTrue(cards.filter { it.type != RewardRevealCardType.ARC_ANIMALS }.all { it.destinationHint != "View later in The Blue." })
         assertTrue(cards.first { it.type == RewardRevealCardType.ARC_BADGES }.body.orEmpty().contains("10-minute Flow ×3"))
-        assertTrue(cards.first { it.type == RewardRevealCardType.ARC_TRINKETS }.body.orEmpty().contains("Seaglass ×2"))
         assertTrue(cards.first { it.type == RewardRevealCardType.ARC_DISCOVERIES }.body.orEmpty().contains("Octopus ×1"))
     }
 

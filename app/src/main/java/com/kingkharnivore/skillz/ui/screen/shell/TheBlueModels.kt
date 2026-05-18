@@ -5,6 +5,8 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEn
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
+import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
+import com.kingkharnivore.skillz.domain.shell.CreatureStatus
 
 enum class TheBlueZoneId { SUNLIT_REEF, DEEPER_REEF, OPEN_BLUE, GREAT_BLUE }
 
@@ -22,7 +24,14 @@ data class TheBlueAnimalGroupUiModel(
     val bestFormStageId: String?,
     val formCounts: List<FormCountUiModel>,
     val iconKey: String?,
-    val isNew: Boolean
+    val isNew: Boolean,
+    val lifetimeEncounteredCount: Int = totalCount,
+    val releasedCount: Int = 0,
+    val usedBeyondBlueCount: Int = 0,
+    val highestLevel: Int = 1,
+    val levelCounts: List<FormCountUiModel> = formCounts,
+    val flowTimeValueMinutes: Int? = null,
+    val releaseValuePearls: Int? = null
 )
 
 data class TheBlueZoneUiModel(
@@ -60,15 +69,18 @@ internal fun buildTheBlueUiState(
         .map { it.instanceId }
         .toSet()
 
-    val animalFinds = finds.filter { instance ->
+    val allAnimalFinds = finds.filter { instance ->
         ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL
     }
+    val animalFinds = allAnimalFinds.filter { it.creatureStatus == CreatureStatus.ACTIVE }
 
+    val historicalByFindId = allAnimalFinds.groupBy { it.findId }
     val groups = animalFinds
         .groupBy { it.findId }
         .mapNotNull { (findId, instances) ->
             val definition = ShellContentCatalog.find(findId) ?: return@mapNotNull null
             val zoneId = zoneForFind(findId) ?: return@mapNotNull null
+            val historicalInstances = historicalByFindId[findId].orEmpty()
             val displayedCount = instances.count { it.instanceId in displayedIds }
             val formCounts = instances
                 .groupingBy { it.currentUpgradeStageId }
@@ -84,7 +96,16 @@ internal fun buildTheBlueUiState(
                 bestFormStageId = instances.maxByOrNull { formOrder(findId, it.currentUpgradeStageId) }?.currentUpgradeStageId,
                 formCounts = formCounts,
                 iconKey = definition.iconKey,
-                isNew = instances.any { it.isNew }
+                isNew = instances.any { it.isNew },
+                lifetimeEncounteredCount = historicalInstances.size,
+                releasedCount = historicalInstances.count { it.creatureStatus == CreatureStatus.RELEASED },
+                usedBeyondBlueCount = historicalInstances.count { it.creatureStatus == CreatureStatus.USED_BEYOND_BLUE },
+                highestLevel = instances.maxOfOrNull { it.animalLevel.coerceAtLeast(1) } ?: 1,
+                levelCounts = instances.groupingBy { it.animalLevel.coerceAtLeast(1) }.eachCount()
+                    .map { (level, count) -> FormCountUiModel("Level $level", count) }
+                    .sortedByDescending { it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 0 },
+                flowTimeValueMinutes = CreatureCatalog.get(findId)?.flowTimeValueMinutes ?: CreatureCatalog.get(findId)?.requirementMinutes,
+                releaseValuePearls = CreatureCatalog.get(findId)?.let { it.flowTimeValueMinutes ?: it.requirementMinutes }
             )
         }
         .sortedWith(compareBy<TheBlueAnimalGroupUiModel> { it.zoneId.depthOrder() }.thenBy { it.findId })

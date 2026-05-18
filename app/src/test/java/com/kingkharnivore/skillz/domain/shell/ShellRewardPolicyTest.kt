@@ -11,11 +11,11 @@ class ShellRewardPolicyTest {
     fun milestoneFindsScaleByRegularFlowDuration() {
         assertEquals(listOf(ShellContentCatalog.FOCUS_MINNOW), ShellRewardPolicy.milestoneFindsForMinutes(10))
         assertEquals(
-            listOf(ShellContentCatalog.FOCUS_MINNOW, ShellContentCatalog.FOCUS_SEAHORSE),
+            listOf(ShellContentCatalog.FOCUS_SEAHORSE),
             ShellRewardPolicy.milestoneFindsForMinutes(30)
         )
-        assertTrue(ShellRewardPolicy.milestoneFindsForMinutes(60).contains(ShellContentCatalog.FOCUS_MANTA))
-        assertTrue(ShellRewardPolicy.milestoneFindsForMinutes(120).contains(ShellContentCatalog.FOCUS_WHALE))
+        assertEquals(listOf(ShellContentCatalog.FOCUS_MANTA), ShellRewardPolicy.milestoneFindsForMinutes(60))
+        assertEquals(listOf(ShellContentCatalog.FOCUS_WHALE), ShellRewardPolicy.milestoneFindsForMinutes(120))
     }
 
     @Test

@@ -28,7 +28,11 @@ data class UserShellFindInstanceEntity(
     val currentUpgradeStageId: String?,
     val customName: String?,
     val isNew: Boolean,
-    val isArchivedInChest: Boolean
+    val isArchivedInChest: Boolean,
+    val animalLevel: Int = 1,
+    val creatureStatus: String = "ACTIVE",
+    val creatureSource: String? = null,
+    val flowTimeValueMinutes: Int? = null
 )
 
 @Entity(tableName = "user_shell_find_stack")
