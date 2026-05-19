@@ -230,7 +230,6 @@ fun buildArcSummaryRewardCards(
     cards += aggregateCountCard("arc-animals", RewardRevealCardType.ARC_ANIMALS, text.arcAnimalsTitle(), shell.animals, text.flowMilestonesAcrossArc(), text.theBlueHint(), "animal", text, findTitle)
     cards += aggregateCountCard("arc-discoveries", RewardRevealCardType.ARC_DISCOVERIES, text.arcDiscoveriesTitle(), shell.discoveries, text.recordedInJournal(), text.discoveryJournalHint(), "discovery", text, discoveryTitle)
     cards += aggregateCountCard("arc-objects", RewardRevealCardType.ARC_OBJECTS, text.arcObjectsTitle(), shell.objects, text.foundAcrossArc(), text.shellChestHint(), "object", text, findTitle)
-    cards += aggregateCountCard("arc-trinkets", RewardRevealCardType.ARC_TRINKETS, text.arcTrinketsTitle(), shell.trinkets, text.trinketReason(), text.shellChestHint(), "trinket", text, findTitle)
     cards += aggregateCountCard("arc-badges", RewardRevealCardType.ARC_BADGES, text.arcBadgesTitle(), shell.badges, text.recordsUpdatedAcrossArc(), text.badgesHint(), "badge", text, badgeTitle)
 
     if (shell.stillwaterAdded > 0L) {
@@ -316,8 +315,6 @@ private fun buildShellRewardCards(
 ): List<RewardRevealCardUiModel> {
     val cards = mutableListOf<RewardRevealCardUiModel>()
     val findCounts = reward.shellGrantedFindIds.groupingBy { it }.eachCount()
-    val trinkets = findCounts.filterKeys { ShellContentCatalog.find(it)?.kind == ShellRewardKind.TRINKET }
-
     findCounts.filterKeys { ShellContentCatalog.find(it)?.kind != ShellRewardKind.TRINKET }.forEach { (findId, count) ->
         val def = ShellContentCatalog.find(findId)
         val name = findTitle(findId) ?: text.shellRewardRecordedTitle()
@@ -359,20 +356,8 @@ private fun buildShellRewardCards(
         }
     }
 
-    if (trinkets.isNotEmpty()) {
-        val lines = trinkets.map { (findId, count) -> text.itemCount(findTitle(findId) ?: text.shellRewardRecordedTitle(), count) }
-        cards += RewardRevealCardUiModel(
-            id = "trinkets",
-            type = RewardRevealCardType.TRINKET,
-            title = if (trinkets.size == 1 && trinkets.values.first() == 1) text.trinketTitle(findTitle(trinkets.keys.first()) ?: text.shellRewardRecordedTitle()) else text.groupedTrinketsTitle(),
-            subtitle = text.trinketChip(),
-            body = lines.joinToString("\n") + "\n" + text.trinketReason(),
-            chip = text.trinketChip(),
-            destinationHint = text.shellChestHint(),
-            contentDescription = (listOf(text.groupedTrinketsTitle()) + lines + listOf(text.trinketReason(), text.shellChestHint())).joinToString(". "),
-            animationStyle = RewardRevealAnimationStyle.OBJECT_PLACE
-        )
-    }
+    // Trinkets are no longer user-facing Shell rewards. Existing inert data is intentionally hidden.
+
 
     reward.shellDiscoveryIds.distinct().forEach { discoveryId ->
         val name = discoveryTitle(discoveryId) ?: text.shellRewardRecordedTitle()

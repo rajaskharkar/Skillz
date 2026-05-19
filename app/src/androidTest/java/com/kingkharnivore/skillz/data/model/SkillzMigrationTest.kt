@@ -88,6 +88,34 @@ class SkillzMigrationTest {
         assertEquals(0, db.countRows("shell_placement", "roomId = ?", arrayOf(encodedTheBlueRoomImportKey())))
     }
 
+
+    @Test
+    fun migration16To17AddsCreatureEconomyFieldsSafely() {
+        helper.createDatabase(TEST_DB, 16).apply {
+            createVersion13CoreTables()
+            SkillzDatabaseMigrations.MIGRATION_13_14.migrate(this)
+            SkillzDatabaseMigrations.MIGRATION_14_15.migrate(this)
+            SkillzDatabaseMigrations.MIGRATION_15_16.migrate(this)
+            execSQL(
+                "INSERT INTO `user_shell_find_instance` (`instanceId`, `findId`, `acquiredAt`, `sourceType`, `sourceId`, `currentUpgradeStageId`, `customName`, `isNew`, `isArchivedInChest`) VALUES ('animal-1', 'focus_minnow', 1, 'session', '1', NULL, NULL, 1, 1)"
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            TEST_DB,
+            17,
+            true,
+            SkillzDatabaseMigrations.MIGRATION_16_17
+        )
+
+        db.query("SELECT `animalLevel`, `creatureStatus` FROM `user_shell_find_instance` WHERE `instanceId` = 'animal-1'").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(1, cursor.getInt(0))
+            assertEquals("ACTIVE", cursor.getString(1))
+        }
+    }
+
     @Test
     fun allMigrationsIncludeDirectLegacyAnd13To14Paths() {
         assertTrue(
