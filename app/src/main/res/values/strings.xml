@@ -967,12 +967,12 @@
     <string name="the_blue_zone_waiting">Quiet water is waiting here.</string>
     <string name="the_blue_animal_count">%1$s ×%2$d</string>
     <string name="the_blue_animal_zone">Animal · %1$s</string>
-    <string name="the_blue_discovery_animal_zone">Discovery Animal · %1$s</string>
-    <string name="the_blue_best_form">Best form: %1$s</string>
+    <string name="the_blue_discovery_animal_zone">Animal · %1$s</string>
+    <string name="the_blue_best_form">Highest level: %1$s</string>
     <string name="the_blue_displayed_in_focus">Displayed in Focus: %1$d</string>
     <string name="the_blue_swimming_here">Swimming here: %1$d</string>
     <string name="the_blue_resting_in_chest">Resting in Shell Chest: %1$d</string>
-    <string name="the_blue_forms">Forms</string>
+    <string name="the_blue_forms">Levels</string>
     <string name="the_blue_form_count">%1$s ×%2$d</string>
     <string name="the_blue_displayed_in_focus_heading">Displayed in Focus</string>
     <string name="the_blue_resting_in_chest_heading">Resting in Shell Chest</string>
@@ -981,13 +981,13 @@
     <string name="the_blue_view_in_chest">View in Shell Chest</string>
     <string name="the_blue_no_focus_slot">No open Focus nook right now. Return something from Focus to display a %1$s.</string>
     <string name="the_blue_no_resting_copy">No resting copy is available in the Shell Chest.</string>
-    <string name="the_blue_all_first_form">All %1$s are in their first form.</string>
-    <string name="the_blue_forms_unavailable">Form information is not available yet.</string>
+    <string name="the_blue_all_first_form">All %1$s are Level 1.</string>
+    <string name="the_blue_forms_unavailable">Level information is not available yet.</string>
     <string name="the_blue_source_minnow">From regular Flows lasting 10 minutes or more.</string>
     <string name="the_blue_source_seahorse">From regular Flows lasting 30 minutes or more.</string>
     <string name="the_blue_source_manta">From regular Flows lasting 1 hour or more.</string>
     <string name="the_blue_source_whale">From regular Flows lasting 2 hours or more.</string>
-    <string name="the_blue_source_octopus">Discovered after 3 regular Flows lasting 30 minutes or more.</string>
+    <string name="the_blue_source_octopus">Encountered beyond The Blue and now hiding in the Deeper Reef.</string>
     <string name="the_blue_encountered_minnow">Encountered through regular Flows lasting 10 minutes or more.</string>
     <string name="the_blue_encountered_seahorse">Encountered through regular Flows lasting 30 minutes or more.</string>
     <string name="the_blue_encountered_manta">Encountered through regular Flows lasting 1 hour or more.</string>
@@ -1093,7 +1093,7 @@
     <string name="shell_find_whale_title">Whale</string>
     <string name="shell_find_whale_description">Encountered in the Great Blue after a regular Flow lasting 2 hours or more.</string>
     <string name="shell_find_octopus_title">Octopus</string>
-    <string name="shell_find_octopus_description">Discovered after 3 regular Flows lasting 30 minutes or more.</string>
+    <string name="shell_find_octopus_description">Encountered beyond The Blue and now hiding in the Deeper Reef.</string>
     <string name="shell_find_pebble_title">Pebble</string>
     <string name="shell_find_pebble_description">Found after you returned to regular Flow.</string>
     <string name="shell_find_sea_glass_title">Seaglass</string>
@@ -1154,8 +1154,8 @@
     <string name="shell_discovery_sea_glass_explanation">Found through regular Flow activity.</string>
     <string name="shell_discovery_glimmer_reveal">Glimmers were found through regular Flow activity.</string>
     <string name="shell_discovery_glimmer_explanation">Found through regular Flow activity.</string>
-    <string name="shell_discovery_octopus_reveal">An Octopus appeared near the Focus Room.</string>
-    <string name="shell_discovery_octopus_explanation">Discovered after 3 regular Flows lasting 30 minutes or more.</string>
+    <string name="shell_discovery_octopus_reveal">A Shell discovery is ready to view.</string>
+    <string name="shell_discovery_octopus_explanation">Encountered beyond The Blue and now hiding in the Deeper Reef.</string>
     <string name="shell_discovery_pebble_reveal">A Pebble found its way into The Shell.</string>
     <string name="shell_discovery_pebble_explanation">Found after you returned to regular Flow.</string>
 
@@ -1222,7 +1222,7 @@
     <string name="shell_stillwater_same_water">Same Stillwater, different view.</string>
 
 
-    <string name="shell_whisper_new_discovery">Octopus discovered after 3 regular Flows lasting 30 minutes or more.</string>
+    <string name="shell_whisper_new_discovery">A Shell discovery is ready to view.</string>
     <string name="shell_whisper_upgrade_ready">%1$s can brighten — you have enough Pearls.</string>
     <string name="shell_whisper_chest_waiting">%1$d things are resting in the Shell Chest.</string>
     <string name="shell_whisper_empty_focus">Focus has empty nooks.</string>
@@ -1252,7 +1252,7 @@
     <string name="shell_status_displayed_focus">Displayed in Focus</string>
     <string name="shell_status_resting">Resting in the Shell Chest</string>
     <string name="shell_chest_group_title">%1$s ×%2$d</string>
-    <string name="shell_chest_group_status">%4$s · Best form: %1$s · Displayed %2$d · Resting %3$d.</string>
+    <string name="shell_chest_group_status">%4$s · Highest level: %1$s · Displayed %2$d · Resting %3$d.</string>
     <string name="shell_chest_group_a11y">%1$s. Owned: %2$d. Displayed: %3$d. Resting in Chest: %4$d.</string>
     <string name="shell_choose_something_to_swap">Choose something to swap.</string>
     <string name="shell_swap_with">Swap with %1$s</string>
@@ -1285,10 +1285,10 @@
     <string name="shell_invite_confirm_cta">Invite with %1$d Pearls</string>
     <string name="shell_let_rest_in_chest">Let rest in Chest</string>
     <string name="shell_display_in_focus">Display in Focus</string>
-    <string name="shell_animal_no_more_forms">This Animal is resting in its current form.</string>
+    <string name="shell_animal_no_more_forms">This Animal is resting at its current Level.</string>
     <string name="shell_object_no_more_forms">This Object is resting in its current form.</string>
     <string name="shell_reward_no_more_forms">This reward is resting in its current form.</string>
-    <string name="shell_upgrade_animal_a11y">Brighten this animal with Pearls</string>
+    <string name="shell_upgrade_animal_a11y">Grow this animal with Pearls</string>
     <string name="shell_upgrade_object_a11y">Shape this object with Pearls</string>
     <string name="shell_upgrade_reward_a11y">Shape this reward with Pearls</string>
     <string name="shell_cancel">Cancel</string>
@@ -1328,11 +1328,11 @@
     <string name="reward_card_animal_reason_seahorse">From a regular Flow lasting 30 minutes or more.</string>
     <string name="reward_card_animal_reason_manta">From a regular Flow lasting 1 hour or more.</string>
     <string name="reward_card_animal_reason_whale">From a regular Flow lasting 2 hours or more.</string>
-    <string name="reward_card_animal_reason_octopus">Discovered after 3 regular Flows lasting 30 minutes or more.</string>
+    <string name="reward_card_animal_reason_octopus">Encountered beyond The Blue and now hiding in the Deeper Reef.</string>
     <string name="reward_card_object_reason_pebble">Found after you returned to regular Flow.</string>
     <string name="reward_card_object_reason_default">Found after you returned to regular Flow.</string>
     <string name="reward_card_trinket_reason_default">Found through regular Flow activity.</string>
-    <string name="reward_card_discovery_reason_octopus">Discovered after 3 regular Flows lasting 30 minutes or more.</string>
+    <string name="reward_card_discovery_reason_octopus">Encountered beyond The Blue and now hiding in the Deeper Reef.</string>
     <string name="reward_card_discovery_reason_pebble">Discovered after returning to regular Flow.</string>
     <string name="reward_card_discovery_reason_sea_glass">Discovered through regular Flow activity.</string>
     <string name="reward_card_discovery_reason_glimmer">Discovered through regular Flow activity.</string>

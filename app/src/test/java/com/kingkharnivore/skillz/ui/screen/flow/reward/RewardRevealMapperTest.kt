@@ -356,7 +356,7 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun animalReason(findId: String) = "From a regular Flow lasting 10 minutes or more."
     override fun objectReason(findId: String) = "Found after you returned to regular Flow."
     override fun trinketReason() = "Found through regular Flow activity."
-    override fun discoveryReason(discoveryId: String) = "Discovered after 3 regular Flows lasting 30 minutes or more."
+    override fun discoveryReason(discoveryId: String) = "Encountered beyond The Blue."
     override fun badgeReason(badgeId: String) = "Earned each time a regular Flow lasts 30 minutes or more."
     override fun theBlueHint() = "View later in The Blue."
     override fun stillwaterHint() = "View in Stillwater Room."

@@ -4,6 +4,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.ShellPlacementEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
+import com.kingkharnivore.skillz.domain.shell.CreatureStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -50,6 +51,27 @@ class TheBlueUiModelTest {
         assertFalse(state.zones.any { zone -> zone.animals.any { it.findId == ShellContentCatalog.TRINKET_SEA_GLASS_SHARD } })
     }
 
+
+    @Test
+    fun releasedAndUsedCreaturesAreHistoricalButNotActiveInTheBlue() {
+        val state = buildTheBlueUiState(
+            finds = listOf(
+                find("manta-active", ShellContentCatalog.FOCUS_MANTA, level = 2),
+                find("manta-released", ShellContentCatalog.FOCUS_MANTA, status = CreatureStatus.RELEASED, level = 8),
+                find("manta-used", ShellContentCatalog.FOCUS_MANTA, status = CreatureStatus.USED_BEYOND_BLUE, level = 4)
+            ),
+            focusPlacements = listOf(placement("manta-active"))
+        )
+
+        val manta = state.zones.single { it.zoneId == TheBlueZoneId.OPEN_BLUE }.animals.single()
+        assertEquals(1, manta.totalCount)
+        assertEquals(3, manta.lifetimeEncounteredCount)
+        assertEquals(1, manta.releasedCount)
+        assertEquals(1, manta.usedBeyondBlueCount)
+        assertEquals(2, manta.highestLevel)
+        assertEquals("manta-active", manta.firstActiveInstanceId)
+        assertEquals("manta-active", manta.highestLevelActiveInstanceId)
+    }
 
     @Test
     fun markingTheBlueAnimalsSeenClearsOnlyAnimalNewFlags() {
@@ -164,7 +186,9 @@ class TheBlueUiModelTest {
         instanceId: String,
         findId: String,
         stage: String? = null,
-        isNew: Boolean = false
+        isNew: Boolean = false,
+        status: String = CreatureStatus.ACTIVE,
+        level: Int = 1
     ) = UserShellFindInstanceEntity(
         instanceId = instanceId,
         findId = findId,
@@ -174,7 +198,9 @@ class TheBlueUiModelTest {
         currentUpgradeStageId = stage,
         customName = null,
         isNew = isNew,
-        isArchivedInChest = false
+        isArchivedInChest = false,
+        animalLevel = level,
+        creatureStatus = status
     )
 
     private fun placement(instanceId: String) = ShellPlacementEntity(

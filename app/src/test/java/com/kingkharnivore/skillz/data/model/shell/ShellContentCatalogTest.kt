@@ -73,8 +73,8 @@ class ShellContentCatalogTest {
     }
 
     @Test
-    fun discoveriesMapToOctopusAndPebble() {
-        assertEquals(ShellContentCatalog.FOCUS_OCTOPUS, ShellContentCatalog.discovery("discovery_octopus")?.grantsFindId)
+    fun discoveriesDoNotGrantBeyondBlueOctopus() {
+        assertNull(ShellContentCatalog.discovery("discovery_octopus")?.grantsFindId)
         assertEquals(ShellContentCatalog.FOCUS_PEBBLE, ShellContentCatalog.discovery("discovery_pebble")?.grantsFindId)
     }
     @Test

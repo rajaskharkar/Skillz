@@ -31,7 +31,10 @@ data class TheBlueAnimalGroupUiModel(
     val highestLevel: Int = 1,
     val levelCounts: List<FormCountUiModel> = formCounts,
     val flowTimeValueMinutes: Int? = null,
-    val releaseValuePearls: Int? = null
+    val releaseValuePearls: Int? = null,
+    val firstActiveInstanceId: String? = null,
+    val firstRestingInstanceId: String? = null,
+    val highestLevelActiveInstanceId: String? = null
 )
 
 data class TheBlueZoneUiModel(
@@ -82,6 +85,10 @@ internal fun buildTheBlueUiState(
             val zoneId = zoneForFind(findId) ?: return@mapNotNull null
             val historicalInstances = historicalByFindId[findId].orEmpty()
             val displayedCount = instances.count { it.instanceId in displayedIds }
+            val restingInstances = instances.filter { it.instanceId !in displayedIds }
+            val highestLevelInstance = instances.maxWithOrNull(
+                compareBy<UserShellFindInstanceEntity> { it.animalLevel.coerceAtLeast(1) }.thenBy { it.acquiredAt }
+            )
             val formCounts = instances
                 .groupingBy { it.currentUpgradeStageId }
                 .eachCount()
@@ -105,7 +112,10 @@ internal fun buildTheBlueUiState(
                     .map { (level, count) -> FormCountUiModel("Level $level", count) }
                     .sortedByDescending { it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 0 },
                 flowTimeValueMinutes = CreatureCatalog.get(findId)?.flowTimeValueMinutes ?: CreatureCatalog.get(findId)?.requirementMinutes,
-                releaseValuePearls = CreatureCatalog.get(findId)?.let { it.flowTimeValueMinutes ?: it.requirementMinutes }
+                releaseValuePearls = CreatureCatalog.get(findId)?.let { it.flowTimeValueMinutes ?: it.requirementMinutes },
+                firstActiveInstanceId = instances.firstOrNull()?.instanceId,
+                firstRestingInstanceId = restingInstances.firstOrNull()?.instanceId,
+                highestLevelActiveInstanceId = highestLevelInstance?.instanceId
             )
         }
         .sortedWith(compareBy<TheBlueAnimalGroupUiModel> { it.zoneId.depthOrder() }.thenBy { it.findId })

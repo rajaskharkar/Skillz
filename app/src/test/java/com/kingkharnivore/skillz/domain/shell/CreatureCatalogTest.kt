@@ -26,4 +26,13 @@ class CreatureCatalogTest {
         val banned = setOf("Anchovy", "Sardine", "Salmon", "Tuna", "Mackerel", "Crab", "Lobster", "Shrimp", "Goldfish", "Betta", "Narwhal", "False Killer Whale", "Basking Shark", "Greenland Shark", "Whale Shark", "Deep-Sea Anglerfish")
         assertTrue(CreatureCatalog.all.none { it.displayName in banned })
     }
+
+    @Test
+    fun octopusIsBeyondBlueCreatureInDeeperReef() {
+        val octopus = CreatureCatalog.require(com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog.FOCUS_OCTOPUS)
+
+        assertEquals(CreatureSourceType.BEYOND_BLUE, octopus.sourceType)
+        assertEquals(CreatureZone.DEEPER_REEF, octopus.zone)
+        assertEquals(480, octopus.requirementMinutes)
+    }
 }

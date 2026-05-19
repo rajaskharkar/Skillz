@@ -1,13 +1,11 @@
 package com.kingkharnivore.skillz.domain.shell
 
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
-import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.repository.shell.ShellRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val MILLIS_PER_MINUTE = 60_000L
-private const val RETURN_GAP_MS = 7L * 24L * 60L * 60L * 1000L
 
 data class ShellRewardResult(
     val pearlsEarned: Int = 0,
@@ -18,11 +16,6 @@ data class ShellRewardResult(
 )
 
 object ShellRewardPolicy {
-    const val OCTOPUS_DISCOVERY_BADGE_COUNT = 3
-
-    fun shouldDiscoverOctopus(minutes: Int, flow30BadgeCount: Int): Boolean =
-        minutes >= 30 && flow30BadgeCount == OCTOPUS_DISCOVERY_BADGE_COUNT
-
     fun milestoneFindsForMinutes(minutes: Int): List<String> =
         CreatureEconomy.creaturesForRegularFlowMinutes(minutes).flatMap { reward ->
             List(reward.quantity) { reward.creatureId }

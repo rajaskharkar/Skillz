@@ -215,7 +215,7 @@ object ShellContentCatalog {
     val discoveries = listOf(
         DiscoveryDefinition("discovery_sea_glass_shard", R.string.shell_find_sea_glass_title, R.string.shell_discovery_sea_glass_reveal, R.string.shell_discovery_sea_glass_explanation, null, TRINKET_SEA_GLASS_SHARD, "sea_glass", false),
         DiscoveryDefinition("discovery_glimmer", R.string.shell_find_glimmer_title, R.string.shell_discovery_glimmer_reveal, R.string.shell_discovery_glimmer_explanation, null, TRINKET_GLIMMER, "glimmer", false),
-        DiscoveryDefinition("discovery_octopus", R.string.shell_find_octopus_title, R.string.shell_discovery_octopus_reveal, R.string.shell_discovery_octopus_explanation, ShellRoomId.FOCUS, FOCUS_OCTOPUS, "octopus", true),
+        DiscoveryDefinition("discovery_octopus", R.string.shell_find_octopus_title, R.string.shell_discovery_octopus_reveal, R.string.shell_discovery_octopus_explanation, null, null, "octopus", true),
         DiscoveryDefinition("discovery_pebble", R.string.shell_find_pebble_title, R.string.shell_discovery_pebble_reveal, R.string.shell_discovery_pebble_explanation, ShellRoomId.FOCUS, FOCUS_PEBBLE, "pebble", true)
     )
 
