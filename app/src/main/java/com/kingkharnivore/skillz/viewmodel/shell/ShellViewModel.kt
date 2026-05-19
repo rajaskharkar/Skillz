@@ -138,12 +138,7 @@ class ShellViewModel @Inject constructor(
                 val definition = CreatureCatalog.get(creature.findId)
                 val name = definition?.displayName ?: "A new creature"
                 val zone = definition?.zone?.displayName ?: "The Blue"
-                _events.emit(
-                    when {
-                        selectedInstanceIds.isEmpty() -> "$name entered the $zone."
-                        else -> "$name entered the $zone. Selected creatures left The Blue. Your lifetime record remains."
-                    }
-                )
+                _events.emit("$name entered the $zone.")
             }
             .onFailure { _events.emit(it.message ?: "Could not encounter that creature.") }
     }

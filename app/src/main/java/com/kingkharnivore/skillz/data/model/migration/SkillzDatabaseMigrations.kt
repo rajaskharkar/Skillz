@@ -48,9 +48,37 @@ object SkillzDatabaseMigrations {
         }
     }
 
-    val ALL_MIGRATIONS: Array<Migration> =
-        LEGACY_TO_15_MIGRATIONS + MIGRATION_13_14 + MIGRATION_14_15 + MIGRATION_15_16 + MIGRATION_16_17
+    val MIGRATION_17_18 = object : Migration(17, 18) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // No schema-op migration.
+            //
+            // Database version was bumped from 17 to 18, but the current entity
+            // schema shown here does not require any additional table/column changes
+            // beyond MIGRATION_16_17.
+            //
+            // Keep this migration so existing v17 installs can open safely.
+        }
+    }
 
+    val ALL_MIGRATIONS: Array<Migration> =
+        LEGACY_TO_15_MIGRATIONS +
+                MIGRATION_13_14 +
+                MIGRATION_14_15 +
+                MIGRATION_15_16 +
+                MIGRATION_16_17 +
+                MIGRATION_17_18
+
+
+    private fun addCreatureEconomyFields(db: SupportSQLiteDatabase) {
+        addColumnIfMissing(db, "user_shell_find_instance", "animalLevel", "INTEGER NOT NULL DEFAULT 1")
+        addColumnIfMissing(db, "user_shell_find_instance", "creatureStatus", "TEXT NOT NULL DEFAULT 'ACTIVE'")
+        addColumnIfMissing(db, "user_shell_find_instance", "creatureSource", "TEXT")
+        addColumnIfMissing(db, "user_shell_find_instance", "flowTimeValueMinutes", "INTEGER")
+    }
+
+    private fun addColumnIfMissing(db: SupportSQLiteDatabase, table: String, column: String, definition: String) {
+        if (column !in columns(db, table)) db.execSQL("ALTER TABLE `$table` ADD COLUMN `$column` $definition")
+    }
 
     private fun addCreatureEconomyFields(db: SupportSQLiteDatabase) {
         addColumnIfMissing(db, "user_shell_find_instance", "animalLevel", "INTEGER NOT NULL DEFAULT 1")
