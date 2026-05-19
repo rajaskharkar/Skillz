@@ -6,15 +6,16 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 17.
+     * Current database version is 18.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
      * normalizes room identifiers.
      *
      * Version 13 is the known pre-Shell schema, so it first adds the Shell
-     * tables, v14 adds the Shell reward event read model, then v16 normalizes
-     * room identifiers.
+     * tables, v14 adds the Shell reward event read model, v16 normalizes
+     * room identifiers, v17 adds creature economy fields, and v18 is a
+     * no-op compatibility migration.
      */
     val LEGACY_TO_15_MIGRATIONS: Array<Migration> = (1..12).map { startVersion ->
         object : Migration(startVersion, 15) {
@@ -53,8 +54,8 @@ object SkillzDatabaseMigrations {
             // No schema-op migration.
             //
             // Database version was bumped from 17 to 18, but the current entity
-            // schema shown here does not require any additional table/column changes
-            // beyond MIGRATION_16_17.
+            // schema does not require additional table/column changes beyond
+            // MIGRATION_16_17.
             //
             // Keep this migration so existing v17 installs can open safely.
         }
@@ -68,16 +69,42 @@ object SkillzDatabaseMigrations {
                 MIGRATION_16_17 +
                 MIGRATION_17_18
 
-
     private fun addCreatureEconomyFields(db: SupportSQLiteDatabase) {
-        addColumnIfMissing(db, "user_shell_find_instance", "animalLevel", "INTEGER NOT NULL DEFAULT 1")
-        addColumnIfMissing(db, "user_shell_find_instance", "creatureStatus", "TEXT NOT NULL DEFAULT 'ACTIVE'")
-        addColumnIfMissing(db, "user_shell_find_instance", "creatureSource", "TEXT")
-        addColumnIfMissing(db, "user_shell_find_instance", "flowTimeValueMinutes", "INTEGER")
+        addColumnIfMissing(
+            db = db,
+            table = "user_shell_find_instance",
+            column = "animalLevel",
+            definition = "INTEGER NOT NULL DEFAULT 1"
+        )
+        addColumnIfMissing(
+            db = db,
+            table = "user_shell_find_instance",
+            column = "creatureStatus",
+            definition = "TEXT NOT NULL DEFAULT 'ACTIVE'"
+        )
+        addColumnIfMissing(
+            db = db,
+            table = "user_shell_find_instance",
+            column = "creatureSource",
+            definition = "TEXT"
+        )
+        addColumnIfMissing(
+            db = db,
+            table = "user_shell_find_instance",
+            column = "flowTimeValueMinutes",
+            definition = "INTEGER"
+        )
     }
 
-    private fun addColumnIfMissing(db: SupportSQLiteDatabase, table: String, column: String, definition: String) {
-        if (column !in columns(db, table)) db.execSQL("ALTER TABLE `$table` ADD COLUMN `$column` $definition")
+    private fun addColumnIfMissing(
+        db: SupportSQLiteDatabase,
+        table: String,
+        column: String,
+        definition: String
+    ) {
+        if (column !in columns(db, table)) {
+            db.execSQL("ALTER TABLE `$table` ADD COLUMN `$column` $definition")
+        }
     }
 
     private fun normalizeTheBlueRoomIdentifiers(db: SupportSQLiteDatabase) {

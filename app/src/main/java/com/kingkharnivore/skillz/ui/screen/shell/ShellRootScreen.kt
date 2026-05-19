@@ -2460,8 +2460,11 @@ private fun ShellChestScreen(
             val def = ShellContentCatalog.find(findId) ?: return@items
             val title = stringResource(def.titleRes)
             val categoryLabel = kindLabel(def.kind) + (depthLabel(def.depthTier)?.let { " · $it" } ?: "")
-            val displayedCount = copies.count { it.instanceId in displayedIds }
-            val restingCount = copies.size - displayedCount
+            val activeCopies = if (def.kind == ShellRewardKind.ANIMAL) copies.filter { it.creatureStatus == CreatureStatus.ACTIVE } else copies
+            val displayedCount = activeCopies.count { it.instanceId in displayedIds }
+            val restingCount = activeCopies.size - displayedCount
+            val releasedCount = copies.count { it.creatureStatus == CreatureStatus.RELEASED }
+            val usedBeyondBlueCount = copies.count { it.creatureStatus == CreatureStatus.USED_BEYOND_BLUE }
             val bestCopy = copies.maxByOrNull { currentFormOrder(it) }
             val bestFormTitle = if (def.kind == ShellRewardKind.ANIMAL) {
                 "Highest level: Level ${copies.maxOfOrNull { it.animalLevel.coerceAtLeast(1) } ?: 1}"
@@ -3137,7 +3140,8 @@ private fun TheBlueRoomScreen(
     if (showBeyondBlue) {
         BeyondBlueEncounterSheet(
             pearlBalance = uiState.pearlBalance,
-            onDismiss = { showBeyondBlue = false },
+
+          onDismiss = { showBeyondBlue = false },
             onEncounter = { targetCreatureId ->
                 onEncounterBeyondBlue(targetCreatureId, emptyList())
                 showBeyondBlue = false
