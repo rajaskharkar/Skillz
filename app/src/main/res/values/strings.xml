@@ -1446,4 +1446,5 @@
     <string name="shell_find_kraken_description">Encountered Beyond the Blue.</string>
     <string name="shell_find_leviathan_title">Leviathan</string>
     <string name="shell_find_leviathan_description">Encountered Beyond the Blue.</string>
+    <string name="beyond_blue_discover_depth_copy">Discover life near this depth.</string>
 </resources>

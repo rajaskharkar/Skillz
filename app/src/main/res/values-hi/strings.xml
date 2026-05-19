@@ -1270,4 +1270,5 @@
     <string name="beyond_blue_encounter_cta">Encounter Beyond the Blue</string>
     <string name="beyond_blue_confirm_enters_zone">%1$s will enter the %2$s.</string>
     <string name="beyond_blue_cancel">Cancel</string>
+    <string name="beyond_blue_discover_depth_copy">Discover life near this depth.</string>
 </resources>
