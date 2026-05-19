@@ -50,6 +50,7 @@ import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.Waves
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -4159,16 +4160,7 @@ private fun BeyondBlueEncounterSheet(
                                 ListItem(
                                     leadingContent = { ShellObjectIcon(CreatureCatalog.get(item.findId)?.staticIconKey ?: "animal", Modifier.size(32.dp)) },
                                     headlineContent = { Text(findName(item.findId)) },
-                                    supportingContent = {
-                                        Text(
-                                            stringResource(
-                                                R.string.beyond_blue_trade_row_supporting,
-                                                item.animalLevel,
-                                                zoneTitle(theBlueZoneFor(CreatureCatalog.get(item.findId)?.zone ?: CreatureZone.SUNLIT_REEF)),
-                                                formatMinutesCompact(CreatureEconomy.beyondBlueTradeContributionMinutes(item.findId, item.animalLevel))
-                                            )
-                                        )
-                                    },
+                                    supportingContent = { Text("Level ${item.animalLevel} · ${zoneTitle(theBlueZoneFor(CreatureCatalog.get(item.findId)?.zone ?: CreatureZone.SUNLIT_REEF))}\n${formatMinutesCompact(CreatureEconomy.beyondBlueTradeContributionMinutes(item.findId, item.animalLevel))} creature value") },
                                     trailingContent = { Text(if (checked) stringResource(R.string.beyond_blue_selected) else stringResource(R.string.beyond_blue_tap_to_select)) }
                                 )
                             }
@@ -4520,4 +4512,4 @@ private fun shellChamberBrush(): Brush {
         )
     )
 }
-import androidx.compose.material3.AlertDialog
+
