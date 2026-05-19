@@ -2306,7 +2306,7 @@ private fun ObjectCopySheet(
             Text(statusText)
 
             if (isAnimal) {
-                Text("Level ${item.animalLevel.coerceAtLeast(1)}")
+                Text(stringResource(R.string.shell_creature_level_value, item.animalLevel.coerceAtLeast(1)))
 
                 if (sourceText != null) {
                     Text(sourceText)
@@ -2334,10 +2334,10 @@ private fun ObjectCopySheet(
                             contentDescription = animalUpgradeA11y
                         }
                     ) {
-                        Text("Grow with Pearls · ${String.format("%,d", cost)} Pearls")
+                        Text(stringResource(R.string.shell_creature_grow_with_pearls_cost, cost))
                     }
                 } else {
-                    Text("This creature is no longer swimming in The Blue. Your lifetime record remains.")
+                    Text(stringResource(R.string.shell_creature_not_swimming_lifetime_remains))
                 }
             } else {
                 Text(stringResource(R.string.shell_form_label, currentTitle))
@@ -2450,12 +2450,12 @@ private fun ShellChestScreen(
                 FilterChip(
                     selected = category == ShellChestTab.ANIMALS,
                     onClick = { category = ShellChestTab.ANIMALS },
-                    label = { Text("Animals") }
+                    label = { Text(stringResource(R.string.shell_filter_animals)) }
                 )
                 FilterChip(
                     selected = category == ShellChestTab.ROOM_OBJECTS,
                     onClick = { category = ShellChestTab.ROOM_OBJECTS },
-                    label = { Text("Room Objects") }
+                    label = { Text(stringResource(R.string.shell_filter_room_objects)) }
                 )
             }
         }
@@ -3975,17 +3975,17 @@ private fun TheBlueAnimalDetailSheet(
             )
             Text(source)
 
-            Text("Swimming now: ${animal.totalCount}")
-            Text("Lifetime encountered: ${animal.lifetimeEncounteredCount}")
-            if (animal.releasedCount > 0) Text("Released: ${animal.releasedCount}")
-            if (animal.usedBeyondBlueCount > 0) Text("Used Beyond Blue: ${animal.usedBeyondBlueCount}")
-            Text("Highest level: Level ${animal.highestLevel}")
-            animal.flowTimeValueMinutes?.let { Text("Flow Time Value: ${formatMinutesCompact(it)} each") }
-            animal.releaseValuePearls?.let { Text("Release value: $it Pearls each") }
+            Text(stringResource(R.string.shell_creature_swimming_now, animal.totalCount))
+            Text(stringResource(R.string.shell_creature_lifetime_encountered, animal.lifetimeEncounteredCount))
+            if (animal.releasedCount > 0) Text(stringResource(R.string.shell_creature_released, animal.releasedCount))
+            if (animal.usedBeyondBlueCount > 0) Text(stringResource(R.string.shell_creature_used_beyond_blue, animal.usedBeyondBlueCount))
+            Text(stringResource(R.string.shell_creature_highest_level, animal.highestLevel))
+            animal.flowTimeValueMinutes?.let { Text(stringResource(R.string.shell_creature_flow_time_value_each, formatMinutesCompact(it))) }
+            animal.releaseValuePearls?.let { Text(stringResource(R.string.shell_creature_release_value_each, it)) }
 
-            Text("Levels", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.shell_creature_levels_heading), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             if (animal.levelCounts.isEmpty()) {
-                Text("Level information is not available yet.")
+                Text(stringResource(R.string.the_blue_forms_unavailable))
             } else {
                 animal.levelCounts.sortedBy { it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 0 }
                     .forEach { level -> Text("${level.formStageId} ×${level.count}") }
@@ -4002,25 +4002,25 @@ private fun TheBlueAnimalDetailSheet(
                 enabled = canGrow,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Grow with Pearls · ${String.format("%,d", growthCost)} Pearls")
+                Text(stringResource(R.string.shell_creature_grow_with_pearls_cost, growthCost))
             }
             if (!canGrow) {
                 val missing = (growthCost - pearlBalance).coerceAtLeast(0)
                 Text(
-                    text = if (growthInstanceId == null) "No active creature is available to grow." else "Need ${String.format("%,d", missing)} more Pearls to grow.",
+                    text = if (growthInstanceId == null) stringResource(R.string.shell_creature_no_active_to_grow) else stringResource(R.string.shell_creature_need_more_pearls_to_grow, missing),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(onClick = onBeyondBlue, modifier = Modifier.weight(1f)) {
-                    Text("Encounter Beyond the Blue")
+                    Text(stringResource(R.string.beyond_blue_encounter_cta))
                 }
                 OutlinedButton(
                     onClick = onRelease,
                     enabled = releaseInstanceId != null,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Release for Pearls")
+                    Text(stringResource(R.string.shell_creature_release_for_pearls))
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -4069,15 +4069,15 @@ private fun ReleaseCreatureConfirmationSheet(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text("Release this $name for ${String.format("%,d", releaseValue)} Pearls?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("This creature will leave The Blue. Your lifetime record will remain.")
+            Text(stringResource(R.string.shell_creature_release_confirm_title, name, releaseValue), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.shell_creature_release_confirm_body))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Keep swimming") }
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.shell_creature_keep_swimming)) }
                 Button(
                     onClick = { instanceId?.let(onConfirm) },
                     enabled = instanceId != null,
                     modifier = Modifier.weight(1f)
-                ) { Text("Release for Pearls") }
+                ) { Text(stringResource(R.string.shell_creature_release_for_pearls)) }
             }
         }
     }
