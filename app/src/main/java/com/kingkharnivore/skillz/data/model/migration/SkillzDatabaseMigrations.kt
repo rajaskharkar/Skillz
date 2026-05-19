@@ -48,8 +48,25 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_17_18 = object : Migration(17, 18) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // No schema-op migration.
+            //
+            // Database version was bumped from 17 to 18, but the current entity
+            // schema shown here does not require any additional table/column changes
+            // beyond MIGRATION_16_17.
+            //
+            // Keep this migration so existing v17 installs can open safely.
+        }
+    }
+
     val ALL_MIGRATIONS: Array<Migration> =
-        LEGACY_TO_15_MIGRATIONS + MIGRATION_13_14 + MIGRATION_14_15 + MIGRATION_15_16 + MIGRATION_16_17
+        LEGACY_TO_15_MIGRATIONS +
+                MIGRATION_13_14 +
+                MIGRATION_14_15 +
+                MIGRATION_15_16 +
+                MIGRATION_16_17 +
+                MIGRATION_17_18
 
 
     private fun addCreatureEconomyFields(db: SupportSQLiteDatabase) {

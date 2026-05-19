@@ -2234,6 +2234,7 @@ private fun ObjectCopySheet(
 ) {
     val def = ShellContentCatalog.find(item.findId)
     val isAnimal = def?.kind == ShellRewardKind.ANIMAL
+
     val current = if (!isAnimal) {
         def?.let {
             ShellContentCatalog.upgradesFor(it.findId)
@@ -2242,6 +2243,7 @@ private fun ObjectCopySheet(
     } else {
         null
     }
+
     val next = if (!isAnimal) {
         def?.let { ShellContentCatalog.nextUpgrade(it.findId, item.currentUpgradeStageId) }
     } else {
@@ -2260,6 +2262,29 @@ private fun ObjectCopySheet(
         findTitle
     }
 
+    val kindText = if (def != null) {
+        kindLabel(def.kind)
+    } else {
+        null
+    }
+
+    val sourceText = if (def != null) {
+        stringResource(R.string.shell_source_label, sourceReasonFor(def))
+    } else {
+        null
+    }
+
+    val statusText = when {
+        displayed -> stringResource(R.string.shell_status_displayed_focus)
+        isAnimal && item.creatureStatus != CreatureStatus.ACTIVE ->
+            "Lifetime record · ${item.creatureStatus.lowercase().replace('_', ' ')}"
+        else -> stringResource(R.string.shell_status_resting)
+    }
+
+    val animalUpgradeA11y = stringResource(R.string.shell_upgrade_animal_a11y)
+    val returnToChestText = returnToChestLabel(def)
+    val placeInFocusText = placeInFocusLabel(def)
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -2270,21 +2295,30 @@ private fun ObjectCopySheet(
                 style = MaterialTheme.typography.titleLarge
             )
 
-            def?.let { Text(kindLabel(it.kind)) }
-            Text(
-                if (displayed) stringResource(R.string.shell_status_displayed_focus)
-                else if (isAnimal && item.creatureStatus != CreatureStatus.ACTIVE) "Lifetime record · ${item.creatureStatus.lowercase().replace('_', ' ')}"
-                else stringResource(R.string.shell_status_resting)
-            )
+            if (kindText != null) {
+                Text(kindText)
+            }
+
+            Text(statusText)
+
             if (isAnimal) {
                 Text("Level ${item.animalLevel.coerceAtLeast(1)}")
-                def?.let { Text(stringResource(R.string.shell_source_label, sourceReasonFor(it))) }
+
+                if (sourceText != null) {
+                    Text(sourceText)
+                }
+
                 if (item.creatureStatus == CreatureStatus.ACTIVE) {
-                    val cost = CreatureEconomy.growthCostPearls(item.findId, item.animalLevel.coerceAtLeast(1))
+                    val cost = CreatureEconomy.growthCostPearls(
+                        item.findId,
+                        item.animalLevel.coerceAtLeast(1)
+                    )
                     val canAfford = pearlBalance >= cost
+
                     if (!canAfford) {
                         Text(stringResource(R.string.shell_need_more_pearls, cost - pearlBalance))
                     }
+
                     Button(
                         onClick = { onUpgrade(item.instanceId) },
                         enabled = canAfford,
@@ -2293,7 +2327,7 @@ private fun ObjectCopySheet(
                             contentColor = MaterialTheme.colorScheme.onSecondary
                         ),
                         modifier = Modifier.semantics {
-                            contentDescription = stringResource(R.string.shell_upgrade_animal_a11y)
+                            contentDescription = animalUpgradeA11y
                         }
                     ) {
                         Text("Grow with Pearls · ${String.format("%,d", cost)} Pearls")
@@ -2303,15 +2337,19 @@ private fun ObjectCopySheet(
                 }
             } else {
                 Text(stringResource(R.string.shell_form_label, currentTitle))
-                def?.let { Text(stringResource(R.string.shell_source_label, sourceReasonFor(it))) }
 
-                if (next != null) {
+                if (sourceText != null) {
+                    Text(sourceText)
+                }
+
+                if (next != null && def != null) {
                     val nextTitle = stringResource(next.titleRes)
                     val upgradeVerb = stringResource(next.upgradeVerbRes)
                     val upgradeDescription = upgradeA11yLabel(def)
                     val canAfford = pearlBalance >= next.pearlCost
 
                     Text(stringResource(R.string.shell_next_form, nextTitle))
+
                     if (!canAfford) {
                         Text(stringResource(R.string.shell_need_more_pearls, next.pearlCost - pearlBalance))
                     }
@@ -2342,11 +2380,11 @@ private fun ObjectCopySheet(
 
             if (displayed) {
                 OutlinedButton(onClick = { onReturn(item.instanceId) }) {
-                    Text(returnToChestLabel(def))
+                    Text(returnToChestText)
                 }
             } else if (onPlaceInFocus != null && canDisplayInstance(item, def)) {
                 OutlinedButton(onClick = onPlaceInFocus) {
-                    Text(placeInFocusLabel(def))
+                    Text(placeInFocusText)
                 }
             }
         }
