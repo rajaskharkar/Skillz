@@ -1270,4 +1270,26 @@
     <string name="beyond_blue_encounter_cta">Encounter Beyond the Blue</string>
     <string name="beyond_blue_confirm_enters_zone">%1$s will enter the %2$s.</string>
     <string name="beyond_blue_cancel">Cancel</string>
+    <string name="beyond_blue_discover_depth_copy">Discover life near this depth.</string>
+    <string name="shell_filter_animals">Animals</string>
+    <string name="shell_filter_room_objects">Room Objects</string>
+    <string name="shell_creature_level_value">Level %1$d</string>
+    <string name="shell_creature_grow_with_pearls_cost">Grow with Pearls · %1$,d Pearls</string>
+    <string name="shell_creature_not_swimming_lifetime_remains">This creature is no longer swimming in The Blue. Your lifetime record remains.</string>
+    <string name="shell_creature_swimming_now">Swimming now: %1$d</string>
+    <string name="shell_creature_lifetime_encountered">Lifetime encountered: %1$d</string>
+    <string name="shell_creature_released">Released: %1$d</string>
+    <string name="shell_creature_used_beyond_blue">Used Beyond Blue: %1$d</string>
+    <string name="shell_creature_highest_level">Highest level: Level %1$d</string>
+    <string name="shell_creature_flow_time_value_each">Flow Time Value: %1$s each</string>
+    <string name="shell_creature_release_value_each">Release value: %1$,d Pearls each</string>
+    <string name="shell_creature_levels_heading">Levels</string>
+    <string name="shell_creature_no_active_to_grow">No active creature is available to grow.</string>
+    <string name="shell_creature_need_more_pearls_to_grow">Need %1$,d more Pearls to grow.</string>
+    <string name="shell_creature_release_for_pearls">Release for Pearls</string>
+    <string name="shell_creature_release_confirm_title">Release this %1$s for %2$,d Pearls?</string>
+    <string name="shell_creature_release_confirm_body">This creature will leave The Blue. Your lifetime record will remain.</string>
+    <string name="shell_creature_keep_swimming">Keep swimming</string>
+    <string name="beyond_blue_trade_row_supporting">Level %1$d · %2$s
+%3$s creature value</string>
 </resources>
