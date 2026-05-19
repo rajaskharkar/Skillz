@@ -21,10 +21,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -120,6 +122,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellSlotType
 import com.kingkharnivore.skillz.data.model.shell.StillwaterPerspective
 import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
 import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
+import com.kingkharnivore.skillz.domain.shell.CreatureZone
 import com.kingkharnivore.skillz.domain.shell.CreatureStatus
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.ShellViewModel
@@ -3241,6 +3244,7 @@ private fun TheBlueZonePage(
     val scheme = MaterialTheme.colorScheme
     val title = zoneTitle(zone.zoneId)
     val subtitle = zoneSubtitle(zone.zoneId)
+    val beyondBlueCtaA11y = stringResource(R.string.beyond_blue_encounter_cta)
     val animalSummary = zoneAnimalSummary(zone)
     val zoneDescription = stringResource(R.string.the_blue_zone_scene_a11y, title, subtitle, animalSummary)
     val zoneHasNewArrival = zone.animals.any { it.isNew || it.findId in entryNewAnimalFindIds }
@@ -3334,7 +3338,7 @@ private fun TheBlueZonePage(
                     .clickable(onClick = onZoneBeyondBlue)
                     .semantics {
                         role = Role.Button
-                        contentDescription = stringResource(R.string.beyond_blue_encounter_cta)
+                        contentDescription = beyondBlueCtaA11y
                     }
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -4101,11 +4105,12 @@ private fun BeyondBlueEncounterSheet(
             Text(stringResource(R.string.beyond_blue_intro))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
                 TheBlueZoneId.entries.forEach { zone ->
+                    val zoneA11y = zoneTitle(zone)
                     FilterChip(
                         selected = selectedZone == zone,
                         onClick = { selectedZone = zone },
                         label = { Text(zoneRailLabel(zone)) },
-                        modifier = Modifier.semantics { contentDescription = zoneTitle(zone) }
+                        modifier = Modifier.semantics { contentDescription = zoneA11y }
                     )
                 }
             }
@@ -4152,7 +4157,7 @@ private fun BeyondBlueEncounterSheet(
                             val checked = item.instanceId in selectedInstanceIds
                             ElevatedCard(onClick = { selectedInstanceIds = if (checked) selectedInstanceIds - item.instanceId else selectedInstanceIds + item.instanceId }) {
                                 ListItem(
-                                    leadingContent = { ShellObjectIcon(CreatureCatalog.get(item.findId)?.staticIconKey, Modifier.size(32.dp)) },
+                                    leadingContent = { ShellObjectIcon(CreatureCatalog.get(item.findId)?.staticIconKey ?: "animal", Modifier.size(32.dp)) },
                                     headlineContent = { Text(findName(item.findId)) },
                                     supportingContent = { Text("Level ${item.animalLevel} · ${zoneTitle(theBlueZoneFor(CreatureCatalog.get(item.findId)?.zone ?: CreatureZone.SUNLIT_REEF))}\n${formatMinutesCompact(CreatureEconomy.beyondBlueTradeContributionMinutes(item.findId, item.animalLevel))} creature value") },
                                     trailingContent = { Text(if (checked) stringResource(R.string.beyond_blue_selected) else stringResource(R.string.beyond_blue_tap_to_select)) }
@@ -4506,3 +4511,4 @@ private fun shellChamberBrush(): Brush {
         )
     )
 }
+import androidx.compose.material3.AlertDialog
