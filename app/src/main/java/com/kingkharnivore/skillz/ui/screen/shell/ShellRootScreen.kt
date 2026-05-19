@@ -118,6 +118,9 @@ import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.data.model.shell.ShellSlotDefinition
 import com.kingkharnivore.skillz.data.model.shell.ShellSlotType
 import com.kingkharnivore.skillz.data.model.shell.StillwaterPerspective
+import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
+import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
+import com.kingkharnivore.skillz.domain.shell.CreatureStatus
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.ShellViewModel
 import kotlinx.coroutines.Job
@@ -143,9 +146,17 @@ sealed class ShellDestination {
 private fun displayedInstanceIds(uiState: ShellUiState): Set<String> =
     uiState.focusPlacements.map { it.instanceId }.toSet()
 
+private fun isUserVisibleShellFind(def: ShellFindDefinition?): Boolean =
+    def != null && def.kind != ShellRewardKind.TRINKET
+
+private fun canDisplayInstance(instance: UserShellFindInstanceEntity, def: ShellFindDefinition?): Boolean =
+    isUserVisibleShellFind(def) && (def?.kind != ShellRewardKind.ANIMAL || instance.creatureStatus == CreatureStatus.ACTIVE)
+
 private fun restingFinds(uiState: ShellUiState): List<UserShellFindInstanceEntity> {
     val displayed = displayedInstanceIds(uiState)
-    return uiState.finds.filter { it.instanceId !in displayed }
+    return uiState.finds.filter { item ->
+        item.instanceId !in displayed && canDisplayInstance(item, ShellContentCatalog.find(item.findId))
+    }
 }
 
 private fun hasRestingPlaceableFinds(uiState: ShellUiState): Boolean = restingFinds(uiState).any { item ->
@@ -156,6 +167,7 @@ private fun hasRestingPlaceableFinds(uiState: ShellUiState): Boolean = restingFi
 private fun hasAffordablePearlShape(uiState: ShellUiState): Boolean =
     uiState.finds.any { item ->
         val def = ShellContentCatalog.find(item.findId) ?: return@any false
+        if (def.kind != ShellRewardKind.OBJECT) return@any false
         val next = ShellContentCatalog.nextUpgrade(def.findId, item.currentUpgradeStageId) ?: return@any false
         next.pearlCost <= uiState.pearlBalance
     } || ShellContentCatalog.focusPearlObjects.any { (it.pearlCost ?: Int.MAX_VALUE) <= uiState.pearlBalance }
@@ -166,8 +178,8 @@ private fun currentFormOrder(instance: UserShellFindInstanceEntity): Int =
         ?.orderIndex ?: 0
 
 private fun unseenNotificationCount(uiState: ShellUiState): Int =
-    uiState.finds.count { it.isNew } +
-            uiState.stacks.count { it.isNew } +
+    uiState.finds.count { it.isNew && isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) } +
+            uiState.stacks.count { it.isNew && isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) } +
             uiState.badges.count { it.isNew } +
             uiState.discoveries.count { it.isNew }
 
@@ -178,6 +190,7 @@ internal fun hasAffordableFocusPearlAction(uiState: ShellUiState): Boolean {
         if (item.instanceId !in displayed) return@any false
 
         val def = ShellContentCatalog.find(item.findId) ?: return@any false
+        if (def.kind != ShellRewardKind.OBJECT) return@any false
         val next = ShellContentCatalog.nextUpgrade(
             findId = def.findId,
             currentStageId = item.currentUpgradeStageId
@@ -208,7 +221,7 @@ private fun hasEmptyNookForNewRestingObject(uiState: ShellUiState): Boolean {
     if (emptySlots.isEmpty()) return false
     return restingFinds(uiState).any { item ->
         val def = ShellContentCatalog.find(item.findId) ?: return@any false
-        item.isNew && def.placeable && emptySlots.any { slot -> ShellContentCatalog.isCompatibleWithSlot(slot, def) }
+        item.isNew && canDisplayInstance(item, def) && def.placeable && emptySlots.any { slot -> ShellContentCatalog.isCompatibleWithSlot(slot, def) }
     }
 }
 
@@ -409,6 +422,9 @@ fun ShellRootScreen(
                 ShellDestination.TheBluePreview -> TheBlueRoomScreen(
                     uiState = uiState,
                     onDisplayInFocus = viewModel::place,
+                    onGrowCreature = viewModel::growCreature,
+                    onReleaseCreature = viewModel::releaseCreature,
+                    onEncounterBeyondBlue = viewModel::encounterBeyondBlue,
                     onOpenChest = { destination = ShellDestination.ShellChest }
                 )
 
@@ -568,7 +584,7 @@ private fun HeartRoomScreen(
     onOpenPearlBasin: () -> Unit
 ) {
     var showHeartDetail by remember { mutableStateOf(false) }
-    val chestHasIndicator = restingFinds(uiState).any { it.isNew } || uiState.stacks.any { it.isNew }
+    val chestHasIndicator = restingFinds(uiState).any { it.isNew } || uiState.stacks.any { it.isNew && isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) }
     val hasNewDiscovery = uiState.discoveries.any { it.isNew }
     val focusChanged = hasAffordableFocusPearlAction(uiState)
 
@@ -945,6 +961,7 @@ private fun ShellWhisperDock(
     val displayedIds = displayedInstanceIds(uiState)
     val affordableUpgrade = uiState.finds.firstOrNull { item ->
         val def = ShellContentCatalog.find(item.findId) ?: return@firstOrNull false
+        if (def.kind != ShellRewardKind.OBJECT) return@firstOrNull false
         val next = ShellContentCatalog.nextUpgrade(def.findId, item.currentUpgradeStageId) ?: return@firstOrNull false
         item.instanceId in displayedIds && next.pearlCost <= uiState.pearlBalance
     }
@@ -1091,7 +1108,8 @@ private fun HeartDetailSheet(
     onOpenChest: () -> Unit,
     onOpenJournal: () -> Unit
 ) {
-    val totalFinds = uiState.finds.size + uiState.stacks.sumOf { it.quantity }
+    val totalFinds = uiState.finds.count { isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) } +
+        uiState.stacks.filter { isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) }.sumOf { it.quantity }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -1210,6 +1228,7 @@ private fun PearlBasinSheet(
             val displayedIds = displayedInstanceIds(uiState)
             val upgradeSuggestions = uiState.finds.mapNotNull { item ->
                 val def = ShellContentCatalog.find(item.findId) ?: return@mapNotNull null
+                if (def.kind != ShellRewardKind.OBJECT) return@mapNotNull null
                 val next = ShellContentCatalog.nextUpgrade(def.findId, item.currentUpgradeStageId) ?: return@mapNotNull null
                 Triple(item, def, next)
             }.sortedBy { it.third.pearlCost }
@@ -1538,7 +1557,7 @@ private fun ShellPearlMiniIcon(
     }
 }
 
-private enum class ShellAnimalIcon { MINNOW, SEAHORSE, MANTA, WHALE, OCTOPUS }
+private enum class ShellAnimalIcon { MINNOW, SEAHORSE, MANTA, WHALE, OCTOPUS, JELLYFISH, TURTLE, SHARK, DOLPHIN, SQUID, STARFISH, URCHIN, EEL, FISH }
 
 @Composable
 private fun ShellObjectIcon(
@@ -1552,6 +1571,15 @@ private fun ShellObjectIcon(
         "manta" in iconKey -> ShellAnimalIcon.MANTA
         "whale" in iconKey -> ShellAnimalIcon.WHALE
         "octopus" in iconKey -> ShellAnimalIcon.OCTOPUS
+        "jellyfish" in iconKey -> ShellAnimalIcon.JELLYFISH
+        "turtle" in iconKey -> ShellAnimalIcon.TURTLE
+        "shark" in iconKey || "megalodon" in iconKey -> ShellAnimalIcon.SHARK
+        "dolphin" in iconKey || "orca" in iconKey -> ShellAnimalIcon.DOLPHIN
+        "squid" in iconKey || "kraken" in iconKey || "leviathan" in iconKey -> ShellAnimalIcon.SQUID
+        "starfish" in iconKey -> ShellAnimalIcon.STARFISH
+        "urchin" in iconKey -> ShellAnimalIcon.URCHIN
+        "eel" in iconKey || "snake" in iconKey -> ShellAnimalIcon.EEL
+        "creature_icon" in iconKey || "fish" in iconKey || "tang" in iconKey || "seal" in iconKey || "otter" in iconKey || "penguin" in iconKey -> ShellAnimalIcon.FISH
         else -> null
     }
     val vector = when {
@@ -1639,6 +1667,45 @@ private fun ShellAnimalCanvasIcon(
                 }
                 drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.42f, h * 0.32f))
                 drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.58f, h * 0.32f))
+            }
+            ShellAnimalIcon.JELLYFISH -> {
+                drawArc(ink, 180f, 180f, true, topLeft = Offset(w * 0.20f, h * 0.18f), size = Size(w * 0.60f, h * 0.46f))
+                listOf(0.28f, 0.42f, 0.56f, 0.70f).forEach { x -> drawLine(accent, Offset(w * x, h * 0.48f), Offset(w * (x - 0.05f), h * 0.88f), strokeWidth = w * 0.045f) }
+            }
+            ShellAnimalIcon.TURTLE -> {
+                drawOval(ink, Offset(w * 0.26f, h * 0.24f), Size(w * 0.48f, h * 0.42f))
+                drawOval(accent, Offset(w * 0.42f, h * 0.08f), Size(w * 0.16f, h * 0.16f))
+                listOf(0.18f to 0.30f, 0.74f to 0.30f, 0.18f to 0.62f, 0.74f to 0.62f).forEach { (x,y) -> drawOval(accent, Offset(w*x,h*y), Size(w*0.18f,h*0.12f)) }
+            }
+            ShellAnimalIcon.SHARK -> {
+                drawOval(ink, Offset(w * 0.16f, h * 0.38f), Size(w * 0.62f, h * 0.24f))
+                drawPath(Path().apply { moveTo(w*0.72f,h*0.50f); lineTo(w*0.98f,h*0.30f); lineTo(w*0.90f,h*0.50f); lineTo(w*0.98f,h*0.70f); close() }, ink)
+                drawPath(Path().apply { moveTo(w*0.42f,h*0.38f); lineTo(w*0.50f,h*0.12f); lineTo(w*0.58f,h*0.40f); close() }, accent)
+            }
+            ShellAnimalIcon.DOLPHIN -> {
+                drawArc(ink, 195f, 205f, false, topLeft = Offset(w*0.14f,h*0.18f), size = Size(w*0.72f,h*0.52f), style = Stroke(width = w*0.16f))
+                drawPath(Path().apply { moveTo(w*0.76f,h*0.43f); lineTo(w*0.98f,h*0.28f); lineTo(w*0.90f,h*0.48f); lineTo(w*0.98f,h*0.66f); close() }, ink)
+            }
+            ShellAnimalIcon.SQUID -> {
+                drawOval(ink, Offset(w*0.34f,h*0.10f), Size(w*0.32f,h*0.42f))
+                repeat(5) { i -> drawLine(ink, Offset(w*(0.36f+i*0.07f), h*0.50f), Offset(w*(0.22f+i*0.14f), h*0.90f), strokeWidth = w*0.055f) }
+            }
+            ShellAnimalIcon.STARFISH -> {
+                val path = Path(); repeat(10) { i -> val r= if (i%2==0) .43f else .18f; val a=(-90+i*36)*Math.PI/180; val x=w*.5f+Math.cos(a).toFloat()*w*r; val y=h*.5f+Math.sin(a).toFloat()*h*r; if(i==0) path.moveTo(x,y) else path.lineTo(x,y) }; path.close(); drawPath(path, ink)
+            }
+            ShellAnimalIcon.URCHIN -> {
+                repeat(14) { i -> val a=i*6.28f/14f; drawLine(ink, Offset(w*.5f,h*.5f), Offset(w*(.5f+kotlin.math.cos(a)*.43f), h*(.5f+kotlin.math.sin(a)*.43f)), strokeWidth=w*.035f) }
+                drawCircle(ink, w*.24f, Offset(w*.5f,h*.5f))
+            }
+            ShellAnimalIcon.EEL -> {
+                drawArc(ink, 180f, 240f, false, topLeft = Offset(w*.10f,h*.20f), size=Size(w*.76f,h*.58f), style=Stroke(width=w*.13f))
+                drawCircle(ink, w*.10f, Offset(w*.76f,h*.38f))
+            }
+            ShellAnimalIcon.FISH -> {
+                drawOval(ink, topLeft = Offset(w * 0.20f, h * 0.34f), size = Size(w * 0.52f, h * 0.30f))
+                drawPath(Path().apply { moveTo(w*0.18f,h*0.50f); lineTo(w*0.02f,h*0.34f); lineTo(w*0.02f,h*0.66f); close() }, ink)
+                drawPath(Path().apply { moveTo(w*0.54f,h*0.34f); lineTo(w*0.62f,h*0.16f); lineTo(w*0.66f,h*0.38f); close() }, accent)
+                drawCircle(scheme.surface, radius = w * 0.03f, center = Offset(w * 0.60f, h * 0.44f))
             }
         }
     }
@@ -2078,6 +2145,7 @@ private fun EmptySlotSheet(
 
         def != null &&
                 instance.instanceId !in placedIds &&
+                canDisplayInstance(instance, def) &&
                 def.placeable &&
                 ShellContentCatalog.isCompatibleWithSlot(slot, def)
     }
@@ -2165,12 +2233,19 @@ private fun ObjectCopySheet(
     onPlaceInFocus: (() -> Unit)?
 ) {
     val def = ShellContentCatalog.find(item.findId)
-    val current = def?.let {
-        ShellContentCatalog.upgradesFor(it.findId)
-            .firstOrNull { stage -> stage.upgradeStageId == item.currentUpgradeStageId }
+    val isAnimal = def?.kind == ShellRewardKind.ANIMAL
+    val current = if (!isAnimal) {
+        def?.let {
+            ShellContentCatalog.upgradesFor(it.findId)
+                .firstOrNull { stage -> stage.upgradeStageId == item.currentUpgradeStageId }
+        }
+    } else {
+        null
     }
-    val next = def?.let {
-        ShellContentCatalog.nextUpgrade(it.findId, item.currentUpgradeStageId)
+    val next = if (!isAnimal) {
+        def?.let { ShellContentCatalog.nextUpgrade(it.findId, item.currentUpgradeStageId) }
+    } else {
+        null
     }
 
     val findTitle = if (def != null) {
@@ -2198,50 +2273,78 @@ private fun ObjectCopySheet(
             def?.let { Text(kindLabel(it.kind)) }
             Text(
                 if (displayed) stringResource(R.string.shell_status_displayed_focus)
+                else if (isAnimal && item.creatureStatus != CreatureStatus.ACTIVE) "Lifetime record · ${item.creatureStatus.lowercase().replace('_', ' ')}"
                 else stringResource(R.string.shell_status_resting)
             )
-            Text(stringResource(R.string.shell_form_label, currentTitle))
-            def?.let { Text(stringResource(R.string.shell_source_label, sourceReasonFor(it))) }
-
-            if (next != null) {
-                val nextTitle = stringResource(next.titleRes)
-                val upgradeVerb = stringResource(next.upgradeVerbRes)
-                val upgradeDescription = upgradeA11yLabel(def)
-                val canAfford = pearlBalance >= next.pearlCost
-
-                Text(stringResource(R.string.shell_next_form, nextTitle))
-                if (!canAfford) {
-                    Text(stringResource(R.string.shell_need_more_pearls, next.pearlCost - pearlBalance))
-                }
-
-                Button(
-                    onClick = { onUpgrade(item.instanceId) },
-                    enabled = canAfford,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    ),
-                    modifier = Modifier.semantics {
-                        contentDescription = upgradeDescription
+            if (isAnimal) {
+                Text("Level ${item.animalLevel.coerceAtLeast(1)}")
+                def?.let { Text(stringResource(R.string.shell_source_label, sourceReasonFor(it))) }
+                if (item.creatureStatus == CreatureStatus.ACTIVE) {
+                    val cost = CreatureEconomy.growthCostPearls(item.findId, item.animalLevel.coerceAtLeast(1))
+                    val canAfford = pearlBalance >= cost
+                    if (!canAfford) {
+                        Text(stringResource(R.string.shell_need_more_pearls, cost - pearlBalance))
                     }
-                ) {
-                    Text(
-                        stringResource(
-                            R.string.shell_upgrade_with_pearls,
-                            upgradeVerb,
-                            next.pearlCost
-                        )
-                    )
+                    Button(
+                        onClick = { onUpgrade(item.instanceId) },
+                        enabled = canAfford,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary
+                        ),
+                        modifier = Modifier.semantics {
+                            contentDescription = stringResource(R.string.shell_upgrade_animal_a11y)
+                        }
+                    ) {
+                        Text("Grow with Pearls · ${String.format("%,d", cost)} Pearls")
+                    }
+                } else {
+                    Text("This creature is no longer swimming in The Blue. Your lifetime record remains.")
                 }
             } else {
-                Text(restingCurrentFormLabel(def))
+                Text(stringResource(R.string.shell_form_label, currentTitle))
+                def?.let { Text(stringResource(R.string.shell_source_label, sourceReasonFor(it))) }
+
+                if (next != null) {
+                    val nextTitle = stringResource(next.titleRes)
+                    val upgradeVerb = stringResource(next.upgradeVerbRes)
+                    val upgradeDescription = upgradeA11yLabel(def)
+                    val canAfford = pearlBalance >= next.pearlCost
+
+                    Text(stringResource(R.string.shell_next_form, nextTitle))
+                    if (!canAfford) {
+                        Text(stringResource(R.string.shell_need_more_pearls, next.pearlCost - pearlBalance))
+                    }
+
+                    Button(
+                        onClick = { onUpgrade(item.instanceId) },
+                        enabled = canAfford,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary
+                        ),
+                        modifier = Modifier.semantics {
+                            contentDescription = upgradeDescription
+                        }
+                    ) {
+                        Text(
+                            stringResource(
+                                R.string.shell_upgrade_with_pearls,
+                                upgradeVerb,
+                                next.pearlCost
+                            )
+                        )
+                    }
+                } else {
+                    Text(restingCurrentFormLabel(def))
+                }
             }
 
             if (displayed) {
                 OutlinedButton(onClick = { onReturn(item.instanceId) }) {
                     Text(returnToChestLabel(def))
                 }
-            } else if (onPlaceInFocus != null) {
+            } else if (onPlaceInFocus != null && canDisplayInstance(item, def)) {
                 OutlinedButton(onClick = onPlaceInFocus) {
                     Text(placeInFocusLabel(def))
                 }
@@ -2249,6 +2352,8 @@ private fun ObjectCopySheet(
         }
     }
 }
+
+private enum class ShellChestTab { ALL, ANIMALS, ROOM_OBJECTS }
 
 @Composable
 private fun ShellChestScreen(
@@ -2258,20 +2363,26 @@ private fun ShellChestScreen(
     onUpgrade: (String) -> Unit,
     onOpenFocus: () -> Unit
 ) {
-    var category by remember { mutableStateOf<ShellFindCategory?>(null) }
+    var category by remember { mutableStateOf(ShellChestTab.ALL) }
     var selectedGroupFindId by remember { mutableStateOf<String?>(null) }
     var selectedInstance by remember { mutableStateOf<UserShellFindInstanceEntity?>(null) }
     var placingInstance by remember { mutableStateOf<UserShellFindInstanceEntity?>(null) }
 
+    fun isVisibleInTab(def: ShellFindDefinition?): Boolean {
+        if (def == null || def.kind == ShellRewardKind.TRINKET) return false
+        return when (category) {
+            ShellChestTab.ALL -> true
+            ShellChestTab.ANIMALS -> def.kind == ShellRewardKind.ANIMAL
+            ShellChestTab.ROOM_OBJECTS -> def.kind == ShellRewardKind.OBJECT
+        }
+    }
     val displayedIds = displayedInstanceIds(uiState)
     val groupedItems = uiState.finds
-        .filter { category == null || ShellContentCatalog.find(it.findId)?.category == category }
+        .filter { isVisibleInTab(ShellContentCatalog.find(it.findId)) }
         .groupBy { it.findId }
         .toList()
         .sortedBy { (findId, _) -> ShellContentCatalog.find(findId)?.titleRes ?: 0 }
-    val stackItems = uiState.stacks.filter {
-        category == null || ShellContentCatalog.find(it.findId)?.category == category
-    }
+    val stackItems = uiState.stacks.filter { isVisibleInTab(ShellContentCatalog.find(it.findId)) }
 
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
@@ -2290,18 +2401,20 @@ private fun ShellChestScreen(
                 modifier = Modifier.horizontalScroll(rememberScrollState())
             ) {
                 FilterChip(
-                    selected = category == null,
-                    onClick = { category = null },
+                    selected = category == ShellChestTab.ALL,
+                    onClick = { category = ShellChestTab.ALL },
                     label = { Text(stringResource(R.string.shell_filter_all)) }
                 )
-
-                ShellFindCategory.entries.forEach { cat ->
-                    FilterChip(
-                        selected = category == cat,
-                        onClick = { category = cat },
-                        label = { Text(stringResource(categoryLabelFor(cat))) }
-                    )
-                }
+                FilterChip(
+                    selected = category == ShellChestTab.ANIMALS,
+                    onClick = { category = ShellChestTab.ANIMALS },
+                    label = { Text("Animals") }
+                )
+                FilterChip(
+                    selected = category == ShellChestTab.ROOM_OBJECTS,
+                    onClick = { category = ShellChestTab.ROOM_OBJECTS },
+                    label = { Text("Room Objects") }
+                )
             }
         }
 
@@ -2309,14 +2422,21 @@ private fun ShellChestScreen(
             val def = ShellContentCatalog.find(findId) ?: return@items
             val title = stringResource(def.titleRes)
             val categoryLabel = kindLabel(def.kind) + (depthLabel(def.depthTier)?.let { " · $it" } ?: "")
-            val displayedCount = copies.count { it.instanceId in displayedIds }
-            val restingCount = copies.size - displayedCount
+            val activeCopies = if (def.kind == ShellRewardKind.ANIMAL) copies.filter { it.creatureStatus == CreatureStatus.ACTIVE } else copies
+            val displayedCount = activeCopies.count { it.instanceId in displayedIds }
+            val restingCount = activeCopies.size - displayedCount
+            val releasedCount = copies.count { it.creatureStatus == CreatureStatus.RELEASED }
+            val usedBeyondBlueCount = copies.count { it.creatureStatus == CreatureStatus.USED_BEYOND_BLUE }
             val bestCopy = copies.maxByOrNull { currentFormOrder(it) }
-            val bestFormTitle = bestCopy?.let { copy ->
-                ShellContentCatalog.upgradesFor(copy.findId)
-                    .firstOrNull { it.upgradeStageId == copy.currentUpgradeStageId }
-                    ?.let { stringResource(it.titleRes) }
-            } ?: title
+            val bestFormTitle = if (def.kind == ShellRewardKind.ANIMAL) {
+                "Highest level: Level ${activeCopies.maxOfOrNull { it.animalLevel.coerceAtLeast(1) } ?: 1}"
+            } else {
+                bestCopy?.let { copy ->
+                    ShellContentCatalog.upgradesFor(copy.findId)
+                        .firstOrNull { it.upgradeStageId == copy.currentUpgradeStageId }
+                        ?.let { stringResource(it.titleRes) }
+                } ?: title
+            }
             val rowDescription = stringResource(
                 R.string.shell_chest_group_a11y,
                 title,
@@ -2441,7 +2561,7 @@ private fun CopyGroupSheet(
     onSelectCopy: (UserShellFindInstanceEntity) -> Unit
 ) {
     val def = ShellContentCatalog.find(findId)
-    val copies = uiState.finds.filter { it.findId == findId }.sortedWith(
+    val copies = uiState.finds.filter { it.findId == findId && isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) }.sortedWith(
         compareByDescending<UserShellFindInstanceEntity> { currentFormOrder(it) }.thenByDescending { it.acquiredAt }
     )
     val displayedIds = displayedInstanceIds(uiState)
@@ -2459,18 +2579,22 @@ private fun CopyGroupSheet(
             )
 
             copies.forEach { copy ->
-                val formTitle = ShellContentCatalog.upgradesFor(copy.findId)
-                    .firstOrNull { it.upgradeStageId == copy.currentUpgradeStageId }
-                    ?.let { stringResource(it.titleRes) } ?: title
-                val status = if (copy.instanceId in displayedIds) {
-                    stringResource(R.string.shell_status_displayed_focus)
+                val rowTitle = if (def?.kind == ShellRewardKind.ANIMAL) {
+                    "Level ${copy.animalLevel.coerceAtLeast(1)}"
                 } else {
-                    stringResource(R.string.shell_status_resting)
+                    ShellContentCatalog.upgradesFor(copy.findId)
+                        .firstOrNull { it.upgradeStageId == copy.currentUpgradeStageId }
+                        ?.let { stringResource(it.titleRes) } ?: title
+                }
+                val status = when {
+                    copy.instanceId in displayedIds -> stringResource(R.string.shell_status_displayed_focus)
+                    def?.kind == ShellRewardKind.ANIMAL && copy.creatureStatus != CreatureStatus.ACTIVE -> "Lifetime record · ${copy.creatureStatus.lowercase().replace('_', ' ')}"
+                    else -> stringResource(R.string.shell_status_resting)
                 }
 
                 ListItem(
                     leadingContent = { ShellObjectIcon(def?.iconKey ?: "shell", Modifier.size(30.dp)) },
-                    headlineContent = { Text(formTitle) },
+                    headlineContent = { Text(rowTitle) },
                     supportingContent = { Text(status) },
                     modifier = Modifier
                         .clickable { onSelectCopy(copy) }
@@ -2493,7 +2617,7 @@ private fun ChestPlacementSheet(
     val placementsBySlot = uiState.focusPlacements.associateBy { it.slotId }
     val findsById = uiState.finds.associateBy { it.instanceId }
 
-    val slots = if (def == null) {
+    val slots = if (def == null || !canDisplayInstance(instance, def)) {
         emptyList()
     } else {
         ShellContentCatalog.focusSlots.filter { slot ->
@@ -2638,8 +2762,8 @@ private fun DiscoveryJournalScreen(uiState: ShellUiState) {
 
 @Composable
 private fun ShellNotificationsScreen(uiState: ShellUiState) {
-    val newFinds = uiState.finds.filter { it.isNew }
-    val newStacks = uiState.stacks.filter { it.isNew }
+    val newFinds = uiState.finds.filter { it.isNew && isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) }
+    val newStacks = uiState.stacks.filter { it.isNew && isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) }
     val newBadges = uiState.badges.filter { it.isNew }
     val newDiscoveries = uiState.discoveries.filter { it.isNew }
     val hasNotifications = newFinds.isNotEmpty() || newStacks.isNotEmpty() || newBadges.isNotEmpty() || newDiscoveries.isNotEmpty()
@@ -2859,12 +2983,17 @@ private fun StillwaterRoomScreen(
 private fun TheBlueRoomScreen(
     uiState: ShellUiState,
     onDisplayInFocus: (String, String) -> Unit,
+    onGrowCreature: (String) -> Unit,
+    onReleaseCreature: (String) -> Unit,
+    onEncounterBeyondBlue: (String, List<String>) -> Unit,
     onOpenChest: () -> Unit
 ) {
     val theBlueState = remember(uiState.finds, uiState.focusPlacements) {
         buildTheBlueUiState(uiState.finds, uiState.focusPlacements)
     }
     var selectedAnimal by remember { mutableStateOf<TheBlueAnimalGroupUiModel?>(null) }
+    var releaseCandidate by remember { mutableStateOf<TheBlueAnimalGroupUiModel?>(null) }
+    var showBeyondBlue by remember { mutableStateOf(false) }
     var entryNewAnimalFindIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var railNavigationJob by remember { mutableStateOf<Job?>(null) }
     LaunchedEffect(theBlueState.newAnimalCount, theBlueState.zones) {
@@ -2931,7 +3060,20 @@ private fun TheBlueRoomScreen(
             focusSlotId = remember(uiState.focusPlacements, animal.findId) {
                 firstOpenFocusSlotFor(animal.findId, uiState)
             },
+            pearlBalance = uiState.pearlBalance,
             onDismiss = { selectedAnimal = null },
+            onGrow = { instanceId ->
+                onGrowCreature(instanceId)
+                selectedAnimal = null
+            },
+            onRelease = {
+                releaseCandidate = animal
+                selectedAnimal = null
+            },
+            onBeyondBlue = {
+                showBeyondBlue = true
+                selectedAnimal = null
+            },
             onDisplayInFocus = { instanceId, slotId ->
                 onDisplayInFocus(instanceId, slotId)
                 selectedAnimal = null
@@ -2942,6 +3084,29 @@ private fun TheBlueRoomScreen(
             },
             firstRestingInstanceId = remember(uiState.finds, uiState.focusPlacements, animal.findId) {
                 firstRestingInstanceId(animal.findId, uiState)
+            }
+        )
+    }
+
+    releaseCandidate?.let { animal ->
+        ReleaseCreatureConfirmationSheet(
+            animal = animal,
+            onDismiss = { releaseCandidate = null },
+            onConfirm = { instanceId ->
+                onReleaseCreature(instanceId)
+                releaseCandidate = null
+            }
+        )
+    }
+
+    if (showBeyondBlue) {
+        BeyondBlueEncounterSheet(
+            pearlBalance = uiState.pearlBalance,
+            ownedFinds = uiState.finds,
+            onDismiss = { showBeyondBlue = false },
+            onEncounter = { targetCreatureId, selectedIds ->
+                onEncounterBeyondBlue(targetCreatureId, selectedIds)
+                showBeyondBlue = false
             }
         )
     }
@@ -3373,18 +3538,64 @@ private fun DrawScope.drawZoneAnimals(
     whaleLoop: Float
 ) {
     zone.animals.forEach { animal ->
-        val accentCount = animal.formCounts.filter { it.formStageId != null && !it.formStageId.endsWith("_base") }.sumOf { it.count }
+        val accentCount = animal.levelCounts.filter { (it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 1) > 1 }.sumOf { it.count }
+        val visualScale = CreatureEconomy.animalVisualScale(animal.findId, animal.highestLevel)
         when (animal.findId) {
-            ShellContentCatalog.FOCUS_MINNOW -> drawMinnowSchool(animal.totalCount, accentCount, scheme, drift)
-            ShellContentCatalog.FOCUS_SEAHORSE -> drawSeahorseColony(animal.totalCount, accentCount, scheme, drift)
-            ShellContentCatalog.FOCUS_OCTOPUS -> drawHiddenOctopus(accentCount, scheme, drift)
-            ShellContentCatalog.FOCUS_MANTA -> drawMantaGlides(animal.totalCount, accentCount, scheme, drift, mantaLoop)
-            ShellContentCatalog.FOCUS_WHALE -> drawWhalePasses(animal.totalCount, accentCount, scheme, drift, whaleLoop)
+            ShellContentCatalog.FOCUS_MINNOW -> drawMinnowSchool(animal.totalCount, accentCount, scheme, drift, visualScale)
+            ShellContentCatalog.FOCUS_SEAHORSE -> drawSeahorseColony(animal.totalCount, accentCount, scheme, drift, visualScale)
+            ShellContentCatalog.FOCUS_OCTOPUS -> drawHiddenOctopus(accentCount + 1, scheme, drift)
+            ShellContentCatalog.FOCUS_MANTA -> drawMantaGlides(animal.totalCount, accentCount, scheme, drift, mantaLoop, visualScale)
+            ShellContentCatalog.FOCUS_WHALE -> drawWhalePasses(animal.totalCount, accentCount, scheme, drift, whaleLoop, visualScale)
+            else -> drawRenderFamilyCreatures(animal, scheme, drift, mantaLoop, whaleLoop, visualScale)
         }
     }
 }
 
-private fun DrawScope.drawMinnowSchool(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float) {
+
+private fun DrawScope.drawRenderFamilyCreatures(
+    animal: TheBlueAnimalGroupUiModel,
+    scheme: androidx.compose.material3.ColorScheme,
+    drift: Float,
+    mantaLoop: Float,
+    whaleLoop: Float,
+    levelScale: Float
+) {
+    val definition = CreatureCatalog.get(animal.findId) ?: return
+    val visible = representativeVisibleCount(animal.totalCount, maxVisible = 5)
+    repeat(visible) { i ->
+        val progress = ((drift * (0.55f + i * 0.05f)) + i * 0.19f) % 1f
+        val x = offscreenHorizontalPassX(progress, size.width, 82f, 36f, i % 2 == 0)
+        val y = size.height * (0.22f + ((i * 17) % 52) / 100f)
+        val scale = (0.85f + (i % 3) * 0.10f) * levelScale
+        when (definition.renderFamily.key) {
+            "ray" -> drawManta(Offset(x, y), scale * 0.72f, drift + i, false, scheme)
+            "whale" -> drawWhale(Offset(x, y), scale * 0.58f, drift + i, false, scheme)
+            "octopus" -> drawOctopus(Offset(size.width * 0.62f, size.height * 0.72f), drift, false, scheme)
+            else -> drawGenericFish(Offset(x, y), scale, drift + i, scheme, definition.renderFamily.key)
+        }
+    }
+}
+
+private fun DrawScope.drawGenericFish(origin: Offset, scale: Float, drift: Float, scheme: androidx.compose.material3.ColorScheme, familyKey: String) {
+    val ink = when (familyKey) {
+        "jellyfish", "giant_tentacle", "legendary" -> scheme.secondary.copy(alpha = 0.66f)
+        "shark", "orca", "anglerfish" -> scheme.onSurface.copy(alpha = 0.52f)
+        else -> scheme.primary.copy(alpha = 0.60f)
+    }
+    val w = 34f * scale
+    val h = 18f * scale
+    val bob = sin((drift * 6.28f).toDouble()).toFloat() * 5f
+    if (familyKey == "jellyfish") {
+        drawCircle(ink, w * 0.42f, Offset(origin.x, origin.y + bob))
+        repeat(4) { t -> drawLine(ink, Offset(origin.x - w * .30f + t*w*.20f, origin.y + bob + h*.30f), Offset(origin.x - w * .38f + t*w*.22f, origin.y + bob + h*1.4f), strokeWidth = 2.4f * scale) }
+    } else {
+        drawOval(ink, Offset(origin.x - w * 0.50f, origin.y - h * 0.50f + bob), Size(w, h))
+        drawPath(Path().apply { moveTo(origin.x - w*.50f, origin.y + bob); lineTo(origin.x - w*.82f, origin.y - h*.50f + bob); lineTo(origin.x - w*.82f, origin.y + h*.50f + bob); close() }, ink)
+        drawPath(Path().apply { moveTo(origin.x, origin.y - h*.48f + bob); lineTo(origin.x + w*.12f, origin.y - h*1.05f + bob); lineTo(origin.x + w*.22f, origin.y - h*.35f + bob); close() }, scheme.secondary.copy(alpha = 0.38f))
+    }
+}
+
+private fun DrawScope.drawMinnowSchool(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float, levelScale: Float = 1f) {
     val visible = representativeVisibleCount(count, maxVisible = 12)
     repeat(visible) { i ->
         val group = i / 4
@@ -3392,17 +3603,17 @@ private fun DrawScope.drawMinnowSchool(count: Int, accentCount: Int, scheme: and
         val wiggle = sin((drift * 18f + i).toDouble()).toFloat()
         val x = progress * (size.width + 140f) - 70f
         val y = size.height * (0.34f + group * 0.12f) + (i % 4) * 20f + wiggle * 8f
-        drawMinnow(Offset(x, y), 1f + (i % 3) * 0.08f, wiggle, i < accentCount.coerceAtMost(visible), scheme)
+        drawMinnow(Offset(x, y), (1f + (i % 3) * 0.08f) * levelScale, wiggle, i < accentCount.coerceAtMost(visible), scheme)
     }
 }
 
-private fun DrawScope.drawSeahorseColony(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float) {
+private fun DrawScope.drawSeahorseColony(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float, levelScale: Float = 1f) {
     val visible = representativeVisibleCount(count, maxVisible = 6)
     repeat(visible) { i ->
         val bob = sin((drift * 6.28f + i * 0.9f).toDouble()).toFloat()
         val x = size.width * (0.22f + (i % 3) * 0.16f)
         val y = size.height * (0.46f + (i / 3) * 0.16f) + bob * 14f
-        drawSeahorse(Offset(x, y), 1f + (i % 2) * 0.08f, bob, i < accentCount.coerceAtMost(visible), scheme)
+        drawSeahorse(Offset(x, y), (1f + (i % 2) * 0.08f) * levelScale, bob, i < accentCount.coerceAtMost(visible), scheme)
     }
 }
 
@@ -3411,11 +3622,12 @@ private fun DrawScope.drawMantaGlides(
     accentCount: Int,
     scheme: androidx.compose.material3.ColorScheme,
     drift: Float,
-    mantaLoop: Float
+    mantaLoop: Float,
+    levelScale: Float = 1f
 ) {
     val visible = representativeVisibleCount(count, maxVisible = 3)
     repeat(visible) { i ->
-        val scale = 1.0f + i * 0.16f
+        val scale = (1.0f + i * 0.16f) * levelScale
         val mantaWidth = 132f * scale
         val progress = (mantaLoop + 0.20f + i * 0.28f) % 1f
         val x = offscreenHorizontalPassX(
@@ -3435,11 +3647,12 @@ private fun DrawScope.drawWhalePasses(
     accentCount: Int,
     scheme: androidx.compose.material3.ColorScheme,
     drift: Float,
-    whaleLoop: Float
+    whaleLoop: Float,
+    levelScale: Float = 1f
 ) {
     val visible = representativeVisibleCount(count, maxVisible = 2)
     repeat(visible) { i ->
-        val scale = 1.28f + i * 0.12f
+        val scale = (1.28f + i * 0.12f) * levelScale
         val whaleWidth = 176f * scale
         val progress = (whaleLoop + 0.22f + i * 0.48f) % 1f
         val x = offscreenHorizontalPassX(
@@ -3622,12 +3835,18 @@ private fun DrawScope.drawRoundRockColumn(x: Float, top: Float, bottom: Float, w
 }
 
 
+private fun formatMinutesCompact(minutes: Int): String = if (minutes % 60 == 0) "${minutes / 60}h" else "${minutes}m"
+
 @Composable
 private fun TheBlueAnimalDetailSheet(
     animal: TheBlueAnimalGroupUiModel,
     focusSlotId: String?,
     firstRestingInstanceId: String?,
+    pearlBalance: Int,
     onDismiss: () -> Unit,
+    onGrow: (String) -> Unit,
+    onRelease: () -> Unit,
+    onBeyondBlue: () -> Unit,
     onDisplayInFocus: (String, String) -> Unit,
     onOpenChest: () -> Unit
 ) {
@@ -3636,6 +3855,10 @@ private fun TheBlueAnimalDetailSheet(
     val title = stringResource(R.string.the_blue_animal_count, name, animal.totalCount)
     val source = theBlueEncounteredReason(animal.findId)
     val detailDescription = stringResource(R.string.the_blue_detail_a11y, title, zone, source)
+    val growthInstanceId = animal.highestLevelActiveInstanceId ?: animal.firstRestingInstanceId ?: animal.firstActiveInstanceId
+    val releaseInstanceId = animal.firstRestingInstanceId ?: animal.firstActiveInstanceId
+    val growthCost = CreatureEconomy.growthCostPearls(animal.findId, animal.highestLevel.coerceAtLeast(1))
+    val canGrow = growthInstanceId != null && pearlBalance >= growthCost
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
@@ -3647,25 +3870,26 @@ private fun TheBlueAnimalDetailSheet(
         ) {
             Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(
-                text = if (animal.findId == ShellContentCatalog.FOCUS_OCTOPUS) {
-                    stringResource(R.string.the_blue_discovery_animal_zone, zone)
-                } else {
-                    stringResource(R.string.the_blue_animal_zone, zone)
-                },
+                text = stringResource(R.string.the_blue_animal_zone, zone),
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold
             )
             Text(source)
 
-            Text(stringResource(R.string.the_blue_forms), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            if (animal.formCounts.isEmpty()) {
-                Text(stringResource(R.string.the_blue_forms_unavailable))
-            } else if (animal.formCounts.size == 1 && animal.formCounts.first().formStageId == null) {
-                Text(stringResource(R.string.the_blue_all_first_form, name))
+            Text("Swimming now: ${animal.totalCount}")
+            Text("Lifetime encountered: ${animal.lifetimeEncounteredCount}")
+            if (animal.releasedCount > 0) Text("Released: ${animal.releasedCount}")
+            if (animal.usedBeyondBlueCount > 0) Text("Used Beyond Blue: ${animal.usedBeyondBlueCount}")
+            Text("Highest level: Level ${animal.highestLevel}")
+            animal.flowTimeValueMinutes?.let { Text("Flow Time Value: ${formatMinutesCompact(it)} each") }
+            animal.releaseValuePearls?.let { Text("Release value: $it Pearls each") }
+
+            Text("Levels", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            if (animal.levelCounts.isEmpty()) {
+                Text("Level information is not available yet.")
             } else {
-                animal.formCounts
-                    .sortedBy { form -> form.formStageId?.let { id -> ShellContentCatalog.upgradesFor(animal.findId).firstOrNull { stage -> stage.upgradeStageId == id }?.orderIndex } ?: 0 }
-                    .forEach { form -> Text(stringResource(R.string.the_blue_form_count, formName(animal.findId, form.formStageId), form.count)) }
+                animal.levelCounts.sortedBy { it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 0 }
+                    .forEach { level -> Text("${level.formStageId} ×${level.count}") }
             }
 
             Text(stringResource(R.string.the_blue_displayed_in_focus_heading), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -3674,6 +3898,32 @@ private fun TheBlueAnimalDetailSheet(
             Text(animal.restingCount.toString())
 
             Text(stringResource(R.string.the_blue_actions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Button(
+                onClick = { growthInstanceId?.let(onGrow) },
+                enabled = canGrow,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Grow with Pearls · ${String.format("%,d", growthCost)} Pearls")
+            }
+            if (!canGrow) {
+                val missing = (growthCost - pearlBalance).coerceAtLeast(0)
+                Text(
+                    text = if (growthInstanceId == null) "No active creature is available to grow." else "Need ${String.format("%,d", missing)} more Pearls to grow.",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = onBeyondBlue, modifier = Modifier.weight(1f)) {
+                    Text("Encounter Beyond the Blue")
+                }
+                OutlinedButton(
+                    onClick = onRelease,
+                    enabled = releaseInstanceId != null,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Release for Pearls")
+                }
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
@@ -3703,6 +3953,226 @@ private fun TheBlueAnimalDetailSheet(
         }
     }
 }
+
+@Composable
+private fun ReleaseCreatureConfirmationSheet(
+    animal: TheBlueAnimalGroupUiModel,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    val name = findName(animal.findId)
+    val instanceId = animal.firstRestingInstanceId ?: animal.firstActiveInstanceId
+    val releaseValue = animal.releaseValuePearls ?: CreatureEconomy.releaseValuePearls(animal.findId, animal.highestLevel)
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text("Release this $name for ${String.format("%,d", releaseValue)} Pearls?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("This creature will leave The Blue. Your lifetime record will remain.")
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Keep swimming") }
+                Button(
+                    onClick = { instanceId?.let(onConfirm) },
+                    enabled = instanceId != null,
+                    modifier = Modifier.weight(1f)
+                ) { Text("Release for Pearls") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BeyondBlueEncounterSheet(
+    pearlBalance: Int,
+    ownedFinds: List<UserShellFindInstanceEntity>,
+    onDismiss: () -> Unit,
+    onEncounter: (String, List<String>) -> Unit
+) {
+    enum class BeyondBlueFilter { ALL, SUNLIT_REEF, DEEPER_REEF, OPEN_BLUE, GREAT_BLUE }
+
+    fun zoneMatches(filter: BeyondBlueFilter, zone: com.kingkharnivore.skillz.domain.shell.CreatureZone): Boolean = when (filter) {
+        BeyondBlueFilter.ALL -> true
+        BeyondBlueFilter.SUNLIT_REEF -> zone == com.kingkharnivore.skillz.domain.shell.CreatureZone.SUNLIT_REEF
+        BeyondBlueFilter.DEEPER_REEF -> zone == com.kingkharnivore.skillz.domain.shell.CreatureZone.DEEPER_REEF
+        BeyondBlueFilter.OPEN_BLUE -> zone == com.kingkharnivore.skillz.domain.shell.CreatureZone.OPEN_BLUE
+        BeyondBlueFilter.GREAT_BLUE -> zone == com.kingkharnivore.skillz.domain.shell.CreatureZone.GREAT_BLUE
+    }
+
+    val activeCreatures = remember(ownedFinds) {
+        ownedFinds.filter { instance ->
+            val def = ShellContentCatalog.find(instance.findId)
+            def?.kind == ShellRewardKind.ANIMAL && instance.creatureStatus == CreatureStatus.ACTIVE
+        }
+    }
+    var filter by remember { mutableStateOf(BeyondBlueFilter.ALL) }
+    var selectedTargetId by remember { mutableStateOf<String?>(null) }
+    var selectedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var showConfirm by remember { mutableStateOf(false) }
+
+    val selectedTarget = selectedTargetId?.let { CreatureCatalog.get(it) }
+    val selectedMinutes = activeCreatures.filter { it.instanceId in selectedIds }
+        .sumOf { CreatureEconomy.beyondBlueTradeContributionMinutes(it.findId, it.animalLevel) }
+    val quote = selectedTarget?.let { CreatureEconomy.quoteBeyondBluePayment(it.creatureId, selectedMinutes, pearlBalance) }
+
+    fun creatureLabel(instance: UserShellFindInstanceEntity): String {
+        val def = CreatureCatalog.get(instance.findId)
+        val name = def?.displayName ?: findName(instance.findId)
+        val zone = def?.zone?.displayName ?: "The Blue"
+        val value = CreatureEconomy.flowTimeValueMinutes(instance.findId, instance.animalLevel)
+        return "$name · Level ${instance.animalLevel.coerceAtLeast(1)} · $zone · ${formatMinutesCompact(value)} creature value"
+    }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(stringResource(R.string.beyond_blue_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.beyond_blue_intro))
+
+            if (selectedTarget == null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.horizontalScroll(rememberScrollState())
+                ) {
+                    FilterChip(selected = filter == BeyondBlueFilter.ALL, onClick = { filter = BeyondBlueFilter.ALL }, label = { Text(stringResource(R.string.shell_filter_all)) })
+                    FilterChip(selected = filter == BeyondBlueFilter.SUNLIT_REEF, onClick = { filter = BeyondBlueFilter.SUNLIT_REEF }, label = { Text(stringResource(R.string.the_blue_zone_sunlit_reef_title)) })
+                    FilterChip(selected = filter == BeyondBlueFilter.DEEPER_REEF, onClick = { filter = BeyondBlueFilter.DEEPER_REEF }, label = { Text(stringResource(R.string.the_blue_zone_deeper_reef_title)) })
+                    FilterChip(selected = filter == BeyondBlueFilter.OPEN_BLUE, onClick = { filter = BeyondBlueFilter.OPEN_BLUE }, label = { Text(stringResource(R.string.the_blue_zone_open_blue_title)) })
+                    FilterChip(selected = filter == BeyondBlueFilter.GREAT_BLUE, onClick = { filter = BeyondBlueFilter.GREAT_BLUE }, label = { Text(stringResource(R.string.the_blue_zone_great_blue_title)) })
+                }
+
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    items(CreatureCatalog.beyondBlue.filter { zoneMatches(filter, it.zone) }, key = { it.creatureId }) { target ->
+                        val price = CreatureEconomy.pearlPriceForRequirement(target.requirementMinutes ?: 0)
+                        val status = if (pearlBalance >= price) stringResource(R.string.beyond_blue_status_ready) else stringResource(R.string.beyond_blue_need_more_pearls, price - pearlBalance)
+                        ElevatedCard(onClick = {
+                            selectedTargetId = target.creatureId
+                            selectedIds = emptySet()
+                        }) {
+                            ListItem(
+                                leadingContent = { ShellObjectIcon(target.staticIconKey, Modifier.size(36.dp)) },
+                                headlineContent = { Text(target.displayName) },
+                                supportingContent = {
+                                    Text("${target.zone.displayName}\n" +
+                                            stringResource(R.string.beyond_blue_requires_value, formatMinutesCompact(target.requirementMinutes ?: 0)) + "\n" +
+                                            stringResource(R.string.beyond_blue_or_pearls, price) + "\n" + status)
+                                }
+                            )
+                        }
+                    }
+                }
+            } else {
+                val target = selectedTarget
+                val requirement = target.requirementMinutes ?: 0
+                val pearlPrice = CreatureEconomy.pearlPriceForRequirement(requirement)
+                val currentQuote = quote ?: CreatureEconomy.quoteBeyondBluePayment(target.creatureId, 0, pearlBalance)
+
+                Text("${target.displayName} · ${target.zone.displayName}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.beyond_blue_requires_value, formatMinutesCompact(requirement)))
+                Text(stringResource(R.string.beyond_blue_or_pearls, pearlPrice))
+
+                Text(stringResource(R.string.beyond_blue_available_trade), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                if (activeCreatures.isEmpty()) {
+                    Text(stringResource(R.string.beyond_blue_no_active_to_trade))
+                    Text(stringResource(R.string.beyond_blue_still_with_pearls))
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f, fill = false)) {
+                        items(activeCreatures, key = { it.instanceId }) { creature ->
+                            val selected = creature.instanceId in selectedIds
+                            val label = creatureLabel(creature)
+                            ElevatedCard(onClick = {
+                                selectedIds = if (selected) selectedIds - creature.instanceId else selectedIds + creature.instanceId
+                            }) {
+                                ListItem(
+                                    leadingContent = { ShellObjectIcon(CreatureCatalog.get(creature.findId)?.staticIconKey ?: "minnow", Modifier.size(32.dp)) },
+                                    headlineContent = { Text(label) },
+                                    supportingContent = { Text(if (selected) stringResource(R.string.beyond_blue_selected) else stringResource(R.string.beyond_blue_tap_to_select)) }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Text(stringResource(R.string.beyond_blue_selected_value, formatMinutesCompact(currentQuote.selectedCreatureMinutes)))
+                Text(stringResource(R.string.beyond_blue_remaining_value, formatMinutesCompact(currentQuote.remainingMinutes)))
+                Text(stringResource(R.string.beyond_blue_pearls_needed, currentQuote.pearlCostForRemaining))
+                Text(stringResource(R.string.beyond_blue_change_returned, currentQuote.pearlReturnForOverpay))
+
+                Text(stringResource(R.string.beyond_blue_payment_summary), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.beyond_blue_payment_creatures, formatMinutesCompact(currentQuote.selectedCreatureMinutes)))
+                Text(stringResource(R.string.beyond_blue_payment_pearls, currentQuote.pearlCostForRemaining))
+                Text(stringResource(R.string.beyond_blue_payment_change, currentQuote.pearlReturnForOverpay))
+
+                val canEncounter = currentQuote.canEncounter
+                if (!canEncounter) {
+                    if (currentQuote.selectedCreatureMinutes == 0 && pearlBalance < currentQuote.pearlCostForRemaining) {
+                        Text(stringResource(R.string.beyond_blue_need_more_pearls, currentQuote.pearlCostForRemaining - pearlBalance), color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.beyond_blue_trade_to_reduce), color = MaterialTheme.colorScheme.error)
+                    } else {
+                        Text(stringResource(R.string.beyond_blue_not_enough_both), color = MaterialTheme.colorScheme.error)
+                    }
+                }
+
+                Text(stringResource(R.string.beyond_blue_selected_leave), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
+                Text(stringResource(R.string.beyond_blue_lifetime_remains), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = { selectedTargetId = null }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.beyond_blue_back)) }
+                    Button(onClick = { showConfirm = true }, enabled = canEncounter, modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.beyond_blue_encounter_cta))
+                    }
+                }
+
+                if (showConfirm) {
+                    val mode = when {
+                        currentQuote.selectedCreatureMinutes == 0 -> 0
+                        currentQuote.pearlCostForRemaining == 0 -> 1
+                        else -> 2
+                    }
+                    ModalBottomSheet(onDismissRequest = { showConfirm = false }) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(stringResource(R.string.beyond_blue_confirm_title, target.displayName), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            when (mode) {
+                                0 -> {
+                                    Text(stringResource(R.string.beyond_blue_confirm_pearls_used, currentQuote.pearlCostForRemaining))
+                                    Text(stringResource(R.string.beyond_blue_confirm_no_creatures_leave))
+                                }
+                                1 -> {
+                                    Text(stringResource(R.string.beyond_blue_confirm_trade_selected))
+                                    Text(stringResource(R.string.beyond_blue_selected_leave))
+                                    Text(stringResource(R.string.beyond_blue_lifetime_remains))
+                                }
+                                else -> {
+                                    Text(stringResource(R.string.beyond_blue_selected_leave))
+                                    Text(stringResource(R.string.beyond_blue_confirm_pearls_cover_remaining, currentQuote.pearlCostForRemaining))
+                                    Text(stringResource(R.string.beyond_blue_lifetime_remains))
+                                }
+                            }
+                            if (currentQuote.pearlReturnForOverpay > 0) {
+                                Text(stringResource(R.string.beyond_blue_confirm_returned, currentQuote.pearlReturnForOverpay))
+                            }
+                            Text(stringResource(R.string.beyond_blue_confirm_enters_zone, target.displayName, target.zone.displayName))
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                                OutlinedButton(onClick = { showConfirm = false }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.beyond_blue_cancel)) }
+                                Button(onClick = {
+                                    showConfirm = false
+                                    onEncounter(target.creatureId, selectedIds.toList())
+                                }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.beyond_blue_encounter_cta)) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 private fun TheBlueDepthRail(
@@ -3825,7 +4295,9 @@ private fun firstOpenFocusSlotFor(findId: String, uiState: ShellUiState): String
 
 private fun firstRestingInstanceId(findId: String, uiState: ShellUiState): String? {
     val displayed = uiState.focusPlacements.map { it.instanceId }.toSet()
-    return uiState.finds.firstOrNull { it.findId == findId && it.instanceId !in displayed }?.instanceId
+    return uiState.finds.firstOrNull { item ->
+        item.findId == findId && item.instanceId !in displayed && canDisplayInstance(item, ShellContentCatalog.find(item.findId))
+    }?.instanceId
 }
 
 @Composable

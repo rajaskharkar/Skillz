@@ -52,7 +52,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellRoomStateEntit
         UserShellRoomStateEntity::class,
         ShellRewardEventEntity::class
     ],
-    version = 16,
+    version = 17,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {

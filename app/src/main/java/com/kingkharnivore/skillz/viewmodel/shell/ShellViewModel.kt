@@ -10,6 +10,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindStackEntit
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.data.model.shell.StillwaterPerspective
 import com.kingkharnivore.skillz.data.repository.shell.ShellRepository
+import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -115,8 +116,36 @@ class ShellViewModel @Inject constructor(
 
     fun upgrade(instanceId: String) = viewModelScope.launch {
         runCatching { repository.upgradeInstance(instanceId) }
-            .onSuccess { _events.emit("Your Pearls added warmth to its light.") }
+            .onSuccess { _events.emit("Your Pearls shaped growth in The Shell.") }
             .onFailure { _events.emit(it.message ?: "Could not shape that reward.") }
+    }
+
+    fun growCreature(instanceId: String) = viewModelScope.launch {
+        runCatching { repository.growCreature(instanceId) }
+            .onSuccess { _events.emit("Your creature grew inside The Blue.") }
+            .onFailure { _events.emit(it.message ?: "Could not grow that creature.") }
+    }
+
+    fun releaseCreature(instanceId: String) = viewModelScope.launch {
+        runCatching { repository.releaseCreature(instanceId) }
+            .onSuccess { pearls -> _events.emit("Released for Pearls. $pearls Pearls returned. Your lifetime record remains.") }
+            .onFailure { _events.emit(it.message ?: "Could not release that creature.") }
+    }
+
+    fun encounterBeyondBlue(targetCreatureId: String, selectedInstanceIds: List<String>) = viewModelScope.launch {
+        runCatching { repository.encounterBeyondBlue(targetCreatureId, selectedInstanceIds) }
+            .onSuccess { creature ->
+                val definition = CreatureCatalog.get(creature.findId)
+                val name = definition?.displayName ?: "A new creature"
+                val zone = definition?.zone?.displayName ?: "The Blue"
+                _events.emit(
+                    when {
+                        selectedInstanceIds.isEmpty() -> "$name entered the $zone."
+                        else -> "$name entered the $zone. Selected creatures left The Blue. Your lifetime record remains."
+                    }
+                )
+            }
+            .onFailure { _events.emit(it.message ?: "Could not encounter that creature.") }
     }
 
     fun setPerspective(perspective: StillwaterPerspective) = viewModelScope.launch {

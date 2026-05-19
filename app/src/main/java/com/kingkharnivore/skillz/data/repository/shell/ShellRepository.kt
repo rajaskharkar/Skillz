@@ -6,6 +6,10 @@ import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.dao.shell.*
 import com.kingkharnivore.skillz.data.model.entity.shell.*
 import com.kingkharnivore.skillz.data.model.shell.*
+import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
+import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
+import com.kingkharnivore.skillz.domain.shell.CreatureSourceType
+import com.kingkharnivore.skillz.domain.shell.CreatureStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.util.UUID
@@ -89,7 +93,12 @@ class ShellRepository @Inject constructor(
             currentUpgradeStageId = firstStage,
             customName = null,
             isNew = true,
-            isArchivedInChest = true
+            isArchivedInChest = true,
+            animalLevel = 1,
+            creatureStatus = CreatureStatus.ACTIVE,
+            creatureSource = CreatureCatalog.get(findId)?.sourceType?.name,
+            flowTimeValueMinutes = CreatureCatalog.get(findId)?.flowTimeValueMinutes
+                ?: CreatureCatalog.get(findId)?.requirementMinutes
         )
         findInstanceDao.insert(entity)
         return entity
@@ -131,6 +140,7 @@ class ShellRepository @Inject constructor(
         val find = ShellContentCatalog.find(instance.findId) ?: error("Shell reward definition missing")
         val slot = ShellContentCatalog.focusSlots.firstOrNull { it.roomId == roomId && it.slotId == slotId } ?: error("Invalid slot.")
         require(find.placeable) { "This reward rests in the Shell Chest." }
+        require(find.kind != ShellRewardKind.ANIMAL || instance.creatureStatus == CreatureStatus.ACTIVE) { "This creature is no longer swimming in The Blue." }
         require(ShellContentCatalog.isCompatibleWithSlot(slot, find)) { "Invalid nook for this reward." }
         val currentInSlot = placementDao.getBySlot(roomId.name, slotId)
         if (currentInSlot?.instanceId == instanceId) return@withTransaction
@@ -183,7 +193,12 @@ class ShellRepository @Inject constructor(
             currentUpgradeStageId = firstStage,
             customName = null,
             isNew = true,
-            isArchivedInChest = false
+            isArchivedInChest = false,
+            animalLevel = 1,
+            creatureStatus = CreatureStatus.ACTIVE,
+            creatureSource = CreatureCatalog.get(findId)?.sourceType?.name,
+            flowTimeValueMinutes = CreatureCatalog.get(findId)?.flowTimeValueMinutes
+                ?: CreatureCatalog.get(findId)?.requirementMinutes
         )
         pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), -cost, "invite_object", "shell_reward", instance.instanceId, now, null))
         findInstanceDao.insert(instance)
@@ -208,7 +223,12 @@ class ShellRepository @Inject constructor(
             currentUpgradeStageId = firstStage,
             customName = null,
             isNew = true,
-            isArchivedInChest = true
+            isArchivedInChest = true,
+            animalLevel = 1,
+            creatureStatus = CreatureStatus.ACTIVE,
+            creatureSource = CreatureCatalog.get(findId)?.sourceType?.name,
+            flowTimeValueMinutes = CreatureCatalog.get(findId)?.flowTimeValueMinutes
+                ?: CreatureCatalog.get(findId)?.requirementMinutes
         )
         pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), -cost, "invite_object", "shell_reward", instance.instanceId, now, null))
         findInstanceDao.insert(instance)
@@ -217,6 +237,15 @@ class ShellRepository @Inject constructor(
     suspend fun upgradeInstance(instanceId: String) = db.withTransaction {
         val instance = findInstanceDao.getById(instanceId) ?: error("Shell reward not found")
         val find = ShellContentCatalog.find(instance.findId) ?: error("Shell reward definition missing")
+        if (find.kind == ShellRewardKind.ANIMAL) {
+            require(instance.creatureStatus == CreatureStatus.ACTIVE) { "Only active creatures can grow." }
+            val currentLevel = instance.animalLevel.coerceAtLeast(1)
+            val cost = CreatureEconomy.growthCostPearls(instance.findId, currentLevel)
+            require(pearlLedgerDao.getBalance() >= cost) { "Insufficient Pearls." }
+            pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), -cost, "grow_creature", "shell_reward", instanceId, System.currentTimeMillis(), null))
+            findInstanceDao.updateAnimalLevel(instanceId, currentLevel + 1)
+            return@withTransaction
+        }
         require(find.upgradeable) { "This object is resting in its current form." }
         val next = ShellContentCatalog.nextUpgrade(find.findId, instance.currentUpgradeStageId) ?: error("This object is resting in its current form.")
         val balance = pearlLedgerDao.getBalance()
@@ -224,6 +253,55 @@ class ShellRepository @Inject constructor(
         pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), -next.pearlCost, "shape_find", "shell_reward", instanceId, System.currentTimeMillis(), null))
         upgradeDao.insert(ShellFindUpgradeEntity(UUID.randomUUID().toString(), instanceId, instance.currentUpgradeStageId, next.upgradeStageId, next.pearlCost, System.currentTimeMillis()))
         findInstanceDao.updateUpgradeStage(instanceId, next.upgradeStageId)
+    }
+
+
+    suspend fun growCreature(instanceId: String) = db.withTransaction {
+        val instance = findInstanceDao.getById(instanceId) ?: error("Creature not found")
+        require(ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL) { "Only animals can grow with Pearls." }
+        require(instance.creatureStatus == CreatureStatus.ACTIVE) { "Only active creatures can grow." }
+        val currentLevel = instance.animalLevel.coerceAtLeast(1)
+        val cost = CreatureEconomy.growthCostPearls(instance.findId, currentLevel)
+        require(pearlLedgerDao.getBalance() >= cost) { "Insufficient Pearls." }
+        val now = System.currentTimeMillis()
+        pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), -cost, "grow_creature", "shell_reward", instanceId, now, null))
+        findInstanceDao.updateAnimalLevel(instanceId, currentLevel + 1)
+    }
+
+    suspend fun releaseCreature(instanceId: String): Int = db.withTransaction {
+        val instance = findInstanceDao.getById(instanceId) ?: error("Creature not found")
+        require(ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL) { "Only animals can be released." }
+        require(instance.creatureStatus == CreatureStatus.ACTIVE) { "Only active creatures can be released." }
+        val payout = CreatureEconomy.releaseValuePearls(instance.findId, instance.animalLevel)
+        val now = System.currentTimeMillis()
+        placementDao.removeByInstance(instanceId)
+        findInstanceDao.updateCreatureStatus(instanceId, CreatureStatus.RELEASED)
+        pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), payout, "release_creature", "shell_reward", instanceId, now, "Release for Pearls"))
+        payout
+    }
+
+    suspend fun encounterBeyondBlue(targetCreatureId: String, selectedInstanceIds: List<String>): UserShellFindInstanceEntity = db.withTransaction {
+        val target = CreatureCatalog.require(targetCreatureId)
+        require(target.sourceType == CreatureSourceType.BEYOND_BLUE) { "Only Beyond Blue creatures can be encountered here." }
+        val selected = if (selectedInstanceIds.isEmpty()) emptyList() else findInstanceDao.getByIds(selectedInstanceIds)
+        require(selected.size == selectedInstanceIds.toSet().size) { "Selected creature missing." }
+        require(selected.all { it.creatureStatus == CreatureStatus.ACTIVE && ShellContentCatalog.find(it.findId)?.kind == ShellRewardKind.ANIMAL }) { "Selected creatures must be active animals." }
+        val selectedMinutes = selected.sumOf { CreatureEconomy.beyondBlueTradeContributionMinutes(it.findId, it.animalLevel) }
+        val quote = CreatureEconomy.quoteBeyondBluePayment(targetCreatureId, selectedMinutes, pearlLedgerDao.getBalance())
+        require(quote.canEncounter) { "Insufficient Pearls." }
+        val now = System.currentTimeMillis()
+        if (quote.pearlCostForRemaining > 0) {
+            pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), -quote.pearlCostForRemaining, "beyond_blue_encounter", "shell_reward", targetCreatureId, now, null))
+        }
+        if (quote.pearlReturnForOverpay > 0) {
+            pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), quote.pearlReturnForOverpay, "beyond_blue_overpay_return", "shell_reward", UUID.randomUUID().toString(), now, null))
+        }
+        selected.forEach { creature ->
+            placementDao.removeByInstance(creature.instanceId)
+            findInstanceDao.updateCreatureStatus(creature.instanceId, CreatureStatus.USED_BEYOND_BLUE)
+        }
+        val encountered = grantFindCopy(targetCreatureId, "beyond_blue", targetCreatureId)
+        encountered
     }
 
     suspend fun updateStillwaterPerspective(perspective: StillwaterPerspective) {

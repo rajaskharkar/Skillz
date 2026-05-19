@@ -924,12 +924,12 @@
     <string name="the_blue_zone_waiting">Quiet water is waiting here.</string>
     <string name="the_blue_animal_count">%1$s ×%2$d</string>
     <string name="the_blue_animal_zone">Animal · %1$s</string>
-    <string name="the_blue_discovery_animal_zone">Discovery Animal · %1$s</string>
-    <string name="the_blue_best_form">Best form: %1$s</string>
+    <string name="the_blue_discovery_animal_zone">Animal · %1$s</string>
+    <string name="the_blue_best_form">Highest level: %1$s</string>
     <string name="the_blue_displayed_in_focus">Displayed in Focus: %1$d</string>
     <string name="the_blue_swimming_here">Swimming here: %1$d</string>
     <string name="the_blue_resting_in_chest">Resting in Shell Chest: %1$d</string>
-    <string name="the_blue_forms">Forms</string>
+    <string name="the_blue_forms">Levels</string>
     <string name="the_blue_form_count">%1$s ×%2$d</string>
     <string name="the_blue_displayed_in_focus_heading">Displayed in Focus</string>
     <string name="the_blue_resting_in_chest_heading">Resting in Shell Chest</string>
@@ -938,13 +938,13 @@
     <string name="the_blue_view_in_chest">View in Shell Chest</string>
     <string name="the_blue_no_focus_slot">No open Focus nook right now. Return something from Focus to display a %1$s.</string>
     <string name="the_blue_no_resting_copy">No resting copy is available in the Shell Chest.</string>
-    <string name="the_blue_all_first_form">All %1$s are in their first form.</string>
-    <string name="the_blue_forms_unavailable">Form information is not available yet.</string>
+    <string name="the_blue_all_first_form">All %1$s are Level 1.</string>
+    <string name="the_blue_forms_unavailable">Level information is not available yet.</string>
     <string name="the_blue_source_minnow">From regular Flows lasting 10 minutes or more.</string>
     <string name="the_blue_source_seahorse">From regular Flows lasting 30 minutes or more.</string>
     <string name="the_blue_source_manta">From regular Flows lasting 1 hour or more.</string>
     <string name="the_blue_source_whale">From regular Flows lasting 2 hours or more.</string>
-    <string name="the_blue_source_octopus">Discovered after 3 regular Flows lasting 30 minutes or more.</string>
+    <string name="the_blue_source_octopus">Encountered beyond The Blue and now hiding in the Deeper Reef.</string>
     <string name="the_blue_encountered_minnow">Encountered through regular Flows lasting 10 minutes or more.</string>
     <string name="the_blue_encountered_seahorse">Encountered through regular Flows lasting 30 minutes or more.</string>
     <string name="the_blue_encountered_manta">Encountered through regular Flows lasting 1 hour or more.</string>
@@ -1077,7 +1077,7 @@
     <string name="shell_badge_discovery_description">Earned each time The Shell records a new discovery.</string>
     <string name="shell_discovery_sea_glass_reveal">A Sea Glass Shard was found through regular Flow activity.</string>
     <string name="shell_discovery_sea_glass_explanation">Discovered because regular effort softened a small fragment into something worth keeping.</string>
-    <string name="shell_discovery_threshold_reveal">An Octopus appeared near the Focus Room.</string>
+    <string name="shell_discovery_threshold_reveal">A Shell discovery is ready to view.</string>
     <string name="shell_discovery_threshold_explanation">Discovered after you pushed past your usual stopping point and crossed into a deeper current. The Shell noticed. The Focus Room grew quieter, deeper, and more alive.</string>
     <string name="shell_discovery_return_reveal">A Pebble found its way into The Shell.</string>
     <string name="shell_discovery_return_explanation">Discovered after your first Flow back after time away. The Shell does not punish absence. It remembers return.</string>
@@ -1123,7 +1123,7 @@
     <string name="shell_stillwater_same_water">Same Stillwater, different view.</string>
 
 
-    <string name="shell_whisper_new_discovery">Octopus discovered after 3 regular Flows lasting 30 minutes or more.</string>
+    <string name="shell_whisper_new_discovery">A Shell discovery is ready to view.</string>
     <string name="shell_whisper_upgrade_ready">%1$s can brighten — you have enough Pearls.</string>
     <string name="shell_whisper_chest_waiting">%1$d things are resting in the Shell Chest.</string>
     <string name="shell_whisper_empty_focus">Focus has empty nooks.</string>
@@ -1153,7 +1153,7 @@
     <string name="shell_status_displayed_focus">Displayed in Focus</string>
     <string name="shell_status_resting">Resting in the Shell Chest</string>
     <string name="shell_chest_group_title">%1$s ×%2$d</string>
-    <string name="shell_chest_group_status">Best form: %1$s. Displayed: %2$d. Resting: %3$d. Category: %4$s.</string>
+    <string name="shell_chest_group_status">Highest level: %1$s. Displayed: %2$d. Resting: %3$d. Category: %4$s.</string>
     <string name="shell_chest_group_a11y">%1$s. Owned: %2$d. Displayed: %3$d. Resting in Chest: %4$d.</string>
     <string name="shell_choose_something_to_swap">Choose something to swap.</string>
     <string name="shell_swap_with">Swap with %1$s</string>
@@ -1246,4 +1246,39 @@
     <string name="reward_card_flow_milestones_across_arc">De hitos de Flow a lo largo de este Arc.</string>
     <string name="reward_card_records_updated_across_arc">Registros actualizados a lo largo de este Arc.</string>
 
+    <string name="beyond_blue_title">Beyond Blue</string>
+    <string name="beyond_blue_intro">Encounter new life beyond The Blue using creatures, Pearls, or both.</string>
+    <string name="beyond_blue_requires_value">Requires %1$s creature value</string>
+    <string name="beyond_blue_or_pearls">or %1$,d Pearls</string>
+    <string name="beyond_blue_available_trade">Available to trade</string>
+    <string name="beyond_blue_selected_value">Selected creature value: %1$s</string>
+    <string name="beyond_blue_remaining_value">Remaining value: %1$s</string>
+    <string name="beyond_blue_pearls_needed">Pearls needed: %1$,d</string>
+    <string name="beyond_blue_change_returned">Change returned: %1$,d Pearls</string>
+    <string name="beyond_blue_selected_leave">Selected creatures will leave The Blue.</string>
+    <string name="beyond_blue_confirm_no_creatures_leave">No creatures will leave The Blue.</string>
+    <string name="beyond_blue_lifetime_remains">Your lifetime record will remain.</string>
+    <string name="beyond_blue_confirm_trade_selected">Trade selected creatures.</string>
+    <string name="beyond_blue_confirm_title">Encounter %1$s beyond The Blue?</string>
+    <string name="beyond_blue_confirm_pearls_used">%1$,d Pearls will be used.</string>
+    <string name="beyond_blue_confirm_pearls_cover_remaining">%1$,d Pearls will cover the remaining value.</string>
+    <string name="beyond_blue_confirm_returned">Extra creature value will return as %1$,d Pearls.</string>
+    <string name="beyond_blue_no_active_to_trade">No active creatures are available to trade yet.</string>
+    <string name="beyond_blue_still_with_pearls">You can still encounter this creature with Pearls.</string>
+    <string name="beyond_blue_need_more_pearls">Need %1$,d more Pearls.</string>
+    <string name="beyond_blue_not_enough_both">Not enough creature value or Pearls yet. Complete more regular Flows or return later with more Pearls.</string>
+    <string name="beyond_blue_status_ready">Ready</string>
+    <string name="beyond_blue_status_affordable">Affordable</string>
+    <string name="beyond_blue_status_almost_affordable">Almost Affordable</string>
+    <string name="beyond_blue_selected">Selected</string>
+    <string name="beyond_blue_tap_to_select">Tap to select</string>
+    <string name="beyond_blue_trade_to_reduce">Trade creatures to reduce the Pearl cost.</string>
+    <string name="beyond_blue_payment_summary">Payment</string>
+    <string name="beyond_blue_payment_creatures">Creatures: %1$s</string>
+    <string name="beyond_blue_payment_pearls">Pearls: %1$,d</string>
+    <string name="beyond_blue_payment_change">Change: %1$,d Pearls</string>
+    <string name="beyond_blue_back">Back</string>
+    <string name="beyond_blue_encounter_cta">Encounter Beyond the Blue</string>
+    <string name="beyond_blue_confirm_enters_zone">%1$s will enter the %2$s.</string>
+    <string name="beyond_blue_cancel">Cancel</string>
 </resources>
