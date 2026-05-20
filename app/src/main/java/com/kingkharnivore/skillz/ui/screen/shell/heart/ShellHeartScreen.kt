@@ -1,7 +1,38 @@
-package com.kingkharnivore.skillz.ui.screen.shell.heart
+package com.kingkharnivore.skillz.ui.screen.shell
 
-import com.kingkharnivore.skillz.ui.screen.shell.*
-private fun HeartRoomScreen(
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.pager.*
+import androidx.compose.foundation.shape.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.*
+import androidx.compose.ui.geometry.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.*
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.*
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.*
+import com.kingkharnivore.skillz.R
+import com.kingkharnivore.skillz.data.model.entity.shell.*
+import com.kingkharnivore.skillz.data.model.shell.*
+import com.kingkharnivore.skillz.domain.shell.*
+import com.kingkharnivore.skillz.viewmodel.shell.*
+import kotlinx.coroutines.*
+import kotlin.math.*
+
+
+@Composable
+internal fun HeartRoomScreen(
     uiState: ShellUiState,
     onNavigate: (ShellDestination) -> Unit,
     onOpenPearlBasin: () -> Unit
@@ -173,7 +204,7 @@ private fun HeartRoomScreen(
 }
 
 @Composable
-private fun RoomOrbitPair(
+internal fun RoomOrbitPair(
     modifier: Modifier = Modifier,
     nodeWidth: Dp,
     left: @Composable () -> Unit,
@@ -195,7 +226,7 @@ private fun RoomOrbitPair(
 }
 
 @Composable
-private fun RoomOrbitNode(
+internal fun RoomOrbitNode(
     labelRes: Int,
     icon: ImageVector,
     dormant: Boolean,
@@ -291,7 +322,7 @@ private fun RoomOrbitNode(
 }
 
 @Composable
-private fun HeartCenter(
+internal fun HeartCenter(
     uiState: ShellUiState,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
@@ -375,7 +406,7 @@ private fun HeartCenter(
 }
 
 @Composable
-private fun ShellWhisperDock(
+internal fun ShellWhisperDock(
     uiState: ShellUiState,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
@@ -430,7 +461,7 @@ private fun ShellWhisperDock(
 }
 
 @Composable
-private fun HeartShortcutDock(
+internal fun HeartShortcutDock(
     chestHasIndicator: Boolean,
     journalHasIndicator: Boolean,
     onChest: () -> Unit,
@@ -476,7 +507,7 @@ private fun HeartShortcutDock(
 }
 
 @Composable
-private fun HeartShortcut(
+internal fun HeartShortcut(
     icon: ImageVector,
     labelRes: Int,
     hasIndicator: Boolean,
@@ -523,7 +554,7 @@ private fun HeartShortcut(
 }
 
 @Composable
-private fun HeartDetailSheet(
+internal fun HeartDetailSheet(
     uiState: ShellUiState,
     onDismiss: () -> Unit,
     onOpenPearlBasin: () -> Unit,
@@ -611,7 +642,7 @@ private fun HeartDetailSheet(
 }
 
 @Composable
-private fun PearlBasinSheet(
+internal fun PearlBasinSheet(
     uiState: ShellUiState,
     onDismiss: () -> Unit,
     onOpenFocus: () -> Unit,
@@ -743,7 +774,7 @@ private fun PearlBasinSheet(
 }
 
 @Composable
-private fun InvitePearlObjectConfirmationSheet(
+internal fun InvitePearlObjectConfirmationSheet(
     definition: ShellFindDefinition,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
@@ -779,7 +810,7 @@ private fun InvitePearlObjectConfirmationSheet(
 }
 
 @Composable
-private fun SuggestionRow(
+internal fun SuggestionRow(
     title: String,
     cost: Int,
     enabled: Boolean = true,
@@ -796,7 +827,7 @@ private fun SuggestionRow(
 }
 
 @Composable
-private fun HeartShellBackground(
+internal fun HeartShellBackground(
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -875,7 +906,7 @@ private fun HeartShellBackground(
 }
 
 @Composable
-private fun ShellPearlBasinIcon(
+internal fun ShellPearlBasinIcon(
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -932,13 +963,13 @@ private fun ShellPearlBasinIcon(
 }
 
 @Composable
-private fun shellIndicatorColor(): Color {
+internal fun shellIndicatorColor(): Color {
     val scheme = MaterialTheme.colorScheme
     val secondaryContrast = contrastRatio(scheme.secondary, scheme.surface)
     return if (secondaryContrast >= 3f) scheme.secondary else scheme.primary
 }
 
-private fun contrastRatio(a: Color, b: Color): Float {
+internal fun contrastRatio(a: Color, b: Color): Float {
     fun channel(v: Float): Float = if (v <= 0.03928f) {
         v / 12.92f
     } else {
@@ -960,7 +991,7 @@ private fun contrastRatio(a: Color, b: Color): Float {
 }
 
 @Composable
-private fun ShellPearlMiniIcon(
+internal fun ShellPearlMiniIcon(
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -983,7 +1014,7 @@ private fun ShellPearlMiniIcon(
 private enum class ShellAnimalIcon { MINNOW, SEAHORSE, MANTA, WHALE, OCTOPUS, JELLYFISH, TURTLE, SHARK, DOLPHIN, SQUID, STARFISH, URCHIN, EEL, FISH }
 
 @Composable
-private fun ShellObjectIcon(
+internal fun ShellObjectIcon(
     iconKey: String,
     modifier: Modifier = Modifier
 ) {
@@ -1024,7 +1055,7 @@ private fun ShellObjectIcon(
 }
 
 @Composable
-private fun ShellAnimalCanvasIcon(
+internal fun ShellAnimalCanvasIcon(
     animalIcon: ShellAnimalIcon,
     modifier: Modifier = Modifier
 ) {
@@ -1135,7 +1166,7 @@ private fun ShellAnimalCanvasIcon(
 }
 
 @Composable
-private fun TurtleShellCardPattern(
+internal fun TurtleShellCardPattern(
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
