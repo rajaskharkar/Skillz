@@ -997,7 +997,7 @@
     <string name="the_blue_zone_a11y">%1$s. %2$s. %3$d animal species.</string>
     <string name="the_blue_zone_scene_a11y">%1$s. %2$s. %3$s.</string>
     <string name="the_blue_animal_overlay_a11y">%1$s. Animal. %2$s. Count %3$d. %4$s Opens details.</string>
-    <string name="the_blue_tap_for_details">Tap for details</string>
+    <string name="the_blue_tap_for_details">तपशील पाहण्यासाठी टॅप करा</string>
     <string name="the_blue_animal_card_a11y">%1$s. Animal. Count %2$d. %3$s. %4$s Displayed in Focus: %5$d.</string>
     <string name="the_blue_detail_a11y">%1$s. %2$s. %3$s</string>
     <string name="the_blue_depth_rail_a11y">Riel de profundidad: Sunlit Reef, Deeper Reef, Open Blue, Great Blue.</string>
@@ -1042,7 +1042,7 @@
     <string name="shell_chest_body">Everything you own inside The Shell rests here when it is not displayed.</string>
     <string name="shell_filter_all">All</string>
     <string name="shell_filter_animals">प्राणी</string>
-    <string name="shell_filter_room_objects">Room Objects</string>
+    <string name="shell_filter_room_objects">खोलीतील वस्तूs</string>
     <string name="shell_creature_level_value">पातळी %1$d</string>
     <string name="shell_creature_grow_with_pearls_cost">%1$d मोत्यांनी वाढवा</string>
     <string name="shell_creature_not_swimming_lifetime_remains">आत्ता पोहत नाही. आयुष्यभराची नोंद कायम राहील.</string>
@@ -1144,12 +1144,12 @@
     <string name="shell_discovery_return_reveal">A Pebble found its way into The Shell.</string>
     <string name="shell_discovery_return_explanation">Discovered after your first Flow back after time away. The Shell does not punish absence. It remembers return.</string>
 
-    <string name="shell_category_creatures">Creatures</string>
+    <string name="shell_category_creatures">जीव</string>
     <string name="shell_category_shells">Shells</string>
     <string name="shell_category_coral">Coral</string>
     <string name="shell_category_plants">Plants</string>
     <string name="shell_category_trophies">Trophies</string>
-    <string name="shell_category_trinkets">Trinkets</string>
+    <string name="shell_category_trinkets">तुकडाs</string>
     <string name="shell_category_discoveries">Discoveries</string>
 
     <string name="shell_object_moon_coral_light_title">Lamp</string>
@@ -1293,7 +1293,7 @@
     <string name="reward_card_arc_bonus_line">Arc बोनस: +%1$d</string>
     <string name="reward_card_arc_animals_title">Animals encountered</string>
     <string name="reward_card_arc_objects_title">Objects found</string>
-    <string name="reward_card_arc_trinkets_title">Trinkets gathered</string>
+    <string name="reward_card_arc_trinkets_title">तुकडाs gathered</string>
     <string name="reward_card_arc_badges_title">Badges updated</string>
     <string name="reward_card_arc_discoveries_title">Discoveries recorded</string>
     <string name="reward_card_arc_shell_shaped_body">Scyra Points from this Arc were carried into The Shell as Pearls.</string>
@@ -1318,7 +1318,7 @@
     <string name="beyond_blue_pearls_needed">आवश्यक Pearls: %1$,d</string>
     <string name="beyond_blue_change_returned">परतावा: %1$,d Pearls</string>
     <string name="beyond_blue_selected_leave">निवडलेले creatures The Blue सोडतील.</string>
-    <string name="beyond_blue_confirm_no_creatures_leave">Ninguna criatura dejará The Blue.</string>
+    <string name="beyond_blue_confirm_no_creatures_leave">एकही creature The Blue सोडणार नाही.</string>
     <string name="beyond_blue_lifetime_remains">तुमची lifetime नोंद कायम राहील.</string>
     <string name="beyond_blue_confirm_trade_selected">निवडलेले creatures ट्रेड करा.</string>
     <string name="beyond_blue_confirm_title">¿Encontrar %1$s más allá de The Blue?</string>
@@ -1327,21 +1327,21 @@
     <string name="beyond_blue_confirm_returned">El valor extra de criaturas volverá como %1$,d Pearls.</string>
     <string name="beyond_blue_no_active_to_trade">Aún no hay criaturas activas para intercambiar.</string>
     <string name="beyond_blue_still_with_pearls">Aún puedes encontrar esta criatura con Pearls.</string>
-    <string name="beyond_blue_need_more_pearls">Need %1$,d more Pearls.</string>
+    <string name="beyond_blue_need_more_pearls">आणखी %1$,d Pearls आवश्यक आहेत.</string>
     <string name="beyond_blue_not_enough_both">Aún no tienes suficiente valor de criaturas ni Pearls. Completa más Flows regulares o vuelve luego con más Pearls.</string>
-    <string name="beyond_blue_status_ready">Ready</string>
-    <string name="beyond_blue_status_affordable">Affordable</string>
-    <string name="beyond_blue_status_almost_affordable">Almost Affordable</string>
-    <string name="beyond_blue_selected">Selected</string>
-    <string name="beyond_blue_tap_to_select">Tap to select</string>
+    <string name="beyond_blue_status_ready">तयार</string>
+    <string name="beyond_blue_status_affordable">परवडणारे</string>
+    <string name="beyond_blue_status_almost_affordable">Almost परवडणारे</string>
+    <string name="beyond_blue_selected">निवडलेले</string>
+    <string name="beyond_blue_tap_to_select">निवडण्यासाठी टॅप करा</string>
     <string name="beyond_blue_trade_to_reduce">Intercambia criaturas para reducir el costo en Pearls.</string>
     <string name="beyond_blue_payment_summary">पेमेंट</string>
-    <string name="beyond_blue_payment_creatures">Creatures: %1$s</string>
+    <string name="beyond_blue_payment_creatures">जीव: %1$s</string>
     <string name="beyond_blue_payment_pearls">Pearls: %1$,d</string>
-    <string name="beyond_blue_payment_change">Change: %1$,d Pearls</string>
+    <string name="beyond_blue_payment_change">परतावा: %1$,d Pearls</string>
     <string name="beyond_blue_back">मागे</string>
     <string name="beyond_blue_encounter_cta">Beyond Blue मध्ये भेटा</string>
-    <string name="beyond_blue_confirm_enters_zone">%1$s will enter the %2$s.</string>
+    <string name="beyond_blue_confirm_enters_zone">%1$s %2$s मध्ये प्रवेश करेल.</string>
     <string name="beyond_blue_cancel">रद्द करा</string>
     <string name="beyond_blue_discover_depth_copy">या खोलीजवळ नवीन life शोधा.</string>
 
@@ -1388,7 +1388,7 @@
     <string name="shell_upgrade_minnow_bright_description">Minnow subió con Pearls.</string>
     <string name="shell_upgrade_minnow_glimmer_description">Minnow creció con Pearls.</string>
     <string name="shell_upgrade_minnow_luminous_description">Minnow alcanzó un nivel luminoso.</string>
-    <string name="shell_upgrade_seahorse_base_description">Seahorse is resting in its base form.</string>
+    <string name="shell_upgrade_seahorse_base_description">Seahorse आपल्या मूलभूत स्तरावर आहे.</string>
     <string name="shell_upgrade_seahorse_bright_description">Seahorse brightened with Pearls.</string>
     <string name="shell_upgrade_seahorse_glimmer_description">Seahorse glimmers with Pearls.</string>
     <string name="shell_upgrade_seahorse_crowned_description">Seahorse awakened into a crowned form.</string>
@@ -1458,15 +1458,15 @@
     <string name="shell_action_polish">Polish</string>
     <string name="shell_action_deepen">Deepen</string>
     <string name="shell_kind_animal">Animal</string>
-    <string name="shell_kind_object">Room Object</string>
-    <string name="shell_kind_trinket">Trinket</string>
+    <string name="shell_kind_object">खोलीतील वस्तू</string>
+    <string name="shell_kind_trinket">तुकडा</string>
     <string name="shell_kind_discovery">Discovery</string>
     <string name="shell_depth_reef">Sunlit Reef</string>
     <string name="shell_depth_deeper_reef">Deeper Reef</string>
     <string name="shell_depth_open_blue">Open Blue</string>
     <string name="shell_depth_deep_ocean">Great Blue</string>
-    <string name="shell_form_label">Form: %1$s</string>
-    <string name="shell_source_label">Source: %1$s</string>
+    <string name="shell_form_label">स्तर: %1$s</string>
+    <string name="shell_source_label">स्रोत: %1$s</string>
     <string name="shell_invite_confirm_title">¿Invitar a %1$s?</string>
     <string name="shell_invite_confirm_body">Esto formará un nuevo %1$s y lo dejará en Shell Chest.</string>
     <string name="shell_invite_confirm_cta">%1$d Pearls सह आमंत्रित करा</string>
@@ -1478,7 +1478,7 @@
     <string name="shell_upgrade_animal_a11y">Haz crecer este animal con Pearls</string>
     <string name="shell_upgrade_object_a11y">Moldea este objeto con Pearls</string>
     <string name="shell_upgrade_reward_a11y">Moldea esta recompensa con Pearls</string>
-    <string name="shell_cancel">Cancel</string>
+    <string name="shell_cancel">रद्द करा</string>
     <string name="shell_find_clownfish_title">Clownfish</string>
     <string name="shell_find_clownfish_description">Encountered Beyond the Blue.</string>
     <string name="shell_find_blue_tang_title">Blue Tang</string>
