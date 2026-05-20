@@ -1,38 +1,7 @@
-package com.kingkharnivore.skillz.ui.screen.shell
+package com.kingkharnivore.skillz.ui.screen.shell.beyondblue
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
-import androidx.compose.foundation.pager.*
-import androidx.compose.foundation.shape.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
-import androidx.compose.ui.draw.*
-import androidx.compose.ui.geometry.*
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.*
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.*
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.*
-import com.kingkharnivore.skillz.R
-import com.kingkharnivore.skillz.data.model.entity.shell.*
-import com.kingkharnivore.skillz.data.model.shell.*
-import com.kingkharnivore.skillz.domain.shell.*
-import com.kingkharnivore.skillz.viewmodel.shell.*
-import kotlinx.coroutines.*
-import kotlin.math.*
-
-
-@Composable
-internal fun BeyondBlueEncounterSheet(
+import com.kingkharnivore.skillz.ui.screen.shell.*
+private fun BeyondBlueEncounterSheet(
     pearlBalance: Int,
     initialZone: TheBlueZoneId,
     activeAnimalInstances: List<UserShellFindInstanceEntity>,
@@ -159,7 +128,7 @@ internal fun BeyondBlueEncounterSheet(
 }
 
 @Composable
-internal fun TheBlueDepthRail(
+private fun TheBlueDepthRail(
     zones: List<TheBlueZoneId>,
     activeZone: TheBlueZoneId,
     onZoneClick: (TheBlueZoneId) -> Unit,
@@ -217,7 +186,7 @@ internal fun TheBlueDepthRail(
 }
 
 @Composable
-internal fun zoneTitle(zoneId: TheBlueZoneId): String = when (zoneId) {
+private fun zoneTitle(zoneId: TheBlueZoneId): String = when (zoneId) {
     TheBlueZoneId.SUNLIT_REEF -> stringResource(R.string.the_blue_zone_sunlit_reef_title)
     TheBlueZoneId.DEEPER_REEF -> stringResource(R.string.the_blue_zone_deeper_reef_title)
     TheBlueZoneId.OPEN_BLUE -> stringResource(R.string.the_blue_zone_open_blue_title)
@@ -225,7 +194,7 @@ internal fun zoneTitle(zoneId: TheBlueZoneId): String = when (zoneId) {
 }
 
 @Composable
-internal fun zoneRailLabel(zoneId: TheBlueZoneId): String = when (zoneId) {
+private fun zoneRailLabel(zoneId: TheBlueZoneId): String = when (zoneId) {
     TheBlueZoneId.SUNLIT_REEF -> stringResource(R.string.the_blue_zone_sunlit_reef_rail)
     TheBlueZoneId.DEEPER_REEF -> stringResource(R.string.the_blue_zone_deeper_reef_rail)
     TheBlueZoneId.OPEN_BLUE -> stringResource(R.string.the_blue_zone_open_blue_rail)
@@ -233,7 +202,7 @@ internal fun zoneRailLabel(zoneId: TheBlueZoneId): String = when (zoneId) {
 }
 
 @Composable
-internal fun zoneSubtitle(zoneId: TheBlueZoneId): String = when (zoneId) {
+private fun zoneSubtitle(zoneId: TheBlueZoneId): String = when (zoneId) {
     TheBlueZoneId.SUNLIT_REEF -> stringResource(R.string.the_blue_zone_sunlit_reef_subtitle)
     TheBlueZoneId.DEEPER_REEF -> stringResource(R.string.the_blue_zone_deeper_reef_subtitle)
     TheBlueZoneId.OPEN_BLUE -> stringResource(R.string.the_blue_zone_open_blue_subtitle)
@@ -241,15 +210,15 @@ internal fun zoneSubtitle(zoneId: TheBlueZoneId): String = when (zoneId) {
 }
 
 @Composable
-internal fun findName(findId: String): String = ShellContentCatalog.find(findId)?.let { stringResource(it.titleRes) } ?: stringResource(R.string.reward_card_shell_recorded_title)
+private fun findName(findId: String): String = ShellContentCatalog.find(findId)?.let { stringResource(it.titleRes) } ?: stringResource(R.string.reward_card_shell_recorded_title)
 
 @Composable
-internal fun formName(findId: String, stageId: String?): String =
+private fun formName(findId: String, stageId: String?): String =
     ShellContentCatalog.upgradesFor(findId).firstOrNull { it.upgradeStageId == stageId }?.let { stringResource(it.titleRes) }
         ?: stringResource(R.string.shell_form_base)
 
 @Composable
-internal fun theBlueSourceReason(findId: String): String = when (findId) {
+private fun theBlueSourceReason(findId: String): String = when (findId) {
     ShellContentCatalog.FOCUS_MINNOW -> stringResource(R.string.the_blue_source_minnow)
     ShellContentCatalog.FOCUS_SEAHORSE -> stringResource(R.string.the_blue_source_seahorse)
     ShellContentCatalog.FOCUS_MANTA -> stringResource(R.string.the_blue_source_manta)
@@ -259,7 +228,7 @@ internal fun theBlueSourceReason(findId: String): String = when (findId) {
 }
 
 @Composable
-internal fun theBlueEncounteredReason(findId: String): String = when (findId) {
+private fun theBlueEncounteredReason(findId: String): String = when (findId) {
     ShellContentCatalog.FOCUS_MINNOW -> stringResource(R.string.the_blue_encountered_minnow)
     ShellContentCatalog.FOCUS_SEAHORSE -> stringResource(R.string.the_blue_encountered_seahorse)
     ShellContentCatalog.FOCUS_MANTA -> stringResource(R.string.the_blue_encountered_manta)
@@ -268,7 +237,7 @@ internal fun theBlueEncounteredReason(findId: String): String = when (findId) {
     else -> theBlueSourceReason(findId)
 }
 
-internal fun firstOpenFocusSlotFor(findId: String, uiState: ShellUiState): String? {
+private fun firstOpenFocusSlotFor(findId: String, uiState: ShellUiState): String? {
     val definition = ShellContentCatalog.find(findId) ?: return null
     val occupied = uiState.focusPlacements.map { it.slotId }.toSet()
     return ShellContentCatalog.focusSlots.firstOrNull { slot ->
@@ -276,7 +245,7 @@ internal fun firstOpenFocusSlotFor(findId: String, uiState: ShellUiState): Strin
     }?.slotId
 }
 
-internal fun firstRestingInstanceId(findId: String, uiState: ShellUiState): String? {
+private fun firstRestingInstanceId(findId: String, uiState: ShellUiState): String? {
     val displayed = uiState.focusPlacements.map { it.instanceId }.toSet()
     return uiState.finds.firstOrNull { item ->
         item.findId == findId && item.instanceId !in displayed && canDisplayInstance(item, ShellContentCatalog.find(item.findId))

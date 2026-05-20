@@ -129,6 +129,15 @@ import com.kingkharnivore.skillz.ui.screen.shell.components.hasEmptyNookForNewRe
 import com.kingkharnivore.skillz.ui.screen.shell.components.hasRestingPlaceableFinds
 import com.kingkharnivore.skillz.ui.screen.shell.components.hasAffordableFocusPearlAction
 import com.kingkharnivore.skillz.ui.screen.shell.components.unseenNotificationCount
+import com.kingkharnivore.skillz.ui.screen.shell.badges.BadgesScreen
+import com.kingkharnivore.skillz.ui.screen.shell.beyondblue.BeyondBlueEncounterSheet
+import com.kingkharnivore.skillz.ui.screen.shell.chest.ShellChestScreen
+import com.kingkharnivore.skillz.ui.screen.shell.focus.FocusRoomScreen
+import com.kingkharnivore.skillz.ui.screen.shell.heart.HeartRoomScreen
+import com.kingkharnivore.skillz.ui.screen.shell.journal.DiscoveryJournalScreen
+import com.kingkharnivore.skillz.ui.screen.shell.notifications.ShellNotificationsScreen
+import com.kingkharnivore.skillz.ui.screen.shell.stillwater.StillwaterRoomScreen
+import com.kingkharnivore.skillz.ui.screen.shell.theblue.TheBlueRoomScreen
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.data.model.shell.ShellSlotDefinition
 import com.kingkharnivore.skillz.data.model.shell.ShellSlotType

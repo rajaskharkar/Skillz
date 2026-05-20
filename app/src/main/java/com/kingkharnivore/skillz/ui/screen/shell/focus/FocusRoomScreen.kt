@@ -1,38 +1,7 @@
-package com.kingkharnivore.skillz.ui.screen.shell
+package com.kingkharnivore.skillz.ui.screen.shell.focus
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
-import androidx.compose.foundation.pager.*
-import androidx.compose.foundation.shape.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
-import androidx.compose.ui.draw.*
-import androidx.compose.ui.geometry.*
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.*
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.*
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.*
-import com.kingkharnivore.skillz.R
-import com.kingkharnivore.skillz.data.model.entity.shell.*
-import com.kingkharnivore.skillz.data.model.shell.*
-import com.kingkharnivore.skillz.domain.shell.*
-import com.kingkharnivore.skillz.viewmodel.shell.*
-import kotlinx.coroutines.*
-import kotlin.math.*
-
-
-@Composable
-internal fun FocusRoomScreen(
+import com.kingkharnivore.skillz.ui.screen.shell.*
+private fun FocusRoomScreen(
     uiState: ShellUiState,
     onPlace: (String, String) -> Unit,
     onReturn: (String) -> Unit,
@@ -154,7 +123,7 @@ internal fun FocusRoomScreen(
 }
 
 @Composable
-internal fun TurtleShellInteriorBackground(
+private fun TurtleShellInteriorBackground(
     modifier: Modifier = Modifier,
     centerGlow: Boolean = false
 ) {
@@ -251,7 +220,7 @@ internal fun TurtleShellInteriorBackground(
 }
 
 @Composable
-internal fun FocusRoomCarvedShelves(
+private fun FocusRoomCarvedShelves(
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -305,7 +274,7 @@ internal fun FocusRoomCarvedShelves(
 }
 
 @Composable
-internal fun SlotChip(
+private fun SlotChip(
     slot: ShellSlotDefinition,
     find: UserShellFindInstanceEntity?,
     modifier: Modifier,
@@ -382,7 +351,7 @@ internal fun SlotChip(
 }
 
 @Composable
-internal fun EmptySlotSheet(
+private fun EmptySlotSheet(
     slotId: String,
     uiState: ShellUiState,
     onDismiss: () -> Unit,
@@ -475,7 +444,7 @@ internal fun EmptySlotSheet(
 }
 
 @Composable
-internal fun ObjectCopySheet(
+private fun ObjectCopySheet(
     item: UserShellFindInstanceEntity,
     pearlBalance: Int,
     displayed: Boolean,

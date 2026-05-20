@@ -1,38 +1,7 @@
-package com.kingkharnivore.skillz.ui.screen.shell
+package com.kingkharnivore.skillz.ui.screen.shell.theblue
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
-import androidx.compose.foundation.pager.*
-import androidx.compose.foundation.shape.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
-import androidx.compose.ui.draw.*
-import androidx.compose.ui.geometry.*
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.*
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.*
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.*
-import com.kingkharnivore.skillz.R
-import com.kingkharnivore.skillz.data.model.entity.shell.*
-import com.kingkharnivore.skillz.data.model.shell.*
-import com.kingkharnivore.skillz.domain.shell.*
-import com.kingkharnivore.skillz.viewmodel.shell.*
-import kotlinx.coroutines.*
-import kotlin.math.*
-
-
-@Composable
-internal fun TheBlueRoomScreen(
+import com.kingkharnivore.skillz.ui.screen.shell.*
+private fun TheBlueRoomScreen(
     uiState: ShellUiState,
     onDisplayInFocus: (String, String) -> Unit,
     onGrowCreature: (String) -> Unit,
@@ -174,7 +143,7 @@ internal fun TheBlueRoomScreen(
 }
 
 @Composable
-internal fun TheBlueEmptyOceanPage(
+private fun TheBlueEmptyOceanPage(
     pageHeight: Dp
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -243,7 +212,7 @@ internal fun TheBlueEmptyOceanPage(
 }
 
 @Composable
-internal fun TheBlueZonePage(
+private fun TheBlueZonePage(
     zone: TheBlueZoneUiModel,
     state: TheBlueUiState,
     pageHeight: Dp,
@@ -396,7 +365,7 @@ internal fun TheBlueZonePage(
 }
 
 @Composable
-internal fun zoneAnimalSummary(zone: TheBlueZoneUiModel): String {
+private fun zoneAnimalSummary(zone: TheBlueZoneUiModel): String {
     if (zone.animals.isEmpty()) return stringResource(R.string.the_blue_zone_waiting)
     val labels = mutableListOf<String>()
     for (animal in zone.animals) {
@@ -406,7 +375,7 @@ internal fun zoneAnimalSummary(zone: TheBlueZoneUiModel): String {
 }
 
 @Composable
-internal fun TheBlueOverlaySurface(
+private fun TheBlueOverlaySurface(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
@@ -421,7 +390,7 @@ internal fun TheBlueOverlaySurface(
 }
 
 @Composable
-internal fun TheBlueAnimalOverlayChip(
+private fun TheBlueAnimalOverlayChip(
     animal: TheBlueAnimalGroupUiModel,
     isNewArrival: Boolean,
     onClick: () -> Unit
@@ -478,7 +447,7 @@ internal fun TheBlueAnimalOverlayChip(
     }
 }
 
-internal fun DrawScope.drawTheBlueWaterBackground(
+private fun DrawScope.drawTheBlueWaterBackground(
     zoneId: TheBlueZoneId,
     scheme: androidx.compose.material3.ColorScheme,
     drift: Float
@@ -517,7 +486,7 @@ internal fun DrawScope.drawTheBlueWaterBackground(
     }
 }
 
-internal fun DrawScope.drawZoneEnvironment(
+private fun DrawScope.drawZoneEnvironment(
     zoneId: TheBlueZoneId,
     scheme: androidx.compose.material3.ColorScheme,
     drift: Float,
@@ -531,7 +500,7 @@ internal fun DrawScope.drawZoneEnvironment(
     }
 }
 
-internal fun DrawScope.drawSunlitReefEnvironment(
+private fun DrawScope.drawSunlitReefEnvironment(
     scheme: androidx.compose.material3.ColorScheme,
     drift: Float,
     animalDensity: Int
@@ -559,7 +528,7 @@ internal fun DrawScope.drawSunlitReefEnvironment(
     }
 }
 
-internal fun DrawScope.drawDeeperReefEnvironment(
+private fun DrawScope.drawDeeperReefEnvironment(
     scheme: androidx.compose.material3.ColorScheme,
     drift: Float,
     animalDensity: Int
@@ -584,7 +553,7 @@ internal fun DrawScope.drawDeeperReefEnvironment(
     }
 }
 
-internal fun DrawScope.drawOpenBlueEnvironment(
+private fun DrawScope.drawOpenBlueEnvironment(
     scheme: androidx.compose.material3.ColorScheme,
     drift: Float
 ) {
@@ -601,7 +570,7 @@ internal fun DrawScope.drawOpenBlueEnvironment(
     drawOval(scheme.onSurface.copy(alpha = 0.055f), Offset(size.width * 0.62f, size.height * 0.78f), Size(size.width * 0.45f, size.height * 0.16f))
 }
 
-internal fun DrawScope.drawGreatBlueEnvironment(
+private fun DrawScope.drawGreatBlueEnvironment(
     scheme: androidx.compose.material3.ColorScheme,
     drift: Float
 ) {
@@ -616,7 +585,7 @@ internal fun DrawScope.drawGreatBlueEnvironment(
     }
 }
 
-internal fun DrawScope.drawZoneAnimals(
+private fun DrawScope.drawZoneAnimals(
     zone: TheBlueZoneUiModel,
     scheme: androidx.compose.material3.ColorScheme,
     drift: Float,
@@ -638,7 +607,7 @@ internal fun DrawScope.drawZoneAnimals(
 }
 
 
-internal fun DrawScope.drawRenderFamilyCreatures(
+private fun DrawScope.drawRenderFamilyCreatures(
     animal: TheBlueAnimalGroupUiModel,
     scheme: androidx.compose.material3.ColorScheme,
     drift: Float,
@@ -662,7 +631,7 @@ internal fun DrawScope.drawRenderFamilyCreatures(
     }
 }
 
-internal fun DrawScope.drawGenericFish(origin: Offset, scale: Float, drift: Float, scheme: androidx.compose.material3.ColorScheme, familyKey: String) {
+private fun DrawScope.drawGenericFish(origin: Offset, scale: Float, drift: Float, scheme: androidx.compose.material3.ColorScheme, familyKey: String) {
     val ink = when (familyKey) {
         "jellyfish", "giant_tentacle", "legendary" -> scheme.secondary.copy(alpha = 0.66f)
         "shark", "orca", "anglerfish" -> scheme.onSurface.copy(alpha = 0.52f)
@@ -681,7 +650,7 @@ internal fun DrawScope.drawGenericFish(origin: Offset, scale: Float, drift: Floa
     }
 }
 
-internal fun DrawScope.drawMinnowSchool(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float, levelScale: Float = 1f) {
+private fun DrawScope.drawMinnowSchool(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float, levelScale: Float = 1f) {
     val visible = representativeVisibleCount(count, maxVisible = 12)
     repeat(visible) { i ->
         val group = i / 4
@@ -693,7 +662,7 @@ internal fun DrawScope.drawMinnowSchool(count: Int, accentCount: Int, scheme: an
     }
 }
 
-internal fun DrawScope.drawSeahorseColony(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float, levelScale: Float = 1f) {
+private fun DrawScope.drawSeahorseColony(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float, levelScale: Float = 1f) {
     val visible = representativeVisibleCount(count, maxVisible = 6)
     repeat(visible) { i ->
         val bob = sin((drift * 6.28f + i * 0.9f).toDouble()).toFloat()
@@ -703,7 +672,7 @@ internal fun DrawScope.drawSeahorseColony(count: Int, accentCount: Int, scheme: 
     }
 }
 
-internal fun DrawScope.drawMantaGlides(
+private fun DrawScope.drawMantaGlides(
     count: Int,
     accentCount: Int,
     scheme: androidx.compose.material3.ColorScheme,
@@ -728,7 +697,7 @@ internal fun DrawScope.drawMantaGlides(
     }
 }
 
-internal fun DrawScope.drawWhalePasses(
+private fun DrawScope.drawWhalePasses(
     count: Int,
     accentCount: Int,
     scheme: androidx.compose.material3.ColorScheme,
@@ -753,7 +722,7 @@ internal fun DrawScope.drawWhalePasses(
     }
 }
 
-internal fun DrawScope.drawHiddenOctopus(accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float) {
+private fun DrawScope.drawHiddenOctopus(accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float) {
     val pulse = 1f + sin((drift * 6.28f).toDouble()).toFloat() * 0.05f
     val origin = Offset(size.width * 0.70f, size.height * 0.73f)
     drawOctopus(origin, pulse, accentCount > 0, scheme)
@@ -768,7 +737,7 @@ internal fun representativeVisibleCount(count: Int, maxVisible: Int): Int = when
     else -> maxVisible
 }
 
-internal fun DrawScope.drawMinnow(origin: Offset, scale: Float, wiggle: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
+private fun DrawScope.drawMinnow(origin: Offset, scale: Float, wiggle: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
     val body = scheme.primary.copy(alpha = if (glowing) 0.82f else 0.64f)
     val fin = scheme.secondary.copy(alpha = if (glowing) 0.58f else 0.36f)
     if (glowing) drawCircle(scheme.secondary.copy(alpha = 0.18f), 22f * scale, origin)
@@ -791,7 +760,7 @@ internal fun DrawScope.drawMinnow(origin: Offset, scale: Float, wiggle: Float, g
     drawCircle(scheme.secondary.copy(alpha = 0.32f), 1.7f * scale, Offset(origin.x + 2f * scale, origin.y + 2f * scale))
 }
 
-internal fun DrawScope.drawSeahorse(origin: Offset, scale: Float, bob: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
+private fun DrawScope.drawSeahorse(origin: Offset, scale: Float, bob: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
     if (glowing) drawCircle(scheme.secondary.copy(alpha = 0.16f), 30f * scale, origin)
     val color = scheme.secondary.copy(alpha = 0.58f)
     drawCircle(color, 10f * scale, Offset(origin.x, origin.y - 18f * scale))
@@ -812,7 +781,7 @@ internal fun DrawScope.drawSeahorse(origin: Offset, scale: Float, bob: Float, gl
     drawCircle(scheme.onSurface.copy(alpha = 0.72f), 1.7f * scale, Offset(origin.x + 6f * scale, origin.y - 21f * scale))
 }
 
-internal fun DrawScope.drawManta(origin: Offset, scale: Float, drift: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
+private fun DrawScope.drawManta(origin: Offset, scale: Float, drift: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
     val wingPulse = sin((drift * 6.28f).toDouble()).toFloat()
     val wingLift = wingPulse * 7f * scale
     val bodyColor = scheme.primary.copy(alpha = 0.48f)
@@ -874,7 +843,7 @@ internal fun DrawScope.drawManta(origin: Offset, scale: Float, drift: Float, glo
     }
 }
 
-internal fun DrawScope.drawWhale(origin: Offset, scale: Float, drift: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
+private fun DrawScope.drawWhale(origin: Offset, scale: Float, drift: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
     val color = scheme.onSurface.copy(alpha = 0.22f)
     val rim = if (glowing) scheme.secondary.copy(alpha = 0.20f) else scheme.primary.copy(alpha = 0.10f)
     drawOval(rim, Offset(origin.x - 118f * scale, origin.y - 38f * scale), Size(220f * scale, 78f * scale))
@@ -892,7 +861,7 @@ internal fun DrawScope.drawWhale(origin: Offset, scale: Float, drift: Float, glo
     drawCircle(scheme.background.copy(alpha = 0.45f), 2.4f * scale, Offset(origin.x - 74f * scale, origin.y - 8f * scale))
 }
 
-internal fun DrawScope.drawOctopus(origin: Offset, pulse: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
+private fun DrawScope.drawOctopus(origin: Offset, pulse: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
     if (glowing) drawCircle(scheme.secondary.copy(alpha = 0.15f), 46f * pulse, origin)
     val color = scheme.secondary.copy(alpha = 0.46f)
     drawOval(color, Offset(origin.x - 22f * pulse, origin.y - 30f * pulse), Size(44f * pulse, 38f * pulse))
@@ -908,20 +877,20 @@ internal fun DrawScope.drawOctopus(origin: Offset, pulse: Float, glowing: Boolea
     drawCircle(scheme.onSurface.copy(alpha = 0.75f), 2.4f * pulse, Offset(origin.x + 8f * pulse, origin.y - 14f * pulse))
 }
 
-internal fun DrawScope.drawBranchingCoral(x: Float, y: Float, height: Float, color: Color, drift: Float) {
+private fun DrawScope.drawBranchingCoral(x: Float, y: Float, height: Float, color: Color, drift: Float) {
     val sway = sin((drift * 6.28f).toDouble()).toFloat() * 5f
     drawLine(color, Offset(x, y), Offset(x + sway, y - height), strokeWidth = 5f)
     drawLine(color, Offset(x + sway * 0.6f, y - height * 0.55f), Offset(x - 16f + sway, y - height * 0.86f), strokeWidth = 4f)
     drawLine(color, Offset(x + sway * 0.7f, y - height * 0.45f), Offset(x + 17f + sway, y - height * 0.78f), strokeWidth = 4f)
 }
 
-internal fun DrawScope.drawRoundRockColumn(x: Float, top: Float, bottom: Float, width: Float, color: Color) {
+private fun DrawScope.drawRoundRockColumn(x: Float, top: Float, bottom: Float, width: Float, color: Color) {
     drawOval(color, Offset(x - width / 2f, top), Size(width, bottom - top))
     drawOval(color.copy(alpha = color.alpha * 0.7f), Offset(x - width * 0.65f, top + 60f), Size(width * 1.3f, width * 0.75f))
 }
 
 
-internal fun formatMinutesCompact(minutes: Int): String {
+private fun formatMinutesCompact(minutes: Int): String {
     val safe = minutes.coerceAtLeast(0)
     val hours = safe / 60
     val mins = safe % 60
@@ -932,14 +901,14 @@ internal fun formatMinutesCompact(minutes: Int): String {
     }
 }
 
-internal fun TheBlueZoneId.toCreatureZone(): CreatureZone = when (this) {
+private fun TheBlueZoneId.toCreatureZone(): CreatureZone = when (this) {
     TheBlueZoneId.SUNLIT_REEF -> CreatureZone.SUNLIT_REEF
     TheBlueZoneId.DEEPER_REEF -> CreatureZone.DEEPER_REEF
     TheBlueZoneId.OPEN_BLUE -> CreatureZone.OPEN_BLUE
     TheBlueZoneId.GREAT_BLUE -> CreatureZone.GREAT_BLUE
 }
 
-internal fun theBlueZoneFor(zone: CreatureZone): TheBlueZoneId = when (zone) {
+private fun theBlueZoneFor(zone: CreatureZone): TheBlueZoneId = when (zone) {
     CreatureZone.SUNLIT_REEF -> TheBlueZoneId.SUNLIT_REEF
     CreatureZone.DEEPER_REEF -> TheBlueZoneId.DEEPER_REEF
     CreatureZone.OPEN_BLUE -> TheBlueZoneId.OPEN_BLUE
@@ -947,7 +916,7 @@ internal fun theBlueZoneFor(zone: CreatureZone): TheBlueZoneId = when (zone) {
 }
 
 @Composable
-internal fun TheBlueAnimalDetailSheet(
+private fun TheBlueAnimalDetailSheet(
     animal: TheBlueAnimalGroupUiModel,
     focusSlotId: String?,
     firstRestingInstanceId: String?,
@@ -1064,7 +1033,7 @@ internal fun TheBlueAnimalDetailSheet(
 }
 
 @Composable
-internal fun ReleaseCreatureConfirmationSheet(
+private fun ReleaseCreatureConfirmationSheet(
     animal: TheBlueAnimalGroupUiModel,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
