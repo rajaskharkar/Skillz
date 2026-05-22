@@ -1547,4 +1547,21 @@
     <string name="shell_find_kraken_description">Encountered Beyond the Blue.</string>
     <string name="shell_find_leviathan_title">Leviathan</string>
     <string name="shell_find_leviathan_description">Encountered Beyond the Blue.</string>
+    <string name="the_blue_created_from_flow">Created from your focused time.</string>
+    <string name="the_blue_swimming_chip">Swimming %1$d</string>
+    <string name="the_blue_lifetime_chip">Lifetime %1$d</string>
+    <string name="the_blue_highest_level_chip">Highest Lv %1$d</string>
+    <string name="the_blue_released_chip">Released %1$d</string>
+    <string name="the_blue_beyond_blue_chip">Beyond Blue %1$d</string>
+    <string name="the_blue_created_by_flow_title">Created by Flow</string>
+    <string name="the_blue_created_by_flow_value">%1$s each</string>
+    <string name="the_blue_release_return_title">Release return</string>
+    <string name="the_blue_growth_support_copy">Pearls help this creature grow larger in The Blue.</string>
+    <string name="beyond_blue_zone_encounters">%1$s encounters</string>
+    <string name="beyond_blue_ready">Ready</string>
+    <string name="beyond_blue_trade_or_return_later">Trade creatures or return later.</string>
+    <string name="beyond_blue_contribution_title">Your contribution</string>
+    <string name="beyond_blue_contribution_value">%1$s / %2$s</string>
+    <string name="beyond_blue_encounter_summary">Encounter Summary</string>
+    <string name="beyond_blue_payment_returned">Returned: %1$d Pearls</string>
 </resources>

@@ -62,6 +62,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -3967,29 +3968,59 @@ private fun TheBlueAnimalDetailSheet(
                 .semantics { contentDescription = detailDescription },
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(
-                text = stringResource(R.string.the_blue_animal_zone, zone),
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(source)
+            ElevatedCard {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        ShellObjectIcon(CreatureCatalog.get(animal.findId)?.staticIconKey ?: "animal", Modifier.size(56.dp))
+                        Column {
+                            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                            Text(text = zone, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    Text(stringResource(R.string.the_blue_created_from_flow))
+                }
+            }
 
-            Text(stringResource(R.string.shell_creature_swimming_now, animal.totalCount))
-            Text(stringResource(R.string.shell_creature_lifetime_encountered, animal.lifetimeEncounteredCount))
-            if (animal.releasedCount > 0) Text(stringResource(R.string.shell_creature_released, animal.releasedCount))
-            if (animal.usedBeyondBlueCount > 0) Text(stringResource(R.string.shell_creature_used_beyond_blue, animal.usedBeyondBlueCount))
-            Text(stringResource(R.string.shell_creature_highest_level, animal.highestLevel))
-            animal.flowTimeValueMinutes?.let { Text(stringResource(R.string.shell_creature_flow_time_value_each, formatMinutesCompact(it))) }
-            animal.releaseValuePearls?.let { Text(stringResource(R.string.shell_creature_release_value_each, it)) }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                AssistChip(onClick = {}, label = { Text(stringResource(R.string.the_blue_swimming_chip, animal.totalCount)) })
+                AssistChip(onClick = {}, label = { Text(stringResource(R.string.the_blue_lifetime_chip, animal.lifetimeEncounteredCount)) })
+                AssistChip(onClick = {}, label = { Text(stringResource(R.string.the_blue_highest_level_chip, animal.highestLevel)) })
+                if (animal.releasedCount > 0) AssistChip(onClick = {}, label = { Text(stringResource(R.string.the_blue_released_chip, animal.releasedCount)) })
+                if (animal.usedBeyondBlueCount > 0) AssistChip(onClick = {}, label = { Text(stringResource(R.string.the_blue_beyond_blue_chip, animal.usedBeyondBlueCount)) })
+            }
+            animal.flowTimeValueMinutes?.let {
+                ElevatedCard {
+                    ListItem(
+                        leadingContent = { Icon(Icons.Outlined.Route, contentDescription = null) },
+                        headlineContent = { Text(stringResource(R.string.the_blue_created_by_flow_title)) },
+                        supportingContent = {
+                            Text(stringResource(R.string.the_blue_created_by_flow_value, formatMinutesCompact(it)))
+                        }
+                    )
+                }
+            }
+            animal.releaseValuePearls?.let {
+                ElevatedCard {
+                    ListItem(
+                        leadingContent = { Icon(Icons.Outlined.Diamond, contentDescription = null) },
+                        headlineContent = { Text(stringResource(R.string.the_blue_release_return_title)) },
+                        supportingContent = { Text(stringResource(R.string.shell_creature_release_value_each, it)) }
+                    )
+                }
+            }
 
             Text(stringResource(R.string.shell_creature_levels_heading), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             if (animal.levelCounts.isEmpty()) {
                 Text(stringResource(R.string.the_blue_forms_unavailable))
             } else {
-                animal.levelCounts.sortedBy { it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 0 }
-                    .forEach { level -> Text("${level.formStageId} ×${level.count}") }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                    animal.levelCounts.sortedBy { it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 0 }
+                        .forEach { level ->
+                            AssistChip(onClick = {}, label = { Text("${level.formStageId} ×${level.count}") })
+                        }
+                }
             }
+            Text(stringResource(R.string.the_blue_growth_support_copy))
 
             Text(stringResource(R.string.the_blue_displayed_in_focus_heading), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(animal.displayedInFocusCount.toString())
@@ -4011,17 +4042,10 @@ private fun TheBlueAnimalDetailSheet(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
                 )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = onBeyondBlue, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.beyond_blue_encounter_cta))
-                }
-                OutlinedButton(
-                    onClick = onRelease,
-                    enabled = releaseInstanceId != null,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.shell_creature_release_for_pearls))
-                }
+            OutlinedButton(onClick = onBeyondBlue, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Outlined.Waves, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.beyond_blue_encounter_cta))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 Button(
@@ -4036,6 +4060,13 @@ private fun TheBlueAnimalDetailSheet(
                 OutlinedButton(onClick = onOpenChest, modifier = Modifier.weight(1f)) {
                     Text(stringResource(R.string.the_blue_view_in_chest))
                 }
+            }
+            OutlinedButton(
+                onClick = onRelease,
+                enabled = releaseInstanceId != null,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.shell_creature_release_for_pearls))
             }
             when (theBlueDisplayDisabledReason(focusSlotId, firstRestingInstanceId)) {
                 TheBlueDisplayDisabledReason.NO_FOCUS_SLOT -> Text(
@@ -4103,7 +4134,8 @@ private fun BeyondBlueEncounterSheet(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(stringResource(R.string.beyond_blue_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(stringResource(R.string.beyond_blue_intro))
+            Text(stringResource(R.string.beyond_blue_zone_encounters, zoneTitle(selectedZone)))
+            Text(zoneSubtitle(selectedZone))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
                 TheBlueZoneId.entries.forEach { zone ->
                     val zoneA11y = zoneTitle(zone)
@@ -4132,8 +4164,12 @@ private fun BeyondBlueEncounterSheet(
                                 leadingContent = { ShellObjectIcon(target.staticIconKey, Modifier.size(36.dp)) },
                                 headlineContent = { Text(target.displayName) },
                                 supportingContent = {
-                                    Text("${target.zone.displayName}\n${stringResource(R.string.beyond_blue_requires_value, formatMinutesCompact(target.requirementMinutes ?: 0))}\n${stringResource(R.string.beyond_blue_or_pearls, price)}${if (canAfford) "" else "\n${stringResource(R.string.beyond_blue_need_more_pearls, (price - pearlBalance).coerceAtLeast(0))}"}")
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        AssistChip(onClick = {}, label = { Text(formatMinutesCompact(target.requirementMinutes ?: 0)) }, leadingIcon = { Icon(Icons.Outlined.Route, null) })
+                                        AssistChip(onClick = {}, label = { Text(stringResource(R.string.beyond_blue_or_pearls, price)) }, leadingIcon = { Icon(Icons.Outlined.Diamond, null) })
+                                    }
                                 }
+                                trailingContent = { Text(if (canAfford) stringResource(R.string.beyond_blue_ready) else stringResource(R.string.beyond_blue_trade_or_return_later)) }
                             )
                         }
                     }
@@ -4146,11 +4182,14 @@ private fun BeyondBlueEncounterSheet(
                 val selectedMinutes = selectedInstances.sumOf { CreatureEconomy.beyondBlueTradeContributionMinutes(it.findId, it.animalLevel) }
                 val quote = CreatureEconomy.quoteBeyondBluePayment(target.creatureId, selectedMinutes, pearlBalance)
                 Text("${target.displayName} · ${target.zone.displayName}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.beyond_blue_requires_value, formatMinutesCompact(requirement)) + " · " + stringResource(R.string.beyond_blue_or_pearls, pearlOnlyPrice))
-                if (selectedInstanceIds.isNotEmpty()) {
-                    Text(stringResource(R.string.beyond_blue_selected_leave))
-                    Text(stringResource(R.string.beyond_blue_lifetime_remains))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AssistChip(onClick = {}, label = { Text(formatMinutesCompact(requirement)) }, leadingIcon = { Icon(Icons.Outlined.Route, null) })
+                    AssistChip(onClick = {}, label = { Text(stringResource(R.string.beyond_blue_or_pearls, pearlOnlyPrice)) }, leadingIcon = { Icon(Icons.Outlined.Diamond, null) })
                 }
+                val progress = if (requirement == 0) 1f else (selectedMinutes.toFloat() / requirement.toFloat()).coerceIn(0f, 1f)
+                Text(stringResource(R.string.beyond_blue_contribution_title))
+                LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                Text(stringResource(R.string.beyond_blue_contribution_value, formatMinutesCompact(selectedMinutes), formatMinutesCompact(requirement)))
                 if (activeAnimalInstances.isNotEmpty()) {
                     Text(stringResource(R.string.beyond_blue_available_trade), fontWeight = FontWeight.SemiBold)
                     LazyColumn(modifier = Modifier.heightIn(max = 180.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -4170,10 +4209,14 @@ private fun BeyondBlueEncounterSheet(
                     Text(stringResource(R.string.beyond_blue_no_active_to_trade))
                     Text(stringResource(R.string.beyond_blue_still_with_pearls))
                 }
-                Text(stringResource(R.string.beyond_blue_payment_summary), fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.beyond_blue_payment_creatures, formatMinutesCompact(quote.selectedCreatureMinutes)))
-                Text(stringResource(R.string.beyond_blue_payment_pearls, quote.pearlCostForRemaining))
-                Text(stringResource(R.string.beyond_blue_payment_change, quote.pearlReturnForOverpay))
+                ElevatedCard {
+                    Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.beyond_blue_encounter_summary), fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.beyond_blue_payment_creatures, formatMinutesCompact(quote.selectedCreatureMinutes)))
+                        Text(stringResource(R.string.beyond_blue_payment_pearls, quote.pearlCostForRemaining))
+                        Text(stringResource(R.string.beyond_blue_payment_returned, quote.pearlReturnForOverpay))
+                    }
+                }
                 if (!quote.canEncounter) {
                     Text(stringResource(R.string.beyond_blue_need_more_pearls, (quote.pearlCostForRemaining - pearlBalance).coerceAtLeast(0)), color = MaterialTheme.colorScheme.error)
                     Text(stringResource(R.string.beyond_blue_trade_to_reduce), color = MaterialTheme.colorScheme.error)
@@ -4512,4 +4555,3 @@ private fun shellChamberBrush(): Brush {
         )
     )
 }
-
