@@ -55,6 +55,7 @@ import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.Waves
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -4221,7 +4222,7 @@ private fun BeyondBlueEncounterSheet(
                                         ShellMetricPill(Icons.Outlined.Route, formatMinutesCompact(target.requirementMinutes ?: 0))
                                         ShellMetricPill(Icons.Outlined.Diamond, stringResource(R.string.beyond_blue_or_pearls, price))
                                     }
-                                }
+                                },
                                 trailingContent = { Text(if (canAfford) stringResource(R.string.beyond_blue_ready) else stringResource(R.string.beyond_blue_trade_or_return_later)) }
                             )
                         }
