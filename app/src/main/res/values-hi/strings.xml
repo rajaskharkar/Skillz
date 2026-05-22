@@ -1543,7 +1543,7 @@
     <string name="beyond_blue_pearls_cover_rest">Pearls will cover the rest.</string>
     <string name="beyond_blue_extra_value_returns">Extra value returns as Pearls.</string>
     <string name="beyond_blue_trade_or_return_after_flow">Trade creatures or return after more Flow.</string>
-    <string name="beyond_blue_trade_and_encounter">Trade & Encounter</string>
+    <string name="beyond_blue_trade_and_encounter">Trade &amp; Encounter</string>
     <string name="beyond_blue_confirm_title_short">Encounter %1$s?</string>
     <string name="beyond_blue_trade_for_title">Trade for %1$s?</string>
     <string name="beyond_blue_confirm_pearls_call_in">%1$d Pearls will call this life in.</string>
