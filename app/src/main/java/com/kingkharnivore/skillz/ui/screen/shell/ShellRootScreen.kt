@@ -4187,6 +4187,7 @@ private fun BeyondBlueEncounterSheet(
     var confirmTargetId by remember { mutableStateOf<String?>(null) }
     var selectedZone by remember(initialZone) { mutableStateOf(initialZone) }
     var selectedCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+    var tradeExpanded by remember { mutableStateOf(false) }
     val confirmTarget = confirmTargetId?.let { CreatureCatalog.get(it) }
 
     val tradeStacks = remember(activeAnimalInstances) {
@@ -4242,6 +4243,7 @@ private fun BeyondBlueEncounterSheet(
                         ElevatedCard(onClick = {
                             confirmTargetId = target.creatureId
                             selectedCounts = emptyMap()
+                            tradeExpanded = false
                         }) {
                             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 ShellObjectIcon(target.staticIconKey, Modifier.size(46.dp))
@@ -4277,24 +4279,31 @@ private fun BeyondBlueEncounterSheet(
                     }
                 }
 
-                Text(stringResource(R.string.beyond_blue_calling_life_in), fontWeight = FontWeight.SemiBold)
-                LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
-                Text(stringResource(R.string.beyond_blue_contribution_value, formatMinutesCompact(selectedMinutes), formatMinutesCompact(requirement)))
-
                 ElevatedCard {
                     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(stringResource(R.string.beyond_blue_how_to_encounter), fontWeight = FontWeight.SemiBold)
-                        Text(stringResource(R.string.beyond_blue_pearls_only))
+                        Text(stringResource(R.string.beyond_blue_buy_with_pearls), fontWeight = FontWeight.SemiBold)
                         ShellMetricPill(Icons.Outlined.Diamond, stringResource(R.string.beyond_blue_use_pearls_only_amount, pearlOnlyPrice))
+                        Text(stringResource(R.string.beyond_blue_balance_pearls, pearlBalance))
                         Text(stringResource(R.string.beyond_blue_confirm_no_creatures_leave))
                         if (pearlBalance < pearlOnlyPrice) {
                             Text(stringResource(R.string.beyond_blue_need_more_pearls, pearlOnlyPrice - pearlBalance), color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.beyond_blue_trade_or_return_after_flow), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
                         }
                     }
                 }
 
                 if (tradeStacks.isNotEmpty()) {
+                    Text(stringResource(R.string.beyond_blue_optional), fontWeight = FontWeight.SemiBold)
+                    OutlinedButton(onClick = { tradeExpanded = !tradeExpanded }, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.beyond_blue_trade_reduce_optional))
+                    }
+                }
+
+                if (tradeExpanded && tradeStacks.isNotEmpty()) {
                     Text(stringResource(R.string.beyond_blue_trade_from_blue), fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.beyond_blue_calling_life_in), fontWeight = FontWeight.SemiBold)
+                    LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                    Text(stringResource(R.string.beyond_blue_contribution_value, formatMinutesCompact(selectedMinutes), formatMinutesCompact(requirement)))
                     LazyColumn(modifier = Modifier.heightIn(max = 210.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(tradeStacks, key = { it.key }) { stack ->
                             val selected = selectedCounts[stack.key] ?: 0
@@ -4326,9 +4335,9 @@ private fun BeyondBlueEncounterSheet(
                 ElevatedCard {
                     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(stringResource(R.string.beyond_blue_encounter_summary), fontWeight = FontWeight.Bold)
-                        Text(stringResource(R.string.beyond_blue_life_selected, formatMinutesCompact(quote.selectedCreatureMinutes)))
+                        if (tradeExpanded || selectedInstanceIds.isNotEmpty()) Text(stringResource(R.string.beyond_blue_life_selected, formatMinutesCompact(quote.selectedCreatureMinutes)))
                         Text(stringResource(R.string.beyond_blue_pearls_used, quote.pearlCostForRemaining))
-                        Text(stringResource(R.string.beyond_blue_payment_returned, quote.pearlReturnForOverpay))
+                        if (tradeExpanded || selectedInstanceIds.isNotEmpty()) Text(stringResource(R.string.beyond_blue_payment_returned, quote.pearlReturnForOverpay))
                     }
                 }
 
@@ -4354,7 +4363,7 @@ private fun BeyondBlueEncounterSheet(
                 var showConfirm by remember(target.creatureId, selectedCounts, quote) { mutableStateOf(false) }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                     OutlinedButton(onClick = { confirmTargetId = null }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.beyond_blue_back)) }
-                    Button(onClick = { showConfirm = true }, enabled = quote.canEncounter, modifier = Modifier.weight(1f)) { Text(stringResource(if (selectedInstanceIds.isEmpty()) R.string.beyond_blue_encounter_with_pearls else R.string.beyond_blue_trade_and_encounter)) }
+                    Button(onClick = { showConfirm = true }, enabled = quote.canEncounter, modifier = Modifier.weight(1f)) { Text(stringResource(if (selectedInstanceIds.isEmpty()) R.string.beyond_blue_buy_with_pearls else R.string.beyond_blue_trade_and_buy)) }
                 }
 
                 if (showConfirm) {
@@ -4362,15 +4371,15 @@ private fun BeyondBlueEncounterSheet(
                         onDismissRequest = { showConfirm = false },
                         confirmButton = {
                             Button(onClick = { onEncounter(target.creatureId, selectedInstanceIds) }) {
-                                Text(stringResource(if (selectedInstanceIds.isEmpty()) R.string.beyond_blue_encounter_cta else R.string.beyond_blue_trade_and_encounter))
+                                Text(stringResource(if (selectedInstanceIds.isEmpty()) R.string.beyond_blue_buy else R.string.beyond_blue_trade_and_buy))
                             }
                         },
                         dismissButton = { OutlinedButton(onClick = { showConfirm = false }) { Text(stringResource(R.string.beyond_blue_cancel)) } },
-                        title = { Text(stringResource(if (selectedInstanceIds.isEmpty()) R.string.beyond_blue_confirm_title_short else R.string.beyond_blue_trade_for_title, target.displayName)) },
+                        title = { Text(stringResource(if (selectedInstanceIds.isEmpty()) R.string.beyond_blue_buy_with_pearls_title else R.string.beyond_blue_trade_and_buy_title, target.displayName)) },
                         text = {
                             Column {
                                 if (selectedInstanceIds.isEmpty()) {
-                                    Text(stringResource(R.string.beyond_blue_confirm_pearls_call_in, quote.pearlCostForRemaining))
+                                    Text(stringResource(R.string.beyond_blue_pearls_will_be_used, quote.pearlCostForRemaining))
                                     Text(stringResource(R.string.beyond_blue_confirm_no_creatures_leave))
                                 } else {
                                     Text(stringResource(R.string.beyond_blue_selected_leave))

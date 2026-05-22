@@ -1607,4 +1607,13 @@
     <string name="beyond_blue_encounter_with_pearls">Pearls सह एन्काऊंटर</string>
     <string name="beyond_blue_add_one">ट्रेडमध्ये %1$s एक जोडा</string>
     <string name="beyond_blue_remove_one">ट्रेडमधून %1$s एक काढा</string>
+    <string name="beyond_blue_buy_with_pearls">Pearls ने खरेदी करा</string>
+    <string name="beyond_blue_balance_pearls">तुमचा शिल्लक: %1$d Pearls</string>
+    <string name="beyond_blue_optional">ऐच्छिक</string>
+    <string name="beyond_blue_trade_reduce_optional">Pearl खर्च कमी करण्यासाठी जीवांची देवाणघेवाण करा</string>
+    <string name="beyond_blue_trade_and_buy">देवाणघेवाण आणि खरेदी</string>
+    <string name="beyond_blue_buy">खरेदी</string>
+    <string name="beyond_blue_buy_with_pearls_title">%1$s ला Pearls ने खरेदी करायचे?</string>
+    <string name="beyond_blue_trade_and_buy_title">%1$s साठी देवाणघेवाण आणि खरेदी करायची?</string>
+    <string name="beyond_blue_pearls_will_be_used">%1$d Pearls वापरल्या जातील.</string>
 </resources>
