@@ -970,7 +970,7 @@
     <string name="the_blue_discovery_animal_zone">Animal · %1$s</string>
     <string name="the_blue_best_form">Highest level: %1$s</string>
     <string name="the_blue_displayed_in_focus">Displayed in Focus: %1$d</string>
-    <string name="the_blue_swimming_here">Swimming here: %1$d</string>
+    <string name="the_blue_swimming_here">Swimming here</string>
     <string name="the_blue_resting_in_chest">Resting in Shell Chest: %1$d</string>
     <string name="the_blue_forms">Levels</string>
     <string name="the_blue_form_count">%1$s ×%2$d</string>
@@ -1518,4 +1518,15 @@
     <string name="beyond_blue_contribution_value">%1$s / %2$s</string>
     <string name="beyond_blue_encounter_summary">Encounter Summary</string>
     <string name="beyond_blue_payment_returned">Returned: %1$d Pearls</string>
+    <string name="shell_view_all">View all</string>
+    <string name="shell_hide">Hide</string>
+    <string name="the_blue_zone_life_title">%1$s Life</string>
+    <string name="the_blue_count_badge">×%1$d</string>
+    <string name="the_blue_new_arrival">New arrival</string>
+    <string name="the_blue_creature_tile_a11y">%1$s, %2$d swimming here, highest level %3$d. %4$s Tap for details.</string>
+    <string name="shell_creature_level_count_chip">Lv %1$d ×%2$d</string>
+    <string name="beyond_blue_target_title_with_zone">%1$s · %2$s</string>
+    <string name="shell_chest_lifetime_count">%1$d lifetime</string>
+    <string name="shell_chest_displayed_count">Displayed %1$d</string>
+    <string name="shell_chest_resting_count">Resting %1$d</string>
 </resources>

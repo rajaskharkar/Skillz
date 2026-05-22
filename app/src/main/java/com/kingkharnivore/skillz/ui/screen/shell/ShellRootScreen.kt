@@ -28,6 +28,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -52,7 +55,6 @@ import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.outlined.Waves
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -2427,44 +2429,18 @@ private fun ShellChestScreen(
         .sortedBy { (findId, _) -> ShellContentCatalog.find(findId)?.titleRes ?: 0 }
     val stackItems = uiState.stacks.filter { isVisibleInTab(ShellContentCatalog.find(it.findId)) }
 
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        item {
-            RoomHeader(
-                title = R.string.shell_chest_title,
-                body = R.string.shell_chest_body
-            )
+    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        RoomHeader(title = R.string.shell_chest_title, body = R.string.shell_chest_body)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+            FilterChip(selected = category == ShellChestTab.ALL, onClick = { category = ShellChestTab.ALL }, label = { Text(stringResource(R.string.shell_filter_all)) })
+            FilterChip(selected = category == ShellChestTab.ANIMALS, onClick = { category = ShellChestTab.ANIMALS }, label = { Text(stringResource(R.string.shell_filter_animals)) })
+            FilterChip(selected = category == ShellChestTab.ROOM_OBJECTS, onClick = { category = ShellChestTab.ROOM_OBJECTS }, label = { Text(stringResource(R.string.shell_filter_room_objects)) })
         }
-
-        item {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.horizontalScroll(rememberScrollState())
-            ) {
-                FilterChip(
-                    selected = category == ShellChestTab.ALL,
-                    onClick = { category = ShellChestTab.ALL },
-                    label = { Text(stringResource(R.string.shell_filter_all)) }
-                )
-                FilterChip(
-                    selected = category == ShellChestTab.ANIMALS,
-                    onClick = { category = ShellChestTab.ANIMALS },
-                    label = { Text(stringResource(R.string.shell_filter_animals)) }
-                )
-                FilterChip(
-                    selected = category == ShellChestTab.ROOM_OBJECTS,
-                    onClick = { category = ShellChestTab.ROOM_OBJECTS },
-                    label = { Text(stringResource(R.string.shell_filter_room_objects)) }
-                )
-            }
-        }
-
-        items(groupedItems) { (findId, copies) ->
+        LazyVerticalGrid(columns = GridCells.Adaptive(168.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(groupedItems) { (findId, copies) ->
             val def = ShellContentCatalog.find(findId) ?: return@items
             val title = stringResource(def.titleRes)
-            val categoryLabel = kindLabel(def.kind) + (depthLabel(def.depthTier)?.let { " · $it" } ?: "")
+            val categoryLabel = kindLabel(def.kind)
             val activeCopies = if (def.kind == ShellRewardKind.ANIMAL) copies.filter { it.creatureStatus == CreatureStatus.ACTIVE } else copies
             val displayedCount = activeCopies.count { it.instanceId in displayedIds }
             val restingCount = activeCopies.size - displayedCount
@@ -2472,7 +2448,7 @@ private fun ShellChestScreen(
             val usedBeyondBlueCount = copies.count { it.creatureStatus == CreatureStatus.USED_BEYOND_BLUE }
             val bestCopy = copies.maxByOrNull { currentFormOrder(it) }
             val bestFormTitle = if (def.kind == ShellRewardKind.ANIMAL) {
-                "Highest level: Level ${copies.maxOfOrNull { it.animalLevel.coerceAtLeast(1) } ?: 1}"
+                stringResource(R.string.the_blue_highest_level_chip, copies.maxOfOrNull { it.animalLevel.coerceAtLeast(1) } ?: 1)
             } else {
                 bestCopy?.let { copy ->
                     ShellContentCatalog.upgradesFor(copy.findId)
@@ -2498,29 +2474,27 @@ private fun ShellChestScreen(
                     role = Role.Button
                 }
             ) {
-                ListItem(
-                    leadingContent = {
-                        ShellObjectIcon(def.iconKey, Modifier.size(36.dp))
-                    },
-                    headlineContent = {
-                        Text(stringResource(R.string.shell_chest_group_title, title, copies.size))
-                    },
-                    supportingContent = {
-                        Text(
-                            stringResource(
-                                R.string.shell_chest_group_status,
-                                bestFormTitle,
-                                displayedCount,
-                                restingCount,
-                                categoryLabel
-                            ) + "\n" + sourceReasonFor(def)
-                        )
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ShellObjectIcon(def.iconKey, Modifier.size(36.dp))
+                    Text(title, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.shell_chest_lifetime_count, copies.size))
+                    Text(stringResource(R.string.the_blue_swimming_chip, activeCopies.count { it.creatureStatus == CreatureStatus.ACTIVE }))
+                    Text(bestFormTitle)
+                    if (def.kind == ShellRewardKind.ANIMAL) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                            copies.groupBy { it.animalLevel.coerceAtLeast(1) }.toSortedMap().forEach { (lv, lvCopies) ->
+                                ShellMetricPill(Icons.Outlined.EmojiEvents, stringResource(R.string.shell_creature_level_count_chip, lv, lvCopies.size))
+                            }
+                        }
+                    } else {
+                        Text(stringResource(R.string.shell_chest_displayed_count, displayedCount))
+                        Text(stringResource(R.string.shell_chest_resting_count, restingCount))
                     }
-                )
+                    Text(categoryLabel, style = MaterialTheme.typography.labelSmall)
+                }
             }
-        }
-
-        items(stackItems) { stack ->
+            }
+            items(stackItems) { stack ->
             val def = ShellContentCatalog.find(stack.findId) ?: return@items
             val title = stringResource(def.titleRes)
 
@@ -2536,6 +2510,7 @@ private fun ShellChestScreen(
                         Text("${kindLabel(def.kind)} · ${stringResource(R.string.shell_stack_quantity, stack.quantity)}\n${sourceReasonFor(def)}")
                     }
                 )
+            }
             }
         }
     }
@@ -3359,30 +3334,14 @@ private fun TheBlueZonePage(
             }
         }
 
-        Column(
+        TheBlueCreatureTray(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(start = 20.dp, end = 78.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (zone.animals.isEmpty()) {
-                TheBlueOverlaySurface {
-                    Text(
-                        text = stringResource(R.string.the_blue_zone_waiting),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurface.copy(alpha = 0.70f)
-                    )
-                }
-            } else {
-                zone.animals.forEach { animal ->
-                    TheBlueAnimalOverlayChip(
-                        animal = animal,
-                        isNewArrival = animal.isNew || animal.findId in entryNewAnimalFindIds,
-                        onClick = { onAnimalClick(animal) }
-                    )
-                }
-            }
-        }
+            zone = zone,
+            entryNewAnimalFindIds = entryNewAnimalFindIds,
+            onAnimalClick = onAnimalClick
+        )
     }
 }
 
@@ -3412,28 +3371,60 @@ private fun TheBlueOverlaySurface(
 }
 
 @Composable
-private fun TheBlueAnimalOverlayChip(
-    animal: TheBlueAnimalGroupUiModel,
-    isNewArrival: Boolean,
-    onClick: () -> Unit
+private fun TheBlueCreatureTray(
+    modifier: Modifier = Modifier,
+    zone: TheBlueZoneUiModel,
+    entryNewAnimalFindIds: Set<String>,
+    onAnimalClick: (TheBlueAnimalGroupUiModel) -> Unit
 ) {
+    var expanded by remember(zone.zoneId) { mutableStateOf(false) }
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        TheBlueOverlaySurface {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(stringResource(R.string.the_blue_swimming_here), fontWeight = FontWeight.Bold)
+                    Text(
+                        text = stringResource(if (expanded) R.string.shell_hide else R.string.shell_view_all),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { expanded = !expanded }
+                    )
+                }
+                if (zone.animals.isEmpty()) {
+                    Text(stringResource(R.string.the_blue_zone_waiting), style = MaterialTheme.typography.bodySmall)
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                        zone.animals.forEach { animal ->
+                            TheBlueCreatureTile(animal, animal.isNew || animal.findId in entryNewAnimalFindIds) { onAnimalClick(animal) }
+                        }
+                    }
+                }
+            }
+        }
+        if (expanded && zone.animals.isNotEmpty()) {
+            TheBlueOverlaySurface {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.the_blue_zone_life_title, zoneTitle(zone.zoneId)), fontWeight = FontWeight.SemiBold)
+                    zone.animals.forEach { animal ->
+                        TheBlueExpandedZoneInventoryRow(animal, animal.isNew || animal.findId in entryNewAnimalFindIds) { onAnimalClick(animal) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TheBlueCreatureTile(animal: TheBlueAnimalGroupUiModel, isNewArrival: Boolean, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val name = findName(animal.findId)
-    val zone = zoneTitle(animal.zoneId)
-    val source = theBlueSourceReason(animal.findId)
-    val contentDescription = stringResource(
-        R.string.the_blue_animal_overlay_a11y,
-        name,
-        zone,
-        animal.totalCount,
-        source
-    )
+    val contentDescription = stringResource(R.string.the_blue_creature_tile_a11y, name, animal.totalCount, animal.highestLevel, if (isNewArrival) stringResource(R.string.the_blue_new_arrival) else "")
     Surface(
-        shape = RoundedCornerShape(999.dp),
+        shape = RoundedCornerShape(16.dp),
         color = scheme.surface.copy(alpha = 0.84f),
         border = BorderStroke(1.dp, if (isNewArrival) scheme.secondary.copy(alpha = 0.70f) else scheme.primary.copy(alpha = 0.18f)),
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
+            .widthIn(min = 110.dp)
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .semantics {
                 this.contentDescription = contentDescription
@@ -3441,30 +3432,44 @@ private fun TheBlueAnimalOverlayChip(
             }
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = stringResource(R.string.the_blue_animal_count, name, animal.totalCount),
-                style = MaterialTheme.typography.labelLarge,
-                color = scheme.onSurface,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = stringResource(R.string.the_blue_animal_zone, zone),
-                style = MaterialTheme.typography.labelSmall,
-                color = scheme.onSurface.copy(alpha = 0.68f)
-            )
-            Text(
-                text = stringResource(R.string.the_blue_tap_for_details),
-                style = MaterialTheme.typography.labelSmall,
-                color = scheme.primary,
-                fontWeight = FontWeight.SemiBold
-            )
-            if (isNewArrival) {
-                Surface(shape = CircleShape, color = scheme.secondary, modifier = Modifier.size(8.dp), content = {})
+            ShellObjectIcon(CreatureCatalog.get(animal.findId)?.staticIconKey ?: "animal", Modifier.size(30.dp))
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text(name, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.the_blue_count_badge, animal.totalCount))
+                ShellMetricPill(icon = Icons.Outlined.EmojiEvents, text = stringResource(R.string.the_blue_highest_level_chip, animal.highestLevel))
             }
+            if (isNewArrival) {
+                Surface(shape = RoundedCornerShape(999.dp), color = scheme.secondary.copy(alpha = 0.2f)) {
+                    Text(stringResource(R.string.the_blue_new_arrival), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), color = scheme.secondary)
+                }
+            }
+        }
+    }
+}
+@Composable private fun TheBlueExpandedZoneInventoryRow(animal: TheBlueAnimalGroupUiModel, isNewArrival: Boolean, onClick: () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Text(findName(animal.findId), fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.the_blue_highest_level_chip, animal.highestLevel))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+            animal.levelCounts.forEach { level ->
+                val lv = level.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 1
+                ShellMetricPill(icon = Icons.Outlined.EmojiEvents, text = stringResource(R.string.shell_creature_level_count_chip, lv, level.count))
+            }
+        }
+    }
+}
+
+@Composable private fun ShellMetricPill(icon: ImageVector, text: String, modifier: Modifier = Modifier) {
+    Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = modifier) {
+        Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp))
+            Text(text, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
@@ -3982,11 +3987,11 @@ private fun TheBlueAnimalDetailSheet(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                AssistChip(onClick = {}, label = { Text(stringResource(R.string.the_blue_swimming_chip, animal.totalCount)) })
-                AssistChip(onClick = {}, label = { Text(stringResource(R.string.the_blue_lifetime_chip, animal.lifetimeEncounteredCount)) })
-                AssistChip(onClick = {}, label = { Text(stringResource(R.string.the_blue_highest_level_chip, animal.highestLevel)) })
-                if (animal.releasedCount > 0) AssistChip(onClick = {}, label = { Text(stringResource(R.string.the_blue_released_chip, animal.releasedCount)) })
-                if (animal.usedBeyondBlueCount > 0) AssistChip(onClick = {}, label = { Text(stringResource(R.string.the_blue_beyond_blue_chip, animal.usedBeyondBlueCount)) })
+                ShellMetricPill(Icons.Outlined.Waves, stringResource(R.string.the_blue_swimming_chip, animal.totalCount))
+                ShellMetricPill(Icons.Outlined.AutoStories, stringResource(R.string.the_blue_lifetime_chip, animal.lifetimeEncounteredCount))
+                ShellMetricPill(Icons.Outlined.EmojiEvents, stringResource(R.string.the_blue_highest_level_chip, animal.highestLevel))
+                if (animal.releasedCount > 0) ShellMetricPill(Icons.Outlined.Route, stringResource(R.string.the_blue_released_chip, animal.releasedCount))
+                if (animal.usedBeyondBlueCount > 0) ShellMetricPill(Icons.Outlined.WaterDrop, stringResource(R.string.the_blue_beyond_blue_chip, animal.usedBeyondBlueCount))
             }
             animal.flowTimeValueMinutes?.let {
                 ElevatedCard {
@@ -4016,7 +4021,8 @@ private fun TheBlueAnimalDetailSheet(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
                     animal.levelCounts.sortedBy { it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 0 }
                         .forEach { level ->
-                            AssistChip(onClick = {}, label = { Text("${level.formStageId} ×${level.count}") })
+                            val lv = level.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 1
+                            ShellMetricPill(Icons.Outlined.EmojiEvents, stringResource(R.string.shell_creature_level_count_chip, lv, level.count))
                         }
                 }
             }
@@ -4165,8 +4171,8 @@ private fun BeyondBlueEncounterSheet(
                                 headlineContent = { Text(target.displayName) },
                                 supportingContent = {
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        AssistChip(onClick = {}, label = { Text(formatMinutesCompact(target.requirementMinutes ?: 0)) }, leadingIcon = { Icon(Icons.Outlined.Route, null) })
-                                        AssistChip(onClick = {}, label = { Text(stringResource(R.string.beyond_blue_or_pearls, price)) }, leadingIcon = { Icon(Icons.Outlined.Diamond, null) })
+                                        ShellMetricPill(Icons.Outlined.Route, formatMinutesCompact(target.requirementMinutes ?: 0))
+                                        ShellMetricPill(Icons.Outlined.Diamond, stringResource(R.string.beyond_blue_or_pearls, price))
                                     }
                                 }
                                 trailingContent = { Text(if (canAfford) stringResource(R.string.beyond_blue_ready) else stringResource(R.string.beyond_blue_trade_or_return_later)) }
@@ -4181,10 +4187,10 @@ private fun BeyondBlueEncounterSheet(
                 val selectedInstances = activeAnimalInstances.filter { it.instanceId in selectedInstanceIds }
                 val selectedMinutes = selectedInstances.sumOf { CreatureEconomy.beyondBlueTradeContributionMinutes(it.findId, it.animalLevel) }
                 val quote = CreatureEconomy.quoteBeyondBluePayment(target.creatureId, selectedMinutes, pearlBalance)
-                Text("${target.displayName} · ${target.zone.displayName}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.beyond_blue_target_title_with_zone, target.displayName, target.zone.displayName), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    AssistChip(onClick = {}, label = { Text(formatMinutesCompact(requirement)) }, leadingIcon = { Icon(Icons.Outlined.Route, null) })
-                    AssistChip(onClick = {}, label = { Text(stringResource(R.string.beyond_blue_or_pearls, pearlOnlyPrice)) }, leadingIcon = { Icon(Icons.Outlined.Diamond, null) })
+                    ShellMetricPill(Icons.Outlined.Route, formatMinutesCompact(requirement))
+                    ShellMetricPill(Icons.Outlined.Diamond, stringResource(R.string.beyond_blue_or_pearls, pearlOnlyPrice))
                 }
                 val progress = if (requirement == 0) 1f else (selectedMinutes.toFloat() / requirement.toFloat()).coerceIn(0f, 1f)
                 Text(stringResource(R.string.beyond_blue_contribution_title))
