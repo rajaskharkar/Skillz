@@ -1600,4 +1600,11 @@
     <string name="beyond_blue_confirm_title_short">Encounter %1$s?</string>
     <string name="beyond_blue_trade_for_title">Trade for %1$s?</string>
     <string name="beyond_blue_confirm_pearls_call_in">%1$d Pearls will call this life in.</string>
+    <string name="beyond_blue_ready_with_pearls">Pearls सह तयार</string>
+    <string name="beyond_blue_how_to_encounter">एन्काऊंटर कसे करायचे</string>
+    <string name="beyond_blue_pearls_only">फक्त Pearls</string>
+    <string name="beyond_blue_use_pearls_only_amount">%1$d Pearls वापरा</string>
+    <string name="beyond_blue_encounter_with_pearls">Pearls सह एन्काऊंटर</string>
+    <string name="beyond_blue_add_one">ट्रेडमध्ये %1$s एक जोडा</string>
+    <string name="beyond_blue_remove_one">ट्रेडमधून %1$s एक काढा</string>
 </resources>

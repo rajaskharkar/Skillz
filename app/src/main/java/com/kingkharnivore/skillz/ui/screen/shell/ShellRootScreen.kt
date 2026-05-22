@@ -4250,7 +4250,7 @@ private fun BeyondBlueEncounterSheet(
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     ShellMetricPill(Icons.Outlined.Route, formatMinutesCompact(requirement))
                                     ShellMetricPill(Icons.Outlined.Diamond, stringResource(R.string.beyond_blue_or_pearls, price))
-                                    ShellMetricPill(Icons.Outlined.WaterDrop, if (canAfford) stringResource(R.string.beyond_blue_ready) else stringResource(R.string.beyond_blue_need_pearls_badge))
+                                    ShellMetricPill(Icons.Outlined.WaterDrop, if (canAfford) stringResource(R.string.beyond_blue_ready_with_pearls) else stringResource(R.string.beyond_blue_need_more_pearls, (price - pearlBalance).coerceAtLeast(0)))
                                 }
                             }
                         }
@@ -4281,6 +4281,18 @@ private fun BeyondBlueEncounterSheet(
                 LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                 Text(stringResource(R.string.beyond_blue_contribution_value, formatMinutesCompact(selectedMinutes), formatMinutesCompact(requirement)))
 
+                ElevatedCard {
+                    Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(stringResource(R.string.beyond_blue_how_to_encounter), fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.beyond_blue_pearls_only))
+                        ShellMetricPill(Icons.Outlined.Diamond, stringResource(R.string.beyond_blue_use_pearls_only_amount, pearlOnlyPrice))
+                        Text(stringResource(R.string.beyond_blue_confirm_no_creatures_leave))
+                        if (pearlBalance < pearlOnlyPrice) {
+                            Text(stringResource(R.string.beyond_blue_need_more_pearls, pearlOnlyPrice - pearlBalance), color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+
                 if (tradeStacks.isNotEmpty()) {
                     Text(stringResource(R.string.beyond_blue_trade_from_blue), fontWeight = FontWeight.SemiBold)
                     LazyColumn(modifier = Modifier.heightIn(max = 210.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -4302,8 +4314,8 @@ private fun BeyondBlueEncounterSheet(
                                         ShellMetricPill(Icons.Outlined.Route, stringResource(R.string.beyond_blue_contributes_value, formatMinutesCompact(selected * stack.perMinutes)))
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        OutlinedButton(onClick = { selectedCounts = selectedCounts + (stack.key to (selected - 1).coerceAtLeast(0)) }) { Text("-") }
-                                        OutlinedButton(onClick = { selectedCounts = selectedCounts + (stack.key to (selected + 1).coerceAtMost(stack.instances.size)) }) { Text("+") }
+                                        OutlinedButton(onClick = { selectedCounts = selectedCounts + (stack.key to (selected - 1).coerceAtLeast(0)) }, enabled = selected > 0) { Text(stringResource(R.string.beyond_blue_remove_one, findName(stack.findId))) }
+                                        OutlinedButton(onClick = { selectedCounts = selectedCounts + (stack.key to (selected + 1).coerceAtMost(stack.instances.size)) }, enabled = selected < stack.instances.size) { Text(stringResource(R.string.beyond_blue_add_one, findName(stack.findId))) }
                                     }
                                 }
                             }
@@ -4342,7 +4354,7 @@ private fun BeyondBlueEncounterSheet(
                 var showConfirm by remember(target.creatureId, selectedCounts, quote) { mutableStateOf(false) }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                     OutlinedButton(onClick = { confirmTargetId = null }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.beyond_blue_back)) }
-                    Button(onClick = { showConfirm = true }, enabled = quote.canEncounter, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.beyond_blue_encounter_cta)) }
+                    Button(onClick = { showConfirm = true }, enabled = quote.canEncounter, modifier = Modifier.weight(1f)) { Text(stringResource(if (selectedInstanceIds.isEmpty()) R.string.beyond_blue_encounter_with_pearls else R.string.beyond_blue_trade_and_encounter)) }
                 }
 
                 if (showConfirm) {

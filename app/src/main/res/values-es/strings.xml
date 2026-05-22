@@ -1558,4 +1558,11 @@
     <string name="beyond_blue_confirm_title_short">Encounter %1$s?</string>
     <string name="beyond_blue_trade_for_title">Trade for %1$s?</string>
     <string name="beyond_blue_confirm_pearls_call_in">%1$d Pearls will call this life in.</string>
+    <string name="beyond_blue_ready_with_pearls">Listo con Pearls</string>
+    <string name="beyond_blue_how_to_encounter">Cómo encontrar</string>
+    <string name="beyond_blue_pearls_only">Solo Pearls</string>
+    <string name="beyond_blue_use_pearls_only_amount">Usa %1$d Pearls</string>
+    <string name="beyond_blue_encounter_with_pearls">Encontrar con Pearls</string>
+    <string name="beyond_blue_add_one">Añadir uno de %1$s al intercambio</string>
+    <string name="beyond_blue_remove_one">Quitar uno de %1$s del intercambio</string>
 </resources>

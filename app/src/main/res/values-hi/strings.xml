@@ -1547,4 +1547,11 @@
     <string name="beyond_blue_confirm_title_short">Encounter %1$s?</string>
     <string name="beyond_blue_trade_for_title">Trade for %1$s?</string>
     <string name="beyond_blue_confirm_pearls_call_in">%1$d Pearls will call this life in.</string>
+    <string name="beyond_blue_ready_with_pearls">Pearls के साथ तैयार</string>
+    <string name="beyond_blue_how_to_encounter">कैसे एन्काउंटर करें</string>
+    <string name="beyond_blue_pearls_only">केवल Pearls</string>
+    <string name="beyond_blue_use_pearls_only_amount">%1$d Pearls का उपयोग करें</string>
+    <string name="beyond_blue_encounter_with_pearls">Pearls से एन्काउंटर करें</string>
+    <string name="beyond_blue_add_one">ट्रेड में %1$s एक जोड़ें</string>
+    <string name="beyond_blue_remove_one">ट्रेड से %1$s एक हटाएँ</string>
 </resources>
