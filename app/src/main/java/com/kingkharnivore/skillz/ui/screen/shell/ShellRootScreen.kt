@@ -2436,7 +2436,12 @@ private fun ShellChestScreen(
             FilterChip(selected = category == ShellChestTab.ANIMALS, onClick = { category = ShellChestTab.ANIMALS }, label = { Text(stringResource(R.string.shell_filter_animals)) })
             FilterChip(selected = category == ShellChestTab.ROOM_OBJECTS, onClick = { category = ShellChestTab.ROOM_OBJECTS }, label = { Text(stringResource(R.string.shell_filter_room_objects)) })
         }
-        LazyVerticalGrid(columns = GridCells.Adaptive(168.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        LazyVerticalGrid(
+            modifier = Modifier.weight(1f),
+            columns = GridCells.Adaptive(168.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             items(groupedItems) { (findId, copies) ->
             val def = ShellContentCatalog.find(findId) ?: return@items
             val title = stringResource(def.titleRes)
