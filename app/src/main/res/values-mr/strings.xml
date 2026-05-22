@@ -1579,4 +1579,7 @@
     <string name="shell_collection_title">%1$s संग्रह</string>
     <string name="shell_copies_heading">प्रती</string>
     <string name="beyond_blue_creature_value_chip">%1$s मूल्य</string>
+    <string name="shell_chest_best_form">सर्वोत्तम रूप: %1$s</string>
+    <string name="shell_lifetime_record_status_released">आयुष्यभर नोंद · मुक्त केलेले</string>
+    <string name="shell_lifetime_record_status_used_beyond_blue">आयुष्यभर नोंद · Beyond Blue मध्ये वापरलेले</string>
 </resources>

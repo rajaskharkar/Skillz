@@ -1533,4 +1533,7 @@
     <string name="shell_collection_title">%1$s Collection</string>
     <string name="shell_copies_heading">Copies</string>
     <string name="beyond_blue_creature_value_chip">%1$s value</string>
+    <string name="shell_chest_best_form">Best form: %1$s</string>
+    <string name="shell_lifetime_record_status_released">Lifetime record · Released</string>
+    <string name="shell_lifetime_record_status_used_beyond_blue">Lifetime record · Used Beyond Blue</string>
 </resources>

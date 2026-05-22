@@ -2486,6 +2486,14 @@ private fun ShellChestScreen(
                                 ShellMetricPill(Icons.Outlined.EmojiEvents, stringResource(R.string.shell_creature_level_count_chip, lv, lvCopies.size))
                             }
                         }
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                            if (releasedCount > 0) {
+                                ShellMetricPill(Icons.Outlined.Route, stringResource(R.string.the_blue_released_chip, releasedCount))
+                            }
+                            if (usedBeyondBlueCount > 0) {
+                                ShellMetricPill(Icons.Outlined.Waves, stringResource(R.string.the_blue_beyond_blue_chip, usedBeyondBlueCount))
+                            }
+                        }
                     } else {
                         Text(stringResource(R.string.shell_chest_displayed_count, displayedCount))
                         Text(stringResource(R.string.shell_chest_resting_count, restingCount))
@@ -2503,13 +2511,13 @@ private fun ShellChestScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             ) {
-                ListItem(
-                    leadingContent = { ShellObjectIcon(def.iconKey, Modifier.size(36.dp)) },
-                    headlineContent = { Text(stringResource(R.string.shell_chest_group_title, title, stack.quantity)) },
-                    supportingContent = {
-                        Text("${kindLabel(def.kind)} · ${stringResource(R.string.shell_stack_quantity, stack.quantity)}\n${sourceReasonFor(def)}")
-                    }
-                )
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ShellObjectIcon(def.iconKey, Modifier.size(36.dp))
+                    Text(title, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.shell_stack_quantity, stack.quantity))
+                    ShellMetricPill(Icons.Outlined.Inventory2, kindLabel(def.kind))
+                    Text(sourceReasonFor(def), style = MaterialTheme.typography.bodySmall)
+                }
             }
             }
         }
@@ -2584,17 +2592,46 @@ private fun CopyGroupSheet(
     )
     val displayedIds = displayedInstanceIds(uiState)
     val title = def?.let { stringResource(it.titleRes) } ?: findId
+    val activeCopies = if (def?.kind == ShellRewardKind.ANIMAL) copies.filter { it.creatureStatus == CreatureStatus.ACTIVE } else copies
+    val displayedCount = activeCopies.count { it.instanceId in displayedIds }
+    val restingCount = activeCopies.size - displayedCount
+    val releasedCount = copies.count { it.creatureStatus == CreatureStatus.RELEASED }
+    val usedBeyondBlueCount = copies.count { it.creatureStatus == CreatureStatus.USED_BEYOND_BLUE }
+    val highestLevel = copies.maxOfOrNull { it.animalLevel.coerceAtLeast(1) } ?: 1
+    val bestFormTitle = copies.maxByOrNull { currentFormOrder(it) }?.let { copy ->
+        ShellContentCatalog.upgradesFor(copy.findId)
+            .firstOrNull { it.upgradeStageId == copy.currentUpgradeStageId }
+            ?.let { stringResource(it.titleRes) }
+    } ?: title
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            ShellObjectIcon(def?.iconKey ?: "shell", Modifier.size(56.dp))
             Text(
-                text = stringResource(R.string.shell_chest_group_title, title, copies.size),
+                text = stringResource(R.string.shell_collection_title, title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
+            Text(stringResource(R.string.shell_chest_lifetime_count, copies.size))
+            Text(stringResource(R.string.the_blue_swimming_chip, activeCopies.count { it.creatureStatus == CreatureStatus.ACTIVE }))
+            Text(stringResource(R.string.shell_chest_displayed_count, displayedCount))
+            Text(stringResource(R.string.shell_chest_resting_count, restingCount))
+            if (def?.kind == ShellRewardKind.ANIMAL) {
+                Text(stringResource(R.string.the_blue_highest_level_chip, highestLevel))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                    copies.groupBy { it.animalLevel.coerceAtLeast(1) }.toSortedMap().forEach { (lv, lvCopies) ->
+                        ShellMetricPill(Icons.Outlined.EmojiEvents, stringResource(R.string.shell_creature_level_count_chip, lv, lvCopies.size))
+                    }
+                }
+                if (releasedCount > 0) Text(stringResource(R.string.the_blue_released_chip, releasedCount))
+                if (usedBeyondBlueCount > 0) Text(stringResource(R.string.the_blue_beyond_blue_chip, usedBeyondBlueCount))
+            } else {
+                Text(stringResource(R.string.shell_chest_best_form, bestFormTitle))
+            }
+            Text(stringResource(R.string.shell_copies_heading), fontWeight = FontWeight.SemiBold)
 
             copies.forEach { copy ->
                 val rowTitle = if (def?.kind == ShellRewardKind.ANIMAL) {
@@ -2606,7 +2643,10 @@ private fun CopyGroupSheet(
                 }
                 val status = when {
                     copy.instanceId in displayedIds -> stringResource(R.string.shell_status_displayed_focus)
-                    def?.kind == ShellRewardKind.ANIMAL && copy.creatureStatus != CreatureStatus.ACTIVE -> "Lifetime record · ${copy.creatureStatus.lowercase().replace('_', ' ')}"
+                    def?.kind == ShellRewardKind.ANIMAL && copy.creatureStatus == CreatureStatus.RELEASED ->
+                        stringResource(R.string.shell_lifetime_record_status_released)
+                    def?.kind == ShellRewardKind.ANIMAL && copy.creatureStatus == CreatureStatus.USED_BEYOND_BLUE ->
+                        stringResource(R.string.shell_lifetime_record_status_used_beyond_blue)
                     else -> stringResource(R.string.shell_status_resting)
                 }
 
