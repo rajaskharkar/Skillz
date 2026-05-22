@@ -1533,4 +1533,8 @@
     <string name="shell_chest_lifetime_count">%1$d total histórico</string>
     <string name="shell_chest_displayed_count">Mostrados %1$d</string>
     <string name="shell_chest_resting_count">En reposo %1$d</string>
+    <string name="shell_creature_level_short">Nv %1$d</string>
+    <string name="shell_collection_title">Colección de %1$s</string>
+    <string name="shell_copies_heading">Copias</string>
+    <string name="beyond_blue_creature_value_chip">Valor %1$s</string>
 </resources>

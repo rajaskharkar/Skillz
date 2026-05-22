@@ -1529,4 +1529,8 @@
     <string name="shell_chest_lifetime_count">%1$d lifetime</string>
     <string name="shell_chest_displayed_count">Displayed %1$d</string>
     <string name="shell_chest_resting_count">Resting %1$d</string>
+    <string name="shell_creature_level_short">Lv %1$d</string>
+    <string name="shell_collection_title">%1$s Collection</string>
+    <string name="shell_copies_heading">Copies</string>
+    <string name="beyond_blue_creature_value_chip">%1$s value</string>
 </resources>

@@ -2598,7 +2598,7 @@ private fun CopyGroupSheet(
 
             copies.forEach { copy ->
                 val rowTitle = if (def?.kind == ShellRewardKind.ANIMAL) {
-                    "Level ${copy.animalLevel.coerceAtLeast(1)}"
+                    stringResource(R.string.shell_creature_level_short, copy.animalLevel.coerceAtLeast(1))
                 } else {
                     ShellContentCatalog.upgradesFor(copy.findId)
                         .firstOrNull { it.upgradeStageId == copy.currentUpgradeStageId }
@@ -3402,7 +3402,7 @@ private fun TheBlueCreatureTray(
         }
         if (expanded && zone.animals.isNotEmpty()) {
             TheBlueOverlaySurface {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState())) {
                     Text(stringResource(R.string.the_blue_zone_life_title, zoneTitle(zone.zoneId)), fontWeight = FontWeight.SemiBold)
                     zone.animals.forEach { animal ->
                         TheBlueExpandedZoneInventoryRow(animal, animal.isNew || animal.findId in entryNewAnimalFindIds) { onAnimalClick(animal) }
@@ -3439,8 +3439,10 @@ private fun TheBlueCreatureTile(animal: TheBlueAnimalGroupUiModel, isNewArrival:
             Spacer(Modifier.width(8.dp))
             Column {
                 Text(name, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.the_blue_count_badge, animal.totalCount))
-                ShellMetricPill(icon = Icons.Outlined.EmojiEvents, text = stringResource(R.string.the_blue_highest_level_chip, animal.highestLevel))
+                Surface(shape = RoundedCornerShape(999.dp), color = scheme.primary.copy(alpha = 0.15f)) {
+                    Text(stringResource(R.string.the_blue_count_badge, animal.totalCount), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                }
+                ShellMetricPill(icon = Icons.Outlined.EmojiEvents, text = stringResource(R.string.shell_creature_level_short, animal.highestLevel))
             }
             if (isNewArrival) {
                 Surface(shape = RoundedCornerShape(999.dp), color = scheme.secondary.copy(alpha = 0.2f)) {
@@ -4205,7 +4207,13 @@ private fun BeyondBlueEncounterSheet(
                                 ListItem(
                                     leadingContent = { ShellObjectIcon(CreatureCatalog.get(item.findId)?.staticIconKey ?: "animal", Modifier.size(32.dp)) },
                                     headlineContent = { Text(findName(item.findId)) },
-                                    supportingContent = { Text("Level ${item.animalLevel} · ${zoneTitle(theBlueZoneFor(CreatureCatalog.get(item.findId)?.zone ?: CreatureZone.SUNLIT_REEF))}\n${formatMinutesCompact(CreatureEconomy.beyondBlueTradeContributionMinutes(item.findId, item.animalLevel))} creature value") },
+                                    supportingContent = {
+                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                                            ShellMetricPill(Icons.Outlined.EmojiEvents, stringResource(R.string.shell_creature_level_short, item.animalLevel))
+                                            ShellMetricPill(Icons.Outlined.Waves, zoneTitle(theBlueZoneFor(CreatureCatalog.get(item.findId)?.zone ?: CreatureZone.SUNLIT_REEF)))
+                                            ShellMetricPill(Icons.Outlined.Route, stringResource(R.string.beyond_blue_creature_value_chip, formatMinutesCompact(CreatureEconomy.beyondBlueTradeContributionMinutes(item.findId, item.animalLevel))))
+                                        }
+                                    },
                                     trailingContent = { Text(if (checked) stringResource(R.string.beyond_blue_selected) else stringResource(R.string.beyond_blue_tap_to_select)) }
                                 )
                             }

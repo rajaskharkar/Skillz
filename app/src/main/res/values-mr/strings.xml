@@ -1575,4 +1575,8 @@
     <string name="shell_chest_lifetime_count">आयुष्यभर %1$d</string>
     <string name="shell_chest_displayed_count">दर्शवलेले %1$d</string>
     <string name="shell_chest_resting_count">विश्रांतीत %1$d</string>
+    <string name="shell_creature_level_short">पातळी %1$d</string>
+    <string name="shell_collection_title">%1$s संग्रह</string>
+    <string name="shell_copies_heading">प्रती</string>
+    <string name="beyond_blue_creature_value_chip">%1$s मूल्य</string>
 </resources>

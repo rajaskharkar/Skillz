@@ -1522,4 +1522,8 @@
     <string name="shell_chest_lifetime_count">कुल %1$d</string>
     <string name="shell_chest_displayed_count">प्रदर्शित %1$d</string>
     <string name="shell_chest_resting_count">विश्राम में %1$d</string>
+    <string name="shell_creature_level_short">लेवल %1$d</string>
+    <string name="shell_collection_title">%1$s संग्रह</string>
+    <string name="shell_copies_heading">प्रतियां</string>
+    <string name="beyond_blue_creature_value_chip">%1$s मान</string>
 </resources>
