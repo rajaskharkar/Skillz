@@ -4204,7 +4204,7 @@ private fun BeyondBlueEncounterSheet(
                     perMinutes = CreatureEconomy.beyondBlueTradeContributionMinutes(first.findId, level)
                 )
             }
-            .sortedBy { findName(it.findId) + it.level }
+            .sortedBy { it.findId + ":" + it.level }
     }
 
     val selectedInstanceIds = remember(selectedCounts, tradeStacks) {
