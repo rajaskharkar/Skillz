@@ -1616,4 +1616,6 @@
     <string name="beyond_blue_buy_with_pearls_title">%1$s ला Pearls ने खरेदी करायचे?</string>
     <string name="beyond_blue_trade_and_buy_title">%1$s साठी देवाणघेवाण आणि खरेदी करायची?</string>
     <string name="beyond_blue_pearls_will_be_used">%1$d Pearls वापरल्या जातील.</string>
+    <string name="beyond_blue_ready_to_buy">खरेदीसाठी तयार</string>
+    <string name="beyond_blue_adjusted_cost">समायोजित खर्च</string>
 </resources>

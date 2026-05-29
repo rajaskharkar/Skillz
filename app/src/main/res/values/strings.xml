@@ -1570,4 +1570,6 @@
     <string name="beyond_blue_buy_with_pearls_title">Buy %1$s with Pearls?</string>
     <string name="beyond_blue_trade_and_buy_title">Trade &amp; buy %1$s?</string>
     <string name="beyond_blue_pearls_will_be_used">%1$d Pearls will be used.</string>
+    <string name="beyond_blue_ready_to_buy">Ready to buy</string>
+    <string name="beyond_blue_adjusted_cost">Adjusted Cost</string>
 </resources>
