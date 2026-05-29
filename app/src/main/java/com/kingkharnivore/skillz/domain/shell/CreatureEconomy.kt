@@ -182,7 +182,7 @@ object CreatureCatalog {
         )
 
     private fun sceneBehaviorFor(id: String, family: CreatureRenderFamily): CreatureSceneBehavior = when {
-        family in setOf(CreatureRenderFamily.STARFISH, CreatureRenderFamily.SPIKY_URCHIN, CreatureRenderFamily.OCTOPUS) -> CreatureSceneBehavior.BOTTOM_DWELL
+        family in setOf(CreatureRenderFamily.STARFISH, CreatureRenderFamily.SPIKY_URCHIN, CreatureRenderFamily.OCTOPUS, CreatureRenderFamily.EEL) -> CreatureSceneBehavior.BOTTOM_DWELL
         family in setOf(CreatureRenderFamily.JELLYFISH, CreatureRenderFamily.SEAHORSE) -> CreatureSceneBehavior.DRIFT
         family in setOf(CreatureRenderFamily.RAY) -> CreatureSceneBehavior.GLIDE
         family in setOf(CreatureRenderFamily.WHALE, CreatureRenderFamily.ORCA, CreatureRenderFamily.SHARK, CreatureRenderFamily.DOLPHIN, CreatureRenderFamily.LEGENDARY, CreatureRenderFamily.GIANT_TENTACLE) -> CreatureSceneBehavior.CRUISE
@@ -190,7 +190,7 @@ object CreatureCatalog {
     }
 
     private fun placementBandFor(zone: CreatureZone, id: String, family: CreatureRenderFamily): CreaturePlacementBand = when {
-        family in setOf(CreatureRenderFamily.STARFISH, CreatureRenderFamily.SPIKY_URCHIN, CreatureRenderFamily.OCTOPUS) -> CreaturePlacementBand.REEF_FLOOR
+        family in setOf(CreatureRenderFamily.STARFISH, CreatureRenderFamily.SPIKY_URCHIN, CreatureRenderFamily.OCTOPUS, CreatureRenderFamily.EEL) -> CreaturePlacementBand.REEF_FLOOR
         family == CreatureRenderFamily.SEAHORSE -> CreaturePlacementBand.REEF_CANOPY
         family == CreatureRenderFamily.JELLYFISH -> CreaturePlacementBand.MID_WATER
         family in setOf(CreatureRenderFamily.SURFACE_MAMMAL) -> CreaturePlacementBand.SURFACE

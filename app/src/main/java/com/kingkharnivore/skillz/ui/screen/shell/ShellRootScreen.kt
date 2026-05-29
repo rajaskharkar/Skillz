@@ -102,6 +102,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -126,6 +127,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellSlotDefinition
 import com.kingkharnivore.skillz.data.model.shell.ShellSlotType
 import com.kingkharnivore.skillz.data.model.shell.StillwaterPerspective
 import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
+import com.kingkharnivore.skillz.domain.shell.CreatureDefinition
 import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
 import com.kingkharnivore.skillz.domain.shell.CreatureZone
 import com.kingkharnivore.skillz.domain.shell.CreatureStatus
@@ -1653,21 +1655,37 @@ private fun DrawScope.drawStaticCreatureIcon(key: String, scheme: androidx.compo
         "lionfish" in key -> { fishBody(Color(0xFFB45A3C), Color(0xFFF3D6A2), tall=0.38f, long=0.50f, stripes=4); repeat(6){i->drawLine(secondary.copy(alpha=0.55f), Offset(w*(0.34f+i*0.06f),h*0.33f), Offset(w*(0.24f+i*0.10f),h*0.05f), strokeWidth=w*0.02f)} }
         "pufferfish" in key -> { drawCircle(primary.copy(alpha=0.72f), w*0.28f, Offset(w*0.52f,h*0.50f)); repeat(10){i->val a=i*6.28318f/10f; drawLine(secondary, Offset(w*0.52f,h*0.50f), Offset(w*(0.52f+kotlin.math.cos(a)*0.40f), h*(0.5f+kotlin.math.sin(a)*0.40f)), strokeWidth=w*0.018f)}; drawCircle(surface,w*0.03f,Offset(w*0.62f,h*0.42f)) }
         "seahorse" in key -> { drawCircle(secondary.copy(alpha=0.76f), w*0.15f, Offset(w*0.58f,h*0.25f)); drawLine(secondary.copy(alpha=0.76f), Offset(w*0.66f,h*0.25f), Offset(w*0.86f,h*0.20f), strokeWidth=w*0.08f); drawPath(Path().apply { moveTo(w*0.54f,h*0.36f); cubicTo(w*0.28f,h*0.43f,w*0.36f,h*0.80f,w*0.58f,h*0.70f); cubicTo(w*0.78f,h*0.62f,w*0.68f,h*0.48f,w*0.54f,h*0.56f) }, secondary.copy(alpha=0.76f), style=Stroke(width=w*0.13f)); drawCircle(surface,w*0.03f,Offset(w*0.62f,h*0.21f)) }
-        "manta" in key || "stingray" in key -> { drawPath(Path().apply { moveTo(w*0.50f,h*0.20f); cubicTo(w*0.14f,h*0.30f,w*0.04f,h*0.62f,w*0.02f,h*0.76f); cubicTo(w*0.29f,h*0.64f,w*0.40f,h*0.64f,w*0.50f,h*0.78f); cubicTo(w*0.60f,h*0.64f,w*0.71f,h*0.64f,w*0.98f,h*0.76f); cubicTo(w*0.96f,h*0.62f,w*0.86f,h*0.30f,w*0.50f,h*0.20f); close() }, primary.copy(alpha=0.74f)); drawLine(secondary.copy(alpha=0.55f), Offset(w*0.50f,h*0.74f), Offset(w*0.50f,h*0.98f), strokeWidth=w*0.035f) }
+        "stingray" in key -> { drawPath(Path().apply { moveTo(w*0.50f,h*0.26f); cubicTo(w*0.20f,h*0.32f,w*0.08f,h*0.58f,w*0.08f,h*0.70f); cubicTo(w*0.34f,h*0.62f,w*0.42f,h*0.62f,w*0.50f,h*0.76f); cubicTo(w*0.58f,h*0.62f,w*0.66f,h*0.62f,w*0.92f,h*0.70f); cubicTo(w*0.92f,h*0.58f,w*0.80f,h*0.32f,w*0.50f,h*0.26f); close() }, primary.copy(alpha=0.68f)); drawLine(secondary.copy(alpha=0.52f), Offset(w*0.50f,h*0.72f), Offset(w*0.50f,h*0.96f), strokeWidth=w*0.025f) }
+        "manta" in key -> { drawPath(Path().apply { moveTo(w*0.50f,h*0.18f); cubicTo(w*0.12f,h*0.30f,w*0.03f,h*0.65f,w*0.02f,h*0.80f); cubicTo(w*0.29f,h*0.64f,w*0.40f,h*0.64f,w*0.50f,h*0.78f); cubicTo(w*0.60f,h*0.64f,w*0.71f,h*0.64f,w*0.98f,h*0.80f); cubicTo(w*0.97f,h*0.65f,w*0.88f,h*0.30f,w*0.50f,h*0.18f); close() }, primary.copy(alpha=0.74f)); drawLine(secondary.copy(alpha=0.55f), Offset(w*0.50f,h*0.74f), Offset(w*0.50f,h*0.98f), strokeWidth=w*0.035f) }
         "jellyfish" in key -> { drawArc(secondary.copy(alpha=0.72f),180f,180f,true,Offset(w*0.18f,h*0.16f),Size(w*0.64f,h*0.48f)); repeat(5){i->drawLine(primary.copy(alpha=0.5f),Offset(w*(0.25f+i*0.12f),h*0.50f),Offset(w*(0.20f+i*0.13f),h*0.90f),strokeWidth=w*0.035f)} }
         "turtle" in key -> { drawOval(primary.copy(alpha=0.72f), Offset(w*0.24f,h*0.24f), Size(w*0.50f,h*0.42f)); drawOval(secondary.copy(alpha=0.55f), Offset(w*0.42f,h*0.08f), Size(w*0.16f,h*0.16f)); repeat(4){i->val x=if(i%2==0)0.15f else 0.74f; val y=if(i<2)0.30f else 0.62f; drawOval(secondary.copy(alpha=0.55f),Offset(w*x,h*y),Size(w*0.18f,h*0.12f))} }
-        "otter" in key || "seal" in key || "sea_lion" in key || "penguin" in key -> { drawOval(primary.copy(alpha=0.68f), Offset(w*0.18f,h*0.34f), Size(w*0.62f,h*0.28f)); drawCircle(primary.copy(alpha=0.72f), w*0.13f, Offset(w*0.72f,h*0.40f)); drawPath(Path().apply { moveTo(w*0.32f,h*0.58f); lineTo(w*0.18f,h*0.78f); lineTo(w*0.44f,h*0.62f); close() }, secondary.copy(alpha=0.55f)); drawCircle(surface,w*0.025f,Offset(w*0.76f,h*0.36f)) }
-        "dolphin" in key -> { drawArc(primary.copy(alpha=0.72f),195f,205f,false,Offset(w*0.12f,h*0.18f),Size(w*0.74f,h*0.52f),style=Stroke(width=w*0.16f)); drawPath(Path().apply{moveTo(w*0.76f,h*0.43f);lineTo(w*0.98f,h*0.28f);lineTo(w*0.90f,h*0.48f);lineTo(w*0.98f,h*0.66f);close()}, primary.copy(alpha=0.72f)); drawPath(Path().apply{moveTo(w*0.47f,h*0.36f);lineTo(w*0.55f,h*0.14f);lineTo(w*0.60f,h*0.38f);close()}, secondary.copy(alpha=0.55f)) }
+        "sea_otter" in key || "otter" in key -> { drawOval(primary.copy(alpha=0.62f), Offset(w*0.16f,h*0.42f), Size(w*0.58f,h*0.20f)); drawCircle(primary.copy(alpha=0.72f), w*0.14f, Offset(w*0.70f,h*0.38f)); drawCircle(surface.copy(alpha=0.55f), w*0.035f, Offset(w*0.75f,h*0.35f)); drawCircle(secondary.copy(alpha=0.52f), w*0.045f, Offset(w*0.46f,h*0.48f)); drawCircle(secondary.copy(alpha=0.52f), w*0.04f, Offset(w*0.56f,h*0.47f)) }
+        "sea_lion" in key -> { drawOval(primary.copy(alpha=0.68f), Offset(w*0.14f,h*0.36f), Size(w*0.60f,h*0.28f)); drawOval(primary.copy(alpha=0.76f), Offset(w*0.62f,h*0.28f), Size(w*0.22f,h*0.20f)); drawPath(Path().apply { moveTo(w*0.42f,h*0.58f); lineTo(w*0.18f,h*0.82f); lineTo(w*0.54f,h*0.63f); close() }, secondary.copy(alpha=0.58f)); drawPath(Path().apply { moveTo(w*0.56f,h*0.58f); lineTo(w*0.82f,h*0.80f); lineTo(w*0.66f,h*0.58f); close() }, secondary.copy(alpha=0.45f)); drawCircle(surface,w*0.025f,Offset(w*0.78f,h*0.34f)) }
+        "penguin" in key -> { drawOval(Color(0xFF263238).copy(alpha=0.80f), Offset(w*0.32f,h*0.10f), Size(w*0.36f,h*0.72f)); drawOval(surface.copy(alpha=0.78f), Offset(w*0.40f,h*0.25f), Size(w*0.20f,h*0.42f)); drawPath(Path().apply { moveTo(w*0.32f,h*0.38f); lineTo(w*0.10f,h*0.52f); lineTo(w*0.34f,h*0.55f); close() }, primary.copy(alpha=0.48f)); drawPath(Path().apply { moveTo(w*0.68f,h*0.38f); lineTo(w*0.90f,h*0.52f); lineTo(w*0.66f,h*0.55f); close() }, primary.copy(alpha=0.48f)); drawPath(Path().apply { moveTo(w*0.55f,h*0.18f); lineTo(w*0.78f,h*0.23f); lineTo(w*0.56f,h*0.28f); close() }, secondary) }
+        "seal" in key -> { drawOval(primary.copy(alpha=0.68f), Offset(w*0.16f,h*0.36f), Size(w*0.62f,h*0.26f)); drawCircle(primary.copy(alpha=0.72f), w*0.12f, Offset(w*0.75f,h*0.42f)); drawPath(Path().apply { moveTo(w*0.42f,h*0.58f); lineTo(w*0.26f,h*0.76f); lineTo(w*0.52f,h*0.62f); close() }, secondary.copy(alpha=0.50f)); drawCircle(surface,w*0.025f,Offset(w*0.79f,h*0.38f)) }
+        "dolphin" in key -> { drawArc(primary.copy(alpha=0.72f),200f,200f,false,Offset(w*0.12f,h*0.18f),Size(w*0.70f,h*0.50f),style=Stroke(width=w*0.15f)); drawPath(Path().apply{moveTo(w*0.75f,h*0.41f);lineTo(w*0.98f,h*0.32f);lineTo(w*0.76f,h*0.50f);close()}, primary.copy(alpha=0.72f)); drawPath(Path().apply{moveTo(w*0.18f,h*0.50f);lineTo(w*0.02f,h*0.32f);lineTo(w*0.14f,h*0.50f);lineTo(w*0.02f,h*0.68f);close()}, primary.copy(alpha=0.68f)); drawPath(Path().apply{moveTo(w*0.47f,h*0.36f);lineTo(w*0.55f,h*0.12f);lineTo(w*0.61f,h*0.39f);close()}, secondary.copy(alpha=0.55f)); drawCircle(surface,w*0.024f,Offset(w*0.68f,h*0.38f)) }
         "orca" in key -> { drawOval(Color(0xFF263238).copy(alpha=0.72f),Offset(w*0.14f,h*0.35f),Size(w*0.66f,h*0.30f)); drawOval(surface.copy(alpha=0.74f),Offset(w*0.42f,h*0.46f),Size(w*0.22f,h*0.10f)); drawPath(Path().apply{moveTo(w*0.76f,h*0.50f);lineTo(w*0.98f,h*0.30f);lineTo(w*0.90f,h*0.50f);lineTo(w*0.98f,h*0.70f);close()}, Color(0xFF263238).copy(alpha=0.72f)); drawPath(Path().apply{moveTo(w*0.42f,h*0.36f);lineTo(w*0.50f,h*0.08f);lineTo(w*0.58f,h*0.38f);close()}, Color(0xFF263238).copy(alpha=0.72f)) }
         "anglerfish" in key -> { fishBody(Color(0xFF30313B), secondary, tall=0.38f, long=0.56f); drawLine(secondary,Offset(w*0.60f,h*0.32f),Offset(w*0.72f,h*0.12f),strokeWidth=w*0.025f); drawCircle(secondary,w*0.045f,Offset(w*0.74f,h*0.10f)) }
         "megalodon" in key -> { fishBody(Color(0xFF27323A), Color(0xFF6B7A85), tall=0.34f, long=0.70f); drawPath(Path().apply{moveTo(w*0.45f,h*0.36f);lineTo(w*0.55f,h*0.04f);lineTo(w*0.64f,h*0.38f);close()}, Color(0xFF6B7A85)) }
         "shark" in key || "great_white" in key -> { fishBody(Color(0xFF6B7A85), Color(0xFFB0BEC5), tall=0.30f, long=0.66f); drawPath(Path().apply{moveTo(w*0.42f,h*0.38f);lineTo(w*0.50f,h*0.12f);lineTo(w*0.58f,h*0.40f);close()}, Color(0xFFB0BEC5)) }
+        "blue_whale" in key -> { drawOval(primary.copy(alpha=0.56f), Offset(w*0.05f,h*0.38f), Size(w*0.82f,h*0.24f)); drawPath(Path().apply{moveTo(w*0.84f,h*0.50f);lineTo(w*0.99f,h*0.35f);lineTo(w*0.94f,h*0.50f);lineTo(w*0.99f,h*0.65f);close()}, primary.copy(alpha=0.52f)); drawOval(secondary.copy(alpha=0.26f),Offset(w*0.34f,h*0.52f),Size(w*0.30f,h*0.06f)); drawPath(Path().apply{moveTo(w*0.55f,h*0.38f);lineTo(w*0.60f,h*0.25f);lineTo(w*0.64f,h*0.39f);close()}, secondary.copy(alpha=0.32f)) }
+        "humpback_whale" in key -> { drawPath(Path().apply{moveTo(w*0.12f,h*0.54f); cubicTo(w*0.24f,h*0.22f,w*0.58f,h*0.24f,w*0.80f,h*0.46f); cubicTo(w*0.62f,h*0.68f,w*0.28f,h*0.70f,w*0.12f,h*0.54f); close()}, primary.copy(alpha=0.58f)); drawPath(Path().apply{moveTo(w*0.78f,h*0.48f);lineTo(w*0.98f,h*0.30f);lineTo(w*0.90f,h*0.50f);lineTo(w*0.98f,h*0.70f);close()}, primary.copy(alpha=0.52f)); drawLine(secondary.copy(alpha=0.42f), Offset(w*0.40f,h*0.58f), Offset(w*0.22f,h*0.92f), strokeWidth=w*0.06f); repeat(3){i->drawCircle(secondary.copy(alpha=0.35f), w*0.018f, Offset(w*(0.20f+i*0.05f), h*0.42f))} }
         "whale" in key -> { drawOval(primary.copy(alpha=0.58f), Offset(w*0.12f,h*0.34f), Size(w*0.68f,h*0.34f)); drawPath(Path().apply{moveTo(w*0.78f,h*0.50f);lineTo(w*0.98f,h*0.30f);lineTo(w*0.92f,h*0.50f);lineTo(w*0.98f,h*0.70f);close()}, primary.copy(alpha=0.58f)); drawOval(secondary.copy(alpha=0.32f),Offset(w*0.33f,h*0.50f),Size(w*0.26f,h*0.08f)) }
-        "squid" in key || "kraken" in key || "leviathan" in key -> { val c=if("leviathan" in key) Color(0xFF203A5F).copy(alpha=0.78f) else secondary.copy(alpha=0.75f); drawOval(c,Offset(w*0.32f,h*0.08f),Size(w*0.36f,h*0.44f)); repeat(if("kraken" in key)8 else 5){i->drawLine(c,Offset(w*(0.34f+i*0.045f),h*0.50f),Offset(w*(0.12f+i*0.10f),h*0.92f),strokeWidth=w*0.045f)}; if("leviathan" in key) drawArc(c,180f,210f,false,Offset(w*0.08f,h*0.22f),Size(w*0.84f,h*0.54f),style=Stroke(width=w*0.08f)) }
-        "eel" in key || "snake" in key -> { drawArc(primary.copy(alpha=0.72f),180f,240f,false,Offset(w*0.10f,h*0.20f),Size(w*0.76f,h*0.58f),style=Stroke(width=w*0.13f)); drawCircle(primary.copy(alpha=0.72f),w*0.10f,Offset(w*0.76f,h*0.38f)) }
+        "leviathan" in key -> { val c=Color(0xFF203A5F).copy(alpha=0.78f); drawArc(c,180f,220f,false,Offset(w*0.06f,h*0.20f),Size(w*0.86f,h*0.56f),style=Stroke(width=w*0.09f)); drawCircle(secondary.copy(alpha=0.60f),w*0.10f,Offset(w*0.78f,h*0.32f)); drawPath(Path().apply{moveTo(w*0.44f,h*0.26f);lineTo(w*0.54f,h*0.02f);lineTo(w*0.58f,h*0.30f);close()},secondary.copy(alpha=0.32f)) }
+        "kraken" in key -> { val c=secondary.copy(alpha=0.75f); drawOval(c,Offset(w*0.28f,h*0.08f),Size(w*0.44f,h*0.44f)); repeat(10){i->drawLine(c,Offset(w*(0.30f+i*0.045f),h*0.50f),Offset(w*(0.04f+i*0.10f),h*0.94f),strokeWidth=w*0.045f)} }
+        "giant_squid" in key -> { val c=secondary.copy(alpha=0.68f); drawPath(Path().apply{moveTo(w*0.50f,h*0.04f); cubicTo(w*0.22f,h*0.30f,w*0.34f,h*0.58f,w*0.50f,h*0.58f); cubicTo(w*0.66f,h*0.58f,w*0.78f,h*0.30f,w*0.50f,h*0.04f); close()},c); repeat(8){i->drawLine(c,Offset(w*(0.34f+i*0.045f),h*0.56f),Offset(w*(0.10f+i*0.09f),h*0.94f),strokeWidth=w*0.035f)} }
+        "squid" in key -> { val c=secondary.copy(alpha=0.70f); drawOval(c,Offset(w*0.34f,h*0.10f),Size(w*0.32f,h*0.42f)); repeat(5){i->drawLine(c,Offset(w*(0.36f+i*0.07f),h*0.50f),Offset(w*(0.20f+i*0.14f),h*0.90f),strokeWidth=w*0.04f)} }
+        "moray_eel" in key || "eel" in key -> { drawArc(primary.copy(alpha=0.72f),165f,250f,false,Offset(w*0.08f,h*0.26f),Size(w*0.78f,h*0.54f),style=Stroke(width=w*0.16f)); drawOval(primary.copy(alpha=0.78f),Offset(w*0.66f,h*0.30f),Size(w*0.22f,h*0.18f)); drawLine(surface.copy(alpha=0.60f),Offset(w*0.76f,h*0.42f),Offset(w*0.88f,h*0.46f),strokeWidth=w*0.018f); drawCircle(surface,w*0.025f,Offset(w*0.78f,h*0.36f)) }
+        "sea_snake" in key || "snake" in key -> { drawPath(Path().apply{moveTo(w*0.10f,h*0.58f); cubicTo(w*0.28f,h*0.20f,w*0.42f,h*0.82f,w*0.58f,h*0.44f); cubicTo(w*0.70f,h*0.18f,w*0.84f,h*0.36f,w*0.92f,h*0.30f)}, primary.copy(alpha=0.68f), style=Stroke(width=w*0.08f)); repeat(5){i->drawLine(secondary.copy(alpha=0.55f),Offset(w*(0.22f+i*0.12f),h*(0.48f+(i%2)*0.06f)),Offset(w*(0.26f+i*0.12f),h*(0.38f+(i%2)*0.06f)),strokeWidth=w*0.02f)}; drawCircle(primary.copy(alpha=0.72f),w*0.07f,Offset(w*0.91f,h*0.30f)) }
         "sunfish" in key -> { drawOval(primary.copy(alpha=0.68f),Offset(w*0.28f,h*0.20f),Size(w*0.36f,h*0.54f)); drawPath(Path().apply{moveTo(w*0.46f,h*0.20f);lineTo(w*0.54f,h*0.02f);lineTo(w*0.56f,h*0.22f);close()}, secondary.copy(alpha=0.5f)); drawPath(Path().apply{moveTo(w*0.46f,h*0.72f);lineTo(w*0.54f,h*0.96f);lineTo(w*0.56f,h*0.70f);close()}, secondary.copy(alpha=0.5f)) }
-        "barracuda" in key || "swordfish" in key || "flying_fish" in key -> { fishBody(primary.copy(alpha=0.68f), secondary.copy(alpha=0.55f), tall=0.24f, long=0.68f); if("swordfish" in key) drawLine(secondary,Offset(w*0.78f,h*0.49f),Offset(w*0.99f,h*0.43f),strokeWidth=w*0.025f); if("flying_fish" in key) drawPath(Path().apply{moveTo(w*0.42f,h*0.40f);lineTo(w*0.22f,h*0.08f);lineTo(w*0.62f,h*0.38f);close()},secondary.copy(alpha=0.42f)) }
-        else -> fishBody(primary.copy(alpha=0.62f), secondary.copy(alpha=0.45f), tall=0.30f, long=0.52f, stripes=1)
+        "swordfish" in key -> { fishBody(primary.copy(alpha=0.68f), secondary.copy(alpha=0.55f), tall=0.22f, long=0.66f); drawLine(secondary,Offset(w*0.78f,h*0.49f),Offset(w*0.99f,h*0.43f),strokeWidth=w*0.025f) }
+        "flying_fish" in key -> { fishBody(primary.copy(alpha=0.68f), secondary.copy(alpha=0.55f), tall=0.22f, long=0.58f); drawPath(Path().apply{moveTo(w*0.42f,h*0.40f);lineTo(w*0.22f,h*0.08f);lineTo(w*0.62f,h*0.38f);close()},secondary.copy(alpha=0.42f)) }
+        "barracuda" in key -> fishBody(primary.copy(alpha=0.62f), secondary.copy(alpha=0.42f), tall=0.20f, long=0.72f)
+        else -> {
+            drawCircle(Color.Red.copy(alpha = 0.56f), w * 0.28f, Offset(w * 0.50f, h * 0.50f))
+            drawLine(surface, Offset(w * 0.36f, h * 0.36f), Offset(w * 0.64f, h * 0.64f), strokeWidth = w * 0.055f)
+            drawLine(surface, Offset(w * 0.64f, h * 0.36f), Offset(w * 0.36f, h * 0.64f), strokeWidth = w * 0.055f)
+        }
     }
 }
 
@@ -3253,40 +3271,38 @@ private fun TheBlueZonePage(
             .semantics { contentDescription = zoneDescription }
     ) {
         Canvas(Modifier.matchParentSize()) {
+            val placements = renderedCreaturePlacements(zone, size.width, size.height, drift, mantaLoop, whaleLoop)
             drawTheBlueWaterBackground(zone.zoneId, scheme, drift)
             drawZoneEnvironment(zone.zoneId, scheme, drift, zone.animals.sumOf { it.totalCount })
-            drawZoneAnimals(zone, scheme, drift, mantaLoop, whaleLoop)
+            placements.sortedBy { it.layer }.forEach { drawRenderedCreature(it, scheme) }
             if (zoneHasNewArrival) {
                 drawRect(scheme.secondary.copy(alpha = 0.045f))
             }
         }
 
         BoxWithConstraints(Modifier.matchParentSize()) {
-            zone.animals.forEachIndexed { index, animal ->
-                val definition = CreatureCatalog.get(animal.findId)
-                val isBottomDweller = definition?.sceneBehavior == com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior.BOTTOM_DWELL
-                val tapSize = when (definition?.scaleClass) {
-                    com.kingkharnivore.skillz.domain.shell.CreatureScaleClass.GIANT,
-                    com.kingkharnivore.skillz.domain.shell.CreatureScaleClass.LEGENDARY -> 108.dp
-                    com.kingkharnivore.skillz.domain.shell.CreatureScaleClass.LARGE -> 88.dp
-                    else -> 68.dp
-                }
-                val x = if (isBottomDweller) {
-                    maxWidth * (0.16f + (index % 4) * 0.18f)
-                } else {
-                    maxWidth * (0.18f + (index % 4) * 0.18f)
-                }
-                val y = if (isBottomDweller) {
-                    maxHeight * 0.63f
-                } else {
-                    maxHeight * (0.25f + (index % 3) * 0.15f)
-                }
+            val density = LocalDensity.current
+            val placements = with(density) {
+                renderedCreaturePlacements(
+                    zone = zone,
+                    sceneWidth = maxWidth.toPx(),
+                    sceneHeight = maxHeight.toPx(),
+                    drift = drift,
+                    mantaLoop = mantaLoop,
+                    whaleLoop = whaleLoop
+                )
+            }
+            placements.forEach { placement ->
+                val animal = placement.animal
                 val newLabel = if (animal.isNew || animal.findId in entryNewAnimalFindIds) stringResource(R.string.the_blue_new_arrival) else ""
                 val description = stringResource(R.string.the_blue_creature_tile_a11y, findName(animal.findId), animal.totalCount, animal.highestLevel, newLabel)
                 Box(
                     modifier = Modifier
-                        .offset(x = x, y = y)
-                        .size(tapSize)
+                        .offset(
+                            x = with(density) { (placement.center.x - placement.tapSizePx / 2f).toDp() },
+                            y = with(density) { (placement.center.y - placement.tapSizePx / 2f).toDp() }
+                        )
+                        .size(with(density) { placement.tapSizePx.toDp() })
                         .clip(CircleShape)
                         .clickable(onClick = { onAnimalClick(animal) })
                         .semantics {
@@ -3648,85 +3664,155 @@ private fun DrawScope.drawGreatBlueEnvironment(
     }
 }
 
-private fun DrawScope.drawZoneAnimals(
+
+private data class RenderedCreaturePlacement(
+    val animal: TheBlueAnimalGroupUiModel,
+    val definition: CreatureDefinition,
+    val center: Offset,
+    val scale: Float,
+    val driftSeed: Float,
+    val glowing: Boolean,
+    val layer: Int,
+    val tapSizePx: Float,
+    val rendererKey: String
+)
+
+private fun renderedCreaturePlacements(
     zone: TheBlueZoneUiModel,
-    scheme: androidx.compose.material3.ColorScheme,
+    sceneWidth: Float,
+    sceneHeight: Float,
     drift: Float,
     mantaLoop: Float,
     whaleLoop: Float
-) {
+): List<RenderedCreaturePlacement> {
+    val placements = mutableListOf<RenderedCreaturePlacement>()
     zone.animals.forEach { animal ->
+        val definition = CreatureCatalog.get(animal.findId) ?: return@forEach
         val accentCount = animal.levelCounts.filter { (it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 1) > 1 }.sumOf { it.count }
-        val visualScale = CreatureEconomy.animalVisualScale(animal.findId, animal.highestLevel)
+        val levelScale = CreatureEconomy.animalVisualScale(animal.findId, animal.highestLevel)
+        fun add(center: Offset, scale: Float, seed: Float, index: Int, renderer: String = definition.creatureId) {
+            val tapBase = when (definition.scaleClass) {
+                com.kingkharnivore.skillz.domain.shell.CreatureScaleClass.TINY -> 48f
+                com.kingkharnivore.skillz.domain.shell.CreatureScaleClass.SMALL -> 58f
+                com.kingkharnivore.skillz.domain.shell.CreatureScaleClass.MEDIUM -> 70f
+                com.kingkharnivore.skillz.domain.shell.CreatureScaleClass.LARGE -> 90f
+                com.kingkharnivore.skillz.domain.shell.CreatureScaleClass.GIANT -> 118f
+                com.kingkharnivore.skillz.domain.shell.CreatureScaleClass.LEGENDARY -> 136f
+            }
+            val layer = when (definition.sceneBehavior) {
+                com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior.BOTTOM_DWELL -> 1
+                com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior.DRIFT -> 2
+                com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior.SWIM -> 3
+                com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior.GLIDE -> 4
+                com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior.CRUISE -> 5
+                com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior.LEGENDARY -> 6
+            }
+            placements += RenderedCreaturePlacement(
+                animal = animal,
+                definition = definition,
+                center = center,
+                scale = scale,
+                driftSeed = seed,
+                glowing = index < accentCount,
+                layer = layer,
+                tapSizePx = tapBase * scale.coerceIn(0.85f, 1.9f),
+                rendererKey = renderer
+            )
+        }
         when (animal.findId) {
-            ShellContentCatalog.FOCUS_MINNOW -> drawMinnowSchool(animal.totalCount, accentCount, scheme, drift, visualScale)
-            ShellContentCatalog.FOCUS_SEAHORSE -> drawSeahorseColony(animal.totalCount, accentCount, scheme, drift, visualScale)
-            ShellContentCatalog.FOCUS_OCTOPUS -> drawHiddenOctopus(accentCount + 1, scheme, drift)
-            ShellContentCatalog.FOCUS_MANTA -> drawMantaGlides(animal.totalCount, accentCount, scheme, drift, mantaLoop, visualScale)
-            ShellContentCatalog.FOCUS_WHALE -> drawWhalePasses(animal.totalCount, accentCount, scheme, drift, whaleLoop, visualScale)
-            else -> drawRenderFamilyCreatures(animal, scheme, drift, mantaLoop, whaleLoop, visualScale)
+            ShellContentCatalog.FOCUS_MINNOW -> {
+                val visible = representativeVisibleCount(animal.totalCount, maxVisible = 12)
+                repeat(visible) { i ->
+                    val group = i / 4
+                    val progress = (drift * (1.05f + group * 0.12f) + i * 0.075f) % 1f
+                    val wiggle = sin((drift * 18f + i).toDouble()).toFloat()
+                    val x = progress * (sceneWidth + 140f) - 70f
+                    val y = sceneHeight * (0.34f + group * 0.12f) + (i % 4) * 20f + wiggle * 8f
+                    add(Offset(x, y), (1f + (i % 3) * 0.08f) * levelScale, wiggle, i, "minnow")
+                }
+            }
+            ShellContentCatalog.FOCUS_SEAHORSE -> {
+                val visible = representativeVisibleCount(animal.totalCount, maxVisible = 6)
+                repeat(visible) { i ->
+                    val bob = sin((drift * 6.28f + i * 0.9f).toDouble()).toFloat()
+                    val x = sceneWidth * (0.22f + (i % 3) * 0.16f)
+                    val y = sceneHeight * (0.46f + (i / 3) * 0.16f) + bob * 14f
+                    add(Offset(x, y), (1f + (i % 2) * 0.08f) * levelScale, bob, i, "seahorse")
+                }
+            }
+            ShellContentCatalog.FOCUS_MANTA -> {
+                val visible = representativeVisibleCount(animal.totalCount, maxVisible = 3)
+                repeat(visible) { i ->
+                    val scale = (1.0f + i * 0.16f) * levelScale
+                    val progress = (mantaLoop + 0.20f + i * 0.28f) % 1f
+                    val x = offscreenHorizontalPassX(progress, sceneWidth, 132f * scale, 56f, true)
+                    val y = sceneHeight * (0.32f + i * 0.18f) + sin((drift * 6.28f + i).toDouble()).toFloat() * 18f
+                    add(Offset(x, y), scale, drift + i * 0.2f, i, "manta")
+                }
+            }
+            ShellContentCatalog.FOCUS_WHALE -> {
+                val visible = representativeVisibleCount(animal.totalCount, maxVisible = 2)
+                repeat(visible) { i ->
+                    val scale = (1.28f + i * 0.12f) * levelScale
+                    val progress = (whaleLoop + 0.22f + i * 0.48f) % 1f
+                    val x = offscreenHorizontalPassX(progress, sceneWidth, 176f * scale, 72f, false)
+                    val y = sceneHeight * (0.42f + i * 0.16f) + sin((drift * 6.28f + i).toDouble()).toFloat() * 10f
+                    add(Offset(x, y), scale, drift + i, i, "base_whale")
+                }
+            }
+            ShellContentCatalog.FOCUS_OCTOPUS -> {
+                val pulse = 1f + sin((drift * 6.28f).toDouble()).toFloat() * 0.05f
+                add(Offset(sceneWidth * 0.70f, sceneHeight * 0.73f), pulse * levelScale, drift, 0, "octopus")
+            }
+            else -> {
+                val visible = representativeVisibleCount(animal.totalCount, maxVisible = 5)
+                repeat(visible) { i ->
+                    val scale = (0.85f + (i % 3) * 0.10f) * levelScale
+                    val isBottom = definition.sceneBehavior == com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior.BOTTOM_DWELL
+                    val progress = ((drift * (0.55f + i * 0.05f)) + i * 0.19f) % 1f
+                    val x = if (isBottom) sceneWidth * (0.20f + (i % 4) * 0.18f) else offscreenHorizontalPassX(progress, sceneWidth, 82f * scale, 36f, i % 2 == 0)
+                    val y = if (isBottom) sceneHeight * 0.68f + (i % 2) * 18f else sceneHeight * (0.26f + ((i * 17) % 44) / 100f)
+                    add(Offset(x, y), scale, drift + i, i)
+                }
+            }
         }
     }
+    return placements
 }
 
+private fun offscreenHorizontalPassX(
+    progress: Float,
+    screenWidth: Float,
+    animalWidth: Float,
+    margin: Float,
+    leftToRight: Boolean
+): Float {
+    val travel = screenWidth + animalWidth + margin * 2f
+    val x = -animalWidth / 2f - margin + travel * progress
+    return if (leftToRight) x else screenWidth - x
+}
 
-private fun DrawScope.drawRenderFamilyCreatures(
-    animal: TheBlueAnimalGroupUiModel,
-    scheme: androidx.compose.material3.ColorScheme,
-    drift: Float,
-    mantaLoop: Float,
-    whaleLoop: Float,
-    levelScale: Float
+private fun DrawScope.drawRenderedCreature(
+    placement: RenderedCreaturePlacement,
+    scheme: androidx.compose.material3.ColorScheme
 ) {
-    val definition = CreatureCatalog.get(animal.findId) ?: return
-    val visible = representativeVisibleCount(animal.totalCount, maxVisible = 5)
-    repeat(visible) { i ->
-        val scale = (0.85f + (i % 3) * 0.10f) * levelScale
-        val floorY = size.height * 0.68f
-        val midY = size.height * (0.26f + ((i * 17) % 44) / 100f)
-        val progress = ((drift * (0.55f + i * 0.05f)) + i * 0.19f) % 1f
-        val x = if (definition.sceneBehavior == com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior.BOTTOM_DWELL) {
-            size.width * (0.20f + (i % 4) * 0.18f)
-        } else {
-            offscreenHorizontalPassX(progress, size.width, 82f, 36f, i % 2 == 0)
-        }
-        val y = if (definition.sceneBehavior == com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior.BOTTOM_DWELL) floorY + (i % 2) * 18f else midY
-        when {
-            definition.creatureId.contains("starfish") -> drawStarfishScene(Offset(x, y), scale * 0.95f, scheme)
-            definition.creatureId.contains("urchin") -> drawUrchinScene(Offset(x, y), scale * 0.86f, scheme)
-            definition.creatureId.contains("octopus") -> drawOctopus(Offset(size.width * 0.62f, size.height * 0.72f), scale, false, scheme)
-            definition.renderFamily.key == "ray" -> drawManta(Offset(x, y), scale * 0.72f, drift + i, false, scheme)
-            definition.renderFamily.key == "whale" -> drawWhale(Offset(x, y), scale * 0.58f, drift + i, false, scheme)
-            else -> drawSpeciesSwimmer(Offset(x, y), scale, drift + i, scheme, definition.creatureId, definition.renderFamily.key)
-        }
+    val id = placement.rendererKey.lowercase()
+    when {
+        id == "minnow" -> drawMinnow(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme)
+        id == "seahorse" -> drawSeahorse(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme)
+        id == "manta" -> drawManta(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme)
+        id == "base_whale" -> drawWhaleProfile(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme, "base_whale")
+        id == "octopus" -> drawOctopus(placement.center, placement.scale, placement.glowing, scheme)
+        id.contains("starfish") -> drawStarfishScene(placement.center, placement.scale * 0.95f, scheme)
+        id.contains("urchin") -> drawUrchinScene(placement.center, placement.scale * 0.86f, scheme)
+        id.contains("octopus") -> drawOctopus(placement.center, placement.scale, placement.glowing, scheme)
+        id.contains("stingray") -> drawStingrayScene(placement.center, placement.scale * 0.70f, placement.driftSeed, scheme)
+        id.contains("manta") -> drawManta(placement.center, placement.scale * 0.72f, placement.driftSeed, placement.glowing, scheme)
+        id.contains("whale") -> drawWhaleProfile(placement.center, placement.scale * 0.65f, placement.driftSeed, placement.glowing, scheme, id)
+        else -> drawSpeciesSwimmer(placement.center, placement.scale, placement.driftSeed, scheme, id, placement.definition.renderFamily.key)
     }
 }
 
-
-private fun DrawScope.drawStarfishScene(origin: Offset, scale: Float, scheme: androidx.compose.material3.ColorScheme) {
-    val color = scheme.secondary.copy(alpha = 0.74f)
-    val path = Path()
-    repeat(10) { i ->
-        val radius = if (i % 2 == 0) 18f * scale else 7.5f * scale
-        val angle = (-90 + i * 36) * Math.PI / 180.0
-        val x = origin.x + kotlin.math.cos(angle).toFloat() * radius
-        val y = origin.y + kotlin.math.sin(angle).toFloat() * radius
-        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-    }
-    path.close()
-    drawCircle(scheme.primary.copy(alpha = 0.10f), 24f * scale, origin)
-    drawPath(path, color)
-    drawCircle(scheme.surface.copy(alpha = 0.45f), 2.6f * scale, origin)
-}
-
-private fun DrawScope.drawUrchinScene(origin: Offset, scale: Float, scheme: androidx.compose.material3.ColorScheme) {
-    val color = scheme.primary.copy(alpha = 0.58f)
-    repeat(18) { i ->
-        val angle = i * 6.28318f / 18f
-        drawLine(color, origin, Offset(origin.x + kotlin.math.cos(angle) * 22f * scale, origin.y + kotlin.math.sin(angle) * 22f * scale), strokeWidth = 1.7f * scale)
-    }
-    drawCircle(scheme.secondary.copy(alpha = 0.48f), 10f * scale, origin)
-}
 
 private fun DrawScope.drawSpeciesSwimmer(origin: Offset, scale: Float, drift: Float, scheme: androidx.compose.material3.ColorScheme, creatureId: String, familyKey: String) {
     val bob = sin((drift * 6.28f).toDouble()).toFloat() * 5f
@@ -3750,128 +3836,175 @@ private fun DrawScope.drawSpeciesSwimmer(origin: Offset, scale: Float, drift: Fl
         "parrotfish" in id -> fish(Color(0xFF13A999).copy(alpha=0.70f), Color(0xFFFF8F3D).copy(alpha=0.64f), wMul=1.18f, hMul=1.12f, stripes=2, beak=true)
         "lionfish" in id -> { fish(Color(0xFFB45A3C).copy(alpha=0.68f), Color(0xFFF3D6A2).copy(alpha=0.60f), hMul=1.2f, stripes=4); repeat(6){n->drawLine(scheme.secondary.copy(alpha=0.40f), Offset(origin.x-10f*scale+n*5f*scale, origin.y-7f*scale+bob), Offset(origin.x-22f*scale+n*8f*scale, origin.y-30f*scale+bob), strokeWidth=1.5f*scale)} }
         "pufferfish" in id -> { drawCircle(scheme.primary.copy(alpha=0.58f), 17f*scale, Offset(origin.x,origin.y+bob)); repeat(10){n->val a=n*6.28318f/10f; drawLine(scheme.secondary.copy(alpha=0.60f), Offset(origin.x,origin.y+bob), Offset(origin.x+kotlin.math.cos(a)*25f*scale, origin.y+bob+kotlin.math.sin(a)*25f*scale), strokeWidth=1.2f*scale)} }
-        "jellyfish" in id -> drawGenericFish(origin, scale, drift, scheme, "jellyfish")
+        "jellyfish" in id -> drawJellyfishScene(origin, scale, bob, scheme)
         "seahorse" in id -> drawSeahorse(origin, scale, bob, false, scheme)
-        "turtle" in id -> {
-            drawOval(scheme.primary.copy(alpha=0.52f), Offset(origin.x-22f*scale, origin.y-12f*scale+bob), Size(44f*scale, 28f*scale))
-            drawCircle(scheme.secondary.copy(alpha=0.42f), 7f*scale, Offset(origin.x+26f*scale, origin.y-3f*scale+bob))
-            listOf(-1f to -1f, -1f to 1f, 1f to -1f, 1f to 1f).forEach { (sx, sy) ->
-                drawOval(scheme.secondary.copy(alpha=0.34f), Offset(origin.x + sx*22f*scale, origin.y + sy*13f*scale + bob), Size(12f*scale, 7f*scale))
-            }
-        }
-        "otter" in id || "seal" in id || "sea_lion" in id || "penguin" in id -> { fish(scheme.onSurface.copy(alpha=0.42f), scheme.secondary.copy(alpha=0.34f), wMul=1.25f, hMul=0.88f); drawOval(scheme.secondary.copy(alpha=0.30f), Offset(origin.x-8f*scale, origin.y+8f*scale+bob), Size(18f*scale,7f*scale)) }
-        "dolphin" in id -> { drawArc(scheme.primary.copy(alpha=0.60f),195f,205f,false,Offset(origin.x-30f*scale,origin.y-20f*scale+bob),Size(60f*scale,40f*scale),style=Stroke(width=8f*scale)); drawPath(Path().apply{moveTo(origin.x+24f*scale,origin.y-4f*scale+bob);lineTo(origin.x+42f*scale,origin.y-15f*scale+bob);lineTo(origin.x+34f*scale,origin.y+bob);lineTo(origin.x+42f*scale,origin.y+14f*scale+bob);close()}, scheme.primary.copy(alpha=0.60f)) }
+        "turtle" in id -> drawTurtleScene(origin, scale, bob, scheme)
+        "sea_otter" in id || "otter" in id -> drawSeaOtterScene(origin, scale, bob, scheme)
+        "sea_lion" in id -> drawSeaLionScene(origin, scale, bob, scheme)
+        "penguin" in id -> drawPenguinScene(origin, scale, bob, scheme)
+        "seal" in id -> drawSealScene(origin, scale, bob, scheme)
+        "dolphin" in id -> drawDolphinScene(origin, scale, bob, scheme)
         "orca" in id -> fish(Color(0xFF263238).copy(alpha=0.62f), scheme.surface.copy(alpha=0.50f), wMul=1.45f, hMul=1.05f)
         "anglerfish" in id -> { fish(scheme.onSurface.copy(alpha=0.50f), scheme.secondary.copy(alpha=0.55f), wMul=1.15f, hMul=1.20f); drawLine(scheme.secondary.copy(alpha=0.65f), Offset(origin.x+10f*scale,origin.y-9f*scale+bob), Offset(origin.x+24f*scale,origin.y-30f*scale+bob), strokeWidth=1.7f*scale); drawCircle(scheme.secondary.copy(alpha=0.85f), 3f*scale, Offset(origin.x+25f*scale,origin.y-31f*scale+bob)) }
         "megalodon" in id -> fish(scheme.onSurface.copy(alpha=0.52f), scheme.secondary.copy(alpha=0.34f), wMul=2.0f, hMul=1.20f)
-        "shark" in id || "great_white" in id -> fish(scheme.onSurface.copy(alpha=0.46f), scheme.secondary.copy(alpha=0.30f), wMul=1.55f, hMul=0.98f)
-        "whale" in id -> drawWhale(origin, scale*0.65f, drift, false, scheme)
-        "squid" in id || "kraken" in id -> drawOctopus(origin, scale * if ("kraken" in id) 1.45f else 1.05f, false, scheme)
-        "leviathan" in id -> { drawArc(scheme.primary.copy(alpha=0.48f), 185f, 235f, false, Offset(origin.x-55f*scale, origin.y-24f*scale+bob), Size(110f*scale, 50f*scale), style=Stroke(width=8f*scale)); drawCircle(scheme.secondary.copy(alpha=0.46f), 10f*scale, Offset(origin.x+46f*scale, origin.y-6f*scale+bob)) }
-        "eel" in id || "snake" in id -> drawGenericFish(origin, scale, drift, scheme, "eel")
+        "great_white" in id || "shark" in id -> fish(scheme.onSurface.copy(alpha=0.46f), scheme.secondary.copy(alpha=0.30f), wMul=1.55f, hMul=0.98f)
+        "whale" in id -> drawWhaleProfile(origin, scale * 0.65f, drift, false, scheme, id)
+        "kraken" in id -> drawKrakenScene(origin, scale, bob, scheme)
+        "giant_squid" in id -> drawSquidScene(origin, scale * 1.30f, bob, scheme, giant = true)
+        "squid" in id -> drawSquidScene(origin, scale, bob, scheme, giant = false)
+        "leviathan" in id -> drawLeviathanScene(origin, scale, bob, scheme)
+        "moray_eel" in id || "eel" in id -> drawMorayEelScene(origin, scale, bob, scheme)
+        "sea_snake" in id || "snake" in id -> drawSeaSnakeScene(origin, scale, bob, scheme)
         "sunfish" in id -> fish(scheme.primary.copy(alpha=0.56f), scheme.secondary.copy(alpha=0.36f), wMul=0.95f, hMul=1.8f)
         "swordfish" in id -> { fish(scheme.primary.copy(alpha=0.58f), scheme.secondary.copy(alpha=0.40f), wMul=1.65f, hMul=0.75f); drawLine(scheme.secondary.copy(alpha=0.55f), Offset(origin.x+24f*scale,origin.y+bob), Offset(origin.x+58f*scale,origin.y-4f*scale+bob), strokeWidth=1.7f*scale) }
         "flying_fish" in id -> { fish(scheme.primary.copy(alpha=0.58f), scheme.secondary.copy(alpha=0.40f), wMul=1.25f, hMul=0.75f); drawPath(Path().apply{moveTo(origin.x-4f*scale,origin.y-6f*scale+bob);lineTo(origin.x-28f*scale,origin.y-34f*scale+bob);lineTo(origin.x+18f*scale,origin.y-8f*scale+bob);close()}, scheme.secondary.copy(alpha=0.30f)) }
         "barracuda" in id -> fish(scheme.onSurface.copy(alpha=0.42f), scheme.secondary.copy(alpha=0.32f), wMul=1.75f, hMul=0.70f)
-        else -> fish(scheme.primary.copy(alpha=0.58f), scheme.secondary.copy(alpha=0.36f), wMul=1f, hMul=1f)
+        else -> drawMissingCreatureRenderer(origin, scale, scheme)
     }
 }
 
-private fun DrawScope.drawGenericFish(origin: Offset, scale: Float, drift: Float, scheme: androidx.compose.material3.ColorScheme, familyKey: String) {
-    val ink = when (familyKey) {
-        "jellyfish", "giant_tentacle", "legendary" -> scheme.secondary.copy(alpha = 0.66f)
-        "shark", "orca", "anglerfish" -> scheme.onSurface.copy(alpha = 0.52f)
-        else -> scheme.primary.copy(alpha = 0.60f)
-    }
+private fun DrawScope.drawMissingCreatureRenderer(origin: Offset, scale: Float, scheme: androidx.compose.material3.ColorScheme) {
+    drawCircle(Color.Red.copy(alpha = 0.55f), 18f * scale, origin)
+    drawLine(scheme.surface, Offset(origin.x - 10f * scale, origin.y - 10f * scale), Offset(origin.x + 10f * scale, origin.y + 10f * scale), strokeWidth = 3f * scale)
+    drawLine(scheme.surface, Offset(origin.x + 10f * scale, origin.y - 10f * scale), Offset(origin.x - 10f * scale, origin.y + 10f * scale), strokeWidth = 3f * scale)
+}
+
+private fun DrawScope.drawJellyfishScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val ink = scheme.secondary.copy(alpha = 0.66f)
     val w = 34f * scale
     val h = 18f * scale
-    val bob = sin((drift * 6.28f).toDouble()).toFloat() * 5f
-    if (familyKey == "jellyfish") {
-        drawCircle(ink, w * 0.42f, Offset(origin.x, origin.y + bob))
-        repeat(4) { t -> drawLine(ink, Offset(origin.x - w * 0.30f + t*w*0.20f, origin.y + bob + h*0.30f), Offset(origin.x - w * 0.38f + t*w*0.22f, origin.y + bob + h*1.4f), strokeWidth = 2.4f * scale) }
-    } else {
-        drawOval(ink, Offset(origin.x - w * 0.50f, origin.y - h * 0.50f + bob), Size(w, h))
-        drawPath(Path().apply { moveTo(origin.x - w*0.50f, origin.y + bob); lineTo(origin.x - w*0.82f, origin.y - h*0.50f + bob); lineTo(origin.x - w*0.82f, origin.y + h*0.50f + bob); close() }, ink)
-        drawPath(Path().apply { moveTo(origin.x, origin.y - h*0.48f + bob); lineTo(origin.x + w*0.12f, origin.y - h*1.05f + bob); lineTo(origin.x + w*0.22f, origin.y - h*0.35f + bob); close() }, scheme.secondary.copy(alpha = 0.38f))
+    drawCircle(ink, w * 0.42f, Offset(origin.x, origin.y + bob))
+    repeat(4) { t -> drawLine(ink, Offset(origin.x - w * 0.30f + t*w*0.20f, origin.y + bob + h*0.30f), Offset(origin.x - w * 0.38f + t*w*0.22f, origin.y + bob + h*1.4f), strokeWidth = 2.4f * scale) }
+}
+
+private fun DrawScope.drawTurtleScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    drawOval(scheme.primary.copy(alpha=0.52f), Offset(origin.x-22f*scale, origin.y-12f*scale+bob), Size(44f*scale, 28f*scale))
+    drawCircle(scheme.secondary.copy(alpha=0.42f), 7f*scale, Offset(origin.x+26f*scale, origin.y-3f*scale+bob))
+    listOf(-1f to -1f, -1f to 1f, 1f to -1f, 1f to 1f).forEach { (sx, sy) ->
+        drawOval(scheme.secondary.copy(alpha=0.34f), Offset(origin.x + sx*22f*scale, origin.y + sy*13f*scale + bob), Size(12f*scale, 7f*scale))
     }
 }
 
-private fun DrawScope.drawMinnowSchool(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float, levelScale: Float = 1f) {
-    val visible = representativeVisibleCount(count, maxVisible = 12)
-    repeat(visible) { i ->
-        val group = i / 4
-        val progress = (drift * (1.05f + group * 0.12f) + i * 0.075f) % 1f
-        val wiggle = sin((drift * 18f + i).toDouble()).toFloat()
-        val x = progress * (size.width + 140f) - 70f
-        val y = size.height * (0.34f + group * 0.12f) + (i % 4) * 20f + wiggle * 8f
-        drawMinnow(Offset(x, y), (1f + (i % 3) * 0.08f) * levelScale, wiggle, i < accentCount.coerceAtMost(visible), scheme)
+private fun DrawScope.drawStingrayScene(origin: Offset, scale: Float, drift: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val bob = kotlin.math.sin(drift * 6.28318f) * 4f * scale
+    val c = Offset(origin.x, origin.y + bob)
+    val wing = Path().apply {
+        moveTo(c.x, c.y - 16f * scale)
+        cubicTo(c.x - 34f * scale, c.y - 10f * scale, c.x - 46f * scale, c.y + 10f * scale, c.x - 42f * scale, c.y + 20f * scale)
+        cubicTo(c.x - 17f * scale, c.y + 13f * scale, c.x - 8f * scale, c.y + 14f * scale, c.x, c.y + 27f * scale)
+        cubicTo(c.x + 8f * scale, c.y + 14f * scale, c.x + 17f * scale, c.y + 13f * scale, c.x + 42f * scale, c.y + 20f * scale)
+        cubicTo(c.x + 46f * scale, c.y + 10f * scale, c.x + 34f * scale, c.y - 10f * scale, c.x, c.y - 16f * scale)
+        close()
+    }
+    drawPath(wing, scheme.primary.copy(alpha = 0.46f))
+    drawLine(scheme.secondary.copy(alpha = 0.48f), Offset(c.x, c.y + 20f * scale), Offset(c.x, c.y + 58f * scale), strokeWidth = 2f * scale)
+    drawCircle(scheme.surface.copy(alpha = 0.44f), 2.2f * scale, Offset(c.x - 7f * scale, c.y - 2f * scale))
+    drawCircle(scheme.surface.copy(alpha = 0.44f), 2.2f * scale, Offset(c.x + 7f * scale, c.y - 2f * scale))
+}
+
+private fun DrawScope.drawSeaOtterScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val body = scheme.onSurface.copy(alpha = 0.38f)
+    drawOval(body, Offset(origin.x - 28f * scale, origin.y - 3f * scale + bob), Size(54f * scale, 15f * scale))
+    drawCircle(body.copy(alpha = 0.78f), 10f * scale, Offset(origin.x + 23f * scale, origin.y - 5f * scale + bob))
+    drawCircle(scheme.secondary.copy(alpha = 0.38f), 3.2f * scale, Offset(origin.x - 3f * scale, origin.y + bob))
+    drawCircle(scheme.secondary.copy(alpha = 0.38f), 3.2f * scale, Offset(origin.x + 7f * scale, origin.y - 1f * scale + bob))
+    drawCircle(scheme.surface.copy(alpha = 0.55f), 1.8f * scale, Offset(origin.x + 27f * scale, origin.y - 8f * scale + bob))
+}
+
+private fun DrawScope.drawSealScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val body = scheme.primary.copy(alpha = 0.50f)
+    drawOval(body, Offset(origin.x - 32f * scale, origin.y - 10f * scale + bob), Size(62f * scale, 21f * scale))
+    drawCircle(body.copy(alpha = 0.86f), 9f * scale, Offset(origin.x + 30f * scale, origin.y - 2f * scale + bob))
+    drawPath(Path().apply { moveTo(origin.x - 4f * scale, origin.y + 7f * scale + bob); lineTo(origin.x - 22f * scale, origin.y + 24f * scale + bob); lineTo(origin.x + 6f * scale, origin.y + 10f * scale + bob); close() }, scheme.secondary.copy(alpha = 0.35f))
+    drawCircle(scheme.surface.copy(alpha = 0.55f), 1.8f * scale, Offset(origin.x + 33f * scale, origin.y - 5f * scale + bob))
+}
+
+private fun DrawScope.drawSeaLionScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val body = scheme.primary.copy(alpha = 0.56f)
+    drawOval(body, Offset(origin.x - 35f * scale, origin.y - 9f * scale + bob), Size(58f * scale, 23f * scale))
+    drawOval(body.copy(alpha = 0.90f), Offset(origin.x + 12f * scale, origin.y - 18f * scale + bob), Size(24f * scale, 21f * scale))
+    drawPath(Path().apply { moveTo(origin.x - 7f * scale, origin.y + 8f * scale + bob); lineTo(origin.x - 32f * scale, origin.y + 28f * scale + bob); lineTo(origin.x + 5f * scale, origin.y + 13f * scale + bob); close() }, scheme.secondary.copy(alpha = 0.42f))
+    drawPath(Path().apply { moveTo(origin.x + 4f * scale, origin.y + 8f * scale + bob); lineTo(origin.x + 31f * scale, origin.y + 25f * scale + bob); lineTo(origin.x + 15f * scale, origin.y + 5f * scale + bob); close() }, scheme.secondary.copy(alpha = 0.32f))
+    drawCircle(scheme.surface.copy(alpha = 0.55f), 1.8f * scale, Offset(origin.x + 30f * scale, origin.y - 10f * scale + bob))
+}
+
+private fun DrawScope.drawPenguinScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val black = Color(0xFF263238).copy(alpha = 0.72f)
+    drawOval(black, Offset(origin.x - 13f * scale, origin.y - 28f * scale + bob), Size(26f * scale, 52f * scale))
+    drawOval(scheme.surface.copy(alpha = 0.68f), Offset(origin.x - 7f * scale, origin.y - 14f * scale + bob), Size(14f * scale, 30f * scale))
+    drawPath(Path().apply { moveTo(origin.x - 12f * scale, origin.y - 5f * scale + bob); lineTo(origin.x - 32f * scale, origin.y + 8f * scale + bob); lineTo(origin.x - 11f * scale, origin.y + 8f * scale + bob); close() }, scheme.primary.copy(alpha = 0.35f))
+    drawPath(Path().apply { moveTo(origin.x + 12f * scale, origin.y - 5f * scale + bob); lineTo(origin.x + 32f * scale, origin.y + 8f * scale + bob); lineTo(origin.x + 11f * scale, origin.y + 8f * scale + bob); close() }, scheme.primary.copy(alpha = 0.35f))
+    drawPath(Path().apply { moveTo(origin.x + 8f * scale, origin.y - 22f * scale + bob); lineTo(origin.x + 22f * scale, origin.y - 18f * scale + bob); lineTo(origin.x + 8f * scale, origin.y - 14f * scale + bob); close() }, scheme.secondary.copy(alpha = 0.72f))
+}
+
+private fun DrawScope.drawDolphinScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val body = scheme.primary.copy(alpha = 0.60f)
+    drawArc(body, 205f, 190f, false, Offset(origin.x - 35f * scale, origin.y - 22f * scale + bob), Size(70f * scale, 44f * scale), style = Stroke(width = 8f * scale))
+    drawPath(Path().apply { moveTo(origin.x + 23f * scale, origin.y - 7f * scale + bob); lineTo(origin.x + 50f * scale, origin.y - 12f * scale + bob); lineTo(origin.x + 25f * scale, origin.y + 3f * scale + bob); close() }, body)
+    drawPath(Path().apply { moveTo(origin.x - 27f * scale, origin.y + 2f * scale + bob); lineTo(origin.x - 48f * scale, origin.y - 16f * scale + bob); lineTo(origin.x - 36f * scale, origin.y + 2f * scale + bob); lineTo(origin.x - 49f * scale, origin.y + 20f * scale + bob); close() }, body.copy(alpha = 0.86f))
+    drawPath(Path().apply { moveTo(origin.x - 2f * scale, origin.y - 14f * scale + bob); lineTo(origin.x + 7f * scale, origin.y - 34f * scale + bob); lineTo(origin.x + 12f * scale, origin.y - 12f * scale + bob); close() }, scheme.secondary.copy(alpha = 0.48f))
+    drawCircle(scheme.onSurface.copy(alpha = 0.55f), 1.8f * scale, Offset(origin.x + 19f * scale, origin.y - 10f * scale + bob))
+}
+
+private fun DrawScope.drawMorayEelScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val body = scheme.primary.copy(alpha = 0.55f)
+    drawArc(body, 165f, 250f, false, Offset(origin.x - 38f * scale, origin.y - 20f * scale + bob), Size(74f * scale, 50f * scale), style = Stroke(width = 9f * scale))
+    drawOval(body.copy(alpha = 0.88f), Offset(origin.x + 20f * scale, origin.y - 12f * scale + bob), Size(22f * scale, 16f * scale))
+    drawLine(scheme.surface.copy(alpha = 0.55f), Offset(origin.x + 29f * scale, origin.y - 2f * scale + bob), Offset(origin.x + 41f * scale, origin.y + 1f * scale + bob), strokeWidth = 1.3f * scale)
+    drawCircle(scheme.surface.copy(alpha = 0.62f), 1.7f * scale, Offset(origin.x + 30f * scale, origin.y - 7f * scale + bob))
+    drawOval(scheme.onSurface.copy(alpha = 0.12f), Offset(origin.x - 42f * scale, origin.y + 14f * scale + bob), Size(34f * scale, 14f * scale))
+}
+
+private fun DrawScope.drawSeaSnakeScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val body = scheme.secondary.copy(alpha = 0.58f)
+    val path = Path().apply {
+        moveTo(origin.x - 42f * scale, origin.y + 8f * scale + bob)
+        cubicTo(origin.x - 22f * scale, origin.y - 24f * scale + bob, origin.x - 6f * scale, origin.y + 30f * scale + bob, origin.x + 12f * scale, origin.y - 4f * scale + bob)
+        cubicTo(origin.x + 25f * scale, origin.y - 26f * scale + bob, origin.x + 38f * scale, origin.y - 4f * scale + bob, origin.x + 48f * scale, origin.y - 12f * scale + bob)
+    }
+    drawPath(path, body, style = Stroke(width = 5f * scale))
+    repeat(6) { i ->
+        val x = origin.x - 28f * scale + i * 13f * scale
+        drawLine(scheme.surface.copy(alpha = 0.45f), Offset(x, origin.y + bob - 7f * scale), Offset(x + 5f * scale, origin.y + bob + 4f * scale), strokeWidth = 1.3f * scale)
+    }
+    drawCircle(body.copy(alpha = 0.86f), 5.5f * scale, Offset(origin.x + 48f * scale, origin.y - 12f * scale + bob))
+}
+
+private fun DrawScope.drawSquidScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme, giant: Boolean) {
+    val color = if (giant) scheme.secondary.copy(alpha = 0.58f) else scheme.primary.copy(alpha = 0.48f)
+    val bodyHeight = if (giant) 58f else 42f
+    drawPath(Path().apply {
+        moveTo(origin.x, origin.y - bodyHeight * 0.60f * scale + bob)
+        cubicTo(origin.x - 18f * scale, origin.y - 22f * scale + bob, origin.x - 16f * scale, origin.y + 8f * scale + bob, origin.x, origin.y + 18f * scale + bob)
+        cubicTo(origin.x + 16f * scale, origin.y + 8f * scale + bob, origin.x + 18f * scale, origin.y - 22f * scale + bob, origin.x, origin.y - bodyHeight * 0.60f * scale + bob)
+        close()
+    }, color)
+    repeat(if (giant) 8 else 5) { i ->
+        val startX = origin.x - (if (giant) 16f else 11f) * scale + i * (if (giant) 4.8f else 5.5f) * scale
+        val endX = origin.x - 28f * scale + i * (if (giant) 8f else 11f) * scale
+        drawLine(color.copy(alpha = 0.85f), Offset(startX, origin.y + 14f * scale + bob), Offset(endX, origin.y + (if (giant) 54f else 42f) * scale + bob), strokeWidth = if (giant) 3.2f * scale else 2.4f * scale)
     }
 }
 
-private fun DrawScope.drawSeahorseColony(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float, levelScale: Float = 1f) {
-    val visible = representativeVisibleCount(count, maxVisible = 6)
-    repeat(visible) { i ->
-        val bob = sin((drift * 6.28f + i * 0.9f).toDouble()).toFloat()
-        val x = size.width * (0.22f + (i % 3) * 0.16f)
-        val y = size.height * (0.46f + (i / 3) * 0.16f) + bob * 14f
-        drawSeahorse(Offset(x, y), (1f + (i % 2) * 0.08f) * levelScale, bob, i < accentCount.coerceAtMost(visible), scheme)
+private fun DrawScope.drawKrakenScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val color = scheme.secondary.copy(alpha = 0.66f)
+    drawCircle(color.copy(alpha = 0.16f), 64f * scale, origin)
+    drawOval(color, Offset(origin.x - 26f * scale, origin.y - 34f * scale + bob), Size(52f * scale, 46f * scale))
+    repeat(10) { i ->
+        val angle = -2.8f + i * 0.62f
+        val start = Offset(origin.x + kotlin.math.cos(angle) * 12f * scale, origin.y + 6f * scale + bob)
+        val end = Offset(origin.x + kotlin.math.cos(angle) * (42f + (i % 3) * 8f) * scale, origin.y + 52f * scale + kotlin.math.sin(angle) * 12f * scale + bob)
+        drawLine(color.copy(alpha = 0.78f), start, end, strokeWidth = 4f * scale)
     }
+    drawCircle(scheme.onSurface.copy(alpha = 0.60f), 2.4f * scale, Offset(origin.x - 8f * scale, origin.y - 14f * scale + bob))
+    drawCircle(scheme.onSurface.copy(alpha = 0.60f), 2.4f * scale, Offset(origin.x + 8f * scale, origin.y - 14f * scale + bob))
 }
 
-private fun DrawScope.drawMantaGlides(
-    count: Int,
-    accentCount: Int,
-    scheme: androidx.compose.material3.ColorScheme,
-    drift: Float,
-    mantaLoop: Float,
-    levelScale: Float = 1f
-) {
-    val visible = representativeVisibleCount(count, maxVisible = 3)
-    repeat(visible) { i ->
-        val scale = (1.0f + i * 0.16f) * levelScale
-        val mantaWidth = 132f * scale
-        val progress = (mantaLoop + 0.20f + i * 0.28f) % 1f
-        val x = offscreenHorizontalPassX(
-            progress = progress,
-            screenWidth = size.width,
-            animalWidth = mantaWidth,
-            margin = 56f,
-            leftToRight = true
-        )
-        val y = size.height * (0.32f + i * 0.18f) + sin((drift * 6.28f + i).toDouble()).toFloat() * 18f
-        drawManta(Offset(x, y), scale, drift + i * 0.2f, i < accentCount.coerceAtMost(visible), scheme)
-    }
-}
-
-private fun DrawScope.drawWhalePasses(
-    count: Int,
-    accentCount: Int,
-    scheme: androidx.compose.material3.ColorScheme,
-    drift: Float,
-    whaleLoop: Float,
-    levelScale: Float = 1f
-) {
-    val visible = representativeVisibleCount(count, maxVisible = 2)
-    repeat(visible) { i ->
-        val scale = (1.28f + i * 0.12f) * levelScale
-        val whaleWidth = 176f * scale
-        val progress = (whaleLoop + 0.22f + i * 0.48f) % 1f
-        val x = offscreenHorizontalPassX(
-            progress = progress,
-            screenWidth = size.width,
-            animalWidth = whaleWidth,
-            margin = 72f,
-            leftToRight = false
-        )
-        val y = size.height * (0.42f + i * 0.16f) + sin((drift * 6.28f + i).toDouble()).toFloat() * 10f
-        drawWhale(Offset(x, y), scale, drift + i, accentCount > 0, scheme)
-    }
-}
-
-private fun DrawScope.drawHiddenOctopus(accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float) {
-    val pulse = 1f + sin((drift * 6.28f).toDouble()).toFloat() * 0.05f
-    val origin = Offset(size.width * 0.70f, size.height * 0.73f)
-    drawOctopus(origin, pulse, accentCount > 0, scheme)
+private fun DrawScope.drawLeviathanScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val color = Color(0xFF203A5F).copy(alpha = 0.62f)
+    drawArc(color, 185f, 235f, false, Offset(origin.x-65f*scale, origin.y-28f*scale+bob), Size(130f*scale, 60f*scale), style=Stroke(width=9f*scale))
+    drawCircle(scheme.secondary.copy(alpha=0.46f), 12f*scale, Offset(origin.x+54f*scale, origin.y-7f*scale+bob))
+    drawPath(Path().apply { moveTo(origin.x - 16f * scale, origin.y - 20f * scale + bob); lineTo(origin.x + 2f * scale, origin.y - 44f * scale + bob); lineTo(origin.x + 10f * scale, origin.y - 16f * scale + bob); close() }, scheme.secondary.copy(alpha = 0.28f))
 }
 
 internal fun representativeVisibleCount(count: Int, maxVisible: Int): Int = when {
@@ -3986,6 +4119,38 @@ private fun DrawScope.drawManta(origin: Offset, scale: Float, drift: Float, glow
     if (glowing) {
         drawLine(accent, Offset(origin.x - 74f * scale, origin.y - 6f * scale + wingLift), Offset(origin.x - 18f * scale, origin.y + 22f * scale), strokeWidth = 2f * scale)
         drawLine(accent, Offset(origin.x + 74f * scale, origin.y - 6f * scale - wingLift), Offset(origin.x + 18f * scale, origin.y + 22f * scale), strokeWidth = 2f * scale)
+    }
+}
+
+
+private fun DrawScope.drawWhaleProfile(origin: Offset, scale: Float, drift: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme, profileKey: String) {
+    val key = profileKey.lowercase()
+    val bob = sin((drift * 6.28f).toDouble()).toFloat() * 5f * scale
+    when {
+        "blue_whale" in key -> {
+            val color = scheme.primary.copy(alpha = 0.34f)
+            drawOval(if (glowing) scheme.secondary.copy(alpha = 0.14f) else scheme.primary.copy(alpha = 0.08f), Offset(origin.x - 146f * scale, origin.y - 36f * scale + bob), Size(280f * scale, 70f * scale))
+            drawOval(color, Offset(origin.x - 136f * scale, origin.y - 22f * scale + bob), Size(248f * scale, 42f * scale))
+            drawOval(color.copy(alpha = 0.18f), Offset(origin.x - 70f * scale, origin.y + 1f * scale + bob), Size(116f * scale, 16f * scale))
+            drawPath(Path().apply { moveTo(origin.x + 102f * scale, origin.y + bob); lineTo(origin.x + 146f * scale, origin.y - 20f * scale + bob); lineTo(origin.x + 132f * scale, origin.y + bob); lineTo(origin.x + 148f * scale, origin.y + 20f * scale + bob); close() }, color.copy(alpha = 0.82f))
+            drawPath(Path().apply { moveTo(origin.x + 14f * scale, origin.y - 20f * scale + bob); lineTo(origin.x + 28f * scale, origin.y - 38f * scale + bob); lineTo(origin.x + 34f * scale, origin.y - 18f * scale + bob); close() }, scheme.secondary.copy(alpha = 0.22f))
+        }
+        "humpback" in key -> {
+            val color = scheme.onSurface.copy(alpha = 0.26f)
+            val rim = if (glowing) scheme.secondary.copy(alpha = 0.18f) else scheme.primary.copy(alpha = 0.09f)
+            val back = Path().apply {
+                moveTo(origin.x - 104f * scale, origin.y + 6f * scale + bob)
+                cubicTo(origin.x - 70f * scale, origin.y - 56f * scale + bob, origin.x + 36f * scale, origin.y - 42f * scale + bob, origin.x + 90f * scale, origin.y - 2f * scale + bob)
+                cubicTo(origin.x + 42f * scale, origin.y + 36f * scale + bob, origin.x - 56f * scale, origin.y + 42f * scale + bob, origin.x - 104f * scale, origin.y + 6f * scale + bob)
+                close()
+            }
+            drawPath(back, rim)
+            drawPath(back, color)
+            drawLine(scheme.secondary.copy(alpha = 0.32f), Offset(origin.x - 18f * scale, origin.y + 18f * scale + bob), Offset(origin.x - 80f * scale, origin.y + 76f * scale + bob), strokeWidth = 6f * scale)
+            drawPath(Path().apply { moveTo(origin.x + 82f * scale, origin.y + bob); lineTo(origin.x + 124f * scale, origin.y - 24f * scale + bob); lineTo(origin.x + 110f * scale, origin.y + bob); lineTo(origin.x + 126f * scale, origin.y + 24f * scale + bob); close() }, color.copy(alpha = 0.82f))
+            repeat(4) { i -> drawCircle(scheme.secondary.copy(alpha = 0.24f), 2f * scale, Offset(origin.x - 82f * scale + i * 10f * scale, origin.y - 6f * scale + bob)) }
+        }
+        else -> drawWhale(origin, scale, drift, glowing, scheme)
     }
 }
 
