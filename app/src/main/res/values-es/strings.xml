@@ -1011,12 +1011,13 @@
     <string name="shell_creature_highest_level">Nivel más alto: %1$d</string>
     <string name="shell_creature_flow_time_value_each">Valor de tiempo de Flujo cada uno: %1$s</string>
     <string name="shell_creature_release_value_each">Valor al liberar cada uno: %1$d Perlas</string>
+    <string name="shell_creature_pearl_value_each">Valor en Pearls de cada uno: %1$d Pearls</string>
     <string name="shell_creature_levels_heading">Niveles</string>
     <string name="shell_creature_no_active_to_grow">No hay criatura activa para crecer.</string>
     <string name="shell_creature_need_more_pearls_to_grow">Necesitas %1$d Perlas más para crecer.</string>
     <string name="shell_creature_release_for_pearls">Liberar por Pearls</string>
     <string name="shell_creature_release_confirm_title">¿Liberar %1$s por %2$d Perlas?</string>
-    <string name="shell_creature_release_confirm_body">Esto liberará una copia de la criatura y otorgará Perlas según su nivel.</string>
+    <string name="shell_creature_release_confirm_body">Esto liberará una copia de criatura y devolverá todo su valor en Pearls.</string>
     <string name="shell_creature_keep_swimming">Seguir nadando</string>
     <string name="shell_chest_item_status">Tipo: %1$s. Estado: %2$s.</string>
     <string name="shell_status_placed">En exhibición</string>
@@ -1513,6 +1514,7 @@
     <string name="the_blue_beyond_blue_chip">Beyond Blue %1$d</string>
     <string name="the_blue_created_by_flow_title">Creado por Flow</string>
     <string name="the_blue_created_by_flow_value">%1$s cada uno</string>
+    <string name="the_blue_pearl_value_title">Valor en Pearls</string>
     <string name="the_blue_release_return_title">Retorno al liberar</string>
     <string name="the_blue_growth_support_copy">Las Pearls ayudan a que esta criatura crezca más en The Blue.</string>
     <string name="beyond_blue_zone_encounters">Encuentros de %1$s</string>

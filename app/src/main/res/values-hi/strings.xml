@@ -1000,12 +1000,13 @@
     <string name="shell_creature_highest_level">सबसे ऊँचा लेवल: %1$d</string>
     <string name="shell_creature_flow_time_value_each">प्रति एक फ्लो समय मान: %1$s</string>
     <string name="shell_creature_release_value_each">प्रति एक रिलीज़ मान: %1$d मोती</string>
+    <string name="shell_creature_pearl_value_each">प्रत्येक का Pearls मूल्य: %1$d Pearls</string>
     <string name="shell_creature_levels_heading">लेवल</string>
     <string name="shell_creature_no_active_to_grow">बढ़ाने के लिए कोई सक्रिय जीव नहीं है।</string>
     <string name="shell_creature_need_more_pearls_to_grow">बढ़ाने के लिए %1$d और मोती चाहिए।</string>
     <string name="shell_creature_release_for_pearls">Pearls के लिए मुक्त करें</string>
     <string name="shell_creature_release_confirm_title">%2$d मोतियों के लिए %1$s को रिलीज़ करें?</string>
-    <string name="shell_creature_release_confirm_body">इससे जीव की एक कॉपी रिलीज़ होगी और उसके लेवल के आधार पर मोती मिलेंगे।</string>
+    <string name="shell_creature_release_confirm_body">यह एक जीव की प्रति को रिलीज़ करेगा और उसका पूरा Pearls मूल्य लौटाएगा।</string>
     <string name="shell_creature_keep_swimming">तैरते रहने दें</string>
     <string name="shell_chest_item_status">प्रकार: %1$s. स्थिति: %2$s.</string>
     <string name="shell_status_placed">प्रदर्शित</string>
@@ -1502,6 +1503,7 @@
     <string name="the_blue_beyond_blue_chip">Beyond Blue %1$d</string>
     <string name="the_blue_created_by_flow_title">Flow से बना</string>
     <string name="the_blue_created_by_flow_value">प्रत्येक %1$s</string>
+    <string name="the_blue_pearl_value_title">Pearls मूल्य</string>
     <string name="the_blue_release_return_title">रिलीज़ रिटर्न</string>
     <string name="the_blue_growth_support_copy">Pearls इस जीव को The Blue में और बड़ा होने में मदद करते हैं।</string>
     <string name="beyond_blue_zone_encounters">%1$s के एन्काउंटर</string>

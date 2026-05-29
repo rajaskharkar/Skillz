@@ -1565,7 +1565,6 @@ private fun ShellPearlMiniIcon(
     }
 }
 
-private enum class ShellAnimalIcon { MINNOW, SEAHORSE, MANTA, WHALE, OCTOPUS, JELLYFISH, TURTLE, SHARK, DOLPHIN, SQUID, STARFISH, URCHIN, EEL, FISH }
 
 @Composable
 private fun ShellObjectIcon(
@@ -1573,25 +1572,10 @@ private fun ShellObjectIcon(
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
-    val animalIcon = when {
-        "minnow" in iconKey -> ShellAnimalIcon.MINNOW
-        "seahorse" in iconKey -> ShellAnimalIcon.SEAHORSE
-        "manta" in iconKey -> ShellAnimalIcon.MANTA
-        "whale" in iconKey -> ShellAnimalIcon.WHALE
-        "octopus" in iconKey -> ShellAnimalIcon.OCTOPUS
-        "jellyfish" in iconKey -> ShellAnimalIcon.JELLYFISH
-        "turtle" in iconKey -> ShellAnimalIcon.TURTLE
-        "shark" in iconKey || "megalodon" in iconKey -> ShellAnimalIcon.SHARK
-        "dolphin" in iconKey || "orca" in iconKey -> ShellAnimalIcon.DOLPHIN
-        "squid" in iconKey || "kraken" in iconKey || "leviathan" in iconKey -> ShellAnimalIcon.SQUID
-        "starfish" in iconKey -> ShellAnimalIcon.STARFISH
-        "urchin" in iconKey -> ShellAnimalIcon.URCHIN
-        "eel" in iconKey || "snake" in iconKey -> ShellAnimalIcon.EEL
-        "creature_icon" in iconKey || "fish" in iconKey || "tang" in iconKey || "seal" in iconKey || "otter" in iconKey || "penguin" in iconKey -> ShellAnimalIcon.FISH
-        else -> null
-    }
+    val isCreature = iconKey.contains("creature", ignoreCase = true) ||
+        listOf("minnow", "seahorse", "manta", "whale", "octopus", "jellyfish", "turtle", "shark", "dolphin", "squid", "starfish", "urchin", "eel", "fish", "seal", "otter", "penguin", "orca", "kraken", "leviathan").any { iconKey.contains(it, ignoreCase = true) }
     val vector = when {
-        animalIcon != null -> null
+        isCreature -> null
         "kelp" in iconKey || "curtain" in iconKey -> Icons.Outlined.Grass
         "bubble" in iconKey || "current" in iconKey -> Icons.Outlined.Waves
         "coral" in iconKey || "perch" in iconKey -> Icons.Outlined.FilterVintage
@@ -1599,8 +1583,8 @@ private fun ShellObjectIcon(
     }
     Surface(shape = CircleShape, color = scheme.primary.copy(alpha = 0.16f), modifier = modifier) {
         Box(contentAlignment = Alignment.Center) {
-            if (animalIcon != null) {
-                ShellAnimalCanvasIcon(animalIcon, Modifier.fillMaxSize().padding(5.dp))
+            if (isCreature) {
+                ShellAnimalCanvasIcon(iconKey, Modifier.fillMaxSize().padding(5.dp))
             } else if (vector != null) {
                 Icon(imageVector = vector, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(18.dp))
             }
@@ -1610,112 +1594,80 @@ private fun ShellObjectIcon(
 
 @Composable
 private fun ShellAnimalCanvasIcon(
-    animalIcon: ShellAnimalIcon,
+    iconKey: String,
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
     Canvas(modifier) {
-        val w = size.width
-        val h = size.height
-        val ink = scheme.primary
-        val accent = scheme.primary.copy(alpha = 0.55f)
+        drawStaticCreatureIcon(iconKey.lowercase(), scheme)
+    }
+}
 
-        when (animalIcon) {
-            ShellAnimalIcon.MINNOW -> {
-                drawOval(ink, topLeft = Offset(w * 0.22f, h * 0.34f), size = Size(w * 0.44f, h * 0.30f))
-                drawPath(Path().apply {
-                    moveTo(w * 0.20f, h * 0.50f)
-                    lineTo(w * 0.02f, h * 0.34f)
-                    lineTo(w * 0.02f, h * 0.66f)
-                    close()
-                }, ink)
-                drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.58f, h * 0.44f))
-                drawOval(accent, topLeft = Offset(w * 0.66f, h * 0.24f), size = Size(w * 0.18f, h * 0.12f))
-                drawOval(accent, topLeft = Offset(w * 0.72f, h * 0.62f), size = Size(w * 0.20f, h * 0.12f))
-            }
-            ShellAnimalIcon.SEAHORSE -> {
-                drawCircle(ink, radius = w * 0.17f, center = Offset(w * 0.56f, h * 0.24f))
-                drawLine(ink, Offset(w * 0.64f, h * 0.25f), Offset(w * 0.86f, h * 0.20f), strokeWidth = w * 0.09f)
-                drawPath(Path().apply {
-                    moveTo(w * 0.54f, h * 0.36f)
-                    cubicTo(w * 0.30f, h * 0.44f, w * 0.38f, h * 0.78f, w * 0.58f, h * 0.70f)
-                    cubicTo(w * 0.78f, h * 0.62f, w * 0.68f, h * 0.48f, w * 0.54f, h * 0.56f)
-                }, ink, style = Stroke(width = w * 0.13f))
-                drawCircle(scheme.surface, radius = w * 0.032f, center = Offset(w * 0.61f, h * 0.20f))
-                drawLine(accent, Offset(w * 0.37f, h * 0.48f), Offset(w * 0.18f, h * 0.40f), strokeWidth = w * 0.08f)
-            }
-            ShellAnimalIcon.MANTA -> {
-                drawPath(Path().apply {
-                    moveTo(w * 0.50f, h * 0.22f)
-                    cubicTo(w * 0.20f, h * 0.30f, w * 0.08f, h * 0.58f, w * 0.02f, h * 0.74f)
-                    cubicTo(w * 0.28f, h * 0.66f, w * 0.38f, h * 0.62f, w * 0.50f, h * 0.78f)
-                    cubicTo(w * 0.62f, h * 0.62f, w * 0.72f, h * 0.66f, w * 0.98f, h * 0.74f)
-                    cubicTo(w * 0.92f, h * 0.58f, w * 0.80f, h * 0.30f, w * 0.50f, h * 0.22f)
-                    close()
-                }, ink)
-                drawLine(accent, Offset(w * 0.50f, h * 0.72f), Offset(w * 0.50f, h * 0.96f), strokeWidth = w * 0.05f)
-            }
-            ShellAnimalIcon.WHALE -> {
-                drawOval(ink, topLeft = Offset(w * 0.12f, h * 0.34f), size = Size(w * 0.68f, h * 0.34f))
-                drawPath(Path().apply {
-                    moveTo(w * 0.78f, h * 0.50f)
-                    lineTo(w * 0.98f, h * 0.30f)
-                    lineTo(w * 0.92f, h * 0.50f)
-                    lineTo(w * 0.98f, h * 0.70f)
-                    close()
-                }, ink)
-                drawCircle(scheme.surface, radius = w * 0.03f, center = Offset(w * 0.24f, h * 0.44f))
-                drawLine(accent, Offset(w * 0.36f, h * 0.34f), Offset(w * 0.44f, h * 0.18f), strokeWidth = w * 0.05f)
-                drawLine(accent, Offset(w * 0.44f, h * 0.18f), Offset(w * 0.54f, h * 0.34f), strokeWidth = w * 0.05f)
-            }
-            ShellAnimalIcon.OCTOPUS -> {
-                drawOval(ink, topLeft = Offset(w * 0.26f, h * 0.14f), size = Size(w * 0.48f, h * 0.42f))
-                listOf(0.20f, 0.36f, 0.52f, 0.68f).forEach { x ->
-                    drawLine(ink, Offset(w * (x + 0.06f), h * 0.52f), Offset(w * x, h * 0.86f), strokeWidth = w * 0.08f)
-                }
-                drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.42f, h * 0.32f))
-                drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.58f, h * 0.32f))
-            }
-            ShellAnimalIcon.JELLYFISH -> {
-                drawArc(ink, 180f, 180f, true, topLeft = Offset(w * 0.20f, h * 0.18f), size = Size(w * 0.60f, h * 0.46f))
-                listOf(0.28f, 0.42f, 0.56f, 0.70f).forEach { x -> drawLine(accent, Offset(w * x, h * 0.48f), Offset(w * (x - 0.05f), h * 0.88f), strokeWidth = w * 0.045f) }
-            }
-            ShellAnimalIcon.TURTLE -> {
-                drawOval(ink, Offset(w * 0.26f, h * 0.24f), Size(w * 0.48f, h * 0.42f))
-                drawOval(accent, Offset(w * 0.42f, h * 0.08f), Size(w * 0.16f, h * 0.16f))
-                listOf(0.18f to 0.30f, 0.74f to 0.30f, 0.18f to 0.62f, 0.74f to 0.62f).forEach { (x,y) -> drawOval(accent, Offset(w*x,h*y), Size(w*0.18f,h*0.12f)) }
-            }
-            ShellAnimalIcon.SHARK -> {
-                drawOval(ink, Offset(w * 0.16f, h * 0.38f), Size(w * 0.62f, h * 0.24f))
-                drawPath(Path().apply { moveTo(w*0.72f,h*0.50f); lineTo(w*0.98f,h*0.30f); lineTo(w*0.90f,h*0.50f); lineTo(w*0.98f,h*0.70f); close() }, ink)
-                drawPath(Path().apply { moveTo(w*0.42f,h*0.38f); lineTo(w*0.50f,h*0.12f); lineTo(w*0.58f,h*0.40f); close() }, accent)
-            }
-            ShellAnimalIcon.DOLPHIN -> {
-                drawArc(ink, 195f, 205f, false, topLeft = Offset(w*0.14f,h*0.18f), size = Size(w*0.72f,h*0.52f), style = Stroke(width = w*0.16f))
-                drawPath(Path().apply { moveTo(w*0.76f,h*0.43f); lineTo(w*0.98f,h*0.28f); lineTo(w*0.90f,h*0.48f); lineTo(w*0.98f,h*0.66f); close() }, ink)
-            }
-            ShellAnimalIcon.SQUID -> {
-                drawOval(ink, Offset(w*0.34f,h*0.10f), Size(w*0.32f,h*0.42f))
-                repeat(5) { i -> drawLine(ink, Offset(w*(0.36f+i*0.07f), h*0.50f), Offset(w*(0.22f+i*0.14f), h*0.90f), strokeWidth = w*0.055f) }
-            }
-            ShellAnimalIcon.STARFISH -> {
-                val path = Path(); repeat(10) { i -> val r= if (i%2==0) .43f else .18f; val a=(-90+i*36)*Math.PI/180; val x=w*.5f+Math.cos(a).toFloat()*w*r; val y=h*.5f+Math.sin(a).toFloat()*h*r; if(i==0) path.moveTo(x,y) else path.lineTo(x,y) }; path.close(); drawPath(path, ink)
-            }
-            ShellAnimalIcon.URCHIN -> {
-                repeat(14) { i -> val a=i*6.28f/14f; drawLine(ink, Offset(w*.5f,h*.5f), Offset(w*(.5f+kotlin.math.cos(a)*.43f), h*(.5f+kotlin.math.sin(a)*.43f)), strokeWidth=w*.035f) }
-                drawCircle(ink, w*.24f, Offset(w*.5f,h*.5f))
-            }
-            ShellAnimalIcon.EEL -> {
-                drawArc(ink, 180f, 240f, false, topLeft = Offset(w*.10f,h*.20f), size=Size(w*.76f,h*.58f), style=Stroke(width=w*.13f))
-                drawCircle(ink, w*.10f, Offset(w*.76f,h*.38f))
-            }
-            ShellAnimalIcon.FISH -> {
-                drawOval(ink, topLeft = Offset(w * 0.20f, h * 0.34f), size = Size(w * 0.52f, h * 0.30f))
-                drawPath(Path().apply { moveTo(w*0.18f,h*0.50f); lineTo(w*0.02f,h*0.34f); lineTo(w*0.02f,h*0.66f); close() }, ink)
-                drawPath(Path().apply { moveTo(w*0.54f,h*0.34f); lineTo(w*0.62f,h*0.16f); lineTo(w*0.66f,h*0.38f); close() }, accent)
-                drawCircle(scheme.surface, radius = w * 0.03f, center = Offset(w * 0.60f, h * 0.44f))
-            }
+private fun DrawScope.drawStaticCreatureIcon(key: String, scheme: androidx.compose.material3.ColorScheme) {
+    val w = size.width
+    val h = size.height
+    val primary = scheme.primary
+    val secondary = scheme.secondary
+    val surface = scheme.surface
+    fun fishBody(body: Color, accent: Color, tall: Float = 0.30f, long: Float = 0.54f, stripes: Int = 0, beak: Boolean = false) {
+        drawOval(body, topLeft = Offset(w * 0.20f, h * (0.50f - tall / 2f)), size = Size(w * long, h * tall))
+        drawPath(Path().apply { moveTo(w*0.19f,h*0.50f); lineTo(w*0.03f,h*0.35f); lineTo(w*0.03f,h*0.65f); close() }, accent)
+        drawPath(Path().apply { moveTo(w*0.50f,h*(0.50f-tall/2f)); lineTo(w*0.60f,h*0.17f); lineTo(w*0.66f,h*(0.50f-tall/2f+0.04f)); close() }, accent.copy(alpha = 0.72f))
+        if (beak) drawPath(Path().apply { moveTo(w*0.74f,h*0.47f); lineTo(w*0.92f,h*0.42f); lineTo(w*0.75f,h*0.55f); close() }, accent)
+        repeat(stripes) { i ->
+            val x = w * (0.34f + i * 0.11f)
+            drawLine(surface.copy(alpha = 0.72f), Offset(x, h*(0.50f-tall/2f+0.02f)), Offset(x + w*0.03f, h*(0.50f+tall/2f-0.02f)), strokeWidth = w*0.035f)
         }
+        drawCircle(surface, radius = w * 0.035f, center = Offset(w * 0.64f, h * 0.44f))
+    }
+    fun starFish() {
+        val path = Path()
+        repeat(10) { i ->
+            val r = if (i % 2 == 0) 0.43f else 0.19f
+            val a = (-90 + i * 36) * Math.PI / 180.0
+            val x = w * 0.5f + kotlin.math.cos(a).toFloat() * w * r
+            val y = h * 0.5f + kotlin.math.sin(a).toFloat() * h * r
+            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        path.close()
+        drawPath(path, secondary.copy(alpha = 0.82f))
+        drawCircle(primary.copy(alpha = 0.38f), w*0.055f, Offset(w*0.5f,h*0.5f))
+        repeat(5) { i ->
+            val a=(-90+i*72)*Math.PI/180.0
+            drawCircle(surface.copy(alpha=0.65f), w*0.025f, Offset(w*0.5f+kotlin.math.cos(a).toFloat()*w*0.24f, h*0.5f+kotlin.math.sin(a).toFloat()*h*0.24f))
+        }
+    }
+    fun urchin() {
+        repeat(18) { i -> val a=i*6.28318f/18f; drawLine(primary, Offset(w*0.5f,h*0.5f), Offset(w*(0.5f+kotlin.math.cos(a)*0.45f), h*(0.5f+kotlin.math.sin(a)*0.45f)), strokeWidth=w*0.028f) }
+        drawCircle(secondary.copy(alpha=0.72f), w*0.25f, Offset(w*0.5f,h*0.5f))
+        drawCircle(surface.copy(alpha=0.5f), w*0.05f, Offset(w*0.44f,h*0.44f))
+    }
+    when {
+        "starfish" in key -> starFish()
+        "urchin" in key -> urchin()
+        "clownfish" in key -> fishBody(Color(0xFFE9782E), surface, tall=0.34f, long=0.55f, stripes=3)
+        "blue_tang" in key || "tang" in key -> fishBody(Color(0xFF2D77C8), Color(0xFFF2D14C), tall=0.32f, long=0.58f, stripes=1)
+        "butterflyfish" in key -> fishBody(Color(0xFFF4D35E), Color(0xFF1A1B2E), tall=0.46f, long=0.48f, stripes=4)
+        "angelfish" in key -> fishBody(Color(0xFF6C63C7), Color(0xFFEFB8C8), tall=0.50f, long=0.42f, stripes=2)
+        "parrotfish" in key -> fishBody(Color(0xFF13A999), Color(0xFFFF8F3D), tall=0.36f, long=0.62f, stripes=2, beak=true)
+        "lionfish" in key -> { fishBody(Color(0xFFB45A3C), Color(0xFFF3D6A2), tall=0.38f, long=0.50f, stripes=4); repeat(6){i->drawLine(secondary.copy(alpha=0.55f), Offset(w*(0.34f+i*0.06f),h*0.33f), Offset(w*(0.24f+i*0.10f),h*0.05f), strokeWidth=w*0.02f)} }
+        "pufferfish" in key -> { drawCircle(primary.copy(alpha=0.72f), w*0.28f, Offset(w*0.52f,h*0.50f)); repeat(10){i->val a=i*6.28318f/10f; drawLine(secondary, Offset(w*0.52f,h*0.50f), Offset(w*(0.52f+kotlin.math.cos(a)*0.40f), h*(0.5f+kotlin.math.sin(a)*0.40f)), strokeWidth=w*0.018f)}; drawCircle(surface,w*0.03f,Offset(w*0.62f,h*0.42f)) }
+        "seahorse" in key -> { drawCircle(secondary.copy(alpha=0.76f), w*0.15f, Offset(w*0.58f,h*0.25f)); drawLine(secondary.copy(alpha=0.76f), Offset(w*0.66f,h*0.25f), Offset(w*0.86f,h*0.20f), strokeWidth=w*0.08f); drawPath(Path().apply { moveTo(w*0.54f,h*0.36f); cubicTo(w*0.28f,h*0.43f,w*0.36f,h*0.80f,w*0.58f,h*0.70f); cubicTo(w*0.78f,h*0.62f,w*0.68f,h*0.48f,w*0.54f,h*0.56f) }, secondary.copy(alpha=0.76f), style=Stroke(width=w*0.13f)); drawCircle(surface,w*0.03f,Offset(w*0.62f,h*0.21f)) }
+        "manta" in key || "stingray" in key -> { drawPath(Path().apply { moveTo(w*0.50f,h*0.20f); cubicTo(w*0.14f,h*0.30f,w*0.04f,h*0.62f,w*0.02f,h*0.76f); cubicTo(w*0.29f,h*0.64f,w*0.40f,h*0.64f,w*0.50f,h*0.78f); cubicTo(w*0.60f,h*0.64f,w*0.71f,h*0.64f,w*0.98f,h*0.76f); cubicTo(w*0.96f,h*0.62f,w*0.86f,h*0.30f,w*0.50f,h*0.20f); close() }, primary.copy(alpha=0.74f)); drawLine(secondary.copy(alpha=0.55f), Offset(w*0.50f,h*0.74f), Offset(w*0.50f,h*0.98f), strokeWidth=w*0.035f) }
+        "jellyfish" in key -> { drawArc(secondary.copy(alpha=0.72f),180f,180f,true,Offset(w*0.18f,h*0.16f),Size(w*0.64f,h*0.48f)); repeat(5){i->drawLine(primary.copy(alpha=0.5f),Offset(w*(0.25f+i*0.12f),h*0.50f),Offset(w*(0.20f+i*0.13f),h*0.90f),strokeWidth=w*0.035f)} }
+        "turtle" in key -> { drawOval(primary.copy(alpha=0.72f), Offset(w*0.24f,h*0.24f), Size(w*0.50f,h*0.42f)); drawOval(secondary.copy(alpha=0.55f), Offset(w*0.42f,h*0.08f), Size(w*0.16f,h*0.16f)); repeat(4){i->val x=if(i%2==0)0.15f else 0.74f; val y=if(i<2)0.30f else 0.62f; drawOval(secondary.copy(alpha=0.55f),Offset(w*x,h*y),Size(w*0.18f,h*0.12f))} }
+        "otter" in key || "seal" in key || "sea_lion" in key || "penguin" in key -> { drawOval(primary.copy(alpha=0.68f), Offset(w*0.18f,h*0.34f), Size(w*0.62f,h*0.28f)); drawCircle(primary.copy(alpha=0.72f), w*0.13f, Offset(w*0.72f,h*0.40f)); drawPath(Path().apply { moveTo(w*0.32f,h*0.58f); lineTo(w*0.18f,h*0.78f); lineTo(w*0.44f,h*0.62f); close() }, secondary.copy(alpha=0.55f)); drawCircle(surface,w*0.025f,Offset(w*0.76f,h*0.36f)) }
+        "dolphin" in key -> { drawArc(primary.copy(alpha=0.72f),195f,205f,false,Offset(w*0.12f,h*0.18f),Size(w*0.74f,h*0.52f),style=Stroke(width=w*0.16f)); drawPath(Path().apply{moveTo(w*0.76f,h*0.43f);lineTo(w*0.98f,h*0.28f);lineTo(w*0.90f,h*0.48f);lineTo(w*0.98f,h*0.66f);close()}, primary.copy(alpha=0.72f)); drawPath(Path().apply{moveTo(w*0.47f,h*0.36f);lineTo(w*0.55f,h*0.14f);lineTo(w*0.60f,h*0.38f);close()}, secondary.copy(alpha=0.55f)) }
+        "orca" in key -> { drawOval(Color(0xFF263238).copy(alpha=0.72f),Offset(w*0.14f,h*0.35f),Size(w*0.66f,h*0.30f)); drawOval(surface.copy(alpha=0.74f),Offset(w*0.42f,h*0.46f),Size(w*0.22f,h*0.10f)); drawPath(Path().apply{moveTo(w*0.76f,h*0.50f);lineTo(w*0.98f,h*0.30f);lineTo(w*0.90f,h*0.50f);lineTo(w*0.98f,h*0.70f);close()}, Color(0xFF263238).copy(alpha=0.72f)); drawPath(Path().apply{moveTo(w*0.42f,h*0.36f);lineTo(w*0.50f,h*0.08f);lineTo(w*0.58f,h*0.38f);close()}, Color(0xFF263238).copy(alpha=0.72f)) }
+        "anglerfish" in key -> { fishBody(Color(0xFF30313B), secondary, tall=0.38f, long=0.56f); drawLine(secondary,Offset(w*0.60f,h*0.32f),Offset(w*0.72f,h*0.12f),strokeWidth=w*0.025f); drawCircle(secondary,w*0.045f,Offset(w*0.74f,h*0.10f)) }
+        "megalodon" in key -> { fishBody(Color(0xFF27323A), Color(0xFF6B7A85), tall=0.34f, long=0.70f); drawPath(Path().apply{moveTo(w*0.45f,h*0.36f);lineTo(w*0.55f,h*0.04f);lineTo(w*0.64f,h*0.38f);close()}, Color(0xFF6B7A85)) }
+        "shark" in key || "great_white" in key -> { fishBody(Color(0xFF6B7A85), Color(0xFFB0BEC5), tall=0.30f, long=0.66f); drawPath(Path().apply{moveTo(w*0.42f,h*0.38f);lineTo(w*0.50f,h*0.12f);lineTo(w*0.58f,h*0.40f);close()}, Color(0xFFB0BEC5)) }
+        "whale" in key -> { drawOval(primary.copy(alpha=0.58f), Offset(w*0.12f,h*0.34f), Size(w*0.68f,h*0.34f)); drawPath(Path().apply{moveTo(w*0.78f,h*0.50f);lineTo(w*0.98f,h*0.30f);lineTo(w*0.92f,h*0.50f);lineTo(w*0.98f,h*0.70f);close()}, primary.copy(alpha=0.58f)); drawOval(secondary.copy(alpha=0.32f),Offset(w*0.33f,h*0.50f),Size(w*0.26f,h*0.08f)) }
+        "squid" in key || "kraken" in key || "leviathan" in key -> { val c=if("leviathan" in key) Color(0xFF203A5F).copy(alpha=0.78f) else secondary.copy(alpha=0.75f); drawOval(c,Offset(w*0.32f,h*0.08f),Size(w*0.36f,h*0.44f)); repeat(if("kraken" in key)8 else 5){i->drawLine(c,Offset(w*(0.34f+i*0.045f),h*0.50f),Offset(w*(0.12f+i*0.10f),h*0.92f),strokeWidth=w*0.045f)}; if("leviathan" in key) drawArc(c,180f,210f,false,Offset(w*0.08f,h*0.22f),Size(w*0.84f,h*0.54f),style=Stroke(width=w*0.08f)) }
+        "eel" in key || "snake" in key -> { drawArc(primary.copy(alpha=0.72f),180f,240f,false,Offset(w*0.10f,h*0.20f),Size(w*0.76f,h*0.58f),style=Stroke(width=w*0.13f)); drawCircle(primary.copy(alpha=0.72f),w*0.10f,Offset(w*0.76f,h*0.38f)) }
+        "sunfish" in key -> { drawOval(primary.copy(alpha=0.68f),Offset(w*0.28f,h*0.20f),Size(w*0.36f,h*0.54f)); drawPath(Path().apply{moveTo(w*0.46f,h*0.20f);lineTo(w*0.54f,h*0.02f);lineTo(w*0.56f,h*0.22f);close()}, secondary.copy(alpha=0.5f)); drawPath(Path().apply{moveTo(w*0.46f,h*0.72f);lineTo(w*0.54f,h*0.96f);lineTo(w*0.56f,h*0.70f);close()}, secondary.copy(alpha=0.5f)) }
+        "barracuda" in key || "swordfish" in key || "flying_fish" in key -> { fishBody(primary.copy(alpha=0.68f), secondary.copy(alpha=0.55f), tall=0.24f, long=0.68f); if("swordfish" in key) drawLine(secondary,Offset(w*0.78f,h*0.49f),Offset(w*0.99f,h*0.43f),strokeWidth=w*0.025f); if("flying_fish" in key) drawPath(Path().apply{moveTo(w*0.42f,h*0.40f);lineTo(w*0.22f,h*0.08f);lineTo(w*0.62f,h*0.38f);close()},secondary.copy(alpha=0.42f)) }
+        else -> fishBody(primary.copy(alpha=0.62f), secondary.copy(alpha=0.45f), tall=0.30f, long=0.52f, stripes=1)
     }
 }
 
@@ -3309,6 +3261,42 @@ private fun TheBlueZonePage(
             }
         }
 
+        BoxWithConstraints(Modifier.matchParentSize()) {
+            zone.animals.forEachIndexed { index, animal ->
+                val definition = CreatureCatalog.get(animal.findId)
+                val isBottomDweller = definition?.sceneBehavior == com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior.BOTTOM_DWELL
+                val tapSize = when (definition?.scaleClass) {
+                    com.kingkharnivore.skillz.domain.shell.CreatureScaleClass.GIANT,
+                    com.kingkharnivore.skillz.domain.shell.CreatureScaleClass.LEGENDARY -> 108.dp
+                    com.kingkharnivore.skillz.domain.shell.CreatureScaleClass.LARGE -> 88.dp
+                    else -> 68.dp
+                }
+                val x = if (isBottomDweller) {
+                    maxWidth * (0.16f + (index % 4) * 0.18f)
+                } else {
+                    maxWidth * (0.18f + (index % 4) * 0.18f)
+                }
+                val y = if (isBottomDweller) {
+                    maxHeight * 0.63f
+                } else {
+                    maxHeight * (0.25f + (index % 3) * 0.15f)
+                }
+                val newLabel = if (animal.isNew || animal.findId in entryNewAnimalFindIds) stringResource(R.string.the_blue_new_arrival) else ""
+                val description = stringResource(R.string.the_blue_creature_tile_a11y, findName(animal.findId), animal.totalCount, animal.highestLevel, newLabel)
+                Box(
+                    modifier = Modifier
+                        .offset(x = x, y = y)
+                        .size(tapSize)
+                        .clip(CircleShape)
+                        .clickable(onClick = { onAnimalClick(animal) })
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = description
+                        }
+                )
+            }
+        }
+
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -3693,16 +3681,99 @@ private fun DrawScope.drawRenderFamilyCreatures(
     val definition = CreatureCatalog.get(animal.findId) ?: return
     val visible = representativeVisibleCount(animal.totalCount, maxVisible = 5)
     repeat(visible) { i ->
-        val progress = ((drift * (0.55f + i * 0.05f)) + i * 0.19f) % 1f
-        val x = offscreenHorizontalPassX(progress, size.width, 82f, 36f, i % 2 == 0)
-        val y = size.height * (0.22f + ((i * 17) % 52) / 100f)
         val scale = (0.85f + (i % 3) * 0.10f) * levelScale
-        when (definition.renderFamily.key) {
-            "ray" -> drawManta(Offset(x, y), scale * 0.72f, drift + i, false, scheme)
-            "whale" -> drawWhale(Offset(x, y), scale * 0.58f, drift + i, false, scheme)
-            "octopus" -> drawOctopus(Offset(size.width * 0.62f, size.height * 0.72f), drift, false, scheme)
-            else -> drawGenericFish(Offset(x, y), scale, drift + i, scheme, definition.renderFamily.key)
+        val floorY = size.height * 0.68f
+        val midY = size.height * (0.26f + ((i * 17) % 44) / 100f)
+        val progress = ((drift * (0.55f + i * 0.05f)) + i * 0.19f) % 1f
+        val x = if (definition.sceneBehavior == com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior.BOTTOM_DWELL) {
+            size.width * (0.20f + (i % 4) * 0.18f)
+        } else {
+            offscreenHorizontalPassX(progress, size.width, 82f, 36f, i % 2 == 0)
         }
+        val y = if (definition.sceneBehavior == com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior.BOTTOM_DWELL) floorY + (i % 2) * 18f else midY
+        when {
+            definition.creatureId.contains("starfish") -> drawStarfishScene(Offset(x, y), scale * 0.95f, scheme)
+            definition.creatureId.contains("urchin") -> drawUrchinScene(Offset(x, y), scale * 0.86f, scheme)
+            definition.creatureId.contains("octopus") -> drawOctopus(Offset(size.width * 0.62f, size.height * 0.72f), scale, false, scheme)
+            definition.renderFamily.key == "ray" -> drawManta(Offset(x, y), scale * 0.72f, drift + i, false, scheme)
+            definition.renderFamily.key == "whale" -> drawWhale(Offset(x, y), scale * 0.58f, drift + i, false, scheme)
+            else -> drawSpeciesSwimmer(Offset(x, y), scale, drift + i, scheme, definition.creatureId, definition.renderFamily.key)
+        }
+    }
+}
+
+
+private fun DrawScope.drawStarfishScene(origin: Offset, scale: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val color = scheme.secondary.copy(alpha = 0.74f)
+    val path = Path()
+    repeat(10) { i ->
+        val radius = if (i % 2 == 0) 18f * scale else 7.5f * scale
+        val angle = (-90 + i * 36) * Math.PI / 180.0
+        val x = origin.x + kotlin.math.cos(angle).toFloat() * radius
+        val y = origin.y + kotlin.math.sin(angle).toFloat() * radius
+        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+    }
+    path.close()
+    drawCircle(scheme.primary.copy(alpha = 0.10f), 24f * scale, origin)
+    drawPath(path, color)
+    drawCircle(scheme.surface.copy(alpha = 0.45f), 2.6f * scale, origin)
+}
+
+private fun DrawScope.drawUrchinScene(origin: Offset, scale: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val color = scheme.primary.copy(alpha = 0.58f)
+    repeat(18) { i ->
+        val angle = i * 6.28318f / 18f
+        drawLine(color, origin, Offset(origin.x + kotlin.math.cos(angle) * 22f * scale, origin.y + kotlin.math.sin(angle) * 22f * scale), strokeWidth = 1.7f * scale)
+    }
+    drawCircle(scheme.secondary.copy(alpha = 0.48f), 10f * scale, origin)
+}
+
+private fun DrawScope.drawSpeciesSwimmer(origin: Offset, scale: Float, drift: Float, scheme: androidx.compose.material3.ColorScheme, creatureId: String, familyKey: String) {
+    val bob = sin((drift * 6.28f).toDouble()).toFloat() * 5f
+    val id = creatureId.lowercase()
+    fun fish(body: Color, accent: Color, wMul: Float = 1f, hMul: Float = 1f, stripes: Int = 0, beak: Boolean = false) {
+        val w = 34f * scale * wMul
+        val h = 18f * scale * hMul
+        val c = Offset(origin.x, origin.y + bob)
+        drawOval(body, Offset(c.x - w * 0.50f, c.y - h * 0.50f), Size(w, h))
+        drawPath(Path().apply { moveTo(c.x - w*0.48f,c.y); lineTo(c.x - w*0.82f,c.y - h*0.52f); lineTo(c.x - w*0.82f,c.y + h*0.52f); close() }, accent)
+        drawPath(Path().apply { moveTo(c.x,c.y - h*0.48f); lineTo(c.x + w*0.13f,c.y - h*1.05f); lineTo(c.x + w*0.24f,c.y - h*0.35f); close() }, accent.copy(alpha=0.72f))
+        if (beak) drawPath(Path().apply { moveTo(c.x+w*0.48f,c.y-h*0.12f); lineTo(c.x+w*0.70f,c.y-h*0.25f); lineTo(c.x+w*0.50f,c.y+h*0.18f); close() }, accent)
+        repeat(stripes) { n -> drawLine(scheme.surface.copy(alpha=0.42f), Offset(c.x - w*0.18f + n*w*0.14f, c.y-h*0.42f), Offset(c.x - w*0.12f + n*w*0.14f, c.y+h*0.42f), strokeWidth=2f*scale) }
+        drawCircle(scheme.onSurface.copy(alpha=0.55f), 1.8f*scale, Offset(c.x+w*0.28f, c.y-h*0.16f))
+    }
+    when {
+        "clownfish" in id -> fish(Color(0xFFE9782E).copy(alpha=0.74f), scheme.surface.copy(alpha=0.60f), hMul=1.10f, stripes=3)
+        "blue_tang" in id -> fish(Color(0xFF2D77C8).copy(alpha=0.70f), Color(0xFFF2D14C).copy(alpha=0.70f), wMul=1.05f, stripes=1)
+        "butterflyfish" in id -> fish(Color(0xFFF4D35E).copy(alpha=0.70f), scheme.onSurface.copy(alpha=0.50f), wMul=0.88f, hMul=1.45f, stripes=4)
+        "angelfish" in id -> fish(Color(0xFF6C63C7).copy(alpha=0.66f), Color(0xFFEFB8C8).copy(alpha=0.56f), wMul=0.85f, hMul=1.55f, stripes=2)
+        "parrotfish" in id -> fish(Color(0xFF13A999).copy(alpha=0.70f), Color(0xFFFF8F3D).copy(alpha=0.64f), wMul=1.18f, hMul=1.12f, stripes=2, beak=true)
+        "lionfish" in id -> { fish(Color(0xFFB45A3C).copy(alpha=0.68f), Color(0xFFF3D6A2).copy(alpha=0.60f), hMul=1.2f, stripes=4); repeat(6){n->drawLine(scheme.secondary.copy(alpha=0.40f), Offset(origin.x-10f*scale+n*5f*scale, origin.y-7f*scale+bob), Offset(origin.x-22f*scale+n*8f*scale, origin.y-30f*scale+bob), strokeWidth=1.5f*scale)} }
+        "pufferfish" in id -> { drawCircle(scheme.primary.copy(alpha=0.58f), 17f*scale, Offset(origin.x,origin.y+bob)); repeat(10){n->val a=n*6.28318f/10f; drawLine(scheme.secondary.copy(alpha=0.60f), Offset(origin.x,origin.y+bob), Offset(origin.x+kotlin.math.cos(a)*25f*scale, origin.y+bob+kotlin.math.sin(a)*25f*scale), strokeWidth=1.2f*scale)} }
+        "jellyfish" in id -> drawGenericFish(origin, scale, drift, scheme, "jellyfish")
+        "seahorse" in id -> drawSeahorse(origin, scale, bob, false, scheme)
+        "turtle" in id -> {
+            drawOval(scheme.primary.copy(alpha=0.52f), Offset(origin.x-22f*scale, origin.y-12f*scale+bob), Size(44f*scale, 28f*scale))
+            drawCircle(scheme.secondary.copy(alpha=0.42f), 7f*scale, Offset(origin.x+26f*scale, origin.y-3f*scale+bob))
+            listOf(-1f to -1f, -1f to 1f, 1f to -1f, 1f to 1f).forEach { (sx, sy) ->
+                drawOval(scheme.secondary.copy(alpha=0.34f), Offset(origin.x + sx*22f*scale, origin.y + sy*13f*scale + bob), Size(12f*scale, 7f*scale))
+            }
+        }
+        "otter" in id || "seal" in id || "sea_lion" in id || "penguin" in id -> { fish(scheme.onSurface.copy(alpha=0.42f), scheme.secondary.copy(alpha=0.34f), wMul=1.25f, hMul=0.88f); drawOval(scheme.secondary.copy(alpha=0.30f), Offset(origin.x-8f*scale, origin.y+8f*scale+bob), Size(18f*scale,7f*scale)) }
+        "dolphin" in id -> { drawArc(scheme.primary.copy(alpha=0.60f),195f,205f,false,Offset(origin.x-30f*scale,origin.y-20f*scale+bob),Size(60f*scale,40f*scale),style=Stroke(width=8f*scale)); drawPath(Path().apply{moveTo(origin.x+24f*scale,origin.y-4f*scale+bob);lineTo(origin.x+42f*scale,origin.y-15f*scale+bob);lineTo(origin.x+34f*scale,origin.y+bob);lineTo(origin.x+42f*scale,origin.y+14f*scale+bob);close()}, scheme.primary.copy(alpha=0.60f)) }
+        "orca" in id -> fish(Color(0xFF263238).copy(alpha=0.62f), scheme.surface.copy(alpha=0.50f), wMul=1.45f, hMul=1.05f)
+        "anglerfish" in id -> { fish(scheme.onSurface.copy(alpha=0.50f), scheme.secondary.copy(alpha=0.55f), wMul=1.15f, hMul=1.20f); drawLine(scheme.secondary.copy(alpha=0.65f), Offset(origin.x+10f*scale,origin.y-9f*scale+bob), Offset(origin.x+24f*scale,origin.y-30f*scale+bob), strokeWidth=1.7f*scale); drawCircle(scheme.secondary.copy(alpha=0.85f), 3f*scale, Offset(origin.x+25f*scale,origin.y-31f*scale+bob)) }
+        "megalodon" in id -> fish(scheme.onSurface.copy(alpha=0.52f), scheme.secondary.copy(alpha=0.34f), wMul=2.0f, hMul=1.20f)
+        "shark" in id || "great_white" in id -> fish(scheme.onSurface.copy(alpha=0.46f), scheme.secondary.copy(alpha=0.30f), wMul=1.55f, hMul=0.98f)
+        "whale" in id -> drawWhale(origin, scale*0.65f, drift, false, scheme)
+        "squid" in id || "kraken" in id -> drawOctopus(origin, scale * if ("kraken" in id) 1.45f else 1.05f, false, scheme)
+        "leviathan" in id -> { drawArc(scheme.primary.copy(alpha=0.48f), 185f, 235f, false, Offset(origin.x-55f*scale, origin.y-24f*scale+bob), Size(110f*scale, 50f*scale), style=Stroke(width=8f*scale)); drawCircle(scheme.secondary.copy(alpha=0.46f), 10f*scale, Offset(origin.x+46f*scale, origin.y-6f*scale+bob)) }
+        "eel" in id || "snake" in id -> drawGenericFish(origin, scale, drift, scheme, "eel")
+        "sunfish" in id -> fish(scheme.primary.copy(alpha=0.56f), scheme.secondary.copy(alpha=0.36f), wMul=0.95f, hMul=1.8f)
+        "swordfish" in id -> { fish(scheme.primary.copy(alpha=0.58f), scheme.secondary.copy(alpha=0.40f), wMul=1.65f, hMul=0.75f); drawLine(scheme.secondary.copy(alpha=0.55f), Offset(origin.x+24f*scale,origin.y+bob), Offset(origin.x+58f*scale,origin.y-4f*scale+bob), strokeWidth=1.7f*scale) }
+        "flying_fish" in id -> { fish(scheme.primary.copy(alpha=0.58f), scheme.secondary.copy(alpha=0.40f), wMul=1.25f, hMul=0.75f); drawPath(Path().apply{moveTo(origin.x-4f*scale,origin.y-6f*scale+bob);lineTo(origin.x-28f*scale,origin.y-34f*scale+bob);lineTo(origin.x+18f*scale,origin.y-8f*scale+bob);close()}, scheme.secondary.copy(alpha=0.30f)) }
+        "barracuda" in id -> fish(scheme.onSurface.copy(alpha=0.42f), scheme.secondary.copy(alpha=0.32f), wMul=1.75f, hMul=0.70f)
+        else -> fish(scheme.primary.copy(alpha=0.58f), scheme.secondary.copy(alpha=0.36f), wMul=1f, hMul=1f)
     }
 }
 
@@ -3717,11 +3788,11 @@ private fun DrawScope.drawGenericFish(origin: Offset, scale: Float, drift: Float
     val bob = sin((drift * 6.28f).toDouble()).toFloat() * 5f
     if (familyKey == "jellyfish") {
         drawCircle(ink, w * 0.42f, Offset(origin.x, origin.y + bob))
-        repeat(4) { t -> drawLine(ink, Offset(origin.x - w * .30f + t*w*.20f, origin.y + bob + h*.30f), Offset(origin.x - w * .38f + t*w*.22f, origin.y + bob + h*1.4f), strokeWidth = 2.4f * scale) }
+        repeat(4) { t -> drawLine(ink, Offset(origin.x - w * 0.30f + t*w*0.20f, origin.y + bob + h*0.30f), Offset(origin.x - w * 0.38f + t*w*0.22f, origin.y + bob + h*1.4f), strokeWidth = 2.4f * scale) }
     } else {
         drawOval(ink, Offset(origin.x - w * 0.50f, origin.y - h * 0.50f + bob), Size(w, h))
-        drawPath(Path().apply { moveTo(origin.x - w*.50f, origin.y + bob); lineTo(origin.x - w*.82f, origin.y - h*.50f + bob); lineTo(origin.x - w*.82f, origin.y + h*.50f + bob); close() }, ink)
-        drawPath(Path().apply { moveTo(origin.x, origin.y - h*.48f + bob); lineTo(origin.x + w*.12f, origin.y - h*1.05f + bob); lineTo(origin.x + w*.22f, origin.y - h*.35f + bob); close() }, scheme.secondary.copy(alpha = 0.38f))
+        drawPath(Path().apply { moveTo(origin.x - w*0.50f, origin.y + bob); lineTo(origin.x - w*0.82f, origin.y - h*0.50f + bob); lineTo(origin.x - w*0.82f, origin.y + h*0.50f + bob); close() }, ink)
+        drawPath(Path().apply { moveTo(origin.x, origin.y - h*0.48f + bob); lineTo(origin.x + w*0.12f, origin.y - h*1.05f + bob); lineTo(origin.x + w*0.22f, origin.y - h*0.35f + bob); close() }, scheme.secondary.copy(alpha = 0.38f))
     }
 }
 
@@ -4030,7 +4101,7 @@ private fun TheBlueAnimalDetailSheet(
                             Text(text = zone, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                         }
                     }
-                    Text(stringResource(R.string.the_blue_created_from_flow))
+                    Text(source)
                 }
             }
 
@@ -4053,6 +4124,13 @@ private fun TheBlueAnimalDetailSheet(
                 }
             }
             animal.releaseValuePearls?.let {
+                ElevatedCard {
+                    ListItem(
+                        leadingContent = { Icon(Icons.Outlined.Diamond, contentDescription = null) },
+                        headlineContent = { Text(stringResource(R.string.the_blue_pearl_value_title)) },
+                        supportingContent = { Text(stringResource(R.string.shell_creature_pearl_value_each, it)) }
+                    )
+                }
                 ElevatedCard {
                     ListItem(
                         leadingContent = { Icon(Icons.Outlined.Diamond, contentDescription = null) },
@@ -4348,6 +4426,15 @@ private fun BeyondBlueEncounterSheet(
                             Text(stringResource(R.string.beyond_blue_life_selected, formatMinutesCompact(quote.selectedCreatureMinutes)))
                             Text(stringResource(R.string.beyond_blue_pearls_used, quote.pearlCostForRemaining))
                             if (quote.pearlReturnForOverpay > 0) Text(stringResource(R.string.beyond_blue_payment_returned, quote.pearlReturnForOverpay))
+                            if (selectedInstanceIds.isNotEmpty()) {
+                                Button(
+                                    onClick = { showConfirm = true },
+                                    enabled = quote.canEncounter,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(stringResource(R.string.beyond_blue_trade_and_buy))
+                                }
+                            }
                         }
                     }
 
@@ -4494,6 +4581,7 @@ private fun formName(findId: String, stageId: String?): String =
     ShellContentCatalog.upgradesFor(findId).firstOrNull { it.upgradeStageId == stageId }?.let { stringResource(it.titleRes) }
         ?: stringResource(R.string.shell_form_base)
 
+@Composable
 @Composable
 private fun theBlueSourceReason(findId: String): String = when (findId) {
     ShellContentCatalog.FOCUS_MINNOW -> stringResource(R.string.the_blue_source_minnow)

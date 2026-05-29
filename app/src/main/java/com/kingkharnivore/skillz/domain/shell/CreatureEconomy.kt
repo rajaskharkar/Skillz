@@ -23,6 +23,12 @@ enum class CreatureZone(val displayName: String) {
 
 enum class CreatureSourceType { FLOW_EARNED, BEYOND_BLUE }
 
+enum class CreatureSceneBehavior { SWIM, DRIFT, BOTTOM_DWELL, GLIDE, CRUISE, LEGENDARY }
+
+enum class CreaturePlacementBand { REEF_CANOPY, REEF_FLOOR, MID_WATER, OPEN_WATER, DEEP_WATER, SURFACE }
+
+enum class CreatureScaleClass { TINY, SMALL, MEDIUM, LARGE, GIANT, LEGENDARY }
+
 enum class CreatureRenderFamily(val key: String, val visualCap: Float) {
     SMALL_FISH("small_fish", 1.65f),
     REEF_FISH("reef_fish", 1.55f),
@@ -58,7 +64,10 @@ data class CreatureDefinition(
     val requirementMinutes: Int? = null,
     val staticIconKey: String,
     val animatedRendererKey: String,
-    val renderFamily: CreatureRenderFamily
+    val renderFamily: CreatureRenderFamily,
+    val sceneBehavior: CreatureSceneBehavior,
+    val placementBand: CreaturePlacementBand,
+    val scaleClass: CreatureScaleClass
 ) {
     val pearlPrice: Int? get() = requirementMinutes?.times(PEARLS_PER_REQUIRED_FLOW_MINUTE)
 }
@@ -143,10 +152,62 @@ object CreatureCatalog {
     fun require(creatureId: String): CreatureDefinition = get(creatureId) ?: error("Unknown creature: $creatureId")
 
     private fun flow(id: String, name: String, zone: CreatureZone, minutes: Int, family: CreatureRenderFamily) =
-        CreatureDefinition(id, name, zone, CreatureSourceType.FLOW_EARNED, flowTimeValueMinutes = minutes, staticIconKey = "creature_icon_$id", animatedRendererKey = "creature_renderer_${family.key}", renderFamily = family)
+        CreatureDefinition(
+            id,
+            name,
+            zone,
+            CreatureSourceType.FLOW_EARNED,
+            flowTimeValueMinutes = minutes,
+            staticIconKey = "creature_icon_$id",
+            animatedRendererKey = "creature_renderer_$id",
+            renderFamily = family,
+            sceneBehavior = sceneBehaviorFor(id, family),
+            placementBand = placementBandFor(zone, id, family),
+            scaleClass = scaleClassFor(id, family)
+        )
 
     private fun beyond(id: String, name: String, zone: CreatureZone, requirementMinutes: Int, family: CreatureRenderFamily) =
-        CreatureDefinition(id, name, zone, CreatureSourceType.BEYOND_BLUE, requirementMinutes = requirementMinutes, staticIconKey = "creature_icon_$id", animatedRendererKey = "creature_renderer_${family.key}", renderFamily = family)
+        CreatureDefinition(
+            id,
+            name,
+            zone,
+            CreatureSourceType.BEYOND_BLUE,
+            requirementMinutes = requirementMinutes,
+            staticIconKey = "creature_icon_$id",
+            animatedRendererKey = "creature_renderer_$id",
+            renderFamily = family,
+            sceneBehavior = sceneBehaviorFor(id, family),
+            placementBand = placementBandFor(zone, id, family),
+            scaleClass = scaleClassFor(id, family)
+        )
+
+    private fun sceneBehaviorFor(id: String, family: CreatureRenderFamily): CreatureSceneBehavior = when {
+        family in setOf(CreatureRenderFamily.STARFISH, CreatureRenderFamily.SPIKY_URCHIN, CreatureRenderFamily.OCTOPUS) -> CreatureSceneBehavior.BOTTOM_DWELL
+        family in setOf(CreatureRenderFamily.JELLYFISH, CreatureRenderFamily.SEAHORSE) -> CreatureSceneBehavior.DRIFT
+        family in setOf(CreatureRenderFamily.RAY) -> CreatureSceneBehavior.GLIDE
+        family in setOf(CreatureRenderFamily.WHALE, CreatureRenderFamily.ORCA, CreatureRenderFamily.SHARK, CreatureRenderFamily.DOLPHIN, CreatureRenderFamily.LEGENDARY, CreatureRenderFamily.GIANT_TENTACLE) -> CreatureSceneBehavior.CRUISE
+        else -> CreatureSceneBehavior.SWIM
+    }
+
+    private fun placementBandFor(zone: CreatureZone, id: String, family: CreatureRenderFamily): CreaturePlacementBand = when {
+        family in setOf(CreatureRenderFamily.STARFISH, CreatureRenderFamily.SPIKY_URCHIN, CreatureRenderFamily.OCTOPUS) -> CreaturePlacementBand.REEF_FLOOR
+        family == CreatureRenderFamily.SEAHORSE -> CreaturePlacementBand.REEF_CANOPY
+        family == CreatureRenderFamily.JELLYFISH -> CreaturePlacementBand.MID_WATER
+        family in setOf(CreatureRenderFamily.SURFACE_MAMMAL) -> CreaturePlacementBand.SURFACE
+        zone == CreatureZone.GREAT_BLUE -> CreaturePlacementBand.DEEP_WATER
+        zone == CreatureZone.OPEN_BLUE -> CreaturePlacementBand.OPEN_WATER
+        else -> CreaturePlacementBand.MID_WATER
+    }
+
+    private fun scaleClassFor(id: String, family: CreatureRenderFamily): CreatureScaleClass = when {
+        family == CreatureRenderFamily.LEGENDARY -> CreatureScaleClass.LEGENDARY
+        id.contains("kraken") || id.contains("leviathan") || id.contains("megalodon") || id.contains("blue_whale") -> CreatureScaleClass.LEGENDARY
+        family in setOf(CreatureRenderFamily.WHALE, CreatureRenderFamily.GIANT_TENTACLE, CreatureRenderFamily.SHARK) -> CreatureScaleClass.GIANT
+        family in setOf(CreatureRenderFamily.RAY, CreatureRenderFamily.DOLPHIN, CreatureRenderFamily.ORCA, CreatureRenderFamily.TURTLE, CreatureRenderFamily.SUNFISH, CreatureRenderFamily.SURFACE_MAMMAL) -> CreatureScaleClass.LARGE
+        family in setOf(CreatureRenderFamily.SEAHORSE, CreatureRenderFamily.STARFISH, CreatureRenderFamily.SPIKY_URCHIN) -> CreatureScaleClass.SMALL
+        family == CreatureRenderFamily.SMALL_FISH -> CreatureScaleClass.TINY
+        else -> CreatureScaleClass.MEDIUM
+    }
 }
 
 object CreatureEconomy {
@@ -174,7 +235,8 @@ object CreatureEconomy {
             ?: 0
 
     fun beyondBlueTradeContributionMinutes(creatureId: String, level: Int = 1): Int = flowTimeValueMinutes(creatureId, level)
-    fun releaseValuePearls(creatureId: String, level: Int = 1): Int = flowTimeValueMinutes(creatureId, level)
+    fun canonicalPearlValue(creatureId: String): Int = pearlPriceForRequirement(flowTimeValueMinutes(creatureId))
+    fun releaseValuePearls(creatureId: String, level: Int = 1): Int = canonicalPearlValue(creatureId)
     fun pearlPriceForRequirement(requirementMinutes: Int): Int = requirementMinutes * PEARLS_PER_REQUIRED_FLOW_MINUTE
 
     fun quoteBeyondBluePayment(targetCreatureId: String, selectedCreatureMinutes: Int, availablePearls: Int): CreaturePaymentQuote {
@@ -199,15 +261,16 @@ object CreatureEconomy {
 
     fun animalVisualScale(creatureId: String, level: Int): Float {
         val definition = CreatureCatalog.require(creatureId)
-        val cap = when (creatureId) {
-            ShellContentCatalog.FOCUS_MINNOW -> 1.65f
-            ShellContentCatalog.FOCUS_SEAHORSE -> 1.55f
-            ShellContentCatalog.FOCUS_MANTA -> 1.45f
-            ShellContentCatalog.FOCUS_WHALE -> 1.30f
-            else -> definition.renderFamily.visualCap
+        val cap = when (definition.scaleClass) {
+            CreatureScaleClass.TINY -> 2.05f
+            CreatureScaleClass.SMALL -> 1.95f
+            CreatureScaleClass.MEDIUM -> 1.85f
+            CreatureScaleClass.LARGE -> 1.70f
+            CreatureScaleClass.GIANT -> 1.55f
+            CreatureScaleClass.LEGENDARY -> 1.42f
         }
         val normalizedLevel = level.coerceAtLeast(1)
-        val curve = 1f + (ln(normalizedLevel.toDouble()) / ln(101.0)).toFloat() * 0.58f
+        val curve = 1f + (ln(normalizedLevel.toDouble()) / ln(21.0)).toFloat() * 1.25f
         return min(cap, curve.coerceAtLeast(1f))
     }
 
