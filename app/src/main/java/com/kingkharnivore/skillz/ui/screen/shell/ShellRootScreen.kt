@@ -3869,6 +3869,42 @@ private fun DrawScope.drawMissingCreatureRenderer(origin: Offset, scale: Float, 
     drawLine(scheme.surface, Offset(origin.x + 10f * scale, origin.y - 10f * scale), Offset(origin.x - 10f * scale, origin.y + 10f * scale), strokeWidth = 3f * scale)
 }
 
+private fun DrawScope.drawStarfishScene(origin: Offset, scale: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val star = Path()
+    repeat(10) { i ->
+        val radius = if (i % 2 == 0) 28f * scale else 12f * scale
+        val angle = (-90f + i * 36f) * (Math.PI.toFloat() / 180f)
+        val x = origin.x + kotlin.math.cos(angle) * radius
+        val y = origin.y + kotlin.math.sin(angle) * radius
+        if (i == 0) star.moveTo(x, y) else star.lineTo(x, y)
+    }
+    star.close()
+    drawPath(star, scheme.secondary.copy(alpha = 0.74f))
+    drawCircle(scheme.primary.copy(alpha = 0.30f), 4f * scale, origin)
+    repeat(5) { i ->
+        val angle = (-90f + i * 72f) * (Math.PI.toFloat() / 180f)
+        drawCircle(
+            scheme.surface.copy(alpha = 0.50f),
+            2f * scale,
+            Offset(origin.x + kotlin.math.cos(angle) * 15f * scale, origin.y + kotlin.math.sin(angle) * 15f * scale)
+        )
+    }
+}
+
+private fun DrawScope.drawUrchinScene(origin: Offset, scale: Float, scheme: androidx.compose.material3.ColorScheme) {
+    repeat(18) { i ->
+        val angle = i * 6.28318f / 18f
+        drawLine(
+            scheme.primary.copy(alpha = 0.58f),
+            origin,
+            Offset(origin.x + kotlin.math.cos(angle) * 25f * scale, origin.y + kotlin.math.sin(angle) * 25f * scale),
+            strokeWidth = 1.6f * scale
+        )
+    }
+    drawCircle(scheme.secondary.copy(alpha = 0.62f), 13f * scale, origin)
+    drawCircle(scheme.surface.copy(alpha = 0.40f), 2.5f * scale, Offset(origin.x - 4f * scale, origin.y - 4f * scale))
+}
+
 private fun DrawScope.drawJellyfishScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
     val ink = scheme.secondary.copy(alpha = 0.66f)
     val w = 34f * scale
@@ -4746,7 +4782,6 @@ private fun formName(findId: String, stageId: String?): String =
     ShellContentCatalog.upgradesFor(findId).firstOrNull { it.upgradeStageId == stageId }?.let { stringResource(it.titleRes) }
         ?: stringResource(R.string.shell_form_base)
 
-@Composable
 @Composable
 private fun theBlueSourceReason(findId: String): String = when (findId) {
     ShellContentCatalog.FOCUS_MINNOW -> stringResource(R.string.the_blue_source_minnow)
