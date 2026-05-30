@@ -102,6 +102,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
@@ -3700,7 +3701,8 @@ private data class TheBlueRenderedCreature(
     val placementBand: CreaturePlacementBand,
     val driftSeed: Float,
     val glowing: Boolean,
-    val rendererKey: String
+    val rendererKey: String,
+    val facingRight: Boolean
 )
 
 private fun theBlueSceneSafeBounds(sceneWidth: Float, sceneHeight: Float): TheBlueSceneSafeBounds {
@@ -3777,7 +3779,15 @@ private fun renderedCreaturePlacements(
             CreatureSceneBehavior.CRUISE -> 5f
             CreatureSceneBehavior.LEGENDARY -> 6f
         }
-        fun tryAdd(center: Offset, scale: Float, seed: Float, index: Int, renderer: String = definition.creatureId, reserveCorridor: Boolean = false): Boolean {
+        fun tryAdd(
+            center: Offset,
+            scale: Float,
+            seed: Float,
+            index: Int,
+            facingRight: Boolean,
+            renderer: String = definition.creatureId,
+            reserveCorridor: Boolean = false
+        ): Boolean {
             val visualWidth = visualBase * scale * when (definition.scaleClass) {
                 CreatureScaleClass.GIANT, CreatureScaleClass.LEGENDARY -> 1.55f
                 CreatureScaleClass.LARGE -> 1.35f
@@ -3818,12 +3828,21 @@ private fun renderedCreaturePlacements(
                 placementBand = definition.placementBand,
                 driftSeed = seed,
                 glowing = index < accentCount,
-                rendererKey = renderer
+                rendererKey = renderer,
+                facingRight = facingRight
             )
             return true
         }
-        fun addFromCandidates(candidates: List<Offset>, scale: Float, seed: Float, index: Int, renderer: String = definition.creatureId, reserveCorridor: Boolean = false) {
-            candidates.firstOrNull { tryAdd(it, scale, seed, index, renderer, reserveCorridor) }
+        fun addFromCandidates(
+            candidates: List<Offset>,
+            scale: Float,
+            seed: Float,
+            index: Int,
+            facingRight: Boolean,
+            renderer: String = definition.creatureId,
+            reserveCorridor: Boolean = false
+        ) {
+            candidates.firstOrNull { tryAdd(it, scale, seed, index, facingRight, renderer, reserveCorridor) }
         }
         val countCap = when (definition.scaleClass) {
             CreatureScaleClass.TINY, CreatureScaleClass.SMALL -> 4
@@ -3840,6 +3859,7 @@ private fun renderedCreaturePlacements(
             }
             val phase = stablePhase(animal.findId, i)
             val seed = drift + phase
+            val facingRight = stableFacingRight(animal.findId, i)
             val lane = stableLane(animal.findId, i, 5)
             val renderer = when (animal.findId) {
                 ShellContentCatalog.FOCUS_MINNOW -> "minnow"
@@ -3855,7 +3875,7 @@ private fun renderedCreaturePlacements(
                     val anchors = (0..5).map { anchor ->
                         Offset(safeBounds.left + safeBounds.width * ((anchor + 1f) / 7f), y - (anchor % 2) * 10f)
                     }
-                    addFromCandidates(anchors.drop(lane % anchors.size) + anchors.take(lane % anchors.size), scale, seed, i, renderer)
+                    addFromCandidates(anchors.drop(lane % anchors.size) + anchors.take(lane % anchors.size), scale, seed, i, facingRight, renderer)
                 }
                 CreatureSceneBehavior.DRIFT -> {
                     val anchors = (0..5).map { anchor ->
@@ -3863,7 +3883,7 @@ private fun renderedCreaturePlacements(
                         val y = safeBounds.top + safeBounds.height * (0.18f + (anchor / 3) * 0.32f) + sin((drift * 6.28f + phase + anchor).toDouble()).toFloat() * 12f
                         Offset(x, y)
                     }
-                    addFromCandidates(anchors.drop(lane % anchors.size) + anchors.take(lane % anchors.size), scale, seed, i, renderer)
+                    addFromCandidates(anchors.drop(lane % anchors.size) + anchors.take(lane % anchors.size), scale, seed, i, facingRight, renderer)
                 }
                 CreatureSceneBehavior.SWIM, CreatureSceneBehavior.GLIDE, CreatureSceneBehavior.CRUISE, CreatureSceneBehavior.LEGENDARY -> {
                     val laneCount = when (definition.scaleClass) {
@@ -3879,15 +3899,14 @@ private fun renderedCreaturePlacements(
                     } + phase) % 1f
                     val visualWidth = visualBase * scale * if (definition.scaleClass >= CreatureScaleClass.LARGE) 1.55f else 1.20f
                     val margin = visualWidth * 1.75f
-                    val leftToRight = stableLane(animal.findId, i, 2) == 0
-                    val x = offscreenHorizontalPassX(progress, safeBounds.left, safeBounds.right, visualWidth, margin, leftToRight)
+                    val x = offscreenHorizontalPassX(progress, safeBounds.left, safeBounds.right, visualWidth, margin, facingRight)
                     val y = safeBounds.top + safeBounds.height * ((laneIndex + 1f) / (laneCount + 1f))
                     val alternateY = listOf(
                         y,
                         (y + safeBounds.height * 0.18f).coerceAtMost(safeBounds.bottom - visualBase * scale / 2f),
                         (y - safeBounds.height * 0.18f).coerceAtLeast(safeBounds.top + visualBase * scale / 2f)
                     )
-                    addFromCandidates(alternateY.map { Offset(x, it) }, scale, seed, i, renderer, reserveCorridor = true)
+                    addFromCandidates(alternateY.map { Offset(x, it) }, scale, seed, i, facingRight, renderer, reserveCorridor = true)
                 }
             }
         }
@@ -3902,6 +3921,8 @@ private fun stableHash(findId: String, index: Int): Long = (findId.hashCode() * 
 private fun stablePhase(findId: String, index: Int): Float = (stableHash(findId, index) % 1000L) / 1000f
 
 private fun stableLane(findId: String, index: Int, laneCount: Int): Int = if (laneCount <= 1) 0 else (stableHash(findId, index) % laneCount).toInt()
+
+private fun stableFacingRight(findId: String, index: Int): Boolean = (stableHash(findId, index) and 1L) == 0L
 
 private fun loopAlpha(centerX: Float, visualWidth: Float, bounds: TheBlueSceneSafeBounds): Float {
     val fade = (visualWidth * 0.75f).coerceAtLeast(48f)
@@ -3920,12 +3941,12 @@ private fun offscreenHorizontalPassX(
     right: Float,
     animalWidth: Float,
     margin: Float,
-    leftToRight: Boolean
+    facingRight: Boolean
 ): Float {
     val start = left - animalWidth - margin
     val end = right + animalWidth + margin
     val x = start + (end - start) * progress
-    return if (leftToRight) x else end - (x - start)
+    return if (facingRight) x else end - (x - start)
 }
 
 private fun DrawScope.drawRenderedCreature(
@@ -3933,20 +3954,33 @@ private fun DrawScope.drawRenderedCreature(
     scheme: androidx.compose.material3.ColorScheme
 ) {
     if (placement.alpha <= 0.05f) return
-    val id = placement.rendererKey.lowercase()
-    when {
-        id == "minnow" -> drawMinnow(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme)
-        id == "seahorse" -> drawSeahorse(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme)
-        id == "manta" -> drawManta(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme)
-        id == "base_whale" -> drawWhaleProfile(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme, "base_whale")
-        id == "octopus" -> drawOctopus(placement.center, placement.scale, placement.glowing, scheme)
-        id.contains("starfish") -> drawStarfishScene(placement.center, placement.scale * 0.95f, scheme)
-        id.contains("urchin") -> drawUrchinScene(placement.center, placement.scale * 0.86f, scheme)
-        id.contains("octopus") -> drawOctopus(placement.center, placement.scale, placement.glowing, scheme)
-        id.contains("stingray") -> drawStingrayScene(placement.center, placement.scale * 0.70f, placement.driftSeed, scheme)
-        id.contains("manta") -> drawManta(placement.center, placement.scale * 0.72f, placement.driftSeed, placement.glowing, scheme)
-        id.contains("whale") -> drawWhaleProfile(placement.center, placement.scale * 0.65f, placement.driftSeed, placement.glowing, scheme, id)
-        else -> drawSpeciesSwimmer(placement.center, placement.scale, placement.driftSeed, scheme, id, placement.definition.renderFamily.key)
+
+    fun drawCreatureBody() {
+        val id = placement.rendererKey.lowercase()
+        when {
+            id == "minnow" -> drawMinnow(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme)
+            id == "seahorse" -> drawSeahorse(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme)
+            id == "manta" -> drawManta(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme)
+            id == "base_whale" -> drawWhaleProfile(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme, "base_whale")
+            id == "octopus" -> drawOctopus(placement.center, placement.scale, placement.glowing, scheme)
+            id.contains("starfish") -> drawStarfishScene(placement.center, placement.scale * 0.95f, scheme)
+            id.contains("urchin") -> drawUrchinScene(placement.center, placement.scale * 0.86f, scheme)
+            id.contains("octopus") -> drawOctopus(placement.center, placement.scale, placement.glowing, scheme)
+            id.contains("stingray") -> drawStingrayScene(placement.center, placement.scale * 0.70f, placement.driftSeed, scheme)
+            id.contains("manta") -> drawManta(placement.center, placement.scale * 0.72f, placement.driftSeed, placement.glowing, scheme)
+            id.contains("whale") -> drawWhaleProfile(placement.center, placement.scale * 0.65f, placement.driftSeed, placement.glowing, scheme, id)
+            else -> drawSpeciesSwimmer(placement.center, placement.scale, placement.driftSeed, scheme, id, placement.definition.renderFamily.key)
+        }
+    }
+
+    if (placement.facingRight) {
+        drawCreatureBody()
+    } else {
+        withTransform({
+            scale(scaleX = -1f, scaleY = 1f, pivot = placement.center)
+        }) {
+            drawCreatureBody()
+        }
     }
 }
 
