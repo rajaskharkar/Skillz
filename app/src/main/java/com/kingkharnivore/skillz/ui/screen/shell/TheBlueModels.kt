@@ -176,18 +176,6 @@ internal fun theBlueZoneForPage(page: Int): TheBlueZoneId = when (page.coerceIn(
     else -> TheBlueZoneId.GREAT_BLUE
 }
 
-internal fun offscreenHorizontalPassX(
-    progress: Float,
-    screenWidth: Float,
-    animalWidth: Float,
-    margin: Float,
-    leftToRight: Boolean
-): Float {
-    val start = if (leftToRight) -animalWidth - margin else screenWidth + animalWidth + margin
-    val end = if (leftToRight) screenWidth + animalWidth + margin else -animalWidth - margin
-    return start + (end - start) * progress.coerceIn(0f, 1f)
-}
-
 internal fun TheBlueZoneId.depthOrder(): Int = when (this) {
     TheBlueZoneId.SUNLIT_REEF -> 0
     TheBlueZoneId.DEEPER_REEF -> 1
