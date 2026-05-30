@@ -3259,8 +3259,8 @@ private fun TheBlueZonePage(
     val zoneHasNewArrival = zone.animals.any { it.isNew || it.findId in entryNewAnimalFindIds }
     val waterPhase = sceneTimeSeconds * (0.028f + zone.zoneId.depthOrder() * 0.006f)
     val drift = sceneTimeSeconds * (0.055f + zone.zoneId.depthOrder() * 0.008f)
-    val mantaLoop = (sceneTimeSeconds / 24f) % 1f
-    val whaleLoop = (sceneTimeSeconds / 42f) % 1f
+    val mantaLoop = (sceneTimeSeconds / 20f) % 1f
+    val whaleLoop = (sceneTimeSeconds / 34f) % 1f
 
     Box(
         modifier = Modifier
@@ -3290,7 +3290,7 @@ private fun TheBlueZonePage(
                     whaleLoop = whaleLoop
                 )
             }
-            placements.filter { it.alpha > 0.12f }.forEach { placement ->
+            placements.filter { it.clickable && it.alpha > 0.12f }.forEach { placement ->
                 val animal = placement.animal
                 val newLabel = if (animal.isNew || animal.findId in entryNewAnimalFindIds) stringResource(R.string.the_blue_new_arrival) else ""
                 val description = stringResource(R.string.the_blue_creature_tile_a11y, findName(animal.findId), animal.totalCount, animal.highestLevel, newLabel)
@@ -3702,7 +3702,16 @@ private data class TheBlueRenderedCreature(
     val driftSeed: Float,
     val glowing: Boolean,
     val rendererKey: String,
-    val facingRight: Boolean
+    val facingRight: Boolean,
+    val clickable: Boolean = true
+)
+
+private data class LifeRepresentationPolicy(
+    val directRepresentatives: Int,
+    val ambientDensity: Int,
+    val useSchoolEffect: Boolean,
+    val usePodEffect: Boolean,
+    val uniqueLegendary: Boolean
 )
 
 private fun theBlueSceneSafeBounds(sceneWidth: Float, sceneHeight: Float): TheBlueSceneSafeBounds {
@@ -3716,13 +3725,59 @@ private fun theBlueSceneSafeBounds(sceneWidth: Float, sceneHeight: Float): TheBl
 }
 
 
-internal fun representativeVisibleCount(count: Int, maxVisible: Int): Int = when {
-    count <= 0 -> 0
-    count == 1 -> 1
-    count <= 4 -> min(count, maxVisible)
-    count <= 14 -> min(6, maxVisible)
-    count <= 49 -> min(9, maxVisible)
-    else -> maxVisible
+internal fun representativeVisibleCount(count: Int, maxVisible: Int): Int = count.coerceIn(0, maxVisible)
+
+private fun isUniqueLegendaryCreature(definition: CreatureDefinition): Boolean {
+    val id = definition.creatureId.lowercase()
+    return id.contains("leviathan") || id.contains("kraken") || id.contains("megalodon")
+}
+
+private fun lifeRepresentationPolicy(
+    animal: TheBlueAnimalGroupUiModel,
+    definition: CreatureDefinition
+): LifeRepresentationPolicy {
+    val owned = animal.totalCount.coerceAtLeast(0)
+    val uniqueLegendary = isUniqueLegendaryCreature(definition)
+    val directLimit = when {
+        uniqueLegendary -> 1
+        definition.renderFamily == CreatureRenderFamily.WHALE -> 3
+        definition.renderFamily == CreatureRenderFamily.RAY -> 3
+        definition.scaleClass == CreatureScaleClass.TINY -> 8
+        definition.scaleClass == CreatureScaleClass.SMALL -> 6
+        definition.scaleClass == CreatureScaleClass.MEDIUM -> 5
+        definition.scaleClass == CreatureScaleClass.LARGE -> 4
+        definition.scaleClass == CreatureScaleClass.GIANT -> 3
+        definition.scaleClass == CreatureScaleClass.LEGENDARY -> 2
+        else -> 3
+    }
+    val direct = representativeVisibleCount(owned, directLimit)
+    val overflow = (owned - direct).coerceAtLeast(0)
+    return LifeRepresentationPolicy(
+        directRepresentatives = direct,
+        ambientDensity = overflow.coerceAtMost(4),
+        useSchoolEffect = overflow > 0 && definition.scaleClass <= CreatureScaleClass.SMALL,
+        usePodEffect = overflow > 0 && (definition.renderFamily == CreatureRenderFamily.WHALE || definition.renderFamily == CreatureRenderFamily.RAY),
+        uniqueLegendary = uniqueLegendary
+    )
+}
+
+private fun movementLaneCount(definition: CreatureDefinition, policy: LifeRepresentationPolicy): Int = when {
+    policy.uniqueLegendary -> 1
+    definition.renderFamily == CreatureRenderFamily.WHALE -> max(3, policy.directRepresentatives)
+    definition.renderFamily == CreatureRenderFamily.RAY -> max(3, policy.directRepresentatives)
+    definition.scaleClass == CreatureScaleClass.GIANT -> max(3, policy.directRepresentatives)
+    definition.scaleClass == CreatureScaleClass.LARGE -> max(3, policy.directRepresentatives)
+    definition.scaleClass == CreatureScaleClass.MEDIUM -> 4
+    else -> 5
+}
+
+private fun offscreenMarginFor(visualWidth: Float, definition: CreatureDefinition): Float {
+    val multiplier = when (definition.scaleClass) {
+        CreatureScaleClass.GIANT, CreatureScaleClass.LEGENDARY -> 0.70f
+        CreatureScaleClass.LARGE -> 0.55f
+        else -> 0.45f
+    }
+    return (visualWidth * multiplier).coerceIn(48f, 180f)
 }
 
 private fun renderedCreaturePlacements(
@@ -3786,7 +3841,9 @@ private fun renderedCreaturePlacements(
             index: Int,
             facingRight: Boolean,
             renderer: String = definition.creatureId,
-            reserveCorridor: Boolean = false
+            reserveCorridor: Boolean = false,
+            alphaMultiplier: Float = 1f,
+            clickable: Boolean = true
         ): Boolean {
             val visualWidth = visualBase * scale * when (definition.scaleClass) {
                 CreatureScaleClass.GIANT, CreatureScaleClass.LEGENDARY -> 1.55f
@@ -3822,14 +3879,15 @@ private fun renderedCreaturePlacements(
                 visualBounds = visualBounds,
                 tapBounds = tapBounds,
                 scale = scale,
-                alpha = loopAlpha(clamped.x, visualWidth, safeBounds),
+                alpha = loopAlpha(clamped.x, visualWidth, safeBounds) * alphaMultiplier,
                 zIndex = zIndex,
                 sceneBehavior = definition.sceneBehavior,
                 placementBand = definition.placementBand,
                 driftSeed = seed,
                 glowing = index < accentCount,
                 rendererKey = renderer,
-                facingRight = facingRight
+                facingRight = facingRight,
+                clickable = clickable
             )
             return true
         }
@@ -3840,24 +3898,26 @@ private fun renderedCreaturePlacements(
             index: Int,
             facingRight: Boolean,
             renderer: String = definition.creatureId,
-            reserveCorridor: Boolean = false
-        ) {
-            candidates.firstOrNull { tryAdd(it, scale, seed, index, facingRight, renderer, reserveCorridor) }
+            reserveCorridor: Boolean = false,
+            alphaMultiplier: Float = 1f,
+            clickable: Boolean = true
+        ): Boolean {
+            return candidates.firstOrNull { tryAdd(it, scale, seed, index, facingRight, renderer, reserveCorridor, alphaMultiplier, clickable) } != null
         }
-        val countCap = when (definition.scaleClass) {
-            CreatureScaleClass.TINY, CreatureScaleClass.SMALL -> 4
-            CreatureScaleClass.MEDIUM -> 3
-            CreatureScaleClass.LARGE -> 2
-            CreatureScaleClass.GIANT, CreatureScaleClass.LEGENDARY -> 1
-        }
-        val visible = representativeVisibleCount(animal.totalCount, maxVisible = countCap)
+        val representation = lifeRepresentationPolicy(animal, definition)
+        val visible = representation.directRepresentatives
+        var unplacedDirectRepresentatives = 0
         repeat(visible) { i ->
             val scale = when (animal.findId) {
                 ShellContentCatalog.FOCUS_WHALE -> (1.24f + i * 0.08f) * levelScale
                 ShellContentCatalog.FOCUS_MANTA -> (1.02f + i * 0.12f) * levelScale
                 else -> (0.92f + (i % 3) * 0.08f) * levelScale
             }
-            val phase = stablePhase(animal.findId, i)
+            val phase = if (visible > 1 && definition.scaleClass >= CreatureScaleClass.LARGE) {
+                (i.toFloat() / visible + stablePhase(animal.findId, 0) * 0.15f) % 1f
+            } else {
+                stablePhase(animal.findId, i)
+            }
             val seed = drift + phase
             val facingRight = stableFacingRight(animal.findId, i)
             val lane = stableLane(animal.findId, i, 5)
@@ -3875,7 +3935,9 @@ private fun renderedCreaturePlacements(
                     val anchors = (0..5).map { anchor ->
                         Offset(safeBounds.left + safeBounds.width * ((anchor + 1f) / 7f), y - (anchor % 2) * 10f)
                     }
-                    addFromCandidates(anchors.drop(lane % anchors.size) + anchors.take(lane % anchors.size), scale, seed, i, facingRight, renderer)
+                    if (!addFromCandidates(anchors.drop(lane % anchors.size) + anchors.take(lane % anchors.size), scale, seed, i, facingRight, renderer)) {
+                        unplacedDirectRepresentatives++
+                    }
                 }
                 CreatureSceneBehavior.DRIFT -> {
                     val anchors = (0..5).map { anchor ->
@@ -3883,18 +3945,16 @@ private fun renderedCreaturePlacements(
                         val y = safeBounds.top + safeBounds.height * (0.18f + (anchor / 3) * 0.32f) + sin((drift * 6.28f + phase + anchor).toDouble()).toFloat() * 12f
                         Offset(x, y)
                     }
-                    addFromCandidates(anchors.drop(lane % anchors.size) + anchors.take(lane % anchors.size), scale, seed, i, facingRight, renderer)
+                    if (!addFromCandidates(anchors.drop(lane % anchors.size) + anchors.take(lane % anchors.size), scale, seed, i, facingRight, renderer)) {
+                        unplacedDirectRepresentatives++
+                    }
                 }
                 CreatureSceneBehavior.SWIM, CreatureSceneBehavior.GLIDE, CreatureSceneBehavior.CRUISE, CreatureSceneBehavior.LEGENDARY -> {
-                    val laneCount = when (definition.scaleClass) {
-                        CreatureScaleClass.LEGENDARY, CreatureScaleClass.GIANT -> 1
-                        CreatureScaleClass.LARGE -> 2
-                        else -> 4
-                    }
+                    val laneCount = movementLaneCount(definition, representation)
                     val laneIndex = stableLane(animal.findId, i, laneCount)
                     val movementPhase = when (definition.sceneBehavior) {
                         CreatureSceneBehavior.CRUISE,
-                        CreatureSceneBehavior.LEGENDARY -> stableCruiseEntryPhase(animal.findId, i)
+                        CreatureSceneBehavior.LEGENDARY -> if (visible > 1) phase else stableCruiseEntryPhase(animal.findId, i)
                         else -> phase
                     }
                     val progress = (when (definition.sceneBehavior) {
@@ -3903,7 +3963,7 @@ private fun renderedCreaturePlacements(
                         else -> drift
                     } + movementPhase) % 1f
                     val visualWidth = visualBase * scale * if (definition.scaleClass >= CreatureScaleClass.LARGE) 1.55f else 1.20f
-                    val margin = visualWidth * 1.75f
+                    val margin = offscreenMarginFor(visualWidth, definition)
                     val x = offscreenHorizontalPassX(progress, safeBounds.left, safeBounds.right, visualWidth, margin, facingRight)
                     val y = safeBounds.top + safeBounds.height * ((laneIndex + 1f) / (laneCount + 1f))
                     val alternateY = listOf(
@@ -3911,9 +3971,50 @@ private fun renderedCreaturePlacements(
                         (y + safeBounds.height * 0.18f).coerceAtMost(safeBounds.bottom - visualBase * scale / 2f),
                         (y - safeBounds.height * 0.18f).coerceAtLeast(safeBounds.top + visualBase * scale / 2f)
                     )
-                    addFromCandidates(alternateY.map { Offset(x, it) }, scale, seed, i, facingRight, renderer, reserveCorridor = true)
+                    if (!addFromCandidates(alternateY.map { Offset(x, it) }, scale, seed, i, facingRight, renderer, reserveCorridor = true)) {
+                        unplacedDirectRepresentatives++
+                    }
                 }
             }
+        }
+        val ambientCount = (representation.ambientDensity + unplacedDirectRepresentatives).coerceAtMost(4)
+        repeat(ambientCount) { ambientIndex ->
+            val i = visible + ambientIndex
+            val ambientScale = when (definition.scaleClass) {
+                CreatureScaleClass.GIANT, CreatureScaleClass.LEGENDARY -> 0.44f
+                CreatureScaleClass.LARGE -> 0.50f
+                else -> 0.58f
+            } * levelScale
+            val phase = (ambientIndex.toFloat() / (ambientCount + 1f) + stablePhase(animal.findId, i) * 0.25f) % 1f
+            val seed = drift + phase
+            val facingRight = stableFacingRight(animal.findId, i)
+            val renderer = when (animal.findId) {
+                ShellContentCatalog.FOCUS_MINNOW -> "minnow"
+                ShellContentCatalog.FOCUS_SEAHORSE -> "seahorse"
+                ShellContentCatalog.FOCUS_MANTA -> "manta"
+                ShellContentCatalog.FOCUS_WHALE -> "base_whale"
+                ShellContentCatalog.FOCUS_OCTOPUS -> "octopus"
+                else -> definition.creatureId
+            }
+            val y = safeBounds.top + safeBounds.height * (0.18f + ((ambientIndex % 4) + 1f) / 6f)
+            val x = safeBounds.left + safeBounds.width * (0.18f + (stablePhase(animal.findId, i + 17) * 0.64f))
+            val ambientCandidates = listOf(
+                Offset(x, y),
+                Offset((x + safeBounds.width * 0.18f).coerceAtMost(safeBounds.right), (y + safeBounds.height * 0.12f).coerceAtMost(safeBounds.bottom)),
+                Offset((x - safeBounds.width * 0.18f).coerceAtLeast(safeBounds.left), (y - safeBounds.height * 0.12f).coerceAtLeast(safeBounds.top)),
+                Offset(safeBounds.left + safeBounds.width * (0.12f + ambientIndex * 0.18f).coerceIn(0.12f, 0.82f), safeBounds.top + safeBounds.height * 0.82f)
+            )
+            addFromCandidates(
+                candidates = ambientCandidates,
+                scale = ambientScale,
+                seed = seed,
+                index = i,
+                facingRight = facingRight,
+                renderer = renderer,
+                reserveCorridor = false,
+                alphaMultiplier = if (representation.usePodEffect || representation.useSchoolEffect) 0.30f else 0.22f,
+                clickable = false
+            )
         }
     }
     return placements
@@ -4355,63 +4456,63 @@ private fun DrawScope.drawSeahorse(origin: Offset, scale: Float, bob: Float, glo
 
 private fun DrawScope.drawManta(origin: Offset, scale: Float, drift: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
     val wingPulse = sin((drift * 6.28f).toDouble()).toFloat()
-    val wingLift = wingPulse * 7f * scale
-    val bodyColor = scheme.primary.copy(alpha = 0.48f)
-    val wingColor = scheme.primary.copy(alpha = 0.40f)
-    val accent = scheme.secondary.copy(alpha = if (glowing) 0.34f else 0.18f)
+    val wingLift = wingPulse * 6f * scale
+    val bodyColor = scheme.primary.copy(alpha = 0.50f)
+    val wingColor = scheme.primary.copy(alpha = 0.42f)
+    val accent = scheme.secondary.copy(alpha = if (glowing) 0.36f else 0.20f)
 
     if (glowing) {
         drawOval(
             color = scheme.secondary.copy(alpha = 0.10f),
-            topLeft = Offset(origin.x - 94f * scale, origin.y - 54f * scale),
-            size = Size(188f * scale, 118f * scale)
+            topLeft = Offset(origin.x - 92f * scale, origin.y - 58f * scale),
+            size = Size(190f * scale, 116f * scale)
         )
     }
 
+    // Right-facing manta/ray silhouette: cephalic lobes and eyes at the right,
+    // trailing tail to the left. drawRenderedCreature mirrors this for leftward motion.
     val manta = Path().apply {
-        // Top-view / three-quarter-top-view ray silhouette: broad wings first, then body taper.
-        moveTo(origin.x, origin.y - 42f * scale)
-        cubicTo(origin.x - 18f * scale, origin.y - 45f * scale, origin.x - 55f * scale, origin.y - 42f * scale + wingLift, origin.x - 98f * scale, origin.y - 8f * scale + wingLift)
-        cubicTo(origin.x - 66f * scale, origin.y + 2f * scale, origin.x - 36f * scale, origin.y + 24f * scale, origin.x - 10f * scale, origin.y + 42f * scale)
-        cubicTo(origin.x - 4f * scale, origin.y + 47f * scale, origin.x + 4f * scale, origin.y + 47f * scale, origin.x + 10f * scale, origin.y + 42f * scale)
-        cubicTo(origin.x + 36f * scale, origin.y + 24f * scale, origin.x + 66f * scale, origin.y + 2f * scale, origin.x + 98f * scale, origin.y - 8f * scale - wingLift)
-        cubicTo(origin.x + 55f * scale, origin.y - 42f * scale - wingLift, origin.x + 18f * scale, origin.y - 45f * scale, origin.x, origin.y - 42f * scale)
+        moveTo(origin.x + 78f * scale, origin.y - 6f * scale)
+        cubicTo(origin.x + 44f * scale, origin.y - 48f * scale - wingLift, origin.x - 22f * scale, origin.y - 54f * scale, origin.x - 88f * scale, origin.y - 22f * scale - wingLift)
+        cubicTo(origin.x - 48f * scale, origin.y - 8f * scale, origin.x - 28f * scale, origin.y + 28f * scale, origin.x + 8f * scale, origin.y + 42f * scale)
+        cubicTo(origin.x + 42f * scale, origin.y + 28f * scale, origin.x + 66f * scale, origin.y + 14f * scale, origin.x + 78f * scale, origin.y - 6f * scale)
         close()
     }
     drawPath(manta, wingColor)
 
-    val center = Path().apply {
-        moveTo(origin.x, origin.y - 36f * scale)
-        cubicTo(origin.x - 20f * scale, origin.y - 18f * scale, origin.x - 18f * scale, origin.y + 22f * scale, origin.x, origin.y + 40f * scale)
-        cubicTo(origin.x + 18f * scale, origin.y + 22f * scale, origin.x + 20f * scale, origin.y - 18f * scale, origin.x, origin.y - 36f * scale)
+    val body = Path().apply {
+        moveTo(origin.x + 62f * scale, origin.y - 2f * scale)
+        cubicTo(origin.x + 28f * scale, origin.y - 22f * scale, origin.x - 18f * scale, origin.y - 18f * scale, origin.x - 34f * scale, origin.y)
+        cubicTo(origin.x - 16f * scale, origin.y + 18f * scale, origin.x + 30f * scale, origin.y + 20f * scale, origin.x + 62f * scale, origin.y - 2f * scale)
         close()
     }
-    drawPath(center, bodyColor)
-
-    val underside = Path().apply {
-        moveTo(origin.x, origin.y - 18f * scale)
-        cubicTo(origin.x - 12f * scale, origin.y - 2f * scale, origin.x - 10f * scale, origin.y + 18f * scale, origin.x, origin.y + 29f * scale)
-        cubicTo(origin.x + 10f * scale, origin.y + 18f * scale, origin.x + 12f * scale, origin.y - 2f * scale, origin.x, origin.y - 18f * scale)
+    drawPath(body, bodyColor)
+    drawPath(Path().apply {
+        moveTo(origin.x + 66f * scale, origin.y - 15f * scale)
+        lineTo(origin.x + 92f * scale, origin.y - 28f * scale)
+        lineTo(origin.x + 78f * scale, origin.y - 6f * scale)
         close()
-    }
-    drawPath(underside, accent)
+    }, bodyColor.copy(alpha = 0.62f))
+    drawPath(Path().apply {
+        moveTo(origin.x + 66f * scale, origin.y + 4f * scale)
+        lineTo(origin.x + 92f * scale, origin.y + 16f * scale)
+        lineTo(origin.x + 78f * scale, origin.y - 6f * scale)
+        close()
+    }, bodyColor.copy(alpha = 0.56f))
 
-    // Cephalic-lobe suggestion and small eyes make it read as a manta, not a flat diamond.
-    drawLine(bodyColor.copy(alpha = 0.62f), Offset(origin.x - 9f * scale, origin.y - 37f * scale), Offset(origin.x - 24f * scale, origin.y - 48f * scale), strokeWidth = 3f * scale)
-    drawLine(bodyColor.copy(alpha = 0.62f), Offset(origin.x + 9f * scale, origin.y - 37f * scale), Offset(origin.x + 24f * scale, origin.y - 48f * scale), strokeWidth = 3f * scale)
-    drawCircle(scheme.onSurface.copy(alpha = 0.34f), 1.8f * scale, Offset(origin.x - 9f * scale, origin.y - 25f * scale))
-    drawCircle(scheme.onSurface.copy(alpha = 0.34f), 1.8f * scale, Offset(origin.x + 9f * scale, origin.y - 25f * scale))
+    drawCircle(scheme.onSurface.copy(alpha = 0.40f), 1.8f * scale, Offset(origin.x + 58f * scale, origin.y - 10f * scale))
+    drawCircle(scheme.onSurface.copy(alpha = 0.34f), 1.6f * scale, Offset(origin.x + 55f * scale, origin.y + 4f * scale))
 
     val tailSway = sin((drift * 6.28f - 0.8f).toDouble()).toFloat() * 9f * scale
     val tail = Path().apply {
-        moveTo(origin.x, origin.y + 38f * scale)
-        cubicTo(origin.x + tailSway * 0.25f, origin.y + 72f * scale, origin.x + tailSway, origin.y + 94f * scale, origin.x + tailSway * 0.65f, origin.y + 126f * scale)
+        moveTo(origin.x - 34f * scale, origin.y)
+        cubicTo(origin.x - 70f * scale, origin.y + tailSway * 0.2f, origin.x - 100f * scale, origin.y + tailSway, origin.x - 130f * scale, origin.y + tailSway * 0.65f)
     }
-    drawPath(tail, bodyColor.copy(alpha = 0.52f), style = Stroke(width = 2.4f * scale))
+    drawPath(tail, bodyColor.copy(alpha = 0.54f), style = Stroke(width = 2.6f * scale))
 
     if (glowing) {
-        drawLine(accent, Offset(origin.x - 74f * scale, origin.y - 6f * scale + wingLift), Offset(origin.x - 18f * scale, origin.y + 22f * scale), strokeWidth = 2f * scale)
-        drawLine(accent, Offset(origin.x + 74f * scale, origin.y - 6f * scale - wingLift), Offset(origin.x + 18f * scale, origin.y + 22f * scale), strokeWidth = 2f * scale)
+        drawLine(accent, Offset(origin.x - 60f * scale, origin.y - 16f * scale - wingLift), Offset(origin.x + 20f * scale, origin.y - 4f * scale), strokeWidth = 2f * scale)
+        drawLine(accent, Offset(origin.x - 42f * scale, origin.y + 22f * scale + wingLift), Offset(origin.x + 28f * scale, origin.y + 10f * scale), strokeWidth = 2f * scale)
     }
 }
 
@@ -4419,6 +4520,10 @@ private fun DrawScope.drawManta(origin: Offset, scale: Float, drift: Float, glow
 private fun DrawScope.drawWhaleProfile(origin: Offset, scale: Float, drift: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme, profileKey: String) {
     val key = profileKey.lowercase()
     val bob = sin((drift * 6.28f).toDouble()).toFloat() * 5f * scale
+    // Whale silhouettes were originally authored facing left; normalize them to the
+    // scene renderer convention (right-facing by default) so the shared
+    // facingRight mirror in drawRenderedCreature matches movement direction.
+    withTransform({ scale(scaleX = -1f, scaleY = 1f, pivot = origin) }) {
     when {
         "blue_whale" in key -> {
             val color = scheme.onSurface.copy(alpha = 0.44f)
@@ -4445,6 +4550,7 @@ private fun DrawScope.drawWhaleProfile(origin: Offset, scale: Float, drift: Floa
             repeat(4) { i -> drawCircle(scheme.secondary.copy(alpha = 0.24f), 2f * scale, Offset(origin.x - 82f * scale + i * 10f * scale, origin.y - 6f * scale + bob)) }
         }
         else -> drawWhale(origin, scale, drift, glowing, scheme)
+    }
     }
 }
 
