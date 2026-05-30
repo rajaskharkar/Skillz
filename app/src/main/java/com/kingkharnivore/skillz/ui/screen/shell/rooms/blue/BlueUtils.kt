@@ -75,8 +75,3 @@ fun theBlueZoneFor(zone: CreatureZone): TheBlueZoneId = when (zone) {
     CreatureZone.OPEN_BLUE -> TheBlueZoneId.OPEN_BLUE
     CreatureZone.GREAT_BLUE -> TheBlueZoneId.GREAT_BLUE
 }
-
-@Composable
-fun formName(findId: String, stageId: String?): String =
-    ShellContentCatalog.upgradesFor(findId).firstOrNull { it.upgradeStageId == stageId }?.let { stringResource(it.titleRes) }
-        ?: stringResource(R.string.shell_form_base)
