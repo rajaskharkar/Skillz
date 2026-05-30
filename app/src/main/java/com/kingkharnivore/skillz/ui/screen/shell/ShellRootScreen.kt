@@ -135,6 +135,7 @@ import com.kingkharnivore.skillz.domain.shell.CreaturePlacementBand
 import com.kingkharnivore.skillz.domain.shell.CreatureScaleClass
 import com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior
 import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
+import com.kingkharnivore.skillz.domain.shell.CreatureRenderFamily
 import com.kingkharnivore.skillz.domain.shell.CreatureZone
 import com.kingkharnivore.skillz.domain.shell.CreatureStatus
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
