@@ -3721,6 +3721,16 @@ private fun theBlueSceneSafeBounds(sceneWidth: Float, sceneHeight: Float): TheBl
     )
 }
 
+
+internal fun representativeVisibleCount(count: Int, maxVisible: Int): Int = when {
+    count <= 0 -> 0
+    count == 1 -> 1
+    count <= 4 -> min(count, maxVisible)
+    count <= 14 -> min(6, maxVisible)
+    count <= 49 -> min(9, maxVisible)
+    else -> maxVisible
+}
+
 private fun renderedCreaturePlacements(
     zone: TheBlueZoneUiModel,
     sceneWidth: Float,
