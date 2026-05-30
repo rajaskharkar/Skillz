@@ -3744,6 +3744,16 @@ private data class HabitatPresence(
     val clickable: Boolean = false
 )
 
+private data class PresenceAccounting(
+    val owned: Int,
+    var representedDirect: Int = 0,
+    var representedCohort: Int = 0,
+    var representedHabitat: Int = 0
+) {
+    val representedTotal: Int get() = representedDirect + representedCohort + representedHabitat
+    val remaining: Int get() = (owned - representedTotal).coerceAtLeast(0)
+}
+
 private enum class LifeMotionMode { VISIBLE_LANE, ANCHORED, DRIFT_BOUNDED, PASS_THROUGH, AMBIENT }
 
 private enum class HabitatPresenceKind { SCHOOL_SHIMMER, POD_SHADOW, BLOOM_GLOW, REEF_CLUSTER, DISTANT_SILHOUETTE, CURRENT_TRAIL, BUBBLE_CLUSTER }
@@ -4063,6 +4073,7 @@ private fun renderedCreaturePlacements(
             }
         }
 
+        val accounting = PresenceAccounting(owned = animal.totalCount.coerceAtLeast(0))
         val failedDirectAgents = mutableListOf<LifeAgent>()
         plan.directIndividuals.forEach { agent ->
             val i = agent.representativeIndex
@@ -4099,10 +4110,15 @@ private fun renderedCreaturePlacements(
                 clickable = true,
                 alphaMultiplier = 0.96f
             )
-            if (!placed) failedDirectAgents += agent
+            if (placed) {
+                accounting.representedDirect++
+            } else {
+                failedDirectAgents += agent
+            }
         }
 
-        val cohortCount = plan.cohorts.sumOf { it.count } + failedDirectAgents.size
+        val desiredCohortCount = plan.cohorts.sumOf { it.count } + failedDirectAgents.size
+        val cohortCount = min(desiredCohortCount, accounting.remaining)
         if (cohortCount > 0) {
             val cohortIndex = plan.directIndividuals.size
             val cohortScale = when (definition.scaleClass) {
@@ -4129,12 +4145,13 @@ private fun renderedCreaturePlacements(
                 clickable = true,
                 alphaMultiplier = 0.82f
             )
-            if (!cohortPlaced) {
-                failedDirectAgents.addAll(plan.directIndividuals.take(1))
+            if (cohortPlaced) {
+                accounting.representedCohort += cohortCount
             }
         }
 
-        val habitatCount = (plan.habitatMarks.sumOf { it.countRepresented } + failedDirectAgents.size).coerceAtMost(5)
+        val desiredHabitatCount = max(plan.habitatMarks.sumOf { it.countRepresented }, accounting.remaining)
+        val habitatCount = min(desiredHabitatCount, accounting.remaining).coerceAtMost(5)
         repeat(habitatCount) { habitatIndex ->
             val i = plan.directIndividuals.size + 1 + habitatIndex
             val habitat = plan.habitatMarks.firstOrNull()
@@ -4151,7 +4168,7 @@ private fun renderedCreaturePlacements(
                 else -> 0.24f + (habitatIndex % 4) * 0.16f
             }
             val y = safeBounds.top + safeBounds.height * bandBase.coerceIn(0.12f, 0.90f)
-            tryCandidates(
+            val habitatPlaced = tryCandidates(
                 candidates = listOf(
                     Offset(x, y),
                     Offset((x + safeBounds.width * 0.16f).coerceAtMost(safeBounds.right), (y + safeBounds.height * 0.10f).coerceAtMost(safeBounds.bottom)),
@@ -4164,6 +4181,9 @@ private fun renderedCreaturePlacements(
                 alphaMultiplier = habitat?.alpha ?: 0.16f,
                 clickable = habitat?.clickable ?: false
             )
+            if (habitatPlaced) {
+                accounting.representedHabitat++
+            }
         }
     }
     return placements
