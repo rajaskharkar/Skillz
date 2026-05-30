@@ -28,6 +28,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -62,6 +65,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -86,18 +90,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -122,6 +130,10 @@ import com.kingkharnivore.skillz.data.model.shell.ShellSlotDefinition
 import com.kingkharnivore.skillz.data.model.shell.ShellSlotType
 import com.kingkharnivore.skillz.data.model.shell.StillwaterPerspective
 import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
+import com.kingkharnivore.skillz.domain.shell.CreatureDefinition
+import com.kingkharnivore.skillz.domain.shell.CreaturePlacementBand
+import com.kingkharnivore.skillz.domain.shell.CreatureScaleClass
+import com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior
 import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
 import com.kingkharnivore.skillz.domain.shell.CreatureZone
 import com.kingkharnivore.skillz.domain.shell.CreatureStatus
@@ -129,6 +141,8 @@ import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.ShellViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlin.math.cos
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sin
@@ -1561,7 +1575,6 @@ private fun ShellPearlMiniIcon(
     }
 }
 
-private enum class ShellAnimalIcon { MINNOW, SEAHORSE, MANTA, WHALE, OCTOPUS, JELLYFISH, TURTLE, SHARK, DOLPHIN, SQUID, STARFISH, URCHIN, EEL, FISH }
 
 @Composable
 private fun ShellObjectIcon(
@@ -1569,25 +1582,10 @@ private fun ShellObjectIcon(
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
-    val animalIcon = when {
-        "minnow" in iconKey -> ShellAnimalIcon.MINNOW
-        "seahorse" in iconKey -> ShellAnimalIcon.SEAHORSE
-        "manta" in iconKey -> ShellAnimalIcon.MANTA
-        "whale" in iconKey -> ShellAnimalIcon.WHALE
-        "octopus" in iconKey -> ShellAnimalIcon.OCTOPUS
-        "jellyfish" in iconKey -> ShellAnimalIcon.JELLYFISH
-        "turtle" in iconKey -> ShellAnimalIcon.TURTLE
-        "shark" in iconKey || "megalodon" in iconKey -> ShellAnimalIcon.SHARK
-        "dolphin" in iconKey || "orca" in iconKey -> ShellAnimalIcon.DOLPHIN
-        "squid" in iconKey || "kraken" in iconKey || "leviathan" in iconKey -> ShellAnimalIcon.SQUID
-        "starfish" in iconKey -> ShellAnimalIcon.STARFISH
-        "urchin" in iconKey -> ShellAnimalIcon.URCHIN
-        "eel" in iconKey || "snake" in iconKey -> ShellAnimalIcon.EEL
-        "creature_icon" in iconKey || "fish" in iconKey || "tang" in iconKey || "seal" in iconKey || "otter" in iconKey || "penguin" in iconKey -> ShellAnimalIcon.FISH
-        else -> null
-    }
+    val isCreature = iconKey.contains("creature", ignoreCase = true) ||
+        listOf("minnow", "seahorse", "manta", "whale", "octopus", "jellyfish", "turtle", "shark", "dolphin", "squid", "starfish", "urchin", "eel", "fish", "seal", "otter", "penguin", "orca", "kraken", "leviathan").any { iconKey.contains(it, ignoreCase = true) }
     val vector = when {
-        animalIcon != null -> null
+        isCreature -> null
         "kelp" in iconKey || "curtain" in iconKey -> Icons.Outlined.Grass
         "bubble" in iconKey || "current" in iconKey -> Icons.Outlined.Waves
         "coral" in iconKey || "perch" in iconKey -> Icons.Outlined.FilterVintage
@@ -1595,8 +1593,8 @@ private fun ShellObjectIcon(
     }
     Surface(shape = CircleShape, color = scheme.primary.copy(alpha = 0.16f), modifier = modifier) {
         Box(contentAlignment = Alignment.Center) {
-            if (animalIcon != null) {
-                ShellAnimalCanvasIcon(animalIcon, Modifier.fillMaxSize().padding(5.dp))
+            if (isCreature) {
+                ShellAnimalCanvasIcon(iconKey, Modifier.fillMaxSize().padding(5.dp))
             } else if (vector != null) {
                 Icon(imageVector = vector, contentDescription = null, tint = scheme.primary, modifier = Modifier.size(18.dp))
             }
@@ -1606,111 +1604,95 @@ private fun ShellObjectIcon(
 
 @Composable
 private fun ShellAnimalCanvasIcon(
-    animalIcon: ShellAnimalIcon,
+    iconKey: String,
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
     Canvas(modifier) {
-        val w = size.width
-        val h = size.height
-        val ink = scheme.primary
-        val accent = scheme.primary.copy(alpha = 0.55f)
+        drawStaticCreatureIcon(iconKey.lowercase(), scheme)
+    }
+}
 
-        when (animalIcon) {
-            ShellAnimalIcon.MINNOW -> {
-                drawOval(ink, topLeft = Offset(w * 0.22f, h * 0.34f), size = Size(w * 0.44f, h * 0.30f))
-                drawPath(Path().apply {
-                    moveTo(w * 0.20f, h * 0.50f)
-                    lineTo(w * 0.02f, h * 0.34f)
-                    lineTo(w * 0.02f, h * 0.66f)
-                    close()
-                }, ink)
-                drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.58f, h * 0.44f))
-                drawOval(accent, topLeft = Offset(w * 0.66f, h * 0.24f), size = Size(w * 0.18f, h * 0.12f))
-                drawOval(accent, topLeft = Offset(w * 0.72f, h * 0.62f), size = Size(w * 0.20f, h * 0.12f))
-            }
-            ShellAnimalIcon.SEAHORSE -> {
-                drawCircle(ink, radius = w * 0.17f, center = Offset(w * 0.56f, h * 0.24f))
-                drawLine(ink, Offset(w * 0.64f, h * 0.25f), Offset(w * 0.86f, h * 0.20f), strokeWidth = w * 0.09f)
-                drawPath(Path().apply {
-                    moveTo(w * 0.54f, h * 0.36f)
-                    cubicTo(w * 0.30f, h * 0.44f, w * 0.38f, h * 0.78f, w * 0.58f, h * 0.70f)
-                    cubicTo(w * 0.78f, h * 0.62f, w * 0.68f, h * 0.48f, w * 0.54f, h * 0.56f)
-                }, ink, style = Stroke(width = w * 0.13f))
-                drawCircle(scheme.surface, radius = w * 0.032f, center = Offset(w * 0.61f, h * 0.20f))
-                drawLine(accent, Offset(w * 0.37f, h * 0.48f), Offset(w * 0.18f, h * 0.40f), strokeWidth = w * 0.08f)
-            }
-            ShellAnimalIcon.MANTA -> {
-                drawPath(Path().apply {
-                    moveTo(w * 0.50f, h * 0.22f)
-                    cubicTo(w * 0.20f, h * 0.30f, w * 0.08f, h * 0.58f, w * 0.02f, h * 0.74f)
-                    cubicTo(w * 0.28f, h * 0.66f, w * 0.38f, h * 0.62f, w * 0.50f, h * 0.78f)
-                    cubicTo(w * 0.62f, h * 0.62f, w * 0.72f, h * 0.66f, w * 0.98f, h * 0.74f)
-                    cubicTo(w * 0.92f, h * 0.58f, w * 0.80f, h * 0.30f, w * 0.50f, h * 0.22f)
-                    close()
-                }, ink)
-                drawLine(accent, Offset(w * 0.50f, h * 0.72f), Offset(w * 0.50f, h * 0.96f), strokeWidth = w * 0.05f)
-            }
-            ShellAnimalIcon.WHALE -> {
-                drawOval(ink, topLeft = Offset(w * 0.12f, h * 0.34f), size = Size(w * 0.68f, h * 0.34f))
-                drawPath(Path().apply {
-                    moveTo(w * 0.78f, h * 0.50f)
-                    lineTo(w * 0.98f, h * 0.30f)
-                    lineTo(w * 0.92f, h * 0.50f)
-                    lineTo(w * 0.98f, h * 0.70f)
-                    close()
-                }, ink)
-                drawCircle(scheme.surface, radius = w * 0.03f, center = Offset(w * 0.24f, h * 0.44f))
-                drawLine(accent, Offset(w * 0.36f, h * 0.34f), Offset(w * 0.44f, h * 0.18f), strokeWidth = w * 0.05f)
-                drawLine(accent, Offset(w * 0.44f, h * 0.18f), Offset(w * 0.54f, h * 0.34f), strokeWidth = w * 0.05f)
-            }
-            ShellAnimalIcon.OCTOPUS -> {
-                drawOval(ink, topLeft = Offset(w * 0.26f, h * 0.14f), size = Size(w * 0.48f, h * 0.42f))
-                listOf(0.20f, 0.36f, 0.52f, 0.68f).forEach { x ->
-                    drawLine(ink, Offset(w * (x + 0.06f), h * 0.52f), Offset(w * x, h * 0.86f), strokeWidth = w * 0.08f)
-                }
-                drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.42f, h * 0.32f))
-                drawCircle(scheme.surface, radius = w * 0.035f, center = Offset(w * 0.58f, h * 0.32f))
-            }
-            ShellAnimalIcon.JELLYFISH -> {
-                drawArc(ink, 180f, 180f, true, topLeft = Offset(w * 0.20f, h * 0.18f), size = Size(w * 0.60f, h * 0.46f))
-                listOf(0.28f, 0.42f, 0.56f, 0.70f).forEach { x -> drawLine(accent, Offset(w * x, h * 0.48f), Offset(w * (x - 0.05f), h * 0.88f), strokeWidth = w * 0.045f) }
-            }
-            ShellAnimalIcon.TURTLE -> {
-                drawOval(ink, Offset(w * 0.26f, h * 0.24f), Size(w * 0.48f, h * 0.42f))
-                drawOval(accent, Offset(w * 0.42f, h * 0.08f), Size(w * 0.16f, h * 0.16f))
-                listOf(0.18f to 0.30f, 0.74f to 0.30f, 0.18f to 0.62f, 0.74f to 0.62f).forEach { (x,y) -> drawOval(accent, Offset(w*x,h*y), Size(w*0.18f,h*0.12f)) }
-            }
-            ShellAnimalIcon.SHARK -> {
-                drawOval(ink, Offset(w * 0.16f, h * 0.38f), Size(w * 0.62f, h * 0.24f))
-                drawPath(Path().apply { moveTo(w*0.72f,h*0.50f); lineTo(w*0.98f,h*0.30f); lineTo(w*0.90f,h*0.50f); lineTo(w*0.98f,h*0.70f); close() }, ink)
-                drawPath(Path().apply { moveTo(w*0.42f,h*0.38f); lineTo(w*0.50f,h*0.12f); lineTo(w*0.58f,h*0.40f); close() }, accent)
-            }
-            ShellAnimalIcon.DOLPHIN -> {
-                drawArc(ink, 195f, 205f, false, topLeft = Offset(w*0.14f,h*0.18f), size = Size(w*0.72f,h*0.52f), style = Stroke(width = w*0.16f))
-                drawPath(Path().apply { moveTo(w*0.76f,h*0.43f); lineTo(w*0.98f,h*0.28f); lineTo(w*0.90f,h*0.48f); lineTo(w*0.98f,h*0.66f); close() }, ink)
-            }
-            ShellAnimalIcon.SQUID -> {
-                drawOval(ink, Offset(w*0.34f,h*0.10f), Size(w*0.32f,h*0.42f))
-                repeat(5) { i -> drawLine(ink, Offset(w*(0.36f+i*0.07f), h*0.50f), Offset(w*(0.22f+i*0.14f), h*0.90f), strokeWidth = w*0.055f) }
-            }
-            ShellAnimalIcon.STARFISH -> {
-                val path = Path(); repeat(10) { i -> val r= if (i%2==0) .43f else .18f; val a=(-90+i*36)*Math.PI/180; val x=w*.5f+Math.cos(a).toFloat()*w*r; val y=h*.5f+Math.sin(a).toFloat()*h*r; if(i==0) path.moveTo(x,y) else path.lineTo(x,y) }; path.close(); drawPath(path, ink)
-            }
-            ShellAnimalIcon.URCHIN -> {
-                repeat(14) { i -> val a=i*6.28f/14f; drawLine(ink, Offset(w*.5f,h*.5f), Offset(w*(.5f+kotlin.math.cos(a)*.43f), h*(.5f+kotlin.math.sin(a)*.43f)), strokeWidth=w*.035f) }
-                drawCircle(ink, w*.24f, Offset(w*.5f,h*.5f))
-            }
-            ShellAnimalIcon.EEL -> {
-                drawArc(ink, 180f, 240f, false, topLeft = Offset(w*.10f,h*.20f), size=Size(w*.76f,h*.58f), style=Stroke(width=w*.13f))
-                drawCircle(ink, w*.10f, Offset(w*.76f,h*.38f))
-            }
-            ShellAnimalIcon.FISH -> {
-                drawOval(ink, topLeft = Offset(w * 0.20f, h * 0.34f), size = Size(w * 0.52f, h * 0.30f))
-                drawPath(Path().apply { moveTo(w*0.18f,h*0.50f); lineTo(w*0.02f,h*0.34f); lineTo(w*0.02f,h*0.66f); close() }, ink)
-                drawPath(Path().apply { moveTo(w*0.54f,h*0.34f); lineTo(w*0.62f,h*0.16f); lineTo(w*0.66f,h*0.38f); close() }, accent)
-                drawCircle(scheme.surface, radius = w * 0.03f, center = Offset(w * 0.60f, h * 0.44f))
-            }
+private fun DrawScope.drawStaticCreatureIcon(key: String, scheme: androidx.compose.material3.ColorScheme) {
+    val w = size.width
+    val h = size.height
+    val primary = scheme.primary
+    val secondary = scheme.secondary
+    val surface = scheme.surface
+    fun fishBody(body: Color, accent: Color, tall: Float = 0.30f, long: Float = 0.54f, stripes: Int = 0, beak: Boolean = false) {
+        drawOval(body, topLeft = Offset(w * 0.20f, h * (0.50f - tall / 2f)), size = Size(w * long, h * tall))
+        drawPath(Path().apply { moveTo(w*0.19f,h*0.50f); lineTo(w*0.03f,h*0.35f); lineTo(w*0.03f,h*0.65f); close() }, accent)
+        drawPath(Path().apply { moveTo(w*0.50f,h*(0.50f-tall/2f)); lineTo(w*0.60f,h*0.17f); lineTo(w*0.66f,h*(0.50f-tall/2f+0.04f)); close() }, accent.copy(alpha = 0.72f))
+        if (beak) drawPath(Path().apply { moveTo(w*0.74f,h*0.47f); lineTo(w*0.92f,h*0.42f); lineTo(w*0.75f,h*0.55f); close() }, accent)
+        repeat(stripes) { i ->
+            val x = w * (0.34f + i * 0.11f)
+            drawLine(surface.copy(alpha = 0.72f), Offset(x, h*(0.50f-tall/2f+0.02f)), Offset(x + w*0.03f, h*(0.50f+tall/2f-0.02f)), strokeWidth = w*0.035f)
+        }
+        drawCircle(surface, radius = w * 0.035f, center = Offset(w * 0.64f, h * 0.44f))
+    }
+    fun starFish() {
+        val path = Path()
+        repeat(10) { i ->
+            val r = if (i % 2 == 0) 0.43f else 0.19f
+            val a = (-90 + i * 36) * Math.PI / 180.0
+            val x = w * 0.5f + kotlin.math.cos(a).toFloat() * w * r
+            val y = h * 0.5f + kotlin.math.sin(a).toFloat() * h * r
+            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        path.close()
+        drawPath(path, secondary.copy(alpha = 0.82f))
+        drawCircle(primary.copy(alpha = 0.38f), w*0.055f, Offset(w*0.5f,h*0.5f))
+        repeat(5) { i ->
+            val a=(-90+i*72)*Math.PI/180.0
+            drawCircle(surface.copy(alpha=0.65f), w*0.025f, Offset(w*0.5f+kotlin.math.cos(a).toFloat()*w*0.24f, h*0.5f+kotlin.math.sin(a).toFloat()*h*0.24f))
+        }
+    }
+    fun urchin() {
+        repeat(18) { i -> val a=i*6.28318f/18f; drawLine(primary, Offset(w*0.5f,h*0.5f), Offset(w*(0.5f+kotlin.math.cos(a)*0.45f), h*(0.5f+kotlin.math.sin(a)*0.45f)), strokeWidth=w*0.028f) }
+        drawCircle(secondary.copy(alpha=0.72f), w*0.25f, Offset(w*0.5f,h*0.5f))
+        drawCircle(surface.copy(alpha=0.5f), w*0.05f, Offset(w*0.44f,h*0.44f))
+    }
+    when {
+        "starfish" in key -> starFish()
+        "urchin" in key -> urchin()
+        "minnow" in key -> fishBody(primary.copy(alpha = 0.68f), secondary.copy(alpha = 0.48f), tall = 0.22f, long = 0.48f)
+        "octopus" in key -> { val c = secondary.copy(alpha = 0.74f); drawOval(c, Offset(w * 0.32f, h * 0.12f), Size(w * 0.36f, h * 0.36f)); repeat(8) { i -> drawLine(c, Offset(w * (0.34f + i * 0.045f), h * 0.46f), Offset(w * (0.12f + i * 0.09f), h * 0.88f), strokeWidth = w * 0.035f) }; drawCircle(surface.copy(alpha = 0.56f), w * 0.024f, Offset(w * 0.44f, h * 0.28f)); drawCircle(surface.copy(alpha = 0.56f), w * 0.024f, Offset(w * 0.56f, h * 0.28f)) }
+        "clownfish" in key -> fishBody(Color(0xFFE9782E), surface, tall=0.34f, long=0.55f, stripes=3)
+        "blue_tang" in key || "tang" in key -> fishBody(Color(0xFF2D77C8), Color(0xFFF2D14C), tall=0.32f, long=0.58f, stripes=1)
+        "butterflyfish" in key -> fishBody(Color(0xFFF4D35E), Color(0xFF1A1B2E), tall=0.46f, long=0.48f, stripes=4)
+        "angelfish" in key -> fishBody(Color(0xFF6C63C7), Color(0xFFEFB8C8), tall=0.50f, long=0.42f, stripes=2)
+        "parrotfish" in key -> fishBody(Color(0xFF13A999), Color(0xFFFF8F3D), tall=0.36f, long=0.62f, stripes=2, beak=true)
+        "lionfish" in key -> { fishBody(Color(0xFFB45A3C), Color(0xFFF3D6A2), tall=0.38f, long=0.50f, stripes=4); repeat(6){i->drawLine(secondary.copy(alpha=0.55f), Offset(w*(0.34f+i*0.06f),h*0.33f), Offset(w*(0.24f+i*0.10f),h*0.05f), strokeWidth=w*0.02f)} }
+        "pufferfish" in key -> { drawCircle(primary.copy(alpha=0.72f), w*0.28f, Offset(w*0.52f,h*0.50f)); repeat(10){i->val a=i*6.28318f/10f; drawLine(secondary, Offset(w*0.52f,h*0.50f), Offset(w*(0.52f+kotlin.math.cos(a)*0.40f), h*(0.5f+kotlin.math.sin(a)*0.40f)), strokeWidth=w*0.018f)}; drawCircle(surface,w*0.03f,Offset(w*0.62f,h*0.42f)) }
+        "seahorse" in key -> { drawCircle(secondary.copy(alpha=0.76f), w*0.15f, Offset(w*0.58f,h*0.25f)); drawLine(secondary.copy(alpha=0.76f), Offset(w*0.66f,h*0.25f), Offset(w*0.86f,h*0.20f), strokeWidth=w*0.08f); drawPath(Path().apply { moveTo(w*0.54f,h*0.36f); cubicTo(w*0.28f,h*0.43f,w*0.36f,h*0.80f,w*0.58f,h*0.70f); cubicTo(w*0.78f,h*0.62f,w*0.68f,h*0.48f,w*0.54f,h*0.56f) }, secondary.copy(alpha=0.76f), style=Stroke(width=w*0.13f)); drawCircle(surface,w*0.03f,Offset(w*0.62f,h*0.21f)) }
+        "stingray" in key -> { drawPath(Path().apply { moveTo(w*0.50f,h*0.26f); cubicTo(w*0.20f,h*0.32f,w*0.08f,h*0.58f,w*0.08f,h*0.70f); cubicTo(w*0.34f,h*0.62f,w*0.42f,h*0.62f,w*0.50f,h*0.76f); cubicTo(w*0.58f,h*0.62f,w*0.66f,h*0.62f,w*0.92f,h*0.70f); cubicTo(w*0.92f,h*0.58f,w*0.80f,h*0.32f,w*0.50f,h*0.26f); close() }, primary.copy(alpha=0.68f)); drawLine(secondary.copy(alpha=0.52f), Offset(w*0.50f,h*0.72f), Offset(w*0.50f,h*0.96f), strokeWidth=w*0.025f) }
+        "manta" in key -> { drawPath(Path().apply { moveTo(w*0.50f,h*0.18f); cubicTo(w*0.12f,h*0.30f,w*0.03f,h*0.65f,w*0.02f,h*0.80f); cubicTo(w*0.29f,h*0.64f,w*0.40f,h*0.64f,w*0.50f,h*0.78f); cubicTo(w*0.60f,h*0.64f,w*0.71f,h*0.64f,w*0.98f,h*0.80f); cubicTo(w*0.97f,h*0.65f,w*0.88f,h*0.30f,w*0.50f,h*0.18f); close() }, primary.copy(alpha=0.74f)); drawLine(secondary.copy(alpha=0.55f), Offset(w*0.50f,h*0.74f), Offset(w*0.50f,h*0.98f), strokeWidth=w*0.035f) }
+        "jellyfish" in key -> { drawArc(secondary.copy(alpha=0.72f),180f,180f,true,Offset(w*0.18f,h*0.16f),Size(w*0.64f,h*0.48f)); repeat(5){i->drawLine(primary.copy(alpha=0.5f),Offset(w*(0.25f+i*0.12f),h*0.50f),Offset(w*(0.20f+i*0.13f),h*0.90f),strokeWidth=w*0.035f)} }
+        "turtle" in key -> { drawOval(primary.copy(alpha=0.72f), Offset(w*0.24f,h*0.24f), Size(w*0.50f,h*0.42f)); drawOval(secondary.copy(alpha=0.55f), Offset(w*0.42f,h*0.08f), Size(w*0.16f,h*0.16f)); repeat(4){i->val x=if(i%2==0)0.15f else 0.74f; val y=if(i<2)0.30f else 0.62f; drawOval(secondary.copy(alpha=0.55f),Offset(w*x,h*y),Size(w*0.18f,h*0.12f))} }
+        "sea_otter" in key || "otter" in key -> { drawOval(primary.copy(alpha=0.62f), Offset(w*0.16f,h*0.42f), Size(w*0.58f,h*0.20f)); drawCircle(primary.copy(alpha=0.72f), w*0.14f, Offset(w*0.70f,h*0.38f)); drawCircle(surface.copy(alpha=0.55f), w*0.035f, Offset(w*0.75f,h*0.35f)); drawCircle(secondary.copy(alpha=0.52f), w*0.045f, Offset(w*0.46f,h*0.48f)); drawCircle(secondary.copy(alpha=0.52f), w*0.04f, Offset(w*0.56f,h*0.47f)) }
+        "sea_lion" in key -> { drawOval(primary.copy(alpha=0.68f), Offset(w*0.14f,h*0.36f), Size(w*0.60f,h*0.28f)); drawOval(primary.copy(alpha=0.76f), Offset(w*0.62f,h*0.28f), Size(w*0.22f,h*0.20f)); drawPath(Path().apply { moveTo(w*0.42f,h*0.58f); lineTo(w*0.18f,h*0.82f); lineTo(w*0.54f,h*0.63f); close() }, secondary.copy(alpha=0.58f)); drawPath(Path().apply { moveTo(w*0.56f,h*0.58f); lineTo(w*0.82f,h*0.80f); lineTo(w*0.66f,h*0.58f); close() }, secondary.copy(alpha=0.45f)); drawCircle(surface,w*0.025f,Offset(w*0.78f,h*0.34f)) }
+        "penguin" in key -> { drawOval(Color(0xFF263238).copy(alpha=0.80f), Offset(w*0.32f,h*0.10f), Size(w*0.36f,h*0.72f)); drawOval(surface.copy(alpha=0.78f), Offset(w*0.40f,h*0.25f), Size(w*0.20f,h*0.42f)); drawPath(Path().apply { moveTo(w*0.32f,h*0.38f); lineTo(w*0.10f,h*0.52f); lineTo(w*0.34f,h*0.55f); close() }, primary.copy(alpha=0.48f)); drawPath(Path().apply { moveTo(w*0.68f,h*0.38f); lineTo(w*0.90f,h*0.52f); lineTo(w*0.66f,h*0.55f); close() }, primary.copy(alpha=0.48f)); drawPath(Path().apply { moveTo(w*0.55f,h*0.18f); lineTo(w*0.78f,h*0.23f); lineTo(w*0.56f,h*0.28f); close() }, secondary) }
+        "seal" in key -> { drawOval(primary.copy(alpha=0.68f), Offset(w*0.16f,h*0.36f), Size(w*0.62f,h*0.26f)); drawCircle(primary.copy(alpha=0.72f), w*0.12f, Offset(w*0.75f,h*0.42f)); drawPath(Path().apply { moveTo(w*0.42f,h*0.58f); lineTo(w*0.26f,h*0.76f); lineTo(w*0.52f,h*0.62f); close() }, secondary.copy(alpha=0.50f)); drawCircle(surface,w*0.025f,Offset(w*0.79f,h*0.38f)) }
+        "dolphin" in key -> { drawArc(primary.copy(alpha=0.72f),200f,200f,false,Offset(w*0.12f,h*0.18f),Size(w*0.70f,h*0.50f),style=Stroke(width=w*0.15f)); drawPath(Path().apply{moveTo(w*0.75f,h*0.41f);lineTo(w*0.98f,h*0.32f);lineTo(w*0.76f,h*0.50f);close()}, primary.copy(alpha=0.72f)); drawPath(Path().apply{moveTo(w*0.18f,h*0.50f);lineTo(w*0.02f,h*0.32f);lineTo(w*0.14f,h*0.50f);lineTo(w*0.02f,h*0.68f);close()}, primary.copy(alpha=0.68f)); drawPath(Path().apply{moveTo(w*0.47f,h*0.36f);lineTo(w*0.55f,h*0.12f);lineTo(w*0.61f,h*0.39f);close()}, secondary.copy(alpha=0.55f)); drawCircle(surface,w*0.024f,Offset(w*0.68f,h*0.38f)) }
+        "orca" in key -> { drawOval(Color(0xFF263238).copy(alpha=0.72f),Offset(w*0.14f,h*0.35f),Size(w*0.66f,h*0.30f)); drawOval(surface.copy(alpha=0.74f),Offset(w*0.42f,h*0.46f),Size(w*0.22f,h*0.10f)); drawPath(Path().apply{moveTo(w*0.76f,h*0.50f);lineTo(w*0.98f,h*0.30f);lineTo(w*0.90f,h*0.50f);lineTo(w*0.98f,h*0.70f);close()}, Color(0xFF263238).copy(alpha=0.72f)); drawPath(Path().apply{moveTo(w*0.42f,h*0.36f);lineTo(w*0.50f,h*0.08f);lineTo(w*0.58f,h*0.38f);close()}, Color(0xFF263238).copy(alpha=0.72f)) }
+        "anglerfish" in key -> { fishBody(Color(0xFF30313B), secondary, tall=0.38f, long=0.56f); drawLine(secondary,Offset(w*0.60f,h*0.32f),Offset(w*0.72f,h*0.12f),strokeWidth=w*0.025f); drawCircle(secondary,w*0.045f,Offset(w*0.74f,h*0.10f)) }
+        "megalodon" in key -> { fishBody(Color(0xFF27323A), Color(0xFF6B7A85), tall=0.34f, long=0.70f); drawPath(Path().apply{moveTo(w*0.45f,h*0.36f);lineTo(w*0.55f,h*0.04f);lineTo(w*0.64f,h*0.38f);close()}, Color(0xFF6B7A85)) }
+        "shark" in key || "great_white" in key -> { fishBody(Color(0xFF6B7A85), Color(0xFFB0BEC5), tall=0.30f, long=0.66f); drawPath(Path().apply{moveTo(w*0.42f,h*0.38f);lineTo(w*0.50f,h*0.12f);lineTo(w*0.58f,h*0.40f);close()}, Color(0xFFB0BEC5)) }
+        "blue_whale" in key -> { drawOval(primary.copy(alpha=0.56f), Offset(w*0.05f,h*0.38f), Size(w*0.82f,h*0.24f)); drawPath(Path().apply{moveTo(w*0.84f,h*0.50f);lineTo(w*0.99f,h*0.35f);lineTo(w*0.94f,h*0.50f);lineTo(w*0.99f,h*0.65f);close()}, primary.copy(alpha=0.52f)); drawOval(secondary.copy(alpha=0.26f),Offset(w*0.34f,h*0.52f),Size(w*0.30f,h*0.06f)); drawPath(Path().apply{moveTo(w*0.55f,h*0.38f);lineTo(w*0.60f,h*0.25f);lineTo(w*0.64f,h*0.39f);close()}, secondary.copy(alpha=0.32f)) }
+        "humpback_whale" in key -> { drawPath(Path().apply{moveTo(w*0.12f,h*0.54f); cubicTo(w*0.24f,h*0.22f,w*0.58f,h*0.24f,w*0.80f,h*0.46f); cubicTo(w*0.62f,h*0.68f,w*0.28f,h*0.70f,w*0.12f,h*0.54f); close()}, primary.copy(alpha=0.58f)); drawPath(Path().apply{moveTo(w*0.78f,h*0.48f);lineTo(w*0.98f,h*0.30f);lineTo(w*0.90f,h*0.50f);lineTo(w*0.98f,h*0.70f);close()}, primary.copy(alpha=0.52f)); drawLine(secondary.copy(alpha=0.42f), Offset(w*0.40f,h*0.58f), Offset(w*0.22f,h*0.92f), strokeWidth=w*0.06f); repeat(3){i->drawCircle(secondary.copy(alpha=0.35f), w*0.018f, Offset(w*(0.20f+i*0.05f), h*0.42f))} }
+        "whale" in key -> { drawOval(primary.copy(alpha=0.58f), Offset(w*0.12f,h*0.34f), Size(w*0.68f,h*0.34f)); drawPath(Path().apply{moveTo(w*0.78f,h*0.50f);lineTo(w*0.98f,h*0.30f);lineTo(w*0.92f,h*0.50f);lineTo(w*0.98f,h*0.70f);close()}, primary.copy(alpha=0.58f)); drawOval(secondary.copy(alpha=0.32f),Offset(w*0.33f,h*0.50f),Size(w*0.26f,h*0.08f)) }
+        "leviathan" in key -> { val c=Color(0xFF203A5F).copy(alpha=0.78f); drawArc(c,180f,220f,false,Offset(w*0.06f,h*0.20f),Size(w*0.86f,h*0.56f),style=Stroke(width=w*0.09f)); drawCircle(secondary.copy(alpha=0.60f),w*0.10f,Offset(w*0.78f,h*0.32f)); drawPath(Path().apply{moveTo(w*0.44f,h*0.26f);lineTo(w*0.54f,h*0.02f);lineTo(w*0.58f,h*0.30f);close()},secondary.copy(alpha=0.32f)) }
+        "kraken" in key -> { val c=secondary.copy(alpha=0.75f); drawOval(c,Offset(w*0.28f,h*0.08f),Size(w*0.44f,h*0.44f)); repeat(10){i->drawLine(c,Offset(w*(0.30f+i*0.045f),h*0.50f),Offset(w*(0.04f+i*0.10f),h*0.94f),strokeWidth=w*0.045f)} }
+        "giant_squid" in key -> { val c=secondary.copy(alpha=0.68f); drawPath(Path().apply{moveTo(w*0.50f,h*0.04f); cubicTo(w*0.22f,h*0.30f,w*0.34f,h*0.58f,w*0.50f,h*0.58f); cubicTo(w*0.66f,h*0.58f,w*0.78f,h*0.30f,w*0.50f,h*0.04f); close()},c); repeat(8){i->drawLine(c,Offset(w*(0.34f+i*0.045f),h*0.56f),Offset(w*(0.10f+i*0.09f),h*0.94f),strokeWidth=w*0.035f)} }
+        "squid" in key -> { val c=secondary.copy(alpha=0.70f); drawOval(c,Offset(w*0.34f,h*0.10f),Size(w*0.32f,h*0.42f)); repeat(5){i->drawLine(c,Offset(w*(0.36f+i*0.07f),h*0.50f),Offset(w*(0.20f+i*0.14f),h*0.90f),strokeWidth=w*0.04f)} }
+        "moray_eel" in key || "eel" in key -> { drawArc(primary.copy(alpha=0.72f),165f,250f,false,Offset(w*0.08f,h*0.26f),Size(w*0.78f,h*0.54f),style=Stroke(width=w*0.16f)); drawOval(primary.copy(alpha=0.78f),Offset(w*0.66f,h*0.30f),Size(w*0.22f,h*0.18f)); drawLine(surface.copy(alpha=0.60f),Offset(w*0.76f,h*0.42f),Offset(w*0.88f,h*0.46f),strokeWidth=w*0.018f); drawCircle(surface,w*0.025f,Offset(w*0.78f,h*0.36f)) }
+        "sea_snake" in key || "snake" in key -> { drawPath(Path().apply{moveTo(w*0.10f,h*0.58f); cubicTo(w*0.28f,h*0.20f,w*0.42f,h*0.82f,w*0.58f,h*0.44f); cubicTo(w*0.70f,h*0.18f,w*0.84f,h*0.36f,w*0.92f,h*0.30f)}, primary.copy(alpha=0.68f), style=Stroke(width=w*0.08f)); repeat(5){i->drawLine(secondary.copy(alpha=0.55f),Offset(w*(0.22f+i*0.12f),h*(0.48f+(i%2)*0.06f)),Offset(w*(0.26f+i*0.12f),h*(0.38f+(i%2)*0.06f)),strokeWidth=w*0.02f)}; drawCircle(primary.copy(alpha=0.72f),w*0.07f,Offset(w*0.91f,h*0.30f)) }
+        "sunfish" in key -> { drawOval(primary.copy(alpha=0.68f),Offset(w*0.28f,h*0.20f),Size(w*0.36f,h*0.54f)); drawPath(Path().apply{moveTo(w*0.46f,h*0.20f);lineTo(w*0.54f,h*0.02f);lineTo(w*0.56f,h*0.22f);close()}, secondary.copy(alpha=0.5f)); drawPath(Path().apply{moveTo(w*0.46f,h*0.72f);lineTo(w*0.54f,h*0.96f);lineTo(w*0.56f,h*0.70f);close()}, secondary.copy(alpha=0.5f)) }
+        "swordfish" in key -> { fishBody(primary.copy(alpha=0.68f), secondary.copy(alpha=0.55f), tall=0.22f, long=0.66f); drawLine(secondary,Offset(w*0.78f,h*0.49f),Offset(w*0.99f,h*0.43f),strokeWidth=w*0.025f) }
+        "flying_fish" in key -> { fishBody(primary.copy(alpha=0.68f), secondary.copy(alpha=0.55f), tall=0.22f, long=0.58f); drawPath(Path().apply{moveTo(w*0.42f,h*0.40f);lineTo(w*0.22f,h*0.08f);lineTo(w*0.62f,h*0.38f);close()},secondary.copy(alpha=0.42f)) }
+        "barracuda" in key -> fishBody(primary.copy(alpha=0.62f), secondary.copy(alpha=0.42f), tall=0.20f, long=0.72f)
+        else -> {
+            fishBody(primary.copy(alpha = 0.54f), secondary.copy(alpha = 0.42f), tall = 0.28f, long = 0.50f, stripes = 1)
         }
     }
 }
@@ -2426,44 +2408,23 @@ private fun ShellChestScreen(
         .sortedBy { (findId, _) -> ShellContentCatalog.find(findId)?.titleRes ?: 0 }
     val stackItems = uiState.stacks.filter { isVisibleInTab(ShellContentCatalog.find(it.findId)) }
 
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        item {
-            RoomHeader(
-                title = R.string.shell_chest_title,
-                body = R.string.shell_chest_body
-            )
+    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        RoomHeader(title = R.string.shell_chest_title, body = R.string.shell_chest_body)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+            FilterChip(selected = category == ShellChestTab.ALL, onClick = { category = ShellChestTab.ALL }, label = { Text(stringResource(R.string.shell_filter_all)) })
+            FilterChip(selected = category == ShellChestTab.ANIMALS, onClick = { category = ShellChestTab.ANIMALS }, label = { Text(stringResource(R.string.shell_filter_animals)) })
+            FilterChip(selected = category == ShellChestTab.ROOM_OBJECTS, onClick = { category = ShellChestTab.ROOM_OBJECTS }, label = { Text(stringResource(R.string.shell_filter_room_objects)) })
         }
-
-        item {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.horizontalScroll(rememberScrollState())
-            ) {
-                FilterChip(
-                    selected = category == ShellChestTab.ALL,
-                    onClick = { category = ShellChestTab.ALL },
-                    label = { Text(stringResource(R.string.shell_filter_all)) }
-                )
-                FilterChip(
-                    selected = category == ShellChestTab.ANIMALS,
-                    onClick = { category = ShellChestTab.ANIMALS },
-                    label = { Text(stringResource(R.string.shell_filter_animals)) }
-                )
-                FilterChip(
-                    selected = category == ShellChestTab.ROOM_OBJECTS,
-                    onClick = { category = ShellChestTab.ROOM_OBJECTS },
-                    label = { Text(stringResource(R.string.shell_filter_room_objects)) }
-                )
-            }
-        }
-
-        items(groupedItems) { (findId, copies) ->
+        LazyVerticalGrid(
+            modifier = Modifier.weight(1f),
+            columns = GridCells.Adaptive(168.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            items(groupedItems) { (findId, copies) ->
             val def = ShellContentCatalog.find(findId) ?: return@items
             val title = stringResource(def.titleRes)
-            val categoryLabel = kindLabel(def.kind) + (depthLabel(def.depthTier)?.let { " · $it" } ?: "")
+            val categoryLabel = kindLabel(def.kind)
             val activeCopies = if (def.kind == ShellRewardKind.ANIMAL) copies.filter { it.creatureStatus == CreatureStatus.ACTIVE } else copies
             val displayedCount = activeCopies.count { it.instanceId in displayedIds }
             val restingCount = activeCopies.size - displayedCount
@@ -2471,7 +2432,7 @@ private fun ShellChestScreen(
             val usedBeyondBlueCount = copies.count { it.creatureStatus == CreatureStatus.USED_BEYOND_BLUE }
             val bestCopy = copies.maxByOrNull { currentFormOrder(it) }
             val bestFormTitle = if (def.kind == ShellRewardKind.ANIMAL) {
-                "Highest level: Level ${copies.maxOfOrNull { it.animalLevel.coerceAtLeast(1) } ?: 1}"
+                stringResource(R.string.the_blue_highest_level_chip, copies.maxOfOrNull { it.animalLevel.coerceAtLeast(1) } ?: 1)
             } else {
                 bestCopy?.let { copy ->
                     ShellContentCatalog.upgradesFor(copy.findId)
@@ -2497,29 +2458,35 @@ private fun ShellChestScreen(
                     role = Role.Button
                 }
             ) {
-                ListItem(
-                    leadingContent = {
-                        ShellObjectIcon(def.iconKey, Modifier.size(36.dp))
-                    },
-                    headlineContent = {
-                        Text(stringResource(R.string.shell_chest_group_title, title, copies.size))
-                    },
-                    supportingContent = {
-                        Text(
-                            stringResource(
-                                R.string.shell_chest_group_status,
-                                bestFormTitle,
-                                displayedCount,
-                                restingCount,
-                                categoryLabel
-                            ) + "\n" + sourceReasonFor(def)
-                        )
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ShellObjectIcon(def.iconKey, Modifier.size(36.dp))
+                    Text(title, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.shell_chest_lifetime_count, copies.size))
+                    Text(stringResource(R.string.the_blue_swimming_chip, activeCopies.count { it.creatureStatus == CreatureStatus.ACTIVE }))
+                    Text(bestFormTitle)
+                    if (def.kind == ShellRewardKind.ANIMAL) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                            copies.groupBy { it.animalLevel.coerceAtLeast(1) }.toSortedMap().forEach { (lv, lvCopies) ->
+                                ShellMetricPill(Icons.Outlined.EmojiEvents, stringResource(R.string.shell_creature_level_count_chip, lv, lvCopies.size))
+                            }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                            if (releasedCount > 0) {
+                                ShellMetricPill(Icons.Outlined.Route, stringResource(R.string.the_blue_released_chip, releasedCount))
+                            }
+                            if (usedBeyondBlueCount > 0) {
+                                ShellMetricPill(Icons.Outlined.Waves, stringResource(R.string.the_blue_beyond_blue_chip, usedBeyondBlueCount))
+                            }
+                        }
+                    } else {
+                        Text(stringResource(R.string.shell_chest_displayed_count, displayedCount))
+                        Text(stringResource(R.string.shell_chest_resting_count, restingCount))
                     }
-                )
+                    Text(categoryLabel, style = MaterialTheme.typography.labelSmall)
+                }
             }
-        }
-
-        items(stackItems) { stack ->
+            }
+            items(stackItems) { stack ->
             val def = ShellContentCatalog.find(stack.findId) ?: return@items
             val title = stringResource(def.titleRes)
 
@@ -2528,13 +2495,14 @@ private fun ShellChestScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             ) {
-                ListItem(
-                    leadingContent = { ShellObjectIcon(def.iconKey, Modifier.size(36.dp)) },
-                    headlineContent = { Text(stringResource(R.string.shell_chest_group_title, title, stack.quantity)) },
-                    supportingContent = {
-                        Text("${kindLabel(def.kind)} · ${stringResource(R.string.shell_stack_quantity, stack.quantity)}\n${sourceReasonFor(def)}")
-                    }
-                )
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ShellObjectIcon(def.iconKey, Modifier.size(36.dp))
+                    Text(title, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.shell_stack_quantity, stack.quantity))
+                    ShellMetricPill(Icons.Outlined.Inventory2, kindLabel(def.kind))
+                    Text(sourceReasonFor(def), style = MaterialTheme.typography.bodySmall)
+                }
+            }
             }
         }
     }
@@ -2608,21 +2576,50 @@ private fun CopyGroupSheet(
     )
     val displayedIds = displayedInstanceIds(uiState)
     val title = def?.let { stringResource(it.titleRes) } ?: findId
+    val activeCopies = if (def?.kind == ShellRewardKind.ANIMAL) copies.filter { it.creatureStatus == CreatureStatus.ACTIVE } else copies
+    val displayedCount = activeCopies.count { it.instanceId in displayedIds }
+    val restingCount = activeCopies.size - displayedCount
+    val releasedCount = copies.count { it.creatureStatus == CreatureStatus.RELEASED }
+    val usedBeyondBlueCount = copies.count { it.creatureStatus == CreatureStatus.USED_BEYOND_BLUE }
+    val highestLevel = copies.maxOfOrNull { it.animalLevel.coerceAtLeast(1) } ?: 1
+    val bestFormTitle = copies.maxByOrNull { currentFormOrder(it) }?.let { copy ->
+        ShellContentCatalog.upgradesFor(copy.findId)
+            .firstOrNull { it.upgradeStageId == copy.currentUpgradeStageId }
+            ?.let { stringResource(it.titleRes) }
+    } ?: title
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            ShellObjectIcon(def?.iconKey ?: "shell", Modifier.size(56.dp))
             Text(
-                text = stringResource(R.string.shell_chest_group_title, title, copies.size),
+                text = stringResource(R.string.shell_collection_title, title),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
+            Text(stringResource(R.string.shell_chest_lifetime_count, copies.size))
+            Text(stringResource(R.string.the_blue_swimming_chip, activeCopies.count { it.creatureStatus == CreatureStatus.ACTIVE }))
+            Text(stringResource(R.string.shell_chest_displayed_count, displayedCount))
+            Text(stringResource(R.string.shell_chest_resting_count, restingCount))
+            if (def?.kind == ShellRewardKind.ANIMAL) {
+                Text(stringResource(R.string.the_blue_highest_level_chip, highestLevel))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                    copies.groupBy { it.animalLevel.coerceAtLeast(1) }.toSortedMap().forEach { (lv, lvCopies) ->
+                        ShellMetricPill(Icons.Outlined.EmojiEvents, stringResource(R.string.shell_creature_level_count_chip, lv, lvCopies.size))
+                    }
+                }
+                if (releasedCount > 0) Text(stringResource(R.string.the_blue_released_chip, releasedCount))
+                if (usedBeyondBlueCount > 0) Text(stringResource(R.string.the_blue_beyond_blue_chip, usedBeyondBlueCount))
+            } else {
+                Text(stringResource(R.string.shell_chest_best_form, bestFormTitle))
+            }
+            Text(stringResource(R.string.shell_copies_heading), fontWeight = FontWeight.SemiBold)
 
             copies.forEach { copy ->
                 val rowTitle = if (def?.kind == ShellRewardKind.ANIMAL) {
-                    "Level ${copy.animalLevel.coerceAtLeast(1)}"
+                    stringResource(R.string.shell_creature_level_short, copy.animalLevel.coerceAtLeast(1))
                 } else {
                     ShellContentCatalog.upgradesFor(copy.findId)
                         .firstOrNull { it.upgradeStageId == copy.currentUpgradeStageId }
@@ -2630,7 +2627,10 @@ private fun CopyGroupSheet(
                 }
                 val status = when {
                     copy.instanceId in displayedIds -> stringResource(R.string.shell_status_displayed_focus)
-                    def?.kind == ShellRewardKind.ANIMAL && copy.creatureStatus != CreatureStatus.ACTIVE -> "Lifetime record · ${copy.creatureStatus.lowercase().replace('_', ' ')}"
+                    def?.kind == ShellRewardKind.ANIMAL && copy.creatureStatus == CreatureStatus.RELEASED ->
+                        stringResource(R.string.shell_lifetime_record_status_released)
+                    def?.kind == ShellRewardKind.ANIMAL && copy.creatureStatus == CreatureStatus.USED_BEYOND_BLUE ->
+                        stringResource(R.string.shell_lifetime_record_status_used_beyond_blue)
                     else -> stringResource(R.string.shell_status_resting)
                 }
 
@@ -3049,6 +3049,13 @@ private fun TheBlueRoomScreen(
     val pageCount = if (theBlueState.isEmpty) 1 else theBlueState.zones.size
     val pagerState = rememberPagerState(pageCount = { pageCount })
     val scope = rememberCoroutineScope()
+    var sceneTimeSeconds by remember { mutableStateOf(0f) }
+    LaunchedEffect(Unit) {
+        val startNanos = withFrameNanos { it }
+        while (true) {
+            sceneTimeSeconds = (withFrameNanos { it } - startNanos) / 1_000_000_000f
+        }
+    }
     val activeZone by remember(pagerState) {
         derivedStateOf { theBlueZoneForPage(pagerState.currentPage) }
     }
@@ -3073,6 +3080,7 @@ private fun TheBlueRoomScreen(
                     pageHeight = pageHeight,
                     showRoomHeader = zone.zoneId == TheBlueZoneId.SUNLIT_REEF,
                     entryNewAnimalFindIds = entryNewAnimalFindIds,
+                    sceneTimeSeconds = sceneTimeSeconds,
                     onZoneBeyondBlue = {
                         beyondBlueInitialZone = zone.zoneId
                         showBeyondBlue = true
@@ -3239,6 +3247,7 @@ private fun TheBlueZonePage(
     pageHeight: Dp,
     showRoomHeader: Boolean,
     entryNewAnimalFindIds: Set<String>,
+    sceneTimeSeconds: Float,
     onZoneBeyondBlue: () -> Unit,
     onAnimalClick: (TheBlueAnimalGroupUiModel) -> Unit
 ) {
@@ -3249,28 +3258,10 @@ private fun TheBlueZonePage(
     val animalSummary = zoneAnimalSummary(zone)
     val zoneDescription = stringResource(R.string.the_blue_zone_scene_a11y, title, subtitle, animalSummary)
     val zoneHasNewArrival = zone.animals.any { it.isNew || it.findId in entryNewAnimalFindIds }
-    val transition = rememberInfiniteTransition(label = "the-blue-${zone.zoneId.name.lowercase()}-motion")
-    val drift by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            tween(16000 + zone.zoneId.depthOrder() * 7000, easing = LinearEasing),
-            RepeatMode.Restart
-        ),
-        label = "zone-drift"
-    )
-    val mantaLoop by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(18000, easing = LinearEasing), RepeatMode.Restart),
-        label = "manta-offscreen-loop"
-    )
-    val whaleLoop by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(32000, easing = LinearEasing), RepeatMode.Restart),
-        label = "whale-offscreen-loop"
-    )
+    val waterPhase = sceneTimeSeconds * (0.028f + zone.zoneId.depthOrder() * 0.006f)
+    val drift = sceneTimeSeconds * (0.055f + zone.zoneId.depthOrder() * 0.008f)
+    val mantaLoop = (sceneTimeSeconds / 20f) % 1f
+    val whaleLoop = (sceneTimeSeconds / 34f) % 1f
 
     Box(
         modifier = Modifier
@@ -3279,11 +3270,48 @@ private fun TheBlueZonePage(
             .semantics { contentDescription = zoneDescription }
     ) {
         Canvas(Modifier.matchParentSize()) {
-            drawTheBlueWaterBackground(zone.zoneId, scheme, drift)
+            val placements = renderedCreaturePlacements(zone, size.width, size.height, drift, mantaLoop, whaleLoop)
+            drawTheBlueWaterBackground(zone.zoneId, scheme, waterPhase)
             drawZoneEnvironment(zone.zoneId, scheme, drift, zone.animals.sumOf { it.totalCount })
-            drawZoneAnimals(zone, scheme, drift, mantaLoop, whaleLoop)
+            placements.sortedBy { it.zIndex }.forEach { drawRenderedCreature(it, scheme) }
             if (zoneHasNewArrival) {
                 drawRect(scheme.secondary.copy(alpha = 0.045f))
+            }
+        }
+
+        BoxWithConstraints(Modifier.matchParentSize()) {
+            val density = LocalDensity.current
+            val placements = with(density) {
+                renderedCreaturePlacements(
+                    zone = zone,
+                    sceneWidth = maxWidth.toPx(),
+                    sceneHeight = maxHeight.toPx(),
+                    drift = drift,
+                    mantaLoop = mantaLoop,
+                    whaleLoop = whaleLoop
+                )
+            }
+            placements.filter { it.clickable && it.alpha > 0.12f }.forEach { placement ->
+                val animal = placement.animal
+                val newLabel = if (animal.isNew || animal.findId in entryNewAnimalFindIds) stringResource(R.string.the_blue_new_arrival) else ""
+                val description = stringResource(R.string.the_blue_creature_tile_a11y, findName(animal.findId), animal.totalCount, animal.highestLevel, newLabel)
+                Box(
+                    modifier = Modifier
+                        .offset(
+                            x = with(density) { placement.tapBounds.left.toDp() },
+                            y = with(density) { placement.tapBounds.top.toDp() }
+                        )
+                        .size(
+                            width = with(density) { placement.tapBounds.width.toDp() },
+                            height = with(density) { placement.tapBounds.height.toDp() }
+                        )
+                        .clip(CircleShape)
+                        .clickable(onClick = { onAnimalClick(animal) })
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = description
+                        }
+                )
             }
         }
 
@@ -3358,30 +3386,14 @@ private fun TheBlueZonePage(
             }
         }
 
-        Column(
+        TheBlueCreatureTray(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(start = 20.dp, end = 78.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (zone.animals.isEmpty()) {
-                TheBlueOverlaySurface {
-                    Text(
-                        text = stringResource(R.string.the_blue_zone_waiting),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurface.copy(alpha = 0.70f)
-                    )
-                }
-            } else {
-                zone.animals.forEach { animal ->
-                    TheBlueAnimalOverlayChip(
-                        animal = animal,
-                        isNewArrival = animal.isNew || animal.findId in entryNewAnimalFindIds,
-                        onClick = { onAnimalClick(animal) }
-                    )
-                }
-            }
-        }
+            zone = zone,
+            entryNewAnimalFindIds = entryNewAnimalFindIds,
+            onAnimalClick = onAnimalClick
+        )
     }
 }
 
@@ -3411,28 +3423,60 @@ private fun TheBlueOverlaySurface(
 }
 
 @Composable
-private fun TheBlueAnimalOverlayChip(
-    animal: TheBlueAnimalGroupUiModel,
-    isNewArrival: Boolean,
-    onClick: () -> Unit
+private fun TheBlueCreatureTray(
+    modifier: Modifier = Modifier,
+    zone: TheBlueZoneUiModel,
+    entryNewAnimalFindIds: Set<String>,
+    onAnimalClick: (TheBlueAnimalGroupUiModel) -> Unit
 ) {
+    var expanded by remember(zone.zoneId) { mutableStateOf(false) }
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        TheBlueOverlaySurface {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(stringResource(R.string.the_blue_swimming_here), fontWeight = FontWeight.Bold)
+                    Text(
+                        text = stringResource(if (expanded) R.string.shell_hide else R.string.shell_view_all),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { expanded = !expanded }
+                    )
+                }
+                if (zone.animals.isEmpty()) {
+                    Text(stringResource(R.string.the_blue_zone_waiting), style = MaterialTheme.typography.bodySmall)
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                        zone.animals.forEach { animal ->
+                            TheBlueCreatureTile(animal, animal.isNew || animal.findId in entryNewAnimalFindIds) { onAnimalClick(animal) }
+                        }
+                    }
+                }
+            }
+        }
+        if (expanded && zone.animals.isNotEmpty()) {
+            TheBlueOverlaySurface {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState())) {
+                    Text(stringResource(R.string.the_blue_zone_life_title, zoneTitle(zone.zoneId)), fontWeight = FontWeight.SemiBold)
+                    zone.animals.forEach { animal ->
+                        TheBlueExpandedZoneInventoryRow(animal, animal.isNew || animal.findId in entryNewAnimalFindIds) { onAnimalClick(animal) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TheBlueCreatureTile(animal: TheBlueAnimalGroupUiModel, isNewArrival: Boolean, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val name = findName(animal.findId)
-    val zone = zoneTitle(animal.zoneId)
-    val source = theBlueSourceReason(animal.findId)
-    val contentDescription = stringResource(
-        R.string.the_blue_animal_overlay_a11y,
-        name,
-        zone,
-        animal.totalCount,
-        source
-    )
+    val contentDescription = stringResource(R.string.the_blue_creature_tile_a11y, name, animal.totalCount, animal.highestLevel, if (isNewArrival) stringResource(R.string.the_blue_new_arrival) else "")
     Surface(
-        shape = RoundedCornerShape(999.dp),
+        shape = RoundedCornerShape(16.dp),
         color = scheme.surface.copy(alpha = 0.84f),
         border = BorderStroke(1.dp, if (isNewArrival) scheme.secondary.copy(alpha = 0.70f) else scheme.primary.copy(alpha = 0.18f)),
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
+            .widthIn(min = 110.dp)
+            .clip(RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .semantics {
                 this.contentDescription = contentDescription
@@ -3440,30 +3484,46 @@ private fun TheBlueAnimalOverlayChip(
             }
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = stringResource(R.string.the_blue_animal_count, name, animal.totalCount),
-                style = MaterialTheme.typography.labelLarge,
-                color = scheme.onSurface,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = stringResource(R.string.the_blue_animal_zone, zone),
-                style = MaterialTheme.typography.labelSmall,
-                color = scheme.onSurface.copy(alpha = 0.68f)
-            )
-            Text(
-                text = stringResource(R.string.the_blue_tap_for_details),
-                style = MaterialTheme.typography.labelSmall,
-                color = scheme.primary,
-                fontWeight = FontWeight.SemiBold
-            )
-            if (isNewArrival) {
-                Surface(shape = CircleShape, color = scheme.secondary, modifier = Modifier.size(8.dp), content = {})
+            ShellObjectIcon(CreatureCatalog.get(animal.findId)?.staticIconKey ?: "animal", Modifier.size(30.dp))
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text(name, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Surface(shape = RoundedCornerShape(999.dp), color = scheme.primary.copy(alpha = 0.15f)) {
+                    Text(stringResource(R.string.the_blue_count_badge, animal.totalCount), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                }
+                ShellMetricPill(icon = Icons.Outlined.EmojiEvents, text = stringResource(R.string.shell_creature_level_short, animal.highestLevel))
             }
+            if (isNewArrival) {
+                Surface(shape = RoundedCornerShape(999.dp), color = scheme.secondary.copy(alpha = 0.2f)) {
+                    Text(stringResource(R.string.the_blue_new_arrival), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), color = scheme.secondary)
+                }
+            }
+        }
+    }
+}
+@Composable private fun TheBlueExpandedZoneInventoryRow(animal: TheBlueAnimalGroupUiModel, isNewArrival: Boolean, onClick: () -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Text(findName(animal.findId), fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.the_blue_highest_level_chip, animal.highestLevel))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+            animal.levelCounts.forEach { level ->
+                val lv = level.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 1
+                ShellMetricPill(icon = Icons.Outlined.EmojiEvents, text = stringResource(R.string.shell_creature_level_count_chip, lv, level.count))
+            }
+        }
+    }
+}
+
+@Composable private fun ShellMetricPill(icon: ImageVector, text: String, modifier: Modifier = Modifier) {
+    Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = modifier) {
+        Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp))
+            Text(text, style = MaterialTheme.typography.labelSmall)
         }
     }
 }
@@ -3486,7 +3546,7 @@ private fun DrawScope.drawTheBlueWaterBackground(
         )
     )
     repeat(3) { ray ->
-        val offset = ((drift + ray * 0.23f) % 1f) * size.width * 0.18f
+        val offset = sin((drift * 0.55f + ray * 0.73f).toDouble()).toFloat() * size.width * 0.06f
         val path = Path().apply {
             moveTo(size.width * (0.12f + ray * 0.22f) + offset, 0f)
             lineTo(size.width * (0.20f + ray * 0.20f) + offset, size.height)
@@ -3606,156 +3666,917 @@ private fun DrawScope.drawGreatBlueEnvironment(
     }
 }
 
-private fun DrawScope.drawZoneAnimals(
+
+
+private data class TheBlueSceneSafeBounds(
+    val left: Float,
+    val top: Float,
+    val right: Float,
+    val bottom: Float
+) {
+    val width: Float get() = (right - left).coerceAtLeast(1f)
+    val height: Float get() = (bottom - top).coerceAtLeast(1f)
+
+    fun clampCenter(center: Offset, halfWidth: Float, halfHeight: Float): Offset {
+        val minX = left + halfWidth
+        val maxX = right - halfWidth
+        val minY = top + halfHeight
+        val maxY = bottom - halfHeight
+        return Offset(
+            x = if (minX <= maxX) center.x.coerceIn(minX, maxX) else (left + right) / 2f,
+            y = if (minY <= maxY) center.y.coerceIn(minY, maxY) else (top + bottom) / 2f
+        )
+    }
+}
+
+private data class TheBlueRenderedCreature(
+    val animal: TheBlueAnimalGroupUiModel,
+    val definition: CreatureDefinition,
+    val center: Offset,
+    val visualBounds: Rect,
+    val tapBounds: Rect,
+    val scale: Float,
+    val alpha: Float,
+    val zIndex: Float,
+    val sceneBehavior: CreatureSceneBehavior,
+    val placementBand: CreaturePlacementBand,
+    val driftSeed: Float,
+    val glowing: Boolean,
+    val rendererKey: String,
+    val facingRight: Boolean,
+    val clickable: Boolean = true
+)
+
+private data class LifePresencePlan(
+    val directIndividuals: List<LifeAgent>,
+    val cohorts: List<LifeCohort>,
+    val habitatMarks: List<HabitatPresence>,
+    val overflowCount: Int
+)
+
+private data class LifeAgent(
+    val key: String,
+    val findId: String,
+    val representativeIndex: Int,
+    val level: Int,
+    val sourceType: String?,
+    val laneId: String,
+    val motionMode: LifeMotionMode,
+    val clickable: Boolean = true
+)
+
+private data class LifeCohort(
+    val key: String,
+    val findId: String,
+    val count: Int,
+    val laneId: String,
+    val motionMode: LifeMotionMode,
+    val clickable: Boolean = true
+)
+
+private data class HabitatPresence(
+    val key: String,
+    val findId: String,
+    val countRepresented: Int,
+    val kind: HabitatPresenceKind,
+    val placementBand: CreaturePlacementBand,
+    val alpha: Float,
+    val clickable: Boolean = false
+)
+
+private data class PresenceAccounting(
+    val owned: Int,
+    var representedDirect: Int = 0,
+    var representedCohort: Int = 0,
+    var representedHabitat: Int = 0
+) {
+    val representedTotal: Int get() = representedDirect + representedCohort + representedHabitat
+    val remaining: Int get() = (owned - representedTotal).coerceAtLeast(0)
+}
+
+private enum class LifeMotionMode { VISIBLE_LANE, ANCHORED, DRIFT_BOUNDED, PASS_THROUGH, AMBIENT }
+
+private enum class HabitatPresenceKind { SCHOOL_SHIMMER, POD_SHADOW, BLOOM_GLOW, REEF_CLUSTER, DISTANT_SILHOUETTE, CURRENT_TRAIL, BUBBLE_CLUSTER }
+
+private fun theBlueSceneSafeBounds(sceneWidth: Float, sceneHeight: Float): TheBlueSceneSafeBounds {
+    val horizontalInset = max(24f, sceneWidth * 0.055f)
+    return TheBlueSceneSafeBounds(
+        left = horizontalInset,
+        top = max(132f, sceneHeight * 0.24f),
+        right = (sceneWidth - max(92f, sceneWidth * 0.18f)).coerceAtLeast(horizontalInset + 1f),
+        bottom = (sceneHeight - max(170f, sceneHeight * 0.24f)).coerceAtLeast(max(132f, sceneHeight * 0.24f) + 1f)
+    )
+}
+
+private fun isUniqueLegendaryCreature(definition: CreatureDefinition): Boolean {
+    val id = definition.creatureId.lowercase()
+    return id.contains("leviathan") || id.contains("kraken") || id.contains("megalodon")
+}
+
+private fun lifePresencePlan(
+    animal: TheBlueAnimalGroupUiModel,
+    definition: CreatureDefinition
+): LifePresencePlan {
+    val owned = animal.totalCount.coerceAtLeast(0)
+    if (owned == 0) {
+        return LifePresencePlan(emptyList(), emptyList(), emptyList(), overflowCount = 0)
+    }
+    val uniqueLegendary = isUniqueLegendaryCreature(definition)
+    val directLimit = when {
+        uniqueLegendary -> 1
+        definition.renderFamily == CreatureRenderFamily.WHALE -> 3
+        definition.renderFamily == CreatureRenderFamily.RAY -> 3
+        definition.renderFamily == CreatureRenderFamily.JELLYFISH -> 5
+        definition.sceneBehavior == CreatureSceneBehavior.BOTTOM_DWELL -> 5
+        definition.scaleClass == CreatureScaleClass.TINY -> 8
+        definition.scaleClass == CreatureScaleClass.SMALL -> 6
+        definition.scaleClass == CreatureScaleClass.MEDIUM -> 5
+        definition.scaleClass == CreatureScaleClass.LARGE -> 4
+        definition.scaleClass == CreatureScaleClass.GIANT -> 3
+        definition.scaleClass == CreatureScaleClass.LEGENDARY -> 2
+        else -> 3
+    }
+    val directCount = owned.coerceAtMost(directLimit)
+    val directMode = when (definition.sceneBehavior) {
+        CreatureSceneBehavior.BOTTOM_DWELL -> LifeMotionMode.ANCHORED
+        CreatureSceneBehavior.DRIFT -> LifeMotionMode.DRIFT_BOUNDED
+        else -> LifeMotionMode.VISIBLE_LANE
+    }
+    val directIndividuals = (0 until directCount).map { index ->
+        LifeAgent(
+            key = "${animal.findId}:direct:$index",
+            findId = animal.findId,
+            representativeIndex = index,
+            level = animal.highestLevel,
+            sourceType = definition.sourceType.name,
+            laneId = "${definition.placementBand.name.lowercase()}:$index",
+            motionMode = directMode
+        )
+    }
+    val overflow = (owned - directCount).coerceAtLeast(0)
+    val cohortMode = when (definition.sceneBehavior) {
+        CreatureSceneBehavior.BOTTOM_DWELL -> LifeMotionMode.ANCHORED
+        CreatureSceneBehavior.DRIFT -> LifeMotionMode.DRIFT_BOUNDED
+        else -> LifeMotionMode.VISIBLE_LANE
+    }
+    val cohorts = if (overflow > 0) {
+        listOf(
+            LifeCohort(
+                key = "${animal.findId}:cohort",
+                findId = animal.findId,
+                count = overflow,
+                laneId = "${definition.placementBand.name.lowercase()}:cohort",
+                motionMode = cohortMode
+            )
+        )
+    } else {
+        emptyList()
+    }
+    val habitatKind = when {
+        uniqueLegendary -> HabitatPresenceKind.CURRENT_TRAIL
+        definition.renderFamily == CreatureRenderFamily.WHALE -> HabitatPresenceKind.POD_SHADOW
+        definition.renderFamily == CreatureRenderFamily.RAY -> HabitatPresenceKind.DISTANT_SILHOUETTE
+        definition.renderFamily == CreatureRenderFamily.JELLYFISH -> HabitatPresenceKind.BLOOM_GLOW
+        definition.sceneBehavior == CreatureSceneBehavior.BOTTOM_DWELL -> HabitatPresenceKind.REEF_CLUSTER
+        definition.scaleClass <= CreatureScaleClass.SMALL -> HabitatPresenceKind.SCHOOL_SHIMMER
+        else -> HabitatPresenceKind.BUBBLE_CLUSTER
+    }
+    val habitatMarks = if (overflow > 0) {
+        listOf(
+            HabitatPresence(
+                key = "${animal.findId}:habitat",
+                findId = animal.findId,
+                countRepresented = overflow,
+                kind = habitatKind,
+                placementBand = definition.placementBand,
+                alpha = if (uniqueLegendary) 0.26f else 0.18f
+            )
+        )
+    } else {
+        emptyList()
+    }
+    return LifePresencePlan(
+        directIndividuals = directIndividuals,
+        cohorts = cohorts,
+        habitatMarks = habitatMarks,
+        overflowCount = overflow
+    )
+}
+
+private fun movementLaneCount(definition: CreatureDefinition, plan: LifePresencePlan): Int = when {
+    isUniqueLegendaryCreature(definition) -> 1
+    definition.renderFamily == CreatureRenderFamily.WHALE -> max(3, plan.directIndividuals.size)
+    definition.renderFamily == CreatureRenderFamily.RAY -> max(3, plan.directIndividuals.size)
+    definition.scaleClass == CreatureScaleClass.GIANT -> max(3, plan.directIndividuals.size)
+    definition.scaleClass == CreatureScaleClass.LARGE -> max(3, plan.directIndividuals.size)
+    definition.scaleClass == CreatureScaleClass.MEDIUM -> max(4, plan.directIndividuals.size)
+    else -> max(5, plan.directIndividuals.size)
+}
+
+private fun offscreenMarginFor(visualWidth: Float, definition: CreatureDefinition): Float {
+    val multiplier = when (definition.scaleClass) {
+        CreatureScaleClass.GIANT, CreatureScaleClass.LEGENDARY -> 0.70f
+        CreatureScaleClass.LARGE -> 0.55f
+        else -> 0.45f
+    }
+    return (visualWidth * multiplier).coerceIn(48f, 180f)
+}
+
+
+private fun renderedCreaturePlacements(
     zone: TheBlueZoneUiModel,
-    scheme: androidx.compose.material3.ColorScheme,
+    sceneWidth: Float,
+    sceneHeight: Float,
     drift: Float,
     mantaLoop: Float,
     whaleLoop: Float
-) {
-    zone.animals.forEach { animal ->
+): List<TheBlueRenderedCreature> {
+    val safeBounds = theBlueSceneSafeBounds(sceneWidth, sceneHeight)
+    val placements = mutableListOf<TheBlueRenderedCreature>()
+    val occupied = mutableListOf<Rect>()
+    val sortedAnimals = zone.animals.sortedWith(
+        compareByDescending<TheBlueAnimalGroupUiModel> { animal ->
+            val definition = CreatureCatalog.get(animal.findId)
+            when (definition?.scaleClass) {
+                CreatureScaleClass.LEGENDARY -> 6
+                CreatureScaleClass.GIANT -> 5
+                CreatureScaleClass.LARGE -> 4
+                CreatureScaleClass.MEDIUM -> 3
+                CreatureScaleClass.SMALL -> 2
+                CreatureScaleClass.TINY -> 1
+                null -> 0
+            }
+        }.thenBy { it.findId }
+    )
+
+    sortedAnimals.forEach { animal ->
+        val definition = CreatureCatalog.get(animal.findId) ?: return@forEach
+        val plan = lifePresencePlan(animal, definition)
         val accentCount = animal.levelCounts.filter { (it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 1) > 1 }.sumOf { it.count }
-        val visualScale = CreatureEconomy.animalVisualScale(animal.findId, animal.highestLevel)
-        when (animal.findId) {
-            ShellContentCatalog.FOCUS_MINNOW -> drawMinnowSchool(animal.totalCount, accentCount, scheme, drift, visualScale)
-            ShellContentCatalog.FOCUS_SEAHORSE -> drawSeahorseColony(animal.totalCount, accentCount, scheme, drift, visualScale)
-            ShellContentCatalog.FOCUS_OCTOPUS -> drawHiddenOctopus(accentCount + 1, scheme, drift)
-            ShellContentCatalog.FOCUS_MANTA -> drawMantaGlides(animal.totalCount, accentCount, scheme, drift, mantaLoop, visualScale)
-            ShellContentCatalog.FOCUS_WHALE -> drawWhalePasses(animal.totalCount, accentCount, scheme, drift, whaleLoop, visualScale)
-            else -> drawRenderFamilyCreatures(animal, scheme, drift, mantaLoop, whaleLoop, visualScale)
+        val levelScale = CreatureEconomy.animalVisualScale(animal.findId, animal.highestLevel)
+        val tapBase = when (definition.scaleClass) {
+            CreatureScaleClass.TINY -> 48f
+            CreatureScaleClass.SMALL -> 58f
+            CreatureScaleClass.MEDIUM -> 70f
+            CreatureScaleClass.LARGE -> 92f
+            CreatureScaleClass.GIANT -> 126f
+            CreatureScaleClass.LEGENDARY -> 150f
         }
+        val visualBase = when (definition.scaleClass) {
+            CreatureScaleClass.TINY -> 34f
+            CreatureScaleClass.SMALL -> 44f
+            CreatureScaleClass.MEDIUM -> 58f
+            CreatureScaleClass.LARGE -> 86f
+            CreatureScaleClass.GIANT -> 122f
+            CreatureScaleClass.LEGENDARY -> 150f
+        }
+        val zIndex = when (definition.sceneBehavior) {
+            CreatureSceneBehavior.BOTTOM_DWELL -> 1f
+            CreatureSceneBehavior.DRIFT -> 2f
+            CreatureSceneBehavior.SWIM -> 3f
+            CreatureSceneBehavior.GLIDE -> 4f
+            CreatureSceneBehavior.CRUISE -> 5f
+            CreatureSceneBehavior.LEGENDARY -> 6f
+        }
+        fun rendererFor(findId: String): String = when (findId) {
+            ShellContentCatalog.FOCUS_MINNOW -> "minnow"
+            ShellContentCatalog.FOCUS_SEAHORSE -> "seahorse"
+            ShellContentCatalog.FOCUS_MANTA -> "manta"
+            ShellContentCatalog.FOCUS_WHALE -> "base_whale"
+            ShellContentCatalog.FOCUS_OCTOPUS -> "octopus"
+            else -> definition.creatureId
+        }
+        fun visibleCenter(center: Offset, visualWidth: Float, visualHeight: Float): Offset =
+            safeBounds.clampCenter(center, visualWidth / 2f, visualHeight / 2f)
+        fun tryAdd(
+            center: Offset,
+            scale: Float,
+            seed: Float,
+            index: Int,
+            facingRight: Boolean,
+            renderer: String = rendererFor(animal.findId),
+            reserveCorridor: Boolean = false,
+            alphaMultiplier: Float = 1f,
+            clickable: Boolean = true,
+            useLoopAlpha: Boolean = false
+        ): Boolean {
+            val visualWidth = visualBase * scale * when (definition.scaleClass) {
+                CreatureScaleClass.GIANT, CreatureScaleClass.LEGENDARY -> 1.55f
+                CreatureScaleClass.LARGE -> 1.35f
+                else -> 1.18f
+            }
+            val visualHeight = visualBase * scale
+            val clamped = if (reserveCorridor) {
+                Offset(center.x, center.y.coerceIn(safeBounds.top + visualHeight / 2f, safeBounds.bottom - visualHeight / 2f))
+            } else {
+                safeBounds.clampCenter(center, visualWidth / 2f, visualHeight / 2f)
+            }
+            val tapSize = tapBase * scale.coerceIn(0.85f, 1.9f)
+            val visualBounds = Rect(clamped.x - visualWidth / 2f, clamped.y - visualHeight / 2f, clamped.x + visualWidth / 2f, clamped.y + visualHeight / 2f)
+            val tapBounds = Rect(clamped.x - tapSize / 2f, clamped.y - tapSize / 2f, clamped.x + tapSize / 2f, clamped.y + tapSize / 2f)
+            val spacing = when (definition.scaleClass) {
+                CreatureScaleClass.TINY, CreatureScaleClass.SMALL -> 18f
+                CreatureScaleClass.MEDIUM -> 26f
+                CreatureScaleClass.LARGE -> 38f
+                CreatureScaleClass.GIANT, CreatureScaleClass.LEGENDARY -> 54f
+            }
+            val collisionBounds = if (reserveCorridor) {
+                Rect(safeBounds.left, tapBounds.top - spacing, safeBounds.right, tapBounds.bottom + spacing)
+            } else {
+                Rect(tapBounds.left - spacing, tapBounds.top - spacing, tapBounds.right + spacing, tapBounds.bottom + spacing)
+            }
+            if (occupied.any { rectsOverlap(it, collisionBounds) }) return false
+            occupied += collisionBounds
+            val alpha = if (useLoopAlpha) loopAlpha(clamped.x, visualWidth, safeBounds) else 1f
+            placements += TheBlueRenderedCreature(
+                animal = animal,
+                definition = definition,
+                center = clamped,
+                visualBounds = visualBounds,
+                tapBounds = tapBounds,
+                scale = scale,
+                alpha = alpha * alphaMultiplier,
+                zIndex = zIndex,
+                sceneBehavior = definition.sceneBehavior,
+                placementBand = definition.placementBand,
+                driftSeed = seed,
+                glowing = index < accentCount,
+                rendererKey = renderer,
+                facingRight = facingRight,
+                clickable = clickable
+            )
+            return true
+        }
+        fun tryCandidates(
+            candidates: List<Offset>,
+            scale: Float,
+            seed: Float,
+            index: Int,
+            facingRight: Boolean,
+            renderer: String = rendererFor(animal.findId),
+            reserveCorridor: Boolean = false,
+            alphaMultiplier: Float = 1f,
+            clickable: Boolean = true,
+            useLoopAlpha: Boolean = false
+        ): Boolean = candidates.any { tryAdd(it, scale, seed, index, facingRight, renderer, reserveCorridor, alphaMultiplier, clickable, useLoopAlpha) }
+
+        fun directCenter(index: Int, plannedCount: Int, scale: Float, motionMode: LifeMotionMode): Pair<Offset, Boolean> {
+            val phase = stablePhase(animal.findId, index)
+            val tau = 6.2831855f
+            val visualWidth = visualBase * scale * if (definition.scaleClass >= CreatureScaleClass.LARGE) 1.35f else 1.18f
+            val visualHeight = visualBase * scale
+            return when (motionMode) {
+                LifeMotionMode.ANCHORED -> {
+                    val laneCount = max(5, plannedCount)
+                    val lane = stableLane(animal.findId, index, laneCount)
+                    val baseX = safeBounds.left + safeBounds.width * ((lane + 1f) / (laneCount + 1f))
+                    val y = safeBounds.bottom - (22f + (index % 2) * 22f) * scale
+                    Offset(baseX, y) to stableFacingRight(animal.findId, index)
+                }
+                LifeMotionMode.DRIFT_BOUNDED -> {
+                    val laneCount = max(4, plannedCount)
+                    val lane = stableLane(animal.findId, index, laneCount)
+                    val baseX = safeBounds.left + safeBounds.width * ((lane + 1f) / (laneCount + 1f))
+                    val xMotion = drift * tau + phase * tau
+                    val yMotion = drift * tau * 0.62f + phase * tau
+                    val x = baseX + sin(xMotion.toDouble()).toFloat() * min(34f, safeBounds.width * 0.055f)
+                    val baseY = safeBounds.top + safeBounds.height * (0.20f + (index % 3) * 0.22f)
+                    val y = baseY + sin(yMotion.toDouble()).toFloat() * 16f
+                    visibleCenter(Offset(x, y), visualWidth, visualHeight) to (cos(xMotion.toDouble()).toFloat() >= 0f)
+                }
+                LifeMotionMode.VISIBLE_LANE -> {
+                    val laneCount = movementLaneCount(definition, plan)
+                    val lane = stableLane(animal.findId, index, laneCount)
+                    val baseX = safeBounds.left + safeBounds.width * ((index + 1f) / (plannedCount + 1f))
+                    val motionClock = when (definition.sceneBehavior) {
+                        CreatureSceneBehavior.GLIDE -> mantaLoop
+                        CreatureSceneBehavior.CRUISE, CreatureSceneBehavior.LEGENDARY -> whaleLoop
+                        else -> drift
+                    }
+                    val xMotion = motionClock * tau + phase * tau
+                    val yMotion = motionClock * tau * 0.57f + phase * tau
+                    val x = baseX + sin(xMotion.toDouble()).toFloat() * min(48f, safeBounds.width * 0.065f)
+                    val baseY = safeBounds.top + safeBounds.height * ((lane + 1f) / (laneCount + 1f))
+                    val y = baseY + sin(yMotion.toDouble()).toFloat() * min(18f, safeBounds.height * 0.035f)
+                    visibleCenter(Offset(x, y), visualWidth, visualHeight) to (cos(xMotion.toDouble()).toFloat() >= 0f)
+                }
+                LifeMotionMode.PASS_THROUGH, LifeMotionMode.AMBIENT -> {
+                    val facingRight = stableFacingRight(animal.findId, index)
+                    val progress = (drift + phase) % 1f
+                    val margin = offscreenMarginFor(visualWidth, definition)
+                    val x = offscreenHorizontalPassX(progress, safeBounds.left, safeBounds.right, visualWidth, margin, facingRight)
+                    val laneCount = movementLaneCount(definition, plan)
+                    val lane = stableLane(animal.findId, index, laneCount)
+                    val y = safeBounds.top + safeBounds.height * ((lane + 1f) / (laneCount + 1f))
+                    Offset(x, y) to facingRight
+                }
+            }
+        }
+
+        val accounting = PresenceAccounting(owned = animal.totalCount.coerceAtLeast(0))
+        val failedDirectAgents = mutableListOf<LifeAgent>()
+        plan.directIndividuals.forEach { agent ->
+            val i = agent.representativeIndex
+            val scale = when (animal.findId) {
+                ShellContentCatalog.FOCUS_WHALE -> (1.20f + (i % 3) * 0.06f) * levelScale
+                ShellContentCatalog.FOCUS_MANTA -> (1.00f + (i % 3) * 0.08f) * levelScale
+                else -> (0.92f + (i % 3) * 0.08f) * levelScale
+            }
+            val seed = drift + stablePhase(animal.findId, i)
+            val (center, facingRight) = directCenter(i, plan.directIndividuals.size.coerceAtLeast(1), scale, agent.motionMode)
+            val visualWidth = visualBase * scale * if (definition.scaleClass >= CreatureScaleClass.LARGE) 1.35f else 1.18f
+            val visualHeight = visualBase * scale
+            val directCandidates = listOf(
+                center,
+                safeBounds.clampCenter(Offset(center.x, center.y + safeBounds.height * 0.14f), visualWidth / 2f, visualHeight / 2f),
+                safeBounds.clampCenter(Offset(center.x, center.y - safeBounds.height * 0.14f), visualWidth / 2f, visualHeight / 2f),
+                safeBounds.clampCenter(Offset(center.x + safeBounds.width * 0.10f, center.y), visualWidth / 2f, visualHeight / 2f),
+                safeBounds.clampCenter(Offset(center.x - safeBounds.width * 0.10f, center.y), visualWidth / 2f, visualHeight / 2f)
+            ).distinct()
+            val placed = tryCandidates(
+                candidates = directCandidates,
+                scale = scale,
+                seed = seed,
+                index = i,
+                facingRight = facingRight,
+                clickable = true,
+                alphaMultiplier = 1f
+            ) || tryCandidates(
+                candidates = directCandidates,
+                scale = scale * 0.86f,
+                seed = seed,
+                index = i,
+                facingRight = facingRight,
+                clickable = true,
+                alphaMultiplier = 0.96f
+            )
+            if (placed) {
+                accounting.representedDirect++
+            } else {
+                failedDirectAgents += agent
+            }
+        }
+
+        val desiredCohortCount = plan.cohorts.sumOf { it.count } + failedDirectAgents.size
+        val cohortCount = min(desiredCohortCount, accounting.remaining)
+        if (cohortCount > 0) {
+            val cohortIndex = plan.directIndividuals.size
+            val cohortScale = when (definition.scaleClass) {
+                CreatureScaleClass.GIANT, CreatureScaleClass.LEGENDARY -> 0.72f
+                CreatureScaleClass.LARGE -> 0.76f
+                else -> 0.82f
+            } * levelScale
+            val cohortMode = plan.cohorts.firstOrNull()?.motionMode ?: when (definition.sceneBehavior) {
+                CreatureSceneBehavior.BOTTOM_DWELL -> LifeMotionMode.ANCHORED
+                CreatureSceneBehavior.DRIFT -> LifeMotionMode.DRIFT_BOUNDED
+                else -> LifeMotionMode.VISIBLE_LANE
+            }
+            val (cohortCenter, cohortFacingRight) = directCenter(cohortIndex, plan.directIndividuals.size + 1, cohortScale, cohortMode)
+            val cohortPlaced = tryCandidates(
+                candidates = listOf(
+                    cohortCenter,
+                    safeBounds.clampCenter(Offset(cohortCenter.x + safeBounds.width * 0.12f, cohortCenter.y + safeBounds.height * 0.10f), visualBase * cohortScale / 2f, visualBase * cohortScale / 2f),
+                    safeBounds.clampCenter(Offset(cohortCenter.x - safeBounds.width * 0.12f, cohortCenter.y - safeBounds.height * 0.10f), visualBase * cohortScale / 2f, visualBase * cohortScale / 2f)
+                ),
+                scale = cohortScale,
+                seed = drift + stablePhase(animal.findId, cohortIndex),
+                index = cohortIndex,
+                facingRight = cohortFacingRight,
+                clickable = true,
+                alphaMultiplier = 0.82f
+            )
+            if (cohortPlaced) {
+                accounting.representedCohort += cohortCount
+            }
+        }
+
+        val desiredHabitatCount = max(plan.habitatMarks.sumOf { it.countRepresented }, accounting.remaining)
+        val habitatCount = min(desiredHabitatCount, accounting.remaining).coerceAtMost(5)
+        repeat(habitatCount) { habitatIndex ->
+            val i = plan.directIndividuals.size + 1 + habitatIndex
+            val habitat = plan.habitatMarks.firstOrNull()
+            val habitatScale = when (definition.scaleClass) {
+                CreatureScaleClass.GIANT, CreatureScaleClass.LEGENDARY -> 0.42f
+                CreatureScaleClass.LARGE -> 0.48f
+                else -> 0.56f
+            } * levelScale
+            val phase = stablePhase(animal.findId, i)
+            val x = safeBounds.left + safeBounds.width * (0.14f + (phase * 0.72f))
+            val bandBase = when (definition.sceneBehavior) {
+                CreatureSceneBehavior.BOTTOM_DWELL -> 0.88f
+                CreatureSceneBehavior.DRIFT -> 0.34f + (habitatIndex % 3) * 0.18f
+                else -> 0.24f + (habitatIndex % 4) * 0.16f
+            }
+            val y = safeBounds.top + safeBounds.height * bandBase.coerceIn(0.12f, 0.90f)
+            val habitatPlaced = tryCandidates(
+                candidates = listOf(
+                    Offset(x, y),
+                    Offset((x + safeBounds.width * 0.16f).coerceAtMost(safeBounds.right), (y + safeBounds.height * 0.10f).coerceAtMost(safeBounds.bottom)),
+                    Offset((x - safeBounds.width * 0.16f).coerceAtLeast(safeBounds.left), (y - safeBounds.height * 0.10f).coerceAtLeast(safeBounds.top))
+                ),
+                scale = habitatScale,
+                seed = drift + phase,
+                index = i,
+                facingRight = stableFacingRight(animal.findId, i),
+                alphaMultiplier = habitat?.alpha ?: 0.16f,
+                clickable = habitat?.clickable ?: false
+            )
+            if (habitatPlaced) {
+                accounting.representedHabitat++
+            }
+        }
+    }
+    return placements
+}
+
+private fun rectsOverlap(a: Rect, b: Rect): Boolean = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+
+private fun stableHash(findId: String, index: Int): Long = (findId.hashCode() * 31 + index * 997).toUInt().toLong()
+
+private fun stablePhase(findId: String, index: Int): Float = (stableHash(findId, index) % 1000L) / 1000f
+
+private fun stableLane(findId: String, index: Int, laneCount: Int): Int = if (laneCount <= 1) 0 else (stableHash(findId, index) % laneCount).toInt()
+
+private fun stableFacingRight(findId: String, index: Int): Boolean = (stableHash(findId, index) and 1L) == 0L
+
+private fun stableCruiseEntryPhase(findId: String, index: Int): Float = 0.42f + ((stableHash(findId, index) % 160L) / 1000f)
+
+private fun loopAlpha(centerX: Float, visualWidth: Float, bounds: TheBlueSceneSafeBounds): Float {
+    val fade = (visualWidth * 0.75f).coerceAtLeast(48f)
+    return when {
+        centerX < bounds.left - visualWidth -> 0f
+        centerX < bounds.left + fade -> ((centerX - (bounds.left - visualWidth)) / (visualWidth + fade)).coerceIn(0f, 1f)
+        centerX > bounds.right + visualWidth -> 0f
+        centerX > bounds.right - fade -> (((bounds.right + visualWidth) - centerX) / (visualWidth + fade)).coerceIn(0f, 1f)
+        else -> 1f
     }
 }
 
+private fun offscreenHorizontalPassX(
+    progress: Float,
+    left: Float,
+    right: Float,
+    animalWidth: Float,
+    margin: Float,
+    facingRight: Boolean
+): Float {
+    val start = left - animalWidth - margin
+    val end = right + animalWidth + margin
+    val x = start + (end - start) * progress
+    return if (facingRight) x else end - (x - start)
+}
 
-private fun DrawScope.drawRenderFamilyCreatures(
-    animal: TheBlueAnimalGroupUiModel,
-    scheme: androidx.compose.material3.ColorScheme,
-    drift: Float,
-    mantaLoop: Float,
-    whaleLoop: Float,
-    levelScale: Float
+private fun DrawScope.drawRenderedCreature(
+    placement: TheBlueRenderedCreature,
+    scheme: androidx.compose.material3.ColorScheme
 ) {
-    val definition = CreatureCatalog.get(animal.findId) ?: return
-    val visible = representativeVisibleCount(animal.totalCount, maxVisible = 5)
-    repeat(visible) { i ->
-        val progress = ((drift * (0.55f + i * 0.05f)) + i * 0.19f) % 1f
-        val x = offscreenHorizontalPassX(progress, size.width, 82f, 36f, i % 2 == 0)
-        val y = size.height * (0.22f + ((i * 17) % 52) / 100f)
-        val scale = (0.85f + (i % 3) * 0.10f) * levelScale
-        when (definition.renderFamily.key) {
-            "ray" -> drawManta(Offset(x, y), scale * 0.72f, drift + i, false, scheme)
-            "whale" -> drawWhale(Offset(x, y), scale * 0.58f, drift + i, false, scheme)
-            "octopus" -> drawOctopus(Offset(size.width * 0.62f, size.height * 0.72f), drift, false, scheme)
-            else -> drawGenericFish(Offset(x, y), scale, drift + i, scheme, definition.renderFamily.key)
+    if (placement.alpha <= 0.05f) return
+
+    fun drawCreatureBody() {
+        val id = placement.rendererKey.lowercase()
+        when {
+            id == "minnow" -> drawMinnow(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme)
+            id == "seahorse" -> drawSeahorse(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme)
+            id == "manta" -> drawManta(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme)
+            id == "base_whale" -> drawWhaleProfile(placement.center, placement.scale, placement.driftSeed, placement.glowing, scheme, "base_whale")
+            id == "octopus" -> drawOctopus(placement.center, placement.scale, placement.glowing, scheme)
+            id.contains("starfish") -> drawStarfishScene(placement.center, placement.scale * 0.95f, scheme)
+            id.contains("urchin") -> drawUrchinScene(placement.center, placement.scale * 0.86f, scheme)
+            id.contains("octopus") -> drawOctopus(placement.center, placement.scale, placement.glowing, scheme)
+            id.contains("stingray") -> drawStingrayScene(placement.center, placement.scale * 0.70f, placement.driftSeed, scheme)
+            id.contains("manta") -> drawManta(placement.center, placement.scale * 0.72f, placement.driftSeed, placement.glowing, scheme)
+            id.contains("whale") -> drawWhaleProfile(placement.center, placement.scale * 0.65f, placement.driftSeed, placement.glowing, scheme, id)
+            else -> drawSpeciesSwimmer(placement.center, placement.scale, placement.driftSeed, scheme, id, placement.definition.renderFamily.key)
+        }
+    }
+
+    if (placement.facingRight) {
+        drawCreatureBody()
+    } else {
+        withTransform({
+            scale(scaleX = -1f, scaleY = 1f, pivot = placement.center)
+        }) {
+            drawCreatureBody()
         }
     }
 }
 
-private fun DrawScope.drawGenericFish(origin: Offset, scale: Float, drift: Float, scheme: androidx.compose.material3.ColorScheme, familyKey: String) {
-    val ink = when (familyKey) {
-        "jellyfish", "giant_tentacle", "legendary" -> scheme.secondary.copy(alpha = 0.66f)
-        "shark", "orca", "anglerfish" -> scheme.onSurface.copy(alpha = 0.52f)
-        else -> scheme.primary.copy(alpha = 0.60f)
+
+private fun DrawScope.drawSpeciesSwimmer(origin: Offset, scale: Float, drift: Float, scheme: androidx.compose.material3.ColorScheme, creatureId: String, familyKey: String) {
+    val bob = sin((drift * 6.28f).toDouble()).toFloat() * 5f
+    val id = creatureId.lowercase()
+    fun fish(body: Color, accent: Color, wMul: Float = 1f, hMul: Float = 1f, stripes: Int = 0, beak: Boolean = false) {
+        val w = 34f * scale * wMul
+        val h = 18f * scale * hMul
+        val c = Offset(origin.x, origin.y + bob)
+        drawOval(body, Offset(c.x - w * 0.50f, c.y - h * 0.50f), Size(w, h))
+        drawPath(Path().apply { moveTo(c.x - w*0.48f,c.y); lineTo(c.x - w*0.82f,c.y - h*0.52f); lineTo(c.x - w*0.82f,c.y + h*0.52f); close() }, accent)
+        drawPath(Path().apply { moveTo(c.x,c.y - h*0.48f); lineTo(c.x + w*0.13f,c.y - h*1.05f); lineTo(c.x + w*0.24f,c.y - h*0.35f); close() }, accent.copy(alpha=0.72f))
+        if (beak) drawPath(Path().apply { moveTo(c.x+w*0.48f,c.y-h*0.12f); lineTo(c.x+w*0.70f,c.y-h*0.25f); lineTo(c.x+w*0.50f,c.y+h*0.18f); close() }, accent)
+        repeat(stripes) { n -> drawLine(scheme.surface.copy(alpha=0.42f), Offset(c.x - w*0.18f + n*w*0.14f, c.y-h*0.42f), Offset(c.x - w*0.12f + n*w*0.14f, c.y+h*0.42f), strokeWidth=2f*scale) }
+        drawCircle(scheme.onSurface.copy(alpha=0.55f), 1.8f*scale, Offset(c.x+w*0.28f, c.y-h*0.16f))
     }
+    when {
+        "clownfish" in id -> fish(Color(0xFFE9782E).copy(alpha=0.74f), scheme.surface.copy(alpha=0.60f), hMul=1.10f, stripes=3)
+        "blue_tang" in id -> fish(Color(0xFF2D77C8).copy(alpha=0.70f), Color(0xFFF2D14C).copy(alpha=0.70f), wMul=1.05f, stripes=1)
+        "butterflyfish" in id -> fish(Color(0xFFF4D35E).copy(alpha=0.70f), scheme.onSurface.copy(alpha=0.50f), wMul=0.88f, hMul=1.45f, stripes=4)
+        "angelfish" in id -> fish(Color(0xFF6C63C7).copy(alpha=0.66f), Color(0xFFEFB8C8).copy(alpha=0.56f), wMul=0.85f, hMul=1.55f, stripes=2)
+        "parrotfish" in id -> fish(Color(0xFF13A999).copy(alpha=0.70f), Color(0xFFFF8F3D).copy(alpha=0.64f), wMul=1.18f, hMul=1.12f, stripes=2, beak=true)
+        "lionfish" in id -> { fish(Color(0xFFB45A3C).copy(alpha=0.68f), Color(0xFFF3D6A2).copy(alpha=0.60f), hMul=1.2f, stripes=4); repeat(6){n->drawLine(scheme.secondary.copy(alpha=0.40f), Offset(origin.x-10f*scale+n*5f*scale, origin.y-7f*scale+bob), Offset(origin.x-22f*scale+n*8f*scale, origin.y-30f*scale+bob), strokeWidth=1.5f*scale)} }
+        "pufferfish" in id -> { drawCircle(scheme.primary.copy(alpha=0.58f), 17f*scale, Offset(origin.x,origin.y+bob)); repeat(10){n->val a=n*6.28318f/10f; drawLine(scheme.secondary.copy(alpha=0.60f), Offset(origin.x,origin.y+bob), Offset(origin.x+kotlin.math.cos(a)*25f*scale, origin.y+bob+kotlin.math.sin(a)*25f*scale), strokeWidth=1.2f*scale)} }
+        "jellyfish" in id -> drawJellyfishScene(origin, scale, bob, scheme)
+        "seahorse" in id -> drawSeahorse(origin, scale, bob, false, scheme)
+        "turtle" in id -> drawTurtleScene(origin, scale, bob, scheme)
+        "sea_otter" in id || "otter" in id -> drawSeaOtterScene(origin, scale, bob, scheme)
+        "sea_lion" in id -> drawSeaLionScene(origin, scale, bob, scheme)
+        "penguin" in id -> drawPenguinScene(origin, scale, bob, scheme)
+        "seal" in id -> drawSealScene(origin, scale, bob, scheme)
+        "dolphin" in id -> drawDolphinScene(origin, scale, bob, scheme)
+        "orca" in id -> drawOrcaScene(origin, scale, bob, scheme)
+        "anglerfish" in id -> { fish(scheme.onSurface.copy(alpha=0.50f), scheme.secondary.copy(alpha=0.55f), wMul=1.15f, hMul=1.20f); drawLine(scheme.secondary.copy(alpha=0.65f), Offset(origin.x+10f*scale,origin.y-9f*scale+bob), Offset(origin.x+24f*scale,origin.y-30f*scale+bob), strokeWidth=1.7f*scale); drawCircle(scheme.secondary.copy(alpha=0.85f), 3f*scale, Offset(origin.x+25f*scale,origin.y-31f*scale+bob)) }
+        "megalodon" in id -> drawMegalodonScene(origin, scale, bob, scheme)
+        "great_white" in id || "shark" in id -> drawGreatWhiteSharkScene(origin, scale, bob, scheme)
+        "whale" in id -> drawWhaleProfile(origin, scale * 0.65f, drift, false, scheme, id)
+        "kraken" in id -> drawKrakenScene(origin, scale, bob, scheme)
+        "giant_squid" in id -> drawSquidScene(origin, scale * 1.30f, bob, scheme, giant = true)
+        "squid" in id -> drawSquidScene(origin, scale, bob, scheme, giant = false)
+        "leviathan" in id -> drawLeviathanScene(origin, scale, bob, scheme)
+        "moray_eel" in id || "eel" in id -> drawMorayEelScene(origin, scale, bob, scheme)
+        "sea_snake" in id || "snake" in id -> drawSeaSnakeScene(origin, scale, bob, scheme)
+        "sunfish" in id -> fish(scheme.primary.copy(alpha=0.56f), scheme.secondary.copy(alpha=0.36f), wMul=0.95f, hMul=1.8f)
+        "swordfish" in id -> { fish(scheme.primary.copy(alpha=0.58f), scheme.secondary.copy(alpha=0.40f), wMul=1.65f, hMul=0.75f); drawLine(scheme.secondary.copy(alpha=0.55f), Offset(origin.x+24f*scale,origin.y+bob), Offset(origin.x+58f*scale,origin.y-4f*scale+bob), strokeWidth=1.7f*scale) }
+        "flying_fish" in id -> { fish(scheme.primary.copy(alpha=0.58f), scheme.secondary.copy(alpha=0.40f), wMul=1.25f, hMul=0.75f); drawPath(Path().apply{moveTo(origin.x-4f*scale,origin.y-6f*scale+bob);lineTo(origin.x-28f*scale,origin.y-34f*scale+bob);lineTo(origin.x+18f*scale,origin.y-8f*scale+bob);close()}, scheme.secondary.copy(alpha=0.30f)) }
+        "barracuda" in id -> fish(scheme.onSurface.copy(alpha=0.42f), scheme.secondary.copy(alpha=0.32f), wMul=1.75f, hMul=0.70f)
+        else -> drawMissingCreatureRenderer(origin, scale, scheme)
+    }
+}
+
+private fun DrawScope.drawMissingCreatureRenderer(origin: Offset, scale: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val body = scheme.primary.copy(alpha = 0.42f)
+    val accent = scheme.secondary.copy(alpha = 0.36f)
+    drawOval(body, Offset(origin.x - 20f * scale, origin.y - 9f * scale), Size(36f * scale, 18f * scale))
+    drawPath(Path().apply {
+        moveTo(origin.x - 18f * scale, origin.y)
+        lineTo(origin.x - 34f * scale, origin.y - 12f * scale)
+        lineTo(origin.x - 34f * scale, origin.y + 12f * scale)
+        close()
+    }, accent)
+    drawPath(Path().apply {
+        moveTo(origin.x - 2f * scale, origin.y - 8f * scale)
+        lineTo(origin.x + 8f * scale, origin.y - 23f * scale)
+        lineTo(origin.x + 12f * scale, origin.y - 7f * scale)
+        close()
+    }, accent)
+    drawCircle(scheme.surface.copy(alpha = 0.52f), 1.8f * scale, Offset(origin.x + 9f * scale, origin.y - 3f * scale))
+}
+
+private fun DrawScope.drawStarfishScene(origin: Offset, scale: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val star = Path()
+    repeat(10) { i ->
+        val radius = if (i % 2 == 0) 28f * scale else 12f * scale
+        val angle = (-90f + i * 36f) * (Math.PI.toFloat() / 180f)
+        val x = origin.x + kotlin.math.cos(angle) * radius
+        val y = origin.y + kotlin.math.sin(angle) * radius
+        if (i == 0) star.moveTo(x, y) else star.lineTo(x, y)
+    }
+    star.close()
+    drawPath(star, scheme.secondary.copy(alpha = 0.74f))
+    drawCircle(scheme.primary.copy(alpha = 0.30f), 4f * scale, origin)
+    repeat(5) { i ->
+        val angle = (-90f + i * 72f) * (Math.PI.toFloat() / 180f)
+        drawCircle(
+            scheme.surface.copy(alpha = 0.50f),
+            2f * scale,
+            Offset(origin.x + kotlin.math.cos(angle) * 15f * scale, origin.y + kotlin.math.sin(angle) * 15f * scale)
+        )
+    }
+}
+
+private fun DrawScope.drawUrchinScene(origin: Offset, scale: Float, scheme: androidx.compose.material3.ColorScheme) {
+    repeat(18) { i ->
+        val angle = i * 6.28318f / 18f
+        drawLine(
+            scheme.primary.copy(alpha = 0.58f),
+            origin,
+            Offset(origin.x + kotlin.math.cos(angle) * 25f * scale, origin.y + kotlin.math.sin(angle) * 25f * scale),
+            strokeWidth = 1.6f * scale
+        )
+    }
+    drawCircle(scheme.secondary.copy(alpha = 0.62f), 13f * scale, origin)
+    drawCircle(scheme.surface.copy(alpha = 0.40f), 2.5f * scale, Offset(origin.x - 4f * scale, origin.y - 4f * scale))
+}
+
+private fun DrawScope.drawJellyfishScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val ink = scheme.secondary.copy(alpha = 0.66f)
     val w = 34f * scale
     val h = 18f * scale
-    val bob = sin((drift * 6.28f).toDouble()).toFloat() * 5f
-    if (familyKey == "jellyfish") {
-        drawCircle(ink, w * 0.42f, Offset(origin.x, origin.y + bob))
-        repeat(4) { t -> drawLine(ink, Offset(origin.x - w * .30f + t*w*.20f, origin.y + bob + h*.30f), Offset(origin.x - w * .38f + t*w*.22f, origin.y + bob + h*1.4f), strokeWidth = 2.4f * scale) }
-    } else {
-        drawOval(ink, Offset(origin.x - w * 0.50f, origin.y - h * 0.50f + bob), Size(w, h))
-        drawPath(Path().apply { moveTo(origin.x - w*.50f, origin.y + bob); lineTo(origin.x - w*.82f, origin.y - h*.50f + bob); lineTo(origin.x - w*.82f, origin.y + h*.50f + bob); close() }, ink)
-        drawPath(Path().apply { moveTo(origin.x, origin.y - h*.48f + bob); lineTo(origin.x + w*.12f, origin.y - h*1.05f + bob); lineTo(origin.x + w*.22f, origin.y - h*.35f + bob); close() }, scheme.secondary.copy(alpha = 0.38f))
+    drawCircle(ink, w * 0.42f, Offset(origin.x, origin.y + bob))
+    repeat(4) { t -> drawLine(ink, Offset(origin.x - w * 0.30f + t*w*0.20f, origin.y + bob + h*0.30f), Offset(origin.x - w * 0.38f + t*w*0.22f, origin.y + bob + h*1.4f), strokeWidth = 2.4f * scale) }
+}
+
+private fun DrawScope.drawTurtleScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    drawOval(scheme.primary.copy(alpha=0.52f), Offset(origin.x-22f*scale, origin.y-12f*scale+bob), Size(44f*scale, 28f*scale))
+    drawCircle(scheme.secondary.copy(alpha=0.42f), 7f*scale, Offset(origin.x+26f*scale, origin.y-3f*scale+bob))
+    listOf(-1f to -1f, -1f to 1f, 1f to -1f, 1f to 1f).forEach { (sx, sy) ->
+        drawOval(scheme.secondary.copy(alpha=0.34f), Offset(origin.x + sx*22f*scale, origin.y + sy*13f*scale + bob), Size(12f*scale, 7f*scale))
     }
 }
 
-private fun DrawScope.drawMinnowSchool(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float, levelScale: Float = 1f) {
-    val visible = representativeVisibleCount(count, maxVisible = 12)
-    repeat(visible) { i ->
-        val group = i / 4
-        val progress = (drift * (1.05f + group * 0.12f) + i * 0.075f) % 1f
-        val wiggle = sin((drift * 18f + i).toDouble()).toFloat()
-        val x = progress * (size.width + 140f) - 70f
-        val y = size.height * (0.34f + group * 0.12f) + (i % 4) * 20f + wiggle * 8f
-        drawMinnow(Offset(x, y), (1f + (i % 3) * 0.08f) * levelScale, wiggle, i < accentCount.coerceAtMost(visible), scheme)
+private fun DrawScope.drawStingrayScene(origin: Offset, scale: Float, drift: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val bob = kotlin.math.sin(drift * 6.28318f) * 4f * scale
+    val c = Offset(origin.x, origin.y + bob)
+    val wing = Path().apply {
+        moveTo(c.x, c.y - 16f * scale)
+        cubicTo(c.x - 34f * scale, c.y - 10f * scale, c.x - 46f * scale, c.y + 10f * scale, c.x - 42f * scale, c.y + 20f * scale)
+        cubicTo(c.x - 17f * scale, c.y + 13f * scale, c.x - 8f * scale, c.y + 14f * scale, c.x, c.y + 27f * scale)
+        cubicTo(c.x + 8f * scale, c.y + 14f * scale, c.x + 17f * scale, c.y + 13f * scale, c.x + 42f * scale, c.y + 20f * scale)
+        cubicTo(c.x + 46f * scale, c.y + 10f * scale, c.x + 34f * scale, c.y - 10f * scale, c.x, c.y - 16f * scale)
+        close()
+    }
+    drawPath(wing, scheme.primary.copy(alpha = 0.46f))
+    drawLine(scheme.secondary.copy(alpha = 0.48f), Offset(c.x, c.y + 20f * scale), Offset(c.x, c.y + 58f * scale), strokeWidth = 2f * scale)
+    drawCircle(scheme.surface.copy(alpha = 0.44f), 2.2f * scale, Offset(c.x - 7f * scale, c.y - 2f * scale))
+    drawCircle(scheme.surface.copy(alpha = 0.44f), 2.2f * scale, Offset(c.x + 7f * scale, c.y - 2f * scale))
+}
+
+private fun DrawScope.drawSeaOtterScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val body = scheme.onSurface.copy(alpha = 0.38f)
+    drawOval(body, Offset(origin.x - 28f * scale, origin.y - 3f * scale + bob), Size(54f * scale, 15f * scale))
+    drawCircle(body.copy(alpha = 0.78f), 10f * scale, Offset(origin.x + 23f * scale, origin.y - 5f * scale + bob))
+    drawCircle(scheme.secondary.copy(alpha = 0.38f), 3.2f * scale, Offset(origin.x - 3f * scale, origin.y + bob))
+    drawCircle(scheme.secondary.copy(alpha = 0.38f), 3.2f * scale, Offset(origin.x + 7f * scale, origin.y - 1f * scale + bob))
+    drawCircle(scheme.surface.copy(alpha = 0.55f), 1.8f * scale, Offset(origin.x + 27f * scale, origin.y - 8f * scale + bob))
+}
+
+private fun DrawScope.drawSealScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val body = scheme.primary.copy(alpha = 0.50f)
+    drawOval(body, Offset(origin.x - 32f * scale, origin.y - 10f * scale + bob), Size(62f * scale, 21f * scale))
+    drawCircle(body.copy(alpha = 0.86f), 9f * scale, Offset(origin.x + 30f * scale, origin.y - 2f * scale + bob))
+    drawPath(Path().apply { moveTo(origin.x - 4f * scale, origin.y + 7f * scale + bob); lineTo(origin.x - 22f * scale, origin.y + 24f * scale + bob); lineTo(origin.x + 6f * scale, origin.y + 10f * scale + bob); close() }, scheme.secondary.copy(alpha = 0.35f))
+    drawCircle(scheme.surface.copy(alpha = 0.55f), 1.8f * scale, Offset(origin.x + 33f * scale, origin.y - 5f * scale + bob))
+}
+
+private fun DrawScope.drawSeaLionScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val body = scheme.primary.copy(alpha = 0.56f)
+    drawOval(body, Offset(origin.x - 35f * scale, origin.y - 9f * scale + bob), Size(58f * scale, 23f * scale))
+    drawOval(body.copy(alpha = 0.90f), Offset(origin.x + 12f * scale, origin.y - 18f * scale + bob), Size(24f * scale, 21f * scale))
+    drawPath(Path().apply { moveTo(origin.x - 7f * scale, origin.y + 8f * scale + bob); lineTo(origin.x - 32f * scale, origin.y + 28f * scale + bob); lineTo(origin.x + 5f * scale, origin.y + 13f * scale + bob); close() }, scheme.secondary.copy(alpha = 0.42f))
+    drawPath(Path().apply { moveTo(origin.x + 4f * scale, origin.y + 8f * scale + bob); lineTo(origin.x + 31f * scale, origin.y + 25f * scale + bob); lineTo(origin.x + 15f * scale, origin.y + 5f * scale + bob); close() }, scheme.secondary.copy(alpha = 0.32f))
+    drawCircle(scheme.surface.copy(alpha = 0.55f), 1.8f * scale, Offset(origin.x + 30f * scale, origin.y - 10f * scale + bob))
+}
+
+private fun DrawScope.drawPenguinScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val black = Color(0xFF263238).copy(alpha = 0.72f)
+    drawOval(black, Offset(origin.x - 13f * scale, origin.y - 28f * scale + bob), Size(26f * scale, 52f * scale))
+    drawOval(scheme.surface.copy(alpha = 0.68f), Offset(origin.x - 7f * scale, origin.y - 14f * scale + bob), Size(14f * scale, 30f * scale))
+    drawPath(Path().apply { moveTo(origin.x - 12f * scale, origin.y - 5f * scale + bob); lineTo(origin.x - 32f * scale, origin.y + 8f * scale + bob); lineTo(origin.x - 11f * scale, origin.y + 8f * scale + bob); close() }, scheme.primary.copy(alpha = 0.35f))
+    drawPath(Path().apply { moveTo(origin.x + 12f * scale, origin.y - 5f * scale + bob); lineTo(origin.x + 32f * scale, origin.y + 8f * scale + bob); lineTo(origin.x + 11f * scale, origin.y + 8f * scale + bob); close() }, scheme.primary.copy(alpha = 0.35f))
+    drawPath(Path().apply { moveTo(origin.x + 8f * scale, origin.y - 22f * scale + bob); lineTo(origin.x + 22f * scale, origin.y - 18f * scale + bob); lineTo(origin.x + 8f * scale, origin.y - 14f * scale + bob); close() }, scheme.secondary.copy(alpha = 0.72f))
+}
+
+private fun DrawScope.drawDolphinScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val c = Offset(origin.x, origin.y + bob)
+    val body = scheme.primary.copy(alpha = 0.64f)
+    val rim = scheme.secondary.copy(alpha = 0.24f)
+    val silhouette = Path().apply {
+        moveTo(c.x - 44f * scale, c.y + 5f * scale)
+        cubicTo(c.x - 28f * scale, c.y - 26f * scale, c.x + 18f * scale, c.y - 28f * scale, c.x + 42f * scale, c.y - 6f * scale)
+        cubicTo(c.x + 24f * scale, c.y + 14f * scale, c.x - 16f * scale, c.y + 20f * scale, c.x - 44f * scale, c.y + 5f * scale)
+        close()
+    }
+    drawPath(silhouette, rim)
+    drawPath(silhouette, body)
+    drawPath(Path().apply { moveTo(c.x + 36f * scale, c.y - 8f * scale); lineTo(c.x + 66f * scale, c.y - 13f * scale); lineTo(c.x + 38f * scale, c.y + 1f * scale); close() }, body)
+    drawPath(Path().apply { moveTo(c.x - 40f * scale, c.y + 4f * scale); lineTo(c.x - 66f * scale, c.y - 14f * scale); lineTo(c.x - 53f * scale, c.y + 2f * scale); lineTo(c.x - 67f * scale, c.y + 20f * scale); close() }, body.copy(alpha = 0.90f))
+    drawPath(Path().apply { moveTo(c.x - 4f * scale, c.y - 19f * scale); lineTo(c.x + 7f * scale, c.y - 43f * scale); lineTo(c.x + 14f * scale, c.y - 17f * scale); close() }, scheme.secondary.copy(alpha = 0.56f))
+    drawPath(Path().apply { moveTo(c.x + 0f, c.y + 9f * scale); lineTo(c.x - 24f * scale, c.y + 34f * scale); lineTo(c.x + 12f * scale, c.y + 13f * scale); close() }, scheme.secondary.copy(alpha = 0.34f))
+    drawCircle(scheme.onSurface.copy(alpha = 0.58f), 2f * scale, Offset(c.x + 28f * scale, c.y - 10f * scale))
+}
+
+private fun DrawScope.drawOrcaScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val c = Offset(origin.x, origin.y + bob)
+    val black = Color(0xFF18242A).copy(alpha = 0.82f)
+    val white = scheme.surface.copy(alpha = 0.86f)
+    val outline = scheme.secondary.copy(alpha = 0.22f)
+    drawOval(outline, Offset(c.x - 62f * scale, c.y - 22f * scale), Size(118f * scale, 48f * scale))
+    drawOval(black, Offset(c.x - 58f * scale, c.y - 18f * scale), Size(108f * scale, 38f * scale))
+    drawOval(white, Offset(c.x - 12f * scale, c.y + 4f * scale), Size(42f * scale, 12f * scale))
+    drawOval(white.copy(alpha = 0.78f), Offset(c.x + 20f * scale, c.y - 12f * scale), Size(12f * scale, 7f * scale))
+    drawPath(Path().apply { moveTo(c.x - 4f * scale, c.y - 18f * scale); lineTo(c.x + 10f * scale, c.y - 55f * scale); lineTo(c.x + 20f * scale, c.y - 16f * scale); close() }, black)
+    drawPath(Path().apply { moveTo(c.x - 54f * scale, c.y); lineTo(c.x - 86f * scale, c.y - 22f * scale); lineTo(c.x - 70f * scale, c.y); lineTo(c.x - 88f * scale, c.y + 22f * scale); close() }, black)
+    drawCircle(scheme.surface.copy(alpha = 0.72f), 1.8f * scale, Offset(c.x + 34f * scale, c.y - 8f * scale))
+}
+
+private fun DrawScope.drawGreatWhiteSharkScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val c = Offset(origin.x, origin.y + bob)
+    val top = Color(0xFF6F8792).copy(alpha = 0.74f)
+    val belly = scheme.surface.copy(alpha = 0.68f)
+    val body = Path().apply {
+        moveTo(c.x - 62f * scale, c.y + 2f * scale)
+        cubicTo(c.x - 34f * scale, c.y - 23f * scale, c.x + 28f * scale, c.y - 22f * scale, c.x + 58f * scale, c.y - 2f * scale)
+        cubicTo(c.x + 22f * scale, c.y + 18f * scale, c.x - 38f * scale, c.y + 19f * scale, c.x - 62f * scale, c.y + 2f * scale)
+        close()
+    }
+    drawPath(body, top)
+    drawOval(belly, Offset(c.x - 26f * scale, c.y + 4f * scale), Size(58f * scale, 12f * scale))
+    drawPath(Path().apply { moveTo(c.x - 4f * scale, c.y - 19f * scale); lineTo(c.x + 8f * scale, c.y - 48f * scale); lineTo(c.x + 18f * scale, c.y - 16f * scale); close() }, top)
+    drawPath(Path().apply { moveTo(c.x - 8f * scale, c.y + 10f * scale); lineTo(c.x - 30f * scale, c.y + 34f * scale); lineTo(c.x + 8f * scale, c.y + 13f * scale); close() }, top.copy(alpha = 0.66f))
+    drawPath(Path().apply { moveTo(c.x - 58f * scale, c.y + 1f * scale); lineTo(c.x - 91f * scale, c.y - 20f * scale); lineTo(c.x - 75f * scale, c.y + 1f * scale); lineTo(c.x - 92f * scale, c.y + 22f * scale); close() }, top)
+    drawCircle(scheme.onSurface.copy(alpha = 0.62f), 1.8f * scale, Offset(c.x + 38f * scale, c.y - 8f * scale))
+}
+
+private fun DrawScope.drawMegalodonScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val c = Offset(origin.x, origin.y + bob)
+    val top = Color(0xFF44515A).copy(alpha = 0.82f)
+    val belly = scheme.surface.copy(alpha = 0.54f)
+    drawOval(scheme.secondary.copy(alpha = 0.10f), Offset(c.x - 96f * scale, c.y - 38f * scale), Size(178f * scale, 76f * scale))
+    val body = Path().apply {
+        moveTo(c.x - 82f * scale, c.y + 3f * scale)
+        cubicTo(c.x - 46f * scale, c.y - 34f * scale, c.x + 42f * scale, c.y - 31f * scale, c.x + 76f * scale, c.y - 4f * scale)
+        cubicTo(c.x + 36f * scale, c.y + 26f * scale, c.x - 48f * scale, c.y + 28f * scale, c.x - 82f * scale, c.y + 3f * scale)
+        close()
+    }
+    drawPath(body, top)
+    drawOval(belly, Offset(c.x - 36f * scale, c.y + 7f * scale), Size(78f * scale, 16f * scale))
+    drawPath(Path().apply { moveTo(c.x - 8f * scale, c.y - 29f * scale); lineTo(c.x + 9f * scale, c.y - 70f * scale); lineTo(c.x + 25f * scale, c.y - 24f * scale); close() }, top)
+    drawPath(Path().apply { moveTo(c.x - 12f * scale, c.y + 13f * scale); lineTo(c.x - 46f * scale, c.y + 48f * scale); lineTo(c.x + 14f * scale, c.y + 18f * scale); close() }, top.copy(alpha = 0.68f))
+    drawPath(Path().apply { moveTo(c.x - 80f * scale, c.y + 2f * scale); lineTo(c.x - 124f * scale, c.y - 31f * scale); lineTo(c.x - 101f * scale, c.y + 2f * scale); lineTo(c.x - 125f * scale, c.y + 34f * scale); close() }, top)
+    drawCircle(scheme.secondary.copy(alpha = 0.72f), 2.3f * scale, Offset(c.x + 50f * scale, c.y - 12f * scale))
+}
+
+private fun DrawScope.drawMorayEelScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val body = scheme.primary.copy(alpha = 0.55f)
+    drawArc(body, 165f, 250f, false, Offset(origin.x - 38f * scale, origin.y - 20f * scale + bob), Size(74f * scale, 50f * scale), style = Stroke(width = 9f * scale))
+    drawOval(body.copy(alpha = 0.88f), Offset(origin.x + 20f * scale, origin.y - 12f * scale + bob), Size(22f * scale, 16f * scale))
+    drawLine(scheme.surface.copy(alpha = 0.55f), Offset(origin.x + 29f * scale, origin.y - 2f * scale + bob), Offset(origin.x + 41f * scale, origin.y + 1f * scale + bob), strokeWidth = 1.3f * scale)
+    drawCircle(scheme.surface.copy(alpha = 0.62f), 1.7f * scale, Offset(origin.x + 30f * scale, origin.y - 7f * scale + bob))
+    drawOval(scheme.onSurface.copy(alpha = 0.12f), Offset(origin.x - 42f * scale, origin.y + 14f * scale + bob), Size(34f * scale, 14f * scale))
+}
+
+private fun DrawScope.drawSeaSnakeScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val body = scheme.secondary.copy(alpha = 0.58f)
+    val path = Path().apply {
+        moveTo(origin.x - 42f * scale, origin.y + 8f * scale + bob)
+        cubicTo(origin.x - 22f * scale, origin.y - 24f * scale + bob, origin.x - 6f * scale, origin.y + 30f * scale + bob, origin.x + 12f * scale, origin.y - 4f * scale + bob)
+        cubicTo(origin.x + 25f * scale, origin.y - 26f * scale + bob, origin.x + 38f * scale, origin.y - 4f * scale + bob, origin.x + 48f * scale, origin.y - 12f * scale + bob)
+    }
+    drawPath(path, body, style = Stroke(width = 5f * scale))
+    repeat(6) { i ->
+        val x = origin.x - 28f * scale + i * 13f * scale
+        drawLine(scheme.surface.copy(alpha = 0.45f), Offset(x, origin.y + bob - 7f * scale), Offset(x + 5f * scale, origin.y + bob + 4f * scale), strokeWidth = 1.3f * scale)
+    }
+    drawCircle(body.copy(alpha = 0.86f), 5.5f * scale, Offset(origin.x + 48f * scale, origin.y - 12f * scale + bob))
+}
+
+private fun DrawScope.drawSquidScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme, giant: Boolean) {
+    val color = if (giant) scheme.secondary.copy(alpha = 0.58f) else scheme.primary.copy(alpha = 0.48f)
+    val bodyHeight = if (giant) 58f else 42f
+    drawPath(Path().apply {
+        moveTo(origin.x, origin.y - bodyHeight * 0.60f * scale + bob)
+        cubicTo(origin.x - 18f * scale, origin.y - 22f * scale + bob, origin.x - 16f * scale, origin.y + 8f * scale + bob, origin.x, origin.y + 18f * scale + bob)
+        cubicTo(origin.x + 16f * scale, origin.y + 8f * scale + bob, origin.x + 18f * scale, origin.y - 22f * scale + bob, origin.x, origin.y - bodyHeight * 0.60f * scale + bob)
+        close()
+    }, color)
+    repeat(if (giant) 8 else 5) { i ->
+        val startX = origin.x - (if (giant) 16f else 11f) * scale + i * (if (giant) 4.8f else 5.5f) * scale
+        val endX = origin.x - 28f * scale + i * (if (giant) 8f else 11f) * scale
+        drawLine(color.copy(alpha = 0.85f), Offset(startX, origin.y + 14f * scale + bob), Offset(endX, origin.y + (if (giant) 54f else 42f) * scale + bob), strokeWidth = if (giant) 3.2f * scale else 2.4f * scale)
     }
 }
 
-private fun DrawScope.drawSeahorseColony(count: Int, accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float, levelScale: Float = 1f) {
-    val visible = representativeVisibleCount(count, maxVisible = 6)
-    repeat(visible) { i ->
-        val bob = sin((drift * 6.28f + i * 0.9f).toDouble()).toFloat()
-        val x = size.width * (0.22f + (i % 3) * 0.16f)
-        val y = size.height * (0.46f + (i / 3) * 0.16f) + bob * 14f
-        drawSeahorse(Offset(x, y), (1f + (i % 2) * 0.08f) * levelScale, bob, i < accentCount.coerceAtMost(visible), scheme)
+private fun DrawScope.drawKrakenScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val color = scheme.secondary.copy(alpha = 0.66f)
+    drawCircle(color.copy(alpha = 0.16f), 64f * scale, origin)
+    drawOval(color, Offset(origin.x - 26f * scale, origin.y - 34f * scale + bob), Size(52f * scale, 46f * scale))
+    repeat(10) { i ->
+        val angle = -2.8f + i * 0.62f
+        val start = Offset(origin.x + kotlin.math.cos(angle) * 12f * scale, origin.y + 6f * scale + bob)
+        val end = Offset(origin.x + kotlin.math.cos(angle) * (42f + (i % 3) * 8f) * scale, origin.y + 52f * scale + kotlin.math.sin(angle) * 12f * scale + bob)
+        drawLine(color.copy(alpha = 0.78f), start, end, strokeWidth = 4f * scale)
     }
+    drawCircle(scheme.onSurface.copy(alpha = 0.60f), 2.4f * scale, Offset(origin.x - 8f * scale, origin.y - 14f * scale + bob))
+    drawCircle(scheme.onSurface.copy(alpha = 0.60f), 2.4f * scale, Offset(origin.x + 8f * scale, origin.y - 14f * scale + bob))
 }
 
-private fun DrawScope.drawMantaGlides(
-    count: Int,
-    accentCount: Int,
-    scheme: androidx.compose.material3.ColorScheme,
-    drift: Float,
-    mantaLoop: Float,
-    levelScale: Float = 1f
-) {
-    val visible = representativeVisibleCount(count, maxVisible = 3)
-    repeat(visible) { i ->
-        val scale = (1.0f + i * 0.16f) * levelScale
-        val mantaWidth = 132f * scale
-        val progress = (mantaLoop + 0.20f + i * 0.28f) % 1f
-        val x = offscreenHorizontalPassX(
-            progress = progress,
-            screenWidth = size.width,
-            animalWidth = mantaWidth,
-            margin = 56f,
-            leftToRight = true
-        )
-        val y = size.height * (0.32f + i * 0.18f) + sin((drift * 6.28f + i).toDouble()).toFloat() * 18f
-        drawManta(Offset(x, y), scale, drift + i * 0.2f, i < accentCount.coerceAtMost(visible), scheme)
+private fun DrawScope.drawLeviathanScene(origin: Offset, scale: Float, bob: Float, scheme: androidx.compose.material3.ColorScheme) {
+    val c = Offset(origin.x, origin.y + bob)
+    val body = Color(0xFF172A46).copy(alpha = 0.78f)
+    val glow = scheme.secondary.copy(alpha = 0.30f)
+    drawOval(glow.copy(alpha = 0.10f), Offset(c.x - 102f * scale, c.y - 48f * scale), Size(194f * scale, 92f * scale))
+    val spine = Path().apply {
+        moveTo(c.x - 88f * scale, c.y + 18f * scale)
+        cubicTo(c.x - 52f * scale, c.y - 50f * scale, c.x + 16f * scale, c.y + 46f * scale, c.x + 70f * scale, c.y - 22f * scale)
     }
-}
-
-private fun DrawScope.drawWhalePasses(
-    count: Int,
-    accentCount: Int,
-    scheme: androidx.compose.material3.ColorScheme,
-    drift: Float,
-    whaleLoop: Float,
-    levelScale: Float = 1f
-) {
-    val visible = representativeVisibleCount(count, maxVisible = 2)
-    repeat(visible) { i ->
-        val scale = (1.28f + i * 0.12f) * levelScale
-        val whaleWidth = 176f * scale
-        val progress = (whaleLoop + 0.22f + i * 0.48f) % 1f
-        val x = offscreenHorizontalPassX(
-            progress = progress,
-            screenWidth = size.width,
-            animalWidth = whaleWidth,
-            margin = 72f,
-            leftToRight = false
-        )
-        val y = size.height * (0.42f + i * 0.16f) + sin((drift * 6.28f + i).toDouble()).toFloat() * 10f
-        drawWhale(Offset(x, y), scale, drift + i, accentCount > 0, scheme)
+    drawPath(spine, body, style = Stroke(width = 15f * scale))
+    drawPath(spine, glow, style = Stroke(width = 3f * scale))
+    drawCircle(body.copy(alpha = 0.96f), 18f * scale, Offset(c.x + 76f * scale, c.y - 24f * scale))
+    drawCircle(scheme.secondary.copy(alpha = 0.82f), 3f * scale, Offset(c.x + 83f * scale, c.y - 29f * scale))
+    repeat(7) { i ->
+        val x = c.x - 58f * scale + i * 20f * scale
+        val y = c.y - 6f * scale + sin((i * 0.9f).toDouble()).toFloat() * 20f * scale
+        drawPath(Path().apply { moveTo(x, y); lineTo(x + 7f * scale, y - 22f * scale); lineTo(x + 14f * scale, y + 1f * scale); close() }, glow.copy(alpha = 0.42f))
     }
-}
-
-private fun DrawScope.drawHiddenOctopus(accentCount: Int, scheme: androidx.compose.material3.ColorScheme, drift: Float) {
-    val pulse = 1f + sin((drift * 6.28f).toDouble()).toFloat() * 0.05f
-    val origin = Offset(size.width * 0.70f, size.height * 0.73f)
-    drawOctopus(origin, pulse, accentCount > 0, scheme)
-}
-
-internal fun representativeVisibleCount(count: Int, maxVisible: Int): Int = when {
-    count <= 0 -> 0
-    count == 1 -> 1
-    count <= 4 -> min(count, maxVisible)
-    count <= 14 -> min(6, maxVisible)
-    count <= 49 -> min(9, maxVisible)
-    else -> maxVisible
+    drawPath(Path().apply { moveTo(c.x + 88f * scale, c.y - 22f * scale); lineTo(c.x + 118f * scale, c.y - 42f * scale); lineTo(c.x + 98f * scale, c.y - 12f * scale); close() }, body)
 }
 
 private fun DrawScope.drawMinnow(origin: Offset, scale: Float, wiggle: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
@@ -3804,69 +4625,107 @@ private fun DrawScope.drawSeahorse(origin: Offset, scale: Float, bob: Float, glo
 
 private fun DrawScope.drawManta(origin: Offset, scale: Float, drift: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
     val wingPulse = sin((drift * 6.28f).toDouble()).toFloat()
-    val wingLift = wingPulse * 7f * scale
-    val bodyColor = scheme.primary.copy(alpha = 0.48f)
-    val wingColor = scheme.primary.copy(alpha = 0.40f)
-    val accent = scheme.secondary.copy(alpha = if (glowing) 0.34f else 0.18f)
+    val wingLift = wingPulse * 6f * scale
+    val bodyColor = scheme.primary.copy(alpha = 0.50f)
+    val wingColor = scheme.primary.copy(alpha = 0.42f)
+    val accent = scheme.secondary.copy(alpha = if (glowing) 0.36f else 0.20f)
 
     if (glowing) {
         drawOval(
             color = scheme.secondary.copy(alpha = 0.10f),
-            topLeft = Offset(origin.x - 94f * scale, origin.y - 54f * scale),
-            size = Size(188f * scale, 118f * scale)
+            topLeft = Offset(origin.x - 92f * scale, origin.y - 58f * scale),
+            size = Size(190f * scale, 116f * scale)
         )
     }
 
+    // Right-facing manta/ray silhouette: cephalic lobes and eyes at the right,
+    // trailing tail to the left. drawRenderedCreature mirrors this for leftward motion.
     val manta = Path().apply {
-        // Top-view / three-quarter-top-view ray silhouette: broad wings first, then body taper.
-        moveTo(origin.x, origin.y - 42f * scale)
-        cubicTo(origin.x - 18f * scale, origin.y - 45f * scale, origin.x - 55f * scale, origin.y - 42f * scale + wingLift, origin.x - 98f * scale, origin.y - 8f * scale + wingLift)
-        cubicTo(origin.x - 66f * scale, origin.y + 2f * scale, origin.x - 36f * scale, origin.y + 24f * scale, origin.x - 10f * scale, origin.y + 42f * scale)
-        cubicTo(origin.x - 4f * scale, origin.y + 47f * scale, origin.x + 4f * scale, origin.y + 47f * scale, origin.x + 10f * scale, origin.y + 42f * scale)
-        cubicTo(origin.x + 36f * scale, origin.y + 24f * scale, origin.x + 66f * scale, origin.y + 2f * scale, origin.x + 98f * scale, origin.y - 8f * scale - wingLift)
-        cubicTo(origin.x + 55f * scale, origin.y - 42f * scale - wingLift, origin.x + 18f * scale, origin.y - 45f * scale, origin.x, origin.y - 42f * scale)
+        moveTo(origin.x + 78f * scale, origin.y - 6f * scale)
+        cubicTo(origin.x + 44f * scale, origin.y - 48f * scale - wingLift, origin.x - 22f * scale, origin.y - 54f * scale, origin.x - 88f * scale, origin.y - 22f * scale - wingLift)
+        cubicTo(origin.x - 48f * scale, origin.y - 8f * scale, origin.x - 28f * scale, origin.y + 28f * scale, origin.x + 8f * scale, origin.y + 42f * scale)
+        cubicTo(origin.x + 42f * scale, origin.y + 28f * scale, origin.x + 66f * scale, origin.y + 14f * scale, origin.x + 78f * scale, origin.y - 6f * scale)
         close()
     }
     drawPath(manta, wingColor)
 
-    val center = Path().apply {
-        moveTo(origin.x, origin.y - 36f * scale)
-        cubicTo(origin.x - 20f * scale, origin.y - 18f * scale, origin.x - 18f * scale, origin.y + 22f * scale, origin.x, origin.y + 40f * scale)
-        cubicTo(origin.x + 18f * scale, origin.y + 22f * scale, origin.x + 20f * scale, origin.y - 18f * scale, origin.x, origin.y - 36f * scale)
+    val body = Path().apply {
+        moveTo(origin.x + 62f * scale, origin.y - 2f * scale)
+        cubicTo(origin.x + 28f * scale, origin.y - 22f * scale, origin.x - 18f * scale, origin.y - 18f * scale, origin.x - 34f * scale, origin.y)
+        cubicTo(origin.x - 16f * scale, origin.y + 18f * scale, origin.x + 30f * scale, origin.y + 20f * scale, origin.x + 62f * scale, origin.y - 2f * scale)
         close()
     }
-    drawPath(center, bodyColor)
-
-    val underside = Path().apply {
-        moveTo(origin.x, origin.y - 18f * scale)
-        cubicTo(origin.x - 12f * scale, origin.y - 2f * scale, origin.x - 10f * scale, origin.y + 18f * scale, origin.x, origin.y + 29f * scale)
-        cubicTo(origin.x + 10f * scale, origin.y + 18f * scale, origin.x + 12f * scale, origin.y - 2f * scale, origin.x, origin.y - 18f * scale)
+    drawPath(body, bodyColor)
+    drawPath(Path().apply {
+        moveTo(origin.x + 66f * scale, origin.y - 15f * scale)
+        lineTo(origin.x + 92f * scale, origin.y - 28f * scale)
+        lineTo(origin.x + 78f * scale, origin.y - 6f * scale)
         close()
-    }
-    drawPath(underside, accent)
+    }, bodyColor.copy(alpha = 0.62f))
+    drawPath(Path().apply {
+        moveTo(origin.x + 66f * scale, origin.y + 4f * scale)
+        lineTo(origin.x + 92f * scale, origin.y + 16f * scale)
+        lineTo(origin.x + 78f * scale, origin.y - 6f * scale)
+        close()
+    }, bodyColor.copy(alpha = 0.56f))
 
-    // Cephalic-lobe suggestion and small eyes make it read as a manta, not a flat diamond.
-    drawLine(bodyColor.copy(alpha = 0.62f), Offset(origin.x - 9f * scale, origin.y - 37f * scale), Offset(origin.x - 24f * scale, origin.y - 48f * scale), strokeWidth = 3f * scale)
-    drawLine(bodyColor.copy(alpha = 0.62f), Offset(origin.x + 9f * scale, origin.y - 37f * scale), Offset(origin.x + 24f * scale, origin.y - 48f * scale), strokeWidth = 3f * scale)
-    drawCircle(scheme.onSurface.copy(alpha = 0.34f), 1.8f * scale, Offset(origin.x - 9f * scale, origin.y - 25f * scale))
-    drawCircle(scheme.onSurface.copy(alpha = 0.34f), 1.8f * scale, Offset(origin.x + 9f * scale, origin.y - 25f * scale))
+    drawCircle(scheme.onSurface.copy(alpha = 0.40f), 1.8f * scale, Offset(origin.x + 58f * scale, origin.y - 10f * scale))
+    drawCircle(scheme.onSurface.copy(alpha = 0.34f), 1.6f * scale, Offset(origin.x + 55f * scale, origin.y + 4f * scale))
 
     val tailSway = sin((drift * 6.28f - 0.8f).toDouble()).toFloat() * 9f * scale
     val tail = Path().apply {
-        moveTo(origin.x, origin.y + 38f * scale)
-        cubicTo(origin.x + tailSway * 0.25f, origin.y + 72f * scale, origin.x + tailSway, origin.y + 94f * scale, origin.x + tailSway * 0.65f, origin.y + 126f * scale)
+        moveTo(origin.x - 34f * scale, origin.y)
+        cubicTo(origin.x - 70f * scale, origin.y + tailSway * 0.2f, origin.x - 100f * scale, origin.y + tailSway, origin.x - 130f * scale, origin.y + tailSway * 0.65f)
     }
-    drawPath(tail, bodyColor.copy(alpha = 0.52f), style = Stroke(width = 2.4f * scale))
+    drawPath(tail, bodyColor.copy(alpha = 0.54f), style = Stroke(width = 2.6f * scale))
 
     if (glowing) {
-        drawLine(accent, Offset(origin.x - 74f * scale, origin.y - 6f * scale + wingLift), Offset(origin.x - 18f * scale, origin.y + 22f * scale), strokeWidth = 2f * scale)
-        drawLine(accent, Offset(origin.x + 74f * scale, origin.y - 6f * scale - wingLift), Offset(origin.x + 18f * scale, origin.y + 22f * scale), strokeWidth = 2f * scale)
+        drawLine(accent, Offset(origin.x - 60f * scale, origin.y - 16f * scale - wingLift), Offset(origin.x + 20f * scale, origin.y - 4f * scale), strokeWidth = 2f * scale)
+        drawLine(accent, Offset(origin.x - 42f * scale, origin.y + 22f * scale + wingLift), Offset(origin.x + 28f * scale, origin.y + 10f * scale), strokeWidth = 2f * scale)
+    }
+}
+
+
+private fun DrawScope.drawWhaleProfile(origin: Offset, scale: Float, drift: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme, profileKey: String) {
+    val key = profileKey.lowercase()
+    val bob = sin((drift * 6.28f).toDouble()).toFloat() * 5f * scale
+    // Whale silhouettes were originally authored facing left; normalize them to the
+    // scene renderer convention (right-facing by default) so the shared
+    // facingRight mirror in drawRenderedCreature matches movement direction.
+    withTransform({ scale(scaleX = -1f, scaleY = 1f, pivot = origin) }) {
+    when {
+        "blue_whale" in key -> {
+            val color = scheme.onSurface.copy(alpha = 0.44f)
+            val rim = if (glowing) scheme.secondary.copy(alpha = 0.24f) else scheme.primary.copy(alpha = 0.18f)
+            drawOval(rim, Offset(origin.x - 146f * scale, origin.y - 36f * scale + bob), Size(280f * scale, 70f * scale))
+            drawOval(color, Offset(origin.x - 136f * scale, origin.y - 22f * scale + bob), Size(248f * scale, 42f * scale))
+            drawOval(scheme.surface.copy(alpha = 0.30f), Offset(origin.x - 70f * scale, origin.y + 1f * scale + bob), Size(116f * scale, 16f * scale))
+            drawPath(Path().apply { moveTo(origin.x + 102f * scale, origin.y + bob); lineTo(origin.x + 146f * scale, origin.y - 20f * scale + bob); lineTo(origin.x + 132f * scale, origin.y + bob); lineTo(origin.x + 148f * scale, origin.y + 20f * scale + bob); close() }, color.copy(alpha = 0.86f))
+            drawPath(Path().apply { moveTo(origin.x + 14f * scale, origin.y - 20f * scale + bob); lineTo(origin.x + 28f * scale, origin.y - 38f * scale + bob); lineTo(origin.x + 34f * scale, origin.y - 18f * scale + bob); close() }, scheme.secondary.copy(alpha = 0.36f))
+        }
+        "humpback" in key -> {
+            val color = scheme.onSurface.copy(alpha = 0.38f)
+            val rim = if (glowing) scheme.secondary.copy(alpha = 0.24f) else scheme.primary.copy(alpha = 0.16f)
+            val back = Path().apply {
+                moveTo(origin.x - 104f * scale, origin.y + 6f * scale + bob)
+                cubicTo(origin.x - 70f * scale, origin.y - 56f * scale + bob, origin.x + 36f * scale, origin.y - 42f * scale + bob, origin.x + 90f * scale, origin.y - 2f * scale + bob)
+                cubicTo(origin.x + 42f * scale, origin.y + 36f * scale + bob, origin.x - 56f * scale, origin.y + 42f * scale + bob, origin.x - 104f * scale, origin.y + 6f * scale + bob)
+                close()
+            }
+            drawPath(back, rim)
+            drawPath(back, color)
+            drawLine(scheme.secondary.copy(alpha = 0.32f), Offset(origin.x - 18f * scale, origin.y + 18f * scale + bob), Offset(origin.x - 80f * scale, origin.y + 76f * scale + bob), strokeWidth = 6f * scale)
+            drawPath(Path().apply { moveTo(origin.x + 82f * scale, origin.y + bob); lineTo(origin.x + 124f * scale, origin.y - 24f * scale + bob); lineTo(origin.x + 110f * scale, origin.y + bob); lineTo(origin.x + 126f * scale, origin.y + 24f * scale + bob); close() }, color.copy(alpha = 0.82f))
+            repeat(4) { i -> drawCircle(scheme.secondary.copy(alpha = 0.24f), 2f * scale, Offset(origin.x - 82f * scale + i * 10f * scale, origin.y - 6f * scale + bob)) }
+        }
+        else -> drawWhale(origin, scale, drift, glowing, scheme)
+    }
     }
 }
 
 private fun DrawScope.drawWhale(origin: Offset, scale: Float, drift: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
-    val color = scheme.onSurface.copy(alpha = 0.22f)
-    val rim = if (glowing) scheme.secondary.copy(alpha = 0.20f) else scheme.primary.copy(alpha = 0.10f)
+    val color = scheme.onSurface.copy(alpha = 0.36f)
+    val rim = if (glowing) scheme.secondary.copy(alpha = 0.26f) else scheme.primary.copy(alpha = 0.18f)
     drawOval(rim, Offset(origin.x - 118f * scale, origin.y - 38f * scale), Size(220f * scale, 78f * scale))
     drawOval(color, Offset(origin.x - 108f * scale, origin.y - 28f * scale), Size(190f * scale, 56f * scale))
     drawOval(color.copy(alpha = 0.16f), Offset(origin.x - 54f * scale, origin.y + 2f * scale), Size(94f * scale, 22f * scale))
@@ -3967,29 +4826,67 @@ private fun TheBlueAnimalDetailSheet(
                 .semantics { contentDescription = detailDescription },
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(
-                text = stringResource(R.string.the_blue_animal_zone, zone),
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(source)
+            ElevatedCard {
+                Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        ShellObjectIcon(CreatureCatalog.get(animal.findId)?.staticIconKey ?: "animal", Modifier.size(56.dp))
+                        Column {
+                            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                            Text(text = zone, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    Text(source)
+                }
+            }
 
-            Text(stringResource(R.string.shell_creature_swimming_now, animal.totalCount))
-            Text(stringResource(R.string.shell_creature_lifetime_encountered, animal.lifetimeEncounteredCount))
-            if (animal.releasedCount > 0) Text(stringResource(R.string.shell_creature_released, animal.releasedCount))
-            if (animal.usedBeyondBlueCount > 0) Text(stringResource(R.string.shell_creature_used_beyond_blue, animal.usedBeyondBlueCount))
-            Text(stringResource(R.string.shell_creature_highest_level, animal.highestLevel))
-            animal.flowTimeValueMinutes?.let { Text(stringResource(R.string.shell_creature_flow_time_value_each, formatMinutesCompact(it))) }
-            animal.releaseValuePearls?.let { Text(stringResource(R.string.shell_creature_release_value_each, it)) }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                ShellMetricPill(Icons.Outlined.Waves, stringResource(R.string.the_blue_swimming_chip, animal.totalCount))
+                ShellMetricPill(Icons.Outlined.AutoStories, stringResource(R.string.the_blue_lifetime_chip, animal.lifetimeEncounteredCount))
+                ShellMetricPill(Icons.Outlined.EmojiEvents, stringResource(R.string.the_blue_highest_level_chip, animal.highestLevel))
+                if (animal.releasedCount > 0) ShellMetricPill(Icons.Outlined.Route, stringResource(R.string.the_blue_released_chip, animal.releasedCount))
+                if (animal.usedBeyondBlueCount > 0) ShellMetricPill(Icons.Outlined.WaterDrop, stringResource(R.string.the_blue_beyond_blue_chip, animal.usedBeyondBlueCount))
+            }
+            animal.flowTimeValueMinutes?.let {
+                ElevatedCard {
+                    ListItem(
+                        leadingContent = { Icon(Icons.Outlined.Route, contentDescription = null) },
+                        headlineContent = { Text(stringResource(R.string.the_blue_created_by_flow_title)) },
+                        supportingContent = {
+                            Text(stringResource(R.string.the_blue_created_by_flow_value, formatMinutesCompact(it)))
+                        }
+                    )
+                }
+            }
+            animal.releaseValuePearls?.let {
+                ElevatedCard {
+                    ListItem(
+                        leadingContent = { Icon(Icons.Outlined.Diamond, contentDescription = null) },
+                        headlineContent = { Text(stringResource(R.string.the_blue_pearl_value_title)) },
+                        supportingContent = { Text(stringResource(R.string.shell_creature_pearl_value_each, it)) }
+                    )
+                }
+                ElevatedCard {
+                    ListItem(
+                        leadingContent = { Icon(Icons.Outlined.Diamond, contentDescription = null) },
+                        headlineContent = { Text(stringResource(R.string.the_blue_release_return_title)) },
+                        supportingContent = { Text(stringResource(R.string.shell_creature_release_value_each, it)) }
+                    )
+                }
+            }
 
             Text(stringResource(R.string.shell_creature_levels_heading), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             if (animal.levelCounts.isEmpty()) {
                 Text(stringResource(R.string.the_blue_forms_unavailable))
             } else {
-                animal.levelCounts.sortedBy { it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 0 }
-                    .forEach { level -> Text("${level.formStageId} ×${level.count}") }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                    animal.levelCounts.sortedBy { it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 0 }
+                        .forEach { level ->
+                            val lv = level.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 1
+                            ShellMetricPill(Icons.Outlined.EmojiEvents, stringResource(R.string.shell_creature_level_count_chip, lv, level.count))
+                        }
+                }
             }
+            Text(stringResource(R.string.the_blue_growth_support_copy))
 
             Text(stringResource(R.string.the_blue_displayed_in_focus_heading), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(animal.displayedInFocusCount.toString())
@@ -4011,17 +4908,10 @@ private fun TheBlueAnimalDetailSheet(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
                 )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = onBeyondBlue, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.beyond_blue_encounter_cta))
-                }
-                OutlinedButton(
-                    onClick = onRelease,
-                    enabled = releaseInstanceId != null,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.shell_creature_release_for_pearls))
-                }
+            OutlinedButton(onClick = onBeyondBlue, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Outlined.Waves, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.beyond_blue_encounter_cta))
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 Button(
@@ -4036,6 +4926,13 @@ private fun TheBlueAnimalDetailSheet(
                 OutlinedButton(onClick = onOpenChest, modifier = Modifier.weight(1f)) {
                     Text(stringResource(R.string.the_blue_view_in_chest))
                 }
+            }
+            OutlinedButton(
+                onClick = onRelease,
+                enabled = releaseInstanceId != null,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.shell_creature_release_for_pearls))
             }
             when (theBlueDisplayDisabledReason(focusSlotId, firstRestingInstanceId)) {
                 TheBlueDisplayDisabledReason.NO_FOCUS_SLOT -> Text(
@@ -4091,50 +4988,86 @@ private fun BeyondBlueEncounterSheet(
     onDismiss: () -> Unit,
     onEncounter: (String, List<String>) -> Unit
 ) {
+    data class TradeStack(
+        val key: String,
+        val findId: String,
+        val level: Int,
+        val instances: List<UserShellFindInstanceEntity>,
+        val perMinutes: Int
+    )
+
     var confirmTargetId by remember { mutableStateOf<String?>(null) }
     var selectedZone by remember(initialZone) { mutableStateOf(initialZone) }
-    var selectedInstanceIds by remember { mutableStateOf(setOf<String>()) }
+    var selectedCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+    var tradeExpanded by remember { mutableStateOf(false) }
     val confirmTarget = confirmTargetId?.let { CreatureCatalog.get(it) }
+
+    val tradeStacks = remember(activeAnimalInstances) {
+        activeAnimalInstances
+            .filter { it.creatureStatus == CreatureStatus.ACTIVE }
+            .groupBy { "${it.findId}:${it.animalLevel.coerceAtLeast(1)}" }
+            .map { (key, group) ->
+                val first = group.first()
+                val level = first.animalLevel.coerceAtLeast(1)
+                TradeStack(
+                    key = key,
+                    findId = first.findId,
+                    level = level,
+                    instances = group.sortedBy { it.acquiredAt },
+                    perMinutes = CreatureEconomy.beyondBlueTradeContributionMinutes(first.findId, level)
+                )
+            }
+            .sortedBy { it.findId + ":" + it.level }
+    }
+
+    val selectedInstanceIds = remember(selectedCounts, tradeStacks) {
+        buildList {
+            tradeStacks.forEach { stack ->
+                val selected = (selectedCounts[stack.key] ?: 0).coerceIn(0, stack.instances.size)
+                stack.instances.take(selected).forEach { add(it.instanceId) }
+            }
+        }
+    }
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(stringResource(R.string.beyond_blue_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(stringResource(R.string.beyond_blue_intro))
+            Text(stringResource(R.string.beyond_blue_zone_encounters, zoneTitle(selectedZone)))
+            Text(zoneSubtitle(selectedZone))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
                 TheBlueZoneId.entries.forEach { zone ->
-                    val zoneA11y = zoneTitle(zone)
-                    FilterChip(
-                        selected = selectedZone == zone,
-                        onClick = { selectedZone = zone },
-                        label = { Text(zoneRailLabel(zone)) },
-                        modifier = Modifier.semantics { contentDescription = zoneA11y }
-                    )
+                    FilterChip(selected = selectedZone == zone, onClick = { selectedZone = zone }, label = { Text(zoneRailLabel(zone)) })
                 }
             }
+
             if (confirmTarget == null) {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    val selectedCreatureZone = selectedZone.toCreatureZone()
-                    items(CreatureCatalog.beyondBlue.filter { it.zone == selectedCreatureZone }, key = { it.creatureId }) { target ->
-                        val price = CreatureEconomy.pearlPriceForRequirement(target.requirementMinutes ?: 0)
+                val selectedCreatureZone = selectedZone.toCreatureZone()
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    CreatureCatalog.beyondBlue.filter { it.zone == selectedCreatureZone }.forEach { target ->
+                        val requirement = target.requirementMinutes ?: 0
+                        val price = CreatureEconomy.pearlPriceForRequirement(requirement)
                         val canAfford = pearlBalance >= price
-                        ElevatedCard(
-                            onClick = { confirmTargetId = target.creatureId },
-                            colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
-                            ListItem(
-                                leadingContent = { ShellObjectIcon(target.staticIconKey, Modifier.size(36.dp)) },
-                                headlineContent = { Text(target.displayName) },
-                                supportingContent = {
-                                    Text("${target.zone.displayName}\n${stringResource(R.string.beyond_blue_requires_value, formatMinutesCompact(target.requirementMinutes ?: 0))}\n${stringResource(R.string.beyond_blue_or_pearls, price)}${if (canAfford) "" else "\n${stringResource(R.string.beyond_blue_need_more_pearls, (price - pearlBalance).coerceAtLeast(0))}"}")
+                        ElevatedCard(onClick = {
+                            confirmTargetId = target.creatureId
+                            selectedCounts = emptyMap()
+                            tradeExpanded = false
+                        }) {
+                            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                ShellObjectIcon(target.staticIconKey, Modifier.size(46.dp))
+                                Text(target.displayName, fontWeight = FontWeight.Bold)
+                                Text(zoneTitle(theBlueZoneFor(target.zone)), style = MaterialTheme.typography.labelMedium)
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    ShellMetricPill(Icons.Outlined.Diamond, stringResource(R.string.beyond_blue_or_pearls, price))
+                                    ShellMetricPill(Icons.Outlined.Route, formatMinutesCompact(requirement))
+                                    ShellMetricPill(Icons.Outlined.WaterDrop, if (canAfford) stringResource(R.string.beyond_blue_ready_to_buy) else stringResource(R.string.beyond_blue_need_more_pearls, (price - pearlBalance).coerceAtLeast(0)))
                                 }
-                            )
+                            }
                         }
                     }
                 }
@@ -4142,64 +5075,146 @@ private fun BeyondBlueEncounterSheet(
                 val target = confirmTarget
                 val requirement = target.requirementMinutes ?: 0
                 val pearlOnlyPrice = CreatureEconomy.pearlPriceForRequirement(requirement)
-                val selectedInstances = activeAnimalInstances.filter { it.instanceId in selectedInstanceIds }
-                val selectedMinutes = selectedInstances.sumOf { CreatureEconomy.beyondBlueTradeContributionMinutes(it.findId, it.animalLevel) }
+                val selectedMinutes = tradeStacks.sumOf { (selectedCounts[it.key] ?: 0) * it.perMinutes }
                 val quote = CreatureEconomy.quoteBeyondBluePayment(target.creatureId, selectedMinutes, pearlBalance)
-                Text("${target.displayName} · ${target.zone.displayName}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.beyond_blue_requires_value, formatMinutesCompact(requirement)) + " · " + stringResource(R.string.beyond_blue_or_pearls, pearlOnlyPrice))
-                if (selectedInstanceIds.isNotEmpty()) {
-                    Text(stringResource(R.string.beyond_blue_selected_leave))
-                    Text(stringResource(R.string.beyond_blue_lifetime_remains))
+                val progress = if (requirement == 0) 1f else (selectedMinutes.toFloat() / requirement.toFloat()).coerceIn(0f, 1f)
+                var showConfirm by remember(target.creatureId, selectedCounts, quote) { mutableStateOf(false) }
+
+                ElevatedCard {
+                    Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ShellObjectIcon(target.staticIconKey, Modifier.size(56.dp))
+                        Text(target.displayName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(zoneTitle(theBlueZoneFor(target.zone)), color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.beyond_blue_life_waiting_depth))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            ShellMetricPill(Icons.Outlined.Route, formatMinutesCompact(requirement))
+                            ShellMetricPill(Icons.Outlined.Diamond, stringResource(R.string.beyond_blue_or_pearls, pearlOnlyPrice))
+                        }
+                    }
                 }
-                if (activeAnimalInstances.isNotEmpty()) {
-                    Text(stringResource(R.string.beyond_blue_available_trade), fontWeight = FontWeight.SemiBold)
-                    LazyColumn(modifier = Modifier.heightIn(max = 180.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(activeAnimalInstances, key = { it.instanceId }) { item ->
-                            val checked = item.instanceId in selectedInstanceIds
-                            ElevatedCard(onClick = { selectedInstanceIds = if (checked) selectedInstanceIds - item.instanceId else selectedInstanceIds + item.instanceId }) {
-                                ListItem(
-                                    leadingContent = { ShellObjectIcon(CreatureCatalog.get(item.findId)?.staticIconKey ?: "animal", Modifier.size(32.dp)) },
-                                    headlineContent = { Text(findName(item.findId)) },
-                                    supportingContent = { Text("Level ${item.animalLevel} · ${zoneTitle(theBlueZoneFor(CreatureCatalog.get(item.findId)?.zone ?: CreatureZone.SUNLIT_REEF))}\n${formatMinutesCompact(CreatureEconomy.beyondBlueTradeContributionMinutes(item.findId, item.animalLevel))} creature value") },
-                                    trailingContent = { Text(if (checked) stringResource(R.string.beyond_blue_selected) else stringResource(R.string.beyond_blue_tap_to_select)) }
-                                )
+
+                ElevatedCard {
+                    Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(stringResource(R.string.beyond_blue_buy_with_pearls), fontWeight = FontWeight.SemiBold)
+                        ShellMetricPill(Icons.Outlined.Diamond, stringResource(R.string.beyond_blue_use_pearls_only_amount, pearlOnlyPrice))
+                        Text(stringResource(R.string.beyond_blue_balance_pearls, pearlBalance))
+                        Text(stringResource(R.string.beyond_blue_confirm_no_creatures_leave))
+                        if (pearlBalance < pearlOnlyPrice) {
+                            Text(stringResource(R.string.beyond_blue_need_more_pearls, pearlOnlyPrice - pearlBalance), color = MaterialTheme.colorScheme.error)
+                            Text(stringResource(R.string.beyond_blue_trade_or_return_after_flow), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
+                        }
+                        Button(
+                            onClick = { showConfirm = true },
+                            enabled = if (selectedInstanceIds.isEmpty()) pearlBalance >= pearlOnlyPrice else quote.canEncounter,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(if (selectedInstanceIds.isEmpty()) R.string.beyond_blue_buy_with_pearls else R.string.beyond_blue_trade_and_buy))
+                        }
+                    }
+                }
+
+                if (tradeStacks.isNotEmpty()) {
+                    Text(stringResource(R.string.beyond_blue_optional), fontWeight = FontWeight.SemiBold)
+                    OutlinedButton(onClick = { tradeExpanded = !tradeExpanded }, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.beyond_blue_trade_reduce_optional))
+                    }
+                }
+
+                if (tradeExpanded && tradeStacks.isNotEmpty()) {
+                    Text(stringResource(R.string.beyond_blue_trade_from_blue), fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.beyond_blue_calling_life_in), fontWeight = FontWeight.SemiBold)
+                    LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                    Text(stringResource(R.string.beyond_blue_contribution_value, formatMinutesCompact(selectedMinutes), formatMinutesCompact(requirement)))
+                    Column(modifier = Modifier.heightIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        tradeStacks.forEach { stack ->
+                            val selected = selectedCounts[stack.key] ?: 0
+                            ElevatedCard {
+                                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        ShellObjectIcon(CreatureCatalog.get(stack.findId)?.staticIconKey ?: "animal", Modifier.size(34.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(findName(stack.findId), fontWeight = FontWeight.Bold)
+                                            Text(stringResource(R.string.shell_creature_level_short, stack.level))
+                                        }
+                                        ShellMetricPill(Icons.Outlined.Inventory2, stringResource(R.string.beyond_blue_owned_count, stack.instances.size))
+                                    }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                                        ShellMetricPill(Icons.Outlined.Route, stringResource(R.string.beyond_blue_each_value, formatMinutesCompact(stack.perMinutes)))
+                                        ShellMetricPill(Icons.Outlined.WaterDrop, stringResource(R.string.beyond_blue_selected_count, selected))
+                                        ShellMetricPill(Icons.Outlined.Route, stringResource(R.string.beyond_blue_contributes_value, formatMinutesCompact(selected * stack.perMinutes)))
+                                    }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        OutlinedButton(onClick = { selectedCounts = selectedCounts + (stack.key to (selected - 1).coerceAtLeast(0)) }, enabled = selected > 0) { Text(stringResource(R.string.beyond_blue_remove_one, findName(stack.findId))) }
+                                        OutlinedButton(onClick = { selectedCounts = selectedCounts + (stack.key to (selected + 1).coerceAtMost(stack.instances.size)) }, enabled = selected < stack.instances.size) { Text(stringResource(R.string.beyond_blue_add_one, findName(stack.findId))) }
+                                    }
+                                }
                             }
                         }
                     }
-                } else {
-                    Text(stringResource(R.string.beyond_blue_no_active_to_trade))
-                    Text(stringResource(R.string.beyond_blue_still_with_pearls))
                 }
-                Text(stringResource(R.string.beyond_blue_payment_summary), fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.beyond_blue_payment_creatures, formatMinutesCompact(quote.selectedCreatureMinutes)))
-                Text(stringResource(R.string.beyond_blue_payment_pearls, quote.pearlCostForRemaining))
-                Text(stringResource(R.string.beyond_blue_payment_change, quote.pearlReturnForOverpay))
-                if (!quote.canEncounter) {
-                    Text(stringResource(R.string.beyond_blue_need_more_pearls, (quote.pearlCostForRemaining - pearlBalance).coerceAtLeast(0)), color = MaterialTheme.colorScheme.error)
-                    Text(stringResource(R.string.beyond_blue_trade_to_reduce), color = MaterialTheme.colorScheme.error)
+
+                if (tradeExpanded || selectedInstanceIds.isNotEmpty()) {
+                    ElevatedCard {
+                        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(stringResource(R.string.beyond_blue_adjusted_cost), fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.beyond_blue_life_selected, formatMinutesCompact(quote.selectedCreatureMinutes)))
+                            Text(stringResource(R.string.beyond_blue_pearls_used, quote.pearlCostForRemaining))
+                            if (quote.pearlReturnForOverpay > 0) Text(stringResource(R.string.beyond_blue_payment_returned, quote.pearlReturnForOverpay))
+                            if (selectedInstanceIds.isNotEmpty()) {
+                                Button(
+                                    onClick = { showConfirm = true },
+                                    enabled = quote.canEncounter,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(stringResource(R.string.beyond_blue_trade_and_buy))
+                                }
+                            }
+                        }
+                    }
+
+                    ElevatedCard {
+                        Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            if (selectedInstanceIds.isEmpty()) {
+                                Text(stringResource(R.string.beyond_blue_confirm_no_creatures_leave))
+                                Text(stringResource(R.string.beyond_blue_pearls_call_life_in))
+                            } else {
+                                Text(stringResource(R.string.beyond_blue_selected_leave))
+                                Text(stringResource(R.string.beyond_blue_lifetime_remains))
+                                if (quote.pearlCostForRemaining > 0) Text(stringResource(R.string.beyond_blue_pearls_cover_rest))
+                                if (quote.pearlReturnForOverpay > 0) Text(stringResource(R.string.beyond_blue_extra_value_returns))
+                            }
+                        }
+                    }
+
+                    if (!quote.canEncounter) {
+                        Text(stringResource(R.string.beyond_blue_need_more_pearls, (quote.pearlCostForRemaining - pearlBalance).coerceAtLeast(0)), color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.beyond_blue_trade_or_return_after_flow), color = MaterialTheme.colorScheme.error)
+                    }
                 }
-                var showConfirm by remember(target.creatureId, selectedInstanceIds, quote) { mutableStateOf(false) }
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(onClick = { confirmTargetId = null }, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.beyond_blue_back)) }
-                    Button(
-                        onClick = { showConfirm = true },
-                        enabled = quote.canEncounter,
-                        modifier = Modifier.weight(1f)
-                    ) { Text(stringResource(R.string.beyond_blue_encounter_cta)) }
-                }
+                OutlinedButton(onClick = { confirmTargetId = null }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.beyond_blue_back)) }
+
                 if (showConfirm) {
                     AlertDialog(
                         onDismissRequest = { showConfirm = false },
-                        confirmButton = { Button(onClick = { onEncounter(target.creatureId, selectedInstanceIds.toList()) }) { Text(stringResource(R.string.beyond_blue_encounter_cta)) } },
+                        confirmButton = {
+                            Button(onClick = { onEncounter(target.creatureId, selectedInstanceIds) }) {
+                                Text(stringResource(if (selectedInstanceIds.isEmpty()) R.string.beyond_blue_buy else R.string.beyond_blue_trade_and_buy))
+                            }
+                        },
                         dismissButton = { OutlinedButton(onClick = { showConfirm = false }) { Text(stringResource(R.string.beyond_blue_cancel)) } },
-                        title = { Text(stringResource(R.string.beyond_blue_confirm_title, target.displayName)) },
+                        title = { Text(stringResource(if (selectedInstanceIds.isEmpty()) R.string.beyond_blue_buy_with_pearls_title else R.string.beyond_blue_trade_and_buy_title, target.displayName)) },
                         text = {
                             Column {
-                                Text(if (selectedInstanceIds.isEmpty()) stringResource(R.string.beyond_blue_confirm_no_creatures_leave) else stringResource(R.string.beyond_blue_selected_leave))
-                                if (quote.pearlCostForRemaining > 0) Text(stringResource(R.string.beyond_blue_confirm_pearls_cover_remaining, quote.pearlCostForRemaining))
+                                if (selectedInstanceIds.isEmpty()) {
+                                    Text(stringResource(R.string.beyond_blue_pearls_will_be_used, quote.pearlCostForRemaining))
+                                    Text(stringResource(R.string.beyond_blue_confirm_no_creatures_leave))
+                                } else {
+                                    Text(stringResource(R.string.beyond_blue_selected_leave))
+                                    if (quote.pearlCostForRemaining > 0) Text(stringResource(R.string.beyond_blue_confirm_pearls_cover_remaining, quote.pearlCostForRemaining))
+                                    if (quote.pearlReturnForOverpay > 0) Text(stringResource(R.string.beyond_blue_confirm_returned, quote.pearlReturnForOverpay))
+                                    Text(stringResource(R.string.beyond_blue_lifetime_remains))
+                                }
                                 Text(stringResource(R.string.beyond_blue_confirm_enters_zone, target.displayName, zoneTitle(theBlueZoneFor(target.zone))))
-                                if (selectedInstanceIds.isNotEmpty()) Text(stringResource(R.string.beyond_blue_lifetime_remains))
-                                if (quote.pearlReturnForOverpay > 0) Text(stringResource(R.string.beyond_blue_confirm_returned, quote.pearlReturnForOverpay))
                             }
                         }
                     )
@@ -4512,4 +5527,3 @@ private fun shellChamberBrush(): Brush {
         )
     )
 }
-
