@@ -6,6 +6,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
+import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
 import com.kingkharnivore.skillz.domain.shell.CreatureStatus
 
 enum class TheBlueZoneId { SUNLIT_REEF, DEEPER_REEF, OPEN_BLUE, GREAT_BLUE }
@@ -112,7 +113,7 @@ internal fun buildTheBlueUiState(
                     .map { (level, count) -> FormCountUiModel("Level $level", count) }
                     .sortedByDescending { it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 0 },
                 flowTimeValueMinutes = CreatureCatalog.get(findId)?.flowTimeValueMinutes ?: CreatureCatalog.get(findId)?.requirementMinutes,
-                releaseValuePearls = CreatureCatalog.get(findId)?.let { it.flowTimeValueMinutes ?: it.requirementMinutes },
+                releaseValuePearls = CreatureCatalog.get(findId)?.let { CreatureEconomy.releaseValuePearls(findId) },
                 firstActiveInstanceId = instances.firstOrNull()?.instanceId,
                 firstRestingInstanceId = restingInstances.firstOrNull()?.instanceId,
                 highestLevelActiveInstanceId = highestLevelInstance?.instanceId
