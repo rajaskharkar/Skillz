@@ -1647,6 +1647,8 @@ private fun DrawScope.drawStaticCreatureIcon(key: String, scheme: androidx.compo
     when {
         "starfish" in key -> starFish()
         "urchin" in key -> urchin()
+        "minnow" in key -> fishBody(primary.copy(alpha = 0.68f), secondary.copy(alpha = 0.48f), tall = 0.22f, long = 0.48f)
+        "octopus" in key -> { val c = secondary.copy(alpha = 0.74f); drawOval(c, Offset(w * 0.32f, h * 0.12f), Size(w * 0.36f, h * 0.36f)); repeat(8) { i -> drawLine(c, Offset(w * (0.34f + i * 0.045f), h * 0.46f), Offset(w * (0.12f + i * 0.09f), h * 0.88f), strokeWidth = w * 0.035f) }; drawCircle(surface.copy(alpha = 0.56f), w * 0.024f, Offset(w * 0.44f, h * 0.28f)); drawCircle(surface.copy(alpha = 0.56f), w * 0.024f, Offset(w * 0.56f, h * 0.28f)) }
         "clownfish" in key -> fishBody(Color(0xFFE9782E), surface, tall=0.34f, long=0.55f, stripes=3)
         "blue_tang" in key || "tang" in key -> fishBody(Color(0xFF2D77C8), Color(0xFFF2D14C), tall=0.32f, long=0.58f, stripes=1)
         "butterflyfish" in key -> fishBody(Color(0xFFF4D35E), Color(0xFF1A1B2E), tall=0.46f, long=0.48f, stripes=4)
@@ -1682,9 +1684,7 @@ private fun DrawScope.drawStaticCreatureIcon(key: String, scheme: androidx.compo
         "flying_fish" in key -> { fishBody(primary.copy(alpha=0.68f), secondary.copy(alpha=0.55f), tall=0.22f, long=0.58f); drawPath(Path().apply{moveTo(w*0.42f,h*0.40f);lineTo(w*0.22f,h*0.08f);lineTo(w*0.62f,h*0.38f);close()},secondary.copy(alpha=0.42f)) }
         "barracuda" in key -> fishBody(primary.copy(alpha=0.62f), secondary.copy(alpha=0.42f), tall=0.20f, long=0.72f)
         else -> {
-            drawCircle(Color.Red.copy(alpha = 0.56f), w * 0.28f, Offset(w * 0.50f, h * 0.50f))
-            drawLine(surface, Offset(w * 0.36f, h * 0.36f), Offset(w * 0.64f, h * 0.64f), strokeWidth = w * 0.055f)
-            drawLine(surface, Offset(w * 0.64f, h * 0.36f), Offset(w * 0.36f, h * 0.64f), strokeWidth = w * 0.055f)
+            fishBody(primary.copy(alpha = 0.54f), secondary.copy(alpha = 0.42f), tall = 0.28f, long = 0.50f, stripes = 1)
         }
     }
 }
@@ -3864,9 +3864,22 @@ private fun DrawScope.drawSpeciesSwimmer(origin: Offset, scale: Float, drift: Fl
 }
 
 private fun DrawScope.drawMissingCreatureRenderer(origin: Offset, scale: Float, scheme: androidx.compose.material3.ColorScheme) {
-    drawCircle(Color.Red.copy(alpha = 0.55f), 18f * scale, origin)
-    drawLine(scheme.surface, Offset(origin.x - 10f * scale, origin.y - 10f * scale), Offset(origin.x + 10f * scale, origin.y + 10f * scale), strokeWidth = 3f * scale)
-    drawLine(scheme.surface, Offset(origin.x + 10f * scale, origin.y - 10f * scale), Offset(origin.x - 10f * scale, origin.y + 10f * scale), strokeWidth = 3f * scale)
+    val body = scheme.primary.copy(alpha = 0.42f)
+    val accent = scheme.secondary.copy(alpha = 0.36f)
+    drawOval(body, Offset(origin.x - 20f * scale, origin.y - 9f * scale), Size(36f * scale, 18f * scale))
+    drawPath(Path().apply {
+        moveTo(origin.x - 18f * scale, origin.y)
+        lineTo(origin.x - 34f * scale, origin.y - 12f * scale)
+        lineTo(origin.x - 34f * scale, origin.y + 12f * scale)
+        close()
+    }, accent)
+    drawPath(Path().apply {
+        moveTo(origin.x - 2f * scale, origin.y - 8f * scale)
+        lineTo(origin.x + 8f * scale, origin.y - 23f * scale)
+        lineTo(origin.x + 12f * scale, origin.y - 7f * scale)
+        close()
+    }, accent)
+    drawCircle(scheme.surface.copy(alpha = 0.52f), 1.8f * scale, Offset(origin.x + 9f * scale, origin.y - 3f * scale))
 }
 
 private fun DrawScope.drawStarfishScene(origin: Offset, scale: Float, scheme: androidx.compose.material3.ColorScheme) {
