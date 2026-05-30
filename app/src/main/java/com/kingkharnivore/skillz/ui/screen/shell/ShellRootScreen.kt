@@ -3892,11 +3892,16 @@ private fun renderedCreaturePlacements(
                         else -> 4
                     }
                     val laneIndex = stableLane(animal.findId, i, laneCount)
+                    val movementPhase = when (definition.sceneBehavior) {
+                        CreatureSceneBehavior.CRUISE,
+                        CreatureSceneBehavior.LEGENDARY -> stableCruiseEntryPhase(animal.findId, i)
+                        else -> phase
+                    }
                     val progress = (when (definition.sceneBehavior) {
                         CreatureSceneBehavior.GLIDE -> mantaLoop
                         CreatureSceneBehavior.CRUISE, CreatureSceneBehavior.LEGENDARY -> whaleLoop
                         else -> drift
-                    } + phase) % 1f
+                    } + movementPhase) % 1f
                     val visualWidth = visualBase * scale * if (definition.scaleClass >= CreatureScaleClass.LARGE) 1.55f else 1.20f
                     val margin = visualWidth * 1.75f
                     val x = offscreenHorizontalPassX(progress, safeBounds.left, safeBounds.right, visualWidth, margin, facingRight)
@@ -3923,6 +3928,8 @@ private fun stablePhase(findId: String, index: Int): Float = (stableHash(findId,
 private fun stableLane(findId: String, index: Int, laneCount: Int): Int = if (laneCount <= 1) 0 else (stableHash(findId, index) % laneCount).toInt()
 
 private fun stableFacingRight(findId: String, index: Int): Boolean = (stableHash(findId, index) and 1L) == 0L
+
+private fun stableCruiseEntryPhase(findId: String, index: Int): Float = 0.42f + ((stableHash(findId, index) % 160L) / 1000f)
 
 private fun loopAlpha(centerX: Float, visualWidth: Float, bounds: TheBlueSceneSafeBounds): Float {
     val fade = (visualWidth * 0.75f).coerceAtLeast(48f)
@@ -4414,16 +4421,17 @@ private fun DrawScope.drawWhaleProfile(origin: Offset, scale: Float, drift: Floa
     val bob = sin((drift * 6.28f).toDouble()).toFloat() * 5f * scale
     when {
         "blue_whale" in key -> {
-            val color = scheme.primary.copy(alpha = 0.34f)
-            drawOval(if (glowing) scheme.secondary.copy(alpha = 0.14f) else scheme.primary.copy(alpha = 0.08f), Offset(origin.x - 146f * scale, origin.y - 36f * scale + bob), Size(280f * scale, 70f * scale))
+            val color = scheme.onSurface.copy(alpha = 0.44f)
+            val rim = if (glowing) scheme.secondary.copy(alpha = 0.24f) else scheme.primary.copy(alpha = 0.18f)
+            drawOval(rim, Offset(origin.x - 146f * scale, origin.y - 36f * scale + bob), Size(280f * scale, 70f * scale))
             drawOval(color, Offset(origin.x - 136f * scale, origin.y - 22f * scale + bob), Size(248f * scale, 42f * scale))
-            drawOval(color.copy(alpha = 0.18f), Offset(origin.x - 70f * scale, origin.y + 1f * scale + bob), Size(116f * scale, 16f * scale))
-            drawPath(Path().apply { moveTo(origin.x + 102f * scale, origin.y + bob); lineTo(origin.x + 146f * scale, origin.y - 20f * scale + bob); lineTo(origin.x + 132f * scale, origin.y + bob); lineTo(origin.x + 148f * scale, origin.y + 20f * scale + bob); close() }, color.copy(alpha = 0.82f))
-            drawPath(Path().apply { moveTo(origin.x + 14f * scale, origin.y - 20f * scale + bob); lineTo(origin.x + 28f * scale, origin.y - 38f * scale + bob); lineTo(origin.x + 34f * scale, origin.y - 18f * scale + bob); close() }, scheme.secondary.copy(alpha = 0.22f))
+            drawOval(scheme.surface.copy(alpha = 0.30f), Offset(origin.x - 70f * scale, origin.y + 1f * scale + bob), Size(116f * scale, 16f * scale))
+            drawPath(Path().apply { moveTo(origin.x + 102f * scale, origin.y + bob); lineTo(origin.x + 146f * scale, origin.y - 20f * scale + bob); lineTo(origin.x + 132f * scale, origin.y + bob); lineTo(origin.x + 148f * scale, origin.y + 20f * scale + bob); close() }, color.copy(alpha = 0.86f))
+            drawPath(Path().apply { moveTo(origin.x + 14f * scale, origin.y - 20f * scale + bob); lineTo(origin.x + 28f * scale, origin.y - 38f * scale + bob); lineTo(origin.x + 34f * scale, origin.y - 18f * scale + bob); close() }, scheme.secondary.copy(alpha = 0.36f))
         }
         "humpback" in key -> {
-            val color = scheme.onSurface.copy(alpha = 0.26f)
-            val rim = if (glowing) scheme.secondary.copy(alpha = 0.18f) else scheme.primary.copy(alpha = 0.09f)
+            val color = scheme.onSurface.copy(alpha = 0.38f)
+            val rim = if (glowing) scheme.secondary.copy(alpha = 0.24f) else scheme.primary.copy(alpha = 0.16f)
             val back = Path().apply {
                 moveTo(origin.x - 104f * scale, origin.y + 6f * scale + bob)
                 cubicTo(origin.x - 70f * scale, origin.y - 56f * scale + bob, origin.x + 36f * scale, origin.y - 42f * scale + bob, origin.x + 90f * scale, origin.y - 2f * scale + bob)
@@ -4441,8 +4449,8 @@ private fun DrawScope.drawWhaleProfile(origin: Offset, scale: Float, drift: Floa
 }
 
 private fun DrawScope.drawWhale(origin: Offset, scale: Float, drift: Float, glowing: Boolean, scheme: androidx.compose.material3.ColorScheme) {
-    val color = scheme.onSurface.copy(alpha = 0.22f)
-    val rim = if (glowing) scheme.secondary.copy(alpha = 0.20f) else scheme.primary.copy(alpha = 0.10f)
+    val color = scheme.onSurface.copy(alpha = 0.36f)
+    val rim = if (glowing) scheme.secondary.copy(alpha = 0.26f) else scheme.primary.copy(alpha = 0.18f)
     drawOval(rim, Offset(origin.x - 118f * scale, origin.y - 38f * scale), Size(220f * scale, 78f * scale))
     drawOval(color, Offset(origin.x - 108f * scale, origin.y - 28f * scale), Size(190f * scale, 56f * scale))
     drawOval(color.copy(alpha = 0.16f), Offset(origin.x - 54f * scale, origin.y + 2f * scale), Size(94f * scale, 22f * scale))
