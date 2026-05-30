@@ -141,6 +141,7 @@ import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.ShellViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -3706,13 +3707,46 @@ private data class TheBlueRenderedCreature(
     val clickable: Boolean = true
 )
 
-private data class LifeRepresentationPolicy(
-    val directRepresentatives: Int,
-    val ambientDensity: Int,
-    val useSchoolEffect: Boolean,
-    val usePodEffect: Boolean,
-    val uniqueLegendary: Boolean
+private data class LifePresencePlan(
+    val directIndividuals: List<LifeAgent>,
+    val cohorts: List<LifeCohort>,
+    val habitatMarks: List<HabitatPresence>,
+    val overflowCount: Int
 )
+
+private data class LifeAgent(
+    val key: String,
+    val findId: String,
+    val representativeIndex: Int,
+    val level: Int,
+    val sourceType: String?,
+    val laneId: String,
+    val motionMode: LifeMotionMode,
+    val clickable: Boolean = true
+)
+
+private data class LifeCohort(
+    val key: String,
+    val findId: String,
+    val count: Int,
+    val laneId: String,
+    val motionMode: LifeMotionMode,
+    val clickable: Boolean = true
+)
+
+private data class HabitatPresence(
+    val key: String,
+    val findId: String,
+    val countRepresented: Int,
+    val kind: HabitatPresenceKind,
+    val placementBand: CreaturePlacementBand,
+    val alpha: Float,
+    val clickable: Boolean = false
+)
+
+private enum class LifeMotionMode { VISIBLE_LANE, ANCHORED, DRIFT_BOUNDED, PASS_THROUGH, AMBIENT }
+
+private enum class HabitatPresenceKind { SCHOOL_SHIMMER, POD_SHADOW, BLOOM_GLOW, REEF_CLUSTER, DISTANT_SILHOUETTE, CURRENT_TRAIL, BUBBLE_CLUSTER }
 
 private fun theBlueSceneSafeBounds(sceneWidth: Float, sceneHeight: Float): TheBlueSceneSafeBounds {
     val horizontalInset = max(24f, sceneWidth * 0.055f)
@@ -3724,24 +3758,26 @@ private fun theBlueSceneSafeBounds(sceneWidth: Float, sceneHeight: Float): TheBl
     )
 }
 
-
-internal fun representativeVisibleCount(count: Int, maxVisible: Int): Int = count.coerceIn(0, maxVisible)
-
 private fun isUniqueLegendaryCreature(definition: CreatureDefinition): Boolean {
     val id = definition.creatureId.lowercase()
     return id.contains("leviathan") || id.contains("kraken") || id.contains("megalodon")
 }
 
-private fun lifeRepresentationPolicy(
+private fun lifePresencePlan(
     animal: TheBlueAnimalGroupUiModel,
     definition: CreatureDefinition
-): LifeRepresentationPolicy {
+): LifePresencePlan {
     val owned = animal.totalCount.coerceAtLeast(0)
+    if (owned == 0) {
+        return LifePresencePlan(emptyList(), emptyList(), emptyList(), overflowCount = 0)
+    }
     val uniqueLegendary = isUniqueLegendaryCreature(definition)
     val directLimit = when {
         uniqueLegendary -> 1
         definition.renderFamily == CreatureRenderFamily.WHALE -> 3
         definition.renderFamily == CreatureRenderFamily.RAY -> 3
+        definition.renderFamily == CreatureRenderFamily.JELLYFISH -> 5
+        definition.sceneBehavior == CreatureSceneBehavior.BOTTOM_DWELL -> 5
         definition.scaleClass == CreatureScaleClass.TINY -> 8
         definition.scaleClass == CreatureScaleClass.SMALL -> 6
         definition.scaleClass == CreatureScaleClass.MEDIUM -> 5
@@ -3750,25 +3786,81 @@ private fun lifeRepresentationPolicy(
         definition.scaleClass == CreatureScaleClass.LEGENDARY -> 2
         else -> 3
     }
-    val direct = representativeVisibleCount(owned, directLimit)
-    val overflow = (owned - direct).coerceAtLeast(0)
-    return LifeRepresentationPolicy(
-        directRepresentatives = direct,
-        ambientDensity = overflow.coerceAtMost(4),
-        useSchoolEffect = overflow > 0 && definition.scaleClass <= CreatureScaleClass.SMALL,
-        usePodEffect = overflow > 0 && (definition.renderFamily == CreatureRenderFamily.WHALE || definition.renderFamily == CreatureRenderFamily.RAY),
-        uniqueLegendary = uniqueLegendary
+    val directCount = owned.coerceAtMost(directLimit)
+    val directMode = when (definition.sceneBehavior) {
+        CreatureSceneBehavior.BOTTOM_DWELL -> LifeMotionMode.ANCHORED
+        CreatureSceneBehavior.DRIFT -> LifeMotionMode.DRIFT_BOUNDED
+        else -> LifeMotionMode.VISIBLE_LANE
+    }
+    val directIndividuals = (0 until directCount).map { index ->
+        LifeAgent(
+            key = "${animal.findId}:direct:$index",
+            findId = animal.findId,
+            representativeIndex = index,
+            level = animal.highestLevel,
+            sourceType = definition.sourceType.name,
+            laneId = "${definition.placementBand.name.lowercase()}:$index",
+            motionMode = directMode
+        )
+    }
+    val overflow = (owned - directCount).coerceAtLeast(0)
+    val cohortMode = when (definition.sceneBehavior) {
+        CreatureSceneBehavior.BOTTOM_DWELL -> LifeMotionMode.ANCHORED
+        CreatureSceneBehavior.DRIFT -> LifeMotionMode.DRIFT_BOUNDED
+        else -> LifeMotionMode.VISIBLE_LANE
+    }
+    val cohorts = if (overflow > 0) {
+        listOf(
+            LifeCohort(
+                key = "${animal.findId}:cohort",
+                findId = animal.findId,
+                count = overflow,
+                laneId = "${definition.placementBand.name.lowercase()}:cohort",
+                motionMode = cohortMode
+            )
+        )
+    } else {
+        emptyList()
+    }
+    val habitatKind = when {
+        uniqueLegendary -> HabitatPresenceKind.CURRENT_TRAIL
+        definition.renderFamily == CreatureRenderFamily.WHALE -> HabitatPresenceKind.POD_SHADOW
+        definition.renderFamily == CreatureRenderFamily.RAY -> HabitatPresenceKind.DISTANT_SILHOUETTE
+        definition.renderFamily == CreatureRenderFamily.JELLYFISH -> HabitatPresenceKind.BLOOM_GLOW
+        definition.sceneBehavior == CreatureSceneBehavior.BOTTOM_DWELL -> HabitatPresenceKind.REEF_CLUSTER
+        definition.scaleClass <= CreatureScaleClass.SMALL -> HabitatPresenceKind.SCHOOL_SHIMMER
+        else -> HabitatPresenceKind.BUBBLE_CLUSTER
+    }
+    val habitatMarks = if (overflow > 0) {
+        listOf(
+            HabitatPresence(
+                key = "${animal.findId}:habitat",
+                findId = animal.findId,
+                countRepresented = overflow,
+                kind = habitatKind,
+                placementBand = definition.placementBand,
+                alpha = if (uniqueLegendary) 0.26f else 0.18f
+            )
+        )
+    } else {
+        emptyList()
+    }
+    return LifePresencePlan(
+        directIndividuals = directIndividuals,
+        cohorts = cohorts,
+        habitatMarks = habitatMarks,
+        overflowCount = overflow
     )
 }
 
-private fun movementLaneCount(definition: CreatureDefinition, policy: LifeRepresentationPolicy): Int = when {
-    policy.uniqueLegendary -> 1
-    definition.renderFamily == CreatureRenderFamily.WHALE -> max(3, policy.directRepresentatives)
-    definition.renderFamily == CreatureRenderFamily.RAY -> max(3, policy.directRepresentatives)
-    definition.scaleClass == CreatureScaleClass.GIANT -> max(3, policy.directRepresentatives)
-    definition.scaleClass == CreatureScaleClass.LARGE -> max(3, policy.directRepresentatives)
-    definition.scaleClass == CreatureScaleClass.MEDIUM -> 4
-    else -> 5
+private fun movementLaneCount(definition: CreatureDefinition, plan: LifePresencePlan): Int = when {
+    isUniqueLegendaryCreature(definition) -> 1
+    definition.renderFamily == CreatureRenderFamily.WHALE -> max(3, plan.directIndividuals.size)
+    definition.renderFamily == CreatureRenderFamily.RAY -> max(3, plan.directIndividuals.size)
+    definition.scaleClass == CreatureScaleClass.GIANT -> max(3, plan.directIndividuals.size)
+    definition.scaleClass == CreatureScaleClass.LARGE -> max(3, plan.directIndividuals.size)
+    definition.scaleClass == CreatureScaleClass.MEDIUM -> max(4, plan.directIndividuals.size)
+    else -> max(5, plan.directIndividuals.size)
 }
 
 private fun offscreenMarginFor(visualWidth: Float, definition: CreatureDefinition): Float {
@@ -3779,6 +3871,7 @@ private fun offscreenMarginFor(visualWidth: Float, definition: CreatureDefinitio
     }
     return (visualWidth * multiplier).coerceIn(48f, 180f)
 }
+
 
 private fun renderedCreaturePlacements(
     zone: TheBlueZoneUiModel,
@@ -3808,6 +3901,7 @@ private fun renderedCreaturePlacements(
 
     sortedAnimals.forEach { animal ->
         val definition = CreatureCatalog.get(animal.findId) ?: return@forEach
+        val plan = lifePresencePlan(animal, definition)
         val accentCount = animal.levelCounts.filter { (it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 1) > 1 }.sumOf { it.count }
         val levelScale = CreatureEconomy.animalVisualScale(animal.findId, animal.highestLevel)
         val tapBase = when (definition.scaleClass) {
@@ -3834,16 +3928,27 @@ private fun renderedCreaturePlacements(
             CreatureSceneBehavior.CRUISE -> 5f
             CreatureSceneBehavior.LEGENDARY -> 6f
         }
+        fun rendererFor(findId: String): String = when (findId) {
+            ShellContentCatalog.FOCUS_MINNOW -> "minnow"
+            ShellContentCatalog.FOCUS_SEAHORSE -> "seahorse"
+            ShellContentCatalog.FOCUS_MANTA -> "manta"
+            ShellContentCatalog.FOCUS_WHALE -> "base_whale"
+            ShellContentCatalog.FOCUS_OCTOPUS -> "octopus"
+            else -> definition.creatureId
+        }
+        fun visibleCenter(center: Offset, visualWidth: Float, visualHeight: Float): Offset =
+            safeBounds.clampCenter(center, visualWidth / 2f, visualHeight / 2f)
         fun tryAdd(
             center: Offset,
             scale: Float,
             seed: Float,
             index: Int,
             facingRight: Boolean,
-            renderer: String = definition.creatureId,
+            renderer: String = rendererFor(animal.findId),
             reserveCorridor: Boolean = false,
             alphaMultiplier: Float = 1f,
-            clickable: Boolean = true
+            clickable: Boolean = true,
+            useLoopAlpha: Boolean = false
         ): Boolean {
             val visualWidth = visualBase * scale * when (definition.scaleClass) {
                 CreatureScaleClass.GIANT, CreatureScaleClass.LEGENDARY -> 1.55f
@@ -3872,6 +3977,7 @@ private fun renderedCreaturePlacements(
             }
             if (occupied.any { rectsOverlap(it, collisionBounds) }) return false
             occupied += collisionBounds
+            val alpha = if (useLoopAlpha) loopAlpha(clamped.x, visualWidth, safeBounds) else 1f
             placements += TheBlueRenderedCreature(
                 animal = animal,
                 definition = definition,
@@ -3879,7 +3985,7 @@ private fun renderedCreaturePlacements(
                 visualBounds = visualBounds,
                 tapBounds = tapBounds,
                 scale = scale,
-                alpha = loopAlpha(clamped.x, visualWidth, safeBounds) * alphaMultiplier,
+                alpha = alpha * alphaMultiplier,
                 zIndex = zIndex,
                 sceneBehavior = definition.sceneBehavior,
                 placementBand = definition.placementBand,
@@ -3891,129 +3997,172 @@ private fun renderedCreaturePlacements(
             )
             return true
         }
-        fun addFromCandidates(
+        fun tryCandidates(
             candidates: List<Offset>,
             scale: Float,
             seed: Float,
             index: Int,
             facingRight: Boolean,
-            renderer: String = definition.creatureId,
+            renderer: String = rendererFor(animal.findId),
             reserveCorridor: Boolean = false,
             alphaMultiplier: Float = 1f,
-            clickable: Boolean = true
-        ): Boolean {
-            return candidates.firstOrNull { tryAdd(it, scale, seed, index, facingRight, renderer, reserveCorridor, alphaMultiplier, clickable) } != null
-        }
-        val representation = lifeRepresentationPolicy(animal, definition)
-        val visible = representation.directRepresentatives
-        var unplacedDirectRepresentatives = 0
-        repeat(visible) { i ->
-            val scale = when (animal.findId) {
-                ShellContentCatalog.FOCUS_WHALE -> (1.24f + i * 0.08f) * levelScale
-                ShellContentCatalog.FOCUS_MANTA -> (1.02f + i * 0.12f) * levelScale
-                else -> (0.92f + (i % 3) * 0.08f) * levelScale
-            }
-            val phase = if (visible > 1 && definition.scaleClass >= CreatureScaleClass.LARGE) {
-                (i.toFloat() / visible + stablePhase(animal.findId, 0) * 0.15f) % 1f
-            } else {
-                stablePhase(animal.findId, i)
-            }
-            val seed = drift + phase
-            val facingRight = stableFacingRight(animal.findId, i)
-            val lane = stableLane(animal.findId, i, 5)
-            val renderer = when (animal.findId) {
-                ShellContentCatalog.FOCUS_MINNOW -> "minnow"
-                ShellContentCatalog.FOCUS_SEAHORSE -> "seahorse"
-                ShellContentCatalog.FOCUS_MANTA -> "manta"
-                ShellContentCatalog.FOCUS_WHALE -> "base_whale"
-                ShellContentCatalog.FOCUS_OCTOPUS -> "octopus"
-                else -> definition.creatureId
-            }
-            when (definition.sceneBehavior) {
-                CreatureSceneBehavior.BOTTOM_DWELL -> {
-                    val y = safeBounds.bottom - (26f + (lane % 2) * 24f) * scale
-                    val anchors = (0..5).map { anchor ->
-                        Offset(safeBounds.left + safeBounds.width * ((anchor + 1f) / 7f), y - (anchor % 2) * 10f)
-                    }
-                    if (!addFromCandidates(anchors.drop(lane % anchors.size) + anchors.take(lane % anchors.size), scale, seed, i, facingRight, renderer)) {
-                        unplacedDirectRepresentatives++
-                    }
+            clickable: Boolean = true,
+            useLoopAlpha: Boolean = false
+        ): Boolean = candidates.any { tryAdd(it, scale, seed, index, facingRight, renderer, reserveCorridor, alphaMultiplier, clickable, useLoopAlpha) }
+
+        fun directCenter(index: Int, plannedCount: Int, scale: Float, motionMode: LifeMotionMode): Pair<Offset, Boolean> {
+            val phase = stablePhase(animal.findId, index)
+            val tau = 6.2831855f
+            val visualWidth = visualBase * scale * if (definition.scaleClass >= CreatureScaleClass.LARGE) 1.35f else 1.18f
+            val visualHeight = visualBase * scale
+            return when (motionMode) {
+                LifeMotionMode.ANCHORED -> {
+                    val laneCount = max(5, plannedCount)
+                    val lane = stableLane(animal.findId, index, laneCount)
+                    val baseX = safeBounds.left + safeBounds.width * ((lane + 1f) / (laneCount + 1f))
+                    val y = safeBounds.bottom - (22f + (index % 2) * 22f) * scale
+                    Offset(baseX, y) to stableFacingRight(animal.findId, index)
                 }
-                CreatureSceneBehavior.DRIFT -> {
-                    val anchors = (0..5).map { anchor ->
-                        val x = safeBounds.left + safeBounds.width * (0.16f + (anchor % 3) * 0.30f)
-                        val y = safeBounds.top + safeBounds.height * (0.18f + (anchor / 3) * 0.32f) + sin((drift * 6.28f + phase + anchor).toDouble()).toFloat() * 12f
-                        Offset(x, y)
-                    }
-                    if (!addFromCandidates(anchors.drop(lane % anchors.size) + anchors.take(lane % anchors.size), scale, seed, i, facingRight, renderer)) {
-                        unplacedDirectRepresentatives++
-                    }
+                LifeMotionMode.DRIFT_BOUNDED -> {
+                    val laneCount = max(4, plannedCount)
+                    val lane = stableLane(animal.findId, index, laneCount)
+                    val baseX = safeBounds.left + safeBounds.width * ((lane + 1f) / (laneCount + 1f))
+                    val xMotion = drift * tau + phase * tau
+                    val yMotion = drift * tau * 0.62f + phase * tau
+                    val x = baseX + sin(xMotion.toDouble()).toFloat() * min(34f, safeBounds.width * 0.055f)
+                    val baseY = safeBounds.top + safeBounds.height * (0.20f + (index % 3) * 0.22f)
+                    val y = baseY + sin(yMotion.toDouble()).toFloat() * 16f
+                    visibleCenter(Offset(x, y), visualWidth, visualHeight) to (cos(xMotion.toDouble()).toFloat() >= 0f)
                 }
-                CreatureSceneBehavior.SWIM, CreatureSceneBehavior.GLIDE, CreatureSceneBehavior.CRUISE, CreatureSceneBehavior.LEGENDARY -> {
-                    val laneCount = movementLaneCount(definition, representation)
-                    val laneIndex = stableLane(animal.findId, i, laneCount)
-                    val movementPhase = when (definition.sceneBehavior) {
-                        CreatureSceneBehavior.CRUISE,
-                        CreatureSceneBehavior.LEGENDARY -> if (visible > 1) phase else stableCruiseEntryPhase(animal.findId, i)
-                        else -> phase
-                    }
-                    val progress = (when (definition.sceneBehavior) {
+                LifeMotionMode.VISIBLE_LANE -> {
+                    val laneCount = movementLaneCount(definition, plan)
+                    val lane = stableLane(animal.findId, index, laneCount)
+                    val baseX = safeBounds.left + safeBounds.width * ((index + 1f) / (plannedCount + 1f))
+                    val motionClock = when (definition.sceneBehavior) {
                         CreatureSceneBehavior.GLIDE -> mantaLoop
                         CreatureSceneBehavior.CRUISE, CreatureSceneBehavior.LEGENDARY -> whaleLoop
                         else -> drift
-                    } + movementPhase) % 1f
-                    val visualWidth = visualBase * scale * if (definition.scaleClass >= CreatureScaleClass.LARGE) 1.55f else 1.20f
+                    }
+                    val xMotion = motionClock * tau + phase * tau
+                    val yMotion = motionClock * tau * 0.57f + phase * tau
+                    val x = baseX + sin(xMotion.toDouble()).toFloat() * min(48f, safeBounds.width * 0.065f)
+                    val baseY = safeBounds.top + safeBounds.height * ((lane + 1f) / (laneCount + 1f))
+                    val y = baseY + sin(yMotion.toDouble()).toFloat() * min(18f, safeBounds.height * 0.035f)
+                    visibleCenter(Offset(x, y), visualWidth, visualHeight) to (cos(xMotion.toDouble()).toFloat() >= 0f)
+                }
+                LifeMotionMode.PASS_THROUGH, LifeMotionMode.AMBIENT -> {
+                    val facingRight = stableFacingRight(animal.findId, index)
+                    val progress = (drift + phase) % 1f
                     val margin = offscreenMarginFor(visualWidth, definition)
                     val x = offscreenHorizontalPassX(progress, safeBounds.left, safeBounds.right, visualWidth, margin, facingRight)
-                    val y = safeBounds.top + safeBounds.height * ((laneIndex + 1f) / (laneCount + 1f))
-                    val alternateY = listOf(
-                        y,
-                        (y + safeBounds.height * 0.18f).coerceAtMost(safeBounds.bottom - visualBase * scale / 2f),
-                        (y - safeBounds.height * 0.18f).coerceAtLeast(safeBounds.top + visualBase * scale / 2f)
-                    )
-                    if (!addFromCandidates(alternateY.map { Offset(x, it) }, scale, seed, i, facingRight, renderer, reserveCorridor = true)) {
-                        unplacedDirectRepresentatives++
-                    }
+                    val laneCount = movementLaneCount(definition, plan)
+                    val lane = stableLane(animal.findId, index, laneCount)
+                    val y = safeBounds.top + safeBounds.height * ((lane + 1f) / (laneCount + 1f))
+                    Offset(x, y) to facingRight
                 }
             }
         }
-        val ambientCount = (representation.ambientDensity + unplacedDirectRepresentatives).coerceAtMost(4)
-        repeat(ambientCount) { ambientIndex ->
-            val i = visible + ambientIndex
-            val ambientScale = when (definition.scaleClass) {
-                CreatureScaleClass.GIANT, CreatureScaleClass.LEGENDARY -> 0.44f
-                CreatureScaleClass.LARGE -> 0.50f
-                else -> 0.58f
-            } * levelScale
-            val phase = (ambientIndex.toFloat() / (ambientCount + 1f) + stablePhase(animal.findId, i) * 0.25f) % 1f
-            val seed = drift + phase
-            val facingRight = stableFacingRight(animal.findId, i)
-            val renderer = when (animal.findId) {
-                ShellContentCatalog.FOCUS_MINNOW -> "minnow"
-                ShellContentCatalog.FOCUS_SEAHORSE -> "seahorse"
-                ShellContentCatalog.FOCUS_MANTA -> "manta"
-                ShellContentCatalog.FOCUS_WHALE -> "base_whale"
-                ShellContentCatalog.FOCUS_OCTOPUS -> "octopus"
-                else -> definition.creatureId
+
+        val failedDirectAgents = mutableListOf<LifeAgent>()
+        plan.directIndividuals.forEach { agent ->
+            val i = agent.representativeIndex
+            val scale = when (animal.findId) {
+                ShellContentCatalog.FOCUS_WHALE -> (1.20f + (i % 3) * 0.06f) * levelScale
+                ShellContentCatalog.FOCUS_MANTA -> (1.00f + (i % 3) * 0.08f) * levelScale
+                else -> (0.92f + (i % 3) * 0.08f) * levelScale
             }
-            val y = safeBounds.top + safeBounds.height * (0.18f + ((ambientIndex % 4) + 1f) / 6f)
-            val x = safeBounds.left + safeBounds.width * (0.18f + (stablePhase(animal.findId, i + 17) * 0.64f))
-            val ambientCandidates = listOf(
-                Offset(x, y),
-                Offset((x + safeBounds.width * 0.18f).coerceAtMost(safeBounds.right), (y + safeBounds.height * 0.12f).coerceAtMost(safeBounds.bottom)),
-                Offset((x - safeBounds.width * 0.18f).coerceAtLeast(safeBounds.left), (y - safeBounds.height * 0.12f).coerceAtLeast(safeBounds.top)),
-                Offset(safeBounds.left + safeBounds.width * (0.12f + ambientIndex * 0.18f).coerceIn(0.12f, 0.82f), safeBounds.top + safeBounds.height * 0.82f)
-            )
-            addFromCandidates(
-                candidates = ambientCandidates,
-                scale = ambientScale,
+            val seed = drift + stablePhase(animal.findId, i)
+            val (center, facingRight) = directCenter(i, plan.directIndividuals.size.coerceAtLeast(1), scale, agent.motionMode)
+            val visualWidth = visualBase * scale * if (definition.scaleClass >= CreatureScaleClass.LARGE) 1.35f else 1.18f
+            val visualHeight = visualBase * scale
+            val directCandidates = listOf(
+                center,
+                safeBounds.clampCenter(Offset(center.x, center.y + safeBounds.height * 0.14f), visualWidth / 2f, visualHeight / 2f),
+                safeBounds.clampCenter(Offset(center.x, center.y - safeBounds.height * 0.14f), visualWidth / 2f, visualHeight / 2f),
+                safeBounds.clampCenter(Offset(center.x + safeBounds.width * 0.10f, center.y), visualWidth / 2f, visualHeight / 2f),
+                safeBounds.clampCenter(Offset(center.x - safeBounds.width * 0.10f, center.y), visualWidth / 2f, visualHeight / 2f)
+            ).distinct()
+            val placed = tryCandidates(
+                candidates = directCandidates,
+                scale = scale,
                 seed = seed,
                 index = i,
                 facingRight = facingRight,
-                renderer = renderer,
-                reserveCorridor = false,
-                alphaMultiplier = if (representation.usePodEffect || representation.useSchoolEffect) 0.30f else 0.22f,
-                clickable = false
+                clickable = true,
+                alphaMultiplier = 1f
+            ) || tryCandidates(
+                candidates = directCandidates,
+                scale = scale * 0.86f,
+                seed = seed,
+                index = i,
+                facingRight = facingRight,
+                clickable = true,
+                alphaMultiplier = 0.96f
+            )
+            if (!placed) failedDirectAgents += agent
+        }
+
+        val cohortCount = plan.cohorts.sumOf { it.count } + failedDirectAgents.size
+        if (cohortCount > 0) {
+            val cohortIndex = plan.directIndividuals.size
+            val cohortScale = when (definition.scaleClass) {
+                CreatureScaleClass.GIANT, CreatureScaleClass.LEGENDARY -> 0.72f
+                CreatureScaleClass.LARGE -> 0.76f
+                else -> 0.82f
+            } * levelScale
+            val cohortMode = plan.cohorts.firstOrNull()?.motionMode ?: when (definition.sceneBehavior) {
+                CreatureSceneBehavior.BOTTOM_DWELL -> LifeMotionMode.ANCHORED
+                CreatureSceneBehavior.DRIFT -> LifeMotionMode.DRIFT_BOUNDED
+                else -> LifeMotionMode.VISIBLE_LANE
+            }
+            val (cohortCenter, cohortFacingRight) = directCenter(cohortIndex, plan.directIndividuals.size + 1, cohortScale, cohortMode)
+            val cohortPlaced = tryCandidates(
+                candidates = listOf(
+                    cohortCenter,
+                    safeBounds.clampCenter(Offset(cohortCenter.x + safeBounds.width * 0.12f, cohortCenter.y + safeBounds.height * 0.10f), visualBase * cohortScale / 2f, visualBase * cohortScale / 2f),
+                    safeBounds.clampCenter(Offset(cohortCenter.x - safeBounds.width * 0.12f, cohortCenter.y - safeBounds.height * 0.10f), visualBase * cohortScale / 2f, visualBase * cohortScale / 2f)
+                ),
+                scale = cohortScale,
+                seed = drift + stablePhase(animal.findId, cohortIndex),
+                index = cohortIndex,
+                facingRight = cohortFacingRight,
+                clickable = true,
+                alphaMultiplier = 0.82f
+            )
+            if (!cohortPlaced) {
+                failedDirectAgents.addAll(plan.directIndividuals.take(1))
+            }
+        }
+
+        val habitatCount = (plan.habitatMarks.sumOf { it.countRepresented } + failedDirectAgents.size).coerceAtMost(5)
+        repeat(habitatCount) { habitatIndex ->
+            val i = plan.directIndividuals.size + 1 + habitatIndex
+            val habitat = plan.habitatMarks.firstOrNull()
+            val habitatScale = when (definition.scaleClass) {
+                CreatureScaleClass.GIANT, CreatureScaleClass.LEGENDARY -> 0.42f
+                CreatureScaleClass.LARGE -> 0.48f
+                else -> 0.56f
+            } * levelScale
+            val phase = stablePhase(animal.findId, i)
+            val x = safeBounds.left + safeBounds.width * (0.14f + (phase * 0.72f))
+            val bandBase = when (definition.sceneBehavior) {
+                CreatureSceneBehavior.BOTTOM_DWELL -> 0.88f
+                CreatureSceneBehavior.DRIFT -> 0.34f + (habitatIndex % 3) * 0.18f
+                else -> 0.24f + (habitatIndex % 4) * 0.16f
+            }
+            val y = safeBounds.top + safeBounds.height * bandBase.coerceIn(0.12f, 0.90f)
+            tryCandidates(
+                candidates = listOf(
+                    Offset(x, y),
+                    Offset((x + safeBounds.width * 0.16f).coerceAtMost(safeBounds.right), (y + safeBounds.height * 0.10f).coerceAtMost(safeBounds.bottom)),
+                    Offset((x - safeBounds.width * 0.16f).coerceAtLeast(safeBounds.left), (y - safeBounds.height * 0.10f).coerceAtLeast(safeBounds.top))
+                ),
+                scale = habitatScale,
+                seed = drift + phase,
+                index = i,
+                facingRight = stableFacingRight(animal.findId, i),
+                alphaMultiplier = habitat?.alpha ?: 0.16f,
+                clickable = habitat?.clickable ?: false
             )
         }
     }
