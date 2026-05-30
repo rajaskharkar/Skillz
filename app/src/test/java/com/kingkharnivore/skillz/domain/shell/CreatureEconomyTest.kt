@@ -24,7 +24,8 @@ class CreatureEconomyTest {
         assertEquals(120, CreatureEconomy.flowTimeValueMinutes(ShellContentCatalog.FOCUS_WHALE, level = 1))
         assertEquals(120, CreatureEconomy.flowTimeValueMinutes(ShellContentCatalog.FOCUS_WHALE, level = 10))
         assertEquals(120, CreatureEconomy.beyondBlueTradeContributionMinutes(ShellContentCatalog.FOCUS_WHALE, level = 10))
-        assertEquals(120, CreatureEconomy.releaseValuePearls(ShellContentCatalog.FOCUS_WHALE, level = 10))
+        assertEquals(240, CreatureEconomy.releaseValuePearls(ShellContentCatalog.FOCUS_WHALE, level = 10))
+        assertEquals(180, CreatureEconomy.releaseValuePearls("creature_starfish", level = 1))
     }
 
     @Test fun hybridPaymentQuotesPearlOnlyCreatureOnlyHybridUnderpayAndOverpay() {
@@ -42,7 +43,7 @@ class CreatureEconomyTest {
         assertEquals(600, CreatureEconomy.growthCostPearls(ShellContentCatalog.FOCUS_WHALE, 1))
         assertEquals(360, CreatureEconomy.growthCostPearls("creature_dolphin", 1))
         assertTrue(CreatureEconomy.animalVisualScale(ShellContentCatalog.FOCUS_MINNOW, 10) > CreatureEconomy.animalVisualScale(ShellContentCatalog.FOCUS_MINNOW, 1))
-        assertTrue(CreatureEconomy.animalVisualScale(ShellContentCatalog.FOCUS_WHALE, 1000) <= 1.30f)
+        assertTrue(CreatureEconomy.animalVisualScale(ShellContentCatalog.FOCUS_WHALE, 1000) <= 1.55f)
         val counts = CreatureEconomy.counts(
             listOf(
                 CreatureLedgerEntry(ShellContentCatalog.FOCUS_WHALE, CreatureStatus.ACTIVE, 2),
