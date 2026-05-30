@@ -90,6 +90,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -3046,6 +3047,13 @@ private fun TheBlueRoomScreen(
     val pageCount = if (theBlueState.isEmpty) 1 else theBlueState.zones.size
     val pagerState = rememberPagerState(pageCount = { pageCount })
     val scope = rememberCoroutineScope()
+    var sceneTimeSeconds by remember { mutableStateOf(0f) }
+    LaunchedEffect(Unit) {
+        val startNanos = withFrameNanos { it }
+        while (true) {
+            sceneTimeSeconds = (withFrameNanos { it } - startNanos) / 1_000_000_000f
+        }
+    }
     val activeZone by remember(pagerState) {
         derivedStateOf { theBlueZoneForPage(pagerState.currentPage) }
     }
@@ -3070,6 +3078,7 @@ private fun TheBlueRoomScreen(
                     pageHeight = pageHeight,
                     showRoomHeader = zone.zoneId == TheBlueZoneId.SUNLIT_REEF,
                     entryNewAnimalFindIds = entryNewAnimalFindIds,
+                    sceneTimeSeconds = sceneTimeSeconds,
                     onZoneBeyondBlue = {
                         beyondBlueInitialZone = zone.zoneId
                         showBeyondBlue = true
@@ -3236,6 +3245,7 @@ private fun TheBlueZonePage(
     pageHeight: Dp,
     showRoomHeader: Boolean,
     entryNewAnimalFindIds: Set<String>,
+    sceneTimeSeconds: Float,
     onZoneBeyondBlue: () -> Unit,
     onAnimalClick: (TheBlueAnimalGroupUiModel) -> Unit
 ) {
@@ -3246,28 +3256,10 @@ private fun TheBlueZonePage(
     val animalSummary = zoneAnimalSummary(zone)
     val zoneDescription = stringResource(R.string.the_blue_zone_scene_a11y, title, subtitle, animalSummary)
     val zoneHasNewArrival = zone.animals.any { it.isNew || it.findId in entryNewAnimalFindIds }
-    val transition = rememberInfiniteTransition(label = "the-blue-${zone.zoneId.name.lowercase()}-motion")
-    val drift by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            tween(16000 + zone.zoneId.depthOrder() * 7000, easing = LinearEasing),
-            RepeatMode.Restart
-        ),
-        label = "zone-drift"
-    )
-    val mantaLoop by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(18000, easing = LinearEasing), RepeatMode.Restart),
-        label = "manta-offscreen-loop"
-    )
-    val whaleLoop by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(32000, easing = LinearEasing), RepeatMode.Restart),
-        label = "whale-offscreen-loop"
-    )
+    val waterPhase = sceneTimeSeconds * (0.028f + zone.zoneId.depthOrder() * 0.006f)
+    val drift = sceneTimeSeconds * (0.055f + zone.zoneId.depthOrder() * 0.008f)
+    val mantaLoop = (sceneTimeSeconds / 24f) % 1f
+    val whaleLoop = (sceneTimeSeconds / 42f) % 1f
 
     Box(
         modifier = Modifier
@@ -3277,7 +3269,7 @@ private fun TheBlueZonePage(
     ) {
         Canvas(Modifier.matchParentSize()) {
             val placements = renderedCreaturePlacements(zone, size.width, size.height, drift, mantaLoop, whaleLoop)
-            drawTheBlueWaterBackground(zone.zoneId, scheme, drift)
+            drawTheBlueWaterBackground(zone.zoneId, scheme, waterPhase)
             drawZoneEnvironment(zone.zoneId, scheme, drift, zone.animals.sumOf { it.totalCount })
             placements.sortedBy { it.zIndex }.forEach { drawRenderedCreature(it, scheme) }
             if (zoneHasNewArrival) {
@@ -3552,7 +3544,7 @@ private fun DrawScope.drawTheBlueWaterBackground(
         )
     )
     repeat(3) { ray ->
-        val offset = ((drift + ray * 0.23f) % 1f) * size.width * 0.18f
+        val offset = sin((drift * 0.55f + ray * 0.73f).toDouble()).toFloat() * size.width * 0.06f
         val path = Path().apply {
             moveTo(size.width * (0.12f + ray * 0.22f) + offset, 0f)
             lineTo(size.width * (0.20f + ray * 0.20f) + offset, size.height)
@@ -3757,8 +3749,8 @@ private fun renderedCreaturePlacements(
         }.thenBy { it.findId }
     )
 
-    sortedAnimals.forEachIndexed { animalIndex, animal ->
-        val definition = CreatureCatalog.get(animal.findId) ?: return@forEachIndexed
+    sortedAnimals.forEach { animal ->
+        val definition = CreatureCatalog.get(animal.findId) ?: return@forEach
         val accentCount = animal.levelCounts.filter { (it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 1) > 1 }.sumOf { it.count }
         val levelScale = CreatureEconomy.animalVisualScale(animal.findId, animal.highestLevel)
         val tapBase = when (definition.scaleClass) {
@@ -3848,7 +3840,7 @@ private fun renderedCreaturePlacements(
             }
             val phase = stablePhase(animal.findId, i)
             val seed = drift + phase
-            val lane = (animalIndex + i) % 5
+            val lane = stableLane(animal.findId, i, 5)
             val renderer = when (animal.findId) {
                 ShellContentCatalog.FOCUS_MINNOW -> "minnow"
                 ShellContentCatalog.FOCUS_SEAHORSE -> "seahorse"
@@ -3879,7 +3871,7 @@ private fun renderedCreaturePlacements(
                         CreatureScaleClass.LARGE -> 2
                         else -> 4
                     }
-                    val laneIndex = (animalIndex + i) % laneCount
+                    val laneIndex = stableLane(animal.findId, i, laneCount)
                     val progress = (when (definition.sceneBehavior) {
                         CreatureSceneBehavior.GLIDE -> mantaLoop
                         CreatureSceneBehavior.CRUISE, CreatureSceneBehavior.LEGENDARY -> whaleLoop
@@ -3887,7 +3879,7 @@ private fun renderedCreaturePlacements(
                     } + phase) % 1f
                     val visualWidth = visualBase * scale * if (definition.scaleClass >= CreatureScaleClass.LARGE) 1.55f else 1.20f
                     val margin = visualWidth * 1.75f
-                    val leftToRight = (animalIndex + i) % 2 == 0
+                    val leftToRight = stableLane(animal.findId, i, 2) == 0
                     val x = offscreenHorizontalPassX(progress, safeBounds.left, safeBounds.right, visualWidth, margin, leftToRight)
                     val y = safeBounds.top + safeBounds.height * ((laneIndex + 1f) / (laneCount + 1f))
                     val alternateY = listOf(
@@ -3905,10 +3897,11 @@ private fun renderedCreaturePlacements(
 
 private fun rectsOverlap(a: Rect, b: Rect): Boolean = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
 
-private fun stablePhase(findId: String, index: Int): Float {
-    val raw = (findId.hashCode() * 31 + index * 997).toUInt().toLong()
-    return ((raw % 1000L) / 1000f)
-}
+private fun stableHash(findId: String, index: Int): Long = (findId.hashCode() * 31 + index * 997).toUInt().toLong()
+
+private fun stablePhase(findId: String, index: Int): Float = (stableHash(findId, index) % 1000L) / 1000f
+
+private fun stableLane(findId: String, index: Int, laneCount: Int): Int = if (laneCount <= 1) 0 else (stableHash(findId, index) % laneCount).toInt()
 
 private fun loopAlpha(centerX: Float, visualWidth: Float, bounds: TheBlueSceneSafeBounds): Float {
     val fade = (visualWidth * 0.75f).coerceAtLeast(48f)
