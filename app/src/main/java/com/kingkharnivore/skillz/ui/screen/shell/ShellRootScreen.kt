@@ -90,6 +90,7 @@ import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellNotificationsScr
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.TheBlueRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.focus.FocusRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.stillwater.StillwaterRoomScreen
+import com.kingkharnivore.skillz.ui.screen.shell.rooms.voyage.VoyageHallScreen
 import com.kingkharnivore.skillz.ui.screen.shell.ux.displayedInstanceIds
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isUserVisibleShellFind
 import com.kingkharnivore.skillz.ui.screen.shell.ux.restingFinds
@@ -277,11 +278,7 @@ fun ShellRootScreen(
                 ShellDestination.DiscoveryJournal -> DiscoveryJournalScreen(uiState)
                 ShellDestination.Notifications -> ShellNotificationsScreen(uiState)
 
-                ShellDestination.VoyagePreview -> DormantPreviewScreen(
-                    titleRes = R.string.shell_room_voyage_title,
-                    bodyRes = R.string.shell_preview_voyage,
-                    icon = Icons.Outlined.Route
-                )
+                ShellDestination.VoyagePreview -> VoyageHallScreen()
 
                 ShellDestination.TheBluePreview -> TheBlueRoomScreen(
                     uiState = uiState,
@@ -385,7 +382,7 @@ private fun HeartRoomScreen(
                         RoomOrbitNode(
                             labelRes = R.string.shell_room_voyage_title,
                             icon = Icons.Outlined.Route,
-                            dormant = true,
+                            dormant = false,
                             nodeWidth = nodeWidth,
                             nodeHeight = nodeHeight,
                             onClick = { onNavigate(ShellDestination.VoyagePreview) }
