@@ -141,8 +141,8 @@ class PlanArcViewModel @Inject constructor(
     }
 
     fun continueFromPicker() {
-        if (_uiState.value.selectedFlowIdsInOrder.isEmpty()) {
-            _uiState.update { it.copy(errorMessage = "Choose at least one flow.") }
+        if (_uiState.value.selectedFlowIdsInOrder.size < 2) {
+            _uiState.update { it.copy(errorMessage = "An Arc needs at least two Flows.") }
             return
         }
 
@@ -155,8 +155,8 @@ class PlanArcViewModel @Inject constructor(
     }
 
     fun continueFromShape() {
-        if (_uiState.value.selectedFlowIdsInOrder.isEmpty()) {
-            _uiState.update { it.copy(errorMessage = "Choose at least one flow.") }
+        if (_uiState.value.selectedFlowIdsInOrder.size < 2) {
+            _uiState.update { it.copy(errorMessage = "An Arc needs at least two Flows.") }
             return
         }
 
@@ -171,8 +171,8 @@ class PlanArcViewModel @Inject constructor(
     fun continueFromTiming() {
         val state = _uiState.value
 
-        if (state.selectedFlowIdsInOrder.isEmpty()) {
-            _uiState.update { it.copy(errorMessage = "Choose at least one flow.") }
+        if (state.selectedFlowIdsInOrder.size < 2) {
+            _uiState.update { it.copy(errorMessage = "An Arc needs at least two Flows.") }
             return
         }
 
@@ -356,8 +356,8 @@ class PlanArcViewModel @Inject constructor(
             return
         }
 
-        if (state.selectedFlowIdsInOrder.isEmpty()) {
-            _uiState.update { it.copy(errorMessage = "Choose at least one flow.") }
+        if (state.selectedFlowIdsInOrder.size < 2) {
+            _uiState.update { it.copy(errorMessage = "An Arc needs at least two Flows.") }
             return
         }
 

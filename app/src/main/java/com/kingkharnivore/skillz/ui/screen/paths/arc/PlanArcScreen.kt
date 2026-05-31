@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -101,8 +102,9 @@ fun PlanArcScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .imePadding()
                 .padding(horizontal = 20.dp)
-                .padding(top = 32.dp, bottom = 24.dp),
+                .padding(top = 24.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             RouteStudioHeader(
@@ -365,10 +367,10 @@ private fun FlowPickerSection(
         selectedTagId == null || flow.tagId == selectedTagId
     }
 
-    val summaryLabel = if (selectedFlowIdsInOrder.isEmpty()) {
-        stringResource(R.string.plan_arc_selection_summary_choose)
-    } else {
-        pluralStringResource(
+    val summaryLabel = when (selectedFlowIdsInOrder.size) {
+        0 -> stringResource(R.string.plan_arc_selection_summary_choose)
+        1 -> stringResource(R.string.plan_arc_selection_summary_needs_second)
+        else -> pluralStringResource(
             R.plurals.plan_arc_selection_summary_selected,
             selectedFlowIdsInOrder.size,
             selectedFlowIdsInOrder.size
@@ -1630,13 +1632,15 @@ private fun PlanArcFooter(
     val primaryEnabled = when {
         uiState.isSaving -> false
         uiState.currentStep == 0 -> uiState.title.isNotBlank()
-        else -> uiState.selectedFlowIdsInOrder.isNotEmpty()
+        uiState.currentStep == 1 || uiState.currentStep == 2 -> uiState.selectedFlowIdsInOrder.size >= 2
+        else -> uiState.selectedFlowIdsInOrder.size >= 2
     }
 
     Surface(shadowElevation = 4.dp) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .imePadding()
                 .padding(horizontal = 20.dp, vertical = 12.dp)
                 .padding(
                     bottom = WindowInsets.safeDrawing

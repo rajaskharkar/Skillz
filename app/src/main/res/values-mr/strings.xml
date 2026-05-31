@@ -485,8 +485,18 @@
     <string name="paths_approx_minutes">~%1$d मिनिटे</string>
     <string name="paths_tap_to_preview">पूर्वावलोकनासाठी टॅप करा</string>
     <string name="paths_studio_arc_card_a11y">%1$s. Studio आर्क. %2$s.</string>
-    <string name="paths_arc_library_card_a11y">%1$s. आर्क. %2$s.</string>
+    <string name="paths_arc_library_card_a11y">%1$s. Planned arc. %2$s. %3$s.</string>
     <string name="paths_suggested_route_card_a11y">%1$s. %2$s. %3$s. %4$s.</string>
+    <string name="paths_start_arc">Start Arc</string>
+    <string name="paths_edit_arc">Edit</string>
+    <string name="paths_suggested_sequences_helper_title">Need a starting point?</string>
+    <string name="paths_suggested_sequences_helper_body">Suggested sequences are templates — pick one, then adjust the steps into your own planned arc.</string>
+    <string name="paths_start_from_suggestion">Start from suggestion</string>
+    <string name="paths_arc_step_preview_a11y">Steps: %1$s</string>
+    <plurals name="paths_arc_flow_count">
+        <item quantity="one">%1$d Flow</item>
+        <item quantity="other">%1$d Flows</item>
+    </plurals>
 
     <string name="plan_arc_route_studio">Route Studio</string>
     <string name="plan_arc_step_counter">%1$d पैकी %2$d</string>
@@ -506,6 +516,7 @@
     <string name="plan_arc_title_placeholder">Morning Routine</string>
     <string name="plan_arc_preview_title">पुढे काय येते</string>
     <string name="plan_arc_preview_body">पुढे, तुम्ही या मार्गात बसणारे नियोजित फ्लो निवडाल.</string>
+    <string name="plan_arc_selection_summary_needs_second">1 Flow selected — add one more to make an Arc.</string>
     <string name="plan_arc_selection_summary_choose">या मार्गात बसणारे फ्लो निवडा.</string>
     <plurals name="plan_arc_selection_summary_selected">
         <item quantity="one">%1$d फ्लो निवडला</item>

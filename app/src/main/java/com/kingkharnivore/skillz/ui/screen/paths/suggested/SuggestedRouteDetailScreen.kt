@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
@@ -22,7 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.AutoGraph
 import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -64,7 +64,13 @@ fun SuggestedRouteDetailScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                        .padding(horizontal = 20.dp, vertical = 14.dp)
+                        .padding(
+                            bottom = WindowInsets.safeDrawing
+                                .only(WindowInsetsSides.Bottom)
+                                .asPaddingValues()
+                                .calculateBottomPadding()
+                        ),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     TextButton(
@@ -79,14 +85,14 @@ fun SuggestedRouteDetailScreen(
                         onClick = {
                             viewModel.saveSuggestedRoute(
                                 route = route,
-                                addToStudio = true,
+                                addToStudio = false,
                                 onSaved = onDone
                             )
                         },
                         modifier = Modifier.weight(1f),
                         enabled = !uiState.isSaving
                     ) {
-                        Text(if (uiState.isSaving) "Saving..." else "Save to Studio")
+                        Text(if (uiState.isSaving) "Saving..." else "Save as Arc")
                     }
 
                     Button(
