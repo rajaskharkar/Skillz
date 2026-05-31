@@ -1,6 +1,5 @@
 package com.kingkharnivore.skillz.domain.voyage
 
-import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -250,7 +249,63 @@ class VoyageStatsCalculatorTest {
         assertNull(stats.mostArcsInDay)
     }
 
-    private fun calculate(sessions: List<SessionEntity>) = calculator.calculate(sessions, now, zone)
+
+    @Test
+    fun sourceDetails_includeChronologicalArcFlowsTotalsPeakAndReachedSession() {
+        val stats = calculate(
+            listOf(
+                session(id = 3, date = LocalDate.of(2026, 5, 22), arcId = 7, durationMinutes = 20, points = 90, multiplier = 1.1, tagName = "Writing"),
+                session(id = 1, date = LocalDate.of(2026, 5, 20), arcId = 7, durationMinutes = 30, points = 100, multiplier = 1.4, tagName = "Scyra"),
+                session(id = 2, date = LocalDate.of(2026, 5, 21), arcId = 7, durationMinutes = 40, points = 200, multiplier = 1.8, tagName = null)
+            )
+        )
+
+        val arc = stats.longestArcByTime!!
+        assertEquals(listOf(1L, 2L, 3L), arc.flows.map { it.sessionId })
+        assertEquals(390, arc.totalPoints)
+        assertEquals(1.8, arc.peakMultiplier ?: 0.0, 0.001)
+        assertEquals("Scyra", arc.flows.first().tagName)
+        assertNull(arc.flows[1].tagName)
+        assertEquals(2L, stats.highestArcMultiplier?.reachedInSessionId)
+        assertEquals(listOf(1L, 2L, 3L), stats.highestArcMultiplier?.flows?.map { it.sessionId })
+    }
+
+    @Test
+    fun periodRecords_includeContributingFlowsAndTotals() {
+        val stats = calculate(
+            listOf(
+                session(id = 1, date = LocalDate.of(2026, 5, 25), durationMinutes = 20, points = 100),
+                session(id = 2, date = LocalDate.of(2026, 5, 25), durationMinutes = 40, points = 300),
+                session(id = 3, date = LocalDate.of(2026, 5, 26), durationMinutes = 90, points = 200)
+            )
+        )
+
+        assertEquals(listOf(1L, 2L), stats.bestDayByPoints?.flows?.map { it.sessionId })
+        assertEquals(60 * 60_000L, stats.bestDayByPoints?.totalDurationMs)
+        assertEquals(2, stats.bestDayByPoints?.flowCount)
+        assertEquals(listOf(1L, 2L, 3L), stats.mostTimeInWeek?.flows?.map { it.sessionId })
+        assertEquals(600, stats.mostTimeInWeek?.points)
+        assertEquals(listOf(1L, 2L), stats.mostFlowsInDay?.flows?.map { it.sessionId })
+    }
+
+    @Test
+    fun arcVolumeRecords_includeArcSummariesWithFlows() {
+        val stats = calculate(
+            listOf(
+                session(id = 1, date = LocalDate.of(2026, 5, 20), arcId = 1, durationMinutes = 10, points = 10),
+                session(id = 2, date = LocalDate.of(2026, 5, 20), arcId = 1, durationMinutes = 20, points = 20),
+                session(id = 3, date = LocalDate.of(2026, 5, 20), arcId = 2, durationMinutes = 30, points = 30),
+                session(id = 4, date = LocalDate.of(2026, 5, 20), arcId = 2, durationMinutes = 40, points = 40)
+            )
+        )
+
+        assertEquals(2, stats.mostArcsInDay?.arcs?.size)
+        assertEquals(listOf(1L, 2L), stats.mostArcsInDay?.arcs?.first { it.arcId == 1L }?.flows?.map { it.sessionId })
+        assertEquals(30, stats.mostArcsInDay?.arcs?.first { it.arcId == 1L }?.totalPoints)
+        assertEquals(2, stats.mostArcsInWeek?.arcs?.size)
+    }
+
+    private fun calculate(sessions: List<VoyageSourceFlow>) = calculator.calculate(sessions, now, zone)
 
     private fun session(
         id: Long,
@@ -262,24 +317,20 @@ class VoyageStatsCalculatorTest {
         soft: Boolean = false,
         surgePlannedMs: Long? = null,
         arcId: Long? = null,
-        multiplier: Double? = null
-    ): SessionEntity = SessionEntity(
+        multiplier: Double? = null,
+        tagName: String? = "Scyra"
+    ): VoyageSourceFlow = VoyageSourceFlow(
         id = id,
         title = "Flow $id",
-        description = "",
-        tagId = 1L,
+        tagName = tagName,
         startTime = startMillis,
         endTime = end ?: 0L,
         durationMs = durationMinutes * 60_000L,
-        surgePlannedMs = surgePlannedMs,
-        surgePoints = if (surgePlannedMs != null) 10 else 0,
         scyraPoints = points,
         isSoftMode = soft,
         arcId = arcId,
         arcIndex = arcId?.let { 1 },
-        arcMultiplierUsed = multiplier,
-        arcBonusPoints = 0,
-        createdAt = startMillis
+        arcMultiplierUsed = multiplier
     )
 
     private fun at(date: LocalDate): Long = LocalDateTime.of(date, LocalTime.NOON)
