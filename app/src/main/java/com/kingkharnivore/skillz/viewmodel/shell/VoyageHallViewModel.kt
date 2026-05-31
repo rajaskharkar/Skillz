@@ -9,8 +9,12 @@ import com.kingkharnivore.skillz.domain.voyage.VoyageHallStats
 import com.kingkharnivore.skillz.domain.voyage.VoyageSourceFlow
 import com.kingkharnivore.skillz.domain.voyage.VoyageStatsCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
+import java.time.ZonedDateTime
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -35,8 +39,19 @@ class VoyageHallViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(VoyageHallUiState())
     val uiState: StateFlow<VoyageHallUiState> = _uiState
 
+    private var latestSourceFlows: List<VoyageSourceFlow> = emptyList()
+    private var hasObservedSourceFlows = false
+    private var dayBoundaryRefreshJob: Job? = null
+
     init {
         observeVoyageStats()
+        scheduleNextDayBoundaryRefresh()
+    }
+
+    fun refresh() {
+        if (hasObservedSourceFlows) {
+            recalculate()
+        }
     }
 
     private fun observeVoyageStats() {
@@ -46,11 +61,7 @@ class VoyageHallViewModel @Inject constructor(
                 journeyRepository.getAllTags()
             ) { sessions, tags ->
                 val tagNameById = tags.associate { it.id to it.name }
-                voyageStatsCalculator.calculate(
-                    sessions = sessions.toVoyageSourceFlows(tagNameById),
-                    now = Instant.now(),
-                    zoneId = ZoneId.systemDefault()
-                )
+                sessions.toVoyageSourceFlows(tagNameById)
             }
                 .catch { error ->
                     _uiState.update {
@@ -60,16 +71,46 @@ class VoyageHallViewModel @Inject constructor(
                         )
                     }
                 }
-                .collect { stats ->
-                    _uiState.update {
-                        VoyageHallUiState(
-                            isLoading = false,
-                            stats = stats,
-                            errorMessage = null
-                        )
-                    }
+                .collect { sourceFlows ->
+                    latestSourceFlows = sourceFlows
+                    hasObservedSourceFlows = true
+                    recalculate(sourceFlows)
                 }
         }
+    }
+
+    private fun recalculate(sourceFlows: List<VoyageSourceFlow> = latestSourceFlows) {
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                stats = voyageStatsCalculator.calculate(
+                    sessions = sourceFlows,
+                    now = Instant.now(),
+                    zoneId = ZoneId.systemDefault()
+                ),
+                errorMessage = null
+            )
+        }
+    }
+
+    private fun scheduleNextDayBoundaryRefresh() {
+        if (dayBoundaryRefreshJob?.isActive == true) return
+
+        dayBoundaryRefreshJob = viewModelScope.launch {
+            while (true) {
+                delay(millisUntilNextLocalDayBoundary())
+                if (hasObservedSourceFlows) {
+                    recalculate()
+                }
+            }
+        }
+    }
+
+    private fun millisUntilNextLocalDayBoundary(): Long {
+        val zoneId = ZoneId.systemDefault()
+        val now = ZonedDateTime.now(zoneId)
+        val nextDay = now.toLocalDate().plusDays(1).atStartOfDay(zoneId).plusSeconds(1)
+        return Duration.between(now, nextDay).toMillis().coerceAtLeast(1_000L)
     }
 
     private fun List<SessionEntity>.toVoyageSourceFlows(tagNameById: Map<Long, String>): List<VoyageSourceFlow> =

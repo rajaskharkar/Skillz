@@ -305,6 +305,39 @@ class VoyageStatsCalculatorTest {
         assertEquals(2, stats.mostArcsInWeek?.arcs?.size)
     }
 
+
+    @Test
+    fun sameSessionsProduceDifferentCurrentStreakWhenNowMovesPastGraceWindow() {
+        val flows = listOf(
+            session(id = 1, date = LocalDate.of(2026, 5, 29)),
+            session(id = 2, date = LocalDate.of(2026, 5, 30))
+        )
+        val activeNow = LocalDateTime.of(2026, 5, 31, 9, 0).atZone(zone).toInstant()
+        val brokenNow = LocalDateTime.of(2026, 6, 1, 0, 1).atZone(zone).toInstant()
+
+        val activeStats = calculator.calculate(flows, activeNow, zone)
+        val brokenStats = calculator.calculate(flows, brokenNow, zone)
+
+        assertEquals(2, activeStats.currentDailyStreak?.days)
+        assertNull(brokenStats.currentDailyStreak)
+        assertEquals(2, brokenStats.longestDailyStreak?.days)
+    }
+
+    @Test
+    fun softFlowsRemainExcludedFromDetailSourceLists() {
+        val stats = calculate(
+            listOf(
+                session(id = 1, date = LocalDate.of(2026, 5, 20), arcId = 8, durationMinutes = 30, points = 100),
+                session(id = 2, date = LocalDate.of(2026, 5, 21), arcId = 8, durationMinutes = 45, points = 200, soft = true),
+                session(id = 3, date = LocalDate.of(2026, 5, 22), arcId = 8, durationMinutes = 60, points = 300)
+            )
+        )
+
+        assertEquals(listOf(1L, 3L), stats.longestArcByTime?.flows?.map { it.sessionId })
+        assertEquals(listOf(3L), stats.bestDayByPoints?.flows?.map { it.sessionId })
+        assertEquals(400, stats.longestArcByTime?.totalPoints)
+    }
+
     private fun calculate(sessions: List<VoyageSourceFlow>) = calculator.calculate(sessions, now, zone)
 
     private fun session(
