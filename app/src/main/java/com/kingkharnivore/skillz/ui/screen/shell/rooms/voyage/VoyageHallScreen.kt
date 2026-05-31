@@ -428,7 +428,6 @@ private fun StatCard(
     ElevatedCard(
         shape = RoundedCornerShape(if (prominent) 34.dp else 28.dp),
         colors = CardDefaults.elevatedCardColors(containerColor = scheme.surface.copy(alpha = if (unavailable) 0.66f else 0.92f)),
-        border = BorderStroke(1.dp, scheme.primary.copy(alpha = if (prominent) 0.32f else if (unavailable) 0.10f else 0.18f)),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = if (prominent) 6.dp else 2.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -468,7 +467,6 @@ private fun VoyageRecordPopup(detail: VoyageRecordDetail, onDismiss: () -> Unit)
         ElevatedCard(
             shape = RoundedCornerShape(34.dp),
             colors = CardDefaults.elevatedCardColors(containerColor = scheme.surface.copy(alpha = 0.97f)),
-            border = BorderStroke(1.dp, scheme.primary.copy(alpha = 0.28f)),
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .fillMaxHeight(0.84f)
