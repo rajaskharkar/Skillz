@@ -99,6 +99,7 @@ dependencies {
 
     implementation(libs.androidx.navigation.compose)
     implementation("androidx.lifecycle:lifecycle-service:2.10.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
 
     implementation(libs.hilt.android)
     implementation(libs.androidx.compose.animation.core)

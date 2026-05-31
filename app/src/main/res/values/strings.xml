@@ -1574,4 +1574,103 @@
     <string name="beyond_blue_pearls_will_be_used">%1$d Pearls will be used.</string>
     <string name="beyond_blue_ready_to_buy">Ready to buy</string>
     <string name="beyond_blue_adjusted_cost">Adjusted Cost</string>
+
+
+    <string name="voyage_hall_title">Voyage Hall</string>
+    <string name="voyage_hall_subtitle">Your highest records from every Flow and Arc.</string>
+    <string name="voyage_hall_shell_subtitle">The Shell remembers the effort you return to.</string>
+    <string name="voyage_hall_tab_core_stats">Core Stats</string>
+    <string name="voyage_hall_tab_bonus_stats">Bonus Stats</string>
+    <string name="voyage_hall_tab_selected_a11y">%1$s selected</string>
+    <string name="voyage_hall_section_momentum">Momentum</string>
+    <string name="voyage_hall_section_arc_records">Arc Records</string>
+    <string name="voyage_hall_section_point_records">Point Records</string>
+    <string name="voyage_hall_section_flow_records">Flow Records</string>
+    <string name="voyage_hall_section_time_records">Time Records</string>
+    <string name="voyage_hall_section_arc_volume_records">Arc Volume Records</string>
+    <string name="voyage_hall_current_daily_streak">Current Daily Streak</string>
+    <string name="voyage_hall_longest_daily_streak">Longest Daily Streak</string>
+    <string name="voyage_hall_longest_arc_by_time">Longest Arc by Time</string>
+    <string name="voyage_hall_highest_arc_multiplier">Highest Arc Multiplier</string>
+    <string name="voyage_hall_most_chained_flows">Most Chained Flows in an Arc</string>
+    <string name="voyage_hall_best_day_points">Best Day by Scyra Points</string>
+    <string name="voyage_hall_best_week_points">Best Week by Scyra Points</string>
+    <string name="voyage_hall_best_month_points">Best Month by Scyra Points</string>
+    <string name="voyage_hall_best_flow_points">Best Flow by Scyra Points</string>
+    <string name="voyage_hall_longest_flow">Longest Flow</string>
+    <string name="voyage_hall_most_flows_day">Most Flows in a Day</string>
+    <string name="voyage_hall_most_time_day">Most Time in a Day</string>
+    <string name="voyage_hall_most_time_week">Most Time in a Week</string>
+    <string name="voyage_hall_most_time_month">Most Time in a Month</string>
+    <string name="voyage_hall_most_arcs_day">Most Arcs in a Day</string>
+    <string name="voyage_hall_most_arcs_week">Most Arcs in a Week</string>
+    <string name="voyage_hall_current_daily_streak_subtitle">Your active run of daily effort.</string>
+    <string name="voyage_hall_longest_daily_streak_subtitle">Your best consistency record.</string>
+    <string name="voyage_hall_longest_arc_by_time_subtitle">Your longest stretch of connected effort.</string>
+    <string name="voyage_hall_highest_arc_multiplier_subtitle">Your strongest Arc momentum so far.</string>
+    <string name="voyage_hall_most_chained_flows_subtitle">Your biggest Flow chain.</string>
+    <string name="voyage_hall_best_day_points_subtitle">Your highest-scoring day.</string>
+    <string name="voyage_hall_best_week_points_subtitle">Your highest-scoring week.</string>
+    <string name="voyage_hall_best_month_points_subtitle">Your highest-scoring month.</string>
+    <string name="voyage_hall_best_flow_points_subtitle">Your highest-scoring Flow.</string>
+    <string name="voyage_hall_longest_flow_subtitle">Your longest single Flow.</string>
+    <string name="voyage_hall_not_yet">Not yet</string>
+    <string name="voyage_hall_no_records_title">No records yet.</string>
+    <string name="voyage_hall_no_records_body">Complete your first Flow to begin filling Voyage Hall.</string>
+    <string name="voyage_hall_no_arc_record_body">Chain at least 2 Flows to set this record.</string>
+    <string name="voyage_hall_points_suffix">Scyra Points</string>
+    <string name="voyage_hall_flows_suffix">Flows</string>
+    <string name="voyage_hall_arcs_suffix">Arcs</string>
+    <string name="voyage_hall_days_suffix">days</string>
+    <string name="voyage_hall_days_value">%1$d days</string>
+    <string name="voyage_hall_flows_value">%1$d Flows</string>
+    <string name="voyage_hall_chained_flows_detail">%1$d chained Flows</string>
+    <string name="voyage_hall_multiplier_value">%1$.1fx</string>
+    <string name="voyage_hall_count_value">%1$s %2$s</string>
+
+    <string name="voyage_hall_not_active">Not active</string>
+    <string name="voyage_hall_return_today">Return today to begin again.</string>
+    <string name="voyage_hall_best_value">Best: %1$s</string>
+    <string name="voyage_hall_best_empty">Best: —</string>
+    <string name="voyage_hall_tap_for_details">Tap to view details</string>
+    <string name="voyage_hall_close_record_details">Close record details</string>
+    <string name="voyage_hall_record_details">Record details</string>
+    <string name="voyage_hall_flows_in_arc">Flows in this Arc</string>
+    <string name="voyage_hall_flows_included">Flows included</string>
+    <string name="voyage_hall_arcs_included">Arcs included</string>
+    <string name="voyage_hall_peak_reached_here">Peak reached here</string>
+    <string name="voyage_hall_reached_during">Reached during: %1$s</string>
+    <string name="voyage_hall_arc_total">Arc total</string>
+    <string name="voyage_hall_completed_on">Completed %1$s</string>
+    <string name="voyage_hall_untagged">Untagged</string>
+    <string name="voyage_hall_error_title">Couldn’t load Voyage Hall</string>
+    <string name="voyage_hall_error_body">Your records are still safe. Try opening Voyage Hall again.</string>
+    <string name="voyage_hall_points_and_flows_detail">%1$s Scyra Points · %2$s</string>
+    <string name="voyage_hall_points_value">%1$s Scyra Points</string>
+    <string name="voyage_hall_points_abbrev">%1$s pts</string>
+    <string name="voyage_hall_flow_meta">%1$s · %2$s</string>
+    <string name="voyage_hall_period_flow_summary">%1$s · %2$s total · %3$s Scyra Points</string>
+    <string name="voyage_hall_arc_summary_with_peak">%1$s · %2$s · %3$s Scyra Points · Peak %4$s</string>
+    <string name="voyage_hall_arc_summary_without_peak">%1$s · %2$s · %3$s Scyra Points</string>
+    <string name="voyage_hall_part_of_arc">Part of Arc</string>
+    <string name="voyage_hall_arc_number">Arc %1$d</string>
+    <string name="voyage_hall_numbered_title">%1$d. %2$s</string>
+
+    <plurals name="voyage_hall_days_count">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <plurals name="voyage_hall_flows_count">
+        <item quantity="one">%1$d Flow</item>
+        <item quantity="other">%1$d Flows</item>
+    </plurals>
+    <plurals name="voyage_hall_chained_flows_count">
+        <item quantity="one">%1$d chained Flow</item>
+        <item quantity="other">%1$d chained Flows</item>
+    </plurals>
+    <plurals name="voyage_hall_arcs_count">
+        <item quantity="one">%1$d Arc</item>
+        <item quantity="other">%1$d Arcs</item>
+    </plurals>
+
 </resources>
