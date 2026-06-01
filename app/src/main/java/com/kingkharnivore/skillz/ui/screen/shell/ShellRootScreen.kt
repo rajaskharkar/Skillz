@@ -55,6 +55,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,6 +77,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellFindDefinition
@@ -89,6 +91,7 @@ import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellChestScreen
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellNotificationsScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.TheBlueRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.focus.FocusRoomScreen
+import com.kingkharnivore.skillz.ui.screen.shell.rooms.lookout.LookoutRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.stillwater.StillwaterRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.voyage.VoyageHallScreen
 import com.kingkharnivore.skillz.ui.screen.shell.ux.displayedInstanceIds
@@ -171,10 +174,14 @@ fun sourceReasonFor(def: ShellFindDefinition): String = when (def.findId) {
 fun ShellRootScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    isFlowActive: Boolean = false,
+    onLaunchFlowForJourney: (String) -> Unit = {},
     viewModel: ShellViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val activeFlowMessage = stringResource(R.string.lookout_flow_already_active)
     var destination by remember { mutableStateOf<ShellDestination>(ShellDestination.Heart) }
     var showPearlBasin by remember { mutableStateOf(false) }
     var shouldMarkNotificationsSeenOnExit by remember { mutableStateOf(false) }
@@ -295,10 +302,14 @@ fun ShellRootScreen(
                     icon = Icons.Outlined.PsychologyAlt
                 )
 
-                ShellDestination.LookoutPreview -> DormantPreviewScreen(
-                    titleRes = R.string.shell_room_lookout_title,
-                    bodyRes = R.string.shell_preview_lookout,
-                    icon = Icons.Outlined.Visibility
+                ShellDestination.LookoutPreview -> LookoutRoomScreen(
+                    onLaunchFlowForJourney = { journeyName ->
+                        if (isFlowActive) {
+                            scope.launch { snackbarHostState.showSnackbar(activeFlowMessage) }
+                        } else {
+                            onLaunchFlowForJourney(journeyName)
+                        }
+                    }
                 )
             }
         }

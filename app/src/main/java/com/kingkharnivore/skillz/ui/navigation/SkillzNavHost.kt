@@ -36,6 +36,7 @@ fun SkillzNavHost(
     val storyViewModel: StoryViewModel = hiltViewModel()
     val ongoing by focusVm.ongoingSession.collectAsState()
     val isFocusModeOn = ongoing?.isInFlowMode == true
+    val hasOngoingFlow = ongoing != null
 
     NavHost(
         navController = navController,
@@ -213,7 +214,13 @@ fun SkillzNavHost(
         }
 
         composable(SkillzDestinations.SHELL) {
-            ShellRootScreen(onBack = { navController.popBackStack() })
+            ShellRootScreen(
+                onBack = { navController.popBackStack() },
+                isFlowActive = hasOngoingFlow,
+                onLaunchFlowForJourney = { journeyName ->
+                    navController.navigate(SkillzDestinations.addSkillRoute(prefillJourney = journeyName))
+                }
+            )
         }
 
         composable(SkillzDestinations.ADD_PULSE_ROUTE) {
