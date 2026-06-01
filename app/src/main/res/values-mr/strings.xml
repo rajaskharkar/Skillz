@@ -487,7 +487,6 @@
     <string name="paths_studio_arc_card_a11y">%1$s. Studio आर्क. %2$s.</string>
     <string name="paths_arc_library_card_a11y">%1$s. Planned arc. %2$s. %3$s.</string>
     <string name="paths_suggested_route_card_a11y">%1$s. %2$s. %3$s. %4$s.</string>
-    <string name="paths_review_arc">Arc पाहा</string>
     <string name="paths_edit_arc">संपादित करा</string>
     <string name="paths_suggested_sequences_helper_title">सुरुवातीचा बिंदू हवा आहे?</string>
     <string name="paths_suggested_sequences_helper_body">Suggested Scene टेम्पलेट म्हणून वापरा, मग Your Studio मध्ये पायऱ्या बदला.</string>

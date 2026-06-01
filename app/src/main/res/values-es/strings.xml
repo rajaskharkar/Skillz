@@ -458,7 +458,6 @@
     <string name="paths_studio_arc_card_a11y">%1$s. Studio arc. %2$s.</string>
     <string name="paths_arc_library_card_a11y">%1$s. Planned arc. %2$s. %3$s.</string>
     <string name="paths_suggested_route_card_a11y">%1$s. %2$s. %3$s. %4$s.</string>
-    <string name="paths_review_arc">Revisar Arc</string>
     <string name="paths_edit_arc">Editar</string>
     <string name="paths_suggested_sequences_helper_title">¿Necesitas un punto de partida?</string>
     <string name="paths_suggested_sequences_helper_body">Usa una Suggested Scene como plantilla y luego ajusta los pasos dentro de Your Studio.</string>

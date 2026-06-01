@@ -345,11 +345,10 @@ fun PlanArcScreen(
                 viewModel.clearError()
                 showCreateFlowSheet = false
             },
-            onSave = { title, tagName, isSoftMode, targetMinutesText, launchWithSurge ->
+            onSave = { title, tagName, targetMinutesText, launchWithSurge ->
                 viewModel.createFlowAndSelect(
                     title = title,
                     tagName = tagName,
-                    isSoftMode = isSoftMode,
                     targetMinutesText = targetMinutesText,
                     launchWithSurge = launchWithSurge,
                     onSaved = { showCreateFlowSheet = false }
@@ -367,7 +366,6 @@ private fun CreateFlowStepSheet(
     onSave: (
         title: String,
         tagName: String,
-        isSoftMode: Boolean,
         targetMinutesText: String,
         launchWithSurge: Boolean
     ) -> Unit
@@ -375,12 +373,7 @@ private fun CreateFlowStepSheet(
     var title by rememberSaveable { mutableStateOf("") }
     var tagName by rememberSaveable { mutableStateOf("") }
     var targetMinutesText by rememberSaveable { mutableStateOf("") }
-    var isSoftMode by rememberSaveable { mutableStateOf(false) }
     var launchWithSurge by rememberSaveable { mutableStateOf(false) }
-
-    if (isSoftMode && launchWithSurge) {
-        launchWithSurge = false
-    }
 
     val cleanedTargetMinutes = targetMinutesText.filter(Char::isDigit).take(3)
     if (cleanedTargetMinutes != targetMinutesText) {
@@ -388,7 +381,7 @@ private fun CreateFlowStepSheet(
     }
 
     val validTarget = targetMinutesText.trim().toIntOrNull()?.let { it > 0 } == true
-    val surgeEnabled = !isSoftMode && validTarget
+    val surgeEnabled = validTarget
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         LazyColumn(
@@ -441,24 +434,11 @@ private fun CreateFlowStepSheet(
 
             item {
                 FlowCreationToggleRow(
-                    title = stringResource(R.string.paths_soft_flow_title),
-                    body = stringResource(R.string.paths_soft_flow_body),
-                    checked = isSoftMode,
-                    onCheckedChange = {
-                        isSoftMode = it
-                        if (it) launchWithSurge = false
-                    },
-                    enabled = true
-                )
-            }
-
-            item {
-                FlowCreationToggleRow(
                     title = stringResource(R.string.paths_launch_with_surge_title),
-                    body = when {
-                        isSoftMode -> stringResource(R.string.paths_launch_with_surge_disabled_soft)
-                        !validTarget -> stringResource(R.string.paths_launch_with_surge_disabled_no_target)
-                        else -> stringResource(R.string.paths_launch_with_surge_enabled_body)
+                    body = if (!validTarget) {
+                        stringResource(R.string.paths_launch_with_surge_disabled_no_target)
+                    } else {
+                        stringResource(R.string.paths_launch_with_surge_enabled_body)
                     },
                     checked = launchWithSurge && surgeEnabled,
                     onCheckedChange = { launchWithSurge = it && surgeEnabled },
@@ -488,7 +468,6 @@ private fun CreateFlowStepSheet(
                             onSave(
                                 title.trim(),
                                 tagName.trim(),
-                                isSoftMode,
                                 targetMinutesText.trim(),
                                 launchWithSurge && surgeEnabled
                             )

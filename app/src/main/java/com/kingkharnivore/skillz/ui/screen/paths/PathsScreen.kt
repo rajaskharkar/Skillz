@@ -1524,7 +1524,6 @@ private fun PlannedArcCard(
     val cancelText = stringResource(R.string.common_cancel)
     val deleteTitle = stringResource(R.string.paths_delete_arc_title)
     val deleteBody = stringResource(R.string.paths_delete_arc_body)
-    val reviewArcText = stringResource(R.string.paths_review_arc)
     val editText = stringResource(R.string.paths_edit_arc)
     val arcLibraryBody = stringResource(R.string.paths_arc_library_body)
     val stepCountText = pluralStringResource(
@@ -1659,21 +1658,11 @@ private fun PlannedArcCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(
-                    onClick = onClick,
-                    modifier = Modifier.weight(1f)
-                ) {
+                TextButton(onClick = onClick) {
                     Text(editText)
-                }
-                Button(
-                    onClick = onClick,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(999.dp)
-                ) {
-                    Text(reviewArcText)
                 }
             }
         }

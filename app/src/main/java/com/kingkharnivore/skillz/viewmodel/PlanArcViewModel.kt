@@ -51,7 +51,7 @@ class PlanArcViewModel @Inject constructor(
             ) { flowPlans, tags ->
                 flowPlans to tags
             }.collect { (flowPlans, tags) ->
-                val uiFlows = flowPlans.toPickerUiModels(tags)
+                val uiFlows = flowPlans.toPickerUiModels(tags).filterNot { it.isSoftMode }
                 val availableTags = tags
                     .filter { tag -> uiFlows.any { it.tagId == tag.id } }
                     .map { TagUiModel(id = it.id, name = it.name) }
@@ -176,6 +176,15 @@ class PlanArcViewModel @Inject constructor(
             return
         }
 
+        val flowByIdForValidation = state.availableFlows.associateBy { it.id }
+        val softFlowSelected = state.selectedFlowIdsInOrder.firstOrNull { flowId ->
+            flowByIdForValidation[flowId]?.isSoftMode == true
+        }
+        if (softFlowSelected != null) {
+            _uiState.update { it.copy(errorMessage = "Soft Flows cannot be added to Arcs.") }
+            return
+        }
+
         val invalidTarget = state.selectedFlowIdsInOrder.firstOrNull { flowId ->
             val text = state.targetMinutesTextByFlowId[flowId].orEmpty().trim()
             text.isNotBlank() && (text.toIntOrNull() == null || text.toIntOrNull()!! <= 0)
@@ -217,6 +226,9 @@ class PlanArcViewModel @Inject constructor(
     fun onFlowToggled(flowPlanId: Long) {
         _uiState.update { current ->
             val flow = current.availableFlows.firstOrNull { it.id == flowPlanId } ?: return@update current
+            if (flow.isSoftMode) {
+                return@update current.copy(errorMessage = "Soft Flows cannot be added to Arcs.")
+            }
             val alreadySelected = flowPlanId in current.selectedFlowIdsInOrder
 
             if (alreadySelected) {
@@ -283,7 +295,6 @@ class PlanArcViewModel @Inject constructor(
     fun createFlowAndSelect(
         title: String,
         tagName: String,
-        isSoftMode: Boolean,
         targetMinutesText: String,
         launchWithSurge: Boolean,
         onSaved: () -> Unit = {}
@@ -313,12 +324,12 @@ class PlanArcViewModel @Inject constructor(
                 }
 
                 val normalizedTarget = parsedTargetMinutes?.takeIf { it > 0 }
-                val normalizedSurge = !isSoftMode && normalizedTarget != null && launchWithSurge
+                val normalizedSurge = normalizedTarget != null && launchWithSurge
 
                 val flowPlanId = flowPlanRepository.createFlowPlan(
                     title = trimmedTitle,
                     tagId = tagId,
-                    isSoftMode = isSoftMode,
+                    isSoftMode = false,
                     targetMinutes = normalizedTarget,
                     launchWithSurge = normalizedSurge
                 )
@@ -428,6 +439,15 @@ class PlanArcViewModel @Inject constructor(
 
         if (state.selectedFlowIdsInOrder.size < 2) {
             _uiState.update { it.copy(errorMessage = "An Arc needs at least two Flows.") }
+            return
+        }
+
+        val flowByIdForValidation = state.availableFlows.associateBy { it.id }
+        val softFlowSelected = state.selectedFlowIdsInOrder.firstOrNull { flowId ->
+            flowByIdForValidation[flowId]?.isSoftMode == true
+        }
+        if (softFlowSelected != null) {
+            _uiState.update { it.copy(errorMessage = "Soft Flows cannot be added to Arcs.") }
             return
         }
 

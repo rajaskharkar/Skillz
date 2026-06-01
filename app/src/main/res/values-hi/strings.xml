@@ -454,7 +454,6 @@
     <string name="paths_studio_arc_card_a11y">%1$s. स्टूडियो आर्क। %2$s.</string>
     <string name="paths_arc_library_card_a11y">%1$s. Planned arc. %2$s. %3$s.</string>
     <string name="paths_suggested_route_card_a11y">%1$s. %2$s. %3$s. %4$s.</string>
-    <string name="paths_review_arc">Arc देखें</string>
     <string name="paths_edit_arc">संपादित करें</string>
     <string name="paths_suggested_sequences_helper_title">शुरुआत चाहिए?</string>
     <string name="paths_suggested_sequences_helper_body">Suggested Scene को टेम्पलेट की तरह इस्तेमाल करें, फिर Your Studio में चरणों को अपने अनुसार बदलें।</string>

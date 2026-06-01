@@ -148,7 +148,7 @@ object SuggestedRoutesCatalog {
                 SuggestedRouteStepUiModel(
                     title = "Soft Reflection",
                     tagName = "Reflection",
-                    isSoftMode = true,
+                    isSoftMode = false,
                     targetMinutes = 10,
                     launchWithSurge = false
                 )
@@ -185,7 +185,7 @@ object SuggestedRoutesCatalog {
                 SuggestedRouteStepUiModel(
                     title = "Wind Down",
                     tagName = "Wellness",
-                    isSoftMode = true,
+                    isSoftMode = false,
                     targetMinutes = 5,
                     launchWithSurge = false
                 )
