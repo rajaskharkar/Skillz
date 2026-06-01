@@ -414,19 +414,19 @@
     <string name="paths_off">बंद</string>
     <string name="paths_empty_flows_title">अजून कोणतेही नियोजित फ्लो नाहीत</string>
     <string name="paths_empty_flows_body">क्रिया जतन करा, जेणेकरून त्या नेहमी सुरू करण्यासाठी तयार असतील.</string>
-    <string name="paths_empty_arcs_title">अजून कोणतेही नियोजित आर्क नाहीत</string>
-    <string name="paths_empty_arcs_body">मार्गदर्शित नियोजित फ्लोंची शृंखला तयार करा, जेणेकरून पुढचे पाऊल नेहमी तयार असेल.</string>
+    <string name="paths_empty_arcs_title">तुमचा पहिला Arc तयार करा</string>
+    <string name="paths_empty_arcs_body">पुढील काही Flows माहित असतील तेव्हा Your Studio वापरा.</string>
     <string name="paths_empty_more_arcs_body">अजून अतिरिक्त आर्क नाहीत. तुम्ही वारंवार परत येणारा मार्ग सापडल्यानंतर एक Studio मध्ये जोडा.</string>
     <string name="paths_plan_flow">फ्लो नियोजित करा</string>
-    <string name="paths_plan_arc">आर्क नियोजित करा</string>
+    <string name="paths_plan_arc">Arc तयार करा</string>
     <string name="paths_planned_flows_title">नियोजित फ्लो</string>
     <string name="paths_planned_flows_subtitle">कृतीत आणण्यासाठी तयार</string>
     <string name="paths_studio_title">Studio</string>
-    <string name="paths_studio_subtitle">जवळ ठेवलेले मार्ग</string>
+    <string name="paths_studio_subtitle">तुम्हाला ज्या क्रमातून जायचे आहे ते डिझाइन करा.</string>
     <string name="paths_suggested_routes_title">सुचवलेले मार्ग</string>
     <string name="paths_suggested_routes_subtitle">तुमच्या जीवनानुसार जुळवून घेण्यासाठी विचारपूर्वक तयार केलेल्या दिनचर्या</string>
-    <string name="paths_your_arcs_title">तुमचे आर्क्स</string>
-    <string name="paths_your_arcs_subtitle">जगले जाण्याची वाट पाहणारे आर्क्स</string>
+    <string name="paths_your_arcs_title">Your Studio</string>
+    <string name="paths_your_arcs_subtitle">तुम्हाला ज्या क्रमातून जायचे आहे ते डिझाइन करा.</string>
     <string name="paths_plan_flow_sheet_title">फ्लो नियोजित करा</string>
     <string name="paths_plan_flow_sheet_subtitle">एखादी क्रिया जतन करा, जेणेकरून ती नेहमी सुरू करण्यासाठी तयार असेल.</string>
     <string name="paths_title_label">शीर्षक</string>
@@ -483,17 +483,32 @@
     <string name="paths_minutes_compact">%1$dm</string>
     <string name="paths_minutes_short">%1$d मिनिटे</string>
     <string name="paths_approx_minutes">~%1$d मिनिटे</string>
-    <string name="paths_tap_to_preview">पूर्वावलोकनासाठी टॅप करा</string>
+    <string name="paths_tap_to_preview">हा आकार वापरा</string>
     <string name="paths_studio_arc_card_a11y">%1$s. Studio आर्क. %2$s.</string>
-    <string name="paths_arc_library_card_a11y">%1$s. आर्क. %2$s.</string>
+    <string name="paths_arc_library_card_a11y">%1$s. Planned arc. %2$s. %3$s.</string>
     <string name="paths_suggested_route_card_a11y">%1$s. %2$s. %3$s. %4$s.</string>
+    <string name="paths_edit_arc">संपादित करा</string>
+    <string name="paths_suggested_sequences_helper_title">सुरुवातीचा बिंदू हवा आहे?</string>
+    <string name="paths_suggested_sequences_helper_body">Suggested Scene टेम्पलेट म्हणून वापरा, मग Your Studio मध्ये पायऱ्या बदला.</string>
+    <string name="paths_start_from_suggestion">Suggested Scene पासून सुरू करा</string>
+    <string name="paths_browse_suggested_scenes">Suggested Scenes पाहा</string>
+    <string name="paths_collapse">आवरा</string>
+    <string name="paths_arc_step_preview_a11y">पायऱ्या: %1$s</string>
+    <plurals name="paths_arc_flow_count">
+        <item quantity="one">%1$d Flow</item>
+        <item quantity="other">%1$d Flows</item>
+    </plurals>
+    <plurals name="paths_view_all_flows">
+        <item quantity="one">सर्व %1$d Flow पाहा</item>
+        <item quantity="other">सर्व %1$d Flows पाहा</item>
+    </plurals>
 
-    <string name="plan_arc_route_studio">Route Studio</string>
+    <string name="plan_arc_route_studio">Your Studio</string>
     <string name="plan_arc_step_counter">%1$d पैकी %2$d</string>
     <string name="plan_arc_stage_name_title">तुमच्या आर्कला नाव द्या</string>
     <string name="plan_arc_stage_name_subtitle">पायऱ्या ठरवण्यापूर्वी या मार्गाला ओळख द्या.</string>
-    <string name="plan_arc_stage_choose_title">तुमचे फ्लो निवडा</string>
-    <string name="plan_arc_stage_choose_subtitle">या मार्गात बसणारे नियोजित फ्लो निवडा.</string>
+    <string name="plan_arc_stage_choose_title">तुमचे Flows निवडा</string>
+    <string name="plan_arc_stage_choose_subtitle">मौजूदा Flows निवडा किंवा या Arc साठी राहिलेल्या पायऱ्या तयार करा.</string>
     <string name="plan_arc_stage_shape_title">मार्ग आकारा</string>
     <string name="plan_arc_stage_shape_subtitle">तुमचा आर्क ज्या क्रमाने पुढे जाईल तो क्रम लावा.</string>
     <string name="plan_arc_stage_timing_title">वेळेचा हेतू ठरवा</string>
@@ -506,7 +521,20 @@
     <string name="plan_arc_title_placeholder">Morning Routine</string>
     <string name="plan_arc_preview_title">पुढे काय येते</string>
     <string name="plan_arc_preview_body">पुढे, तुम्ही या मार्गात बसणारे नियोजित फ्लो निवडाल.</string>
-    <string name="plan_arc_selection_summary_choose">या मार्गात बसणारे फ्लो निवडा.</string>
+    <string name="plan_arc_selection_summary_needs_second">1 Flow निवडला — Arc तयार करण्यासाठी अजून एक जोडा.</string>
+    <string name="plan_arc_selected_sequence_title">निवडलेला क्रम</string>
+    <string name="plan_arc_view_sequence">क्रम पाहा</string>
+    <string name="plan_arc_hide_sequence">क्रम लपवा</string>
+    <string name="plan_arc_remove_flow_from_arc_a11y">%1$s Arc मधून काढा</string>
+    <string name="plan_arc_create_flow_cta">नवीन Flow तयार करा</string>
+    <string name="plan_arc_create_flow_title">नवीन Flow तयार करा</string>
+    <string name="plan_arc_create_flow_field_title">Flow शीर्षक</string>
+    <string name="plan_arc_create_flow_placeholder">ही पायरी कशावर लक्ष देईल?</string>
+    <string name="plan_arc_create_flow_tag_label">टॅग</string>
+    <string name="plan_arc_create_flow_add_to_arc">Arc मध्ये जोडा</string>
+    <string name="plan_arc_create_flow_cancel">रद्द करा</string>
+    <string name="plan_arc_create_flow_adding">जोडत आहे...</string>
+    <string name="plan_arc_selection_summary_choose">या Arc साठी किमान दोन Flows निवडा.</string>
     <plurals name="plan_arc_selection_summary_selected">
         <item quantity="one">%1$d फ्लो निवडला</item>
         <item quantity="other">%1$d फ्लो निवडले</item>
@@ -594,6 +622,8 @@
     <string name="plan_arc_footer_saving">जतन होत आहे...</string>
     <string name="plan_arc_progress_a11y">पायरी %1$d पैकी %2$d</string>
     <string name="plan_arc_error_a11y">%1$s</string>
+
+    <string name="suggested_route_save_as_arc">Arc म्हणून जतन करा</string>
 
     <string name="arc_detail_back">मागे</string>
     <string name="arc_detail_restart">पुन्हा सुरू करा</string>
@@ -921,8 +951,8 @@
     
     <string name="horizon_header_body">पुढे काय करायचे ते पाहा</string>
     <string name="horizon_title">क्षितिज</string>
-    <string name="paths_suggested_scenes_subtitle">मार्गदर्शित आर्क्स, जे तुम्ही तुमच्या स्वतःच्या आयुष्याशी जुळवू शकता.</string>
-    <string name="paths_suggested_scenes_title">सुचवलेली दृश्ये</string>
+    <string name="paths_suggested_scenes_subtitle">एका आकारापासून सुरू करा, मग तो स्वतःचा करा.</string>
+    <string name="paths_suggested_scenes_title">Suggested Scenes</string>
     <string name="paths_journey_inline_placeholder">ऐच्छिक प्रवास टॅग</string>
     <string name="paths_minutes_field_placeholder">25</string>
     <string name="common_minutes_short">मि</string>

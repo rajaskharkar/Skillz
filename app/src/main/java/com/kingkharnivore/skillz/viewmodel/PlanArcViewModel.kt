@@ -51,7 +51,7 @@ class PlanArcViewModel @Inject constructor(
             ) { flowPlans, tags ->
                 flowPlans to tags
             }.collect { (flowPlans, tags) ->
-                val uiFlows = flowPlans.toPickerUiModels(tags)
+                val uiFlows = flowPlans.toPickerUiModels(tags).filterNot { it.isSoftMode }
                 val availableTags = tags
                     .filter { tag -> uiFlows.any { it.tagId == tag.id } }
                     .map { TagUiModel(id = it.id, name = it.name) }
@@ -141,8 +141,8 @@ class PlanArcViewModel @Inject constructor(
     }
 
     fun continueFromPicker() {
-        if (_uiState.value.selectedFlowIdsInOrder.isEmpty()) {
-            _uiState.update { it.copy(errorMessage = "Choose at least one flow.") }
+        if (_uiState.value.selectedFlowIdsInOrder.size < 2) {
+            _uiState.update { it.copy(errorMessage = "An Arc needs at least two Flows.") }
             return
         }
 
@@ -155,8 +155,8 @@ class PlanArcViewModel @Inject constructor(
     }
 
     fun continueFromShape() {
-        if (_uiState.value.selectedFlowIdsInOrder.isEmpty()) {
-            _uiState.update { it.copy(errorMessage = "Choose at least one flow.") }
+        if (_uiState.value.selectedFlowIdsInOrder.size < 2) {
+            _uiState.update { it.copy(errorMessage = "An Arc needs at least two Flows.") }
             return
         }
 
@@ -171,8 +171,17 @@ class PlanArcViewModel @Inject constructor(
     fun continueFromTiming() {
         val state = _uiState.value
 
-        if (state.selectedFlowIdsInOrder.isEmpty()) {
-            _uiState.update { it.copy(errorMessage = "Choose at least one flow.") }
+        if (state.selectedFlowIdsInOrder.size < 2) {
+            _uiState.update { it.copy(errorMessage = "An Arc needs at least two Flows.") }
+            return
+        }
+
+        val flowByIdForValidation = state.availableFlows.associateBy { it.id }
+        val softFlowSelected = state.selectedFlowIdsInOrder.firstOrNull { flowId ->
+            flowByIdForValidation[flowId]?.isSoftMode == true
+        }
+        if (softFlowSelected != null) {
+            _uiState.update { it.copy(errorMessage = "Soft Flows cannot be added to Arcs.") }
             return
         }
 
@@ -217,6 +226,9 @@ class PlanArcViewModel @Inject constructor(
     fun onFlowToggled(flowPlanId: Long) {
         _uiState.update { current ->
             val flow = current.availableFlows.firstOrNull { it.id == flowPlanId } ?: return@update current
+            if (flow.isSoftMode) {
+                return@update current.copy(errorMessage = "Soft Flows cannot be added to Arcs.")
+            }
             val alreadySelected = flowPlanId in current.selectedFlowIdsInOrder
 
             if (alreadySelected) {
@@ -277,6 +289,75 @@ class PlanArcViewModel @Inject constructor(
                 launchWithSurgeByFlowId = current.launchWithSurgeByFlowId - flowPlanId,
                 errorMessage = null
             )
+        }
+    }
+
+    fun createFlowAndSelect(
+        title: String,
+        tagName: String,
+        targetMinutesText: String,
+        launchWithSurge: Boolean,
+        onSaved: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            val trimmedTitle = title.trim()
+            val trimmedTag = tagName.trim()
+            val parsedTargetMinutes = targetMinutesText.trim().toIntOrNull()
+
+            if (trimmedTitle.isBlank()) {
+                _uiState.update { it.copy(errorMessage = "Flow title is required.") }
+                return@launch
+            }
+
+            if (parsedTargetMinutes != null && parsedTargetMinutes <= 0) {
+                _uiState.update { it.copy(errorMessage = "Target minutes must be greater than 0.") }
+                return@launch
+            }
+
+            _uiState.update { it.copy(isSaving = true, errorMessage = null) }
+
+            try {
+                val tagId = if (trimmedTag.isBlank()) {
+                    null
+                } else {
+                    journeyRepository.getOrCreateTagId(trimmedTag)
+                }
+
+                val normalizedTarget = parsedTargetMinutes?.takeIf { it > 0 }
+                val normalizedSurge = normalizedTarget != null && launchWithSurge
+
+                val flowPlanId = flowPlanRepository.createFlowPlan(
+                    title = trimmedTitle,
+                    tagId = tagId,
+                    isSoftMode = false,
+                    targetMinutes = normalizedTarget,
+                    launchWithSurge = normalizedSurge
+                )
+
+                _uiState.update { current ->
+                    current.copy(
+                        isSaving = false,
+                        errorMessage = null,
+                        selectedFlowIdsInOrder = if (flowPlanId in current.selectedFlowIdsInOrder) {
+                            current.selectedFlowIdsInOrder
+                        } else {
+                            current.selectedFlowIdsInOrder + flowPlanId
+                        },
+                        targetMinutesTextByFlowId = current.targetMinutesTextByFlowId +
+                                (flowPlanId to (normalizedTarget?.toString().orEmpty())),
+                        launchWithSurgeByFlowId = current.launchWithSurgeByFlowId +
+                                (flowPlanId to normalizedSurge)
+                    )
+                }
+                onSaved()
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        errorMessage = e.message ?: "Failed to add Flow to this Arc."
+                    )
+                }
+            }
         }
     }
 
@@ -356,8 +437,17 @@ class PlanArcViewModel @Inject constructor(
             return
         }
 
-        if (state.selectedFlowIdsInOrder.isEmpty()) {
-            _uiState.update { it.copy(errorMessage = "Choose at least one flow.") }
+        if (state.selectedFlowIdsInOrder.size < 2) {
+            _uiState.update { it.copy(errorMessage = "An Arc needs at least two Flows.") }
+            return
+        }
+
+        val flowByIdForValidation = state.availableFlows.associateBy { it.id }
+        val softFlowSelected = state.selectedFlowIdsInOrder.firstOrNull { flowId ->
+            flowByIdForValidation[flowId]?.isSoftMode == true
+        }
+        if (softFlowSelected != null) {
+            _uiState.update { it.copy(errorMessage = "Soft Flows cannot be added to Arcs.") }
             return
         }
 

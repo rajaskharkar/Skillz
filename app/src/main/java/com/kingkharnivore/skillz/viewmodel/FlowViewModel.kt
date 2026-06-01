@@ -1312,8 +1312,12 @@ class FlowViewModel @Inject constructor(
             .getOrNull(nextIndex)
             ?: return false
 
+        val tagNameById = tagRepository.getAllTags()
+            .firstOrNull()
+            .orEmpty()
+            .associate { it.id to it.name }
         val nextTagName = nextStep.tagIdSnapshot
-            ?.let { tagId -> tags.value.firstOrNull { it.id == tagId }?.name }
+            ?.let { tagId -> tagNameById[tagId] }
             .orEmpty()
 
         activeArcRunRepository.updateCurrentStep(

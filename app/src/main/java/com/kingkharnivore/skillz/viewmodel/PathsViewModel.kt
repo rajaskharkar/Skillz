@@ -2,6 +2,8 @@ package com.kingkharnivore.skillz.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kingkharnivore.skillz.data.model.entity.ArcPlanEntity
+import com.kingkharnivore.skillz.data.model.entity.ArcPlanStepEntity
 import com.kingkharnivore.skillz.data.model.entity.FlowPlanEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.repository.ArcPlanRepository
@@ -11,11 +13,16 @@ import com.kingkharnivore.skillz.model.state.paths.PathsPrimaryTab
 import com.kingkharnivore.skillz.model.state.paths.PathsTimeLens
 import com.kingkharnivore.skillz.model.state.paths.PathsUiState
 import com.kingkharnivore.skillz.model.ui.ArcPlanListItemUiModel
+import com.kingkharnivore.skillz.model.ui.ArcPlanStepPreviewUiModel
 import com.kingkharnivore.skillz.model.ui.FlowPlanListItemUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
@@ -195,15 +202,13 @@ class PathsViewModel @Inject constructor(
                 combine(
                     flowPlanRepository.getActiveFlowPlans(),
                     flowPlanRepository.getArchivedFlowPlans(),
-                    arcPlanRepository.getStudioArcPlans(),
-                    arcPlanRepository.getActiveArcPlans(),
+                    observeActiveArcPlansWithSteps(),
                     journeyRepository.getAllTags()
-                ) { activeFlowPlans, dreamFlowPlans, studioArcPlans, activeArcPlans, tags ->
+                ) { activeFlowPlans, dreamFlowPlans, activeArcPlansWithSteps, tags ->
                     DataBundle(
                         activeFlowPlans = activeFlowPlans,
                         dreamFlowPlans = dreamFlowPlans,
-                        studioArcPlans = studioArcPlans,
-                        activeArcPlans = activeArcPlans,
+                        activeArcPlansWithSteps = activeArcPlansWithSteps,
                         tags = tags
                     )
                 },
@@ -217,9 +222,6 @@ class PathsViewModel @Inject constructor(
             ) { data, uiBits ->
                 val (primaryTab, timeLens, saving) = uiBits
 
-                val studioIds = data.studioArcPlans.map { it.id }.toSet()
-                val nonStudioArcPlans = data.activeArcPlans.filterNot { it.id in studioIds }
-
                 PathsUiState(
                     isLoading = false,
                     isSaving = saving,
@@ -228,8 +230,8 @@ class PathsViewModel @Inject constructor(
                     selectedTimeLens = timeLens,
                     flowPlans = data.activeFlowPlans.toFlowUiModels(data.tags),
                     dreamFlowPlans = data.dreamFlowPlans.toFlowUiModels(data.tags),
-                    studioArcPlans = data.studioArcPlans.toArcUiModels(),
-                    arcPlans = nonStudioArcPlans.toArcUiModels(),
+                    studioArcPlans = emptyList(),
+                    arcPlans = data.activeArcPlansWithSteps.toArcUiModels(),
                     tags = data.tags.toTagUiModels()
                 )
             }
@@ -269,15 +271,37 @@ class PathsViewModel @Inject constructor(
         }
     }
 
-    private fun List<com.kingkharnivore.skillz.data.model.entity.ArcPlanEntity>.toArcUiModels():
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private fun observeActiveArcPlansWithSteps(): Flow<List<Pair<ArcPlanEntity, List<ArcPlanStepEntity>>>> =
+        arcPlanRepository.getActiveArcPlans().flatMapLatest { plans ->
+            if (plans.isEmpty()) {
+                flowOf(emptyList())
+            } else {
+                combine(
+                    plans.map { plan ->
+                        arcPlanRepository.getStepsForArcPlan(plan.id).map { steps -> plan to steps }
+                    }
+                ) { it.toList() }
+            }
+        }
+
+    private fun List<Pair<ArcPlanEntity, List<ArcPlanStepEntity>>>.toArcUiModels():
             List<ArcPlanListItemUiModel> =
-        map { plan ->
+        map { (plan, steps) ->
             ArcPlanListItemUiModel(
                 id = plan.id,
                 title = plan.title,
                 isInStudio = plan.isInStudio,
                 launchCount = plan.launchCount,
-                lastLaunchedAt = plan.lastLaunchedAt
+                lastLaunchedAt = plan.lastLaunchedAt,
+                steps = steps.map { step ->
+                    ArcPlanStepPreviewUiModel(
+                        title = step.titleSnapshot,
+                        targetMinutes = step.targetMinutesSnapshot,
+                        isSoftMode = step.isSoftModeSnapshot,
+                        launchWithSurge = step.launchWithSurgeSnapshot
+                    )
+                }
             )
         }
 
@@ -287,8 +311,7 @@ class PathsViewModel @Inject constructor(
     private data class DataBundle(
         val activeFlowPlans: List<FlowPlanEntity>,
         val dreamFlowPlans: List<FlowPlanEntity>,
-        val studioArcPlans: List<com.kingkharnivore.skillz.data.model.entity.ArcPlanEntity>,
-        val activeArcPlans: List<com.kingkharnivore.skillz.data.model.entity.ArcPlanEntity>,
+        val activeArcPlansWithSteps: List<Pair<ArcPlanEntity, List<ArcPlanStepEntity>>>,
         val tags: List<TagEntity>
     )
 

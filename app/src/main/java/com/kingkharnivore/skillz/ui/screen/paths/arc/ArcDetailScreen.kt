@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
@@ -23,8 +24,6 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.AutoGraph
 import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -81,7 +80,13 @@ fun ArcDetailScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                            .padding(horizontal = 20.dp, vertical = 14.dp)
+                            .padding(
+                                bottom = WindowInsets.safeDrawing
+                                    .only(WindowInsetsSides.Bottom)
+                                    .asPaddingValues()
+                                    .calculateBottomPadding()
+                            ),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         TextButton(
@@ -177,8 +182,6 @@ fun ArcDetailScreen(
                 ArcDetailContent(
                     uiState = uiState,
                     onEditArc = { onEditArc(uiState.arcId) },
-                    onAddToStudio = viewModel::addToStudio,
-                    onRemoveFromStudio = viewModel::removeFromStudio,
                     modifier = Modifier.padding(innerPadding)
                 )
             }
@@ -190,8 +193,6 @@ fun ArcDetailScreen(
 private fun ArcDetailContent(
     uiState: ArcDetailUiState,
     onEditArc: () -> Unit,
-    onAddToStudio: () -> Unit,
-    onRemoveFromStudio: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val routeTitle = stringResource(R.string.arc_detail_route_title)
@@ -205,9 +206,7 @@ private fun ArcDetailContent(
         item {
             ArcHeaderCard(
                 uiState = uiState,
-                onEditArc = onEditArc,
-                onAddToStudio = onAddToStudio,
-                onRemoveFromStudio = onRemoveFromStudio
+                onEditArc = onEditArc
             )
         }
 
@@ -374,22 +373,17 @@ private fun ArcRecurrenceCard(
 @Composable
 private fun ArcHeaderCard(
     uiState: ArcDetailUiState,
-    onEditArc: () -> Unit,
-    onAddToStudio: () -> Unit,
-    onRemoveFromStudio: () -> Unit
+    onEditArc: () -> Unit
 ) {
     val arcType = stringResource(R.string.arc_detail_type_arc)
-    val studioArcType = stringResource(R.string.arc_detail_type_studio_arc)
     val editText = stringResource(R.string.common_edit)
-    val addToStudioText = stringResource(R.string.arc_detail_add_to_studio)
-    val removeFromStudioText = stringResource(R.string.arc_detail_remove_from_studio)
     val launchText = if (uiState.launchCount > 0) {
         pluralStringResource(R.plurals.arc_detail_launch_count, uiState.launchCount, uiState.launchCount)
     } else {
         stringResource(R.string.arc_detail_not_launched_yet)
     }
 
-    val typeText = if (uiState.isInStudio) studioArcType else arcType
+    val typeText = arcType
     val a11yText = stringResource(R.string.arc_detail_header_a11y, typeText, uiState.title, launchText)
 
     Card(
@@ -455,33 +449,7 @@ private fun ArcHeaderCard(
                     Text(editText)
                 }
 
-                if (uiState.isInStudio) {
-                    TextButton(
-                        onClick = onRemoveFromStudio,
-                        modifier = Modifier.semantics {
-                            contentDescription = removeFromStudioText
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Star,
-                            contentDescription = null
-                        )
-                        Text(removeFromStudioText)
-                    }
-                } else {
-                    TextButton(
-                        onClick = onAddToStudio,
-                        modifier = Modifier.semantics {
-                            contentDescription = addToStudioText
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.StarBorder,
-                            contentDescription = null
-                        )
-                        Text(addToStudioText)
-                    }
-                }
+
             }
         }
     }
