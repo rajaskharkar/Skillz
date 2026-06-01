@@ -280,6 +280,76 @@ class PlanArcViewModel @Inject constructor(
         }
     }
 
+    fun createFlowAndSelect(
+        title: String,
+        tagName: String,
+        isSoftMode: Boolean,
+        targetMinutesText: String,
+        launchWithSurge: Boolean,
+        onSaved: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            val trimmedTitle = title.trim()
+            val trimmedTag = tagName.trim()
+            val parsedTargetMinutes = targetMinutesText.trim().toIntOrNull()
+
+            if (trimmedTitle.isBlank()) {
+                _uiState.update { it.copy(errorMessage = "Flow title is required.") }
+                return@launch
+            }
+
+            if (parsedTargetMinutes != null && parsedTargetMinutes <= 0) {
+                _uiState.update { it.copy(errorMessage = "Target minutes must be greater than 0.") }
+                return@launch
+            }
+
+            _uiState.update { it.copy(isSaving = true, errorMessage = null) }
+
+            try {
+                val tagId = if (trimmedTag.isBlank()) {
+                    null
+                } else {
+                    journeyRepository.getOrCreateTagId(trimmedTag)
+                }
+
+                val normalizedTarget = parsedTargetMinutes?.takeIf { it > 0 }
+                val normalizedSurge = !isSoftMode && normalizedTarget != null && launchWithSurge
+
+                val flowPlanId = flowPlanRepository.createFlowPlan(
+                    title = trimmedTitle,
+                    tagId = tagId,
+                    isSoftMode = isSoftMode,
+                    targetMinutes = normalizedTarget,
+                    launchWithSurge = normalizedSurge
+                )
+
+                _uiState.update { current ->
+                    current.copy(
+                        isSaving = false,
+                        errorMessage = null,
+                        selectedFlowIdsInOrder = if (flowPlanId in current.selectedFlowIdsInOrder) {
+                            current.selectedFlowIdsInOrder
+                        } else {
+                            current.selectedFlowIdsInOrder + flowPlanId
+                        },
+                        targetMinutesTextByFlowId = current.targetMinutesTextByFlowId +
+                                (flowPlanId to (normalizedTarget?.toString().orEmpty())),
+                        launchWithSurgeByFlowId = current.launchWithSurgeByFlowId +
+                                (flowPlanId to normalizedSurge)
+                    )
+                }
+                onSaved()
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        errorMessage = e.message ?: "Failed to add Flow to this Arc."
+                    )
+                }
+            }
+        }
+    }
+
     fun onStepTargetMinutesChanged(flowPlanId: Long, value: String) {
         val digitsOnly = value.filter(Char::isDigit)
 

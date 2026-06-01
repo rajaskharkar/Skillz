@@ -39,8 +39,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.ui.SuggestedRouteStepUiModel
 import com.kingkharnivore.skillz.model.ui.SuggestedRouteUiModel
 import com.kingkharnivore.skillz.viewmodel.ArcDetailLaunchPayload
@@ -92,7 +94,7 @@ fun SuggestedRouteDetailScreen(
                         modifier = Modifier.weight(1f),
                         enabled = !uiState.isSaving
                     ) {
-                        Text(if (uiState.isSaving) "Saving..." else "Save as Arc")
+                        Text(if (uiState.isSaving) stringResource(R.string.paths_saving) else stringResource(R.string.suggested_route_save_as_arc))
                     }
 
                     Button(

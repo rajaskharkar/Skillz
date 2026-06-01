@@ -385,19 +385,19 @@
     <string name="paths_off">Desactivado</string>
     <string name="paths_empty_flows_title">Aún no hay flows planificados</string>
     <string name="paths_empty_flows_body">Guarda actividades para que siempre estén listas para comenzar.</string>
-    <string name="paths_empty_arcs_title">Aún no hay arcs planificados</string>
-    <string name="paths_empty_arcs_body">Construye una secuencia guiada de flows planificados para que el siguiente paso siempre esté listo.</string>
+    <string name="paths_empty_arcs_title">Crea tu primer Arc</string>
+    <string name="paths_empty_arcs_body">Usa Your Studio cuando sepas los próximos Flows por los que quieres avanzar.</string>
     <string name="paths_empty_more_arcs_body">Aún no hay arcs adicionales. Añade uno a Studio cuando encuentres una ruta a la que vuelvas con frecuencia.</string>
     <string name="paths_plan_flow">Planificar Flow</string>
-    <string name="paths_plan_arc">Planificar Arc</string>
+    <string name="paths_plan_arc">Crear Arc</string>
     <string name="paths_planned_flows_title">Flows planificados</string>
     <string name="paths_planned_flows_subtitle">Listos para convertirse en acción</string>
     <string name="paths_studio_title">Studio</string>
-    <string name="paths_studio_subtitle">Rutas que mantienes cerca</string>
+    <string name="paths_studio_subtitle">Diseña las secuencias por las que quieres avanzar.</string>
     <string name="paths_suggested_routes_title">Rutas sugeridas</string>
     <string name="paths_suggested_routes_subtitle">Rutinas pensadas para adaptarlas a tu propia vida</string>
-    <string name="paths_your_arcs_title">Tus Arcs</string>
-    <string name="paths_your_arcs_subtitle">Arcos esperando ser vividos</string>
+    <string name="paths_your_arcs_title">Your Studio</string>
+    <string name="paths_your_arcs_subtitle">Diseña las secuencias por las que quieres avanzar.</string>
     <string name="paths_plan_flow_sheet_title">Planificar Flow</string>
     <string name="paths_plan_flow_sheet_subtitle">Guarda una actividad para que siempre esté lista para comenzar.</string>
     <string name="paths_title_label">Título</string>
@@ -454,27 +454,37 @@
     <string name="paths_minutes_compact">%1$dm</string>
     <string name="paths_minutes_short">%1$d min</string>
     <string name="paths_approx_minutes">~%1$d min</string>
-    <string name="paths_tap_to_preview">Toca para previsualizar</string>
+    <string name="paths_tap_to_preview">Usar esta forma</string>
     <string name="paths_studio_arc_card_a11y">%1$s. Studio arc. %2$s.</string>
     <string name="paths_arc_library_card_a11y">%1$s. Planned arc. %2$s. %3$s.</string>
     <string name="paths_suggested_route_card_a11y">%1$s. %2$s. %3$s. %4$s.</string>
-    <string name="paths_start_arc">Start Arc</string>
-    <string name="paths_edit_arc">Edit</string>
-    <string name="paths_suggested_sequences_helper_title">Need a starting point?</string>
-    <string name="paths_suggested_sequences_helper_body">Suggested sequences are templates — pick one, then adjust the steps into your own planned arc.</string>
-    <string name="paths_start_from_suggestion">Start from suggestion</string>
-    <string name="paths_arc_step_preview_a11y">Steps: %1$s</string>
+    <string name="paths_review_arc">Revisar Arc</string>
+    <string name="paths_edit_arc">Editar</string>
+    <string name="paths_suggested_sequences_helper_title">¿Necesitas un punto de partida?</string>
+    <string name="paths_suggested_sequences_helper_body">Usa una Suggested Scene como plantilla y luego ajusta los pasos dentro de Your Studio.</string>
+    <string name="paths_start_from_suggestion">Empezar con una Suggested Scene</string>
+    <string name="paths_browse_suggested_scenes">Explorar Suggested Scenes</string>
+    <string name="paths_collapse">Contraer</string>
+    <string name="paths_arc_step_preview_a11y">Pasos: %1$s</string>
     <plurals name="paths_arc_flow_count">
         <item quantity="one">%1$d Flow</item>
         <item quantity="other">%1$d Flows</item>
     </plurals>
+    <plurals name="paths_more_flows">
+        <item quantity="one">+%1$d Flow más</item>
+        <item quantity="other">+%1$d Flows más</item>
+    </plurals>
+    <plurals name="paths_view_all_flows">
+        <item quantity="one">Ver %1$d Flow</item>
+        <item quantity="other">Ver los %1$d Flows</item>
+    </plurals>
 
-    <string name="plan_arc_route_studio">Route Studio</string>
+    <string name="plan_arc_route_studio">Your Studio</string>
     <string name="plan_arc_step_counter">%1$d de %2$d</string>
     <string name="plan_arc_stage_name_title">Nombra tu arc</string>
     <string name="plan_arc_stage_name_subtitle">Dale una identidad a esta ruta antes de dar forma a sus pasos.</string>
-    <string name="plan_arc_stage_choose_title">Elige tus flows</string>
-    <string name="plan_arc_stage_choose_subtitle">Trae los flows planificados que pertenecen a esta ruta.</string>
+    <string name="plan_arc_stage_choose_title">Elige tus Flows</string>
+    <string name="plan_arc_stage_choose_subtitle">Elige Flows existentes o crea los pasos que faltan para este Arc.</string>
     <string name="plan_arc_stage_shape_title">Da forma a la ruta</string>
     <string name="plan_arc_stage_shape_subtitle">Ordena la secuencia por la que avanzará tu arc.</string>
     <string name="plan_arc_stage_timing_title">Define la intención temporal</string>
@@ -487,8 +497,17 @@
     <string name="plan_arc_title_placeholder">Rutina de mañana</string>
     <string name="plan_arc_preview_title">Qué viene después</string>
     <string name="plan_arc_preview_body">Después, elegirás los flows planificados que pertenecen a esta ruta.</string>
-    <string name="plan_arc_selection_summary_needs_second">1 Flow selected — add one more to make an Arc.</string>
-    <string name="plan_arc_selection_summary_choose">Elige los flows que pertenecen a esta ruta.</string>
+    <string name="plan_arc_selection_summary_needs_second">1 Flow seleccionado — agrega uno más para crear un Arc.</string>
+    <string name="plan_arc_selected_sequence_title">Secuencia seleccionada</string>
+    <string name="plan_arc_create_flow_cta">Crear nuevo Flow</string>
+    <string name="plan_arc_create_flow_title">Crear nuevo Flow</string>
+    <string name="plan_arc_create_flow_field_title">Título del Flow</string>
+    <string name="plan_arc_create_flow_placeholder">¿En qué se enfocará este paso?</string>
+    <string name="plan_arc_create_flow_tag_label">Etiqueta</string>
+    <string name="plan_arc_create_flow_add_to_arc">Agregar al Arc</string>
+    <string name="plan_arc_create_flow_cancel">Cancelar</string>
+    <string name="plan_arc_create_flow_adding">Agregando...</string>
+    <string name="plan_arc_selection_summary_choose">Elige al menos dos Flows para este Arc.</string>
     <plurals name="plan_arc_selection_summary_selected">
         <item quantity="one">%1$d flow seleccionado</item>
         <item quantity="other">%1$d flows seleccionados</item>
@@ -576,6 +595,8 @@
     <string name="plan_arc_footer_saving">Guardando...</string>
     <string name="plan_arc_progress_a11y">Paso %1$d de %2$d</string>
     <string name="plan_arc_error_a11y">%1$s</string>
+
+    <string name="suggested_route_save_as_arc">Guardar como Arc</string>
 
     <string name="arc_detail_back">Atrás</string>
     <string name="arc_detail_restart">Reiniciar</string>
@@ -890,8 +911,8 @@
     
     <string name="horizon_header_body">Explora qué hacer después</string>
     <string name="horizon_title">Horizonte</string>
-    <string name="paths_suggested_scenes_subtitle">Arcos guiados que puedes adaptar a tu propia vida.</string>
-    <string name="paths_suggested_scenes_title">Escenas sugeridas</string>
+    <string name="paths_suggested_scenes_subtitle">Empieza con una forma y luego hazla tuya.</string>
+    <string name="paths_suggested_scenes_title">Suggested Scenes</string>
     <string name="paths_journey_inline_placeholder">Etiqueta de journey opcional</string>
     <string name="paths_minutes_field_placeholder">25</string>
     <string name="common_minutes_short">min</string>

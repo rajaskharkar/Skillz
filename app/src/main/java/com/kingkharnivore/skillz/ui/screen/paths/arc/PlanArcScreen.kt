@@ -41,6 +41,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -51,6 +52,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -76,6 +80,7 @@ fun PlanArcScreen(
     onDone: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showCreateFlowSheet by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing
@@ -102,9 +107,8 @@ fun PlanArcScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .imePadding()
                 .padding(horizontal = 20.dp)
-                .padding(top = 24.dp, bottom = 20.dp),
+                .padding(top = 24.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             RouteStudioHeader(
@@ -119,23 +123,31 @@ fun PlanArcScreen(
             ) {
                 when (uiState.currentStep) {
                     0 -> {
-                        Column(
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 24.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            RouteStudioStageTitle(
-                                title = stringResource(R.string.plan_arc_stage_name_title),
-                                subtitle = stringResource(R.string.plan_arc_stage_name_subtitle)
-                            )
+                            item {
+                                RouteStudioStageTitle(
+                                    title = stringResource(R.string.plan_arc_stage_name_title),
+                                    subtitle = stringResource(R.string.plan_arc_stage_name_subtitle)
+                                )
+                            }
 
-                            ArcIdentityCard(
-                                title = uiState.title,
-                                errorMessage = uiState.errorMessage,
-                                onTitleChange = viewModel::onTitleChange
-                            )
+                            item {
+                                ArcIdentityCard(
+                                    title = uiState.title,
+                                    errorMessage = uiState.errorMessage,
+                                    onTitleChange = viewModel::onTitleChange
+                                )
+                            }
 
-                            RouteStudioPreviewCard(
-                                text = stringResource(R.string.plan_arc_preview_body)
-                            )
+                            item {
+                                RouteStudioPreviewCard(
+                                    text = stringResource(R.string.plan_arc_preview_body)
+                                )
+                            }
                         }
                     }
 
@@ -156,7 +168,11 @@ fun PlanArcScreen(
                                 selectedFlowIdsInOrder = uiState.selectedFlowIdsInOrder,
                                 errorMessage = uiState.errorMessage,
                                 onTagSelected = viewModel::onTagFilterSelected,
-                                onFlowToggled = viewModel::onFlowToggled
+                                onFlowToggled = viewModel::onFlowToggled,
+                                onCreateNewFlow = {
+                                    viewModel.clearError()
+                                    showCreateFlowSheet = true
+                                }
                             )
                         }
                     }
@@ -221,7 +237,221 @@ fun PlanArcScreen(
             }
         }
     }
+
+    if (showCreateFlowSheet) {
+        CreateFlowStepSheet(
+            isSaving = uiState.isSaving,
+            errorMessage = uiState.errorMessage,
+            onDismiss = {
+                viewModel.clearError()
+                showCreateFlowSheet = false
+            },
+            onSave = { title, tagName, isSoftMode, targetMinutesText, launchWithSurge ->
+                viewModel.createFlowAndSelect(
+                    title = title,
+                    tagName = tagName,
+                    isSoftMode = isSoftMode,
+                    targetMinutesText = targetMinutesText,
+                    launchWithSurge = launchWithSurge,
+                    onSaved = { showCreateFlowSheet = false }
+                )
+            }
+        )
+    }
 }
+
+@Composable
+private fun CreateFlowStepSheet(
+    isSaving: Boolean,
+    errorMessage: String?,
+    onDismiss: () -> Unit,
+    onSave: (
+        title: String,
+        tagName: String,
+        isSoftMode: Boolean,
+        targetMinutesText: String,
+        launchWithSurge: Boolean
+    ) -> Unit
+) {
+    var title by rememberSaveable { mutableStateOf("") }
+    var tagName by rememberSaveable { mutableStateOf("") }
+    var targetMinutesText by rememberSaveable { mutableStateOf("") }
+    var isSoftMode by rememberSaveable { mutableStateOf(false) }
+    var launchWithSurge by rememberSaveable { mutableStateOf(false) }
+
+    if (isSoftMode && launchWithSurge) {
+        launchWithSurge = false
+    }
+
+    val cleanedTargetMinutes = targetMinutesText.filter(Char::isDigit).take(3)
+    if (cleanedTargetMinutes != targetMinutesText) {
+        targetMinutesText = cleanedTargetMinutes
+    }
+
+    val validTarget = targetMinutesText.trim().toIntOrNull()?.let { it > 0 } == true
+    val surgeEnabled = !isSoftMode && validTarget
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .imePadding(),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Text(
+                    text = stringResource(R.string.plan_arc_create_flow_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            item {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.plan_arc_create_flow_field_title)) },
+                    placeholder = { Text(stringResource(R.string.plan_arc_create_flow_placeholder)) },
+                    singleLine = true
+                )
+            }
+
+            item {
+                OutlinedTextField(
+                    value = tagName,
+                    onValueChange = { tagName = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.plan_arc_create_flow_tag_label)) },
+                    singleLine = true
+                )
+            }
+
+            item {
+                OutlinedTextField(
+                    value = targetMinutesText,
+                    onValueChange = { targetMinutesText = it.filter(Char::isDigit).take(3) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.plan_arc_target_minutes_label)) },
+                    placeholder = { Text(stringResource(R.string.plan_arc_target_minutes_placeholder)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+
+            item {
+                FlowCreationToggleRow(
+                    title = stringResource(R.string.paths_soft_flow_title),
+                    body = stringResource(R.string.paths_soft_flow_body),
+                    checked = isSoftMode,
+                    onCheckedChange = {
+                        isSoftMode = it
+                        if (it) launchWithSurge = false
+                    },
+                    enabled = true
+                )
+            }
+
+            item {
+                FlowCreationToggleRow(
+                    title = stringResource(R.string.paths_launch_with_surge_title),
+                    body = when {
+                        isSoftMode -> stringResource(R.string.paths_launch_with_surge_disabled_soft)
+                        !validTarget -> stringResource(R.string.paths_launch_with_surge_disabled_no_target)
+                        else -> stringResource(R.string.paths_launch_with_surge_enabled_body)
+                    },
+                    checked = launchWithSurge && surgeEnabled,
+                    onCheckedChange = { launchWithSurge = it && surgeEnabled },
+                    enabled = surgeEnabled
+                )
+            }
+
+            if (!errorMessage.isNullOrBlank()) {
+                item { ErrorInlineCard(message = errorMessage) }
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    TextButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                        enabled = !isSaving
+                    ) {
+                        Text(stringResource(R.string.plan_arc_create_flow_cancel))
+                    }
+
+                    Button(
+                        onClick = {
+                            onSave(
+                                title.trim(),
+                                tagName.trim(),
+                                isSoftMode,
+                                targetMinutesText.trim(),
+                                launchWithSurge && surgeEnabled
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = !isSaving && title.trim().isNotEmpty(),
+                        shape = RoundedCornerShape(999.dp)
+                    ) {
+                        Text(
+                            if (isSaving) {
+                                stringResource(R.string.plan_arc_create_flow_adding)
+                            } else {
+                                stringResource(R.string.plan_arc_create_flow_add_to_arc)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FlowCreationToggleRow(
+    title: String,
+    body: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean
+) {
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.72f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = body,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
+                )
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                enabled = enabled
+            )
+        }
+    }
+}
+
 
 @Composable
 private fun RouteStudioHeader(
@@ -361,12 +591,14 @@ private fun FlowPickerSection(
     selectedFlowIdsInOrder: List<Long>,
     errorMessage: String?,
     onTagSelected: (Long?) -> Unit,
-    onFlowToggled: (Long) -> Unit
+    onFlowToggled: (Long) -> Unit,
+    onCreateNewFlow: () -> Unit
 ) {
     val filteredFlows = availableFlows.filter { flow ->
         selectedTagId == null || flow.tagId == selectedTagId
     }
 
+    val createFlowText = stringResource(R.string.plan_arc_create_flow_cta)
     val summaryLabel = when (selectedFlowIdsInOrder.size) {
         0 -> stringResource(R.string.plan_arc_selection_summary_choose)
         1 -> stringResource(R.string.plan_arc_selection_summary_needs_second)
@@ -394,6 +626,25 @@ private fun FlowPickerSection(
             modifier = Modifier.padding(top = 2.dp)
         )
 
+        SelectedSequencePreview(
+            selectedFlowIdsInOrder = selectedFlowIdsInOrder,
+            availableFlows = availableFlows,
+            onRemove = onFlowToggled
+        )
+
+        Button(
+            onClick = onCreateNewFlow,
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    role = Role.Button
+                    contentDescription = createFlowText
+                },
+            shape = RoundedCornerShape(999.dp)
+        ) {
+            Text(createFlowText)
+        }
+
         if (!errorMessage.isNullOrBlank()) {
             ErrorInlineCard(message = errorMessage)
         }
@@ -420,6 +671,70 @@ private fun FlowPickerSection(
         }
     }
 }
+
+@Composable
+private fun SelectedSequencePreview(
+    selectedFlowIdsInOrder: List<Long>,
+    availableFlows: List<PlanArcFlowPickerItemUiModel>,
+    onRemove: (Long) -> Unit
+) {
+    val flowById = availableFlows.associateBy { it.id }
+    val selectedFlows = selectedFlowIdsInOrder.mapNotNull { flowById[it] }
+
+    if (selectedFlows.isEmpty()) return
+
+    val title = stringResource(R.string.plan_arc_selected_sequence_title)
+    val removeA11y = stringResource(R.string.plan_arc_remove_a11y)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = title },
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            selectedFlows.forEachIndexed { index, flow ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "${index + 1}.",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = flow.title,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    TextButton(
+                        onClick = { onRemove(flow.id) },
+                        modifier = Modifier.semantics { contentDescription = removeA11y }
+                    ) {
+                        Text(stringResource(R.string.plan_arc_remove))
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 private fun RouteShapeSection(

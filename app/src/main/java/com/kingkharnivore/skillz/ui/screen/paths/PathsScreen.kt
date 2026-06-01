@@ -83,6 +83,7 @@ import com.kingkharnivore.skillz.model.state.paths.PathsPrimaryTab
 import com.kingkharnivore.skillz.model.state.paths.PathsTimeLens
 import com.kingkharnivore.skillz.model.state.paths.PathsUiState
 import com.kingkharnivore.skillz.model.ui.ArcPlanListItemUiModel
+import com.kingkharnivore.skillz.model.ui.ArcPlanStepPreviewUiModel
 import com.kingkharnivore.skillz.model.ui.FlowPlanListItemUiModel
 import com.kingkharnivore.skillz.ui.screen.paths.suggested.SuggestedRoutesCatalog
 import com.kingkharnivore.skillz.ui.theme.color
@@ -1523,7 +1524,7 @@ private fun PlannedArcCard(
     val cancelText = stringResource(R.string.common_cancel)
     val deleteTitle = stringResource(R.string.paths_delete_arc_title)
     val deleteBody = stringResource(R.string.paths_delete_arc_body)
-    val startArcText = stringResource(R.string.paths_start_arc)
+    val reviewArcText = stringResource(R.string.paths_review_arc)
     val editText = stringResource(R.string.paths_edit_arc)
     val arcLibraryBody = stringResource(R.string.paths_arc_library_body)
     val stepCountText = pluralStringResource(
@@ -1531,8 +1532,16 @@ private fun PlannedArcCard(
         arc.stepCount,
         arc.stepCount
     )
-    val stepPreviewText = arc.steps.take(4).joinToString(" → ") { it.title }
+    var expanded by rememberSaveable(arc.id) { mutableStateOf(false) }
+    val previewLimit = 4
+    val visibleSteps = if (expanded || arc.stepCount <= previewLimit) arc.steps else arc.steps.take(previewLimit)
+    val stepPreviewText = visibleSteps.joinToString(" → ") { it.title }
         .ifBlank { arcLibraryBody }
+    val expandedText = if (expanded) {
+        stringResource(R.string.paths_expanded)
+    } else {
+        stringResource(R.string.paths_collapsed)
+    }
     val launchText = if (arc.launchCount > 0) {
         pluralStringResource(R.plurals.paths_launch_count, arc.launchCount, arc.launchCount)
     } else {
@@ -1544,6 +1553,7 @@ private fun PlannedArcCard(
         buildList {
             add(stepCountText)
             arc.totalTargetMinutes?.let { add(stringResource(R.string.paths_approx_minutes, it)) }
+            add(expandedText)
         }.joinToString(". "),
         stringResource(R.string.paths_arc_step_preview_a11y, stepPreviewText)
     )
@@ -1640,7 +1650,12 @@ private fun PlannedArcCard(
                 }
             }
 
-            ArcStepPreview(arc = arc)
+            ArcStepPreview(
+                arc = arc,
+                visibleSteps = visibleSteps,
+                expanded = expanded,
+                onExpandedChange = { expanded = it }
+            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1658,7 +1673,7 @@ private fun PlannedArcCard(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(999.dp)
                 ) {
-                    Text(startArcText)
+                    Text(reviewArcText)
                 }
             }
         }
@@ -1689,11 +1704,29 @@ private fun PlannedArcCard(
 }
 
 @Composable
-private fun ArcStepPreview(arc: ArcPlanListItemUiModel) {
+private fun ArcStepPreview(
+    arc: ArcPlanListItemUiModel,
+    visibleSteps: List<ArcPlanStepPreviewUiModel>,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit
+) {
     val fallbackBody = stringResource(R.string.paths_arc_library_body)
+    val collapseText = stringResource(R.string.paths_collapse)
+    val expandedA11yText = stringResource(R.string.paths_expanded)
+    val collapsedA11yText = stringResource(R.string.paths_collapsed)
+    val viewAllText = pluralStringResource(
+        R.plurals.paths_view_all_flows,
+        arc.stepCount,
+        arc.stepCount
+    )
+    val moreText = pluralStringResource(
+        R.plurals.paths_more_flows,
+        arc.stepCount - visibleSteps.size,
+        arc.stepCount - visibleSteps.size
+    )
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (arc.steps.isEmpty()) {
+        if (visibleSteps.isEmpty()) {
             Text(
                 text = fallbackBody,
                 style = MaterialTheme.typography.bodySmall,
@@ -1701,7 +1734,7 @@ private fun ArcStepPreview(arc: ArcPlanListItemUiModel) {
             )
         }
 
-        arc.steps.take(4).forEachIndexed { index, step ->
+        visibleSteps.forEachIndexed { index, step ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1737,12 +1770,17 @@ private fun ArcStepPreview(arc: ArcPlanListItemUiModel) {
             }
         }
 
-        if (arc.stepCount > 4) {
-            Text(
-                text = "+${arc.stepCount - 4}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)
-            )
+        if (arc.stepCount > visibleSteps.size || expanded) {
+            TextButton(
+                onClick = { onExpandedChange(!expanded) },
+                modifier = Modifier.semantics {
+                    role = Role.Button
+                    contentDescription = if (expanded) collapseText else viewAllText
+                    stateDescription = if (expanded) expandedA11yText else collapsedA11yText
+                }
+            ) {
+                Text(if (expanded) collapseText else "$viewAllText • $moreText")
+            }
         }
     }
 }
@@ -1755,6 +1793,17 @@ private fun SuggestedSequencesHelper(
     sectionSubtitle: String,
     onOpenSuggestedRoute: (String) -> Unit
 ) {
+    var showAllSuggestions by rememberSaveable { mutableStateOf(false) }
+    val browseText = stringResource(R.string.paths_browse_suggested_scenes)
+    val collapseText = stringResource(R.string.paths_collapse)
+    val expandedA11yText = stringResource(R.string.paths_expanded)
+    val collapsedA11yText = stringResource(R.string.paths_collapsed)
+    val suggestions = if (showAllSuggestions) {
+        SuggestedRoutesCatalog.routes
+    } else {
+        SuggestedRoutesCatalog.routes.take(2)
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -1795,13 +1844,26 @@ private fun SuggestedSequencesHelper(
                 subtitle = sectionSubtitle
             )
 
-            SuggestedRoutesCatalog.routes.take(2).forEach { route ->
+            suggestions.forEach { route ->
                 SuggestedRouteCard(
                     title = route.title,
                     subtitle = route.subtitle,
                     category = route.category,
                     approxMinutes = route.approxMinutes,
                     onClick = { onOpenSuggestedRoute(route.id) }
+                )
+            }
+
+            TextButton(
+                onClick = { showAllSuggestions = !showAllSuggestions },
+                modifier = Modifier.semantics {
+                    role = Role.Button
+                    contentDescription = if (showAllSuggestions) collapseText else browseText
+                    stateDescription = if (showAllSuggestions) expandedA11yText else collapsedA11yText
+                }
+            ) {
+                Text(
+                    if (showAllSuggestions) collapseText else browseText
                 )
             }
         }
