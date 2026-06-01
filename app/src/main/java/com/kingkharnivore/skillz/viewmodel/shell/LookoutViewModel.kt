@@ -14,8 +14,6 @@ import com.kingkharnivore.skillz.domain.lookout.ObjectiveKind
 import com.kingkharnivore.skillz.domain.lookout.ObjectivePeriod
 import com.kingkharnivore.skillz.domain.lookout.ObjectiveProgressCalculator
 import com.kingkharnivore.skillz.domain.lookout.ObjectiveSourceFlow
-import com.kingkharnivore.skillz.domain.lookout.ObjectiveWindow
-import com.kingkharnivore.skillz.domain.lookout.millisUntilNextObjectiveBoundary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.DayOfWeek
 import java.time.Instant
@@ -37,6 +35,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val MILLIS_PER_MINUTE = 60_000L
+private const val LOOKOUT_TICK_MS = 60_000L
 
 data class LookoutUiState(
     val isLoading: Boolean = true,
@@ -79,6 +78,14 @@ data class ObjectiveCardUiState(
     val streakBonusLabel: String?,
     val rewardPearls: Int?,
     val state: ObjectiveCardState
+)
+
+private data class LookoutSourceData(
+    val objectives: List<ObjectiveEntity>,
+    val completions: List<com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveCompletionEntity>,
+    val skipped: List<com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveSkippedCycleEntity>,
+    val sessions: List<SessionEntity>,
+    val journeys: List<TagEntity>
 )
 
 data class SetObjectiveDialogState(
@@ -130,6 +137,7 @@ class LookoutViewModel @Inject constructor(
     private var latestCards: List<ObjectiveCardModel> = emptyList()
     private var latestJourneys: List<TagEntity> = emptyList()
     private var refreshJob: Job? = null
+    private val nowTick = MutableStateFlow(Instant.now())
 
     init {
         observeLookout()
@@ -175,6 +183,7 @@ class LookoutViewModel @Inject constructor(
         when {
             journeyId == null -> showDialogValidation("Choose a Journey first.")
             targetMinutes == null || targetMinutes <= 0 -> showDialogValidation("Target time must be at least 1 minute.")
+            dialog.startDate.isBefore(LocalDate.now()) -> showDialogValidation("Start date must be today or later.")
             hasDuplicateActiveObjective(journeyId, dialog.period) -> showDialogValidation("You already have a ${dialog.period.label} Objective for ${dialog.selectedJourneyName}.")
             else -> {
                 val zone = ZoneId.systemDefault()
@@ -253,33 +262,37 @@ class LookoutViewModel @Inject constructor(
 
     private fun observeLookout() {
         viewModelScope.launch {
-            combine(
+            val sourceData = combine(
                 lookoutRepository.observeObjectives(),
                 lookoutRepository.observeCompletions(),
                 lookoutRepository.observeSkippedCycles(),
                 flowRepository.getAllSessions(),
                 journeyRepository.getAllTags()
             ) { objectives, completions, skipped, sessions, journeys ->
-                latestObjectives = objectives
-                latestJourneys = journeys
-                val flows = sessions.map { it.toObjectiveSourceFlow() }
-                val result = calculator.calculate(objectives, flows, completions, skipped, Instant.now(), ZoneId.systemDefault())
+                LookoutSourceData(objectives, completions, skipped, sessions, journeys)
+            }
+
+            combine(sourceData, nowTick) { data, now ->
+                latestObjectives = data.objectives
+                latestJourneys = data.journeys
+                val flows = data.sessions.map { it.toObjectiveSourceFlow() }
+                val result = calculator.calculate(data.objectives, flows, data.completions, data.skipped, now, ZoneId.systemDefault())
                 result.completionsToGrant.forEach { grant ->
                     lookoutRepository.applyCompletionGrant(grant.completion, grant.newCurrentStreak, grant.newMaxStreak, grant.newTotalCompletions)
                 }
                 result.streakResets.forEach { lookoutRepository.resetStreak(it.objectiveId) }
-                result.cards to journeys
+                Triple(result.cards, data.journeys, now)
             }.catch { error ->
                 _uiState.update { it.copy(isLoading = false, errorMessage = error.message) }
-            }.collect { (cards, journeys) ->
+            }.collect { (cards, journeys, now) ->
                 latestCards = cards
                 _uiState.update { state ->
                     state.copy(
                         isLoading = false,
                         journeys = journeys.map { LookoutJourneyUiState(it.id, it.name) },
-                        daily = cards.toPeriodState(ObjectivePeriod.Daily),
-                        weekly = cards.toPeriodState(ObjectivePeriod.Weekly),
-                        monthly = cards.toPeriodState(ObjectivePeriod.Monthly),
+                        daily = cards.toPeriodState(ObjectivePeriod.Daily, now),
+                        weekly = cards.toPeriodState(ObjectivePeriod.Weekly, now),
+                        monthly = cards.toPeriodState(ObjectivePeriod.Monthly, now),
                         errorMessage = null,
                         setObjectiveDialog = state.setObjectiveDialog?.let(::withPreview)
                     )
@@ -288,11 +301,11 @@ class LookoutViewModel @Inject constructor(
         }
     }
 
-    private fun List<ObjectiveCardModel>.toPeriodState(period: ObjectivePeriod): ObjectivePeriodUiState {
+    private fun List<ObjectiveCardModel>.toPeriodState(period: ObjectivePeriod, now: Instant): ObjectivePeriodUiState {
         val periodCards = filter { it.period == period }
-        val inProgress = periodCards.filter { it.state == ObjectiveCardState.InProgress }.sortedByDescending { it.progressPercent }.map { it.toUiState() }
-        val completed = periodCards.filter { it.state == ObjectiveCardState.Completed }.sortedByDescending { it.completion?.completedAt ?: 0L }.map { it.toUiState() }
-        val upcoming = periodCards.filter { it.state == ObjectiveCardState.Upcoming }.sortedBy { it.window.startMs }.map { it.toUiState() }
+        val inProgress = periodCards.filter { it.state == ObjectiveCardState.InProgress }.sortedByDescending { it.progressPercent }.map { it.toUiState(now) }
+        val completed = periodCards.filter { it.state == ObjectiveCardState.Completed }.sortedByDescending { it.completion?.completedAt ?: 0L }.map { it.toUiState(now) }
+        val upcoming = periodCards.filter { it.state == ObjectiveCardState.Upcoming }.sortedBy { it.window.startMs }.map { it.toUiState(now) }
         val summary = when {
             inProgress.isNotEmpty() -> "${inProgress.size} in progress · ${completed.size} completed"
             completed.isNotEmpty() -> "${completed.size} completed this period"
@@ -302,10 +315,12 @@ class LookoutViewModel @Inject constructor(
         return ObjectivePeriodUiState(period, "${period.label} Objectives", summary, inProgress, completed, upcoming)
     }
 
-    private fun ObjectiveCardModel.toUiState(): ObjectiveCardUiState {
+    private fun ObjectiveCardModel.toUiState(now: Instant): ObjectiveCardUiState {
         val target = formatDuration(objective.targetDurationMs)
+        val targetPearls = (objective.targetDurationMs / MILLIS_PER_MINUTE).coerceAtLeast(1)
         val progress = formatDuration(progressDurationMs)
-        val bonusPct = (objective.currentStreak * 10).coerceAtMost(100)
+        val bonusPct = effectiveCurrentStreak * 10
+        val nowMs = now.toEpochMilli()
         return ObjectiveCardUiState(
             objectiveId = objective.id,
             journeyName = objective.journeyNameSnapshot,
@@ -314,14 +329,14 @@ class LookoutViewModel @Inject constructor(
             progressPercent = progressPercent,
             progressLabel = if (state == ObjectiveCardState.Upcoming) "Target: $target" else "$progress / $target",
             timeLeftLabel = when (state) {
-                ObjectiveCardState.Upcoming -> "Starts in: ${formatRemaining(window.startMs - System.currentTimeMillis())}"
-                ObjectiveCardState.InProgress -> "Time left: ${formatRemaining(window.endMs - System.currentTimeMillis())}"
+                ObjectiveCardState.Upcoming -> "Starts in: ${formatRemaining(window.startMs - nowMs)}"
+                ObjectiveCardState.InProgress -> "Time left: ${formatRemaining(window.endMs - nowMs)}"
                 ObjectiveCardState.Completed -> if (kind == ObjectiveKind.Recurring) "Completed for this cycle · Next reset: ${formatResetDay(window.endMs)}" else "Completed"
             },
-            estimatedRewardLabel = completion?.let { "+${it.finalRewardPearls} Pearls" } ?: "Complete this Objective to earn Pearls equal to minutes completed",
+            estimatedRewardLabel = completion?.let { "+${it.finalRewardPearls} Pearls" } ?: "At least $targetPearls Pearls",
             badgeLabel = "${objective.journeyNameSnapshot} ${period.label} Objective badge +1",
             isRecurring = kind == ObjectiveKind.Recurring,
-            currentStreak = if (kind == ObjectiveKind.Recurring) objective.currentStreak else null,
+            currentStreak = if (kind == ObjectiveKind.Recurring) effectiveCurrentStreak else null,
             maxStreak = if (kind == ObjectiveKind.Recurring) objective.maxStreak else null,
             totalCompletions = if (kind == ObjectiveKind.Recurring) objective.totalCompletions else null,
             streakBonusLabel = if (kind == ObjectiveKind.Recurring) "Streak bonus: +$bonusPct%" else null,
@@ -366,8 +381,8 @@ class LookoutViewModel @Inject constructor(
     private fun scheduleBoundaryRefresh() {
         refreshJob = viewModelScope.launch {
             while (true) {
-                delay(millisUntilNextObjectiveBoundary())
-                _uiState.update { it.copy() }
+                delay(LOOKOUT_TICK_MS)
+                nowTick.value = Instant.now()
             }
         }
     }

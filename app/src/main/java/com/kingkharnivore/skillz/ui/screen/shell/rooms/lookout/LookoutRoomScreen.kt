@@ -81,6 +81,7 @@ import com.kingkharnivore.skillz.viewmodel.shell.ObjectiveRemoveDialogState
 import com.kingkharnivore.skillz.viewmodel.shell.ObjectiveRewardDialogState
 import com.kingkharnivore.skillz.viewmodel.shell.SetObjectiveDialogState
 import java.time.DayOfWeek
+import java.time.LocalDate
 import kotlinx.coroutines.launch
 
 @Composable
@@ -201,9 +202,9 @@ private fun ObjectivePeriodPage(
         if (state.inProgress.isEmpty() && state.completed.isEmpty() && state.upcoming.isEmpty()) {
             item { EmptyPeriodState(state.period, onSetObjective) }
         } else {
-            section("In Progress", state.inProgress, onCompletedClick, onRemoveClick)
-            section("Completed", state.completed, onCompletedClick, onRemoveClick)
-            section("Upcoming", state.upcoming, onCompletedClick, onRemoveClick, soft = true)
+            if (state.inProgress.isNotEmpty()) section("In Progress", state.inProgress, onCompletedClick, onRemoveClick)
+            if (state.completed.isNotEmpty()) section("Completed", state.completed, onCompletedClick, onRemoveClick)
+            if (state.upcoming.isNotEmpty()) section("Upcoming", state.upcoming, onCompletedClick, onRemoveClick, soft = true)
         }
     }
 }
@@ -216,12 +217,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.section(
     soft: Boolean = false
 ) {
     item { Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
-    if (cards.isEmpty()) {
-        item { Text("Nothing here right now.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground.copy(alpha = if (soft) 0.55f else 0.7f)) }
-    } else {
-        items(cards, key = { it.objectiveId }) { card ->
-            ObjectiveCard(card, onCompletedClick, onRemoveClick, soft)
-        }
+    items(cards, key = { it.objectiveId }) { card ->
+        ObjectiveCard(card, onCompletedClick, onRemoveClick, soft)
     }
 }
 
@@ -310,11 +307,7 @@ private fun SetObjectiveDialog(
                 }
                 JourneyDropdown(dialog, journeys, onChange)
                 Text("Start date", fontWeight = FontWeight.SemiBold)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { onChange { it.copy(startDate = it.startDate.minusDays(1)) } }) { Text("Previous day") }
-                    FilledTonalButton(onClick = {}) { Text(dialog.startDate.toString()) }
-                    OutlinedButton(onClick = { onChange { it.copy(startDate = it.startDate.plusDays(1)) } }) { Text("Next day") }
-                }
+                StartDateSelector(dialog = dialog, onChange = onChange)
                 Text("Objective period", fontWeight = FontWeight.SemiBold)
                 ChoiceRow(ObjectivePeriod.entries, dialog.period, { it.label }) { onChange { d -> d.copy(period = it, weeklyBoundaryDay = d.startDate.dayOfWeek) } }
                 Text("Objective type", fontWeight = FontWeight.SemiBold)
@@ -333,6 +326,33 @@ private fun SetObjectiveDialog(
                     Button(onClick = onSave) { Text("Save Objective") }
                 }
             }
+        }
+    }
+}
+
+
+@Composable
+private fun StartDateSelector(
+    dialog: SetObjectiveDialogState,
+    onChange: ((SetObjectiveDialogState) -> SetObjectiveDialogState) -> Unit
+) {
+    val today = LocalDate.now()
+    val tomorrow = today.plusDays(1)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (dialog.startDate == today) Button(onClick = { onChange { it.copy(startDate = today) } }) { Text("Today") }
+            else OutlinedButton(onClick = { onChange { it.copy(startDate = today) } }) { Text("Today") }
+
+            if (dialog.startDate == tomorrow) Button(onClick = { onChange { it.copy(startDate = tomorrow) } }) { Text("Tomorrow") }
+            else OutlinedButton(onClick = { onChange { it.copy(startDate = tomorrow) } }) { Text("Tomorrow") }
+        }
+        Text("Selected: ${dialog.startDate}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(
+                enabled = dialog.startDate.isAfter(today),
+                onClick = { onChange { it.copy(startDate = it.startDate.minusDays(1)) } }
+            ) { Text("Previous day") }
+            OutlinedButton(onClick = { onChange { it.copy(startDate = it.startDate.plusDays(1)) } }) { Text("Next day") }
         }
     }
 }

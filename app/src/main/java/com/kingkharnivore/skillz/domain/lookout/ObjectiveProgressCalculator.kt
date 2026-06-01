@@ -6,17 +6,13 @@ import com.kingkharnivore.skillz.data.model.entity.shell.ObjectivePeriodTypes
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveSkippedCycleEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveTypes
 import java.time.DayOfWeek
-import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.ZonedDateTime
 import javax.inject.Inject
 import kotlin.math.floor
 
 private const val MILLIS_PER_MINUTE = 60_000L
-private const val MAX_RECURRING_MULTIPLIER = 2.0
-
 enum class ObjectivePeriod(val storageValue: String, val label: String) {
     Daily(ObjectivePeriodTypes.DAILY, "Daily"),
     Weekly(ObjectivePeriodTypes.WEEKLY, "Weekly"),
@@ -57,7 +53,8 @@ data class ObjectiveCardModel(
     val state: ObjectiveCardState,
     val progressDurationMs: Long,
     val progressPercent: Int,
-    val completion: ObjectiveCompletionEntity?
+    val completion: ObjectiveCompletionEntity?,
+    val effectiveCurrentStreak: Int = objective.currentStreak
 )
 
 data class ObjectiveCompletionGrant(
@@ -102,16 +99,22 @@ class ObjectiveProgressCalculator @Inject constructor() {
             val completion = completionByCycle[key]
             val progressMs = if (completion != null) completion.achievedDurationMs else progressFor(objective, flows, window)
             val progressPercent = percent(progressMs, objective.targetDurationMs)
+            val shouldResetBeforeCurrentCycle = kind == ObjectiveKind.Recurring &&
+                objective.currentStreak > 0 &&
+                shouldResetStreakBeforeCurrentCycle(objective, period, completions, window, zoneId)
+            val effectiveCurrentStreak = if (shouldResetBeforeCurrentCycle && completion == null) 0 else objective.currentStreak
+            var grantsCurrentCycle = false
 
             if (completion == null && nowMs >= window.startMs && progressMs >= objective.targetDurationMs) {
                 val achievedAtCompletionMs = achievedDurationAtFirstCompletion(objective, flows, window)
-                grants += buildGrant(objective, kind, window, achievedAtCompletionMs, nowMs)
+                grants += buildGrant(objective, kind, window, achievedAtCompletionMs, nowMs, effectiveCurrentStreak)
+                grantsCurrentCycle = true
             }
 
             when {
-                completion != null && nowMs < window.endMs -> cards += ObjectiveCardModel(objective, period, kind, window, ObjectiveCardState.Completed, progressMs, 100, completion)
-                nowMs < window.startMs -> cards += ObjectiveCardModel(objective, period, kind, window, ObjectiveCardState.Upcoming, 0L, 0, null)
-                nowMs < window.endMs -> cards += ObjectiveCardModel(objective, period, kind, window, ObjectiveCardState.InProgress, progressMs, progressPercent, null)
+                completion != null && nowMs < window.endMs -> cards += ObjectiveCardModel(objective, period, kind, window, ObjectiveCardState.Completed, progressMs, 100, completion, effectiveCurrentStreak)
+                nowMs < window.startMs -> cards += ObjectiveCardModel(objective, period, kind, window, ObjectiveCardState.Upcoming, 0L, 0, null, effectiveCurrentStreak)
+                nowMs < window.endMs -> cards += ObjectiveCardModel(objective, period, kind, window, ObjectiveCardState.InProgress, progressMs, progressPercent, null, effectiveCurrentStreak)
                 kind == ObjectiveKind.Recurring -> {
                     val currentWindow = windowForCycleContaining(objective, period, now, zoneId)
                     if (currentWindow != window) {
@@ -120,9 +123,14 @@ class ObjectiveProgressCalculator @Inject constructor() {
                             val currentCompletion = completionByCycle[currentKey]
                             val currentProgress = currentCompletion?.achievedDurationMs ?: progressFor(objective, flows, currentWindow)
                             val currentPercent = if (currentCompletion != null) 100 else percent(currentProgress, objective.targetDurationMs)
+                            val currentShouldResetBeforeCycle = objective.currentStreak > 0 &&
+                                shouldResetStreakBeforeCurrentCycle(objective, period, completions, currentWindow, zoneId)
+                            val currentEffectiveStreak = if (currentShouldResetBeforeCycle && currentCompletion == null) 0 else objective.currentStreak
+                            var grantsFallbackCycle = false
                             if (currentCompletion == null && currentProgress >= objective.targetDurationMs) {
                                 val achievedAtCompletionMs = achievedDurationAtFirstCompletion(objective, flows, currentWindow)
-                                grants += buildGrant(objective, kind, currentWindow, achievedAtCompletionMs, nowMs)
+                                grants += buildGrant(objective, kind, currentWindow, achievedAtCompletionMs, nowMs, currentEffectiveStreak)
+                                grantsFallbackCycle = true
                             }
                             cards += ObjectiveCardModel(
                                 objective,
@@ -132,14 +140,18 @@ class ObjectiveProgressCalculator @Inject constructor() {
                                 if (currentCompletion != null) ObjectiveCardState.Completed else ObjectiveCardState.InProgress,
                                 currentProgress,
                                 currentPercent,
-                                currentCompletion
+                                currentCompletion,
+                                currentEffectiveStreak
                             )
+                            if (currentShouldResetBeforeCycle && currentCompletion == null && !grantsFallbackCycle) {
+                                resets += ObjectiveStreakReset(objective.id)
+                            }
                         }
                     }
                 }
             }
 
-            if (kind == ObjectiveKind.Recurring && objective.currentStreak > 0 && shouldResetStreak(objective, period, completions, now, zoneId)) {
+            if (shouldResetBeforeCurrentCycle && completion == null && !grantsCurrentCycle) {
                 resets += ObjectiveStreakReset(objective.id)
             }
         }
@@ -218,13 +230,20 @@ class ObjectiveProgressCalculator @Inject constructor() {
         return total
     }
 
-    private fun buildGrant(objective: ObjectiveEntity, kind: ObjectiveKind, window: ObjectiveWindow, achievedMs: Long, nowMs: Long): ObjectiveCompletionGrant {
+    private fun buildGrant(
+        objective: ObjectiveEntity,
+        kind: ObjectiveKind,
+        window: ObjectiveWindow,
+        achievedMs: Long,
+        nowMs: Long,
+        effectiveCurrentStreak: Int
+    ): ObjectiveCompletionGrant {
         val period = ObjectivePeriod.fromStorage(objective.periodType)
         val base = floor(achievedMs / MILLIS_PER_MINUTE.toDouble()).toInt().coerceAtLeast(1)
-        val streakBefore = if (kind == ObjectiveKind.Recurring) objective.currentStreak else 0
-        val multiplier = if (kind == ObjectiveKind.Recurring) minOf(1.0 + streakBefore * 0.1, MAX_RECURRING_MULTIPLIER) else 1.0
+        val streakBefore = if (kind == ObjectiveKind.Recurring) effectiveCurrentStreak else 0
+        val multiplier = if (kind == ObjectiveKind.Recurring) 1.0 + streakBefore * 0.1 else 1.0
         val finalPearls = floor(base * multiplier).toInt()
-        val newStreak = if (kind == ObjectiveKind.Recurring) objective.currentStreak + 1 else null
+        val newStreak = if (kind == ObjectiveKind.Recurring) effectiveCurrentStreak + 1 else null
         val badgeKey = objectiveBadgeKey(objective.journeyId, period)
         val completion = ObjectiveCompletionEntity(
             objectiveId = objective.id,
@@ -252,8 +271,13 @@ class ObjectiveProgressCalculator @Inject constructor() {
         )
     }
 
-    private fun shouldResetStreak(objective: ObjectiveEntity, period: ObjectivePeriod, completions: List<ObjectiveCompletionEntity>, now: Instant, zoneId: ZoneId): Boolean {
-        val current = windowForCycleContaining(objective, period, now, zoneId)
+    private fun shouldResetStreakBeforeCurrentCycle(
+        objective: ObjectiveEntity,
+        period: ObjectivePeriod,
+        completions: List<ObjectiveCompletionEntity>,
+        current: ObjectiveWindow,
+        zoneId: ZoneId
+    ): Boolean {
         val previousEnd = current.startMs
         val previousStart = when (period) {
             ObjectivePeriod.Daily -> Instant.ofEpochMilli(previousEnd).atZone(zoneId).minusDays(1)
@@ -268,10 +292,4 @@ class ObjectiveProgressCalculator @Inject constructor() {
         if (targetMs <= 0L) 0 else ((progressMs.toDouble() / targetMs) * 100).toInt().coerceIn(0, 100)
 
     private fun cycleKey(objectiveId: Long, startMs: Long, endMs: Long): String = "$objectiveId:$startMs:$endMs"
-}
-
-fun millisUntilNextObjectiveBoundary(zoneId: ZoneId = ZoneId.systemDefault()): Long {
-    val now = ZonedDateTime.now(zoneId)
-    val nextHour = now.plusHours(1).withMinute(0).withSecond(1).withNano(0)
-    return Duration.between(now, nextHour).toMillis().coerceAtLeast(1_000L)
 }

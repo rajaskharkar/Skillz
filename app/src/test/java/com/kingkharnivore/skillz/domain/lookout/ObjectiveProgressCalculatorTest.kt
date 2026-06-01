@@ -66,15 +66,38 @@ class ObjectiveProgressCalculatorTest {
     }
 
     @Test
-    fun recurringUsesStreakBeforeIncrementAndCapsMultiplier() {
+    fun recurringUsesStreakBeforeIncrementWithoutMultiplierCap() {
         val start = LocalDate.of(2026, 6, 1).atStartOfDay(zone).toInstant().toEpochMilli()
-        val objective = objective(startAtMs = start, kind = ObjectiveKind.Recurring, targetMinutes = 30, currentStreak = 12)
+        val objective = objective(startAtMs = start, kind = ObjectiveKind.Recurring, targetMinutes = 30, currentStreak = 20)
         val end = LocalDate.of(2026, 6, 1).atTime(9, 0).atZone(zone).toInstant().toEpochMilli()
-        val grant = calculator.calculate(listOf(objective), listOf(flow(1, end, 40 * MINUTE, false)), emptyList(), emptyList(), Instant.ofEpochMilli(end), zone).completionsToGrant.single()
-        assertEquals(12, grant.completion.streakBeforeCompletion)
-        assertEquals(2.0, grant.completion.streakMultiplier, 0.0)
-        assertEquals(80, grant.completion.finalRewardPearls)
-        assertEquals(13, grant.newCurrentStreak)
+        val grant = calculator.calculate(listOf(objective), listOf(flow(1, end, 30 * MINUTE, false)), emptyList(), emptyList(), Instant.ofEpochMilli(end), zone).completionsToGrant.single()
+        assertEquals(20, grant.completion.streakBeforeCompletion)
+        assertEquals(3.0, grant.completion.streakMultiplier, 0.0)
+        assertEquals(90, grant.completion.finalRewardPearls)
+        assertEquals(21, grant.newCurrentStreak)
+    }
+
+    @Test
+    fun recurringMissedCycleResetsEffectiveStreakBeforeCompletionReward() {
+        val start = LocalDate.of(2026, 6, 1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val objective = objective(startAtMs = start, kind = ObjectiveKind.Recurring, targetMinutes = 30, currentStreak = 5, totalCompletions = 12)
+        val currentCycleEnd = LocalDate.of(2026, 6, 3).atTime(9, 0).atZone(zone).toInstant().toEpochMilli()
+        val result = calculator.calculate(
+            listOf(objective),
+            listOf(flow(1, currentCycleEnd, 30 * MINUTE, false)),
+            emptyList(),
+            emptyList(),
+            Instant.ofEpochMilli(currentCycleEnd),
+            zone
+        )
+        val grant = result.completionsToGrant.single()
+        assertTrue(result.streakResets.isEmpty())
+        assertEquals(0, grant.completion.streakBeforeCompletion)
+        assertEquals(1.0, grant.completion.streakMultiplier, 0.0)
+        assertEquals(30, grant.completion.finalRewardPearls)
+        assertEquals(1, grant.newCurrentStreak)
+        assertEquals(5, grant.newMaxStreak)
+        assertEquals(13, grant.newTotalCompletions)
     }
 
     @Test
@@ -93,7 +116,15 @@ class ObjectiveProgressCalculatorTest {
         assertEquals("objective_badge_12_weekly", calculator.objectiveBadgeKey(12, ObjectivePeriod.Weekly))
     }
 
-    private fun objective(id: Long = 7, startAtMs: Long, period: ObjectivePeriod = ObjectivePeriod.Daily, kind: ObjectiveKind = ObjectiveKind.OneTime, targetMinutes: Long = 30, currentStreak: Int = 0) = ObjectiveEntity(
+    private fun objective(
+        id: Long = 7,
+        startAtMs: Long,
+        period: ObjectivePeriod = ObjectivePeriod.Daily,
+        kind: ObjectiveKind = ObjectiveKind.OneTime,
+        targetMinutes: Long = 30,
+        currentStreak: Int = 0,
+        totalCompletions: Int = currentStreak
+    ) = ObjectiveEntity(
         id = id,
         journeyId = 12,
         journeyNameSnapshot = "Drums",
@@ -104,7 +135,7 @@ class ObjectiveProgressCalculatorTest {
         weeklyBoundaryDay = if (period == ObjectivePeriod.Weekly) DayOfWeek.MONDAY.value else null,
         currentStreak = currentStreak,
         maxStreak = currentStreak,
-        totalCompletions = currentStreak,
+        totalCompletions = totalCompletions,
         createdAt = startAtMs,
         updatedAt = startAtMs
     )
