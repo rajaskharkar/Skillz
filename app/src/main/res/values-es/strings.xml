@@ -470,10 +470,6 @@
         <item quantity="one">%1$d Flow</item>
         <item quantity="other">%1$d Flows</item>
     </plurals>
-    <plurals name="paths_more_flows">
-        <item quantity="one">+%1$d Flow más</item>
-        <item quantity="other">+%1$d Flows más</item>
-    </plurals>
     <plurals name="paths_view_all_flows">
         <item quantity="one">Ver %1$d Flow</item>
         <item quantity="other">Ver los %1$d Flows</item>
@@ -499,6 +495,9 @@
     <string name="plan_arc_preview_body">Después, elegirás los flows planificados que pertenecen a esta ruta.</string>
     <string name="plan_arc_selection_summary_needs_second">1 Flow seleccionado — agrega uno más para crear un Arc.</string>
     <string name="plan_arc_selected_sequence_title">Secuencia seleccionada</string>
+    <string name="plan_arc_view_sequence">Ver secuencia</string>
+    <string name="plan_arc_hide_sequence">Ocultar secuencia</string>
+    <string name="plan_arc_remove_flow_from_arc_a11y">Quitar %1$s del Arc</string>
     <string name="plan_arc_create_flow_cta">Crear nuevo Flow</string>
     <string name="plan_arc_create_flow_title">Crear nuevo Flow</string>
     <string name="plan_arc_create_flow_field_title">Título del Flow</string>

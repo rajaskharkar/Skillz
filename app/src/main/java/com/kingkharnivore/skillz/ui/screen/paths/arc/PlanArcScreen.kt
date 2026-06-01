@@ -40,6 +40,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.MaterialTheme
@@ -82,6 +83,24 @@ fun PlanArcScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showCreateFlowSheet by rememberSaveable { mutableStateOf(false) }
 
+    val flowById = uiState.availableFlows.associateBy { it.id }
+    val selectedFlows = uiState.selectedFlowIdsInOrder.mapNotNull { flowById[it] }
+    val filteredFlows = uiState.availableFlows.filter { flow ->
+        uiState.selectedTagId == null || flow.tagId == uiState.selectedTagId
+    }
+    val timedMinutes = selectedFlows.mapNotNull { flow ->
+        uiState.targetMinutesTextByFlowId[flow.id]
+            ?.trim()
+            ?.toIntOrNull()
+            ?.takeIf { it > 0 }
+    }
+    val totalMinutes = timedMinutes.sum()
+    val untimedCount = selectedFlows.count { flow ->
+        uiState.targetMinutesTextByFlowId[flow.id].orEmpty().trim().toIntOrNull()?.let { it > 0 } != true
+    }
+    val surgeCount = selectedFlows.count { flow -> uiState.launchWithSurgeByFlowId[flow.id] == true }
+    val softCount = selectedFlows.count { it.isSoftMode }
+
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing
             .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
@@ -103,135 +122,215 @@ fun PlanArcScreen(
             )
         }
     ) { innerPadding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 20.dp)
-                .padding(top = 24.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(innerPadding),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            RouteStudioHeader(
-                currentStep = uiState.currentStep + 1,
-                totalSteps = uiState.totalSteps
-            )
+            item {
+                RouteStudioHeader(
+                    currentStep = uiState.currentStep + 1,
+                    totalSteps = uiState.totalSteps
+                )
+            }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                when (uiState.currentStep) {
-                    0 -> {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 24.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            item {
-                                RouteStudioStageTitle(
-                                    title = stringResource(R.string.plan_arc_stage_name_title),
-                                    subtitle = stringResource(R.string.plan_arc_stage_name_subtitle)
-                                )
-                            }
-
-                            item {
-                                ArcIdentityCard(
-                                    title = uiState.title,
-                                    errorMessage = uiState.errorMessage,
-                                    onTitleChange = viewModel::onTitleChange
-                                )
-                            }
-
-                            item {
-                                RouteStudioPreviewCard(
-                                    text = stringResource(R.string.plan_arc_preview_body)
-                                )
-                            }
-                        }
+            when (uiState.currentStep) {
+                0 -> {
+                    item {
+                        RouteStudioStageTitle(
+                            title = stringResource(R.string.plan_arc_stage_name_title),
+                            subtitle = stringResource(R.string.plan_arc_stage_name_subtitle)
+                        )
                     }
+                    item {
+                        ArcIdentityCard(
+                            title = uiState.title,
+                            errorMessage = uiState.errorMessage,
+                            onTitleChange = viewModel::onTitleChange
+                        )
+                    }
+                    item {
+                        RouteStudioPreviewCard(
+                            text = stringResource(R.string.plan_arc_preview_body)
+                        )
+                    }
+                }
 
-                    1 -> {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            RouteStudioStageTitle(
-                                title = stringResource(R.string.plan_arc_stage_choose_title),
-                                subtitle = stringResource(R.string.plan_arc_stage_choose_subtitle)
-                            )
-
-                            FlowPickerSection(
-                                availableTags = uiState.availableTags,
+                1 -> {
+                    item {
+                        RouteStudioStageTitle(
+                            title = stringResource(R.string.plan_arc_stage_choose_title),
+                            subtitle = stringResource(R.string.plan_arc_stage_choose_subtitle)
+                        )
+                    }
+                    if (uiState.availableTags.isNotEmpty()) {
+                        item {
+                            TagFilterRow(
+                                tags = uiState.availableTags,
                                 selectedTagId = uiState.selectedTagId,
-                                availableFlows = uiState.availableFlows,
-                                selectedFlowIdsInOrder = uiState.selectedFlowIdsInOrder,
-                                errorMessage = uiState.errorMessage,
-                                onTagSelected = viewModel::onTagFilterSelected,
-                                onFlowToggled = viewModel::onFlowToggled,
-                                onCreateNewFlow = {
-                                    viewModel.clearError()
-                                    showCreateFlowSheet = true
-                                }
+                                onTagSelected = viewModel::onTagFilterSelected
                             )
                         }
                     }
-
-                    2 -> {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                    item {
+                        SelectionSummaryCard(
+                            label = selectionSummaryLabel(uiState.selectedFlowIdsInOrder.size)
+                        )
+                    }
+                    item {
+                        CompactSelectedSequencePreview(
+                            selectedFlowIdsInOrder = uiState.selectedFlowIdsInOrder,
+                            availableFlows = uiState.availableFlows,
+                            onRemove = viewModel::onFlowToggled
+                        )
+                    }
+                    item {
+                        val createFlowText = stringResource(R.string.plan_arc_create_flow_cta)
+                        Button(
+                            onClick = {
+                                viewModel.clearError()
+                                showCreateFlowSheet = true
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics {
+                                    role = Role.Button
+                                    contentDescription = createFlowText
+                                },
+                            shape = RoundedCornerShape(999.dp)
                         ) {
-                            RouteStudioStageTitle(
-                                title = stringResource(R.string.plan_arc_stage_shape_title),
-                                subtitle = stringResource(R.string.plan_arc_stage_shape_subtitle)
-                            )
-
-                            RouteShapeSection(
-                                selectedFlowIdsInOrder = uiState.selectedFlowIdsInOrder,
-                                availableFlows = uiState.availableFlows,
-                                errorMessage = uiState.errorMessage,
-                                onMoveUp = viewModel::moveSelectedFlowUp,
-                                onMoveDown = viewModel::moveSelectedFlowDown,
-                                onRemove = viewModel::removeSelectedFlow
+                            Text(createFlowText)
+                        }
+                    }
+                    if (!uiState.errorMessage.isNullOrBlank()) {
+                        item { ErrorInlineCard(message = uiState.errorMessage) }
+                    }
+                    if (filteredFlows.isEmpty()) {
+                        item { EmptyFlowPickerCard() }
+                    } else {
+                        items(filteredFlows, key = { it.id }) { flow ->
+                            FlowPickerCard(
+                                flow = flow,
+                                selected = flow.id in uiState.selectedFlowIdsInOrder,
+                                selectionOrder = uiState.selectedFlowIdsInOrder.indexOf(flow.id)
+                                    .takeIf { it >= 0 }
+                                    ?.plus(1),
+                                onClick = { viewModel.onFlowToggled(flow.id) }
                             )
                         }
                     }
+                }
 
-                    3 -> {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            RouteStudioStageTitle(
-                                title = stringResource(R.string.plan_arc_stage_timing_title),
-                                subtitle = stringResource(R.string.plan_arc_stage_timing_subtitle)
-                            )
-
-                            TimingIntentSection(
-                                uiState = uiState,
-                                onTargetMinutesChanged = viewModel::onStepTargetMinutesChanged,
-                                onLaunchWithSurgeChanged = viewModel::onStepLaunchWithSurgeChanged
+                2 -> {
+                    item {
+                        RouteStudioStageTitle(
+                            title = stringResource(R.string.plan_arc_stage_shape_title),
+                            subtitle = stringResource(R.string.plan_arc_stage_shape_subtitle)
+                        )
+                    }
+                    item {
+                        SelectionSummaryCard(
+                            label = if (selectedFlows.isEmpty()) {
+                                stringResource(R.string.plan_arc_shape_empty_summary)
+                            } else {
+                                pluralStringResource(
+                                    R.plurals.plan_arc_shape_summary_steps,
+                                    selectedFlows.size,
+                                    selectedFlows.size
+                                )
+                            }
+                        )
+                    }
+                    if (!uiState.errorMessage.isNullOrBlank()) {
+                        item { ErrorInlineCard(message = uiState.errorMessage) }
+                    }
+                    if (selectedFlows.isEmpty()) {
+                        item { EmptyRouteShapeCard() }
+                    } else {
+                        items(selectedFlows, key = { it.id }) { flow ->
+                            val index = uiState.selectedFlowIdsInOrder.indexOf(flow.id)
+                            RouteStepCard(
+                                stepNumber = index + 1,
+                                flow = flow,
+                                canMoveUp = index > 0,
+                                canMoveDown = index < uiState.selectedFlowIdsInOrder.lastIndex,
+                                onMoveUp = { viewModel.moveSelectedFlowUp(flow.id) },
+                                onMoveDown = { viewModel.moveSelectedFlowDown(flow.id) },
+                                onRemove = { viewModel.removeSelectedFlow(flow.id) }
                             )
                         }
                     }
+                }
 
-                    else -> {
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            RouteStudioStageTitle(
-                                title = stringResource(R.string.plan_arc_stage_review_title),
-                                subtitle = stringResource(R.string.plan_arc_stage_review_subtitle)
-                            )
+                3 -> {
+                    item {
+                        RouteStudioStageTitle(
+                            title = stringResource(R.string.plan_arc_stage_timing_title),
+                            subtitle = stringResource(R.string.plan_arc_stage_timing_subtitle)
+                        )
+                    }
+                    item {
+                        TimingSummaryCard(
+                            totalMinutes = totalMinutes,
+                            untimedCount = untimedCount,
+                            surgeCount = surgeCount,
+                            softCount = softCount
+                        )
+                    }
+                    if (!uiState.errorMessage.isNullOrBlank()) {
+                        item { ErrorInlineCard(message = uiState.errorMessage) }
+                    }
+                    items(selectedFlows, key = { it.id }) { flow ->
+                        TimingIntentCard(
+                            flow = flow,
+                            targetMinutesText = uiState.targetMinutesTextByFlowId[flow.id].orEmpty(),
+                            launchWithSurge = uiState.launchWithSurgeByFlowId[flow.id] == true,
+                            onTargetMinutesChanged = { viewModel.onStepTargetMinutesChanged(flow.id, it) },
+                            onLaunchWithSurgeChanged = { viewModel.onStepLaunchWithSurgeChanged(flow.id, it) }
+                        )
+                    }
+                }
 
-                            ReviewArcSection(
-                                uiState = uiState,
-                                onRecurrenceTypeSelected = viewModel::onRecurrenceTypeSelected,
-                                onCustomDayToggled = viewModel::onCustomDayToggled
-                            )
-                        }
+                else -> {
+                    item {
+                        RouteStudioStageTitle(
+                            title = stringResource(R.string.plan_arc_stage_review_title),
+                            subtitle = stringResource(R.string.plan_arc_stage_review_subtitle)
+                        )
+                    }
+                    item {
+                        ReviewSummaryCard(
+                            title = uiState.title.trim(),
+                            stepCount = selectedFlows.size,
+                            totalMinutes = totalMinutes,
+                            untimedCount = untimedCount,
+                            surgeCount = surgeCount,
+                            softCount = softCount
+                        )
+                    }
+                    item {
+                        ReuseAndRepeatCard(
+                            recurrenceType = uiState.recurrenceType,
+                            recurrenceDays = uiState.recurrenceDays,
+                            onRecurrenceTypeSelected = viewModel::onRecurrenceTypeSelected,
+                            onCustomDayToggled = viewModel::onCustomDayToggled
+                        )
+                    }
+                    if (!uiState.errorMessage.isNullOrBlank()) {
+                        item { ErrorInlineCard(message = uiState.errorMessage) }
+                    }
+                    items(selectedFlows, key = { it.id }) { flow ->
+                        val targetText = uiState.targetMinutesTextByFlowId[flow.id].orEmpty().trim()
+                        val targetMinutes = targetText.toIntOrNull()?.takeIf { it > 0 }
+                        val launchWithSurge = uiState.launchWithSurgeByFlowId[flow.id] == true
+                        ReviewStepCard(
+                            stepNumber = uiState.selectedFlowIdsInOrder.indexOf(flow.id) + 1,
+                            flow = flow,
+                            targetMinutes = targetMinutes,
+                            launchWithSurge = launchWithSurge
+                        )
                     }
                 }
             }
@@ -584,6 +683,19 @@ private fun ArcIdentityCard(
 }
 
 @Composable
+private fun selectionSummaryLabel(selectedCount: Int): String =
+    when (selectedCount) {
+        0 -> stringResource(R.string.plan_arc_selection_summary_choose)
+        1 -> stringResource(R.string.plan_arc_selection_summary_needs_second)
+        else -> pluralStringResource(
+            R.plurals.plan_arc_selection_summary_selected,
+            selectedCount,
+            selectedCount
+        )
+    }
+
+
+@Composable
 private fun FlowPickerSection(
     availableTags: List<TagUiModel>,
     selectedTagId: Long?,
@@ -626,7 +738,7 @@ private fun FlowPickerSection(
             modifier = Modifier.padding(top = 2.dp)
         )
 
-        SelectedSequencePreview(
+        CompactSelectedSequencePreview(
             selectedFlowIdsInOrder = selectedFlowIdsInOrder,
             availableFlows = availableFlows,
             onRemove = onFlowToggled
@@ -673,23 +785,34 @@ private fun FlowPickerSection(
 }
 
 @Composable
-private fun SelectedSequencePreview(
+private fun CompactSelectedSequencePreview(
     selectedFlowIdsInOrder: List<Long>,
     availableFlows: List<PlanArcFlowPickerItemUiModel>,
     onRemove: (Long) -> Unit
 ) {
     val flowById = availableFlows.associateBy { it.id }
     val selectedFlows = selectedFlowIdsInOrder.mapNotNull { flowById[it] }
-
     if (selectedFlows.isEmpty()) return
 
+    var expanded by rememberSaveable(selectedFlowIdsInOrder.joinToString("_")) { mutableStateOf(false) }
     val title = stringResource(R.string.plan_arc_selected_sequence_title)
-    val removeA11y = stringResource(R.string.plan_arc_remove_a11y)
+    val viewSequenceText = stringResource(R.string.plan_arc_view_sequence)
+    val hideSequenceText = stringResource(R.string.plan_arc_hide_sequence)
+    val countText = pluralStringResource(
+        R.plurals.plan_arc_selection_summary_selected,
+        selectedFlows.size,
+        selectedFlows.size
+    )
+    val expandedText = stringResource(R.string.paths_expanded)
+    val collapsedText = stringResource(R.string.paths_collapsed)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .semantics { contentDescription = title },
+            .semantics {
+                contentDescription = "$countText. ${if (expanded) hideSequenceText else viewSequenceText}"
+                stateDescription = if (expanded) expandedText else collapsedText
+            },
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
@@ -699,35 +822,69 @@ private fun SelectedSequencePreview(
             modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            selectedFlows.forEachIndexed { index, flow ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = countText,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                TextButton(
+                    onClick = { expanded = !expanded },
+                    modifier = Modifier.semantics {
+                        role = Role.Button
+                        contentDescription = if (expanded) hideSequenceText else viewSequenceText
+                        stateDescription = if (expanded) expandedText else collapsedText
+                    }
                 ) {
-                    Text(
-                        text = "${index + 1}.",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
+                    Text(if (expanded) hideSequenceText else viewSequenceText)
+                }
+            }
+
+            if (expanded) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
+                )
+                selectedFlows.forEachIndexed { index, flow ->
+                    val removeFlowA11y = stringResource(
+                        R.string.plan_arc_remove_flow_from_arc_a11y,
+                        flow.title
                     )
-                    Text(
-                        text = flow.title,
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    TextButton(
-                        onClick = { onRemove(flow.id) },
-                        modifier = Modifier.semantics { contentDescription = removeA11y }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(stringResource(R.string.plan_arc_remove))
+                        Text(
+                            text = "${index + 1}.",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = flow.title,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        IconButton(
+                            onClick = { onRemove(flow.id) },
+                            modifier = Modifier.semantics {
+                                role = Role.Button
+                                contentDescription = removeFlowA11y
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Close,
+                                contentDescription = null
+                            )
+                        }
                     }
                 }
             }
@@ -1383,51 +1540,43 @@ private fun RouteStepCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 val moveUpA11y = stringResource(R.string.plan_arc_move_up_a11y)
                 val moveDownA11y = stringResource(R.string.plan_arc_move_down_a11y)
-                val removeA11y = stringResource(R.string.plan_arc_remove_a11y)
+                val removeA11y = stringResource(R.string.plan_arc_remove_flow_from_arc_a11y, flow.title)
 
-                TextButton(
+                IconButton(
                     onClick = onMoveUp,
                     enabled = canMoveUp,
-                    modifier = Modifier
-                        .weight(1f)
-                        .semantics { contentDescription = moveUpA11y }
+                    modifier = Modifier.semantics { contentDescription = moveUpA11y }
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.KeyboardArrowUp,
                         contentDescription = null
                     )
-                    Text(stringResource(R.string.plan_arc_move_up))
                 }
 
-                TextButton(
+                IconButton(
                     onClick = onMoveDown,
                     enabled = canMoveDown,
-                    modifier = Modifier
-                        .weight(1f)
-                        .semantics { contentDescription = moveDownA11y }
+                    modifier = Modifier.semantics { contentDescription = moveDownA11y }
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.KeyboardArrowDown,
                         contentDescription = null
                     )
-                    Text(stringResource(R.string.plan_arc_move_down))
                 }
 
-                TextButton(
+                IconButton(
                     onClick = onRemove,
-                    modifier = Modifier
-                        .weight(1f)
-                        .semantics { contentDescription = removeA11y }
+                    modifier = Modifier.semantics { contentDescription = removeA11y }
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
                         contentDescription = null
                     )
-                    Text(stringResource(R.string.plan_arc_remove))
                 }
             }
         }

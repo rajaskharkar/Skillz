@@ -499,10 +499,6 @@
         <item quantity="one">%1$d Flow</item>
         <item quantity="other">%1$d Flows</item>
     </plurals>
-    <plurals name="paths_more_flows">
-        <item quantity="one">+%1$d आणखी Flow</item>
-        <item quantity="other">+%1$d आणखी Flows</item>
-    </plurals>
     <plurals name="paths_view_all_flows">
         <item quantity="one">सर्व %1$d Flow पाहा</item>
         <item quantity="other">सर्व %1$d Flows पाहा</item>
@@ -528,6 +524,9 @@
     <string name="plan_arc_preview_body">पुढे, तुम्ही या मार्गात बसणारे नियोजित फ्लो निवडाल.</string>
     <string name="plan_arc_selection_summary_needs_second">1 Flow निवडला — Arc तयार करण्यासाठी अजून एक जोडा.</string>
     <string name="plan_arc_selected_sequence_title">निवडलेला क्रम</string>
+    <string name="plan_arc_view_sequence">क्रम पाहा</string>
+    <string name="plan_arc_hide_sequence">क्रम लपवा</string>
+    <string name="plan_arc_remove_flow_from_arc_a11y">%1$s Arc मधून काढा</string>
     <string name="plan_arc_create_flow_cta">नवीन Flow तयार करा</string>
     <string name="plan_arc_create_flow_title">नवीन Flow तयार करा</string>
     <string name="plan_arc_create_flow_field_title">Flow शीर्षक</string>

@@ -1719,12 +1719,6 @@ private fun ArcStepPreview(
         arc.stepCount,
         arc.stepCount
     )
-    val moreText = pluralStringResource(
-        R.plurals.paths_more_flows,
-        arc.stepCount - visibleSteps.size,
-        arc.stepCount - visibleSteps.size
-    )
-
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (visibleSteps.isEmpty()) {
             Text(
@@ -1779,7 +1773,7 @@ private fun ArcStepPreview(
                     stateDescription = if (expanded) expandedA11yText else collapsedA11yText
                 }
             ) {
-                Text(if (expanded) collapseText else "$viewAllText • $moreText")
+                Text(if (expanded) collapseText else viewAllText)
             }
         }
     }

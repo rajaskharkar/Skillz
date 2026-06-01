@@ -504,10 +504,6 @@
         <item quantity="one">%1$d Flow</item>
         <item quantity="other">%1$d Flows</item>
     </plurals>
-    <plurals name="paths_more_flows">
-        <item quantity="one">+%1$d more Flow</item>
-        <item quantity="other">+%1$d more Flows</item>
-    </plurals>
     <plurals name="paths_view_all_flows">
         <item quantity="one">View all %1$d Flow</item>
         <item quantity="other">View all %1$d Flows</item>
@@ -534,6 +530,9 @@
     <string name="plan_arc_selection_summary_choose">Choose at least two Flows for this arc.</string>
     <string name="plan_arc_selection_summary_needs_second">1 Flow selected — add one more to make an Arc.</string>
     <string name="plan_arc_selected_sequence_title">Selected sequence</string>
+    <string name="plan_arc_view_sequence">View sequence</string>
+    <string name="plan_arc_hide_sequence">Hide sequence</string>
+    <string name="plan_arc_remove_flow_from_arc_a11y">Remove %1$s from Arc</string>
     <string name="plan_arc_create_flow_cta">Create new Flow</string>
     <string name="plan_arc_create_flow_title">Create new Flow</string>
     <string name="plan_arc_create_flow_field_title">Flow title</string>
