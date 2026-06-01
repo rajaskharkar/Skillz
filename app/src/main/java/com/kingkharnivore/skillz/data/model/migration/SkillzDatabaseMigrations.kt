@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 21.
+     * Current database version is 22.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -73,6 +73,12 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_21_22 = object : Migration(21, 22) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            addIdeaGroveTables(db)
+        }
+    }
+
     val ALL_MIGRATIONS: Array<Migration> =
         LEGACY_TO_15_MIGRATIONS +
                 MIGRATION_13_14 +
@@ -82,8 +88,32 @@ object SkillzDatabaseMigrations {
                 MIGRATION_17_18 +
                 MIGRATION_18_19 +
                 MIGRATION_19_20 +
-                MIGRATION_20_21
+                MIGRATION_20_21 +
+                MIGRATION_21_22
 
+
+
+    private fun addIdeaGroveTables(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `pulses` ADD COLUMN `groveStatus` TEXT NOT NULL DEFAULT 'ALIVE'")
+        db.execSQL("ALTER TABLE `pulses` ADD COLUMN `groveStatusChangedAt` INTEGER")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `pulse_flow_links` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `pulseId` INTEGER NOT NULL,
+                `sessionId` INTEGER NOT NULL,
+                `linkedAt` INTEGER NOT NULL,
+                FOREIGN KEY(`pulseId`) REFERENCES `pulses`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_pulse_flow_links_pulseId` ON `pulse_flow_links` (`pulseId`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_pulse_flow_links_sessionId` ON `pulse_flow_links` (`sessionId`)")
+        db.execSQL("ALTER TABLE `ongoing_session` ADD COLUMN `originPulseId` INTEGER")
+        db.execSQL("ALTER TABLE `ongoing_session` ADD COLUMN `originPulseTitleSnapshot` TEXT")
+        db.execSQL("ALTER TABLE `ongoing_session` ADD COLUMN `originPulseJourneyNameSnapshot` TEXT")
+    }
 
     private fun createObjectiveTables(db: SupportSQLiteDatabase) {
         db.execSQL(

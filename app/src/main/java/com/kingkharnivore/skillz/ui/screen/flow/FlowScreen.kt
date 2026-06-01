@@ -177,6 +177,32 @@ fun FlowScreen(
 
             RitualFrame(rotation = -0.08f, corner = 32.dp, showBorder = false) {
 
+                if (uiState.originPulseId != null && !uiState.originPulseTitle.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.idea_grove_from_pulse),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = uiState.originPulseTitle.orEmpty(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                }
+
                 if (
                     !uiState.plannedArcTitle.isNullOrBlank() &&
                     uiState.plannedArcStepIndex != null &&

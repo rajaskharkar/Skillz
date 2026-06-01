@@ -9,6 +9,7 @@ object SkillzDestinations {
     const val ADD_SKILL_ARG_PREFILL_JOURNEY = "prefillJourney"
     const val ADD_SKILL_ARG_PREFILL_TITLE = "prefillTitle"
     const val ADD_SKILL_ARG_PREFILL_SOFT_MODE = "prefillSoftMode"
+    const val ADD_SKILL_ARG_ORIGIN_PULSE_ID = "originPulseId"
 
     const val ADD_SKILL_ARG_PLANNED_ARC_TITLE = "plannedArcTitle"
     const val ADD_SKILL_ARG_PLANNED_ARC_STEP_INDEX = "plannedArcStepIndex"
@@ -19,6 +20,7 @@ object SkillzDestinations {
                 "$ADD_SKILL_ARG_PREFILL_JOURNEY={$ADD_SKILL_ARG_PREFILL_JOURNEY}&" +
                 "$ADD_SKILL_ARG_PREFILL_TITLE={$ADD_SKILL_ARG_PREFILL_TITLE}&" +
                 "$ADD_SKILL_ARG_PREFILL_SOFT_MODE={$ADD_SKILL_ARG_PREFILL_SOFT_MODE}&" +
+                "$ADD_SKILL_ARG_ORIGIN_PULSE_ID={$ADD_SKILL_ARG_ORIGIN_PULSE_ID}&" +
                 "$ADD_SKILL_ARG_PLANNED_ARC_TITLE={$ADD_SKILL_ARG_PLANNED_ARC_TITLE}&" +
                 "$ADD_SKILL_ARG_PLANNED_ARC_STEP_INDEX={$ADD_SKILL_ARG_PLANNED_ARC_STEP_INDEX}&" +
                 "$ADD_SKILL_ARG_PLANNED_ARC_TOTAL_STEPS={$ADD_SKILL_ARG_PLANNED_ARC_TOTAL_STEPS}"
@@ -46,6 +48,7 @@ object SkillzDestinations {
         prefillJourney: String? = null,
         prefillTitle: String? = null,
         prefillSoftMode: Boolean? = null,
+        originPulseId: Long? = null,
         plannedArcTitle: String? = null,
         plannedArcStepIndex: Int? = null,
         plannedArcTotalSteps: Int? = null
@@ -61,6 +64,10 @@ object SkillzDestinations {
 
             prefillSoftMode?.let {
                 add("$ADD_SKILL_ARG_PREFILL_SOFT_MODE=$it")
+            }
+
+            originPulseId?.let {
+                add("$ADD_SKILL_ARG_ORIGIN_PULSE_ID=$it")
             }
 
             plannedArcTitle

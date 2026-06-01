@@ -118,7 +118,7 @@ class SkillzMigrationTest {
 
 
     @Test
-    fun migration18To21CreatesObjectiveClaimSchemaAndKeepsSessions() {
+    fun migration18To22CreatesObjectiveClaimSchemaIdeaGroveAndKeepsSessions() {
         helper.createDatabase(TEST_DB, 18).apply {
             createVersion13CoreTables()
             SkillzDatabaseMigrations.MIGRATION_13_14.migrate(this)
@@ -132,16 +132,17 @@ class SkillzMigrationTest {
 
         val db = helper.runMigrationsAndValidate(
             TEST_DB,
-            21,
+            22,
             true,
             SkillzDatabaseMigrations.MIGRATION_18_19,
             SkillzDatabaseMigrations.MIGRATION_19_20,
-            SkillzDatabaseMigrations.MIGRATION_20_21
+            SkillzDatabaseMigrations.MIGRATION_20_21,
+            SkillzDatabaseMigrations.MIGRATION_21_22
         )
 
-        assertTrue("Expected objectives table after 18→21", db.tableExists("objectives"))
-        assertTrue("Expected objective_completions table after 18→21", db.tableExists("objective_completions"))
-        assertTrue("Expected objective_skipped_cycles table after 18→21", db.tableExists("objective_skipped_cycles"))
+        assertTrue("Expected objectives table after 18→22", db.tableExists("objectives"))
+        assertTrue("Expected objective_completions table after 18→22", db.tableExists("objective_completions"))
+        assertTrue("Expected objective_skipped_cycles table after 18→22", db.tableExists("objective_skipped_cycles"))
         assertEquals(1, db.countRows("sessions", "title = ?", arrayOf("Migration Flow")))
 
         db.assertColumn("objective_completions", "pearlsGranted", notNull = 1, defaultValue = "0")
@@ -150,6 +151,10 @@ class SkillzMigrationTest {
         db.assertColumn("objective_completions", "badgeGranted", notNull = 1, defaultValue = "1")
         db.assertColumn("objectives", "currentStreak", notNull = 1, defaultValue = "0")
         db.assertColumn("objectives", "isArchived", notNull = 1, defaultValue = "0")
+        db.assertColumn("pulses", "groveStatus", notNull = 1, defaultValue = "'ALIVE'")
+        db.assertColumn("pulses", "groveStatusChangedAt", notNull = 0, defaultValue = null)
+        db.assertColumn("ongoing_session", "originPulseId", notNull = 0, defaultValue = null)
+        assertTrue("Expected pulse_flow_links after 18→22", db.tableExists("pulse_flow_links"))
     }
 
     @Test
@@ -160,12 +165,12 @@ class SkillzMigrationTest {
 
         val db = helper.runMigrationsAndValidate(
             TEST_DB,
-            21,
+            22,
             true,
             *SkillzDatabaseMigrations.ALL_MIGRATIONS
         )
 
-        assertTrue("Expected objective_completions table after legacy→21", db.tableExists("objective_completions"))
+        assertTrue("Expected objective_completions table after legacy→22", db.tableExists("objective_completions"))
         db.assertColumn("objective_completions", "pearlsGranted", notNull = 1, defaultValue = "0")
         db.assertColumn("objective_completions", "pearlsClaimed", notNull = 1, defaultValue = "0")
         db.assertColumn("objective_completions", "pearlsClaimedAt", notNull = 0, defaultValue = null)

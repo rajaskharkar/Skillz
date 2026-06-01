@@ -10,6 +10,7 @@ import com.kingkharnivore.skillz.data.repository.ActiveArcRunRepository
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.ArcPlanRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
+import com.kingkharnivore.skillz.data.repository.IdeaGroveRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.data.repository.PulseRepository
 import com.kingkharnivore.skillz.domain.shell.ShellRewardEventRecorder
@@ -62,6 +63,7 @@ class FlowViewModel @Inject constructor(
     private val tagRepository: JourneyRepository,
     private val sessionRepository: FlowRepository,
     private val pulseRepository: PulseRepository,
+    private val ideaGroveRepository: IdeaGroveRepository,
     private val focusSessionRepository: AliveFlowRepository,
     private val activeArcRunRepository: ActiveArcRunRepository,
     private val arcPlanRepository: ArcPlanRepository,
@@ -104,10 +106,15 @@ class FlowViewModel @Inject constructor(
             SkillzDestinations.ADD_SKILL_ARG_PREFILL_SOFT_MODE
         ) ?: false
 
+    private val originPulseIdOverride: Long? =
+        savedStateHandle.get<Long>(SkillzDestinations.ADD_SKILL_ARG_ORIGIN_PULSE_ID)
+            ?.takeIf { it > 0L }
+
     private val hasLaunchOverrides: Boolean =
         !atlasJourneyOverride.isNullOrBlank() ||
                 !prefillTitleOverride.isNullOrBlank() ||
                 prefillSoftModeOverride ||
+                originPulseIdOverride != null ||
                 !plannedArcTitleOverride.isNullOrBlank() ||
                 plannedArcStepIndexOverride != null ||
                 plannedArcTotalStepsOverride != null
@@ -121,7 +128,10 @@ class FlowViewModel @Inject constructor(
             surgePlannedMs = if (prefillSoftModeOverride) null else state.surgePlannedMs,
             plannedArcTitle = plannedArcTitleOverride ?: state.plannedArcTitle,
             plannedArcStepIndex = plannedArcStepIndexOverride ?: state.plannedArcStepIndex,
-            plannedArcTotalSteps = plannedArcTotalStepsOverride ?: state.plannedArcTotalSteps
+            plannedArcTotalSteps = plannedArcTotalStepsOverride ?: state.plannedArcTotalSteps,
+            originPulseId = originPulseIdOverride ?: state.originPulseId,
+            originPulseTitle = if (originPulseIdOverride != null) prefillTitleOverride else state.originPulseTitle,
+            originPulseJourneyName = if (originPulseIdOverride != null) atlasJourneyOverride else state.originPulseJourneyName
         )
     }
 
@@ -415,6 +425,7 @@ class FlowViewModel @Inject constructor(
                     }
 
                     clearOngoing()
+                    saveOngoing()
                 } else {
                     currentFlowInstanceId = entity.flowInstanceId
                     ongoingCreatedAtMs = entity.createdAt
@@ -437,6 +448,9 @@ class FlowViewModel @Inject constructor(
                             isSoftMode = entity.isSoftMode,
                             isSurgeOn = entity.isSurgeOn,
                             surgePlannedMs = entity.surgePlannedMs,
+                            originPulseId = entity.originPulseId,
+                            originPulseTitle = entity.originPulseTitleSnapshot,
+                            originPulseJourneyName = entity.originPulseJourneyNameSnapshot,
                             stopwatch = StopwatchState(
                                 isRunning = entity.isRunning,
                                 elapsedMs = elapsed
@@ -462,6 +476,7 @@ class FlowViewModel @Inject constructor(
                         cleared
                     }
                 }
+                if (hasLaunchOverrides) saveOngoing()
             }
         }
     }
@@ -508,7 +523,10 @@ class FlowViewModel @Inject constructor(
                     calmMode = state.calmMode,
                     plannedArcTitle = null,
                     plannedArcStepIndex = null,
-                    plannedArcTotalSteps = null
+                    plannedArcTotalSteps = null,
+                    originPulseId = null,
+                    originPulseTitle = null,
+                    originPulseJourneyName = null
                 )
             )
         }
@@ -779,7 +797,10 @@ class FlowViewModel @Inject constructor(
                 arcId = arc?.arcId,
                 arcChainBase = arc?.multiplier,
                 arcSessionCountInArc = arc?.sessionCountInArc,
-                arcLastSessionEndTimeMs = arc?.lastSessionEndTimeMs
+                arcLastSessionEndTimeMs = arc?.lastSessionEndTimeMs,
+                originPulseId = state.originPulseId,
+                originPulseTitleSnapshot = state.originPulseTitle,
+                originPulseJourneyNameSnapshot = state.originPulseJourneyName
             )
             focusSessionRepository.saveOngoingSession(entity)
         }
@@ -979,6 +1000,9 @@ class FlowViewModel @Inject constructor(
                     sessionId = firstSessionId,
                     arcId = arcId
                 )
+                state.originPulseId?.let { pulseId ->
+                    ideaGroveRepository.linkCompletedFlowToPulse(pulseId, firstSessionId)
+                }
 
                 val shellReward = runCatching { shellRewardOrchestrator.onSessionCompleted(
                     SessionEntity(
@@ -1086,6 +1110,9 @@ class FlowViewModel @Inject constructor(
                 sessionId = insertedId,
                 arcId = localArc?.arcId
             )
+            state.originPulseId?.let { pulseId ->
+                ideaGroveRepository.linkCompletedFlowToPulse(pulseId, insertedId)
+            }
 
             if (isInExistingArc) {
                 val s = localArc!!
