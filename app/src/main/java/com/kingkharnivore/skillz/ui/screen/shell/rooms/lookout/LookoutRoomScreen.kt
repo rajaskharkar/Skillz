@@ -680,7 +680,6 @@ private fun RewardDialog(state: ObjectiveRewardDialogState, onDismiss: () -> Uni
                 Text(state.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text(state.body, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(state.pearls, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Text(state.badge)
                 state.streakBonus?.let { Text(it, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.SemiBold) }
                 state.currentStreak?.let { Text(it) }
                 Button(onClick = onDismiss) { Text(stringResource(R.string.common_done)) }

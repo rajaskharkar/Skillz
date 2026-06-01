@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.data.model.entity.shell
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -33,9 +34,13 @@ data class ObjectiveEntity(
     val targetDurationMs: Long,
     val startAtMs: Long,
     val weeklyBoundaryDay: Int? = null,
+    @ColumnInfo(defaultValue = "0")
     val currentStreak: Int = 0,
+    @ColumnInfo(defaultValue = "0")
     val maxStreak: Int = 0,
+    @ColumnInfo(defaultValue = "0")
     val totalCompletions: Int = 0,
+    @ColumnInfo(defaultValue = "0")
     val isArchived: Boolean = false,
     val createdAt: Long,
     val updatedAt: Long
@@ -68,9 +73,12 @@ data class ObjectiveCompletionEntity(
     val finalRewardPearls: Int,
     val badgeKey: String,
     val badgeLabelSnapshot: String,
+    @ColumnInfo(defaultValue = "0")
     val pearlsGranted: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
     val pearlsClaimed: Boolean = false,
     val pearlsClaimedAt: Long? = null,
+    @ColumnInfo(defaultValue = "1")
     val badgeGranted: Boolean = true
 )
 

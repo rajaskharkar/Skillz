@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 20.
+     * Current database version is 21.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -63,9 +63,13 @@ object SkillzDatabaseMigrations {
 
     val MIGRATION_19_20 = object : Migration(19, 20) {
         override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("ALTER TABLE `objective_completions` ADD COLUMN `pearlsClaimed` INTEGER NOT NULL DEFAULT 0")
-            db.execSQL("ALTER TABLE `objective_completions` ADD COLUMN `pearlsClaimedAt` INTEGER")
-            db.execSQL("UPDATE `objective_completions` SET `pearlsClaimed` = `pearlsGranted` WHERE `pearlsGranted` = 1")
+            migrateObjectiveCompletionsToClaimSchema(db)
+        }
+    }
+
+    val MIGRATION_20_21 = object : Migration(20, 21) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            migrateObjectiveCompletionsToClaimSchema(db)
         }
     }
 
@@ -77,7 +81,8 @@ object SkillzDatabaseMigrations {
                 MIGRATION_16_17 +
                 MIGRATION_17_18 +
                 MIGRATION_18_19 +
-                MIGRATION_19_20
+                MIGRATION_19_20 +
+                MIGRATION_20_21
 
 
     private fun createObjectiveTables(db: SupportSQLiteDatabase) {
@@ -105,9 +110,27 @@ object SkillzDatabaseMigrations {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_objectives_periodType` ON `objectives` (`periodType`)")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_objectives_journeyId_periodType_isArchived` ON `objectives` (`journeyId`, `periodType`, `isArchived`)")
 
+        createObjectiveCompletionsTable(db, "objective_completions")
+        createObjectiveCompletionIndices(db)
+
         db.execSQL(
             """
-            CREATE TABLE IF NOT EXISTS `objective_completions` (
+            CREATE TABLE IF NOT EXISTS `objective_skipped_cycles` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `objectiveId` INTEGER NOT NULL,
+                `periodStartMs` INTEGER NOT NULL,
+                `periodEndMs` INTEGER NOT NULL,
+                `skippedAt` INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_objective_skipped_cycles_objectiveId_periodStartMs_periodEndMs` ON `objective_skipped_cycles` (`objectiveId`, `periodStartMs`, `periodEndMs`)")
+    }
+
+    private fun createObjectiveCompletionsTable(db: SupportSQLiteDatabase, tableName: String) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `$tableName` (
                 `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
                 `objectiveId` INTEGER NOT NULL,
                 `journeyId` INTEGER NOT NULL,
@@ -125,27 +148,56 @@ object SkillzDatabaseMigrations {
                 `finalRewardPearls` INTEGER NOT NULL,
                 `badgeKey` TEXT NOT NULL,
                 `badgeLabelSnapshot` TEXT NOT NULL,
-                `pearlsGranted` INTEGER NOT NULL DEFAULT 1,
+                `pearlsGranted` INTEGER NOT NULL DEFAULT 0,
+                `pearlsClaimed` INTEGER NOT NULL DEFAULT 0,
+                `pearlsClaimedAt` INTEGER,
                 `badgeGranted` INTEGER NOT NULL DEFAULT 1
             )
             """.trimIndent()
         )
+    }
+
+    private fun createObjectiveCompletionIndices(db: SupportSQLiteDatabase) {
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_objective_completions_objectiveId_periodStartMs_periodEndMs` ON `objective_completions` (`objectiveId`, `periodStartMs`, `periodEndMs`)")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_objective_completions_journeyId` ON `objective_completions` (`journeyId`)")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_objective_completions_periodType` ON `objective_completions` (`periodType`)")
+    }
 
+    private fun migrateObjectiveCompletionsToClaimSchema(db: SupportSQLiteDatabase) {
+        if (!tableExists(db, "objective_completions")) {
+            createObjectiveCompletionsTable(db, "objective_completions")
+            createObjectiveCompletionIndices(db)
+            return
+        }
+
+        val existingColumns = columns(db, "objective_completions")
+        val pearlsGrantedExpression = if ("pearlsGranted" in existingColumns) "`pearlsGranted`" else "0"
+        val pearlsClaimedExpression = if ("pearlsClaimed" in existingColumns) "`pearlsClaimed`" else pearlsGrantedExpression
+        val pearlsClaimedAtExpression = if ("pearlsClaimedAt" in existingColumns) "`pearlsClaimedAt`" else "NULL"
+        val badgeGrantedExpression = if ("badgeGranted" in existingColumns) "`badgeGranted`" else "1"
+
+        val replacement = "objective_completions_claim_schema"
+        db.execSQL("DROP TABLE IF EXISTS `$replacement`")
+        createObjectiveCompletionsTable(db, replacement)
         db.execSQL(
             """
-            CREATE TABLE IF NOT EXISTS `objective_skipped_cycles` (
-                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                `objectiveId` INTEGER NOT NULL,
-                `periodStartMs` INTEGER NOT NULL,
-                `periodEndMs` INTEGER NOT NULL,
-                `skippedAt` INTEGER NOT NULL
+            INSERT INTO `$replacement` (
+                `id`, `objectiveId`, `journeyId`, `journeyNameSnapshot`, `periodType`, `objectiveType`,
+                `periodStartMs`, `periodEndMs`, `completedAt`, `achievedDurationMs`, `targetDurationMs`,
+                `baseRewardPearls`, `streakBeforeCompletion`, `streakMultiplier`, `finalRewardPearls`,
+                `badgeKey`, `badgeLabelSnapshot`, `pearlsGranted`, `pearlsClaimed`, `pearlsClaimedAt`, `badgeGranted`
             )
+            SELECT
+                `id`, `objectiveId`, `journeyId`, `journeyNameSnapshot`, `periodType`, `objectiveType`,
+                `periodStartMs`, `periodEndMs`, `completedAt`, `achievedDurationMs`, `targetDurationMs`,
+                `baseRewardPearls`, `streakBeforeCompletion`, `streakMultiplier`, `finalRewardPearls`,
+                `badgeKey`, `badgeLabelSnapshot`, $pearlsGrantedExpression, $pearlsClaimedExpression, $pearlsClaimedAtExpression, $badgeGrantedExpression
+            FROM `objective_completions`
             """.trimIndent()
         )
-        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_objective_skipped_cycles_objectiveId_periodStartMs_periodEndMs` ON `objective_skipped_cycles` (`objectiveId`, `periodStartMs`, `periodEndMs`)")
+        db.execSQL("DROP TABLE `objective_completions`")
+        db.execSQL("ALTER TABLE `$replacement` RENAME TO `objective_completions`")
+        createObjectiveCompletionIndices(db)
     }
 
     private fun addCreatureEconomyFields(db: SupportSQLiteDatabase) {

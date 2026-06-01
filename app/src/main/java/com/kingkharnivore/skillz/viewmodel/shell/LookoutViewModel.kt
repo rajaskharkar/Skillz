@@ -139,7 +139,6 @@ data class ObjectiveRewardDialogState(
     val title: String,
     val body: String,
     val pearls: String,
-    val badge: String,
     val streakBonus: String?,
     val currentStreak: String?
 )
@@ -281,7 +280,6 @@ class LookoutViewModel @Inject constructor(
                     title = text(R.string.lookout_pearls_claimed_title),
                     body = text(R.string.lookout_objective_complete_body, completion.journeyNameSnapshot, periodLabel(period)),
                     pearls = text(R.string.lookout_pearls_delta, completion.finalRewardPearls),
-                    badge = text(R.string.lookout_badge_reward, completion.journeyNameSnapshot, periodLabel(period)),
                     streakBonus = if (bonusPct > 0) text(R.string.lookout_streak_bonus_percent, bonusPct) else null,
                     currentStreak = if (kind == ObjectiveKind.Recurring) text(R.string.lookout_current_streak_value, completion.streakBeforeCompletion + 1) else null
                 )
