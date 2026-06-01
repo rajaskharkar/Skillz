@@ -1750,7 +1750,8 @@
     <string name="lookout_objective_period">Objective period</string>
     <string name="lookout_objective_type">Objective type</string>
     <string name="lookout_target_time">Target time</string>
-    <string name="lookout_minutes">minutes</string>
+    <string name="lookout_hours">Hours</string>
+    <string name="lookout_minutes">Minutes</string>
     <string name="lookout_monthly_helper">Monthly Objectives run for 30 days.</string>
     <string name="lookout_recurring_helper" formatted="false">Streak rewards grow by +10% each time you complete this Objective.</string>
     <string name="lookout_save_objective">Save Objective</string>
@@ -1786,7 +1787,8 @@
     <string name="lookout_period_objective_completed">%1$s Objective completed</string>
     <string name="lookout_percent">%1$d%%</string>
     <string name="lookout_validation_choose_journey">Choose a Journey first.</string>
-    <string name="lookout_validation_target_time">Target time must be at least 1 minute.</string>
+    <string name="lookout_validation_target_time">Enter at least 1 minute.</string>
+    <string name="lookout_validation_minutes_range">Minutes must be between 0 and 59.</string>
     <string name="lookout_validation_start_date">Start date must be today or later.</string>
     <string name="lookout_duplicate_objective">You already have a %1$s Objective for %2$s.</string>
     <string name="lookout_objective_set">Objective set for %1$s.</string>

@@ -77,8 +77,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -479,7 +481,20 @@ private fun SetObjectiveDialog(
                 Text(stringResource(R.string.lookout_start_date), fontWeight = FontWeight.SemiBold)
                 StartDateSelector(dialog = dialog, onStartDate = onStartDate)
                 Text(stringResource(R.string.lookout_objective_period), fontWeight = FontWeight.SemiBold)
-                ChoiceRow(ObjectivePeriod.entries, dialog.period, { periodLabel(it) }) { period -> onChange { d -> d.copy(period = period) } }
+                ChoiceRow(ObjectivePeriod.entries, dialog.period, { periodLabel(it) }) { period ->
+                    onChange { d ->
+                        if (d.targetWasEdited) {
+                            d.copy(period = period)
+                        } else {
+                            val defaults = defaultTargetDurationFor(period)
+                            d.copy(
+                                period = period,
+                                targetHoursText = defaults.first,
+                                targetMinutesText = defaults.second
+                            )
+                        }
+                    }
+                }
                 Text(stringResource(R.string.lookout_objective_type), fontWeight = FontWeight.SemiBold)
                 ChoiceRow(ObjectiveKind.entries, dialog.kind, { kindLabel(it) }) { onChange { d -> d.copy(kind = it) } }
                 TargetTimeField(dialog, onChange)
@@ -553,14 +568,37 @@ private fun TargetTimeField(
     dialog: SetObjectiveDialogState,
     onChange: ((SetObjectiveDialogState) -> SetObjectiveDialogState) -> Unit
 ) {
-    OutlinedTextField(
-        value = dialog.targetMinutesText,
-        onValueChange = { text -> onChange { it.copy(targetMinutesText = text.filter(Char::isDigit).take(5)) } },
-        label = { Text(stringResource(R.string.lookout_target_time)) },
-        suffix = { Text(stringResource(R.string.lookout_minutes)) },
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth()
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.lookout_target_time), fontWeight = FontWeight.SemiBold)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedTextField(
+                value = dialog.targetHoursText,
+                onValueChange = { text ->
+                    onChange { it.copy(targetHoursText = text.filter(Char::isDigit).take(4), targetWasEdited = true) }
+                },
+                label = { Text(stringResource(R.string.lookout_hours)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                value = dialog.targetMinutesText,
+                onValueChange = { text ->
+                    onChange { it.copy(targetMinutesText = text.filter(Char::isDigit).take(2), targetWasEdited = true) }
+                },
+                label = { Text(stringResource(R.string.lookout_minutes)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+private fun defaultTargetDurationFor(period: ObjectivePeriod): Pair<String, String> = when (period) {
+    ObjectivePeriod.Daily -> "0" to "30"
+    ObjectivePeriod.Weekly -> "5" to "0"
+    ObjectivePeriod.Monthly -> "20" to "0"
 }
 
 @Composable

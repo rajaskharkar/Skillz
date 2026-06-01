@@ -114,6 +114,14 @@ private data class LookoutSourceData(
     val journeys: List<TagEntity>
 )
 
+private data class TargetDurationFields(val hoursText: String, val minutesText: String)
+
+private fun defaultTargetDurationFields(period: ObjectivePeriod): TargetDurationFields = when (period) {
+    ObjectivePeriod.Daily -> TargetDurationFields(hoursText = "0", minutesText = "30")
+    ObjectivePeriod.Weekly -> TargetDurationFields(hoursText = "5", minutesText = "0")
+    ObjectivePeriod.Monthly -> TargetDurationFields(hoursText = "20", minutesText = "0")
+}
+
 data class SetObjectiveDialogState(
     val selectedJourneyId: Long? = null,
     val journeyText: String = "",
@@ -121,7 +129,9 @@ data class SetObjectiveDialogState(
     val startDate: LocalDate = LocalDate.now(),
     val period: ObjectivePeriod = ObjectivePeriod.Daily,
     val kind: ObjectiveKind = ObjectiveKind.OneTime,
+    val targetHoursText: String = "0",
     val targetMinutesText: String = "30",
+    val targetWasEdited: Boolean = false,
     val validationMessage: String? = null
 )
 
@@ -182,6 +192,7 @@ class LookoutViewModel @Inject constructor(
 
     fun openSetObjective(period: ObjectivePeriod = _uiState.value.selectedPeriod) {
         val today = LocalDate.now()
+        val targetDefaults = defaultTargetDurationFields(period)
         _uiState.update {
             it.copy(
                 mode = LookoutMode.Objectives,
@@ -190,7 +201,9 @@ class LookoutViewModel @Inject constructor(
                     journeyText = "",
                     journeyInputMode = JourneyInputMode.Existing,
                     startDate = today,
-                    period = period
+                    period = period,
+                    targetHoursText = targetDefaults.hoursText,
+                    targetMinutesText = targetDefaults.minutesText
                 )
             )
         }
@@ -214,13 +227,19 @@ class LookoutViewModel @Inject constructor(
     fun saveObjective() = viewModelScope.launch {
         val dialog = _uiState.value.setObjectiveDialog ?: return@launch
         val journeyName = dialog.journeyText.trim()
-        val targetMinutes = dialog.targetMinutesText.toLongOrNull()
+        val targetHours = dialog.targetHoursText.toLongOrNull() ?: 0L
+        val targetMinutes = dialog.targetMinutesText.toLongOrNull() ?: 0L
+        val targetHasInvalidNumber =
+            (dialog.targetHoursText.isNotBlank() && dialog.targetHoursText.toLongOrNull() == null) ||
+                (dialog.targetMinutesText.isNotBlank() && dialog.targetMinutesText.toLongOrNull() == null)
+        val totalTargetMinutes = targetHours * 60L + targetMinutes
         val matchedJourney = latestJourneys.firstOrNull { it.name.equals(journeyName, ignoreCase = true) }
         val journeyIdForDuplicateCheck = matchedJourney?.id ?: dialog.selectedJourneyId
 
         when {
             journeyName.isBlank() -> showDialogValidation(text(R.string.lookout_validation_choose_journey))
-            targetMinutes == null || targetMinutes <= 0 -> showDialogValidation(text(R.string.lookout_validation_target_time))
+            targetHasInvalidNumber || targetHours < 0 || targetMinutes < 0 || totalTargetMinutes <= 0 -> showDialogValidation(text(R.string.lookout_validation_target_time))
+            targetMinutes !in 0L..59L -> showDialogValidation(text(R.string.lookout_validation_minutes_range))
             dialog.startDate.isBefore(LocalDate.now()) -> showDialogValidation(text(R.string.lookout_validation_start_date))
             journeyIdForDuplicateCheck != null && hasDuplicateActiveObjective(journeyIdForDuplicateCheck, dialog.period) -> {
                 val duplicateJourneyName = matchedJourney?.name ?: journeyName
@@ -238,7 +257,7 @@ class LookoutViewModel @Inject constructor(
                         journeyNameSnapshot = journeySnapshot,
                         periodType = dialog.period.storageValue,
                         objectiveType = dialog.kind.storageValue,
-                        targetDurationMs = targetMinutes * MILLIS_PER_MINUTE,
+                        targetDurationMs = totalTargetMinutes * MILLIS_PER_MINUTE,
                         startAtMs = startMs,
                         weeklyBoundaryDay = if (dialog.period == ObjectivePeriod.Weekly) dialog.startDate.dayOfWeek.value else null,
                         createdAt = now,
