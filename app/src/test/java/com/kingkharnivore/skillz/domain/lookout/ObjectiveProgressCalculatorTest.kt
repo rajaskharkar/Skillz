@@ -60,9 +60,48 @@ class ObjectiveProgressCalculatorTest {
         val complete = calculator.calculate(listOf(objective), flows + flow(3, flowTime + 2 * MINUTE, 15 * MINUTE, false), emptyList(), emptyList(), Instant.ofEpochMilli(flowTime + 3 * MINUTE), zone)
         assertEquals(1, complete.completionsToGrant.size)
         assertEquals(35, complete.completionsToGrant.single().completion.baseRewardPearls)
+        assertTrue(!complete.completionsToGrant.single().completion.pearlsClaimed)
         val existing = complete.completionsToGrant.single().completion
         val duplicate = calculator.calculate(listOf(objective), flows + flow(3, flowTime + 2 * MINUTE, 15 * MINUTE, false), listOf(existing), emptyList(), Instant.ofEpochMilli(flowTime + 4 * MINUTE), zone)
         assertTrue(duplicate.completionsToGrant.isEmpty())
+    }
+
+
+    @Test
+    fun recurringDayOneHasNoStreakBonus() {
+        val start = LocalDate.of(2026, 6, 1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val objective = objective(startAtMs = start, kind = ObjectiveKind.Recurring, targetMinutes = 30, currentStreak = 0)
+        val end = LocalDate.of(2026, 6, 1).atTime(9, 0).atZone(zone).toInstant().toEpochMilli()
+        val grant = calculator.calculate(listOf(objective), listOf(flow(1, end, 30 * MINUTE, false)), emptyList(), emptyList(), Instant.ofEpochMilli(end), zone).completionsToGrant.single()
+        assertEquals(0, grant.completion.streakBeforeCompletion)
+        assertEquals(1.0, grant.completion.streakMultiplier, 0.0)
+        assertEquals(30, grant.completion.finalRewardPearls)
+    }
+
+    @Test
+    fun recurringDayTwoUsesTenPercentStreakBonus() {
+        val start = LocalDate.of(2026, 6, 1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val objective = objective(startAtMs = start, kind = ObjectiveKind.Recurring, targetMinutes = 30, currentStreak = 1)
+        val end = LocalDate.of(2026, 6, 1).atTime(9, 0).atZone(zone).toInstant().toEpochMilli()
+        val grant = calculator.calculate(listOf(objective), listOf(flow(1, end, 30 * MINUTE, false)), emptyList(), emptyList(), Instant.ofEpochMilli(end), zone).completionsToGrant.single()
+        assertEquals(1, grant.completion.streakBeforeCompletion)
+        assertEquals(1.1, grant.completion.streakMultiplier, 0.0)
+        assertEquals(33, grant.completion.finalRewardPearls)
+    }
+
+    @Test
+    fun overshootMinutesAreRewardedAndStreakBonusUsesOvershootAmount() {
+        val start = LocalDate.of(2026, 6, 1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val end = LocalDate.of(2026, 6, 1).atTime(9, 0).atZone(zone).toInstant().toEpochMilli()
+        val oneTime = objective(startAtMs = start, targetMinutes = 10)
+        val oneTimeGrant = calculator.calculate(listOf(oneTime), listOf(flow(1, end, 17 * MINUTE, false)), emptyList(), emptyList(), Instant.ofEpochMilli(end), zone).completionsToGrant.single()
+        assertEquals(17, oneTimeGrant.completion.baseRewardPearls)
+        assertEquals(17, oneTimeGrant.completion.finalRewardPearls)
+
+        val recurring = objective(startAtMs = start, kind = ObjectiveKind.Recurring, targetMinutes = 10, currentStreak = 1)
+        val recurringGrant = calculator.calculate(listOf(recurring), listOf(flow(1, end, 17 * MINUTE, false)), emptyList(), emptyList(), Instant.ofEpochMilli(end), zone).completionsToGrant.single()
+        assertEquals(17, recurringGrant.completion.baseRewardPearls)
+        assertEquals(18, recurringGrant.completion.finalRewardPearls)
     }
 
     @Test

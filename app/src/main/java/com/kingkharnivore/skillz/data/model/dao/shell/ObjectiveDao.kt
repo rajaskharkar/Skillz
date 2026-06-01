@@ -67,6 +67,12 @@ interface ObjectiveCompletionDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertCompletion(entity: ObjectiveCompletionEntity): Long
+
+    @Query("SELECT * FROM objective_completions WHERE id = :id LIMIT 1")
+    suspend fun getCompletionById(id: Long): ObjectiveCompletionEntity?
+
+    @Query("UPDATE objective_completions SET pearlsGranted = 1, pearlsClaimed = 1, pearlsClaimedAt = :claimedAt WHERE id = :id AND pearlsClaimed = 0")
+    suspend fun markPearlsClaimed(id: Long, claimedAt: Long): Int
 }
 
 @Dao

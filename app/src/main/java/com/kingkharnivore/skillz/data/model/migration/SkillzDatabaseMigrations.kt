@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 19.
+     * Current database version is 20.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -61,6 +61,14 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_19_20 = object : Migration(19, 20) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `objective_completions` ADD COLUMN `pearlsClaimed` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `objective_completions` ADD COLUMN `pearlsClaimedAt` INTEGER")
+            db.execSQL("UPDATE `objective_completions` SET `pearlsClaimed` = `pearlsGranted` WHERE `pearlsGranted` = 1")
+        }
+    }
+
     val ALL_MIGRATIONS: Array<Migration> =
         LEGACY_TO_15_MIGRATIONS +
                 MIGRATION_13_14 +
@@ -68,7 +76,8 @@ object SkillzDatabaseMigrations {
                 MIGRATION_15_16 +
                 MIGRATION_16_17 +
                 MIGRATION_17_18 +
-                MIGRATION_18_19
+                MIGRATION_18_19 +
+                MIGRATION_19_20
 
 
     private fun createObjectiveTables(db: SupportSQLiteDatabase) {

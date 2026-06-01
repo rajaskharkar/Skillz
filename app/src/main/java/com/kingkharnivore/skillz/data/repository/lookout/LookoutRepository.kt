@@ -47,22 +47,8 @@ class LookoutRepository @Inject constructor(
 
     suspend fun applyCompletionGrant(grant: ObjectiveCompletionEntity, newCurrentStreak: Int?, newMaxStreak: Int?, newTotalCompletions: Int?): Boolean = db.withTransaction {
         if (completionDao.getCompletion(grant.objectiveId, grant.periodStartMs, grant.periodEndMs) != null) return@withTransaction false
-        val inserted = completionDao.insertCompletion(grant) != -1L
+        val inserted = completionDao.insertCompletion(grant.copy(pearlsGranted = false, pearlsClaimed = false, pearlsClaimedAt = null)) != -1L
         if (!inserted) return@withTransaction false
-
-        if (grant.finalRewardPearls > 0) {
-            pearlLedgerDao.insert(
-                PearlLedgerEntity(
-                    id = UUID.randomUUID().toString(),
-                    delta = grant.finalRewardPearls,
-                    reason = "objective_completion",
-                    sourceType = "objective_completion",
-                    sourceId = "${grant.objectiveId}:${grant.periodStartMs}:${grant.periodEndMs}",
-                    createdAt = grant.completedAt,
-                    note = grant.badgeLabelSnapshot
-                )
-            )
-        }
 
         incrementBadgeInTransaction(grant.badgeKey, grant.completedAt)
 
@@ -76,6 +62,31 @@ class LookoutRepository @Inject constructor(
             )
         }
         true
+    }
+
+    suspend fun claimObjectivePearls(completionId: Long): ObjectiveCompletionEntity? = db.withTransaction {
+        val completion = completionDao.getCompletionById(completionId) ?: return@withTransaction null
+        if (completion.pearlsClaimed) return@withTransaction null
+
+        val now = System.currentTimeMillis()
+        val updated = completionDao.markPearlsClaimed(completionId, now)
+        if (updated == 0) return@withTransaction null
+
+        if (completion.finalRewardPearls > 0) {
+            pearlLedgerDao.insert(
+                PearlLedgerEntity(
+                    id = UUID.randomUUID().toString(),
+                    delta = completion.finalRewardPearls,
+                    reason = "objective_completion_claim",
+                    sourceType = "objective_completion",
+                    sourceId = completion.id.toString(),
+                    createdAt = now,
+                    note = completion.badgeLabelSnapshot
+                )
+            )
+        }
+
+        completion.copy(pearlsGranted = true, pearlsClaimed = true, pearlsClaimedAt = now)
     }
 
     suspend fun resetStreak(objectiveId: Long) {

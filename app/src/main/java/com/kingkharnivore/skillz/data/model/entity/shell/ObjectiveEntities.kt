@@ -68,7 +68,9 @@ data class ObjectiveCompletionEntity(
     val finalRewardPearls: Int,
     val badgeKey: String,
     val badgeLabelSnapshot: String,
-    val pearlsGranted: Boolean = true,
+    val pearlsGranted: Boolean = false,
+    val pearlsClaimed: Boolean = false,
+    val pearlsClaimedAt: Long? = null,
     val badgeGranted: Boolean = true
 )
 

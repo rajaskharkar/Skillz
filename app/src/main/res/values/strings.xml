@@ -1724,13 +1724,14 @@
     <string name="lookout_section_in_progress">In Progress</string>
     <string name="lookout_section_upcoming">Upcoming</string>
     <string name="lookout_completed">Completed</string>
-    <string name="lookout_completed_history_title">Completed Objectives</string>
-    <string name="lookout_completed_history_body">Review completed Objective data by Journey and period.</string>
+    <string name="lookout_achievements_title">Achievements</string>
+    <string name="lookout_achievements_body">Review Objective completion history by Journey and period.</string>
     <string name="lookout_back_to_objectives">Back to Objectives</string>
-    <string name="lookout_history_empty_title">No completed Objectives yet.</string>
-    <string name="lookout_history_empty_body" formatted="false">Completed Objectives will appear here once your progress reaches 100%.</string>
+    <string name="lookout_achievements_empty_title">No Achievements yet.</string>
+    <string name="lookout_achievements_empty_body" formatted="false">Objective Achievements will appear here once your progress reaches 100%.</string>
     <string name="lookout_history_row_title">%1$s %2$s Objective</string>
-    <string name="lookout_history_row_summary">%1$d completions · %2$d Pearls earned</string>
+    <string name="lookout_history_row_summary_claimed">%1$d completions · %2$d Pearls claimed</string>
+    <string name="lookout_history_row_summary_with_waiting">%1$d completions · %2$d Pearls claimed · %3$d waiting</string>
     <string name="lookout_history_last_completed">Last completed %1$s</string>
     <string name="lookout_summary_in_progress">%1$d in progress · %2$d completed</string>
     <string name="lookout_summary_completed">%1$d completed this period</string>
@@ -1738,6 +1739,9 @@
     <string name="lookout_journey">Journey</string>
     <string name="lookout_choose_journey">Choose or create a Journey</string>
     <string name="lookout_create_journey">Create “%1$s”</string>
+    <string name="lookout_new_journey_action">+ New Journey</string>
+    <string name="lookout_new_journey">New Journey</string>
+    <string name="lookout_name_your_journey">Name your Journey</string>
     <string name="lookout_start_date">Start date</string>
     <string name="lookout_today">Today</string>
     <string name="lookout_tomorrow">Tomorrow</string>
@@ -1750,6 +1754,11 @@
     <string name="lookout_monthly_helper">Monthly Objectives run for 30 days.</string>
     <string name="lookout_recurring_helper" formatted="false">Streak rewards grow by +10% each time you complete this Objective.</string>
     <string name="lookout_save_objective">Save Objective</string>
+    <string name="lookout_claim">Claim</string>
+    <string name="lookout_claimed">Claimed</string>
+    <string name="lookout_pearls_claimed_title">Pearls claimed</string>
+    <string name="lookout_start_flow">Flow</string>
+    <string name="lookout_flow_already_active">A Flow is already active.</string>
     <string name="lookout_objective_complete_title">Objective Complete</string>
     <string name="lookout_objective_complete_body">You completed your %1$s %2$s Objective.</string>
     <string name="lookout_pearls_delta">+%1$d Pearls</string>

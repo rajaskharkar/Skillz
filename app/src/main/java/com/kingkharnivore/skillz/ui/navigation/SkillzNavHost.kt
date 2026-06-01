@@ -213,7 +213,13 @@ fun SkillzNavHost(
         }
 
         composable(SkillzDestinations.SHELL) {
-            ShellRootScreen(onBack = { navController.popBackStack() })
+            ShellRootScreen(
+                onBack = { navController.popBackStack() },
+                isFlowActive = isFocusModeOn,
+                onLaunchFlowForJourney = { journeyName ->
+                    navController.navigate(SkillzDestinations.addSkillRoute(prefillJourney = journeyName))
+                }
+            )
         }
 
         composable(SkillzDestinations.ADD_PULSE_ROUTE) {

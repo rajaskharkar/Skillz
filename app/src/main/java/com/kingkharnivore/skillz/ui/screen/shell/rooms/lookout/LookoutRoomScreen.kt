@@ -8,7 +8,6 @@ package com.kingkharnivore.skillz.ui.screen.shell.rooms.lookout
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,7 +35,7 @@ import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Event
-import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -91,6 +90,7 @@ import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellPearlMiniIcon
 import com.kingkharnivore.skillz.ui.screen.shell.ux.shellChamberBrush
 import com.kingkharnivore.skillz.viewmodel.shell.CompletedObjectiveHistoryGroupUiState
 import com.kingkharnivore.skillz.viewmodel.shell.LookoutJourneyUiState
+import com.kingkharnivore.skillz.viewmodel.shell.JourneyInputMode
 import com.kingkharnivore.skillz.viewmodel.shell.LookoutMode
 import com.kingkharnivore.skillz.viewmodel.shell.LookoutUiState
 import com.kingkharnivore.skillz.viewmodel.shell.LookoutViewModel
@@ -109,6 +109,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LookoutRoomScreen(
     modifier: Modifier = Modifier,
+    onLaunchFlowForJourney: (String) -> Unit = {},
     viewModel: LookoutViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -128,14 +129,14 @@ fun LookoutRoomScreen(
             LookoutHeader(
                 mode = uiState.mode,
                 onSetObjective = { viewModel.openSetObjective(uiState.selectedPeriod) },
-                onCompleted = viewModel::showCompletedHistory,
+                onCompleted = viewModel::showAchievements,
                 onBackToObjectives = viewModel::showObjectives
             )
             Spacer(Modifier.height(12.dp))
 
             if (uiState.isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            } else if (uiState.mode == LookoutMode.CompletedHistory) {
+            } else if (uiState.mode == LookoutMode.Achievements) {
                 CompletedHistoryView(uiState.completedHistory)
             } else {
                 PeriodTabs(
@@ -155,8 +156,9 @@ fun LookoutRoomScreen(
                     }
                     ObjectivePeriodPage(
                         state = periodState,
-                        onCompletedClick = viewModel::showReward,
-                        onRemoveClick = viewModel::requestRemove
+                        onClaimClick = viewModel::claimReward,
+                        onRemoveClick = viewModel::requestRemove,
+                        onLaunchFlow = onLaunchFlowForJourney
                     )
                 }
             }
@@ -194,7 +196,7 @@ private fun LookoutHeader(
 ) {
     val title = stringResource(R.string.lookout_title)
     val setDescription = stringResource(R.string.lookout_set_objective)
-    val completedDescription = stringResource(R.string.lookout_completed_history_title)
+    val completedDescription = stringResource(R.string.lookout_achievements_title)
     val backDescription = stringResource(R.string.lookout_back_to_objectives)
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
@@ -202,7 +204,7 @@ private fun LookoutHeader(
     ) {
         Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (mode == LookoutMode.CompletedHistory) {
+                if (mode == LookoutMode.Achievements) {
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.13f),
@@ -232,12 +234,12 @@ private fun LookoutHeader(
                 }
                 Column(Modifier.weight(1f).padding(start = 14.dp)) {
                     Text(
-                        if (mode == LookoutMode.CompletedHistory) stringResource(R.string.lookout_completed_history_title) else title,
+                        if (mode == LookoutMode.Achievements) stringResource(R.string.lookout_achievements_title) else title,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        if (mode == LookoutMode.CompletedHistory) stringResource(R.string.lookout_completed_history_body) else stringResource(R.string.lookout_subtitle),
+                        if (mode == LookoutMode.Achievements) stringResource(R.string.lookout_achievements_body) else stringResource(R.string.lookout_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -252,7 +254,7 @@ private fun LookoutHeader(
                     OutlinedButton(
                         onClick = onCompleted,
                         modifier = Modifier.semantics { contentDescription = completedDescription; role = Role.Button }
-                    ) { Text(stringResource(R.string.lookout_completed)) }
+                    ) { Text(stringResource(R.string.lookout_achievements_title)) }
                     Button(
                         onClick = onSetObjective,
                         modifier = Modifier.semantics { contentDescription = setDescription; role = Role.Button }
@@ -297,8 +299,9 @@ private fun PeriodTabs(selected: ObjectivePeriod, onSelected: (ObjectivePeriod) 
 @Composable
 private fun ObjectivePeriodPage(
     state: ObjectivePeriodUiState,
-    onCompletedClick: (Long) -> Unit,
-    onRemoveClick: (Long) -> Unit
+    onClaimClick: (Long) -> Unit,
+    onRemoveClick: (Long) -> Unit,
+    onLaunchFlow: (String) -> Unit
 ) {
     LazyColumn(contentPadding = PaddingValues(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
@@ -308,9 +311,9 @@ private fun ObjectivePeriodPage(
         if (state.inProgress.isEmpty() && state.completed.isEmpty() && state.upcoming.isEmpty()) {
             item { EmptyPeriodState(state.period) }
         } else {
-            if (state.inProgress.isNotEmpty()) section(stringResourceId = R.string.lookout_section_in_progress, state.inProgress, onCompletedClick, onRemoveClick)
-            if (state.completed.isNotEmpty()) section(stringResourceId = R.string.lookout_completed, state.completed, onCompletedClick, onRemoveClick)
-            if (state.upcoming.isNotEmpty()) section(stringResourceId = R.string.lookout_section_upcoming, state.upcoming, onCompletedClick, onRemoveClick, soft = true)
+            if (state.inProgress.isNotEmpty()) section(stringResourceId = R.string.lookout_section_in_progress, state.inProgress, onClaimClick, onRemoveClick, onLaunchFlow)
+            if (state.completed.isNotEmpty()) section(stringResourceId = R.string.lookout_completed, state.completed, onClaimClick, onRemoveClick, onLaunchFlow)
+            if (state.upcoming.isNotEmpty()) section(stringResourceId = R.string.lookout_section_upcoming, state.upcoming, onClaimClick, onRemoveClick, onLaunchFlow, soft = true)
         }
     }
 }
@@ -318,18 +321,19 @@ private fun ObjectivePeriodPage(
 private fun androidx.compose.foundation.lazy.LazyListScope.section(
     stringResourceId: Int,
     cards: List<ObjectiveCardUiState>,
-    onCompletedClick: (Long) -> Unit,
+    onClaimClick: (Long) -> Unit,
     onRemoveClick: (Long) -> Unit,
+    onLaunchFlow: (String) -> Unit,
     soft: Boolean = false
 ) {
     item { Text(stringResource(stringResourceId), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
     items(cards, key = { it.objectiveId }) { card ->
-        ObjectiveCard(card, onCompletedClick, onRemoveClick, soft)
+        ObjectiveCard(card, onClaimClick, onRemoveClick, onLaunchFlow, soft)
     }
 }
 
 @Composable
-private fun ObjectiveCard(card: ObjectiveCardUiState, onCompletedClick: (Long) -> Unit, onRemoveClick: (Long) -> Unit, soft: Boolean) {
+private fun ObjectiveCard(card: ObjectiveCardUiState, onClaimClick: (Long) -> Unit, onRemoveClick: (Long) -> Unit, onLaunchFlow: (String) -> Unit, soft: Boolean) {
     val completed = card.state == ObjectiveCardState.Completed
     val removeDescription = stringResource(R.string.lookout_remove_objective)
     val brush = if (completed) {
@@ -340,8 +344,7 @@ private fun ObjectiveCard(card: ObjectiveCardUiState, onCompletedClick: (Long) -
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .clickable(enabled = completed) { onCompletedClick(card.objectiveId) },
+            .clip(RoundedCornerShape(24.dp)),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.elevatedCardColors(containerColor = Color.Transparent)
     ) {
@@ -377,6 +380,24 @@ private fun ObjectiveCard(card: ObjectiveCardUiState, onCompletedClick: (Long) -
                     AssistChip(onClick = {}, leadingIcon = { ShellPearlMiniIcon(Modifier.size(16.dp)) }, label = { Text(card.estimatedRewardLabel) })
                     card.streakBonusLabel?.let { AssistChip(onClick = {}, label = { Text(it) }) }
                 }
+                when (card.state) {
+                    ObjectiveCardState.InProgress -> {
+                        OutlinedButton(onClick = { onLaunchFlow(card.journeyName) }) {
+                            Icon(Icons.Outlined.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Text(stringResource(R.string.lookout_start_flow))
+                        }
+                    }
+                    ObjectiveCardState.Completed -> {
+                        if (card.pearlsClaimed) {
+                            AssistChip(onClick = {}, label = { Text(stringResource(R.string.lookout_claimed)) })
+                        } else {
+                            Button(onClick = { card.completionId?.let(onClaimClick) }) {
+                                Text(stringResource(R.string.lookout_claim))
+                            }
+                        }
+                    }
+                    ObjectiveCardState.Upcoming -> Unit
+                }
             }
         }
     }
@@ -411,8 +432,8 @@ private fun CompletedHistoryView(groups: List<CompletedObjectiveHistoryGroupUiSt
             item {
                 ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)), shape = RoundedCornerShape(24.dp)) {
                     Column(Modifier.fillMaxWidth().padding(22.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(R.string.lookout_history_empty_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text(stringResource(R.string.lookout_history_empty_body), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(R.string.lookout_achievements_empty_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.lookout_achievements_empty_body), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -483,42 +504,43 @@ private fun JourneyComboField(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val trimmed = dialog.journeyText.trim()
+    val existingMode = dialog.journeyInputMode == JourneyInputMode.Existing
     val suggestions = journeys.filter { journey ->
         trimmed.isBlank() || journey.name.contains(trimmed, ignoreCase = true)
     }
-    val exactMatch = journeys.any { it.name.equals(trimmed, ignoreCase = true) }
-    val createLabel = stringResource(R.string.lookout_create_journey, trimmed)
 
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+    ExposedDropdownMenuBox(expanded = existingMode && expanded, onExpandedChange = { if (existingMode) expanded = it }) {
         OutlinedTextField(
             value = dialog.journeyText,
             onValueChange = { text ->
-                expanded = true
                 val matched = journeys.firstOrNull { it.name.equals(text.trim(), ignoreCase = true) }
-                onChange { it.copy(journeyText = text, selectedJourneyId = matched?.id) }
+                onChange { state ->
+                    state.copy(
+                        journeyText = text,
+                        selectedJourneyId = matched?.id?.takeIf { state.journeyInputMode == JourneyInputMode.Existing }
+                    )
+                }
             },
-            label = { Text(stringResource(R.string.lookout_journey)) },
-            placeholder = { Text(stringResource(R.string.lookout_choose_journey)) },
+            label = { Text(if (existingMode) stringResource(R.string.lookout_journey) else stringResource(R.string.lookout_new_journey)) },
+            placeholder = { Text(if (existingMode) stringResource(R.string.lookout_choose_journey) else stringResource(R.string.lookout_name_your_journey)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             singleLine = true,
             modifier = Modifier.menuAnchor().fillMaxWidth()
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        ExposedDropdownMenu(expanded = existingMode && expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.lookout_new_journey_action)) },
+                onClick = {
+                    expanded = false
+                    onChange { it.copy(journeyInputMode = JourneyInputMode.New, selectedJourneyId = null, journeyText = "") }
+                }
+            )
             suggestions.forEach { journey ->
                 DropdownMenuItem(
                     text = { Text(journey.name) },
                     onClick = {
                         expanded = false
-                        onChange { it.copy(selectedJourneyId = journey.id, journeyText = journey.name) }
-                    }
-                )
-            }
-            if (trimmed.isNotBlank() && !exactMatch) {
-                DropdownMenuItem(
-                    text = { Text(createLabel) },
-                    onClick = {
-                        expanded = false
-                        onChange { it.copy(selectedJourneyId = null, journeyText = trimmed) }
+                        onChange { it.copy(journeyInputMode = JourneyInputMode.Existing, selectedJourneyId = journey.id, journeyText = journey.name) }
                     }
                 )
             }
