@@ -12,4 +12,7 @@ interface ShellDaoProvider {
     fun stillwaterPreferenceDao(): StillwaterPreferenceDao
     fun userShellRoomStateDao(): UserShellRoomStateDao
     fun shellRewardEventDao(): ShellRewardEventDao
+    fun objectiveDao(): ObjectiveDao
+    fun objectiveCompletionDao(): ObjectiveCompletionDao
+    fun objectiveSkippedCycleDao(): ObjectiveSkippedCycleDao
 }
