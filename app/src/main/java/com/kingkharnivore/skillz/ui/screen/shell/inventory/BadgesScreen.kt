@@ -31,7 +31,7 @@ import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 
 private data class ObjectiveBadgeGroup(
     val journeyId: Long,
-    val journeyName: String,
+    val journeyName: String?,
     val badges: List<ObjectiveBadgeRow>
 )
 
@@ -56,24 +56,25 @@ fun BadgesScreen(uiState: ShellUiState) {
         if (objectiveGroups.isNotEmpty()) {
             item {
                 Text(
-                    text = "Objective Badges",
+                    text = stringResource(R.string.shell_objective_badges_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
             items(objectiveGroups, key = { it.journeyId }) { group ->
+                val journeyTitle = group.journeyName ?: stringResource(R.string.shell_objective_badge_unknown_journey, group.journeyId)
                 ElevatedCard(
                     colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(group.journeyName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(journeyTitle, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         group.badges.forEach { row ->
                             ListItem(
                                 leadingContent = { Icon(Icons.Outlined.MilitaryTech, contentDescription = null, tint = MaterialTheme.colorScheme.secondary) },
-                                headlineContent = { Text("${row.period} Objective x${row.count}") },
-                                supportingContent = { Text("Completed ${row.period.lowercase()} Objectives for ${group.journeyName}.") }
+                                headlineContent = { Text(stringResource(R.string.shell_objective_badge_row_title, row.periodLabel(), row.count)) },
+                                supportingContent = { Text(stringResource(R.string.shell_objective_badge_row_body, row.periodLabel().lowercase(), journeyTitle)) }
                             )
                         }
                     }
@@ -112,6 +113,14 @@ fun BadgesScreen(uiState: ShellUiState) {
     }
 }
 
+@Composable
+private fun ObjectiveBadgeRow.periodLabel(): String = when (period) {
+    "daily" -> stringResource(R.string.lookout_period_daily)
+    "weekly" -> stringResource(R.string.lookout_period_weekly)
+    "monthly" -> stringResource(R.string.lookout_period_monthly)
+    else -> period.replaceFirstChar { it.titlecase() }
+}
+
 private fun List<UserBadgeEntity>.objectiveBadgeGroups(completions: List<ObjectiveCompletionEntity>): List<ObjectiveBadgeGroup> {
     val journeyNameByBadge = completions
         .groupBy { it.badgeKey }
@@ -124,8 +133,8 @@ private fun List<UserBadgeEntity>.objectiveBadgeGroups(completions: List<Objecti
             val journeyId = parts.dropLast(1).joinToString("_").toLongOrNull() ?: return@mapNotNull null
             ObjectiveBadgeGroup(
                 journeyId = journeyId,
-                journeyName = journeyNameByBadge[badge.badgeId].takeUnless { it.isNullOrBlank() } ?: "Journey $journeyId",
-                badges = listOf(ObjectiveBadgeRow(period.replaceFirstChar { it.titlecase() }, badge.count))
+                journeyName = journeyNameByBadge[badge.badgeId].takeUnless { it.isNullOrBlank() },
+                badges = listOf(ObjectiveBadgeRow(period, badge.count))
             )
         }
         .groupBy { it.journeyId to it.journeyName }
@@ -134,8 +143,8 @@ private fun List<UserBadgeEntity>.objectiveBadgeGroups(completions: List<Objecti
                 journeyId = key.first,
                 journeyName = key.second,
                 badges = groups.flatMap { it.badges }
-                    .sortedBy { listOf("Daily", "Weekly", "Monthly").indexOf(it.period).let { index -> if (index < 0) Int.MAX_VALUE else index } }
+                    .sortedBy { listOf("daily", "weekly", "monthly").indexOf(it.period).let { index -> if (index < 0) Int.MAX_VALUE else index } }
             )
         }
-        .sortedBy { it.journeyName.lowercase() }
+        .sortedWith(compareBy<ObjectiveBadgeGroup> { it.journeyName?.lowercase().orEmpty() }.thenBy { it.journeyId })
 }
