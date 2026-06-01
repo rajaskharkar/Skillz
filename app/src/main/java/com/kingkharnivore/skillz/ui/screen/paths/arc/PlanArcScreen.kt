@@ -696,95 +696,6 @@ private fun selectionSummaryLabel(selectedCount: Int): String =
 
 
 @Composable
-private fun FlowPickerSection(
-    availableTags: List<TagUiModel>,
-    selectedTagId: Long?,
-    availableFlows: List<PlanArcFlowPickerItemUiModel>,
-    selectedFlowIdsInOrder: List<Long>,
-    errorMessage: String?,
-    onTagSelected: (Long?) -> Unit,
-    onFlowToggled: (Long) -> Unit,
-    onCreateNewFlow: () -> Unit
-) {
-    val filteredFlows = availableFlows.filter { flow ->
-        selectedTagId == null || flow.tagId == selectedTagId
-    }
-
-    val createFlowText = stringResource(R.string.plan_arc_create_flow_cta)
-    val summaryLabel = when (selectedFlowIdsInOrder.size) {
-        0 -> stringResource(R.string.plan_arc_selection_summary_choose)
-        1 -> stringResource(R.string.plan_arc_selection_summary_needs_second)
-        else -> pluralStringResource(
-            R.plurals.plan_arc_selection_summary_selected,
-            selectedFlowIdsInOrder.size,
-            selectedFlowIdsInOrder.size
-        )
-    }
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        if (availableTags.isNotEmpty()) {
-            TagFilterRow(
-                tags = availableTags,
-                selectedTagId = selectedTagId,
-                onTagSelected = onTagSelected
-            )
-        }
-
-        SelectionSummaryCard(
-            label = summaryLabel,
-            modifier = Modifier.padding(top = 2.dp)
-        )
-
-        CompactSelectedSequencePreview(
-            selectedFlowIdsInOrder = selectedFlowIdsInOrder,
-            availableFlows = availableFlows,
-            onRemove = onFlowToggled
-        )
-
-        Button(
-            onClick = onCreateNewFlow,
-            modifier = Modifier
-                .fillMaxWidth()
-                .semantics {
-                    role = Role.Button
-                    contentDescription = createFlowText
-                },
-            shape = RoundedCornerShape(999.dp)
-        ) {
-            Text(createFlowText)
-        }
-
-        if (!errorMessage.isNullOrBlank()) {
-            ErrorInlineCard(message = errorMessage)
-        }
-
-        if (filteredFlows.isEmpty()) {
-            EmptyFlowPickerCard()
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 2.dp, bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(filteredFlows, key = { it.id }) { flow ->
-                    FlowPickerCard(
-                        flow = flow,
-                        selected = flow.id in selectedFlowIdsInOrder,
-                        selectionOrder = selectedFlowIdsInOrder.indexOf(flow.id)
-                            .takeIf { it >= 0 }
-                            ?.plus(1),
-                        onClick = { onFlowToggled(flow.id) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun CompactSelectedSequencePreview(
     selectedFlowIdsInOrder: List<Long>,
     availableFlows: List<PlanArcFlowPickerItemUiModel>,
@@ -892,196 +803,6 @@ private fun CompactSelectedSequencePreview(
     }
 }
 
-
-@Composable
-private fun RouteShapeSection(
-    selectedFlowIdsInOrder: List<Long>,
-    availableFlows: List<PlanArcFlowPickerItemUiModel>,
-    errorMessage: String?,
-    onMoveUp: (Long) -> Unit,
-    onMoveDown: (Long) -> Unit,
-    onRemove: (Long) -> Unit
-) {
-    val flowById = availableFlows.associateBy { it.id }
-    val selectedFlows = selectedFlowIdsInOrder.mapNotNull { flowById[it] }
-
-    val summaryLabel = if (selectedFlows.isEmpty()) {
-        stringResource(R.string.plan_arc_shape_empty_summary)
-    } else {
-        pluralStringResource(
-            R.plurals.plan_arc_shape_summary_steps,
-            selectedFlows.size,
-            selectedFlows.size
-        )
-    }
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        SelectionSummaryCard(label = summaryLabel, modifier = Modifier.padding(top = 2.dp))
-
-        if (!errorMessage.isNullOrBlank()) {
-            ErrorInlineCard(message = errorMessage)
-        }
-
-        if (selectedFlows.isEmpty()) {
-            EmptyRouteShapeCard()
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(
-                    items = selectedFlows,
-                    key = { it.id }
-                ) { flow ->
-                    val index = selectedFlowIdsInOrder.indexOf(flow.id)
-                    RouteStepCard(
-                        stepNumber = index + 1,
-                        flow = flow,
-                        canMoveUp = index > 0,
-                        canMoveDown = index < selectedFlowIdsInOrder.lastIndex,
-                        onMoveUp = { onMoveUp(flow.id) },
-                        onMoveDown = { onMoveDown(flow.id) },
-                        onRemove = { onRemove(flow.id) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TimingIntentSection(
-    uiState: PlanArcUiState,
-    onTargetMinutesChanged: (Long, String) -> Unit,
-    onLaunchWithSurgeChanged: (Long, Boolean) -> Unit
-) {
-    val flowById = uiState.availableFlows.associateBy { it.id }
-    val selectedFlows = uiState.selectedFlowIdsInOrder.mapNotNull { flowById[it] }
-
-    val timedMinutes = selectedFlows.mapNotNull { flow ->
-        uiState.targetMinutesTextByFlowId[flow.id]
-            ?.trim()
-            ?.toIntOrNull()
-            ?.takeIf { it > 0 }
-    }
-
-    val untimedCount = selectedFlows.count { flow ->
-        uiState.targetMinutesTextByFlowId[flow.id].orEmpty().trim().toIntOrNull()?.let { it > 0 } != true
-    }
-
-    val totalMinutes = timedMinutes.sum()
-    val surgeCount = selectedFlows.count { flow ->
-        uiState.launchWithSurgeByFlowId[flow.id] == true
-    }
-    val softCount = selectedFlows.count { it.isSoftMode }
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        TimingSummaryCard(
-            totalMinutes = totalMinutes,
-            untimedCount = untimedCount,
-            surgeCount = surgeCount,
-            softCount = softCount
-        )
-
-        if (!uiState.errorMessage.isNullOrBlank()) {
-            ErrorInlineCard(message = uiState.errorMessage)
-        }
-
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(selectedFlows, key = { it.id }) { flow ->
-                TimingIntentCard(
-                    flow = flow,
-                    targetMinutesText = uiState.targetMinutesTextByFlowId[flow.id].orEmpty(),
-                    launchWithSurge = uiState.launchWithSurgeByFlowId[flow.id] == true,
-                    onTargetMinutesChanged = { onTargetMinutesChanged(flow.id, it) },
-                    onLaunchWithSurgeChanged = { onLaunchWithSurgeChanged(flow.id, it) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ReviewArcSection(
-    uiState: PlanArcUiState,
-    onRecurrenceTypeSelected: (String) -> Unit,
-    onCustomDayToggled: (Int) -> Unit
-) {
-    val flowById = uiState.availableFlows.associateBy { it.id }
-    val selectedFlows = uiState.selectedFlowIdsInOrder.mapNotNull { flowById[it] }
-
-    val timedMinutes = selectedFlows.mapNotNull { flow ->
-        uiState.targetMinutesTextByFlowId[flow.id]
-            ?.trim()
-            ?.toIntOrNull()
-            ?.takeIf { it > 0 }
-    }
-    val totalMinutes = timedMinutes.sum()
-    val untimedCount = selectedFlows.count { flow ->
-        uiState.targetMinutesTextByFlowId[flow.id].orEmpty().trim().toIntOrNull()?.let { it > 0 } != true
-    }
-    val surgeCount = selectedFlows.count { flow ->
-        uiState.launchWithSurgeByFlowId[flow.id] == true
-    }
-    val softCount = selectedFlows.count { it.isSoftMode }
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        ReviewSummaryCard(
-            title = uiState.title.trim(),
-            stepCount = selectedFlows.size,
-            totalMinutes = totalMinutes,
-            untimedCount = untimedCount,
-            surgeCount = surgeCount,
-            softCount = softCount
-        )
-
-        ReuseAndRepeatCard(
-            recurrenceType = uiState.recurrenceType,
-            recurrenceDays = uiState.recurrenceDays,
-            onRecurrenceTypeSelected = onRecurrenceTypeSelected,
-            onCustomDayToggled = onCustomDayToggled
-        )
-
-        ReusePlaceholderCard()
-
-        if (!uiState.errorMessage.isNullOrBlank()) {
-            ErrorInlineCard(message = uiState.errorMessage)
-        }
-
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(selectedFlows, key = { it.id }) { flow ->
-                val targetText = uiState.targetMinutesTextByFlowId[flow.id].orEmpty().trim()
-                val targetMinutes = targetText.toIntOrNull()?.takeIf { it > 0 }
-                val launchWithSurge = uiState.launchWithSurgeByFlowId[flow.id] == true
-
-                ReviewStepCard(
-                    stepNumber = uiState.selectedFlowIdsInOrder.indexOf(flow.id) + 1,
-                    flow = flow,
-                    targetMinutes = targetMinutes,
-                    launchWithSurge = launchWithSurge
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun ReuseAndRepeatCard(
@@ -1196,25 +917,26 @@ private fun TagFilterRow(
     val allText = stringResource(R.string.plan_arc_filter_all)
     val selectedText = stringResource(R.string.plan_arc_selected)
     val notSelectedText = stringResource(R.string.plan_arc_not_selected)
+    val visibleTags = tags.take(6)
 
-    LazyColumn(
-        userScrollEnabled = false,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        item {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        visibleTags.chunked(3).forEachIndexed { rowIndex, rowTags ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val allA11y = stringResource(R.string.plan_arc_filter_chip_a11y, allText)
-                FilterChip(
-                    selected = selectedTagId == null,
-                    onClick = { onTagSelected(null) },
-                    label = { Text(allText) },
-                    modifier = Modifier.semantics {
-                        role = Role.Button
-                        contentDescription = allA11y
-                        stateDescription = if (selectedTagId == null) selectedText else notSelectedText
-                    }
-                )
-                tags.take(3).forEach { tag ->
+                if (rowIndex == 0) {
+                    val allA11y = stringResource(R.string.plan_arc_filter_chip_a11y, allText)
+                    FilterChip(
+                        selected = selectedTagId == null,
+                        onClick = { onTagSelected(null) },
+                        label = { Text(allText) },
+                        modifier = Modifier.semantics {
+                            role = Role.Button
+                            contentDescription = allA11y
+                            stateDescription = if (selectedTagId == null) selectedText else notSelectedText
+                        }
+                    )
+                }
+
+                rowTags.forEach { tag ->
                     val chipA11y = stringResource(R.string.plan_arc_filter_chip_a11y, tag.name)
                     FilterChip(
                         selected = selectedTagId == tag.id,
@@ -1226,26 +948,6 @@ private fun TagFilterRow(
                             stateDescription = if (selectedTagId == tag.id) selectedText else notSelectedText
                         }
                     )
-                }
-            }
-        }
-
-        if (tags.size > 3) {
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    tags.drop(3).take(3).forEach { tag ->
-                        val chipA11y = stringResource(R.string.plan_arc_filter_chip_a11y, tag.name)
-                        FilterChip(
-                            selected = selectedTagId == tag.id,
-                            onClick = { onTagSelected(tag.id) },
-                            label = { Text(tag.name) },
-                            modifier = Modifier.semantics {
-                                role = Role.Button
-                                contentDescription = chipA11y
-                                stateDescription = if (selectedTagId == tag.id) selectedText else notSelectedText
-                            }
-                        )
-                    }
                 }
             }
         }
