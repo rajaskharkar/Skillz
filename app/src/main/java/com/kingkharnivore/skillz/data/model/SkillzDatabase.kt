@@ -70,7 +70,7 @@ abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
     abstract fun arcPlanDao(): ArcPlanDao
     abstract fun activeArcRunDao(): ActiveArcRunDao
     override abstract fun shellRewardEventDao(): com.kingkharnivore.skillz.data.model.dao.shell.ShellRewardEventDao
-    abstract fun objectiveDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveDao
-    abstract fun objectiveCompletionDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveCompletionDao
-    abstract fun objectiveSkippedCycleDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveSkippedCycleDao
+    override abstract fun objectiveDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveDao
+    override abstract fun objectiveCompletionDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveCompletionDao
+    override abstract fun objectiveSkippedCycleDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveSkippedCycleDao
 }
