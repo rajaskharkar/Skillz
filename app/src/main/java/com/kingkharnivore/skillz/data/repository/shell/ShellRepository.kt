@@ -29,7 +29,8 @@ class ShellRepository @Inject constructor(
     private val discoveryDao: UserDiscoveryDao,
     private val stillwaterLedgerDao: StillwaterLedgerDao,
     private val stillwaterPreferenceDao: StillwaterPreferenceDao,
-    private val roomStateDao: UserShellRoomStateDao
+    private val roomStateDao: UserShellRoomStateDao,
+    private val objectiveCompletionDao: ObjectiveCompletionDao
 ) {
     fun observePearlBalance(): Flow<Int> = pearlLedgerDao.observeBalance()
     fun observeStillwaterTotal(): Flow<Long> = stillwaterLedgerDao.observeTotal()
@@ -38,6 +39,7 @@ class ShellRepository @Inject constructor(
     fun observePlacements(roomId: ShellRoomId): Flow<List<ShellPlacementEntity>> = placementDao.observeByRoom(roomId.name)
     fun observeEarnedBadges(): Flow<List<UserBadgeEntity>> = badgeDao.observeEarned()
     fun observeDiscoveries(): Flow<List<UserDiscoveryEntity>> = discoveryDao.observeAll()
+    fun observeObjectiveCompletions(): Flow<List<ObjectiveCompletionEntity>> = objectiveCompletionDao.observeCompletions()
     fun observeStillwaterPreference(): Flow<StillwaterPreferenceEntity?> = stillwaterPreferenceDao.observe()
 
     suspend fun getPearlBalance(): Int = pearlLedgerDao.getBalance()

@@ -89,6 +89,7 @@ import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellChestScreen
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellNotificationsScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.TheBlueRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.focus.FocusRoomScreen
+import com.kingkharnivore.skillz.ui.screen.shell.rooms.lookout.LookoutRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.stillwater.StillwaterRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.voyage.VoyageHallScreen
 import com.kingkharnivore.skillz.ui.screen.shell.ux.displayedInstanceIds
@@ -295,11 +296,7 @@ fun ShellRootScreen(
                     icon = Icons.Outlined.PsychologyAlt
                 )
 
-                ShellDestination.LookoutPreview -> DormantPreviewScreen(
-                    titleRes = R.string.shell_room_lookout_title,
-                    bodyRes = R.string.shell_preview_lookout,
-                    icon = Icons.Outlined.Visibility
-                )
+                ShellDestination.LookoutPreview -> LookoutRoomScreen()
             }
         }
 

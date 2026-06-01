@@ -1,6 +1,9 @@
 package com.kingkharnivore.skillz.data.di
 
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
+import com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveCompletionDao
+import com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveDao
+import com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveSkippedCycleDao
 import com.kingkharnivore.skillz.data.model.dao.shell.PearlLedgerDao
 import com.kingkharnivore.skillz.data.model.dao.shell.ShellFindInstanceDao
 import com.kingkharnivore.skillz.data.model.dao.shell.ShellRewardEventDao
@@ -58,4 +61,15 @@ object ShellDatabaseModule {
     @Provides
     fun provideShellRewardEventDao(db: SkillzDatabase): ShellRewardEventDao =
         db.shellRewardEventDao()
+
+    @Provides
+    fun provideObjectiveDao(db: SkillzDatabase): ObjectiveDao = db.objectiveDao()
+
+    @Provides
+    fun provideObjectiveCompletionDao(db: SkillzDatabase): ObjectiveCompletionDao =
+        db.objectiveCompletionDao()
+
+    @Provides
+    fun provideObjectiveSkippedCycleDao(db: SkillzDatabase): ObjectiveSkippedCycleDao =
+        db.objectiveSkippedCycleDao()
 }

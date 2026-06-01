@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.viewmodel.shell
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveCompletionEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellPlacementEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserBadgeEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserDiscoveryEntity
@@ -30,7 +31,8 @@ data class ShellUiState(
     val stacks: List<UserShellFindStackEntity> = emptyList(),
     val focusPlacements: List<ShellPlacementEntity> = emptyList(),
     val badges: List<UserBadgeEntity> = emptyList(),
-    val discoveries: List<UserDiscoveryEntity> = emptyList()
+    val discoveries: List<UserDiscoveryEntity> = emptyList(),
+    val objectiveCompletions: List<ObjectiveCompletionEntity> = emptyList()
 )
 
 private data class ShellEconomyState(
@@ -47,7 +49,8 @@ private data class ShellOwnershipState(
 
 private data class ShellMemoryState(
     val badges: List<UserBadgeEntity>,
-    val discoveries: List<UserDiscoveryEntity>
+    val discoveries: List<UserDiscoveryEntity>,
+    val objectiveCompletions: List<ObjectiveCompletionEntity>
 )
 
 @HiltViewModel
@@ -74,8 +77,9 @@ class ShellViewModel @Inject constructor(
 
     private val memory = combine(
         repository.observeEarnedBadges(),
-        repository.observeDiscoveries()
-    ) { badges, discoveries -> ShellMemoryState(badges, discoveries) }
+        repository.observeDiscoveries(),
+        repository.observeObjectiveCompletions()
+    ) { badges, discoveries, objectiveCompletions -> ShellMemoryState(badges, discoveries, objectiveCompletions) }
 
     val uiState: StateFlow<ShellUiState> = combine(economy, ownership, memory) { economy, ownership, memory ->
         ShellUiState(
@@ -86,7 +90,8 @@ class ShellViewModel @Inject constructor(
             stacks = ownership.stacks,
             focusPlacements = ownership.focusPlacements,
             badges = memory.badges,
-            discoveries = memory.discoveries
+            discoveries = memory.discoveries,
+            objectiveCompletions = memory.objectiveCompletions
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ShellUiState())
 

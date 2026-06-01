@@ -18,6 +18,9 @@ import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseEntity
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveCompletionEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveSkippedCycleEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.PearlLedgerEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellFindUpgradeEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellPlacementEntity
@@ -50,9 +53,12 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellRoomStateEntit
         StillwaterLedgerEntity::class,
         StillwaterPreferenceEntity::class,
         UserShellRoomStateEntity::class,
-        ShellRewardEventEntity::class
+        ShellRewardEventEntity::class,
+        ObjectiveEntity::class,
+        ObjectiveCompletionEntity::class,
+        ObjectiveSkippedCycleEntity::class
     ],
-    version = 18,
+    version = 19,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
@@ -64,4 +70,7 @@ abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
     abstract fun arcPlanDao(): ArcPlanDao
     abstract fun activeArcRunDao(): ActiveArcRunDao
     override abstract fun shellRewardEventDao(): com.kingkharnivore.skillz.data.model.dao.shell.ShellRewardEventDao
+    abstract fun objectiveDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveDao
+    abstract fun objectiveCompletionDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveCompletionDao
+    abstract fun objectiveSkippedCycleDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveSkippedCycleDao
 }
