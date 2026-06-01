@@ -204,8 +204,8 @@ fun PlanArcScreen(
                             Text(createFlowText)
                         }
                     }
-                    if (!uiState.errorMessage.isNullOrBlank()) {
-                        item { ErrorInlineCard(message = uiState.errorMessage) }
+                    uiState.errorMessage?.takeIf { it.isNotBlank() }?.let { errorMessage ->
+                        item { ErrorInlineCard(message = errorMessage) }
                     }
                     if (filteredFlows.isEmpty()) {
                         item { EmptyFlowPickerCard() }
@@ -243,8 +243,8 @@ fun PlanArcScreen(
                             }
                         )
                     }
-                    if (!uiState.errorMessage.isNullOrBlank()) {
-                        item { ErrorInlineCard(message = uiState.errorMessage) }
+                    uiState.errorMessage?.takeIf { it.isNotBlank() }?.let { errorMessage ->
+                        item { ErrorInlineCard(message = errorMessage) }
                     }
                     if (selectedFlows.isEmpty()) {
                         item { EmptyRouteShapeCard() }
@@ -279,8 +279,8 @@ fun PlanArcScreen(
                             softCount = softCount
                         )
                     }
-                    if (!uiState.errorMessage.isNullOrBlank()) {
-                        item { ErrorInlineCard(message = uiState.errorMessage) }
+                    uiState.errorMessage?.takeIf { it.isNotBlank() }?.let { errorMessage ->
+                        item { ErrorInlineCard(message = errorMessage) }
                     }
                     items(selectedFlows, key = { it.id }) { flow ->
                         TimingIntentCard(
@@ -318,8 +318,8 @@ fun PlanArcScreen(
                             onCustomDayToggled = viewModel::onCustomDayToggled
                         )
                     }
-                    if (!uiState.errorMessage.isNullOrBlank()) {
-                        item { ErrorInlineCard(message = uiState.errorMessage) }
+                    uiState.errorMessage?.takeIf { it.isNotBlank() }?.let { errorMessage ->
+                        item { ErrorInlineCard(message = errorMessage) }
                     }
                     items(selectedFlows, key = { it.id }) { flow ->
                         val targetText = uiState.targetMinutesTextByFlowId[flow.id].orEmpty().trim()

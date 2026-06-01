@@ -425,11 +425,11 @@ private fun StatCard(
     val clickable = onClick != null && !unavailable
     val tapText = stringResource(R.string.voyage_hall_tap_for_details)
     val contentDesc = listOfNotNull(title, value, subtitle, detail, if (clickable) tapText else null).joinToString(". ")
-    ElevatedCard(
+    Surface(
         shape = RoundedCornerShape(if (prominent) 34.dp else 28.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = scheme.surface.copy(alpha = if (unavailable) 0.66f else 0.92f)),
+        color = scheme.surface.copy(alpha = if (unavailable) 0.66f else 0.92f),
         border = BorderStroke(1.dp, scheme.primary.copy(alpha = if (prominent) 0.32f else if (unavailable) 0.10f else 0.18f)),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = if (prominent) 6.dp else 2.dp),
+        shadowElevation = if (prominent) 6.dp else 2.dp,
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(if (prominent) 34.dp else 28.dp))
@@ -465,10 +465,11 @@ private fun VoyageRecordPopup(detail: VoyageRecordDetail, onDismiss: () -> Unit)
                 .background(Color.Black.copy(alpha = 0.36f))
                 .clickable(onClick = onDismiss)
         )
-        ElevatedCard(
+        Surface(
             shape = RoundedCornerShape(34.dp),
-            colors = CardDefaults.elevatedCardColors(containerColor = scheme.surface.copy(alpha = 0.97f)),
+            color = scheme.surface.copy(alpha = 0.97f),
             border = BorderStroke(1.dp, scheme.primary.copy(alpha = 0.28f)),
+            shadowElevation = 6.dp,
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .fillMaxHeight(0.84f)
