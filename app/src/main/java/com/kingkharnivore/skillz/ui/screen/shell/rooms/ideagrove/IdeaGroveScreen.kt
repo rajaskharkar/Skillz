@@ -1,9 +1,13 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@file:OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 
 package com.kingkharnivore.skillz.ui.screen.shell.rooms.ideagrove
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -13,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -20,19 +25,18 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Eco
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,12 +45,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -64,8 +72,6 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 
 @Composable
 fun IdeaGroveRoute(
@@ -97,7 +103,10 @@ fun IdeaGroveRoute(
         onFlowClicked = viewModel::onFlowClicked,
         onMarkAsInsightClicked = viewModel::onMarkAsInsightClicked,
         onMarkCompletedClicked = viewModel::onMarkCompletedClicked,
-        onReviveClicked = viewModel::onReviveClicked
+        onReviveClicked = viewModel::onReviveClicked,
+        onDeletePulseClicked = viewModel::onDeletePulseClicked,
+        onConfirmDeletePulse = viewModel::onConfirmDeletePulse,
+        onDismissDeletePulse = viewModel::onDismissDeletePulse
     )
 }
 
@@ -109,11 +118,17 @@ fun IdeaGroveScreen(
     onFlowClicked: (Long) -> Unit,
     onMarkAsInsightClicked: (Long) -> Unit,
     onMarkCompletedClicked: (Long) -> Unit,
-    onReviveClicked: (Long) -> Unit
+    onReviveClicked: (Long) -> Unit,
+    onDeletePulseClicked: (Long) -> Unit,
+    onConfirmDeletePulse: () -> Unit,
+    onDismissDeletePulse: () -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
-    val tabs = listOf(stringResource(R.string.idea_grove_tab_alive), stringResource(R.string.idea_grove_tab_completed))
+    val tabs = listOf(
+        stringResource(R.string.idea_grove_tab_alive),
+        stringResource(R.string.idea_grove_tab_completed)
+    )
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text(
@@ -122,22 +137,17 @@ fun IdeaGroveScreen(
             fontWeight = FontWeight.Bold
         )
         Spacer(Modifier.height(14.dp))
-        TabRow(selectedTabIndex = pagerState.currentPage) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = pagerState.currentPage == index,
-                    onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                    text = { Text(title) },
-                    modifier = Modifier.semantics { contentDescription = stringResource(R.string.idea_grove_tab_a11y, title) }
-                )
-            }
-        }
+        IdeaGroveSegmentedControl(
+            tabs = tabs,
+            selectedIndex = pagerState.currentPage,
+            onSelected = { index -> scope.launch { pagerState.animateScrollToPage(index) } }
+        )
         Spacer(Modifier.height(12.dp))
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
             if (page == 0) {
                 IdeaGrovePage(
                     items = state.aliveItems,
-                    summary = pulseFlowSummary(state.aliveTotalDurationMs, state.aliveFlowCount, false),
+                    summary = pulseFlowSummary(state.totalPulseFlowDurationMs, state.totalPulseFlowCount, false),
                     emptyTitle = if (state.completedItems.isEmpty()) stringResource(R.string.idea_grove_no_ideas_yet) else stringResource(R.string.idea_grove_no_alive_ideas),
                     emptyBody = if (state.completedItems.isEmpty()) stringResource(R.string.idea_grove_empty_create_pulse_hint) else stringResource(R.string.idea_grove_alive_empty_body),
                     sort = state.aliveSort,
@@ -148,12 +158,13 @@ fun IdeaGroveScreen(
                     onFlowClicked = onFlowClicked,
                     onMarkAsInsightClicked = onMarkAsInsightClicked,
                     onMarkCompletedClicked = onMarkCompletedClicked,
-                    onReviveClicked = onReviveClicked
+                    onReviveClicked = onReviveClicked,
+                    onDeletePulseClicked = onDeletePulseClicked
                 )
             } else {
                 IdeaGrovePage(
                     items = state.completedItems,
-                    summary = pulseFlowSummary(state.completedTotalDurationMs, state.completedFlowCount, true),
+                    summary = pulseFlowSummary(state.completedPulseFlowDurationMs, state.completedPulseFlowCount, true),
                     emptyTitle = stringResource(R.string.idea_grove_no_completed_ideas_yet),
                     emptyBody = stringResource(R.string.idea_grove_completed_empty_body),
                     sort = state.aliveSort,
@@ -164,8 +175,70 @@ fun IdeaGroveScreen(
                     onFlowClicked = onFlowClicked,
                     onMarkAsInsightClicked = onMarkAsInsightClicked,
                     onMarkCompletedClicked = onMarkCompletedClicked,
-                    onReviveClicked = onReviveClicked
+                    onReviveClicked = onReviveClicked,
+                    onDeletePulseClicked = onDeletePulseClicked
                 )
+            }
+        }
+    }
+
+    if (state.pendingDeletePulseId != null) {
+        IdeaGroveDeleteDialog(
+            onConfirm = onConfirmDeletePulse,
+            onDismiss = onDismissDeletePulse
+        )
+    }
+}
+
+@Composable
+private fun IdeaGroveSegmentedControl(
+    tabs: List<String>,
+    selectedIndex: Int,
+    onSelected: (Int) -> Unit
+) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = scheme.primary.copy(alpha = 0.10f),
+        border = BorderStroke(1.dp, scheme.primary.copy(alpha = 0.12f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(Modifier.padding(5.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            tabs.forEachIndexed { index, title ->
+                val selected = selectedIndex == index
+                val tabA11y = stringResource(R.string.idea_grove_tab_a11y, title)
+                val background by animateColorAsState(
+                    targetValue = if (selected) scheme.surface else scheme.primary.copy(alpha = 0.00f),
+                    label = "idea_grove_segment_background"
+                )
+                val textColor by animateColorAsState(
+                    targetValue = if (selected) scheme.primary else scheme.onSurfaceVariant,
+                    label = "idea_grove_segment_text"
+                )
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = background,
+                    shadowElevation = if (selected) 2.dp else 0.dp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onSelected(index) }
+                        .semantics {
+                            contentDescription = tabA11y
+                            role = Role.Tab
+                        }
+                ) {
+                    Box(
+                        modifier = Modifier.padding(vertical = 10.dp, horizontal = 14.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                            color = textColor
+                        )
+                    }
+                }
             }
         }
     }
@@ -185,12 +258,11 @@ private fun IdeaGrovePage(
     onFlowClicked: (Long) -> Unit,
     onMarkAsInsightClicked: (Long) -> Unit,
     onMarkCompletedClicked: (Long) -> Unit,
-    onReviveClicked: (Long) -> Unit
+    onReviveClicked: (Long) -> Unit,
+    onDeletePulseClicked: (Long) -> Unit
 ) {
     LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxSize()) {
-        item {
-            IdeaGroveSummaryCard(summary)
-        }
+        item { IdeaGroveSummaryCard(summary) }
         if (showSort) {
             item { IdeaGroveSortControl(sort, onSortChanged) }
         }
@@ -205,7 +277,8 @@ private fun IdeaGrovePage(
                     onFlow = { onFlowClicked(item.pulseId) },
                     onMarkAsInsight = { onMarkAsInsightClicked(item.pulseId) },
                     onMarkCompleted = { onMarkCompletedClicked(item.pulseId) },
-                    onRevive = { onReviveClicked(item.pulseId) }
+                    onRevive = { onReviveClicked(item.pulseId) },
+                    onDelete = { onDeletePulseClicked(item.pulseId) }
                 )
             }
         }
@@ -229,16 +302,18 @@ private fun IdeaGroveSummaryCard(summary: String) {
 @Composable
 private fun IdeaGroveSortControl(sort: IdeaGroveSort, onSortChanged: (IdeaGroveSort) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    val label = sort.label()
+    val label = sortLabel(sort)
+    val sortA11y = stringResource(R.string.idea_grove_sort_a11y, label)
     AssistChip(
         onClick = { expanded = true },
         label = { Text(stringResource(R.string.idea_grove_sort_prefix, label)) },
-        modifier = Modifier.semantics { contentDescription = stringResource(R.string.idea_grove_sort_a11y, label) }
+        modifier = Modifier.semantics { contentDescription = sortA11y }
     )
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
         IdeaGroveSort.entries.forEach { option ->
+            val optionLabel = sortLabel(option)
             DropdownMenuItem(
-                text = { Text(option.label()) },
+                text = { Text(optionLabel) },
                 onClick = {
                     onSortChanged(option)
                     expanded = false
@@ -256,14 +331,28 @@ private fun IdeaPulseCard(
     onFlow: () -> Unit,
     onMarkAsInsight: () -> Unit,
     onMarkCompleted: () -> Unit,
-    onRevive: () -> Unit
+    onRevive: () -> Unit,
+    onDelete: () -> Unit
 ) {
     val cardDescription = cardA11y(item, expanded)
+    val startFlowA11y = stringResource(R.string.idea_grove_start_flow_from_a11y, item.title)
+    val markInsightA11y = stringResource(R.string.idea_grove_mark_as_insight_a11y, item.title)
+    val markCompletedA11y = stringResource(R.string.idea_grove_mark_completed_a11y, item.title)
+    val reviveA11y = stringResource(R.string.idea_grove_revive_a11y, item.title)
+    val deleteA11y = stringResource(R.string.idea_grove_delete_pulse_a11y, item.title)
+    val destructiveColors = ButtonDefaults.outlinedButtonColors(
+        contentColor = MaterialTheme.colorScheme.error
+    )
+    val destructiveBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.65f))
+
     ElevatedCard(
         onClick = onClick,
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)),
-        modifier = Modifier.fillMaxWidth().semantics { contentDescription = cardDescription; role = Role.Button }
+        modifier = Modifier.fillMaxWidth().semantics {
+            contentDescription = cardDescription
+            role = Role.Button
+        }
     ) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(item.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -280,17 +369,35 @@ private fun IdeaPulseCard(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     when (item.type) {
                         IdeaGroveItemType.RAW_PULSE -> {
-                            Button(onClick = onFlow, modifier = Modifier.semantics { contentDescription = stringResource(R.string.idea_grove_start_flow_from_a11y, item.title) }) { Text(stringResource(R.string.idea_grove_action_flow)) }
-                            OutlinedButton(onClick = onMarkAsInsight, modifier = Modifier.semantics { contentDescription = stringResource(R.string.idea_grove_mark_as_insight_a11y, item.title) }) { Text(stringResource(R.string.idea_grove_action_mark_as_insight)) }
+                            Button(onClick = onFlow, modifier = Modifier.semantics { contentDescription = startFlowA11y }) {
+                                Text(stringResource(R.string.idea_grove_action_flow))
+                            }
+                            OutlinedButton(onClick = onMarkAsInsight, modifier = Modifier.semantics { contentDescription = markInsightA11y }) {
+                                Text(stringResource(R.string.idea_grove_action_mark_as_insight))
+                            }
                         }
                         IdeaGroveItemType.IDEA -> {
-                            Button(onClick = onFlow, modifier = Modifier.semantics { contentDescription = stringResource(R.string.idea_grove_start_flow_from_a11y, item.title) }) { Text(stringResource(R.string.idea_grove_action_flow)) }
-                            OutlinedButton(onClick = onMarkCompleted, modifier = Modifier.semantics { contentDescription = stringResource(R.string.idea_grove_mark_completed_a11y, item.title) }) { Text(stringResource(R.string.idea_grove_action_mark_completed)) }
+                            Button(onClick = onFlow, modifier = Modifier.semantics { contentDescription = startFlowA11y }) {
+                                Text(stringResource(R.string.idea_grove_action_flow))
+                            }
+                            OutlinedButton(onClick = onMarkCompleted, modifier = Modifier.semantics { contentDescription = markCompletedA11y }) {
+                                Text(stringResource(R.string.idea_grove_action_mark_completed))
+                            }
                         }
                         IdeaGroveItemType.INSIGHT,
                         IdeaGroveItemType.COMPLETED_IDEA -> {
-                            Button(onClick = onRevive, modifier = Modifier.semantics { contentDescription = stringResource(R.string.idea_grove_revive_a11y, item.title) }) { Text(stringResource(R.string.idea_grove_action_revive)) }
+                            Button(onClick = onRevive, modifier = Modifier.semantics { contentDescription = reviveA11y }) {
+                                Text(stringResource(R.string.idea_grove_action_revive))
+                            }
                         }
+                    }
+                    OutlinedButton(
+                        onClick = onDelete,
+                        colors = destructiveColors,
+                        border = destructiveBorder,
+                        modifier = Modifier.semantics { contentDescription = deleteA11y }
+                    ) {
+                        Text(stringResource(R.string.idea_grove_action_delete_pulse))
                     }
                 }
                 when {
@@ -325,14 +432,48 @@ private fun IdeaFlowHistorySection(flows: List<IdeaGroveFlowUiModel>) {
 
 @Composable
 private fun IdeaFlowHistoryRow(flow: IdeaGroveFlowUiModel) {
-    Column(Modifier.fillMaxWidth()) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Text(flow.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
         Text(
             listOfNotNull(flow.journeyName, formatIdeaGroveDuration(flow.durationMs), shortDate(flow.endTime ?: flow.startTime)).joinToString(" · "),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        if (flow.description.isNotBlank()) {
+            Text(
+                text = flow.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
+}
+
+@Composable
+private fun IdeaGroveDeleteDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.idea_grove_delete_pulse_title)) },
+        text = { Text(stringResource(R.string.idea_grove_delete_pulse_body)) },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text(stringResource(R.string.idea_grove_delete_pulse_confirm))
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text(stringResource(R.string.idea_grove_delete_pulse_cancel))
+            }
+        }
+    )
 }
 
 @Composable
@@ -353,7 +494,8 @@ private fun pulseFlowSummary(durationMs: Long, flowCount: Int, completed: Boolea
 }
 
 @Composable
-private fun IdeaGroveSort.label(): String = when (this) {
+private fun sortLabel(sort: IdeaGroveSort): String = when (sort) {
+    IdeaGroveSort.Recents -> stringResource(R.string.idea_grove_sort_recents)
     IdeaGroveSort.Newest -> stringResource(R.string.idea_grove_sort_newest)
     IdeaGroveSort.Oldest -> stringResource(R.string.idea_grove_sort_oldest)
     IdeaGroveSort.MostTime -> stringResource(R.string.idea_grove_sort_most_time)

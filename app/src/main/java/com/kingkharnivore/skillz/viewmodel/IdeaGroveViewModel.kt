@@ -4,23 +4,39 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.R
+import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseGroveStatusValues
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.IdeaGroveRepository
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemType
+import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemUiModel
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveSort
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+internal fun OngoingSessionEntity?.isMeaningfulActiveFlow(): Boolean {
+    if (this == null) return false
+    return isRunning ||
+            isInFlowMode ||
+            accumulatedBeforeStartMs > 0L ||
+            baseStartTimeMs != null
+}
+
+internal fun OngoingSessionEntity?.isAbandonedPulseOriginDraft(): Boolean {
+    if (this == null) return false
+    return originPulseId != null && !isMeaningfulActiveFlow()
+}
 
 sealed interface IdeaGroveEvent {
     data class NavigateToFlow(
@@ -40,10 +56,11 @@ sealed interface IdeaGroveEvent {
 @HiltViewModel
 class IdeaGroveViewModel @Inject constructor(
     private val repository: IdeaGroveRepository,
-    aliveFlowRepository: AliveFlowRepository
+    private val aliveFlowRepository: AliveFlowRepository
 ) : ViewModel() {
-    private val sort = MutableStateFlow(IdeaGroveSort.Newest)
+    private val sort = MutableStateFlow(IdeaGroveSort.Recents)
     private val expandedPulseId = MutableStateFlow<Long?>(null)
+    private val pendingDeletePulseId = MutableStateFlow<Long?>(null)
     private val eventsChannel = Channel<IdeaGroveEvent>(Channel.BUFFERED)
     val events = eventsChannel.receiveAsFlow()
 
@@ -51,8 +68,9 @@ class IdeaGroveViewModel @Inject constructor(
         repository.observeIdeaGroveItems(),
         sort,
         expandedPulseId,
+        pendingDeletePulseId,
         aliveFlowRepository.getOngoingSession()
-    ) { items, aliveSort, expanded, ongoing ->
+    ) { items, aliveSort, expanded, pendingDelete, ongoing ->
         val alive = sortAlive(
             items.filter { it.groveStatus == PulseGroveStatusValues.ALIVE },
             aliveSort
@@ -64,16 +82,29 @@ class IdeaGroveViewModel @Inject constructor(
         IdeaGroveUiState(
             aliveItems = alive,
             completedItems = completed,
-            aliveTotalDurationMs = alive.sumOf { it.totalFlowDurationMs },
-            aliveFlowCount = alive.sumOf { it.flowCount },
-            completedTotalDurationMs = completed.sumOf { it.totalFlowDurationMs },
-            completedFlowCount = completed.sumOf { it.flowCount },
+            totalPulseFlowDurationMs = items.sumOf { it.totalFlowDurationMs },
+            totalPulseFlowCount = items.sumOf { it.flowCount },
+            completedPulseFlowDurationMs = completed.sumOf { it.totalFlowDurationMs },
+            completedPulseFlowCount = completed.sumOf { it.flowCount },
             aliveSort = aliveSort,
             expandedPulseId = expanded,
-            isFlowRunning = ongoing != null,
+            pendingDeletePulseId = pendingDelete,
+            isFlowRunning = ongoing.isMeaningfulActiveFlow(),
             isLoading = false
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), IdeaGroveUiState())
+
+    init {
+        viewModelScope.launch {
+            aliveFlowRepository.getOngoingSession()
+                .distinctUntilChanged()
+                .collect { ongoing ->
+                    if (ongoing.isAbandonedPulseOriginDraft()) {
+                        aliveFlowRepository.clearOngoingSession()
+                    }
+                }
+        }
+    }
 
     fun onPulseClicked(pulseId: Long) {
         expandedPulseId.update { current -> if (current == pulseId) null else pulseId }
@@ -129,19 +160,41 @@ class IdeaGroveViewModel @Inject constructor(
         }
     }
 
+    fun onDeletePulseClicked(pulseId: Long) {
+        pendingDeletePulseId.value = pulseId
+    }
+
+    fun onDismissDeletePulse() {
+        pendingDeletePulseId.value = null
+    }
+
+    fun onConfirmDeletePulse() {
+        val pulseId = pendingDeletePulseId.value ?: return
+        viewModelScope.launch {
+            repository.deletePulse(pulseId)
+            pendingDeletePulseId.value = null
+            expandedPulseId.value = null
+            eventsChannel.send(IdeaGroveEvent.ShowSnackbar(R.string.idea_grove_deleted_pulse))
+        }
+    }
+
     private fun sortAlive(
-        items: List<com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemUiModel>,
+        items: List<IdeaGroveItemUiModel>,
         sort: IdeaGroveSort
     ) = when (sort) {
+        IdeaGroveSort.Recents -> items.sortedWith(
+            compareByDescending<IdeaGroveItemUiModel> { it.lastWorkedAt ?: it.updatedAt }
+                .thenByDescending { it.createdAt }
+        )
         IdeaGroveSort.Newest -> items.sortedByDescending { it.createdAt }
         IdeaGroveSort.Oldest -> items.sortedBy { it.createdAt }
         IdeaGroveSort.MostTime -> items.sortedWith(
-            compareByDescending<com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemUiModel> { it.totalFlowDurationMs }
+            compareByDescending<IdeaGroveItemUiModel> { it.totalFlowDurationMs }
                 .thenByDescending { it.lastWorkedAt ?: 0L }
                 .thenByDescending { it.createdAt }
         )
         IdeaGroveSort.LeastTime -> items.sortedWith(
-            compareBy<com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemUiModel> { it.totalFlowDurationMs }
+            compareBy<IdeaGroveItemUiModel> { it.totalFlowDurationMs }
                 .thenByDescending { it.createdAt }
         )
     }

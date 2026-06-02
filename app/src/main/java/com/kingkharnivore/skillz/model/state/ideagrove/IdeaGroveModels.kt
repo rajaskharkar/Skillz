@@ -8,6 +8,7 @@ enum class IdeaGroveItemType {
 }
 
 enum class IdeaGroveSort {
+    Recents,
     Newest,
     Oldest,
     MostTime,
@@ -17,6 +18,7 @@ enum class IdeaGroveSort {
 data class IdeaGroveFlowUiModel(
     val sessionId: Long,
     val title: String,
+    val description: String,
     val journeyName: String?,
     val durationMs: Long,
     val startTime: Long,
@@ -50,12 +52,13 @@ data class PulseLaunchContext(
 data class IdeaGroveUiState(
     val aliveItems: List<IdeaGroveItemUiModel> = emptyList(),
     val completedItems: List<IdeaGroveItemUiModel> = emptyList(),
-    val aliveTotalDurationMs: Long = 0L,
-    val aliveFlowCount: Int = 0,
-    val completedTotalDurationMs: Long = 0L,
-    val completedFlowCount: Int = 0,
-    val aliveSort: IdeaGroveSort = IdeaGroveSort.Newest,
+    val totalPulseFlowDurationMs: Long = 0L,
+    val totalPulseFlowCount: Int = 0,
+    val completedPulseFlowDurationMs: Long = 0L,
+    val completedPulseFlowCount: Int = 0,
+    val aliveSort: IdeaGroveSort = IdeaGroveSort.Recents,
     val expandedPulseId: Long? = null,
+    val pendingDeletePulseId: Long? = null,
     val isFlowRunning: Boolean = false,
     val isLoading: Boolean = true
 )

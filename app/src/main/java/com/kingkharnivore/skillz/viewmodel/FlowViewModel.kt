@@ -120,6 +120,7 @@ class FlowViewModel @Inject constructor(
                 plannedArcTotalStepsOverride != null
 
     private fun applyLaunchOverrides(state: FlowUiState): FlowUiState {
+        val isPulseLaunch = originPulseIdOverride != null
         return state.copy(
             title = prefillTitleOverride ?: state.title,
             tagName = atlasJourneyOverride ?: state.tagName,
@@ -129,9 +130,9 @@ class FlowViewModel @Inject constructor(
             plannedArcTitle = plannedArcTitleOverride ?: state.plannedArcTitle,
             plannedArcStepIndex = plannedArcStepIndexOverride ?: state.plannedArcStepIndex,
             plannedArcTotalSteps = plannedArcTotalStepsOverride ?: state.plannedArcTotalSteps,
-            originPulseId = originPulseIdOverride ?: state.originPulseId,
-            originPulseTitle = if (originPulseIdOverride != null) prefillTitleOverride else state.originPulseTitle,
-            originPulseJourneyName = if (originPulseIdOverride != null) atlasJourneyOverride else state.originPulseJourneyName
+            originPulseId = if (isPulseLaunch) originPulseIdOverride else null,
+            originPulseTitle = if (isPulseLaunch) prefillTitleOverride else null,
+            originPulseJourneyName = if (isPulseLaunch) atlasJourneyOverride else null
         )
     }
 
@@ -140,6 +141,10 @@ class FlowViewModel @Inject constructor(
                 !entity.isRunning &&
                 entity.accumulatedBeforeStartMs == 0L &&
                 entity.baseStartTimeMs == null
+    }
+
+    private fun isAbandonedPulseOriginDraft(entity: OngoingSessionEntity?): Boolean {
+        return entity?.originPulseId != null && shouldTreatOngoingAsDraft(entity)
     }
 
     val ongoingSession: StateFlow<OngoingSessionEntity?> =
@@ -376,7 +381,13 @@ class FlowViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val ongoing = focusSessionRepository.getOngoingSession().firstOrNull()
+            val storedOngoing = focusSessionRepository.getOngoingSession().firstOrNull()
+            val ongoing = if (isAbandonedPulseOriginDraft(storedOngoing)) {
+                clearOngoing()
+                null
+            } else {
+                storedOngoing
+            }
 
             if (ongoing?.arcId != null) {
                 arcState = ArcRuntimeState(
@@ -419,7 +430,10 @@ class FlowViewModel @Inject constructor(
                                 ),
                                 plannedArcTitle = null,
                                 plannedArcStepIndex = null,
-                                plannedArcTotalSteps = null
+                                plannedArcTotalSteps = null,
+                                originPulseId = null,
+                                originPulseTitle = null,
+                                originPulseJourneyName = null
                             )
                         )
                     }
@@ -467,7 +481,10 @@ class FlowViewModel @Inject constructor(
                     val cleared = old.copy(
                         plannedArcTitle = null,
                         plannedArcStepIndex = null,
-                        plannedArcTotalSteps = null
+                        plannedArcTotalSteps = null,
+                        originPulseId = null,
+                        originPulseTitle = null,
+                        originPulseJourneyName = null
                     )
 
                     if (hasLaunchOverrides) {

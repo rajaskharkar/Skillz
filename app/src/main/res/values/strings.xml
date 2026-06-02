@@ -1810,6 +1810,14 @@
     <string name="idea_grove_action_mark_as_insight">Mark as Insight</string>
     <string name="idea_grove_action_mark_completed">Mark Completed</string>
     <string name="idea_grove_action_revive">Revive</string>
+    <string name="idea_grove_action_delete_pulse">Delete Pulse</string>
+    <string name="idea_grove_delete_pulse_title">Delete Pulse?</string>
+    <string name="idea_grove_delete_pulse_body">This will delete the actual Pulse from Scyra. If this Pulse has Flow history in Idea Grove, the Idea Grove link will be removed, but your saved Flows will remain in Story.</string>
+    <string name="idea_grove_delete_pulse_confirm">Delete Pulse</string>
+    <string name="idea_grove_delete_pulse_cancel">Cancel</string>
+    <string name="idea_grove_deleted_pulse">Pulse deleted</string>
+    <string name="idea_grove_delete_pulse_a11y">Delete Pulse %1$s</string>
+    <string name="idea_grove_sort_recents">Recents</string>
     <string name="idea_grove_sort_newest">Newest</string>
     <string name="idea_grove_sort_oldest">Oldest</string>
     <string name="idea_grove_sort_most_time">Most time</string>

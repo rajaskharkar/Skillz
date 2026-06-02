@@ -25,6 +25,7 @@ class IdeaGroveRepository @Inject constructor(
     private val database: SkillzDatabase,
     private val ideaGroveDao: IdeaGroveDao,
     private val pulseDao: PulseDao,
+    private val pulseRepository: PulseRepository,
     private val sessionDao: SessionDao,
     private val tagDao: TagDao
 ) {
@@ -38,6 +39,7 @@ class IdeaGroveRepository @Inject constructor(
     }
 
     suspend fun markPulseAsInsight(pulseId: Long) {
+        if (ideaGroveDao.getLinkedFlowCount(pulseId) > 0) return
         ideaGroveDao.updatePulseGroveStatus(
             pulseId = pulseId,
             status = PulseGroveStatusValues.INSIGHT,
@@ -60,6 +62,10 @@ class IdeaGroveRepository @Inject constructor(
             status = PulseGroveStatusValues.ALIVE,
             changedAt = System.currentTimeMillis()
         )
+    }
+
+    suspend fun deletePulse(pulseId: Long) {
+        pulseRepository.deletePulseAndCleanupTag(pulseId)
     }
 
     suspend fun getPulseLaunchContext(pulseId: Long): PulseLaunchContext? {
@@ -117,6 +123,7 @@ class IdeaGroveRepository @Inject constructor(
                     IdeaGroveFlowUiModel(
                         sessionId = session.id,
                         title = session.title,
+                        description = session.description,
                         journeyName = tagsById[session.tagId]?.name,
                         durationMs = session.durationMs,
                         startTime = session.startTime,
