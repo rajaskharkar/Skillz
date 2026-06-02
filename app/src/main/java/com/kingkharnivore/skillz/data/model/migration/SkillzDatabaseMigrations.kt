@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 23.
+     * Current database version is 24.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -87,6 +87,12 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_23_24 = object : Migration(23, 24) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            createAnchorTables(db)
+        }
+    }
+
     val ALL_MIGRATIONS: Array<Migration> =
         LEGACY_TO_15_MIGRATIONS +
                 MIGRATION_13_14 +
@@ -98,8 +104,50 @@ object SkillzDatabaseMigrations {
                 MIGRATION_19_20 +
                 MIGRATION_20_21 +
                 MIGRATION_21_22 +
-                MIGRATION_22_23
+                MIGRATION_22_23 +
+                MIGRATION_23_24
 
+    private fun createAnchorTables(db: SupportSQLiteDatabase) {
+        addColumnIfMissing(db, "ongoing_session", "anchorEnabledForFlow", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "ongoing_session", "anchorDisabledForFlow", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "ongoing_session", "anchorPaused", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "ongoing_session", "anchorBreakStartedAtMs", "INTEGER")
+        addColumnIfMissing(db, "ongoing_session", "anchorBreakEndsAtMs", "INTEGER")
+        addColumnIfMissing(db, "ongoing_session", "anchorDistractionAttemptCount", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "ongoing_session", "anchorPausedCount", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "ongoing_session", "anchorBreakCount", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "ongoing_session", "anchorTotalBreakDurationMs", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "ongoing_session", "anchorReturnPanelPending", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "ongoing_session", "anchorUsageAccessRevoked", "INTEGER NOT NULL DEFAULT 0")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `anchored_apps` (
+                `packageName` TEXT NOT NULL,
+                `displayName` TEXT NOT NULL,
+                `iconCacheKey` TEXT,
+                `addedAt` INTEGER NOT NULL,
+                `lastSeenAt` INTEGER,
+                PRIMARY KEY(`packageName`)
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `anchor_session_summary` (
+                `sessionId` INTEGER NOT NULL,
+                `anchorEnabled` INTEGER NOT NULL,
+                `distractionAttemptCount` INTEGER NOT NULL,
+                `anchorPausedCount` INTEGER NOT NULL,
+                `disabledForFlow` INTEGER NOT NULL,
+                `breakCount` INTEGER NOT NULL,
+                `totalBreakDurationMs` INTEGER NOT NULL,
+                `phoneDownModeEnabled` INTEGER NOT NULL,
+                `phoneDownDurationMs` INTEGER NOT NULL,
+                PRIMARY KEY(`sessionId`)
+            )
+            """.trimIndent()
+        )
+    }
 
 
     private fun addIdeaGroveTables(db: SupportSQLiteDatabase) {

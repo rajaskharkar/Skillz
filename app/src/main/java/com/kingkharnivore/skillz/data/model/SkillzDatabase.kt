@@ -3,6 +3,8 @@ package com.kingkharnivore.skillz.data.model
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.kingkharnivore.skillz.data.model.dao.ActiveArcRunDao
+import com.kingkharnivore.skillz.data.model.dao.anchor.AnchoredAppDao
+import com.kingkharnivore.skillz.data.model.dao.anchor.AnchorSessionSummaryDao
 import com.kingkharnivore.skillz.data.model.dao.ArcPlanDao
 import com.kingkharnivore.skillz.data.model.dao.FlowPlanDao
 import com.kingkharnivore.skillz.data.model.dao.IdeaGroveDao
@@ -12,6 +14,8 @@ import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.dao.TagDao
 import com.kingkharnivore.skillz.data.model.dao.shell.ShellDaoProvider
 import com.kingkharnivore.skillz.data.model.entity.ActiveArcRunEntity
+import com.kingkharnivore.skillz.data.model.entity.anchor.AnchoredAppEntity
+import com.kingkharnivore.skillz.data.model.entity.anchor.AnchorSessionSummaryEntity
 import com.kingkharnivore.skillz.data.model.entity.ArcPlanEntity
 import com.kingkharnivore.skillz.data.model.entity.ArcPlanStepEntity
 import com.kingkharnivore.skillz.data.model.entity.FlowPlanEntity
@@ -59,9 +63,11 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellRoomStateEntit
         ShellRewardEventEntity::class,
         ObjectiveEntity::class,
         ObjectiveCompletionEntity::class,
-        ObjectiveSkippedCycleEntity::class
+        ObjectiveSkippedCycleEntity::class,
+        AnchoredAppEntity::class,
+        AnchorSessionSummaryEntity::class
     ],
-    version = 23,
+    version = 24,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
@@ -73,6 +79,8 @@ abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
     abstract fun flowPlanDao(): FlowPlanDao
     abstract fun arcPlanDao(): ArcPlanDao
     abstract fun activeArcRunDao(): ActiveArcRunDao
+    abstract fun anchoredAppDao(): AnchoredAppDao
+    abstract fun anchorSessionSummaryDao(): AnchorSessionSummaryDao
     override abstract fun shellRewardEventDao(): com.kingkharnivore.skillz.data.model.dao.shell.ShellRewardEventDao
     override abstract fun objectiveDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveDao
     override abstract fun objectiveCompletionDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveCompletionDao

@@ -24,6 +24,11 @@ object AliveFlowNotificationFactory {
     const val REMINDER_CHANNEL_ID = "flow_hourly_reminder_channel"
     const val REMINDER_CHANNEL_NAME = "Flow reminders"
     const val REMINDER_NOTIFICATION_ID = 1002
+    const val ACTION_RETURN_TO_FLOW = "com.kingkharnivore.skillz.anchor.RETURN_TO_FLOW"
+    const val ACTION_PAUSE_ANCHOR = "com.kingkharnivore.skillz.anchor.PAUSE_ANCHOR"
+    const val ACTION_RESUME_ANCHOR = "com.kingkharnivore.skillz.anchor.RESUME_ANCHOR"
+    const val ACTION_TAKE_ANCHOR_BREAK = "com.kingkharnivore.skillz.anchor.TAKE_BREAK"
+    const val ACTION_PAUSE_FLOW = "com.kingkharnivore.skillz.flow.PAUSE_FLOW"
 
     fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -55,6 +60,35 @@ object AliveFlowNotificationFactory {
         }
     }
 
+
+    private fun openFlowPendingIntent(context: Context, requestCode: Int): PendingIntent {
+        val openFlowIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("skillz://flow"),
+            context,
+            MainActivity::class.java
+        ).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        return PendingIntent.getActivity(
+            context,
+            requestCode,
+            openFlowIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    private fun serviceActionPendingIntent(context: Context, action: String, requestCode: Int): PendingIntent {
+        val intent = Intent(context, com.kingkharnivore.skillz.ui.service.AliveFlowService::class.java)
+            .setAction(action)
+        return PendingIntent.getService(
+            context,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
     fun buildNotification(
         context: Context,
         entity: OngoingSessionEntity,
@@ -74,7 +108,12 @@ object AliveFlowNotificationFactory {
 
         val title = entity.title.takeIf { it.isNotBlank() } ?: "Flow in progress"
         val tag = entity.tagName.takeIf { it.isNotBlank() } ?: "Unassigned Skill"
-        val status = if (entity.isRunning) "Alive • Running" else "Alive • Paused"
+        val status = when {
+            entity.anchorBreakEndsAtMs?.let { it > System.currentTimeMillis() } == true -> "Break active · Flow paused"
+            entity.anchorPaused && entity.isRunning -> "Flow active · Anchor paused"
+            entity.isRunning -> "Alive • Running"
+            else -> "Alive • Paused"
+        }
         val line2 =
             if (entity.isRunning) "$status • Started at $startedAtText"
             else "$status • Total ${formatElapsed(elapsedSeconds)}"
@@ -101,21 +140,7 @@ object AliveFlowNotificationFactory {
         // Prefer showing surge status when applicable
         val contentText = surgeLine ?: line2
 
-        val openFlowIntent = Intent(
-            Intent.ACTION_VIEW,
-            Uri.parse("skillz://flow"),
-            context,
-            MainActivity::class.java
-        ).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-
-        val openFlowPendingIntent = PendingIntent.getActivity(
-            context,
-            0,
-            openFlowIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val openFlowPendingIntent = openFlowPendingIntent(context, 0)
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_media_play)
@@ -139,11 +164,43 @@ object AliveFlowNotificationFactory {
             builder.setUsesChronometer(true)
         }
 
+        if (entity.anchorPaused && entity.isRunning) {
+            builder.addAction(0, "Resume Anchor", serviceActionPendingIntent(context, ACTION_RESUME_ANCHOR, 2003))
+        } else if (entity.isRunning && (entity.anchorEnabledForFlow || !entity.anchorDisabledForFlow)) {
+            builder.addAction(0, "Pause Anchor", serviceActionPendingIntent(context, ACTION_PAUSE_ANCHOR, 2001))
+        }
+        builder.addAction(0, "Return to Flow", openFlowPendingIntent(context, 2002))
+
         val notification = builder.build()
         notification.flags = notification.flags or
                 Notification.FLAG_ONGOING_EVENT or
                 Notification.FLAG_NO_CLEAR
 
+        return notification
+    }
+
+
+    fun buildAnchorNudgeNotification(context: Context, entity: OngoingSessionEntity): Notification {
+        val text = "Scyra noticed a drift. Return to your Flow?"
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_scyra_notification)
+            .setContentTitle("Anchor")
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setContentIntent(openFlowPendingIntent(context, 3000))
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .setOnlyAlertOnce(false)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setColor(BuildConfig.PRIMARY_COLOR)
+            .addAction(0, "Return to Flow", openFlowPendingIntent(context, 3001))
+            .addAction(0, "Take 1-minute break", serviceActionPendingIntent(context, ACTION_TAKE_ANCHOR_BREAK, 3002))
+            .addAction(0, "Pause Anchor", serviceActionPendingIntent(context, ACTION_PAUSE_ANCHOR, 3003))
+
+        val notification = builder.build()
+        notification.flags = notification.flags or Notification.FLAG_ONGOING_EVENT or Notification.FLAG_NO_CLEAR
         return notification
     }
 
@@ -215,21 +272,7 @@ object AliveFlowNotificationFactory {
             append(hourMark)
         }
 
-        val openFlowIntent = Intent(
-            Intent.ACTION_VIEW,
-            Uri.parse("skillz://flow"),
-            context,
-            MainActivity::class.java
-        ).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-
-        val openFlowPendingIntent = PendingIntent.getActivity(
-            context,
-            1002,
-            openFlowIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val openFlowPendingIntent = openFlowPendingIntent(context, 1002)
 
         return NotificationCompat.Builder(context, REMINDER_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_scyra_notification)

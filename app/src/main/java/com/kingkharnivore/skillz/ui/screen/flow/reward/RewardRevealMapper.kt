@@ -124,6 +124,29 @@ fun buildSessionRewardCards(
         animationStyle = if (reward.shellPearlsEarned > 0) RewardRevealAnimationStyle.PEARL_GLOW else RewardRevealAnimationStyle.NONE
     )
 
+    if (reward.anchorEnabled || reward.anchorDistractionAttemptCount > 0 || reward.anchorBreakCount > 0) {
+        val distractionLine = when (reward.anchorDistractionAttemptCount) {
+            0 -> "No distractions broke through."
+            1 -> "You drifted once, but came back."
+            else -> "Anchor helped you return from ${reward.anchorDistractionAttemptCount} distractions."
+        }
+        val breakLine = when (reward.anchorBreakCount) {
+            0 -> null
+            1 -> "You took 1 short break and returned."
+            else -> "You took ${reward.anchorBreakCount} short breaks and returned."
+        }
+        val body = listOfNotNull(distractionLine, breakLine).joinToString("\n")
+        cards += RewardRevealCardUiModel(
+            id = "anchor-summary",
+            type = RewardRevealCardType.EMPTY_SHELL_MEANING,
+            title = "Anchor reflection",
+            subtitle = "Returning counts.",
+            body = body,
+            iconKey = "anchor",
+            contentDescription = listOf("Anchor reflection", "Returning counts.", body).joinToString(". ")
+        )
+    }
+
     cards += buildShellRewardCards(
         reward = reward,
         text = text,

@@ -12,7 +12,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.ui.platform.LocalContext
 import com.kingkharnivore.skillz.ui.screen.HelpScreen
+import com.kingkharnivore.skillz.ui.screen.anchor.AnchorAppsScreen
 import com.kingkharnivore.skillz.ui.screen.SkillzHomeScreen
 import com.kingkharnivore.skillz.ui.screen.flow.FlowScreen
 import com.kingkharnivore.skillz.ui.screen.paths.arc.ArcDetailScreen
@@ -26,6 +30,8 @@ import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.viewmodel.PlanArcViewModel
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
 import com.kingkharnivore.skillz.viewmodel.SuggestedRouteDetailViewModel
+import com.kingkharnivore.skillz.viewmodel.anchor.AnchorAppsViewModel
+import com.kingkharnivore.skillz.viewmodel.anchor.AnchorSettingsViewModel
 
 @Composable
 fun SkillzNavHost(
@@ -127,7 +133,8 @@ fun SkillzNavHost(
                 viewModel = addSessionViewModel,
                 onDone = { popToHome(navController) },
                 onCancel = { popToHome(navController) },
-                onOpenShell = { navController.navigate(SkillzDestinations.SHELL) }
+                onOpenShell = { navController.navigate(SkillzDestinations.SHELL) },
+                onManageAnchorApps = { navController.navigate(SkillzDestinations.ANCHOR_APPS_ROUTE) }
             )
         }
 
@@ -250,6 +257,9 @@ fun SkillzNavHost(
 
         composable("help") {
             val uiState by storyViewModel.uiState.collectAsState()
+            val anchorSettingsViewModel: AnchorSettingsViewModel = hiltViewModel()
+            val anchorState by anchorSettingsViewModel.uiState.collectAsState()
+            val context = LocalContext.current
 
             HelpScreen(
                 uiState = uiState,
@@ -257,7 +267,19 @@ fun SkillzNavHost(
                 onToggleShowScoreUi = storyViewModel::setShowScoreUi,
                 onToggleCalmMode = storyViewModel::setCalmMode,
                 onSetAppLanguage = storyViewModel::setAppLanguage,
+                anchorState = anchorState,
+                onToggleAnchor = anchorSettingsViewModel::setAnchorEnabled,
+                onManageAnchorApps = { navController.navigate(SkillzDestinations.ANCHOR_APPS_ROUTE) },
+                onEnableUsageAccess = { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) },
                 modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        composable(SkillzDestinations.ANCHOR_APPS_ROUTE) {
+            val anchorAppsViewModel: AnchorAppsViewModel = hiltViewModel()
+            AnchorAppsScreen(
+                viewModel = anchorAppsViewModel,
+                onBack = { navController.popBackStack() }
             )
         }
     }

@@ -21,6 +21,9 @@ data class FlowRewardUiModel(
     val shellGrantedFindIds: List<String> = emptyList(),
     val shellDiscoveryIds: List<String> = emptyList(),
     val shellBadgeIds: List<String> = emptyList(),
+    val anchorDistractionAttemptCount: Int = 0,
+    val anchorBreakCount: Int = 0,
+    val anchorEnabled: Boolean = false,
     val arcSummary: ArcSummaryUiModel? = null,
     val isArcOnlySummary: Boolean = false
 )

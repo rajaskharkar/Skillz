@@ -1,5 +1,7 @@
 package com.kingkharnivore.skillz.model.state.flow
 
+import com.kingkharnivore.skillz.domain.anchor.AnchorFlowState
+
 data class FlowUiState(
     val title: String = "",
     val description: String = "",
@@ -24,5 +26,6 @@ data class FlowUiState(
     val plannedArcTotalSteps: Int? = null,
     val originPulseId: Long? = null,
     val originPulseTitle: String? = null,
-    val originPulseJourneyName: String? = null
+    val originPulseJourneyName: String? = null,
+    val anchorFlowState: AnchorFlowState = AnchorFlowState()
 )

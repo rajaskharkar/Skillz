@@ -55,7 +55,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -75,7 +80,8 @@ fun FlowScreen(
     viewModel: FlowViewModel,
     onDone: () -> Unit,
     onCancel: () -> Unit,
-    onOpenShell: () -> Unit = {}
+    onOpenShell: () -> Unit = {},
+    onManageAnchorApps: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
@@ -92,6 +98,10 @@ fun FlowScreen(
     var showPulseDialog by remember { mutableStateOf(false) }
     var showSoftArcConfirmDialog by remember { mutableStateOf(false) }
     var showArcIdeaContinuationDialog by remember { mutableStateOf(false) }
+    var showAnchorUsageDialog by remember { mutableStateOf(false) }
+    var showAnchorAppsDialog by remember { mutableStateOf(false) }
+    var showAnchorEnableDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     var surgeMinutesInput by remember { mutableStateOf("") }
     var surgeMinutesInline by rememberSaveable { mutableStateOf("") }
@@ -257,6 +267,48 @@ fun FlowScreen(
                     Spacer(Modifier.height(10.dp))
                 }
 
+                if (uiState.anchorFlowState.usageAccessRevoked) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Anchor paused because Usage Access is off.",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+                }
+
+                if (uiState.anchorFlowState.inBreak) {
+                    AnchorReturnPanel(
+                        title = "Break active",
+                        body = "Take a breath. Scyra will call you back in 1 minute.",
+                        primary = "Resume Flow now",
+                        onPrimary = { viewModel.startOrResumeStopwatch() },
+                        onBreak = null,
+                        onDisable = viewModel::disableAnchorForThisFlow,
+                        onEnd = { showEndDialog = true }
+                    )
+                    Spacer(Modifier.height(10.dp))
+                } else if (uiState.anchorFlowState.showReturnPanel) {
+                    AnchorReturnPanel(
+                        title = if (uiState.stopwatch.isRunning) "The current is still here." else "The current is waiting.",
+                        body = if (uiState.stopwatch.isRunning) "Return when you’re ready." else "Your break is over. Return when you’re ready.",
+                        primary = if (uiState.stopwatch.isRunning) "Return to Flow" else "Resume Flow",
+                        onPrimary = {
+                            viewModel.consumeAnchorReturnPanel()
+                            if (!uiState.stopwatch.isRunning) viewModel.startOrResumeStopwatch()
+                        },
+                        onBreak = viewModel::takeAnchorBreak,
+                        onDisable = viewModel::disableAnchorForThisFlow,
+                        onEnd = { showEndDialog = true }
+                    )
+                    Spacer(Modifier.height(10.dp))
+                }
+
                 if (uiState.isInArc && uiState.arcMultiplier != null) {
                     ArcPill(
                         arcMultiplier = uiState.arcMultiplier!!,
@@ -310,6 +362,22 @@ fun FlowScreen(
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
+
+                FlowQuickControlRow(
+                    anchorState = uiState.anchorFlowState,
+                    onAnchorToggle = { checked ->
+                        if (checked) {
+                            when {
+                                !uiState.anchorFlowState.usageAccessGranted -> showAnchorUsageDialog = true
+                                uiState.anchorFlowState.anchoredAppCount == 0 -> showAnchorAppsDialog = true
+                                !uiState.anchorFlowState.globallyEnabled -> showAnchorEnableDialog = true
+                                else -> viewModel.enableAnchorForThisFlow()
+                            }
+                        } else {
+                            viewModel.disableAnchorForThisFlow()
+                        }
+                    }
+                )
 
                 if (BuildConfig.FLAVOR != "aera" && !uiState.isSoftMode) {
                     val locked = viewModel.isSurgeLocked()
@@ -500,6 +568,51 @@ fun FlowScreen(
                     Text(stringResource(R.string.flow_screen_stay_in_flow))
                 }
             }
+        )
+    }
+
+    if (showAnchorUsageDialog) {
+        AlertDialog(
+            onDismissRequest = { showAnchorUsageDialog = false },
+            title = { Text("Usage Access needed") },
+            text = { Text("Anchor needs Usage Access to notice when one of your anchored apps opens during an active Flow. Scyra does not read your screen, messages, photos, keystrokes, app content, or browsing history.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showAnchorUsageDialog = false
+                    context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                }) { Text("Enable Usage Access") }
+            },
+            dismissButton = { TextButton(onClick = { showAnchorUsageDialog = false }) { Text("Not now") } }
+        )
+    }
+
+    if (showAnchorAppsDialog) {
+        AlertDialog(
+            onDismissRequest = { showAnchorAppsDialog = false },
+            title = { Text("Choose apps to anchor") },
+            text = { Text("Anchor only watches the apps you choose.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showAnchorAppsDialog = false
+                    onManageAnchorApps()
+                }) { Text("Manage Anchor Apps") }
+            },
+            dismissButton = { TextButton(onClick = { showAnchorAppsDialog = false }) { Text("Not now") } }
+        )
+    }
+
+    if (showAnchorEnableDialog) {
+        AlertDialog(
+            onDismissRequest = { showAnchorEnableDialog = false },
+            title = { Text("Turn Anchor on for this Flow?") },
+            text = { Text("Anchor will watch your selected apps until this Flow ends.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showAnchorEnableDialog = false
+                    viewModel.enableAnchorForThisFlow()
+                }) { Text("Turn On for this Flow") }
+            },
+            dismissButton = { TextButton(onClick = { showAnchorEnableDialog = false }) { Text("Not now") } }
         )
     }
 
@@ -959,6 +1072,81 @@ private fun ModeOptionCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = content.copy(alpha = 0.78f)
                 )
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun FlowQuickControlRow(
+    anchorState: com.kingkharnivore.skillz.domain.anchor.AnchorFlowState,
+    onAnchorToggle: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val stateText = when {
+            anchorState.paused -> "Paused"
+            anchorState.enabledForThisFlow -> "On"
+            anchorState.setupMessage != null -> "Setup needed"
+            else -> "Off"
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.semantics {
+                contentDescription = when {
+                    anchorState.paused -> "Anchor paused. Toggle Anchor for this Flow"
+                    anchorState.enabledForThisFlow -> "Anchor on. Toggle Anchor for this Flow"
+                    anchorState.setupMessage != null -> "Anchor setup needed. Toggle Anchor for this Flow"
+                    else -> "Anchor off. Toggle Anchor for this Flow"
+                }
+            }
+        ) {
+            Switch(
+                checked = anchorState.enabledForThisFlow && !anchorState.paused,
+                onCheckedChange = onAnchorToggle
+            )
+            Column {
+                Text("Anchor", style = MaterialTheme.typography.labelLarge)
+                Text(stateText, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Text("Search", style = MaterialTheme.typography.labelLarge)
+            Text("Off", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@Composable
+private fun AnchorReturnPanel(
+    title: String,
+    body: String,
+    primary: String,
+    onPrimary: () -> Unit,
+    onBreak: (() -> Unit)?,
+    onDisable: () -> Unit,
+    onEnd: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            Text(body, style = MaterialTheme.typography.bodySmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onPrimary) { Text(primary) }
+                onBreak?.let { OutlinedButton(onClick = it) { Text("Take 1-minute break") } }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onDisable) { Text("Disable Anchor for this Flow") }
+                TextButton(onClick = onEnd) { Text("End Flow") }
             }
         }
     }

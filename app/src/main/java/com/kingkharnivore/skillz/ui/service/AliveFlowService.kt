@@ -1,15 +1,16 @@
 package com.kingkharnivore.skillz.ui.service
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
-import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationManagerCompat
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
+import com.kingkharnivore.skillz.data.repository.anchor.AnchorRepository
+import com.kingkharnivore.skillz.domain.anchor.NeverAnchorPolicy
+import com.kingkharnivore.skillz.domain.anchor.RecentAppsProvider
 import com.kingkharnivore.skillz.ui.notification.AliveFlowNotificationFactory
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -19,6 +20,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -28,6 +30,9 @@ class AliveFlowService : Service() {
 
     @Inject lateinit var aliveFlowRepository: AliveFlowRepository
     @Inject lateinit var surgeHapticsManager: SurgeHapticsManager
+    @Inject lateinit var anchorRepository: AnchorRepository
+    @Inject lateinit var recentAppsProvider: RecentAppsProvider
+    @Inject lateinit var neverAnchorPolicy: NeverAnchorPolicy
 
     private companion object {
         const val HOUR_MS = 60 * 60 * 1000L
@@ -49,6 +54,7 @@ class AliveFlowService : Service() {
 
     private var hourlyReminderRuntime: HourlyReminderRuntime? = null
     private var hourlyReminderSessionKey: String? = null
+    private var currentAnchorEpisodePackage: String? = null
 
     private fun buildHourlyReminderSessionKey(entity: OngoingSessionEntity): String {
         return entity.createdAt.toString()
@@ -59,6 +65,52 @@ class AliveFlowService : Service() {
         hourlyReminderSessionKey = null
     }
 
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            AliveFlowNotificationFactory.ACTION_PAUSE_ANCHOR -> updateLatestEntity { entity ->
+                entity.copy(anchorPaused = true, anchorPausedCount = entity.anchorPausedCount + 1)
+            }
+            AliveFlowNotificationFactory.ACTION_RESUME_ANCHOR -> updateLatestEntity { entity ->
+                entity.copy(anchorPaused = false, anchorReturnPanelPending = false)
+            }
+            AliveFlowNotificationFactory.ACTION_TAKE_ANCHOR_BREAK -> updateLatestEntity { entity ->
+                val now = System.currentTimeMillis()
+                val accumulated = if (entity.isRunning && entity.baseStartTimeMs != null) {
+                    entity.accumulatedBeforeStartMs + (now - entity.baseStartTimeMs).coerceAtLeast(0L)
+                } else {
+                    entity.accumulatedBeforeStartMs
+                }
+                entity.copy(
+                    isRunning = false,
+                    baseStartTimeMs = null,
+                    accumulatedBeforeStartMs = accumulated,
+                    anchorPaused = true,
+                    anchorBreakStartedAtMs = now,
+                    anchorBreakEndsAtMs = now + 60_000L,
+                    anchorBreakCount = entity.anchorBreakCount + 1,
+                    anchorReturnPanelPending = false
+                )
+            }
+            AliveFlowNotificationFactory.ACTION_PAUSE_FLOW -> updateLatestEntity { entity ->
+                val now = System.currentTimeMillis()
+                val accumulated = if (entity.isRunning && entity.baseStartTimeMs != null) {
+                    entity.accumulatedBeforeStartMs + (now - entity.baseStartTimeMs).coerceAtLeast(0L)
+                } else {
+                    entity.accumulatedBeforeStartMs
+                }
+                entity.copy(isRunning = false, baseStartTimeMs = null, accumulatedBeforeStartMs = accumulated)
+            }
+        }
+        return START_STICKY
+    }
+
+    private fun updateLatestEntity(transform: (OngoingSessionEntity) -> OngoingSessionEntity) {
+        val entity = latestEntity ?: return
+        serviceScope.launch(Dispatchers.IO) {
+            aliveFlowRepository.saveOngoingSession(transform(entity))
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -112,7 +164,9 @@ class AliveFlowService : Service() {
                 if (entity.isRunning) {
                     evaluateSurgeIfNeeded(entity)
                     evaluateHourlyReminderIfNeeded(entity)
+                    evaluateAnchorIfNeeded(entity)
                 }
+                evaluateAnchorBreakIfNeeded(entity)
 
                 publishNotification(latestEntity ?: entity)
             }
@@ -202,6 +256,81 @@ class AliveFlowService : Service() {
                 surgeHapticsManager.playTargetReached()
             }
         }
+    }
+
+
+    private suspend fun evaluateAnchorIfNeeded(entity: OngoingSessionEntity) {
+        if (!entity.isInFlowMode || !entity.isRunning) return
+        if (entity.anchorPaused || entity.anchorBreakEndsAtMs?.let { it > System.currentTimeMillis() } == true) return
+
+        val settings = anchorRepository.settings.first()
+        val anchorEnabled = !entity.anchorDisabledForFlow && (entity.anchorEnabledForFlow || settings.enabled)
+        if (!anchorEnabled) return
+
+        if (!recentAppsProvider.hasUsageAccess()) {
+            if (!entity.anchorUsageAccessRevoked) {
+                aliveFlowRepository.saveOngoingSession(entity.copy(anchorPaused = true, anchorUsageAccessRevoked = true))
+            }
+            return
+        }
+
+        val currentPackage = recentAppsProvider.getCurrentForegroundPackage()
+        val anchoredPackages = anchorRepository.getAnchoredPackageSet()
+        val shouldNudge = currentPackage != null &&
+                currentPackage in anchoredPackages &&
+                !neverAnchorPolicy.isNeverAnchored(currentPackage)
+
+        if (!shouldNudge) {
+            if (currentPackage == packageName || currentPackage !in anchoredPackages) {
+                currentAnchorEpisodePackage = null
+            }
+            return
+        }
+
+        if (currentAnchorEpisodePackage == currentPackage) return
+        currentAnchorEpisodePackage = currentPackage
+
+        val updated = entity.copy(
+            anchorDistractionAttemptCount = entity.anchorDistractionAttemptCount + 1,
+            anchorReturnPanelPending = true
+        )
+        aliveFlowRepository.saveOngoingSession(updated)
+        publishAnchorNudgeNotification(updated)
+    }
+
+    private suspend fun evaluateAnchorBreakIfNeeded(entity: OngoingSessionEntity) {
+        val endsAt = entity.anchorBreakEndsAtMs ?: return
+        val startedAt = entity.anchorBreakStartedAtMs ?: endsAt
+        val now = System.currentTimeMillis()
+        if (now < endsAt) return
+        val updated = entity.copy(
+            isRunning = false,
+            anchorPaused = true,
+            anchorBreakStartedAtMs = null,
+            anchorBreakEndsAtMs = null,
+            anchorTotalBreakDurationMs = entity.anchorTotalBreakDurationMs + (endsAt - startedAt).coerceAtLeast(0L),
+            anchorReturnPanelPending = true
+        )
+        aliveFlowRepository.saveOngoingSession(updated)
+        publishBreakOverNotification(updated)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun publishAnchorNudgeNotification(entity: OngoingSessionEntity) {
+        if (!canPostReminderNotifications()) return
+        NotificationManagerCompat.from(this).notify(
+            AliveFlowNotificationFactory.NOTIFICATION_ID,
+            AliveFlowNotificationFactory.buildAnchorNudgeNotification(this, entity)
+        )
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun publishBreakOverNotification(entity: OngoingSessionEntity) {
+        if (!canPostReminderNotifications()) return
+        NotificationManagerCompat.from(this).notify(
+            AliveFlowNotificationFactory.NOTIFICATION_ID,
+            AliveFlowNotificationFactory.buildNotification(this, entity, computeElapsed(entity))
+        )
     }
 
     @SuppressLint("MissingPermission")

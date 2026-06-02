@@ -28,6 +28,7 @@ object SkillzDestinations {
     const val HOME_SCREEN = "home_screen"
     const val SHELL = "shell"
     const val ADD_PULSE_ROUTE = "add_pulse"
+    const val ANCHOR_APPS_ROUTE = "anchor_apps"
 
     const val PLAN_ARC_ROUTE_BASE = "plan_arc"
     const val PLAN_ARC_ARG_EDIT_ID = "editArcPlanId"

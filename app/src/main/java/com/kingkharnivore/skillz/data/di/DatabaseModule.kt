@@ -7,6 +7,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.dao.ActiveArcRunDao
+import com.kingkharnivore.skillz.data.model.dao.anchor.AnchoredAppDao
+import com.kingkharnivore.skillz.data.model.dao.anchor.AnchorSessionSummaryDao
 import com.kingkharnivore.skillz.data.model.dao.ArcPlanDao
 import com.kingkharnivore.skillz.data.model.dao.FlowPlanDao
 import com.kingkharnivore.skillz.data.model.dao.IdeaGroveDao
@@ -66,6 +68,13 @@ object DatabaseModule {
     @Provides
     fun provideActiveArcRunDao(db: SkillzDatabase): ActiveArcRunDao =
         db.activeArcRunDao()
+
+    @Provides
+    fun provideAnchoredAppDao(db: SkillzDatabase): AnchoredAppDao = db.anchoredAppDao()
+
+    @Provides
+    fun provideAnchorSessionSummaryDao(db: SkillzDatabase): AnchorSessionSummaryDao =
+        db.anchorSessionSummaryDao()
 
     @Provides
     @Singleton
