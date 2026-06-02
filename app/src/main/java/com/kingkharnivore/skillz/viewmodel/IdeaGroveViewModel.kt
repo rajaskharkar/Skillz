@@ -12,6 +12,7 @@ import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemType
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemUiModel
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveSort
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveUiState
+import com.kingkharnivore.skillz.model.state.ideagrove.PendingDeletePulseUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,7 +61,7 @@ class IdeaGroveViewModel @Inject constructor(
 ) : ViewModel() {
     private val sort = MutableStateFlow(IdeaGroveSort.Recents)
     private val expandedPulseId = MutableStateFlow<Long?>(null)
-    private val pendingDeletePulseId = MutableStateFlow<Long?>(null)
+    private val pendingDeletePulse = MutableStateFlow<PendingDeletePulseUiModel?>(null)
     private val eventsChannel = Channel<IdeaGroveEvent>(Channel.BUFFERED)
     val events = eventsChannel.receiveAsFlow()
 
@@ -68,7 +69,7 @@ class IdeaGroveViewModel @Inject constructor(
         repository.observeIdeaGroveItems(),
         sort,
         expandedPulseId,
-        pendingDeletePulseId,
+        pendingDeletePulse,
         aliveFlowRepository.getOngoingSession()
     ) { items, aliveSort, expanded, pendingDelete, ongoing ->
         val alive = sortAlive(
@@ -88,13 +89,17 @@ class IdeaGroveViewModel @Inject constructor(
             completedPulseFlowCount = completed.sumOf { it.flowCount },
             aliveSort = aliveSort,
             expandedPulseId = expanded,
-            pendingDeletePulseId = pendingDelete,
+            pendingDeletePulse = pendingDelete,
             isFlowRunning = ongoing.isMeaningfulActiveFlow(),
             isLoading = false
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), IdeaGroveUiState())
 
     init {
+        viewModelScope.launch {
+            repository.repairCompletedPulsesWithoutFlows()
+        }
+
         viewModelScope.launch {
             aliveFlowRepository.getOngoingSession()
                 .distinctUntilChanged()
@@ -161,18 +166,24 @@ class IdeaGroveViewModel @Inject constructor(
     }
 
     fun onDeletePulseClicked(pulseId: Long) {
-        pendingDeletePulseId.value = pulseId
+        val item = uiState.value.aliveItems.firstOrNull { it.pulseId == pulseId }
+            ?: uiState.value.completedItems.firstOrNull { it.pulseId == pulseId }
+            ?: return
+        pendingDeletePulse.value = PendingDeletePulseUiModel(
+            pulseId = pulseId,
+            title = item.title
+        )
     }
 
     fun onDismissDeletePulse() {
-        pendingDeletePulseId.value = null
+        pendingDeletePulse.value = null
     }
 
     fun onConfirmDeletePulse() {
-        val pulseId = pendingDeletePulseId.value ?: return
+        val pulseId = pendingDeletePulse.value?.pulseId ?: return
         viewModelScope.launch {
             repository.deletePulse(pulseId)
-            pendingDeletePulseId.value = null
+            pendingDeletePulse.value = null
             expandedPulseId.value = null
             eventsChannel.send(IdeaGroveEvent.ShowSnackbar(R.string.idea_grove_deleted_pulse))
         }
@@ -183,7 +194,9 @@ class IdeaGroveViewModel @Inject constructor(
         sort: IdeaGroveSort
     ) = when (sort) {
         IdeaGroveSort.Recents -> items.sortedWith(
-            compareByDescending<IdeaGroveItemUiModel> { it.lastWorkedAt ?: it.updatedAt }
+            compareByDescending<IdeaGroveItemUiModel> { it.flowCount > 0 }
+                .thenByDescending { it.lastWorkedAt ?: 0L }
+                .thenByDescending { it.updatedAt }
                 .thenByDescending { it.createdAt }
         )
         IdeaGroveSort.Newest -> items.sortedByDescending { it.createdAt }

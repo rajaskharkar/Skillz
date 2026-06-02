@@ -707,7 +707,7 @@ fun FlowScreen(
                     TextButton(
                         onClick = {
                             showPointsDialog = false
-                            viewModel.clearLastReward()
+                            viewModel.abandonPendingArcContinuationForShellEntry()
                             onOpenShell()
                         }
                     ) { Text(stringResource(R.string.session_reward_enter_shell)) }
@@ -719,10 +719,7 @@ fun FlowScreen(
 
     if (showArcIdeaContinuationDialog && pendingArcIdeaContinuation != null) {
         AlertDialog(
-            onDismissRequest = {
-                showArcIdeaContinuationDialog = false
-                viewModel.continueArcOnlyAfterIdeaPrompt()
-            },
+            onDismissRequest = {},
             title = { Text(stringResource(R.string.idea_grove_continue_idea_title)) },
             text = { Text(stringResource(R.string.idea_grove_continue_idea_body)) },
             confirmButton = {

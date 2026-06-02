@@ -42,4 +42,23 @@ interface IdeaGroveDao {
 
     @Query("SELECT * FROM pulses WHERE id = :pulseId LIMIT 1")
     suspend fun getPulse(pulseId: Long): PulseEntity?
+
+    @Query(
+        """
+        UPDATE pulses
+        SET groveStatus = :aliveStatus,
+            groveStatusChangedAt = :changedAt,
+            updatedAt = :changedAt
+        WHERE groveStatus = :completedStatus
+          AND NOT EXISTS (
+              SELECT 1 FROM pulse_flow_links
+              WHERE pulse_flow_links.pulseId = pulses.id
+          )
+        """
+    )
+    suspend fun repairCompletedPulsesWithoutFlows(
+        completedStatus: String,
+        aliveStatus: String,
+        changedAt: Long
+    )
 }

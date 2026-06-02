@@ -1812,11 +1812,13 @@
     <string name="idea_grove_action_revive">Revive</string>
     <string name="idea_grove_action_delete_pulse">Delete Pulse</string>
     <string name="idea_grove_delete_pulse_title">Delete Pulse?</string>
+    <string name="idea_grove_delete_pulse_named_title">Delete “%1$s”?</string>
     <string name="idea_grove_delete_pulse_body">This will delete the actual Pulse from Scyra. If this Pulse has Flow history in Idea Grove, the Idea Grove link will be removed, but your saved Flows will remain in Story.</string>
     <string name="idea_grove_delete_pulse_confirm">Delete Pulse</string>
     <string name="idea_grove_delete_pulse_cancel">Cancel</string>
     <string name="idea_grove_deleted_pulse">Pulse deleted</string>
     <string name="idea_grove_delete_pulse_a11y">Delete Pulse %1$s</string>
+    <string name="idea_grove_untitled_pulse">Untitled Pulse</string>
     <string name="idea_grove_continue_idea_title">Continue this Idea too?</string>
     <string name="idea_grove_continue_idea_body">Your next Flow will continue the Arc. Do you also want it to be part of this Pulse’s Idea journey?</string>
     <string name="idea_grove_continue_arc_only">Continue Arc Only</string>
@@ -1840,6 +1842,7 @@
     <string name="idea_grove_view_flow">View Flow</string>
     <string name="idea_grove_no_pulse_flows_yet">No Pulse Flows yet</string>
     <string name="idea_grove_no_completed_pulse_flows_yet">No completed Pulse Flows yet</string>
+    <string name="idea_grove_completed_insights_summary">Insights are complete as-is. Completed Idea Flow time will appear here.</string>
     <string name="idea_grove_no_ideas_yet">No ideas yet</string>
     <string name="idea_grove_empty_create_pulse_hint">Capture a Pulse when something sparks. It will appear here in Idea Grove.</string>
     <string name="idea_grove_no_alive_ideas">No Alive ideas</string>

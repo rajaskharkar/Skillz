@@ -68,6 +68,14 @@ class IdeaGroveRepository @Inject constructor(
         pulseRepository.deletePulseAndCleanupTag(pulseId)
     }
 
+    suspend fun repairCompletedPulsesWithoutFlows() {
+        ideaGroveDao.repairCompletedPulsesWithoutFlows(
+            completedStatus = PulseGroveStatusValues.COMPLETED,
+            aliveStatus = PulseGroveStatusValues.ALIVE,
+            changedAt = System.currentTimeMillis()
+        )
+    }
+
     suspend fun getPulseLaunchContext(pulseId: Long): PulseLaunchContext? {
         val pulse = pulseDao.getPulseById(pulseId) ?: return null
         val journeyName = pulse.tagId?.let { tagId ->
@@ -150,7 +158,7 @@ class IdeaGroveRepository @Inject constructor(
             IdeaGroveItemUiModel(
                 pulseId = pulse.id,
                 type = type,
-                title = pulse.title.ifBlank { "Untitled Pulse" },
+                title = pulse.title,
                 description = pulse.description,
                 journeyName = pulse.tagId?.let { tagsById[it]?.name },
                 createdAt = pulse.createdAt,

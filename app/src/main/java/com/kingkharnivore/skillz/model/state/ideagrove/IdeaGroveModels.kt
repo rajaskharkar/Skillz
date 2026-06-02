@@ -49,6 +49,11 @@ data class PulseLaunchContext(
     val journeyName: String?
 )
 
+data class PendingDeletePulseUiModel(
+    val pulseId: Long,
+    val title: String
+)
+
 data class IdeaGroveUiState(
     val aliveItems: List<IdeaGroveItemUiModel> = emptyList(),
     val completedItems: List<IdeaGroveItemUiModel> = emptyList(),
@@ -58,7 +63,7 @@ data class IdeaGroveUiState(
     val completedPulseFlowCount: Int = 0,
     val aliveSort: IdeaGroveSort = IdeaGroveSort.Recents,
     val expandedPulseId: Long? = null,
-    val pendingDeletePulseId: Long? = null,
+    val pendingDeletePulse: PendingDeletePulseUiModel? = null,
     val isFlowRunning: Boolean = false,
     val isLoading: Boolean = true
 )

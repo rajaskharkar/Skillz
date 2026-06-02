@@ -147,7 +147,12 @@ fun IdeaGroveScreen(
             if (page == 0) {
                 IdeaGrovePage(
                     items = state.aliveItems,
-                    summary = pulseFlowSummary(state.totalPulseFlowDurationMs, state.totalPulseFlowCount, false),
+                    summary = pulseFlowSummary(
+                        durationMs = state.totalPulseFlowDurationMs,
+                        flowCount = state.totalPulseFlowCount,
+                        completed = false,
+                        hasItems = state.aliveItems.isNotEmpty()
+                    ),
                     emptyTitle = if (state.completedItems.isEmpty()) stringResource(R.string.idea_grove_no_ideas_yet) else stringResource(R.string.idea_grove_no_alive_ideas),
                     emptyBody = if (state.completedItems.isEmpty()) stringResource(R.string.idea_grove_empty_create_pulse_hint) else stringResource(R.string.idea_grove_alive_empty_body),
                     sort = state.aliveSort,
@@ -164,7 +169,12 @@ fun IdeaGroveScreen(
             } else {
                 IdeaGrovePage(
                     items = state.completedItems,
-                    summary = pulseFlowSummary(state.completedPulseFlowDurationMs, state.completedPulseFlowCount, true),
+                    summary = pulseFlowSummary(
+                        durationMs = state.completedPulseFlowDurationMs,
+                        flowCount = state.completedPulseFlowCount,
+                        completed = true,
+                        hasItems = state.completedItems.isNotEmpty()
+                    ),
                     emptyTitle = stringResource(R.string.idea_grove_no_completed_ideas_yet),
                     emptyBody = stringResource(R.string.idea_grove_completed_empty_body),
                     sort = state.aliveSort,
@@ -182,8 +192,12 @@ fun IdeaGroveScreen(
         }
     }
 
-    if (state.pendingDeletePulseId != null) {
+    state.pendingDeletePulse?.let { pendingDelete ->
+        val pendingDeleteTitle = pendingDelete.title.ifBlank {
+            stringResource(R.string.idea_grove_untitled_pulse)
+        }
         IdeaGroveDeleteDialog(
+            pulseTitle = pendingDeleteTitle,
             onConfirm = onConfirmDeletePulse,
             onDismiss = onDismissDeletePulse
         )
@@ -334,12 +348,13 @@ private fun IdeaPulseCard(
     onRevive: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val cardDescription = cardA11y(item, expanded)
-    val startFlowA11y = stringResource(R.string.idea_grove_start_flow_from_a11y, item.title)
-    val markInsightA11y = stringResource(R.string.idea_grove_mark_as_insight_a11y, item.title)
-    val markCompletedA11y = stringResource(R.string.idea_grove_mark_completed_a11y, item.title)
-    val reviveA11y = stringResource(R.string.idea_grove_revive_a11y, item.title)
-    val deleteA11y = stringResource(R.string.idea_grove_delete_pulse_a11y, item.title)
+    val displayTitle = item.title.ifBlank { stringResource(R.string.idea_grove_untitled_pulse) }
+    val cardDescription = cardA11y(item, expanded, displayTitle)
+    val startFlowA11y = stringResource(R.string.idea_grove_start_flow_from_a11y, displayTitle)
+    val markInsightA11y = stringResource(R.string.idea_grove_mark_as_insight_a11y, displayTitle)
+    val markCompletedA11y = stringResource(R.string.idea_grove_mark_completed_a11y, displayTitle)
+    val reviveA11y = stringResource(R.string.idea_grove_revive_a11y, displayTitle)
+    val deleteA11y = stringResource(R.string.idea_grove_delete_pulse_a11y, displayTitle)
 
     ElevatedCard(
         onClick = onClick,
@@ -351,7 +366,7 @@ private fun IdeaPulseCard(
         }
     ) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(item.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(displayTitle, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             item.journeyName?.takeIf { it.isNotBlank() }?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
             }
@@ -394,7 +409,7 @@ private fun IdeaPulseCard(
                         Icon(
                             imageVector = Icons.Outlined.Delete,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.secondary
                         )
                     }
                 }
@@ -451,12 +466,13 @@ private fun IdeaFlowHistoryRow(flow: IdeaGroveFlowUiModel) {
 
 @Composable
 private fun IdeaGroveDeleteDialog(
+    pulseTitle: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.idea_grove_delete_pulse_title)) },
+        title = { Text(stringResource(R.string.idea_grove_delete_pulse_named_title, pulseTitle)) },
         text = { Text(stringResource(R.string.idea_grove_delete_pulse_body)) },
         confirmButton = {
             Button(onClick = onConfirm) {
@@ -482,7 +498,13 @@ private fun IdeaGroveEmptyState(title: String, body: String) {
 }
 
 @Composable
-private fun pulseFlowSummary(durationMs: Long, flowCount: Int, completed: Boolean): String = when {
+private fun pulseFlowSummary(
+    durationMs: Long,
+    flowCount: Int,
+    completed: Boolean,
+    hasItems: Boolean
+): String = when {
+    flowCount <= 0 && completed && hasItems -> stringResource(R.string.idea_grove_completed_insights_summary)
     flowCount <= 0 && completed -> stringResource(R.string.idea_grove_no_completed_pulse_flows_yet)
     flowCount <= 0 -> stringResource(R.string.idea_grove_no_pulse_flows_yet)
     else -> stringResource(R.string.idea_grove_summary_spent, formatIdeaGroveDuration(durationMs), flowCount)
@@ -519,7 +541,7 @@ private fun dateSummary(item: IdeaGroveItemUiModel): String = when (item.type) {
 }
 
 @Composable
-private fun cardA11y(item: IdeaGroveItemUiModel, expanded: Boolean): String {
+private fun cardA11y(item: IdeaGroveItemUiModel, expanded: Boolean, displayTitle: String): String {
     val journey = item.journeyName?.let { stringResource(R.string.idea_grove_card_journey_a11y, it) }.orEmpty()
     val flowLabel = if (item.flowCount == 1) stringResource(R.string.idea_grove_flow_singular) else stringResource(R.string.idea_grove_flow_plural)
     val status = when (item.type) {
@@ -534,7 +556,7 @@ private fun cardA11y(item: IdeaGroveItemUiModel, expanded: Boolean): String {
     }
     return stringResource(
         R.string.idea_grove_card_a11y,
-        item.title,
+        displayTitle,
         journey,
         status,
         dateSummary(item),
