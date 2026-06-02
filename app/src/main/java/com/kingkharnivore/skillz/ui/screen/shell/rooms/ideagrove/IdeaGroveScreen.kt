@@ -23,16 +23,17 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Eco
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -339,10 +340,6 @@ private fun IdeaPulseCard(
     val markCompletedA11y = stringResource(R.string.idea_grove_mark_completed_a11y, item.title)
     val reviveA11y = stringResource(R.string.idea_grove_revive_a11y, item.title)
     val deleteA11y = stringResource(R.string.idea_grove_delete_pulse_a11y, item.title)
-    val destructiveColors = ButtonDefaults.outlinedButtonColors(
-        contentColor = MaterialTheme.colorScheme.error
-    )
-    val destructiveBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.65f))
 
     ElevatedCard(
         onClick = onClick,
@@ -390,13 +387,15 @@ private fun IdeaPulseCard(
                             }
                         }
                     }
-                    OutlinedButton(
+                    IconButton(
                         onClick = onDelete,
-                        colors = destructiveColors,
-                        border = destructiveBorder,
                         modifier = Modifier.semantics { contentDescription = deleteA11y }
                     ) {
-                        Text(stringResource(R.string.idea_grove_action_delete_pulse))
+                        Icon(
+                            imageVector = Icons.Outlined.Delete,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
                 when {
@@ -460,10 +459,7 @@ private fun IdeaGroveDeleteDialog(
         title = { Text(stringResource(R.string.idea_grove_delete_pulse_title)) },
         text = { Text(stringResource(R.string.idea_grove_delete_pulse_body)) },
         confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) {
+            Button(onClick = onConfirm) {
                 Text(stringResource(R.string.idea_grove_delete_pulse_confirm))
             }
         },

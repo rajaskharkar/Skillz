@@ -84,12 +84,14 @@ fun FlowScreen(
     val reward by viewModel.lastReward.collectAsState()
     val exitAfterReward by viewModel.exitAfterReward.collectAsState()
     val awaitingNextFlow by viewModel.awaitingNextFlowAfterContinue.collectAsState()
+    val pendingArcIdeaContinuation by viewModel.pendingArcIdeaContinuation.collectAsState()
 
     var showSurgeDialog by remember { mutableStateOf(false) }
     var showEndDialog by remember { mutableStateOf(false) }
     var showPointsDialog by remember { mutableStateOf(false) }
     var showPulseDialog by remember { mutableStateOf(false) }
     var showSoftArcConfirmDialog by remember { mutableStateOf(false) }
+    var showArcIdeaContinuationDialog by remember { mutableStateOf(false) }
 
     var surgeMinutesInput by remember { mutableStateOf("") }
     var surgeMinutesInline by rememberSaveable { mutableStateOf("") }
@@ -680,7 +682,11 @@ fun FlowScreen(
                         } else {
                             showPointsDialog = false
                             if (awaitingNextFlow) {
-                                viewModel.beginNextFlowAfterContinue()
+                                if (pendingArcIdeaContinuation != null) {
+                                    showArcIdeaContinuationDialog = true
+                                } else {
+                                    viewModel.beginNextFlowAfterContinue()
+                                }
                             } else {
                                 viewModel.clearLastReward()
                                 if (exitAfterReward && viewModel.consumeExitAfterReward()) onDone()
@@ -705,6 +711,38 @@ fun FlowScreen(
                             onOpenShell()
                         }
                     ) { Text(stringResource(R.string.session_reward_enter_shell)) }
+                }
+            }
+        )
+    }
+
+
+    if (showArcIdeaContinuationDialog && pendingArcIdeaContinuation != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showArcIdeaContinuationDialog = false
+                viewModel.continueArcOnlyAfterIdeaPrompt()
+            },
+            title = { Text(stringResource(R.string.idea_grove_continue_idea_title)) },
+            text = { Text(stringResource(R.string.idea_grove_continue_idea_body)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showArcIdeaContinuationDialog = false
+                        viewModel.continueArcOnlyAfterIdeaPrompt()
+                    }
+                ) {
+                    Text(stringResource(R.string.idea_grove_continue_arc_only))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showArcIdeaContinuationDialog = false
+                        viewModel.continueArcAndIdeaAfterIdeaPrompt()
+                    }
+                ) {
+                    Text(stringResource(R.string.idea_grove_continue_arc_and_idea))
                 }
             }
         )
