@@ -74,6 +74,27 @@ class TheBlueUiModelTest {
     }
 
     @Test
+    fun animalLevelCountsGroupCopiesByLevelHighestFirst() {
+        val state = buildTheBlueUiState(
+            finds = listOf(
+                find("minnow-l4", ShellContentCatalog.FOCUS_MINNOW, level = 4),
+                find("minnow-l1-a", ShellContentCatalog.FOCUS_MINNOW, level = 1),
+                find("minnow-l1-b", ShellContentCatalog.FOCUS_MINNOW, level = 1),
+                find("minnow-l1-c", ShellContentCatalog.FOCUS_MINNOW, level = 1),
+                find("minnow-l1-d", ShellContentCatalog.FOCUS_MINNOW, level = 1)
+            ),
+            focusPlacements = emptyList()
+        )
+
+        val minnow = state.zones.single { it.zoneId == TheBlueZoneId.SUNLIT_REEF }.animals.single()
+
+        assertEquals(5, minnow.totalCount)
+        assertEquals(4, minnow.highestLevel)
+        assertEquals(listOf(FormCountUiModel("Level 4", 1), FormCountUiModel("Level 1", 4)), minnow.levelCounts)
+    }
+
+
+    @Test
     fun markingTheBlueAnimalsSeenClearsOnlyAnimalNewFlags() {
         val finds = listOf(
             find("minnow-1", ShellContentCatalog.FOCUS_MINNOW, isNew = true),

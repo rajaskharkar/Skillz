@@ -295,7 +295,7 @@ fun ShellRootScreen(
                     uiState = uiState,
                     onDisplayInFocus = viewModel::place,
                     onGrowCreature = viewModel::growCreature,
-                    onReleaseCreature = viewModel::releaseCreature,
+                    onReleaseCreaturesByLevel = viewModel::releaseCreaturesByLevel,
                     onEncounterBeyondBlue = viewModel::encounterBeyondBlue,
                     onOpenChest = { destination = ShellDestination.ShellChest }
                 )

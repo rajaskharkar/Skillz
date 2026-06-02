@@ -38,7 +38,7 @@ fun TheBlueRoomScreen(
     uiState: ShellUiState,
     onDisplayInFocus: (String, String) -> Unit,
     onGrowCreature: (String) -> Unit,
-    onReleaseCreature: (String) -> Unit,
+    onReleaseCreaturesByLevel: (String, Map<Int, Int>) -> Unit,
     onEncounterBeyondBlue: (String, List<String>) -> Unit,
     onOpenChest: () -> Unit
 ) {
@@ -160,8 +160,8 @@ fun TheBlueRoomScreen(
         ReleaseCreatureConfirmationSheet(
             animal = animal,
             onDismiss = { releaseCandidate = null },
-            onConfirm = { instanceId ->
-                onReleaseCreature(instanceId)
+            onConfirm = { findId, selectionsByLevel ->
+                onReleaseCreaturesByLevel(findId, selectionsByLevel)
                 releaseCandidate = null
             }
         )

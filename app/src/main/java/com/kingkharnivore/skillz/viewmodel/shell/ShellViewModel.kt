@@ -133,8 +133,14 @@ class ShellViewModel @Inject constructor(
 
     fun releaseCreature(instanceId: String) = viewModelScope.launch {
         runCatching { repository.releaseCreature(instanceId) }
-            .onSuccess { pearls -> _events.emit("Released for Pearls. $pearls Pearls returned. Your lifetime record remains.") }
+            .onSuccess { pearls -> _events.emit("Released back into The Blue. $pearls Pearls returned. Your lifetime record remains.") }
             .onFailure { _events.emit(it.message ?: "Could not release that creature.") }
+    }
+
+    fun releaseCreaturesByLevel(findId: String, selectionsByLevel: Map<Int, Int>) = viewModelScope.launch {
+        runCatching { repository.releaseCreaturesByLevel(findId, selectionsByLevel) }
+            .onSuccess { pearls -> _events.emit("Released back into The Blue. $pearls Pearls returned. Your lifetime record remains.") }
+            .onFailure { _events.emit(it.message ?: "Could not release those creatures.") }
     }
 
     fun encounterBeyondBlue(targetCreatureId: String, selectedInstanceIds: List<String>) = viewModelScope.launch {

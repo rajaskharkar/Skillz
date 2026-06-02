@@ -274,12 +274,48 @@ class ShellRepository @Inject constructor(
         val instance = findInstanceDao.getById(instanceId) ?: error("Creature not found")
         require(ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL) { "Only animals can be released." }
         require(instance.creatureStatus == CreatureStatus.ACTIVE) { "Only active creatures can be released." }
-        val payout = CreatureEconomy.releaseValuePearls(instance.findId, instance.animalLevel)
-        val now = System.currentTimeMillis()
-        placementDao.removeByInstance(instanceId)
-        findInstanceDao.updateCreatureStatus(instanceId, CreatureStatus.RELEASED)
-        pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), payout, "release_creature", "shell_reward", instanceId, now, "Release for Pearls"))
-        payout
+        releaseActiveCreatures(listOf(instance), System.currentTimeMillis())
+    }
+
+    suspend fun releaseCreaturesByLevel(findId: String, selectionsByLevel: Map<Int, Int>): Int = db.withTransaction {
+        val requestedSelections = selectionsByLevel.entries
+            .groupBy { it.key.coerceAtLeast(1) }
+            .mapValues { (_, entries) -> entries.sumOf { it.value.coerceAtLeast(0) } }
+            .filterValues { it > 0 }
+        require(requestedSelections.isNotEmpty()) { "Select at least one creature to release." }
+        require(ShellContentCatalog.find(findId)?.kind == ShellRewardKind.ANIMAL) { "Only animals can be released." }
+
+        val selectedInstances = mutableListOf<UserShellFindInstanceEntity>()
+        requestedSelections.toSortedMap(compareByDescending { it }).forEach { (level, quantity) ->
+            val activeAtLevel = findInstanceDao.getActiveByFindIdAndLevel(findId, level, CreatureStatus.ACTIVE)
+            require(activeAtLevel.size >= quantity) { "Not enough active Level $level creatures to release." }
+            val placedInstanceIds = mutableSetOf<String>()
+            for (instance in activeAtLevel) {
+                if (placementDao.getByInstance(instance.instanceId) != null) {
+                    placedInstanceIds += instance.instanceId
+                }
+            }
+            selectedInstances += activeAtLevel
+                .sortedWith(
+                    compareBy<UserShellFindInstanceEntity> { it.instanceId in placedInstanceIds }
+                        .thenBy { it.acquiredAt }
+                        .thenBy { it.instanceId }
+                )
+                .take(quantity)
+        }
+        releaseActiveCreatures(selectedInstances, System.currentTimeMillis())
+    }
+
+    private suspend fun releaseActiveCreatures(instances: List<UserShellFindInstanceEntity>, now: Long): Int {
+        var totalPayout = 0
+        instances.forEach { instance ->
+            val payout = CreatureEconomy.releaseValuePearls(instance.findId, instance.animalLevel)
+            placementDao.removeByInstance(instance.instanceId)
+            findInstanceDao.updateCreatureStatus(instance.instanceId, CreatureStatus.RELEASED)
+            pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), payout, "release_creature", "shell_reward", instance.instanceId, now, "Release for Pearls"))
+            totalPayout += payout
+        }
+        return totalPayout
     }
 
     suspend fun encounterBeyondBlue(targetCreatureId: String, selectedInstanceIds: List<String>): UserShellFindInstanceEntity = db.withTransaction {

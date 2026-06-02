@@ -1037,7 +1037,7 @@
     <string name="shell_creature_no_active_to_grow">बढ़ाने के लिए कोई सक्रिय जीव नहीं है।</string>
     <string name="shell_creature_need_more_pearls_to_grow">बढ़ाने के लिए %1$d और मोती चाहिए।</string>
     <string name="shell_creature_release_for_pearls">Pearls के लिए मुक्त करें</string>
-    <string name="shell_creature_release_confirm_title">%2$d मोतियों के लिए %1$s को रिलीज़ करें?</string>
+    <string name="shell_creature_release_confirm_title">%1$s को रिलीज़ करें?</string>
     <string name="shell_creature_release_confirm_body">यह एक जीव की प्रति को रिलीज़ करेगा और उसका पूरा मोती मूल्य लौटाएगा।</string>
     <string name="shell_creature_keep_swimming">तैरते रहने दें</string>
     <string name="shell_chest_item_status">प्रकार: %1$s. स्थिति: %2$s.</string>

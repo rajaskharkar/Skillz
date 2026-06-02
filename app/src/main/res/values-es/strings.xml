@@ -1048,7 +1048,7 @@ Piedritas — 60 Perlas</string>
     <string name="shell_creature_no_active_to_grow">No hay criatura activa para crecer.</string>
     <string name="shell_creature_need_more_pearls_to_grow">Necesitas %1$d Perlas más para crecer.</string>
     <string name="shell_creature_release_for_pearls">Liberar por Pearls</string>
-    <string name="shell_creature_release_confirm_title">¿Liberar %1$s por %2$d Perlas?</string>
+    <string name="shell_creature_release_confirm_title">¿Liberar %1$s?</string>
     <string name="shell_creature_release_confirm_body">Esto liberará una copia de criatura y devolverá todo su valor en Perlas.</string>
     <string name="shell_creature_keep_swimming">Seguir nadando</string>
     <string name="shell_chest_item_status">Tipo: %1$s. Estado: %2$s.</string>
