@@ -10,6 +10,7 @@ import com.kingkharnivore.skillz.data.repository.ActiveArcRunRepository
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.ArcPlanRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
+import com.kingkharnivore.skillz.data.repository.IdeaGroveRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.data.repository.PulseRepository
 import com.kingkharnivore.skillz.domain.shell.ShellRewardEventRecorder
@@ -57,11 +58,18 @@ enum class FlowEndAction {
     COMPLETE_ARC
 }
 
+data class PendingArcIdeaContinuation(
+    val pulseId: Long,
+    val pulseTitle: String?,
+    val pulseJourneyName: String?
+)
+
 @HiltViewModel
 class FlowViewModel @Inject constructor(
     private val tagRepository: JourneyRepository,
     private val sessionRepository: FlowRepository,
     private val pulseRepository: PulseRepository,
+    private val ideaGroveRepository: IdeaGroveRepository,
     private val focusSessionRepository: AliveFlowRepository,
     private val activeArcRunRepository: ActiveArcRunRepository,
     private val arcPlanRepository: ArcPlanRepository,
@@ -104,15 +112,21 @@ class FlowViewModel @Inject constructor(
             SkillzDestinations.ADD_SKILL_ARG_PREFILL_SOFT_MODE
         ) ?: false
 
+    private val originPulseIdOverride: Long? =
+        savedStateHandle.get<Long>(SkillzDestinations.ADD_SKILL_ARG_ORIGIN_PULSE_ID)
+            ?.takeIf { it > 0L }
+
     private val hasLaunchOverrides: Boolean =
         !atlasJourneyOverride.isNullOrBlank() ||
                 !prefillTitleOverride.isNullOrBlank() ||
                 prefillSoftModeOverride ||
+                originPulseIdOverride != null ||
                 !plannedArcTitleOverride.isNullOrBlank() ||
                 plannedArcStepIndexOverride != null ||
                 plannedArcTotalStepsOverride != null
 
     private fun applyLaunchOverrides(state: FlowUiState): FlowUiState {
+        val isPulseLaunch = originPulseIdOverride != null
         return state.copy(
             title = prefillTitleOverride ?: state.title,
             tagName = atlasJourneyOverride ?: state.tagName,
@@ -121,7 +135,10 @@ class FlowViewModel @Inject constructor(
             surgePlannedMs = if (prefillSoftModeOverride) null else state.surgePlannedMs,
             plannedArcTitle = plannedArcTitleOverride ?: state.plannedArcTitle,
             plannedArcStepIndex = plannedArcStepIndexOverride ?: state.plannedArcStepIndex,
-            plannedArcTotalSteps = plannedArcTotalStepsOverride ?: state.plannedArcTotalSteps
+            plannedArcTotalSteps = plannedArcTotalStepsOverride ?: state.plannedArcTotalSteps,
+            originPulseId = if (isPulseLaunch) originPulseIdOverride else null,
+            originPulseTitle = if (isPulseLaunch) prefillTitleOverride else null,
+            originPulseJourneyName = if (isPulseLaunch) atlasJourneyOverride else null
         )
     }
 
@@ -130,6 +147,10 @@ class FlowViewModel @Inject constructor(
                 !entity.isRunning &&
                 entity.accumulatedBeforeStartMs == 0L &&
                 entity.baseStartTimeMs == null
+    }
+
+    private fun isAbandonedPulseOriginDraft(entity: OngoingSessionEntity?): Boolean {
+        return entity?.originPulseId != null && shouldTreatOngoingAsDraft(entity)
     }
 
     val ongoingSession: StateFlow<OngoingSessionEntity?> =
@@ -151,6 +172,10 @@ class FlowViewModel @Inject constructor(
     private val _awaitingNextFlowAfterContinue = MutableStateFlow(false)
     val awaitingNextFlowAfterContinue: StateFlow<Boolean> =
         _awaitingNextFlowAfterContinue.asStateFlow()
+
+    private val _pendingArcIdeaContinuation = MutableStateFlow<PendingArcIdeaContinuation?>(null)
+    val pendingArcIdeaContinuation: StateFlow<PendingArcIdeaContinuation?> =
+        _pendingArcIdeaContinuation.asStateFlow()
 
     val tags: StateFlow<List<TagEntity>> =
         tagRepository.getAllTags()
@@ -366,7 +391,13 @@ class FlowViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val ongoing = focusSessionRepository.getOngoingSession().firstOrNull()
+            val storedOngoing = focusSessionRepository.getOngoingSession().firstOrNull()
+            val ongoing = if (isAbandonedPulseOriginDraft(storedOngoing)) {
+                clearOngoing()
+                null
+            } else {
+                storedOngoing
+            }
 
             if (ongoing?.arcId != null) {
                 arcState = ArcRuntimeState(
@@ -409,12 +440,16 @@ class FlowViewModel @Inject constructor(
                                 ),
                                 plannedArcTitle = null,
                                 plannedArcStepIndex = null,
-                                plannedArcTotalSteps = null
+                                plannedArcTotalSteps = null,
+                                originPulseId = null,
+                                originPulseTitle = null,
+                                originPulseJourneyName = null
                             )
                         )
                     }
 
                     clearOngoing()
+                    saveOngoing()
                 } else {
                     currentFlowInstanceId = entity.flowInstanceId
                     ongoingCreatedAtMs = entity.createdAt
@@ -437,6 +472,9 @@ class FlowViewModel @Inject constructor(
                             isSoftMode = entity.isSoftMode,
                             isSurgeOn = entity.isSurgeOn,
                             surgePlannedMs = entity.surgePlannedMs,
+                            originPulseId = entity.originPulseId,
+                            originPulseTitle = entity.originPulseTitleSnapshot,
+                            originPulseJourneyName = entity.originPulseJourneyNameSnapshot,
                             stopwatch = StopwatchState(
                                 isRunning = entity.isRunning,
                                 elapsedMs = elapsed
@@ -453,7 +491,10 @@ class FlowViewModel @Inject constructor(
                     val cleared = old.copy(
                         plannedArcTitle = null,
                         plannedArcStepIndex = null,
-                        plannedArcTotalSteps = null
+                        plannedArcTotalSteps = null,
+                        originPulseId = null,
+                        originPulseTitle = null,
+                        originPulseJourneyName = null
                     )
 
                     if (hasLaunchOverrides) {
@@ -462,11 +503,18 @@ class FlowViewModel @Inject constructor(
                         cleared
                     }
                 }
+                if (hasLaunchOverrides) saveOngoing()
             }
         }
     }
 
     fun clearLastReward() {
+        _lastReward.value = null
+    }
+
+    fun abandonPendingArcContinuationForShellEntry() {
+        _pendingArcIdeaContinuation.value = null
+        _awaitingNextFlowAfterContinue.value = false
         _lastReward.value = null
     }
 
@@ -487,12 +535,13 @@ class FlowViewModel @Inject constructor(
 
     fun discardDraftIfIdle() {
         val state = _uiState.value
-        val hasNoElapsedTime = state.stopwatch.elapsedMs == 0L
-        val isNotRunning = !state.stopwatch.isRunning
-        val isNotInFlowMode = !state.isInFlowMode
+        val isIdle = state.stopwatch.elapsedMs == 0L &&
+                !state.stopwatch.isRunning &&
+                !state.isInFlowMode
+        val isAbandonedPulseOriginDraft = state.originPulseId != null && isIdle
         val hasNoArc = arcState == null
 
-        if (hasNoElapsedTime && isNotRunning && isNotInFlowMode && hasNoArc) {
+        if (isIdle && (hasNoArc || isAbandonedPulseOriginDraft)) {
             viewModelScope.launch {
                 clearOngoing()
             }
@@ -502,15 +551,28 @@ class FlowViewModel @Inject constructor(
             baseStartTimeMs = null
             accumulatedBeforeStartMs = 0L
 
-            _uiState.value = applyLaunchOverrides(
-                FlowUiState(
-                    showScoreUi = state.showScoreUi,
-                    calmMode = state.calmMode,
-                    plannedArcTitle = null,
-                    plannedArcStepIndex = null,
-                    plannedArcTotalSteps = null
-                )
+            val keepArc = arcState
+            val resetState = FlowUiState(
+                showScoreUi = state.showScoreUi,
+                calmMode = state.calmMode,
+                plannedArcTitle = null,
+                plannedArcStepIndex = null,
+                plannedArcTotalSteps = null,
+                isInArc = keepArc != null,
+                arcIsPending = keepArc?.isPending ?: false,
+                arcMultiplier = keepArc?.multiplier,
+                arcProgressMs = keepArc?.progressMs ?: 0L,
+                arcNextIndex = keepArc?.let { it.sessionCountInArc + 1 },
+                originPulseId = null,
+                originPulseTitle = null,
+                originPulseJourneyName = null
             )
+
+            _uiState.value = if (isAbandonedPulseOriginDraft) {
+                resetState
+            } else {
+                applyLaunchOverrides(resetState)
+            }
         }
     }
 
@@ -779,7 +841,10 @@ class FlowViewModel @Inject constructor(
                 arcId = arc?.arcId,
                 arcChainBase = arc?.multiplier,
                 arcSessionCountInArc = arc?.sessionCountInArc,
-                arcLastSessionEndTimeMs = arc?.lastSessionEndTimeMs
+                arcLastSessionEndTimeMs = arc?.lastSessionEndTimeMs,
+                originPulseId = state.originPulseId,
+                originPulseTitleSnapshot = state.originPulseTitle,
+                originPulseJourneyNameSnapshot = state.originPulseJourneyName
             )
             focusSessionRepository.saveOngoingSession(entity)
         }
@@ -820,10 +885,28 @@ class FlowViewModel @Inject constructor(
     fun isSurgeLocked(): Boolean = _uiState.value.stopwatch.elapsedMs > 0L
 
     fun beginNextFlowAfterContinue() {
+        if (_pendingArcIdeaContinuation.value != null) return
+        beginNextFlowAfterContinueInternal(continuationOrigin = null)
+    }
+
+    fun continueArcOnlyAfterIdeaPrompt() {
+        _pendingArcIdeaContinuation.value = null
+        beginNextFlowAfterContinueInternal(continuationOrigin = null)
+    }
+
+    fun continueArcAndIdeaAfterIdeaPrompt() {
+        val pending = _pendingArcIdeaContinuation.value ?: return
+        _pendingArcIdeaContinuation.value = null
+        beginNextFlowAfterContinueInternal(continuationOrigin = pending)
+    }
+
+    private fun beginNextFlowAfterContinueInternal(
+        continuationOrigin: PendingArcIdeaContinuation?
+    ) {
         if (!_awaitingNextFlowAfterContinue.value) return
 
         viewModelScope.launch {
-            val hydrated = hydrateNextPlannedArcStepIfAny()
+            val hydrated = hydrateNextPlannedArcStepIfAny(continuationOrigin)
             if (hydrated) return@launch
 
             val keepTag = _uiState.value.tagName
@@ -858,11 +941,24 @@ class FlowViewModel @Inject constructor(
                     arcPauseRemainingMs = null,
                     plannedArcTitle = null,
                     plannedArcStepIndex = null,
-                    plannedArcTotalSteps = null
+                    plannedArcTotalSteps = null,
+                    originPulseId = continuationOrigin?.pulseId,
+                    originPulseTitle = continuationOrigin?.pulseTitle,
+                    originPulseJourneyName = continuationOrigin?.pulseJourneyName
                 )
             }
 
             clearOngoing()
+        }
+    }
+
+    private fun queueArcIdeaContinuationPromptIfNeeded(state: FlowUiState) {
+        _pendingArcIdeaContinuation.value = state.originPulseId?.let { pulseId ->
+            PendingArcIdeaContinuation(
+                pulseId = pulseId,
+                pulseTitle = state.originPulseTitle,
+                pulseJourneyName = state.originPulseJourneyName
+            )
         }
     }
 
@@ -900,6 +996,9 @@ class FlowViewModel @Inject constructor(
 
         _isSaving.value = true
         _error.value = null
+        if (endMode != FlowEndAction.CONTINUE_ARC) {
+            _pendingArcIdeaContinuation.value = null
+        }
 
         try {
             val sessionEnd = System.currentTimeMillis()
@@ -979,6 +1078,12 @@ class FlowViewModel @Inject constructor(
                     sessionId = firstSessionId,
                     arcId = arcId
                 )
+                // TODO(Idea Grove): move Session insert, Arc field updates, and optional
+                // PulseFlowLink creation into one transaction-safe Flow completion use case.
+                // linkCompletedFlowToPulse is best-effort and must never fail the saved Flow.
+                state.originPulseId?.let { pulseId ->
+                    ideaGroveRepository.linkCompletedFlowToPulse(pulseId, firstSessionId)
+                }
 
                 val shellReward = runCatching { shellRewardOrchestrator.onSessionCompleted(
                     SessionEntity(
@@ -1027,6 +1132,7 @@ class FlowViewModel @Inject constructor(
                 ).withShellReward(shellReward)
 
                 _awaitingNextFlowAfterContinue.value = true
+                queueArcIdeaContinuationPromptIfNeeded(state)
 
                 baseStartTimeMs = null
                 accumulatedBeforeStartMs = 0L
@@ -1086,6 +1192,12 @@ class FlowViewModel @Inject constructor(
                 sessionId = insertedId,
                 arcId = localArc?.arcId
             )
+            // TODO(Idea Grove): move Session insert and optional PulseFlowLink creation into
+            // one transaction-safe Flow completion use case. linkCompletedFlowToPulse is
+            // best-effort and must never fail the saved Flow.
+            state.originPulseId?.let { pulseId ->
+                ideaGroveRepository.linkCompletedFlowToPulse(pulseId, insertedId)
+            }
 
             if (isInExistingArc) {
                 val s = localArc!!
@@ -1272,6 +1384,7 @@ class FlowViewModel @Inject constructor(
 
                     _lastReward.value = baseReward
                     _awaitingNextFlowAfterContinue.value = true
+                    queueArcIdeaContinuationPromptIfNeeded(state)
 
                     baseStartTimeMs = null
                     accumulatedBeforeStartMs = 0L
@@ -1298,7 +1411,9 @@ class FlowViewModel @Inject constructor(
         }
     }
 
-    private suspend fun hydrateNextPlannedArcStepIfAny(): Boolean {
+    private suspend fun hydrateNextPlannedArcStepIfAny(
+        continuationOrigin: PendingArcIdeaContinuation?
+    ): Boolean {
         val activeRun = activeArcRunRepository.getActiveArcRunOnce() ?: return false
         val nextIndex = activeRun.currentStepIndex + 1
 
@@ -1365,7 +1480,10 @@ class FlowViewModel @Inject constructor(
                 arcProgressMs = arcState?.progressMs ?: 0L,
                 arcNextIndex = arcState?.let { it.sessionCountInArc + 1 },
                 arcGraceRemainingMs = null,
-                arcPauseRemainingMs = null
+                arcPauseRemainingMs = null,
+                originPulseId = continuationOrigin?.pulseId,
+                originPulseTitle = continuationOrigin?.pulseTitle,
+                originPulseJourneyName = continuationOrigin?.pulseJourneyName
             )
         }
 

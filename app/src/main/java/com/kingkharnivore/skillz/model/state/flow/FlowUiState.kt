@@ -21,5 +21,8 @@ data class FlowUiState(
     val recentlyResumedArcMessage: String? = null,
     val plannedArcTitle: String? = null,
     val plannedArcStepIndex: Int? = null,
-    val plannedArcTotalSteps: Int? = null
+    val plannedArcTotalSteps: Int? = null,
+    val originPulseId: Long? = null,
+    val originPulseTitle: String? = null,
+    val originPulseJourneyName: String? = null
 )

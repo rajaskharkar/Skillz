@@ -48,6 +48,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -91,6 +92,7 @@ import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellChestScreen
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellNotificationsScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.TheBlueRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.focus.FocusRoomScreen
+import com.kingkharnivore.skillz.ui.screen.shell.rooms.ideagrove.IdeaGroveRoute
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.lookout.LookoutRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.stillwater.StillwaterRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.voyage.VoyageHallScreen
@@ -176,6 +178,8 @@ fun ShellRootScreen(
     modifier: Modifier = Modifier,
     isFlowActive: Boolean = false,
     onLaunchFlowForJourney: (String) -> Unit = {},
+    onLaunchFlowFromPulse: (Long, String, String?) -> Unit = { _, _, _ -> },
+    onOpenActiveFlow: () -> Unit = {},
     viewModel: ShellViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -296,10 +300,16 @@ fun ShellRootScreen(
                     onOpenChest = { destination = ShellDestination.ShellChest }
                 )
 
-                ShellDestination.IdeaGrovePreview -> DormantPreviewScreen(
-                    titleRes = R.string.shell_room_idea_title,
-                    bodyRes = R.string.shell_preview_idea,
-                    icon = Icons.Outlined.PsychologyAlt
+                ShellDestination.IdeaGrovePreview -> IdeaGroveRoute(
+                    onNavigateToFlow = onLaunchFlowFromPulse,
+                    onNavigateToCurrentFlow = onOpenActiveFlow,
+                    onSnackbar = { message, action ->
+                        val result = snackbarHostState.showSnackbar(
+                            message = message,
+                            actionLabel = action
+                        )
+                        if (action != null && result == SnackbarResult.ActionPerformed) onOpenActiveFlow()
+                    }
                 )
 
                 ShellDestination.LookoutPreview -> LookoutRoomScreen(

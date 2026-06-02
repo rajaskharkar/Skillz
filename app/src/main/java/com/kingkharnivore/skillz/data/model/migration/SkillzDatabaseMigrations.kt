@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 21.
+     * Current database version is 23.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -73,6 +73,20 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_21_22 = object : Migration(21, 22) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            addIdeaGroveTables(db)
+        }
+    }
+
+    val MIGRATION_22_23 = object : Migration(22, 23) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // No physical schema change. Version 23 refreshes Room's identity hash
+            // after the v22 entity schema metadata was corrected to declare the
+            // ALIVE default value on PulseEntity.groveStatus.
+        }
+    }
+
     val ALL_MIGRATIONS: Array<Migration> =
         LEGACY_TO_15_MIGRATIONS +
                 MIGRATION_13_14 +
@@ -82,8 +96,33 @@ object SkillzDatabaseMigrations {
                 MIGRATION_17_18 +
                 MIGRATION_18_19 +
                 MIGRATION_19_20 +
-                MIGRATION_20_21
+                MIGRATION_20_21 +
+                MIGRATION_21_22 +
+                MIGRATION_22_23
 
+
+
+    private fun addIdeaGroveTables(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `pulses` ADD COLUMN `groveStatus` TEXT NOT NULL DEFAULT 'ALIVE'")
+        db.execSQL("ALTER TABLE `pulses` ADD COLUMN `groveStatusChangedAt` INTEGER")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `pulse_flow_links` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `pulseId` INTEGER NOT NULL,
+                `sessionId` INTEGER NOT NULL,
+                `linkedAt` INTEGER NOT NULL,
+                FOREIGN KEY(`pulseId`) REFERENCES `pulses`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
+                FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_pulse_flow_links_pulseId` ON `pulse_flow_links` (`pulseId`)")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_pulse_flow_links_sessionId` ON `pulse_flow_links` (`sessionId`)")
+        db.execSQL("ALTER TABLE `ongoing_session` ADD COLUMN `originPulseId` INTEGER")
+        db.execSQL("ALTER TABLE `ongoing_session` ADD COLUMN `originPulseTitleSnapshot` TEXT")
+        db.execSQL("ALTER TABLE `ongoing_session` ADD COLUMN `originPulseJourneyNameSnapshot` TEXT")
+    }
 
     private fun createObjectiveTables(db: SupportSQLiteDatabase) {
         db.execSQL(

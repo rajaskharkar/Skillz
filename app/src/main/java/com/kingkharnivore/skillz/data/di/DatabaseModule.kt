@@ -9,6 +9,7 @@ import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.dao.ActiveArcRunDao
 import com.kingkharnivore.skillz.data.model.dao.ArcPlanDao
 import com.kingkharnivore.skillz.data.model.dao.FlowPlanDao
+import com.kingkharnivore.skillz.data.model.dao.IdeaGroveDao
 import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
 import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
@@ -48,6 +49,9 @@ object DatabaseModule {
 
     @Provides
     fun providePulseDao(db: SkillzDatabase): PulseDao = db.pulseDao()
+
+    @Provides
+    fun provideIdeaGroveDao(db: SkillzDatabase): IdeaGroveDao = db.ideaGroveDao()
 
     @Provides
     fun provideOngoingSessionDao(db: SkillzDatabase): OngoingSessionDao =

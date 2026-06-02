@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 import com.kingkharnivore.skillz.data.model.dao.ActiveArcRunDao
 import com.kingkharnivore.skillz.data.model.dao.ArcPlanDao
 import com.kingkharnivore.skillz.data.model.dao.FlowPlanDao
+import com.kingkharnivore.skillz.data.model.dao.IdeaGroveDao
 import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
 import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
@@ -16,6 +17,7 @@ import com.kingkharnivore.skillz.data.model.entity.ArcPlanStepEntity
 import com.kingkharnivore.skillz.data.model.entity.FlowPlanEntity
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseEntity
+import com.kingkharnivore.skillz.data.model.entity.PulseFlowLinkEntity
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveCompletionEntity
@@ -38,6 +40,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellRoomStateEntit
         TagEntity::class,
         SessionEntity::class,
         PulseEntity::class,
+        PulseFlowLinkEntity::class,
         OngoingSessionEntity::class,
         FlowPlanEntity::class,
         ArcPlanEntity::class,
@@ -58,13 +61,14 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellRoomStateEntit
         ObjectiveCompletionEntity::class,
         ObjectiveSkippedCycleEntity::class
     ],
-    version = 21,
+    version = 23,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
     abstract fun tagDao(): TagDao
     abstract fun sessionDao(): SessionDao
     abstract fun pulseDao(): PulseDao
+    abstract fun ideaGroveDao(): IdeaGroveDao
     abstract fun ongoingSessionDao(): OngoingSessionDao
     abstract fun flowPlanDao(): FlowPlanDao
     abstract fun arcPlanDao(): ArcPlanDao

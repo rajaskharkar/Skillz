@@ -84,12 +84,14 @@ fun FlowScreen(
     val reward by viewModel.lastReward.collectAsState()
     val exitAfterReward by viewModel.exitAfterReward.collectAsState()
     val awaitingNextFlow by viewModel.awaitingNextFlowAfterContinue.collectAsState()
+    val pendingArcIdeaContinuation by viewModel.pendingArcIdeaContinuation.collectAsState()
 
     var showSurgeDialog by remember { mutableStateOf(false) }
     var showEndDialog by remember { mutableStateOf(false) }
     var showPointsDialog by remember { mutableStateOf(false) }
     var showPulseDialog by remember { mutableStateOf(false) }
     var showSoftArcConfirmDialog by remember { mutableStateOf(false) }
+    var showArcIdeaContinuationDialog by remember { mutableStateOf(false) }
 
     var surgeMinutesInput by remember { mutableStateOf("") }
     var surgeMinutesInline by rememberSaveable { mutableStateOf("") }
@@ -176,6 +178,32 @@ fun FlowScreen(
             }
 
             RitualFrame(rotation = -0.08f, corner = 32.dp, showBorder = false) {
+
+                if (uiState.originPulseId != null && !uiState.originPulseTitle.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.idea_grove_from_pulse),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = uiState.originPulseTitle.orEmpty(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                }
 
                 if (
                     !uiState.plannedArcTitle.isNullOrBlank() &&
@@ -654,7 +682,11 @@ fun FlowScreen(
                         } else {
                             showPointsDialog = false
                             if (awaitingNextFlow) {
-                                viewModel.beginNextFlowAfterContinue()
+                                if (pendingArcIdeaContinuation != null) {
+                                    showArcIdeaContinuationDialog = true
+                                } else {
+                                    viewModel.beginNextFlowAfterContinue()
+                                }
                             } else {
                                 viewModel.clearLastReward()
                                 if (exitAfterReward && viewModel.consumeExitAfterReward()) onDone()
@@ -675,10 +707,39 @@ fun FlowScreen(
                     TextButton(
                         onClick = {
                             showPointsDialog = false
-                            viewModel.clearLastReward()
+                            viewModel.abandonPendingArcContinuationForShellEntry()
                             onOpenShell()
                         }
                     ) { Text(stringResource(R.string.session_reward_enter_shell)) }
+                }
+            }
+        )
+    }
+
+
+    if (showArcIdeaContinuationDialog && pendingArcIdeaContinuation != null) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text(stringResource(R.string.idea_grove_continue_idea_title)) },
+            text = { Text(stringResource(R.string.idea_grove_continue_idea_body)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showArcIdeaContinuationDialog = false
+                        viewModel.continueArcOnlyAfterIdeaPrompt()
+                    }
+                ) {
+                    Text(stringResource(R.string.idea_grove_continue_arc_only))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showArcIdeaContinuationDialog = false
+                        viewModel.continueArcAndIdeaAfterIdeaPrompt()
+                    }
+                ) {
+                    Text(stringResource(R.string.idea_grove_continue_arc_and_idea))
                 }
             }
         )

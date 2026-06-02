@@ -99,6 +99,10 @@ fun SkillzNavHost(
                     type = NavType.BoolType
                     defaultValue = false
                 },
+                navArgument(SkillzDestinations.ADD_SKILL_ARG_ORIGIN_PULSE_ID) {
+                    type = NavType.LongType
+                    defaultValue = -1L
+                },
                 navArgument(SkillzDestinations.ADD_SKILL_ARG_PLANNED_ARC_TITLE) {
                     type = NavType.StringType
                     nullable = true
@@ -219,6 +223,18 @@ fun SkillzNavHost(
                 isFlowActive = hasOngoingFlow,
                 onLaunchFlowForJourney = { journeyName ->
                     navController.navigate(SkillzDestinations.addSkillRoute(prefillJourney = journeyName))
+                },
+                onLaunchFlowFromPulse = { pulseId, title, journeyName ->
+                    navController.navigate(
+                        SkillzDestinations.addSkillRoute(
+                            prefillJourney = journeyName,
+                            prefillTitle = title,
+                            originPulseId = pulseId
+                        )
+                    )
+                },
+                onOpenActiveFlow = {
+                    navController.navigate(SkillzDestinations.addSkillRoute())
                 }
             )
         }
