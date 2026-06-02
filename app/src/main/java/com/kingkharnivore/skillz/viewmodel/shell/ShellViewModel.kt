@@ -137,8 +137,8 @@ class ShellViewModel @Inject constructor(
             .onFailure { _events.emit(it.message ?: "Could not release that creature.") }
     }
 
-    fun releaseCreatures(findId: String, quantity: Int) = viewModelScope.launch {
-        runCatching { repository.releaseCreatures(findId, quantity) }
+    fun releaseCreaturesByLevel(findId: String, selectionsByLevel: Map<Int, Int>) = viewModelScope.launch {
+        runCatching { repository.releaseCreaturesByLevel(findId, selectionsByLevel) }
             .onSuccess { pearls -> _events.emit("Released back into The Blue. $pearls Pearls returned. Your lifetime record remains.") }
             .onFailure { _events.emit(it.message ?: "Could not release those creatures.") }
     }

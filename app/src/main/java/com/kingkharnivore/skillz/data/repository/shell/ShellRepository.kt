@@ -277,21 +277,33 @@ class ShellRepository @Inject constructor(
         releaseActiveCreatures(listOf(instance), System.currentTimeMillis())
     }
 
-    suspend fun releaseCreatures(findId: String, quantity: Int): Int = db.withTransaction {
-        require(quantity > 0) { "Release quantity must be at least 1." }
+    suspend fun releaseCreaturesByLevel(findId: String, selectionsByLevel: Map<Int, Int>): Int = db.withTransaction {
+        val requestedSelections = selectionsByLevel.entries
+            .groupBy { it.key.coerceAtLeast(1) }
+            .mapValues { (_, entries) -> entries.sumOf { it.value.coerceAtLeast(0) } }
+            .filterValues { it > 0 }
+        require(requestedSelections.isNotEmpty()) { "Select at least one creature to release." }
         require(ShellContentCatalog.find(findId)?.kind == ShellRewardKind.ANIMAL) { "Only animals can be released." }
-        val active = findInstanceDao.getActiveByFindId(findId, CreatureStatus.ACTIVE)
-        require(active.isNotEmpty()) { "Creature not found" }
-        val placedInstanceIds = mutableSetOf<String>()
-        for (instance in active) {
-            if (placementDao.getByInstance(instance.instanceId) != null) {
-                placedInstanceIds += instance.instanceId
+
+        val selectedInstances = mutableListOf<UserShellFindInstanceEntity>()
+        requestedSelections.toSortedMap(compareByDescending { it }).forEach { (level, quantity) ->
+            val activeAtLevel = findInstanceDao.getActiveByFindIdAndLevel(findId, level, CreatureStatus.ACTIVE)
+            require(activeAtLevel.size >= quantity) { "Not enough active Level $level creatures to release." }
+            val placedInstanceIds = mutableSetOf<String>()
+            for (instance in activeAtLevel) {
+                if (placementDao.getByInstance(instance.instanceId) != null) {
+                    placedInstanceIds += instance.instanceId
+                }
             }
+            selectedInstances += activeAtLevel
+                .sortedWith(
+                    compareBy<UserShellFindInstanceEntity> { it.instanceId in placedInstanceIds }
+                        .thenBy { it.acquiredAt }
+                        .thenBy { it.instanceId }
+                )
+                .take(quantity)
         }
-        val sorted = active.sortedWith(compareBy<UserShellFindInstanceEntity> { it.instanceId in placedInstanceIds }.thenBy { it.acquiredAt })
-        val selected = sorted.take(quantity.coerceAtMost(sorted.size))
-        require(selected.size == quantity) { "Not enough active creatures to release." }
-        releaseActiveCreatures(selected, System.currentTimeMillis())
+        releaseActiveCreatures(selectedInstances, System.currentTimeMillis())
     }
 
     private suspend fun releaseActiveCreatures(instances: List<UserShellFindInstanceEntity>, now: Long): Int {
