@@ -33,6 +33,7 @@ interface ShellFindInstanceDao {
     @Query("UPDATE user_shell_find_instance SET animalLevel = :level WHERE instanceId = :instanceId") suspend fun updateAnimalLevel(instanceId: String, level: Int)
     @Query("UPDATE user_shell_find_instance SET creatureStatus = :status, isArchivedInChest = 1 WHERE instanceId = :instanceId") suspend fun updateCreatureStatus(instanceId: String, status: String)
     @Query("SELECT * FROM user_shell_find_instance WHERE instanceId IN (:instanceIds)") suspend fun getByIds(instanceIds: List<String>): List<UserShellFindInstanceEntity>
+    @Query("SELECT * FROM user_shell_find_instance WHERE findId = :findId AND creatureStatus = :status ORDER BY acquiredAt ASC") suspend fun getActiveByFindId(findId: String, status: String): List<UserShellFindInstanceEntity>
 }
 
 @Dao
