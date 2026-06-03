@@ -47,6 +47,7 @@ fun SkillzNavHost(
     val ongoing by focusVm.ongoingSession.collectAsState()
     val isFocusModeOn = ongoing?.isInFlowMode == true
     val hasOngoingFlow = ongoing != null
+    val showStoryActiveFlowHero = shouldShowStoryActiveFlowHero(ongoing)
 
     NavHost(
         navController = navController,
@@ -54,6 +55,18 @@ fun SkillzNavHost(
         modifier = modifier
     ) {
         composable(SkillzDestinations.HOME_SCREEN) {
+            val anchorSettingsViewModel: AnchorSettingsViewModel = hiltViewModel()
+            val anchorState by anchorSettingsViewModel.uiState.collectAsState()
+            val context = LocalContext.current
+            val lifecycleOwner = LocalLifecycleOwner.current
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) anchorSettingsViewModel.refresh()
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+            }
+
             SkillzHomeScreen(
                 onSessionClick = { /* later */ },
                 onAddSessionClick = {
@@ -87,8 +100,14 @@ fun SkillzNavHost(
                 onGoToActiveSession = {
                     navController.navigate(SkillzDestinations.addSkillRoute())
                 },
-                isFlowModeOn = isFocusModeOn,
-                onOpenShell = { navController.navigate(SkillzDestinations.SHELL) }
+                isFlowModeOn = showStoryActiveFlowHero,
+                onOpenShell = { navController.navigate(SkillzDestinations.SHELL) },
+                anchorState = anchorState,
+                onToggleAnchor = anchorSettingsViewModel::setAnchorEnabled,
+                onAnchorModeSelected = anchorSettingsViewModel::setMode,
+                onManageAnchorApps = { navController.navigate(SkillzDestinations.ANCHOR_APPS_ROUTE) },
+                onEnableAnchorUsageAccess = { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) },
+                onTestAnchor = { navController.navigate(SkillzDestinations.addSkillRoute()) }
             )
         }
 
@@ -291,9 +310,10 @@ fun SkillzNavHost(
                         anchorSettingsViewModel.setAnchorEnabled(true)
                     }
                 },
+                onAnchorModeSelected = anchorSettingsViewModel::setMode,
                 onManageAnchorApps = { navController.navigate(SkillzDestinations.ANCHOR_APPS_ROUTE) },
                 onEnableUsageAccess = { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) },
-                showAnchorSection = true,
+                onTestAnchor = { navController.navigate(SkillzDestinations.addSkillRoute()) },
                 modifier = Modifier.fillMaxSize()
             )
         }

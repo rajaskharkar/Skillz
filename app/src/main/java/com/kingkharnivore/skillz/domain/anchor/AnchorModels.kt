@@ -2,8 +2,11 @@ package com.kingkharnivore.skillz.domain.anchor
 
 enum class PhoneDownMode { OFF }
 
+enum class AnchorMode { GUIDE, GUARD }
+
 data class AnchorSettings(
     val enabled: Boolean = false,
+    val mode: AnchorMode = AnchorMode.GUIDE,
     val phoneDownMode: PhoneDownMode = PhoneDownMode.OFF
 )
 

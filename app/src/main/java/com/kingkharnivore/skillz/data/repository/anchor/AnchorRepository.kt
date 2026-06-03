@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.kingkharnivore.skillz.data.model.dao.anchor.AnchoredAppDao
 import com.kingkharnivore.skillz.data.model.entity.anchor.AnchoredAppEntity
+import com.kingkharnivore.skillz.domain.anchor.AnchorMode
 import com.kingkharnivore.skillz.domain.anchor.AnchorSettings
 import com.kingkharnivore.skillz.domain.anchor.AnchorableApp
 import com.kingkharnivore.skillz.domain.anchor.AnchoredApp
@@ -22,6 +23,7 @@ interface AnchorRepository {
     val anchoredApps: Flow<List<AnchoredApp>>
 
     suspend fun setEnabled(enabled: Boolean)
+    suspend fun setMode(mode: AnchorMode)
     suspend fun addAnchoredApp(app: AnchorableApp)
     suspend fun removeAnchoredApp(packageName: String)
     suspend fun getAnchoredPackageSet(): Set<String>
@@ -35,12 +37,16 @@ class DefaultAnchorRepository @Inject constructor(
 ) : AnchorRepository {
     private object Keys {
         val ENABLED = booleanPreferencesKey("anchor_enabled")
+        val MODE = stringPreferencesKey("anchor_mode")
         val PHONE_DOWN_MODE = stringPreferencesKey("anchor_phone_down_mode")
     }
 
     override val settings: Flow<AnchorSettings> = dataStore.data.map { prefs ->
         AnchorSettings(
             enabled = prefs[Keys.ENABLED] ?: false,
+            mode = runCatching {
+                AnchorMode.valueOf(prefs[Keys.MODE] ?: AnchorMode.GUIDE.name)
+            }.getOrDefault(AnchorMode.GUIDE),
             phoneDownMode = runCatching {
                 PhoneDownMode.valueOf(prefs[Keys.PHONE_DOWN_MODE] ?: PhoneDownMode.OFF.name)
             }.getOrDefault(PhoneDownMode.OFF)
@@ -52,6 +58,10 @@ class DefaultAnchorRepository @Inject constructor(
 
     override suspend fun setEnabled(enabled: Boolean) {
         dataStore.edit { it[Keys.ENABLED] = enabled }
+    }
+
+    override suspend fun setMode(mode: AnchorMode) {
+        dataStore.edit { it[Keys.MODE] = mode.name }
     }
 
     override suspend fun addAnchoredApp(app: AnchorableApp) {

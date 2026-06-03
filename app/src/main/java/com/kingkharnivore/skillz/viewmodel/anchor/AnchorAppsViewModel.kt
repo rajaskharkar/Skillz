@@ -4,15 +4,16 @@ import android.app.Application
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.repository.anchor.AnchorRepository
 import com.kingkharnivore.skillz.domain.anchor.AnchorableApp
+import com.kingkharnivore.skillz.domain.anchor.CuratedAnchorAppCatalog
 import com.kingkharnivore.skillz.domain.anchor.RecentAppsProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -33,7 +34,8 @@ data class AnchorAppsUiState(
     val suggestedApps: List<AnchorableAppUiModel> = emptyList(),
     val expandedTo30Days: Boolean = false,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val debugDiagnostics: List<String> = emptyList()
 )
 
 sealed interface AnchorAppsAction {
@@ -68,10 +70,11 @@ class AnchorAppsViewModel @Inject constructor(
             notificationPermissionGranted = NotificationManagerCompat.from(getApplication()).areNotificationsEnabled(),
             anchoredApps = anchored.map { AnchoredAppUiModel(it.packageName, if (isInstalled(it.packageName)) it.displayName else "App not found", isInstalled(it.packageName)) },
             recentlyUsedApps = recent.filterNot { it.packageName in anchoredPackages },
-            suggestedApps = suggestedApps(anchoredPackages, recent),
+            suggestedApps = commonDistractionApps(anchoredPackages),
             expandedTo30Days = isExpanded,
             isLoading = isLoading,
-            errorMessage = err
+            errorMessage = err,
+            debugDiagnostics = debugDiagnostics(recent)
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AnchorAppsUiState())
 
@@ -93,7 +96,7 @@ class AnchorAppsViewModel @Inject constructor(
             val days = if (expanded.value) 30L else 14L
             val max = if (expanded.value) 100 else 40
             recentApps.value = recentAppsProvider.getRecentlyUsedApps(days * 24 * 60 * 60 * 1000L, max)
-                .map { AnchorableAppUiModel(it.packageName, it.displayName, "Used recently") }
+                .map { AnchorableAppUiModel(it.packageName, it.displayName, "Detected recently") }
             error.value = null
             loading.value = false
         }
@@ -102,6 +105,7 @@ class AnchorAppsViewModel @Inject constructor(
     private fun add(packageName: String) {
         viewModelScope.launch {
             val app = recentApps.value.firstOrNull { it.packageName == packageName }
+                ?: commonApp(packageName)
                 ?: AnchorableAppUiModel(packageName, recentAppsProvider.displayName(packageName), "Common distraction")
             anchorRepository.addAnchoredApp(AnchorableApp(app.packageName, app.displayName))
         }
@@ -113,31 +117,29 @@ class AnchorAppsViewModel @Inject constructor(
         true
     }.getOrDefault(false)
 
-    private fun suggestedApps(
-        anchoredPackages: Set<String>,
-        recent: List<AnchorableAppUiModel>
-    ): List<AnchorableAppUiModel> {
-        val recentByPackage = recent.associateBy { it.packageName }
-        return suggestions.map { (label, packages) ->
-            val visible = packages.firstNotNullOfOrNull { recentByPackage[it] }
-            if (visible != null) visible.copy(label = "Common distraction", alreadyAnchored = visible.packageName in anchoredPackages)
-            else AnchorableAppUiModel(packages.first(), label, "Open once to add", available = false)
-        }
-    }
-
-    companion object {
-        val suggestions = listOf(
-            "Instagram" to listOf("com.instagram.android"),
-            "TikTok" to listOf("com.zhiliaoapp.musically"),
-            "YouTube" to listOf("com.google.android.youtube"),
-            "Reddit" to listOf("com.reddit.frontpage"),
-            "X" to listOf("com.twitter.android"),
-            "Snapchat" to listOf("com.snapchat.android"),
-            "Facebook" to listOf("com.facebook.katana"),
-            "Discord" to listOf("com.discord"),
-            "Twitch" to listOf("tv.twitch.android.app"),
-            "Netflix" to listOf("com.netflix.mediaclient"),
-            "Prime Video" to listOf("com.amazon.avod.thirdpartyclient")
+    private fun commonDistractionApps(
+        anchoredPackages: Set<String>
+    ): List<AnchorableAppUiModel> = CuratedAnchorAppCatalog.apps.map { app ->
+        AnchorableAppUiModel(
+            packageName = app.packageName,
+            displayName = recentAppsProvider.displayName(app.packageName).ifBlank { app.displayName },
+            label = "Common distraction",
+            available = true,
+            alreadyAnchored = app.packageName in anchoredPackages
         )
     }
+
+    private fun commonApp(packageName: String): AnchorableAppUiModel? = CuratedAnchorAppCatalog.apps
+        .firstOrNull { it.packageName == packageName }
+        ?.let { AnchorableAppUiModel(it.packageName, it.displayName, "Common distraction", available = true) }
+
+    private fun debugDiagnostics(recent: List<AnchorableAppUiModel>): List<String> {
+        if (!BuildConfig.DEBUG) return emptyList()
+        return listOf(
+            "Usage Access: ${recentAppsProvider.hasUsageAccess()}",
+            "Detected packages: ${recent.joinToString { it.packageName }.ifBlank { "none" }}",
+            "Last foreground package: ${recentAppsProvider.getCurrentForegroundPackage() ?: "unknown"}"
+        )
+    }
+
 }

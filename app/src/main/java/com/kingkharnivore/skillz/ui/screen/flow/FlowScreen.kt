@@ -367,49 +367,56 @@ fun FlowScreen(
                     )
                 }
 
-                SetTheCurrentSection(
+                Spacer(Modifier.height(10.dp))
+
+                AnchorFlowToggleRow(
                     anchorState = uiState.anchorFlowState,
-                    appCount = uiState.anchorFlowState.anchoredAppCount,
                     onAnchorClick = { showAnchorSheet = true },
-                    surgeContent = {
-                        if (BuildConfig.FLAVOR != "aera" && !uiState.isSoftMode) {
-                            val locked = viewModel.isSurgeLocked()
-                            SurgeMiniControl(
-                                modifier = Modifier.fillMaxWidth(),
-                                isInFlow = isInFlowState,
-                                elapsedMs = stopwatchState.elapsedMs,
-                                locked = locked,
-                                isSurgeOn = uiState.isSurgeOn,
-                                plannedMs = uiState.surgePlannedMs,
-                                minutesInline = surgeMinutesInline,
-                                onMinutesChange = { raw ->
-                                    surgeMinutesInline = raw.filter(Char::isDigit).take(3)
-                                },
-                                onCommit = {
-                                    val mins = surgeMinutesInline.toIntOrNull()
-                                    if (mins != null && mins > 0 && !locked && !isInFlowState) {
-                                        viewModel.setSurgePlannedMinutes(mins)
-                                    }
-                                },
-                                onToggleOff = {
-                                    if (!locked && !isInFlowState) {
-                                        viewModel.clearSurgeIfAllowed()
-                                        surgeMinutesInline = ""
-                                    }
-                                },
-                                onLongPress = { showSurgeDialog = true },
-                                calmMode = uiState.calmMode
-                            )
+                    onAnchorCheckedChange = { checked ->
+                        if (checked && (!uiState.anchorFlowState.usageAccessGranted || uiState.anchorFlowState.anchoredAppCount == 0)) {
+                            showAnchorSheet = true
+                        } else if (checked) {
+                            viewModel.enableAnchorForThisFlow()
                         } else {
-                            FlowToolCard(
-                                title = "Surge",
-                                state = if (uiState.isSoftMode) "Soft Flow" else "Off",
-                                subtitle = if (uiState.isSoftMode) "Unavailable in Soft Flow." else "Set a time current.",
-                                onClick = { if (!uiState.isSoftMode) showSurgeDialog = true }
-                            )
+                            viewModel.disableAnchorForThisFlow()
                         }
                     }
                 )
+
+                if (BuildConfig.FLAVOR != "aera" && !uiState.isSoftMode) {
+                    val locked = viewModel.isSurgeLocked()
+
+                    Spacer(Modifier.height(10.dp))
+
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        SurgeMiniControl(
+                            modifier = Modifier.align(Alignment.CenterEnd),
+                            isInFlow = isInFlowState,
+                            elapsedMs = stopwatchState.elapsedMs,
+                            locked = locked,
+                            isSurgeOn = uiState.isSurgeOn,
+                            plannedMs = uiState.surgePlannedMs,
+                            minutesInline = surgeMinutesInline,
+                            onMinutesChange = { raw ->
+                                surgeMinutesInline = raw.filter(Char::isDigit).take(3)
+                            },
+                            onCommit = {
+                                val mins = surgeMinutesInline.toIntOrNull()
+                                if (mins != null && mins > 0 && !locked && !isInFlowState) {
+                                    viewModel.setSurgePlannedMinutes(mins)
+                                }
+                            },
+                            onToggleOff = {
+                                if (!locked && !isInFlowState) {
+                                    viewModel.clearSurgeIfAllowed()
+                                    surgeMinutesInline = ""
+                                }
+                            },
+                            onLongPress = { showSurgeDialog = true },
+                            calmMode = uiState.calmMode
+                        )
+                    }
+                }
 
                 if (uiState.isSoftMode) {
                     Spacer(Modifier.height(10.dp))
@@ -1060,97 +1067,48 @@ private fun ModeOptionCard(
 
 
 @Composable
-private fun SetTheCurrentSection(
+private fun AnchorFlowToggleRow(
     anchorState: com.kingkharnivore.skillz.domain.anchor.AnchorFlowState,
-    appCount: Int,
     onAnchorClick: () -> Unit,
-    surgeContent: @Composable () -> Unit
+    onAnchorCheckedChange: (Boolean) -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(
-            text = "Set the Current",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            AnchorToolCard(
-                modifier = Modifier.weight(1f),
-                anchorState = anchorState,
-                appCount = appCount,
-                onClick = onAnchorClick
-            )
-            Box(modifier = Modifier.weight(1f)) { surgeContent() }
-        }
-    }
-}
-
-@Composable
-private fun AnchorToolCard(
-    modifier: Modifier,
-    anchorState: com.kingkharnivore.skillz.domain.anchor.AnchorFlowState,
-    appCount: Int,
-    onClick: () -> Unit
-) {
-    val state = when {
-        anchorState.inBreak -> "Break active"
+    val label = when {
+        anchorState.inBreak -> "Break"
         anchorState.paused -> "Paused"
-        !anchorState.usageAccessGranted -> "Usage Access needed"
-        appCount == 0 -> "Choose apps"
+        !anchorState.usageAccessGranted -> "Setup"
+        anchorState.anchoredAppCount == 0 -> "Setup"
         anchorState.enabledForThisFlow -> "On"
         else -> "Off"
     }
-    val subtitle = when {
-        anchorState.inBreak -> "Flow paused. Return when ready."
-        anchorState.paused -> "Flow continues. Anchor is paused."
-        !anchorState.usageAccessGranted -> "Enable permission to use Anchor."
-        appCount == 0 -> "Anchor only watches apps you choose."
-        anchorState.enabledForThisFlow -> "Watching $appCount anchored ${if (appCount == 1) "app" else "apps"}."
-        else -> "Return from distracting apps."
-    }
-    FlowToolCard(
-        modifier = modifier,
-        title = "Anchor",
-        state = state,
-        subtitle = subtitle,
-        onClick = onClick
-    )
-}
-
-@Composable
-private fun FlowToolCard(
-    modifier: Modifier = Modifier,
-    title: String,
-    state: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
     Surface(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .semantics { contentDescription = "$title. $state. $subtitle" },
-        shape = RoundedCornerShape(20.dp),
-        tonalElevation = 1.dp,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.20f)
+            .clickable(onClick = onAnchorClick)
+            .semantics { contentDescription = "Anchor $label. Toggle Anchor for this Flow" },
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f)
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-            Text(state, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Anchor", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = "Guide nudges only · $label",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
+                )
+            }
+            Switch(
+                checked = anchorState.enabledForThisFlow && !anchorState.paused && !anchorState.inBreak,
+                onCheckedChange = onAnchorCheckedChange
+            )
         }
     }
 }
+
 
 @Composable
 private fun AnchorFlowSheet(
@@ -1180,11 +1138,11 @@ private fun AnchorFlowSheet(
         }
         anchorState.enabledForThisFlow -> {
             title = "Anchor is on"
-            body = "Scyra is watching your anchored apps during this Flow."
+            body = "Guide Mode is watching your anchored apps during this Flow and will nudge you back if you drift."
         }
         else -> {
             title = "Anchor this Flow?"
-            body = "Anchor will watch your selected apps during this Flow and help you return if you drift.\n\n$appCount apps anchored"
+            body = "Guide Mode will watch your selected apps during this Flow and nudge you back if you drift. It does not block apps.\n\n$appCount apps anchored"
         }
     }
     Column(

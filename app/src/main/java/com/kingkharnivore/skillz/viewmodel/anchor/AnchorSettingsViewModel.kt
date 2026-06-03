@@ -4,7 +4,9 @@ import android.app.Application
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.anchor.AnchorRepository
+import com.kingkharnivore.skillz.domain.anchor.AnchorMode
 import com.kingkharnivore.skillz.domain.anchor.PhoneDownMode
 import com.kingkharnivore.skillz.domain.anchor.RecentAppsProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,24 +22,31 @@ data class AnchorSettingsUiState(
     val usageAccessGranted: Boolean = false,
     val notificationPermissionGranted: Boolean = true,
     val anchoredAppCount: Int = 0,
-    val phoneDownMode: PhoneDownMode = PhoneDownMode.OFF
+    val phoneDownMode: PhoneDownMode = PhoneDownMode.OFF,
+    val mode: AnchorMode = AnchorMode.GUIDE,
+    val guardAvailable: Boolean = false,
+    val activeDuringCurrentFlow: Boolean = false
 )
 
 @HiltViewModel
 class AnchorSettingsViewModel @Inject constructor(
     application: Application,
     private val anchorRepository: AnchorRepository,
-    private val recentAppsProvider: RecentAppsProvider
+    private val recentAppsProvider: RecentAppsProvider,
+    private val aliveFlowRepository: AliveFlowRepository
 ) : AndroidViewModel(application) {
     private val refreshTick = MutableStateFlow(0)
 
-    val uiState = combine(anchorRepository.settings, anchorRepository.anchoredApps, refreshTick) { settings, apps, _ ->
+    val uiState = combine(anchorRepository.settings, anchorRepository.anchoredApps, aliveFlowRepository.getOngoingSession(), refreshTick) { settings, apps, ongoing, _ ->
         AnchorSettingsUiState(
             anchorEnabled = settings.enabled,
             usageAccessGranted = recentAppsProvider.hasUsageAccess(),
             notificationPermissionGranted = NotificationManagerCompat.from(getApplication()).areNotificationsEnabled(),
             anchoredAppCount = apps.size,
-            phoneDownMode = settings.phoneDownMode
+            phoneDownMode = settings.phoneDownMode,
+            mode = settings.mode,
+            guardAvailable = false,
+            activeDuringCurrentFlow = ongoing != null && ongoing.isInFlowMode && (ongoing.anchorEnabledForFlow || settings.enabled)
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AnchorSettingsUiState())
 
@@ -47,5 +56,9 @@ class AnchorSettingsViewModel @Inject constructor(
 
     fun setAnchorEnabled(enabled: Boolean) {
         viewModelScope.launch { anchorRepository.setEnabled(enabled) }
+    }
+
+    fun setMode(mode: AnchorMode) {
+        viewModelScope.launch { anchorRepository.setMode(mode) }
     }
 }

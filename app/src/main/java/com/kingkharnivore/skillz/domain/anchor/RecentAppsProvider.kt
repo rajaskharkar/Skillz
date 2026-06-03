@@ -2,8 +2,8 @@ package com.kingkharnivore.skillz.domain.anchor
 
 import android.app.AppOpsManager
 import android.app.usage.UsageEvents
-import android.app.usage.UsageStatsManager.INTERVAL_BEST
 import android.app.usage.UsageStatsManager
+import android.app.usage.UsageStatsManager.INTERVAL_BEST
 import android.content.Context
 import android.os.Process
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -29,6 +29,34 @@ class RecentAppsProvider @Inject constructor(
         if (!hasUsageAccess()) return emptyList()
         val now = System.currentTimeMillis()
         val start = (now - windowMs).coerceAtLeast(0L)
+        val fromEvents = getRecentlyDetectedAppsFromEvents(start, now, maxCount)
+        if (fromEvents.isNotEmpty()) return fromEvents
+        return getRecentlyDetectedAppsFromStats(start, now, maxCount)
+    }
+
+    private fun getRecentlyDetectedAppsFromEvents(start: Long, now: Long, maxCount: Int): List<RecentApp> {
+        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val events = usageStatsManager.queryEvents(start, now)
+        val event = UsageEvents.Event()
+        val lastForegroundByPackage = linkedMapOf<String, Long>()
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED ||
+                event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND
+            ) {
+                lastForegroundByPackage[event.packageName] = event.timeStamp
+            }
+        }
+        return lastForegroundByPackage.entries
+            .asSequence()
+            .filter { (pkg, _) -> !neverAnchorPolicy.isNeverAnchored(pkg) }
+            .sortedByDescending { it.value }
+            .take(maxCount)
+            .map { (pkg, lastUsedAt) -> RecentApp(pkg, displayName(pkg), lastUsedAt) }
+            .toList()
+    }
+
+    private fun getRecentlyDetectedAppsFromStats(start: Long, now: Long, maxCount: Int): List<RecentApp> {
         val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val stats = usageStatsManager.queryUsageStats(INTERVAL_BEST, start, now) ?: emptyList()
         return stats
@@ -62,7 +90,7 @@ class RecentAppsProvider @Inject constructor(
     }
 
     fun displayName(packageName: String): String {
-        return runCatching {
+        return curatedDisplayName(packageName) ?: runCatching {
             @Suppress("DEPRECATION")
             val pm = context.packageManager
             @Suppress("DEPRECATION")
@@ -70,4 +98,32 @@ class RecentAppsProvider @Inject constructor(
             pm.getApplicationLabel(info).toString()
         }.getOrDefault(packageName)
     }
+
+    fun curatedDisplayName(packageName: String): String? = CuratedAnchorAppCatalog.apps
+        .firstOrNull { it.packageName == packageName }
+        ?.displayName
+}
+
+data class CuratedAnchorApp(
+    val displayName: String,
+    val packageName: String
+)
+
+object CuratedAnchorAppCatalog {
+    val apps = listOf(
+        CuratedAnchorApp("Instagram", "com.instagram.android"),
+        CuratedAnchorApp("WhatsApp", "com.whatsapp"),
+        CuratedAnchorApp("WhatsApp Business", "com.whatsapp.w4b"),
+        CuratedAnchorApp("Reddit", "com.reddit.frontpage"),
+        CuratedAnchorApp("YouTube", "com.google.android.youtube"),
+        CuratedAnchorApp("TikTok", "com.zhiliaoapp.musically"),
+        CuratedAnchorApp("Snapchat", "com.snapchat.android"),
+        CuratedAnchorApp("Discord", "com.discord"),
+        CuratedAnchorApp("Facebook", "com.facebook.katana"),
+        CuratedAnchorApp("Messenger", "com.facebook.orca"),
+        CuratedAnchorApp("X", "com.twitter.android"),
+        CuratedAnchorApp("Chrome", "com.android.chrome"),
+        CuratedAnchorApp("Netflix", "com.netflix.mediaclient"),
+        CuratedAnchorApp("Prime Video", "com.amazon.avod.thirdpartyclient")
+    )
 }

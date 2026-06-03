@@ -28,7 +28,9 @@ import com.kingkharnivore.skillz.ui.screen.paths.PathsScreen
 import com.kingkharnivore.skillz.ui.screen.story.StoryScreen
 import com.kingkharnivore.skillz.viewmodel.NotepadViewModel
 import com.kingkharnivore.skillz.viewmodel.PathsViewModel
+import com.kingkharnivore.skillz.domain.anchor.AnchorMode
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
+import com.kingkharnivore.skillz.viewmodel.anchor.AnchorSettingsUiState
 import kotlinx.coroutines.launch
 
 const val PAGE_STORY = 0
@@ -51,7 +53,13 @@ fun SkillzHomeScreen(
     onOpenSuggestedRoute: (String) -> Unit,
     onGoToActiveSession: () -> Unit,
     isFlowModeOn: Boolean,
-    onOpenShell: () -> Unit
+    onOpenShell: () -> Unit,
+    anchorState: AnchorSettingsUiState = AnchorSettingsUiState(),
+    onToggleAnchor: (Boolean) -> Unit = {},
+    onAnchorModeSelected: (AnchorMode) -> Unit = {},
+    onManageAnchorApps: () -> Unit = {},
+    onEnableAnchorUsageAccess: () -> Unit = {},
+    onTestAnchor: () -> Unit = {}
 ) {
     val notepadText by notepadViewModel.notepadText.collectAsStateWithLifecycle()
 
@@ -162,6 +170,12 @@ fun SkillzHomeScreen(
                                 onToggleShowScoreUi = skillzViewModel::setShowScoreUi,
                                 onToggleCalmMode = skillzViewModel::setCalmMode,
                                 onSetAppLanguage = skillzViewModel::setAppLanguage,
+                                anchorState = anchorState,
+                                onToggleAnchor = onToggleAnchor,
+                                onAnchorModeSelected = onAnchorModeSelected,
+                                onManageAnchorApps = onManageAnchorApps,
+                                onEnableUsageAccess = onEnableAnchorUsageAccess,
+                                onTestAnchor = onTestAnchor,
                                 modifier = Modifier.fillMaxSize()
                             )
                         }

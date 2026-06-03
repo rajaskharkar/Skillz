@@ -9,6 +9,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.anchor.AnchorRepository
+import com.kingkharnivore.skillz.domain.anchor.AnchorMode
 import com.kingkharnivore.skillz.domain.anchor.NeverAnchorPolicy
 import com.kingkharnivore.skillz.domain.anchor.RecentAppsProvider
 import com.kingkharnivore.skillz.ui.notification.AliveFlowNotificationFactory
@@ -237,6 +238,7 @@ class AliveFlowService : Service() {
         if (entity.anchorPaused || entity.anchorBreakEndsAtMs?.let { it > System.currentTimeMillis() } == true) return
 
         val settings = anchorRepository.settings.first()
+        if (settings.mode != AnchorMode.GUIDE) return
         val anchorEnabled = !entity.anchorDisabledForFlow && (entity.anchorEnabledForFlow || settings.enabled)
         if (!anchorEnabled) return
 
@@ -302,7 +304,7 @@ class AliveFlowService : Service() {
         if (entity.anchorDisabledForFlow) return@runBlocking false
         if (!recentAppsProvider.hasUsageAccess()) return@runBlocking false
         val settings = anchorRepository.settings.first()
-        val enabled = entity.anchorEnabledForFlow || settings.enabled
+        val enabled = settings.mode == AnchorMode.GUIDE && (entity.anchorEnabledForFlow || settings.enabled)
         enabled && anchorRepository.getAnchoredPackageSet().isNotEmpty()
     }
 
@@ -311,7 +313,7 @@ class AliveFlowService : Service() {
         if (entity.anchorDisabledForFlow) return@runBlocking false
         if (!recentAppsProvider.hasUsageAccess()) return@runBlocking false
         val settings = anchorRepository.settings.first()
-        val enabled = entity.anchorEnabledForFlow || settings.enabled
+        val enabled = settings.mode == AnchorMode.GUIDE && (entity.anchorEnabledForFlow || settings.enabled)
         enabled && anchorRepository.getAnchoredPackageSet().isNotEmpty()
     }
 

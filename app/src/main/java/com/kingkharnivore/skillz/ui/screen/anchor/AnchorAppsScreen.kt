@@ -73,27 +73,32 @@ fun AnchorAppsScreen(
                 text = "Choose which apps Scyra should watch during active Flows. Essential apps stay available.",
                 style = MaterialTheme.typography.bodyMedium
             )
-            AnchorInfoCard("You are always in control. Anchor only watches the apps you choose, and you can pause it anytime.")
+            AnchorInfoCard("You are always in control. Guide Mode only nudges you back; it does not block apps. Anchor only checks apps you choose during active Flows.")
             AnchorInfoCard("Phone, emergency, alarms, Settings, and system apps are never anchored.")
 
             if (!state.usageAccessGranted) {
-                AnchorInfoCard("Usage Access is needed to build this list. Scyra does not read your screen, messages, photos, keystrokes, app content, or browsing history.")
+                AnchorInfoCard("Usage Access helps Guide Mode detect selected apps. The Android Usage Access screen is only for granting Scyra permission; choose Instagram, WhatsApp, Reddit, and other apps here in Scyra.")
                 Button(onClick = { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }) {
                     Text("Enable Usage Access")
                 }
             }
 
-            SectionTitle("Anchored Apps", "These are the apps Scyra will watch for during active Flows.")
+            SectionTitle("Selected Anchor Apps", "These are the apps Guide Mode can nudge you back from during active Flows.")
             if (state.anchoredApps.isEmpty()) {
-                Text("No apps anchored yet. Add apps from your recently used list below.")
+                Text("No apps anchored yet. Add apps from Common Distractions or Recently Detected Apps below.")
             } else {
                 state.anchoredApps.forEach { app ->
                     AnchoredAppRow(app) { viewModel.onAction(AnchorAppsAction.RemoveApp(app.packageName)) }
                 }
             }
 
+            SectionTitle("Common Distractions", "Common apps people choose to anchor.")
+            state.suggestedApps.forEach { app ->
+                AnchorableAppRow(app) { viewModel.onAction(AnchorAppsAction.AnchorApp(app.packageName)) }
+            }
+
             SectionTitle(
-                "Recently used",
+                "Recently Detected Apps",
                 if (state.expandedTo30Days) "Last 30 days · Top 100 apps" else "Last 14 days · Top 40 apps"
             )
             state.recentlyUsedApps.forEach { app ->
@@ -105,13 +110,12 @@ fun AnchorAppsScreen(
                 }
             }
             TextButton(onClick = { viewModel.onAction(AnchorAppsAction.RefreshRecentlyUsedApps) }) {
-                Text("Refresh Recently Used Apps")
+                Text("Refresh Recently Detected Apps")
             }
-            Text("Don’t see an app? Open it once, return to Scyra, then refresh this list.", style = MaterialTheme.typography.bodySmall)
+            Text("Don’t see an app? Open it once, return to Scyra, then refresh this list. Common Distractions can be selected even when recent detection misses them.", style = MaterialTheme.typography.bodySmall)
 
-            SectionTitle("Suggested distractions", "Common apps people choose to anchor.")
-            state.suggestedApps.forEach { app ->
-                AnchorableAppRow(app) { viewModel.onAction(AnchorAppsAction.AnchorApp(app.packageName)) }
+            if (state.debugDiagnostics.isNotEmpty()) {
+                AnchorInfoCard(state.debugDiagnostics.joinToString("\n"))
             }
         }
     }
@@ -149,9 +153,9 @@ private fun AnchoredAppRow(app: AnchoredAppUiModel, onRemove: () -> Unit) {
 private fun AnchorableAppRow(app: AnchorableAppUiModel, onAnchor: () -> Unit) {
     AppRow(
         title = app.displayName,
-        subtitle = app.label,
-        action = if (app.available) "Anchor" else "Open once to add",
-        enabled = app.available && !app.alreadyAnchored,
+        subtitle = if (app.alreadyAnchored) "Already anchored" else app.label,
+        action = if (app.alreadyAnchored) "Anchored" else "Anchor",
+        enabled = !app.alreadyAnchored,
         onAction = onAnchor
     )
 }

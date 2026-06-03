@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -57,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.localization.AppLanguage
+import com.kingkharnivore.skillz.domain.anchor.AnchorMode
 import com.kingkharnivore.skillz.model.state.FlowListUiState
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
@@ -70,9 +72,10 @@ fun HelpScreen(
     onSetAppLanguage: (String?) -> Unit,
     anchorState: com.kingkharnivore.skillz.viewmodel.anchor.AnchorSettingsUiState = com.kingkharnivore.skillz.viewmodel.anchor.AnchorSettingsUiState(),
     onToggleAnchor: (Boolean) -> Unit = {},
+    onAnchorModeSelected: (AnchorMode) -> Unit = {},
     onManageAnchorApps: () -> Unit = {},
     onEnableUsageAccess: () -> Unit = {},
-    showAnchorSection: Boolean = false,
+    onTestAnchor: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val pages = helpPages()
@@ -121,14 +124,14 @@ fun HelpScreen(
             onClick = { showLanguageDialog = true }
         )
 
-        if (showAnchorSection) {
-            AnchorSettingsSection(
-                state = anchorState,
-                onToggleAnchor = onToggleAnchor,
-                onManageAnchorApps = onManageAnchorApps,
-                onEnableUsageAccess = onEnableUsageAccess
-            )
-        }
+        AnchorSettingsSection(
+            state = anchorState,
+            onToggleAnchor = onToggleAnchor,
+            onAnchorModeSelected = onAnchorModeSelected,
+            onManageAnchorApps = onManageAnchorApps,
+            onEnableUsageAccess = onEnableUsageAccess,
+            onTestAnchor = onTestAnchor
+        )
 
         HelpConceptCarousel(
             pages = pages,
@@ -153,8 +156,10 @@ fun HelpScreen(
 private fun AnchorSettingsSection(
     state: com.kingkharnivore.skillz.viewmodel.anchor.AnchorSettingsUiState,
     onToggleAnchor: (Boolean) -> Unit,
+    onAnchorModeSelected: (AnchorMode) -> Unit,
     onManageAnchorApps: () -> Unit,
-    onEnableUsageAccess: () -> Unit
+    onEnableUsageAccess: () -> Unit,
+    onTestAnchor: () -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(24.dp),
@@ -167,62 +172,104 @@ private fun AnchorSettingsSection(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text("Anchor", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            val title = when {
-                !state.anchorEnabled -> "Anchor is off"
-                !state.usageAccessGranted -> "Usage Access needed"
-                state.anchoredAppCount == 0 -> "Choose apps to anchor"
-                else -> "Anchor is ready"
+            val setupReady = state.usageAccessGranted && state.anchoredAppCount > 0 && state.mode == AnchorMode.GUIDE
+            val status = when {
+                state.activeDuringCurrentFlow -> "Active during current Flow"
+                !state.anchorEnabled -> "Off"
+                state.mode == AnchorMode.GUARD -> "Guard Mode coming soon"
+                !state.usageAccessGranted -> "Usage Access missing"
+                state.anchoredAppCount == 0 -> "Setup needed"
+                !state.notificationPermissionGranted -> "Notifications disabled"
+                else -> "Guide Mode ready"
             }
-            val body = when {
-                !state.anchorEnabled -> "Choose apps that tend to pull you away. During a Flow, Scyra can help you return."
-                !state.usageAccessGranted -> "Anchor needs Usage Access to notice when one of your anchored apps opens during an active Flow."
-                state.anchoredAppCount == 0 -> "Anchor only watches the apps you choose."
-                else -> "Scyra will watch your anchored apps during active Flows."
-            }
-            Text(title, fontWeight = FontWeight.SemiBold)
-            Text(body, style = MaterialTheme.typography.bodySmall)
-            val primaryLabel = when {
-                !state.usageAccessGranted -> "Enable Usage Access"
-                state.anchoredAppCount == 0 -> "Manage Anchor Apps"
-                !state.anchorEnabled -> "Set up Anchor"
-                else -> "Manage Anchor Apps"
-            }
-            Button(
-                onClick = {
-                    when {
-                        !state.usageAccessGranted -> onEnableUsageAccess()
-                        state.anchoredAppCount == 0 -> onManageAnchorApps()
-                        !state.anchorEnabled -> onToggleAnchor(true)
-                        else -> onManageAnchorApps()
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(primaryLabel) }
-            if (state.usageAccessGranted && state.anchoredAppCount > 0) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Anchor global On / Off", style = MaterialTheme.typography.labelLarge)
-                        Text(
-                            if (state.anchorEnabled) "On" else "Off",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-                    }
-                    Switch(checked = state.anchorEnabled, onCheckedChange = onToggleAnchor)
-                }
-            }
+            Text(status, fontWeight = FontWeight.SemiBold)
             Text(
-                "Usage Access: ${if (state.usageAccessGranted) "On" else "Off"} · Notifications: ${if (state.notificationPermissionGranted) "On" else "Off"}",
+                text = when {
+                    state.mode == AnchorMode.GUARD -> "Guard Mode is planned for stronger opt-in returns, but it is not available in this version. Guide Mode can nudge you back today."
+                    !state.usageAccessGranted -> "Guide Mode needs Usage Access so Scyra can notice when a chosen app becomes active. It does not block apps."
+                    state.anchoredAppCount == 0 -> "Choose apps that tend to pull you away. Guide Mode nudges you back without blocking."
+                    else -> "Guide Mode is ready. It uses Usage Access and notifications to nudge you back; it does not block apps."
+                },
+                style = MaterialTheme.typography.bodySmall
+            )
+
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Global Anchor", style = MaterialTheme.typography.labelLarge)
+                    Text(if (state.anchorEnabled) "On" else "Off", style = MaterialTheme.typography.bodySmall)
+                }
+                Switch(
+                    checked = state.anchorEnabled,
+                    onCheckedChange = { checked ->
+                        when {
+                            checked && !state.usageAccessGranted -> onEnableUsageAccess()
+                            checked && state.anchoredAppCount == 0 -> onManageAnchorApps()
+                            checked && state.mode == AnchorMode.GUARD -> onAnchorModeSelected(AnchorMode.GUIDE)
+                            else -> onToggleAnchor(checked)
+                        }
+                    }
+                )
+            }
+
+            Text("Mode", style = MaterialTheme.typography.labelLarge)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                ModeChoice(
+                    label = "Guide",
+                    subtitle = "Nudges only",
+                    selected = state.mode == AnchorMode.GUIDE,
+                    onClick = { onAnchorModeSelected(AnchorMode.GUIDE) },
+                    modifier = Modifier.weight(1f)
+                )
+                ModeChoice(
+                    label = "Guard",
+                    subtitle = "Coming soon",
+                    selected = state.mode == AnchorMode.GUARD,
+                    onClick = { onAnchorModeSelected(AnchorMode.GUARD) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(onClick = onManageAnchorApps, modifier = Modifier.weight(1f)) { Text("Manage Anchor Apps") }
+                OutlinedButton(onClick = onEnableUsageAccess, modifier = Modifier.weight(1f)) { Text("Permissions") }
+            }
+            TextButton(onClick = onTestAnchor, enabled = setupReady, modifier = Modifier.fillMaxWidth()) {
+                Text("Test Anchor")
+            }
+
+            Text(
+                "Usage Access: ${if (state.usageAccessGranted) "On" else "Off"} · Notifications: ${if (state.notificationPermissionGranted) "On" else "Off"} · ${state.anchoredAppCount} apps",
                 style = MaterialTheme.typography.bodySmall
             )
             if (!state.notificationPermissionGranted) {
                 Text("Anchor can detect drift, but reminders may be harder to see unless notifications are enabled.", style = MaterialTheme.typography.bodySmall)
             }
             Text(
-                "Anchor only checks whether one of your chosen apps opens during an active Flow. It does not read your screen, messages, photos, keystrokes, app content, browsing history, camera, microphone, or location.",
+                "Anchor only checks whether apps you choose become active during an active Flow. It does not read messages, screen content, photos, keystrokes, camera, microphone, or browsing history. Anchor stops when your Flow ends.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f)
             )
+        }
+    }
+}
+
+@Composable
+private fun ModeChoice(
+    label: String,
+    subtitle: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surface,
+        tonalElevation = if (selected) 1.dp else 0.dp
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f))
         }
     }
 }
