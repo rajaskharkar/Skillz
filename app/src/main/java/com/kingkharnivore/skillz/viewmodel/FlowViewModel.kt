@@ -1218,6 +1218,7 @@ class FlowViewModel @Inject constructor(
             val breakdown = ScoreCalculator.breakdownFromDuration(realDurationMs)
             val baseScyra = if (isSoft) 0 else breakdown.totalPoints
             val beforeArc = baseScyra
+            val anchorSnapshot = focusSessionRepository.getOngoingSessionNow()
 
             var localArc = arcState
             if (localArc != null && isArcExpired(sessionStart, localArc)) {
@@ -1383,7 +1384,7 @@ class FlowViewModel @Inject constructor(
                     sessionId = insertedId,
                     anchorEnabled = _uiState.value.anchorFlowState.enabledForThisFlow,
                     distractionAttemptCount = anchorDistractionAttemptCount,
-                    anchorPausedCount = existing?.anchorPausedCount ?: anchorPausedCount,
+                    anchorPausedCount = anchorSnapshot?.anchorPausedCount ?: anchorPausedCount,
                     disabledForFlow = anchorDisabledForFlow,
                     breakCount = anchorBreakCount,
                     totalBreakDurationMs = anchorTotalBreakDurationMs,
@@ -1461,8 +1462,8 @@ class FlowViewModel @Inject constructor(
                 sixtyMinuteBonuses = breakdown.sixtyMinuteBonuses,
                 finalScyraPoints = finalScyra,
                 surgePoints = surgePoints,
-                anchorDistractionAttemptCount = existing?.anchorDistractionAttemptCount ?: anchorDistractionAttemptCount,
-                anchorBreakCount = existing?.anchorBreakCount ?: anchorBreakCount,
+                anchorDistractionAttemptCount = anchorSnapshot?.anchorDistractionAttemptCount ?: anchorDistractionAttemptCount,
+                anchorBreakCount = anchorSnapshot?.anchorBreakCount ?: anchorBreakCount,
                 anchorEnabled = _uiState.value.anchorFlowState.enabledForThisFlow,
                 arcIndexInArc = arcIndex,
                 arcMultiplierUsed = arcMultiplierUsed,
