@@ -67,7 +67,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellRoomStateEntit
         AnchoredAppEntity::class,
         AnchorSessionSummaryEntity::class
     ],
-    version = 24,
+    version = 25,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {

@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 24.
+     * Current database version is 25.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -93,6 +93,17 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_24_25 = object : Migration(24, 25) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            addColumnIfMissing(
+                db = db,
+                table = "ongoing_session",
+                column = "anchorBreakOverPending",
+                definition = "INTEGER NOT NULL DEFAULT 0"
+            )
+        }
+    }
+
     val ALL_MIGRATIONS: Array<Migration> =
         LEGACY_TO_15_MIGRATIONS +
                 MIGRATION_13_14 +
@@ -105,7 +116,8 @@ object SkillzDatabaseMigrations {
                 MIGRATION_20_21 +
                 MIGRATION_21_22 +
                 MIGRATION_22_23 +
-                MIGRATION_23_24
+                MIGRATION_23_24 +
+                MIGRATION_24_25
 
     private fun createAnchorTables(db: SupportSQLiteDatabase) {
         addColumnIfMissing(db, "ongoing_session", "anchorEnabledForFlow", "INTEGER NOT NULL DEFAULT 0")
