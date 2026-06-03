@@ -217,6 +217,7 @@ class FlowViewModel @Inject constructor(
     private var anchorPausedCount: Int = 0
     private var anchorBreakCount: Int = 0
     private var anchorTotalBreakDurationMs: Long = 0L
+    private var anchorBreakOverPending: Boolean = false
     private var anchorReturnPanelPending: Boolean = false
     private var anchorUsageAccessRevoked: Boolean = false
 
@@ -262,6 +263,7 @@ class FlowViewModel @Inject constructor(
                 else -> null
             },
             showReturnPanel = anchorReturnPanelPending,
+            breakOver = anchorBreakOverPending,
             usageAccessRevoked = anchorUsageAccessRevoked
         )
     }
@@ -280,68 +282,72 @@ class FlowViewModel @Inject constructor(
                 }
                 return@launch
             }
-            anchorEnabledForFlow = true
-            anchorDisabledForFlow = false
-            anchorPaused = false
-            anchorUsageAccessRevoked = false
-            syncAnchorUi()
-            saveOngoing()
+            focusSessionRepository.enableAnchorForCurrentFlow()
+            refreshAnchorFromLatest()
         }
     }
 
     fun disableAnchorForThisFlow() {
-        anchorDisabledForFlow = true
-        anchorEnabledForFlow = false
-        anchorPaused = false
-        anchorReturnPanelPending = false
-        syncAnchorUi()
-        saveOngoing()
+        viewModelScope.launch {
+            focusSessionRepository.disableAnchorForCurrentFlow()
+            refreshAnchorFromLatest()
+        }
     }
 
     fun pauseAnchor() {
-        if (!anchorPaused) anchorPausedCount += 1
-        anchorPaused = true
-        syncAnchorUi()
-        saveOngoing()
+        viewModelScope.launch {
+            focusSessionRepository.pauseAnchor()
+            refreshAnchorFromLatest()
+        }
     }
 
     fun resumeAnchor() {
-        anchorPaused = false
-        anchorReturnPanelPending = false
-        syncAnchorUi()
-        saveOngoing()
+        viewModelScope.launch {
+            focusSessionRepository.resumeAnchor()
+            refreshAnchorFromLatest()
+        }
     }
 
     fun takeAnchorBreak() {
-        val now = System.currentTimeMillis()
         if (_uiState.value.stopwatch.isRunning) pauseStopwatch()
-        anchorPaused = true
-        anchorBreakStartedAtMs = now
-        anchorBreakEndsAtMs = now + 60_000L
-        anchorBreakCount += 1
-        anchorReturnPanelPending = false
-        syncAnchorUi()
-        saveOngoing()
+        viewModelScope.launch {
+            focusSessionRepository.startAnchorBreak(System.currentTimeMillis())
+            refreshAnchorFromLatest()
+        }
     }
 
     fun consumeAnchorReturnPanel() {
-        anchorReturnPanelPending = false
-        syncAnchorUi()
-        saveOngoing()
+        viewModelScope.launch {
+            focusSessionRepository.consumeAnchorReturnPanel()
+            refreshAnchorFromLatest()
+        }
     }
 
-    fun onAnchorNudgeFromMonitor() {
-        anchorDistractionAttemptCount += 1
-        anchorReturnPanelPending = true
-        syncAnchorUi()
-        saveOngoing()
+    fun refreshAnchorState() {
+        viewModelScope.launch { refreshAnchorFromLatest() }
     }
 
-    fun markAnchorUsageAccessRevoked() {
-        anchorPaused = true
-        anchorUsageAccessRevoked = true
-        syncAnchorUi()
-        saveOngoing()
+    private suspend fun refreshAnchorFromLatest() {
+        focusSessionRepository.getOngoingSessionNow()?.let { syncAnchorRuntimeFromEntity(it) }
+        val appCount = anchorRepository.anchoredApps.first().size
+        _uiState.update {
+            it.copy(anchorFlowState = buildAnchorFlowState(anchoredAppCount = appCount, usageAccessGranted = recentAppsProvider.hasUsageAccess()))
+        }
+    }
+
+    private fun syncAnchorRuntimeFromEntity(entity: OngoingSessionEntity) {
+        anchorEnabledForFlow = entity.anchorEnabledForFlow
+        anchorDisabledForFlow = entity.anchorDisabledForFlow
+        anchorPaused = entity.anchorPaused
+        anchorBreakStartedAtMs = entity.anchorBreakStartedAtMs
+        anchorBreakEndsAtMs = entity.anchorBreakEndsAtMs
+        anchorDistractionAttemptCount = entity.anchorDistractionAttemptCount
+        anchorPausedCount = entity.anchorPausedCount
+        anchorBreakCount = entity.anchorBreakCount
+        anchorTotalBreakDurationMs = entity.anchorTotalBreakDurationMs
+        anchorBreakOverPending = entity.anchorBreakOverPending
+        anchorReturnPanelPending = entity.anchorReturnPanelPending
+        anchorUsageAccessRevoked = entity.anchorUsageAccessRevoked
     }
 
     fun setSoftMode(enabled: Boolean) {
@@ -521,6 +527,15 @@ class FlowViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            focusSessionRepository.getOngoingSession().collect { entity ->
+                if (entity != null) {
+                    syncAnchorRuntimeFromEntity(entity)
+                    syncAnchorUi()
+                }
+            }
+        }
+
+        viewModelScope.launch {
             combine(anchorRepository.settings, anchorRepository.anchoredApps) { settings, apps ->
                 Triple(settings.enabled, apps.size, recentAppsProvider.hasUsageAccess())
             }.collect { (globallyEnabled, appCount, usageGranted) ->
@@ -601,17 +616,7 @@ class FlowViewModel @Inject constructor(
                     ongoingCreatedAtMs = entity.createdAt
                     baseStartTimeMs = entity.baseStartTimeMs
                     accumulatedBeforeStartMs = entity.accumulatedBeforeStartMs
-                    anchorEnabledForFlow = entity.anchorEnabledForFlow
-                    anchorDisabledForFlow = entity.anchorDisabledForFlow
-                    anchorPaused = entity.anchorPaused
-                    anchorBreakStartedAtMs = entity.anchorBreakStartedAtMs
-                    anchorBreakEndsAtMs = entity.anchorBreakEndsAtMs
-                    anchorDistractionAttemptCount = entity.anchorDistractionAttemptCount
-                    anchorPausedCount = entity.anchorPausedCount
-                    anchorBreakCount = entity.anchorBreakCount
-                    anchorTotalBreakDurationMs = entity.anchorTotalBreakDurationMs
-                    anchorReturnPanelPending = entity.anchorReturnPanelPending
-                    anchorUsageAccessRevoked = entity.anchorUsageAccessRevoked
+                    syncAnchorRuntimeFromEntity(entity)
 
                     val elapsed = if (entity.isRunning && baseStartTimeMs != null) {
                         accumulatedBeforeStartMs +
@@ -765,6 +770,9 @@ class FlowViewModel @Inject constructor(
 
         startTicker()
         saveOngoing()
+        if (_uiState.value.anchorFlowState.enabledForThisFlow && !_uiState.value.anchorFlowState.inBreak) {
+            viewModelScope.launch { focusSessionRepository.resumeAnchor() }
+        }
 
         if (!isResumingSameFlow && _uiState.value.isSurgeOn) {
             surgeHapticsManager.playStarted()
@@ -994,6 +1002,7 @@ class FlowViewModel @Inject constructor(
         val arc = arcState
 
         viewModelScope.launch {
+            val existing = focusSessionRepository.getOngoingSessionNow()
             val entity = OngoingSessionEntity(
                 id = 1,
                 flowInstanceId = currentFlowInstanceId,
@@ -1015,17 +1024,18 @@ class FlowViewModel @Inject constructor(
                 originPulseId = state.originPulseId,
                 originPulseTitleSnapshot = state.originPulseTitle,
                 originPulseJourneyNameSnapshot = state.originPulseJourneyName,
-                anchorEnabledForFlow = anchorEnabledForFlow,
-                anchorDisabledForFlow = anchorDisabledForFlow,
-                anchorPaused = anchorPaused,
-                anchorBreakStartedAtMs = anchorBreakStartedAtMs,
-                anchorBreakEndsAtMs = anchorBreakEndsAtMs,
-                anchorDistractionAttemptCount = anchorDistractionAttemptCount,
-                anchorPausedCount = anchorPausedCount,
-                anchorBreakCount = anchorBreakCount,
-                anchorTotalBreakDurationMs = anchorTotalBreakDurationMs,
-                anchorReturnPanelPending = anchorReturnPanelPending,
-                anchorUsageAccessRevoked = anchorUsageAccessRevoked
+                anchorEnabledForFlow = existing?.anchorEnabledForFlow ?: anchorEnabledForFlow,
+                anchorDisabledForFlow = existing?.anchorDisabledForFlow ?: anchorDisabledForFlow,
+                anchorPaused = existing?.anchorPaused ?: anchorPaused,
+                anchorBreakStartedAtMs = existing?.anchorBreakStartedAtMs ?: anchorBreakStartedAtMs,
+                anchorBreakEndsAtMs = existing?.anchorBreakEndsAtMs ?: anchorBreakEndsAtMs,
+                anchorDistractionAttemptCount = existing?.anchorDistractionAttemptCount ?: anchorDistractionAttemptCount,
+                anchorPausedCount = existing?.anchorPausedCount ?: anchorPausedCount,
+                anchorBreakCount = existing?.anchorBreakCount ?: anchorBreakCount,
+                anchorTotalBreakDurationMs = existing?.anchorTotalBreakDurationMs ?: anchorTotalBreakDurationMs,
+                anchorBreakOverPending = existing?.anchorBreakOverPending ?: anchorBreakOverPending,
+                anchorReturnPanelPending = existing?.anchorReturnPanelPending ?: anchorReturnPanelPending,
+                anchorUsageAccessRevoked = existing?.anchorUsageAccessRevoked ?: anchorUsageAccessRevoked
             )
             focusSessionRepository.saveOngoingSession(entity)
         }
@@ -1373,7 +1383,7 @@ class FlowViewModel @Inject constructor(
                     sessionId = insertedId,
                     anchorEnabled = _uiState.value.anchorFlowState.enabledForThisFlow,
                     distractionAttemptCount = anchorDistractionAttemptCount,
-                    anchorPausedCount = anchorPausedCount,
+                    anchorPausedCount = existing?.anchorPausedCount ?: anchorPausedCount,
                     disabledForFlow = anchorDisabledForFlow,
                     breakCount = anchorBreakCount,
                     totalBreakDurationMs = anchorTotalBreakDurationMs,
@@ -1441,6 +1451,8 @@ class FlowViewModel @Inject constructor(
             )
             }.getOrDefault(ShellRewardResult())
 
+            // Anchor is scoring-neutral. It must not modify finalScyra, surgePoints,
+            // arcBonusPoints, Pearls, Shell rewards, or existing reward calculations.
             val baseReward = FlowRewardUiModel(
                 minutes = breakdown.minutes,
                 baseScyraPoints = baseScyra,
@@ -1449,8 +1461,8 @@ class FlowViewModel @Inject constructor(
                 sixtyMinuteBonuses = breakdown.sixtyMinuteBonuses,
                 finalScyraPoints = finalScyra,
                 surgePoints = surgePoints,
-                anchorDistractionAttemptCount = anchorDistractionAttemptCount,
-                anchorBreakCount = anchorBreakCount,
+                anchorDistractionAttemptCount = existing?.anchorDistractionAttemptCount ?: anchorDistractionAttemptCount,
+                anchorBreakCount = existing?.anchorBreakCount ?: anchorBreakCount,
                 anchorEnabled = _uiState.value.anchorFlowState.enabledForThisFlow,
                 arcIndexInArc = arcIndex,
                 arcMultiplierUsed = arcMultiplierUsed,

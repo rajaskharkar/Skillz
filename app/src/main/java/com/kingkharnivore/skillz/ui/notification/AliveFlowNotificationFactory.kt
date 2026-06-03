@@ -92,7 +92,9 @@ object AliveFlowNotificationFactory {
     fun buildNotification(
         context: Context,
         entity: OngoingSessionEntity,
-        elapsedMs: Long
+        elapsedMs: Long,
+        canPauseAnchor: Boolean = false,
+        canResumeAnchor: Boolean = false
     ): Notification {
         val elapsedSeconds = max(0, elapsedMs / 1000)
         val startWhenMs = System.currentTimeMillis() - elapsedMs
@@ -164,9 +166,12 @@ object AliveFlowNotificationFactory {
             builder.setUsesChronometer(true)
         }
 
-        if (entity.anchorPaused && entity.isRunning) {
+        if (entity.isRunning) {
+            builder.addAction(0, "Pause Flow", serviceActionPendingIntent(context, ACTION_PAUSE_FLOW, 2000))
+        }
+        if (canResumeAnchor) {
             builder.addAction(0, "Resume Anchor", serviceActionPendingIntent(context, ACTION_RESUME_ANCHOR, 2003))
-        } else if (entity.isRunning && (entity.anchorEnabledForFlow || !entity.anchorDisabledForFlow)) {
+        } else if (canPauseAnchor) {
             builder.addAction(0, "Pause Anchor", serviceActionPendingIntent(context, ACTION_PAUSE_ANCHOR, 2001))
         }
         builder.addAction(0, "Return to Flow", openFlowPendingIntent(context, 2002))
@@ -181,10 +186,10 @@ object AliveFlowNotificationFactory {
 
 
     fun buildAnchorNudgeNotification(context: Context, entity: OngoingSessionEntity): Notification {
-        val text = "Scyra noticed a drift. Return to your Flow?"
+        val text = context.getString(R.string.anchor_notification_nudge)
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_scyra_notification)
-            .setContentTitle("Anchor")
+            .setContentTitle(context.getString(R.string.anchor_title))
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(openFlowPendingIntent(context, 3000))
@@ -195,13 +200,34 @@ object AliveFlowNotificationFactory {
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setColor(BuildConfig.PRIMARY_COLOR)
-            .addAction(0, "Return to Flow", openFlowPendingIntent(context, 3001))
-            .addAction(0, "Take 1-minute break", serviceActionPendingIntent(context, ACTION_TAKE_ANCHOR_BREAK, 3002))
-            .addAction(0, "Pause Anchor", serviceActionPendingIntent(context, ACTION_PAUSE_ANCHOR, 3003))
+            .addAction(0, context.getString(R.string.anchor_action_return_to_flow), openFlowPendingIntent(context, 3001))
+            .addAction(0, context.getString(R.string.anchor_action_take_break), serviceActionPendingIntent(context, ACTION_TAKE_ANCHOR_BREAK, 3002))
+            .addAction(0, context.getString(R.string.anchor_action_pause), serviceActionPendingIntent(context, ACTION_PAUSE_ANCHOR, 3003))
 
         val notification = builder.build()
         notification.flags = notification.flags or Notification.FLAG_ONGOING_EVENT or Notification.FLAG_NO_CLEAR
         return notification
+    }
+
+
+    fun buildBreakOverNotification(context: Context, entity: OngoingSessionEntity): Notification {
+        val text = context.getString(R.string.anchor_notification_break_over)
+        val title = entity.title.takeIf { it.isNotBlank() } ?: "Flow in progress"
+        return NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_scyra_notification)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setContentIntent(openFlowPendingIntent(context, 3100))
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .setOnlyAlertOnce(false)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setColor(BuildConfig.PRIMARY_COLOR)
+            .addAction(0, "Return to Flow", openFlowPendingIntent(context, 3101))
+            .build()
     }
 
     private fun buildSurgeLine(

@@ -1,12 +1,10 @@
 package com.kingkharnivore.skillz.domain.anchor
 
-import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
-import android.os.Build
-import android.provider.Settings
 import android.provider.Telephony
+import android.telecom.TelecomManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,10 +18,12 @@ class NeverAnchorPolicy @Inject constructor(
         "com.android.phone",
         "com.android.dialer",
         "com.google.android.dialer",
+        "com.android.emergency",
+        "com.google.android.apps.safetycenter",
         "com.android.server.telecom",
         "com.android.providers.telephony",
         "com.android.settings",
-        "com.google.android.apps.wellbeing",
+        "com.google.android.settings",
         "com.android.systemui",
         "com.google.android.gms",
         "com.google.android.gsf",
@@ -39,13 +39,15 @@ class NeverAnchorPolicy @Inject constructor(
         if (packageName.isBlank()) return true
         if (packageName == context.packageName) return true
         if (packageName in staticNeverAnchorPackages) return true
+        if (packageName == defaultDialerPackage()) return true
         if (packageName == defaultSmsPackage()) return true
         if (packageName in launcherPackages()) return true
-        if (packageName in rolePackages(RoleManager.ROLE_DIALER)) return true
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && packageName in rolePackages(RoleManager.ROLE_SMS)) return true
-        if (isSystemCorePackage(packageName)) return true
-        return false
+        return isSystemCorePackage(packageName)
     }
+
+    private fun defaultDialerPackage(): String? = runCatching {
+        context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage
+    }.getOrNull()
 
     private fun defaultSmsPackage(): String? = runCatching {
         Telephony.Sms.getDefaultSmsPackage(context)
@@ -55,12 +57,6 @@ class NeverAnchorPolicy @Inject constructor(
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
         return context.packageManager.queryIntentActivities(intent, 0)
             .mapTo(mutableSetOf()) { it.activityInfo.packageName }
-    }
-
-    private fun rolePackages(role: String): Set<String> {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return emptySet()
-        val roleManager = context.getSystemService(RoleManager::class.java) ?: return emptySet()
-        return runCatching { roleManager.getRoleHolders(role).toSet() }.getOrDefault(emptySet())
     }
 
     private fun isSystemCorePackage(packageName: String): Boolean {

@@ -1890,4 +1890,38 @@
     <string name="idea_grove_expand_a11y">expand</string>
     <string name="idea_grove_collapse_a11y">collapse</string>
 
+
+    <!-- Anchor -->
+    <string name="anchor_title">Anchor</string>
+    <string name="anchor_apps_title">Anchor Apps</string>
+    <string name="anchor_apps_subtitle">Choose which apps Scyra should watch during active Flows. Essential apps stay available.</string>
+    <string name="anchor_reassurance">You are always in control. Anchor only watches the apps you choose, and you can pause it anytime.</string>
+    <string name="anchor_safety_note">Phone, emergency, alarms, Settings, and system apps are never anchored.</string>
+    <string name="anchor_privacy_explanation">Anchor only checks whether one of your chosen apps opens during an active Flow. It does not read your screen, messages, photos, keystrokes, app content, browsing history, camera, microphone, or location.</string>
+    <string name="anchor_stops_when_flow_ends">Anchor stops when your Flow ends.</string>
+    <string name="anchor_usage_access_explanation">Anchor needs Usage Access to notice when one of your anchored apps opens during a Flow. Scyra does not read your screen, messages, photos, keystrokes, app content, or browsing history.</string>
+    <string name="anchor_enable_usage_access">Enable Usage Access</string>
+    <string name="anchor_manage_apps">Manage Anchor Apps</string>
+    <string name="anchor_not_now">Not now</string>
+    <string name="anchor_setup_anchor">Set up Anchor</string>
+    <string name="anchor_off_title">Anchor is off</string>
+    <string name="anchor_off_body">Choose apps that tend to pull you away. During a Flow, Scyra can help you return.</string>
+    <string name="anchor_usage_needed_title">Usage Access needed</string>
+    <string name="anchor_choose_apps_title">Choose apps to anchor</string>
+    <string name="anchor_choose_apps_body">Anchor only watches the apps you choose.</string>
+    <string name="anchor_ready_title">Anchor is ready</string>
+    <string name="anchor_ready_body">Scyra will watch your anchored apps during active Flows.</string>
+    <string name="anchor_notification_nudge">Scyra noticed a drift. Return to your Flow?</string>
+    <string name="anchor_notification_break_over">Break over. Return to your Flow.</string>
+    <string name="anchor_action_return_to_flow">Return to Flow</string>
+    <string name="anchor_action_take_break">Take 1-minute break</string>
+    <string name="anchor_action_pause">Pause Anchor</string>
+    <string name="anchor_action_resume">Resume Anchor</string>
+    <string name="anchor_reward_title">Anchor reflection</string>
+    <string name="anchor_reward_subtitle">Returning counts.</string>
+    <string name="anchor_reward_none">No distractions broke through.</string>
+    <string name="anchor_reward_one_drift">You drifted once, but came back.</string>
+    <string name="anchor_reward_distractions">Anchor helped you return from %1$d distractions.</string>
+    <string name="anchor_reward_one_break">You took 1 short break and returned.</string>
+    <string name="anchor_reward_breaks">You took %1$d short breaks and returned.</string>
 </resources>

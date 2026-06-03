@@ -12,6 +12,9 @@ interface OngoingSessionDao {
     @Query("SELECT * FROM ongoing_session WHERE id = 1")
     fun getOngoingSession(): Flow<OngoingSessionEntity?>
 
+    @Query("SELECT * FROM ongoing_session WHERE id = 1")
+    suspend fun getOngoingSessionNow(): OngoingSessionEntity?
+
     @Insert(onConflict = OnConflictStrategy.Companion.REPLACE)
     suspend fun upsert(entity: OngoingSessionEntity)
 

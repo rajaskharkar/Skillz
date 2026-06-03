@@ -38,6 +38,7 @@ data class OngoingSessionEntity(
     val anchorPausedCount: Int = 0,
     val anchorBreakCount: Int = 0,
     val anchorTotalBreakDurationMs: Long = 0L,
+    val anchorBreakOverPending: Boolean = false,
     val anchorReturnPanelPending: Boolean = false,
     val anchorUsageAccessRevoked: Boolean = false,
 )

@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -37,6 +38,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -46,6 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,6 +62,9 @@ import android.content.Intent
 import android.provider.Settings
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
@@ -98,9 +104,7 @@ fun FlowScreen(
     var showPulseDialog by remember { mutableStateOf(false) }
     var showSoftArcConfirmDialog by remember { mutableStateOf(false) }
     var showArcIdeaContinuationDialog by remember { mutableStateOf(false) }
-    var showAnchorUsageDialog by remember { mutableStateOf(false) }
-    var showAnchorAppsDialog by remember { mutableStateOf(false) }
-    var showAnchorEnableDialog by remember { mutableStateOf(false) }
+    var showAnchorSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     var surgeMinutesInput by remember { mutableStateOf("") }
@@ -363,56 +367,49 @@ fun FlowScreen(
                     )
                 }
 
-                FlowQuickControlRow(
+                SetTheCurrentSection(
                     anchorState = uiState.anchorFlowState,
-                    onAnchorToggle = { checked ->
-                        if (checked) {
-                            when {
-                                !uiState.anchorFlowState.usageAccessGranted -> showAnchorUsageDialog = true
-                                uiState.anchorFlowState.anchoredAppCount == 0 -> showAnchorAppsDialog = true
-                                !uiState.anchorFlowState.globallyEnabled -> showAnchorEnableDialog = true
-                                else -> viewModel.enableAnchorForThisFlow()
-                            }
+                    appCount = uiState.anchorFlowState.anchoredAppCount,
+                    onAnchorClick = { showAnchorSheet = true },
+                    surgeContent = {
+                        if (BuildConfig.FLAVOR != "aera" && !uiState.isSoftMode) {
+                            val locked = viewModel.isSurgeLocked()
+                            SurgeMiniControl(
+                                modifier = Modifier.fillMaxWidth(),
+                                isInFlow = isInFlowState,
+                                elapsedMs = stopwatchState.elapsedMs,
+                                locked = locked,
+                                isSurgeOn = uiState.isSurgeOn,
+                                plannedMs = uiState.surgePlannedMs,
+                                minutesInline = surgeMinutesInline,
+                                onMinutesChange = { raw ->
+                                    surgeMinutesInline = raw.filter(Char::isDigit).take(3)
+                                },
+                                onCommit = {
+                                    val mins = surgeMinutesInline.toIntOrNull()
+                                    if (mins != null && mins > 0 && !locked && !isInFlowState) {
+                                        viewModel.setSurgePlannedMinutes(mins)
+                                    }
+                                },
+                                onToggleOff = {
+                                    if (!locked && !isInFlowState) {
+                                        viewModel.clearSurgeIfAllowed()
+                                        surgeMinutesInline = ""
+                                    }
+                                },
+                                onLongPress = { showSurgeDialog = true },
+                                calmMode = uiState.calmMode
+                            )
                         } else {
-                            viewModel.disableAnchorForThisFlow()
+                            FlowToolCard(
+                                title = "Surge",
+                                state = if (uiState.isSoftMode) "Soft Flow" else "Off",
+                                subtitle = if (uiState.isSoftMode) "Unavailable in Soft Flow." else "Set a time current.",
+                                onClick = { if (!uiState.isSoftMode) showSurgeDialog = true }
+                            )
                         }
                     }
                 )
-
-                if (BuildConfig.FLAVOR != "aera" && !uiState.isSoftMode) {
-                    val locked = viewModel.isSurgeLocked()
-
-                    Spacer(Modifier.height(10.dp))
-
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        SurgeMiniControl(
-                            modifier = Modifier.align(Alignment.CenterEnd),
-                            isInFlow = isInFlowState,
-                            elapsedMs = stopwatchState.elapsedMs,
-                            locked = locked,
-                            isSurgeOn = uiState.isSurgeOn,
-                            plannedMs = uiState.surgePlannedMs,
-                            minutesInline = surgeMinutesInline,
-                            onMinutesChange = { raw ->
-                                surgeMinutesInline = raw.filter(Char::isDigit).take(3)
-                            },
-                            onCommit = {
-                                val mins = surgeMinutesInline.toIntOrNull()
-                                if (mins != null && mins > 0 && !locked && !isInFlowState) {
-                                    viewModel.setSurgePlannedMinutes(mins)
-                                }
-                            },
-                            onToggleOff = {
-                                if (!locked && !isInFlowState) {
-                                    viewModel.clearSurgeIfAllowed()
-                                    surgeMinutesInline = ""
-                                }
-                            },
-                            onLongPress = { showSurgeDialog = true },
-                            calmMode = uiState.calmMode
-                        )
-                    }
-                }
 
                 if (uiState.isSoftMode) {
                     Spacer(Modifier.height(10.dp))
@@ -571,49 +568,33 @@ fun FlowScreen(
         )
     }
 
-    if (showAnchorUsageDialog) {
-        AlertDialog(
-            onDismissRequest = { showAnchorUsageDialog = false },
-            title = { Text("Usage Access needed") },
-            text = { Text("Anchor needs Usage Access to notice when one of your anchored apps opens during an active Flow. Scyra does not read your screen, messages, photos, keystrokes, app content, or browsing history.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showAnchorUsageDialog = false
+    if (showAnchorSheet) {
+        ModalBottomSheet(onDismissRequest = { showAnchorSheet = false }) {
+            AnchorFlowSheet(
+                anchorState = uiState.anchorFlowState,
+                onEnableUsageAccess = {
+                    showAnchorSheet = false
                     context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
-                }) { Text("Enable Usage Access") }
-            },
-            dismissButton = { TextButton(onClick = { showAnchorUsageDialog = false }) { Text("Not now") } }
-        )
-    }
-
-    if (showAnchorAppsDialog) {
-        AlertDialog(
-            onDismissRequest = { showAnchorAppsDialog = false },
-            title = { Text("Choose apps to anchor") },
-            text = { Text("Anchor only watches the apps you choose.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showAnchorAppsDialog = false
+                },
+                onManageApps = {
+                    showAnchorSheet = false
                     onManageAnchorApps()
-                }) { Text("Manage Anchor Apps") }
-            },
-            dismissButton = { TextButton(onClick = { showAnchorAppsDialog = false }) { Text("Not now") } }
-        )
-    }
-
-    if (showAnchorEnableDialog) {
-        AlertDialog(
-            onDismissRequest = { showAnchorEnableDialog = false },
-            title = { Text("Turn Anchor on for this Flow?") },
-            text = { Text("Anchor will watch your selected apps until this Flow ends.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showAnchorEnableDialog = false
+                },
+                onEnableForFlow = {
+                    showAnchorSheet = false
                     viewModel.enableAnchorForThisFlow()
-                }) { Text("Turn On for this Flow") }
-            },
-            dismissButton = { TextButton(onClick = { showAnchorEnableDialog = false }) { Text("Not now") } }
-        )
+                },
+                onDisableForFlow = {
+                    showAnchorSheet = false
+                    viewModel.disableAnchorForThisFlow()
+                },
+                onResumeAnchor = {
+                    showAnchorSheet = false
+                    viewModel.resumeAnchor()
+                },
+                onClose = { showAnchorSheet = false }
+            )
+        }
     }
 
     if (showPulseDialog) {
@@ -1079,45 +1060,163 @@ private fun ModeOptionCard(
 
 
 @Composable
-private fun FlowQuickControlRow(
+private fun SetTheCurrentSection(
     anchorState: com.kingkharnivore.skillz.domain.anchor.AnchorFlowState,
-    onAnchorToggle: (Boolean) -> Unit
+    appCount: Int,
+    onAnchorClick: () -> Unit,
+    surgeContent: @Composable () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        val stateText = when {
-            anchorState.paused -> "Paused"
-            anchorState.enabledForThisFlow -> "On"
-            anchorState.setupMessage != null -> "Setup needed"
-            else -> "Off"
-        }
+        Text(
+            text = "Set the Current",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+        )
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.semantics {
-                contentDescription = when {
-                    anchorState.paused -> "Anchor paused. Toggle Anchor for this Flow"
-                    anchorState.enabledForThisFlow -> "Anchor on. Toggle Anchor for this Flow"
-                    anchorState.setupMessage != null -> "Anchor setup needed. Toggle Anchor for this Flow"
-                    else -> "Anchor off. Toggle Anchor for this Flow"
-                }
-            }
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.Top
         ) {
-            Switch(
-                checked = anchorState.enabledForThisFlow && !anchorState.paused,
-                onCheckedChange = onAnchorToggle
+            AnchorToolCard(
+                modifier = Modifier.weight(1f),
+                anchorState = anchorState,
+                appCount = appCount,
+                onClick = onAnchorClick
             )
-            Column {
-                Text("Anchor", style = MaterialTheme.typography.labelLarge)
-                Text(stateText, style = MaterialTheme.typography.bodySmall)
-            }
+            Box(modifier = Modifier.weight(1f)) { surgeContent() }
         }
-        Column(horizontalAlignment = Alignment.End) {
-            Text("Search", style = MaterialTheme.typography.labelLarge)
-            Text("Off", style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+@Composable
+private fun AnchorToolCard(
+    modifier: Modifier,
+    anchorState: com.kingkharnivore.skillz.domain.anchor.AnchorFlowState,
+    appCount: Int,
+    onClick: () -> Unit
+) {
+    val state = when {
+        anchorState.inBreak -> "Break active"
+        anchorState.paused -> "Paused"
+        !anchorState.usageAccessGranted -> "Usage Access needed"
+        appCount == 0 -> "Choose apps"
+        anchorState.enabledForThisFlow -> "On"
+        else -> "Off"
+    }
+    val subtitle = when {
+        anchorState.inBreak -> "Flow paused. Return when ready."
+        anchorState.paused -> "Flow continues. Anchor is paused."
+        !anchorState.usageAccessGranted -> "Enable permission to use Anchor."
+        appCount == 0 -> "Anchor only watches apps you choose."
+        anchorState.enabledForThisFlow -> "Watching $appCount anchored ${if (appCount == 1) "app" else "apps"}."
+        else -> "Return from distracting apps."
+    }
+    FlowToolCard(
+        modifier = modifier,
+        title = "Anchor",
+        state = state,
+        subtitle = subtitle,
+        onClick = onClick
+    )
+}
+
+@Composable
+private fun FlowToolCard(
+    modifier: Modifier = Modifier,
+    title: String,
+    state: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = "$title. $state. $subtitle" },
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 1.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.20f)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            Text(state, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f))
+        }
+    }
+}
+
+@Composable
+private fun AnchorFlowSheet(
+    anchorState: com.kingkharnivore.skillz.domain.anchor.AnchorFlowState,
+    onEnableUsageAccess: () -> Unit,
+    onManageApps: () -> Unit,
+    onEnableForFlow: () -> Unit,
+    onDisableForFlow: () -> Unit,
+    onResumeAnchor: () -> Unit,
+    onClose: () -> Unit
+) {
+    val appCount = anchorState.anchoredAppCount
+    val title: String
+    val body: String
+    when {
+        !anchorState.usageAccessGranted -> {
+            title = "Enable Anchor"
+            body = "Anchor needs Usage Access to notice when one of your anchored apps opens during a Flow. Scyra does not read your screen, messages, photos, keystrokes, app content, or browsing history."
+        }
+        appCount == 0 -> {
+            title = "Choose apps to anchor"
+            body = "Anchor only watches the apps you choose."
+        }
+        anchorState.paused -> {
+            title = "Anchor paused"
+            body = "Flow continues, but Anchor is not watching your anchored apps."
+        }
+        anchorState.enabledForThisFlow -> {
+            title = "Anchor is on"
+            body = "Scyra is watching your anchored apps during this Flow."
+        }
+        else -> {
+            title = "Anchor this Flow?"
+            body = "Anchor will watch your selected apps during this Flow and help you return if you drift.\n\n$appCount apps anchored"
+        }
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f))
+        when {
+            !anchorState.usageAccessGranted -> {
+                Button(onClick = onEnableUsageAccess, modifier = Modifier.fillMaxWidth()) { Text("Enable Usage Access") }
+                TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("Not now") }
+            }
+            appCount == 0 -> {
+                Button(onClick = onManageApps, modifier = Modifier.fillMaxWidth()) { Text("Manage Anchor Apps") }
+                TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("Not now") }
+            }
+            anchorState.paused -> {
+                Button(onClick = onResumeAnchor, modifier = Modifier.fillMaxWidth()) { Text("Resume Anchor") }
+                OutlinedButton(onClick = onDisableForFlow, modifier = Modifier.fillMaxWidth()) { Text("Turn Off for this Flow") }
+                TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("Close") }
+            }
+            anchorState.enabledForThisFlow -> {
+                Button(onClick = onDisableForFlow, modifier = Modifier.fillMaxWidth()) { Text("Turn Off for this Flow") }
+                OutlinedButton(onClick = onManageApps, modifier = Modifier.fillMaxWidth()) { Text("Manage Anchor Apps") }
+                TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("Close") }
+            }
+            else -> {
+                Button(onClick = onEnableForFlow, modifier = Modifier.fillMaxWidth()) { Text("Turn On for this Flow") }
+                OutlinedButton(onClick = onManageApps, modifier = Modifier.fillMaxWidth()) { Text("Manage Anchor Apps") }
+                TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("Not now") }
+            }
         }
     }
 }

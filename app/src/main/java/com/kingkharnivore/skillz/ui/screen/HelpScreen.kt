@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
@@ -71,6 +72,7 @@ fun HelpScreen(
     onToggleAnchor: (Boolean) -> Unit = {},
     onManageAnchorApps: () -> Unit = {},
     onEnableUsageAccess: () -> Unit = {},
+    showAnchorSection: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val pages = helpPages()
@@ -119,12 +121,14 @@ fun HelpScreen(
             onClick = { showLanguageDialog = true }
         )
 
-        AnchorSettingsSection(
-            state = anchorState,
-            onToggleAnchor = onToggleAnchor,
-            onManageAnchorApps = onManageAnchorApps,
-            onEnableUsageAccess = onEnableUsageAccess
-        )
+        if (showAnchorSection) {
+            AnchorSettingsSection(
+                state = anchorState,
+                onToggleAnchor = onToggleAnchor,
+                onManageAnchorApps = onManageAnchorApps,
+                onEnableUsageAccess = onEnableUsageAccess
+            )
+        }
 
         HelpConceptCarousel(
             pages = pages,
@@ -177,21 +181,34 @@ private fun AnchorSettingsSection(
             }
             Text(title, fontWeight = FontWeight.SemiBold)
             Text(body, style = MaterialTheme.typography.bodySmall)
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Anchor On / Off", style = MaterialTheme.typography.labelLarge)
-                    Text(
-                        if (state.anchorEnabled) "On" else "Off",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                }
-                Switch(checked = state.anchorEnabled, onCheckedChange = onToggleAnchor)
+            val primaryLabel = when {
+                !state.usageAccessGranted -> "Enable Usage Access"
+                state.anchoredAppCount == 0 -> "Manage Anchor Apps"
+                !state.anchorEnabled -> "Set up Anchor"
+                else -> "Manage Anchor Apps"
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onManageAnchorApps) { Text(if (state.anchoredAppCount == 0) "Manage Anchor Apps" else "Manage Anchor Apps") }
-                if (!state.usageAccessGranted) {
-                    TextButton(onClick = onEnableUsageAccess) { Text("Enable Usage Access") }
+            Button(
+                onClick = {
+                    when {
+                        !state.usageAccessGranted -> onEnableUsageAccess()
+                        state.anchoredAppCount == 0 -> onManageAnchorApps()
+                        !state.anchorEnabled -> onToggleAnchor(true)
+                        else -> onManageAnchorApps()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(primaryLabel) }
+            if (state.usageAccessGranted && state.anchoredAppCount > 0) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Anchor global On / Off", style = MaterialTheme.typography.labelLarge)
+                        Text(
+                            if (state.anchorEnabled) "On" else "Off",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+                    Switch(checked = state.anchorEnabled, onCheckedChange = onToggleAnchor)
                 }
             }
             Text(

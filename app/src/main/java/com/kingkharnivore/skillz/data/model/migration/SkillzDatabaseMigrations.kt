@@ -117,6 +117,7 @@ object SkillzDatabaseMigrations {
         addColumnIfMissing(db, "ongoing_session", "anchorPausedCount", "INTEGER NOT NULL DEFAULT 0")
         addColumnIfMissing(db, "ongoing_session", "anchorBreakCount", "INTEGER NOT NULL DEFAULT 0")
         addColumnIfMissing(db, "ongoing_session", "anchorTotalBreakDurationMs", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "ongoing_session", "anchorBreakOverPending", "INTEGER NOT NULL DEFAULT 0")
         addColumnIfMissing(db, "ongoing_session", "anchorReturnPanelPending", "INTEGER NOT NULL DEFAULT 0")
         addColumnIfMissing(db, "ongoing_session", "anchorUsageAccessRevoked", "INTEGER NOT NULL DEFAULT 0")
         db.execSQL(

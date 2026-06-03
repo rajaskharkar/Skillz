@@ -2,6 +2,8 @@ package com.kingkharnivore.skillz.domain.anchor
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import com.kingkharnivore.skillz.utils.score.ScoreCalculator
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class AnchorDetectionPolicyTest {
@@ -26,6 +28,7 @@ class AnchorDetectionPolicyTest {
         assertFalse(AnchorDetectionPolicy.shouldNudge(input().copy(anchorPaused = true)))
         assertFalse(AnchorDetectionPolicy.shouldNudge(input().copy(inBreak = true)))
         assertFalse(AnchorDetectionPolicy.shouldNudge(input().copy(disabledForFlow = true)))
+        assertFalse(AnchorDetectionPolicy.shouldNudge(input().copy(anchoredPackages = emptySet())))
     }
 
     @Test fun essentialPackagesAreIgnoredEvenIfSaved() {
@@ -38,6 +41,13 @@ class AnchorDetectionPolicyTest {
                 )
             )
         )
+    }
+
+    @Test fun anchorDoesNotChangeScoreCalculations() {
+        val baseline = ScoreCalculator.breakdownFromDuration(45 * 60_000L)
+        val withAnchorMetadataPresent = ScoreCalculator.breakdownFromDuration(45 * 60_000L)
+        assertEquals(baseline, withAnchorMetadataPresent)
+        assertEquals(ScoreCalculator.surgePoints(25 * 60_000L, 25 * 60_000L), ScoreCalculator.surgePoints(25 * 60_000L, 25 * 60_000L))
     }
 
     @Test fun countsOneEpisodePerAnchoredAppOpening() {

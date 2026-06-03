@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class AnchoredAppUiModel(val packageName: String, val displayName: String)
+data class AnchoredAppUiModel(val packageName: String, val displayName: String, val isInstalled: Boolean = true)
 data class AnchorableAppUiModel(
     val packageName: String,
     val displayName: String,
@@ -66,7 +66,7 @@ class AnchorAppsViewModel @Inject constructor(
         AnchorAppsUiState(
             usageAccessGranted = recentAppsProvider.hasUsageAccess(),
             notificationPermissionGranted = NotificationManagerCompat.from(getApplication()).areNotificationsEnabled(),
-            anchoredApps = anchored.map { AnchoredAppUiModel(it.packageName, it.displayName) },
+            anchoredApps = anchored.map { AnchoredAppUiModel(it.packageName, if (isInstalled(it.packageName)) it.displayName else "App not found", isInstalled(it.packageName)) },
             recentlyUsedApps = recent.filterNot { it.packageName in anchoredPackages },
             suggestedApps = suggestedApps(anchoredPackages, recent),
             expandedTo30Days = isExpanded,
@@ -87,7 +87,7 @@ class AnchorAppsViewModel @Inject constructor(
         }
     }
 
-    private fun refresh() {
+    fun refresh() {
         viewModelScope.launch {
             loading.value = true
             val days = if (expanded.value) 30L else 14L
@@ -106,6 +106,12 @@ class AnchorAppsViewModel @Inject constructor(
             anchorRepository.addAnchoredApp(AnchorableApp(app.packageName, app.displayName))
         }
     }
+
+    private fun isInstalled(packageName: String): Boolean = runCatching {
+        @Suppress("DEPRECATION")
+        getApplication<Application>().packageManager.getApplicationInfo(packageName, 0)
+        true
+    }.getOrDefault(false)
 
     private fun suggestedApps(
         anchoredPackages: Set<String>,

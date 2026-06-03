@@ -136,7 +136,13 @@ private fun SectionTitle(title: String, subtitle: String) {
 
 @Composable
 private fun AnchoredAppRow(app: AnchoredAppUiModel, onRemove: () -> Unit) {
-    AppRow(title = app.displayName, subtitle = "Anchored during Flows", action = "Remove", enabled = true, onAction = onRemove)
+    AppRow(
+        title = app.displayName,
+        subtitle = if (app.isInstalled) "Anchored during Flows" else "Remove from Anchor",
+        action = "Remove",
+        enabled = true,
+        onAction = onRemove
+    )
 }
 
 @Composable

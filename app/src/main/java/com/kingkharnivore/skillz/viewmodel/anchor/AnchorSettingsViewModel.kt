@@ -1,7 +1,6 @@
 package com.kingkharnivore.skillz.viewmodel.anchor
 
 import android.app.Application
-import android.os.Build
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,6 +8,7 @@ import com.kingkharnivore.skillz.data.repository.anchor.AnchorRepository
 import com.kingkharnivore.skillz.domain.anchor.PhoneDownMode
 import com.kingkharnivore.skillz.domain.anchor.RecentAppsProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -29,7 +29,9 @@ class AnchorSettingsViewModel @Inject constructor(
     private val anchorRepository: AnchorRepository,
     private val recentAppsProvider: RecentAppsProvider
 ) : AndroidViewModel(application) {
-    val uiState = combine(anchorRepository.settings, anchorRepository.anchoredApps) { settings, apps ->
+    private val refreshTick = MutableStateFlow(0)
+
+    val uiState = combine(anchorRepository.settings, anchorRepository.anchoredApps, refreshTick) { settings, apps, _ ->
         AnchorSettingsUiState(
             anchorEnabled = settings.enabled,
             usageAccessGranted = recentAppsProvider.hasUsageAccess(),
@@ -38,6 +40,10 @@ class AnchorSettingsViewModel @Inject constructor(
             phoneDownMode = settings.phoneDownMode
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AnchorSettingsUiState())
+
+    fun refresh() {
+        refreshTick.value += 1
+    }
 
     fun setAnchorEnabled(enabled: Boolean) {
         viewModelScope.launch { anchorRepository.setEnabled(enabled) }

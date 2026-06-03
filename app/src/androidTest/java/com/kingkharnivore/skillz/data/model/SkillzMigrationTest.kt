@@ -160,6 +160,7 @@ class SkillzMigrationTest {
         assertTrue("Expected anchored_apps after 18→24", db.tableExists("anchored_apps"))
         assertTrue("Expected anchor_session_summary after 18→24", db.tableExists("anchor_session_summary"))
         db.assertColumn("ongoing_session", "anchorEnabledForFlow", notNull = 1, defaultValue = "0")
+        db.assertColumn("ongoing_session", "anchorBreakOverPending", notNull = 1, defaultValue = "0")
     }
 
     @Test

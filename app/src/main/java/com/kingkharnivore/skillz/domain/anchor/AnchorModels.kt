@@ -40,5 +40,6 @@ data class AnchorFlowState(
     val distractionAttemptCount: Int = 0,
     val setupMessage: String? = null,
     val showReturnPanel: Boolean = false,
+    val breakOver: Boolean = false,
     val usageAccessRevoked: Boolean = false
 )

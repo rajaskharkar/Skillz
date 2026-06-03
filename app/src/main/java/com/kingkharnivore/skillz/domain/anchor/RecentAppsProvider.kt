@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.domain.anchor
 
 import android.app.AppOpsManager
 import android.app.usage.UsageEvents
+import android.app.usage.UsageStatsManager.INTERVAL_BEST
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.os.Process
@@ -29,21 +30,16 @@ class RecentAppsProvider @Inject constructor(
         val now = System.currentTimeMillis()
         val start = (now - windowMs).coerceAtLeast(0L)
         val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-        val events = usageStatsManager.queryEvents(start, now)
-        val event = UsageEvents.Event()
-        val lastUsed = linkedMapOf<String, Long>()
-        while (events.hasNextEvent()) {
-            events.getNextEvent(event)
-            val isForeground = event.eventType == UsageEvents.Event.ACTIVITY_RESUMED ||
-                    event.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND
-            if (isForeground && !neverAnchorPolicy.isNeverAnchored(event.packageName)) {
-                lastUsed[event.packageName] = event.timeStamp
-            }
-        }
-        return lastUsed.entries
-            .sortedByDescending { it.value }
+        val stats = usageStatsManager.queryUsageStats(INTERVAL_BEST, start, now) ?: emptyList()
+        return stats
+            .asSequence()
+            .filter { it.lastTimeUsed > 0L }
+            .filterNot { neverAnchorPolicy.isNeverAnchored(it.packageName) }
+            .sortedByDescending { it.lastTimeUsed }
+            .distinctBy { it.packageName }
             .take(maxCount)
-            .map { (pkg, at) -> RecentApp(pkg, displayName(pkg), at) }
+            .map { RecentApp(it.packageName, displayName(it.packageName), it.lastTimeUsed) }
+            .toList()
     }
 
     fun getCurrentForegroundPackage(): String? {
