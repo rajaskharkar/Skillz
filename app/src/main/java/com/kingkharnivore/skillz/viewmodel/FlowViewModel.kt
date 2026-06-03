@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -276,20 +277,41 @@ class FlowViewModel @Inject constructor(
         viewModelScope.launch {
             val appCount = anchorRepository.anchoredApps.first().size
             val usage = recentAppsProvider.hasUsageAccess()
+            logAnchorDiagnostics("enable_requested", appCount, usage)
             if (!usage || appCount == 0) {
                 _uiState.update {
                     it.copy(anchorFlowState = buildAnchorFlowState(anchoredAppCount = appCount, usageAccessGranted = usage))
                 }
+                logAnchorDiagnostics("enable_setup_missing", appCount, usage)
                 return@launch
             }
             focusSessionRepository.enableAnchorForCurrentFlow()
+            anchorEnabledForFlow = true
+            anchorDisabledForFlow = false
+            anchorPaused = false
+            anchorUsageAccessRevoked = false
+            _uiState.update {
+                it.copy(anchorFlowState = buildAnchorFlowState(anchoredAppCount = appCount, usageAccessGranted = usage))
+            }
+            logAnchorDiagnostics("enable_committed", appCount, usage)
             refreshAnchorFromLatest()
         }
     }
 
     fun disableAnchorForThisFlow() {
         viewModelScope.launch {
+            val appCount = anchorRepository.anchoredApps.first().size
+            val usage = recentAppsProvider.hasUsageAccess()
+            logAnchorDiagnostics("disable_requested", appCount, usage)
             focusSessionRepository.disableAnchorForCurrentFlow()
+            anchorEnabledForFlow = false
+            anchorDisabledForFlow = true
+            anchorPaused = false
+            anchorReturnPanelPending = false
+            _uiState.update {
+                it.copy(anchorFlowState = buildAnchorFlowState(anchoredAppCount = appCount, usageAccessGranted = usage))
+            }
+            logAnchorDiagnostics("disable_committed", appCount, usage)
             refreshAnchorFromLatest()
         }
     }
@@ -325,6 +347,20 @@ class FlowViewModel @Inject constructor(
 
     fun refreshAnchorState() {
         viewModelScope.launch { refreshAnchorFromLatest() }
+    }
+
+
+    private suspend fun logAnchorDiagnostics(reason: String, appCount: Int? = null, usageAccess: Boolean? = null) {
+        Log.d(
+            "AnchorFlow",
+            "reason=$reason " +
+                "usageAccessGranted=${usageAccess ?: recentAppsProvider.hasUsageAccess()} " +
+                "anchoredAppCount=${appCount ?: anchorRepository.anchoredApps.first().size} " +
+                "anchorEnabledForFlow=$anchorEnabledForFlow " +
+                "anchorDisabledForFlow=$anchorDisabledForFlow " +
+                "globallyEnabled=${_uiState.value.anchorFlowState.globallyEnabled} " +
+                "ongoingSessionExists=${focusSessionRepository.getOngoingSessionNow() != null}"
+        )
     }
 
     private suspend fun refreshAnchorFromLatest() {

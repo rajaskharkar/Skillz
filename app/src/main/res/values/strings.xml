@@ -1919,9 +1919,9 @@
     <string name="anchor_action_resume">Resume Anchor</string>
     <string name="anchor_reward_title">Anchor reflection</string>
     <string name="anchor_reward_subtitle">Returning counts.</string>
-    <string name="anchor_reward_none">No distractions broke through.</string>
-    <string name="anchor_reward_one_drift">You drifted once, but came back.</string>
-    <string name="anchor_reward_distractions">Anchor helped you return from %1$d distractions.</string>
+    <string name="anchor_reward_none">No selected distractions were detected.</string>
+    <string name="anchor_reward_one_drift">Scyra noticed 1 drift and helped you return.</string>
+    <string name="anchor_reward_distractions">Scyra noticed %1$d drifts during this Flow.</string>
     <string name="anchor_reward_one_break">You took 1 short break and returned.</string>
     <string name="anchor_reward_breaks">You took %1$d short breaks and returned.</string>
 </resources>

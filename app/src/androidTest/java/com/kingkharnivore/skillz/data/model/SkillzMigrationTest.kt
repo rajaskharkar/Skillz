@@ -127,6 +127,7 @@ class SkillzMigrationTest {
             SkillzDatabaseMigrations.MIGRATION_16_17.migrate(this)
             SkillzDatabaseMigrations.MIGRATION_17_18.migrate(this)
             insertMigrationSession()
+            insertMigrationOngoingSession()
             close()
         }
 
@@ -147,6 +148,8 @@ class SkillzMigrationTest {
         assertTrue("Expected objective_completions table after 18→25", db.tableExists("objective_completions"))
         assertTrue("Expected objective_skipped_cycles table after 18→25", db.tableExists("objective_skipped_cycles"))
         assertEquals(1, db.countRows("sessions", "title = ?", arrayOf("Migration Flow")))
+        assertEquals(1, db.countRows("ongoing_session", "flowInstanceId = ?", arrayOf("migration-active-flow")))
+        assertEquals(1, db.countRows("ongoing_session", "isInFlowMode = ?", arrayOf("1")))
 
         db.assertColumn("objective_completions", "pearlsGranted", notNull = 1, defaultValue = "0")
         db.assertColumn("objective_completions", "pearlsClaimed", notNull = 1, defaultValue = "0")
@@ -214,6 +217,23 @@ class SkillzMigrationTest {
                 `surgePlannedMs`, `surgePoints`, `scyraPoints`, `isSoftMode`, `arcId`, `arcIndex`,
                 `arcMultiplierUsed`, `arcBonusPoints`, `createdAt`
             ) VALUES (99, 'Migration Flow', '', 42, 1, 2, 60000, NULL, 0, 0, 0, NULL, NULL, NULL, 0, 3)
+            """.trimIndent()
+        )
+    }
+
+    private fun SupportSQLiteDatabase.insertMigrationOngoingSession() {
+        execSQL(
+            """
+            INSERT INTO `ongoing_session` (
+                `id`, `flowInstanceId`, `title`, `description`, `tagName`, `isInFlowMode`,
+                `isRunning`, `isSoftMode`, `baseStartTimeMs`, `accumulatedBeforeStartMs`,
+                `isSurgeOn`, `surgePlannedMs`, `surgeMilestonesFiredCsv`, `surgeTargetReached`,
+                `surgeTargetReachedAtMs`, `surgeFinalCountdownStarted`, `createdAt`, `arcId`,
+                `arcChainBase`, `arcSessionCountInArc`, `arcLastSessionEndTimeMs`
+            ) VALUES (
+                1, 'migration-active-flow', 'Active Migration Flow', '', 'Migration Journey', 1,
+                0, 0, NULL, 120000, 0, NULL, '', 0, NULL, 0, 10, NULL, NULL, NULL, NULL
+            )
             """.trimIndent()
         )
     }

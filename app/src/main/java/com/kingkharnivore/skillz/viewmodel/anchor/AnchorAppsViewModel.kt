@@ -74,7 +74,7 @@ class AnchorAppsViewModel @Inject constructor(
             expandedTo30Days = isExpanded,
             isLoading = isLoading,
             errorMessage = err,
-            debugDiagnostics = debugDiagnostics(recent)
+            debugDiagnostics = debugDiagnostics(recent, anchoredPackages)
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AnchorAppsUiState())
 
@@ -133,12 +133,13 @@ class AnchorAppsViewModel @Inject constructor(
         .firstOrNull { it.packageName == packageName }
         ?.let { AnchorableAppUiModel(it.packageName, it.displayName, "Common distraction", available = true) }
 
-    private fun debugDiagnostics(recent: List<AnchorableAppUiModel>): List<String> {
+    private fun debugDiagnostics(recent: List<AnchorableAppUiModel>, anchoredPackages: Set<String>): List<String> {
         if (!BuildConfig.DEBUG) return emptyList()
         return listOf(
             "Usage Access: ${recentAppsProvider.hasUsageAccess()}",
             "Detected packages: ${recent.joinToString { it.packageName }.ifBlank { "none" }}",
-            "Last foreground package: ${recentAppsProvider.getCurrentForegroundPackage() ?: "unknown"}"
+            "Last foreground package: ${recentAppsProvider.getCurrentForegroundPackage() ?: "unknown"}",
+            "Selected anchored packages: ${anchoredPackages.joinToString().ifBlank { "none" }}"
         )
     }
 

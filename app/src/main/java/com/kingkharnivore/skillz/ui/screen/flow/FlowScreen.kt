@@ -1125,12 +1125,12 @@ private fun AnchorFlowSheet(
     val body: String
     when {
         !anchorState.usageAccessGranted -> {
-            title = "Enable Anchor"
-            body = "Anchor needs Usage Access to notice when one of your anchored apps opens during a Flow. Scyra does not read your screen, messages, photos, keystrokes, app content, or browsing history."
+            title = "Usage Access needed"
+            body = "Anchor needs Usage Access to detect selected apps during an active Flow."
         }
         appCount == 0 -> {
-            title = "Choose apps to anchor"
-            body = "Anchor only watches the apps you choose."
+            title = "Choose Anchor apps"
+            body = "Pick the apps Scyra should guide you back from during Flows."
         }
         anchorState.paused -> {
             title = "Anchor paused"

@@ -126,9 +126,9 @@ fun buildSessionRewardCards(
 
     if (reward.anchorEnabled || reward.anchorDistractionAttemptCount > 0 || reward.anchorBreakCount > 0) {
         val distractionLine = when (reward.anchorDistractionAttemptCount) {
-            0 -> "No distractions broke through."
-            1 -> "You drifted once, but came back."
-            else -> "Anchor helped you return from ${reward.anchorDistractionAttemptCount} distractions."
+            0 -> "No selected distractions were detected."
+            1 -> "Scyra noticed 1 drift and helped you return."
+            else -> "Scyra noticed ${reward.anchorDistractionAttemptCount} drifts during this Flow."
         }
         val breakLine = when (reward.anchorBreakCount) {
             0 -> null
