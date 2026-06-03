@@ -61,7 +61,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellRoomStateEntit
         ObjectiveCompletionEntity::class,
         ObjectiveSkippedCycleEntity::class
     ],
-    version = 23,
+    version = 26,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {

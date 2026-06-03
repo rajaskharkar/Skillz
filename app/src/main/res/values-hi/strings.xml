@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Skillz</string>
     <string name="story_fab_schedule_beam">बीम अनुसूचित करें</string>
     <string name="story_fab_record_pulse">पल्स रिकॉर्ड करें</string>
@@ -721,7 +721,7 @@
     <string name="pulse_title_field_placeholder">अपने विचार को नाम दें</string>
     <string name="pulse_title_field_a11y">Pulse के विचार का शीर्षक फ़ील्ड</string>
     <plurals name="flow_journey_label">
-        <item quantity="one">यात्रा</item>
+        <item quantity="one" tools:ignore="ImpliedQuantity">यात्रा</item>
         <item quantity="other">यात्राएँ</item>
     </plurals>
     <string name="flow_journey_section_a11y">%1$s</string>
@@ -873,10 +873,6 @@
     <string name="atlas_month_dow_t">मं</string>
     <string name="atlas_month_dow_w">बु</string>
     <string name="atlas_month_dow_f">शु</string>
-    <plurals name="atlas_month_beam_count">
-        <item quantity="one">1 बीम</item>
-        <item quantity="other">%1$d बीम</item>
-    </plurals>
     <string name="atlas_month_free">मुक्त</string>
     <string name="atlas_month_cell_a11y_with_beams">%1$s. %2$s.</string>
     <string name="atlas_month_cell_a11y_free">%1$s. मुक्त दिन।</string>
@@ -1038,7 +1034,6 @@
     <string name="shell_creature_need_more_pearls_to_grow">बढ़ाने के लिए %1$d और मोती चाहिए।</string>
     <string name="shell_creature_release_for_pearls">Pearls के लिए मुक्त करें</string>
     <string name="shell_creature_release_confirm_title">%1$s को रिलीज़ करें?</string>
-    <string name="shell_creature_release_confirm_body">यह एक जीव की प्रति को रिलीज़ करेगा और उसका पूरा मोती मूल्य लौटाएगा।</string>
     <string name="shell_creature_keep_swimming">तैरते रहने दें</string>
     <string name="shell_chest_item_status">प्रकार: %1$s. स्थिति: %2$s.</string>
     <string name="shell_status_placed">प्रदर्शित</string>
@@ -1073,40 +1068,8 @@
     <string name="shell_action_grow">Grow</string>
     <string name="shell_action_enrich">Enrich</string>
     <string name="shell_action_awaken">Awaken</string>
-    <string name="shell_find_glow_shell_title">Minnow</string>
-    <string name="shell_find_glow_shell_description">A warm shell brought back by ten-minute currents.</string>
-    <string name="shell_find_current_conch_title">Seahorse</string>
-    <string name="shell_find_current_conch_description">A conch that remembers deeper thirty-minute currents.</string>
-    <string name="shell_find_anchor_coral_title">Manta</string>
-    <string name="shell_find_anchor_coral_description">Coral rooted by an hour of steady focus.</string>
-    <string name="shell_find_abyss_lanternfish_title">Whale</string>
-    <string name="shell_find_abyss_lanternfish_description">A quiet creature from the two-hour deep.</string>
-    <string name="shell_find_threshold_seahorse_title">Octopus</string>
-    <string name="shell_find_threshold_seahorse_description">A hidden creature that appears after crossing into a deeper current.</string>
-    <string name="shell_find_return_turtle_stone_title">Pebble</string>
-    <string name="shell_find_return_turtle_stone_description">A small stone that remembers return after time away.</string>
     <string name="shell_find_sea_glass_title">Seaglass</string>
     <string name="shell_find_sea_glass_description">A softened fragment carried in by regular effort.</string>
-    <string name="shell_upgrade_glow_1_description">The Minnow rests with a gentle light.</string>
-    <string name="shell_upgrade_glow_2_title">Bright</string>
-    <string name="shell_upgrade_glow_2_description">The Minnow brightened. Your Pearls added warmth to its light.</string>
-    <string name="shell_upgrade_glow_3_title">Luminous</string>
-    <string name="shell_upgrade_glow_3_description">The Minnow came alive. Tiny life now gathers around its light.</string>
-    <string name="shell_upgrade_conch_1_description">The Seahorse listens to the room.</string>
-    <string name="shell_upgrade_conch_2_title">Bright</string>
-    <string name="shell_upgrade_conch_2_description">The Seahorse began to sing softly.</string>
-    <string name="shell_upgrade_conch_3_title">Glimmer</string>
-    <string name="shell_upgrade_conch_3_description">The Seahorse carries a calm echo through the Shell.</string>
-    <string name="shell_upgrade_coral_1_description">The Manta rests in the reef bed.</string>
-    <string name="shell_upgrade_coral_2_title">Bright</string>
-    <string name="shell_upgrade_coral_2_description">The Manta rooted deeper into the Focus Room.</string>
-    <string name="shell_upgrade_coral_3_title">Radiant</string>
-    <string name="shell_upgrade_coral_3_description">The Manta shelters the room with quiet presence.</string>
-    <string name="shell_upgrade_lantern_1_description">The Whale glows from the deep.</string>
-    <string name="shell_upgrade_lantern_2_title">Elder</string>
-    <string name="shell_upgrade_lantern_2_description">The Whale glowed from the deep.</string>
-    <string name="shell_upgrade_lantern_3_title">Ancient</string>
-    <string name="shell_upgrade_lantern_3_description">The Ancient moves slowly through ancient light.</string>
     <string name="shell_badge_flow_10_title">10-minute Flow</string>
     <string name="shell_badge_flow_10_description">Earned each time a regular Flow lasts 10 minutes or more.</string>
     <string name="shell_badge_flow_30_title">30-minute Flow</string>
@@ -1119,11 +1082,6 @@
     <string name="shell_badge_discovery_description">Earned each time The Shell records a new discovery.</string>
     <string name="shell_discovery_sea_glass_reveal">A Sea Glass Shard was found through regular Flow activity.</string>
     <string name="shell_discovery_sea_glass_explanation">Discovered because regular effort softened a small fragment into something worth keeping.</string>
-    <string name="shell_discovery_threshold_reveal">A Shell discovery is ready to view.</string>
-    <string name="shell_discovery_threshold_explanation">Discovered after you pushed past your usual stopping point and crossed into a deeper current. The Shell noticed. The Focus Room grew quieter, deeper, and more alive.</string>
-    <string name="shell_discovery_return_reveal">A Pebble found its way into The Shell.</string>
-    <string name="shell_discovery_return_explanation">Discovered after your first Flow back after time away. The Shell does not punish absence. It remembers return.</string>
-
     <string name="shell_category_creatures">जीव</string>
     <string name="shell_category_shells">Shells</string>
     <string name="shell_category_coral">Coral</string>
@@ -1131,17 +1089,6 @@
     <string name="shell_category_trophies">Trophies</string>
     <string name="shell_category_trinkets">टुकड़ाs</string>
     <string name="shell_category_discoveries">Discoveries</string>
-
-    <string name="shell_object_moon_coral_light_title">दीपक</string>
-    <string name="shell_object_moon_coral_light_description">A small coral lamp that warms a quiet nook.</string>
-    <string name="shell_object_seahorse_perch_title">आसन</string>
-    <string name="shell_object_seahorse_perch_description">A gentle place where tiny visitors can pause.</string>
-    <string name="shell_object_reef_pebble_bed_title">कंकड़</string>
-    <string name="shell_object_reef_pebble_bed_description">Smooth pebbles that make a shelf feel tended.</string>
-    <string name="shell_object_kelp_curtain_title">Curtain</string>
-    <string name="shell_object_kelp_curtain_description">Soft strands that sway at the edge of the room.</string>
-    <string name="shell_object_bubble_trail_title">Bubbles</string>
-    <string name="shell_object_bubble_trail_description">A small path of bubbles drifting through the chamber.</string>
     <string name="shell_slot_left_reef_shelf">Left Reef Shelf</string>
     <string name="shell_slot_right_reef_shelf">Right Reef Shelf</string>
     <string name="shell_slot_shell_wall_nook">Shell Wall Nook</string>

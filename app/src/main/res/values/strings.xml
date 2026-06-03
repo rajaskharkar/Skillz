@@ -929,10 +929,6 @@
     <string name="atlas_month_dow_t">T</string>
     <string name="atlas_month_dow_w">W</string>
     <string name="atlas_month_dow_f">F</string>
-    <plurals name="atlas_month_beam_count">
-        <item quantity="one">1 beam</item>
-        <item quantity="other">%1$d beams</item>
-    </plurals>
     <string name="atlas_month_free">Free</string>
     <string name="atlas_month_cell_a11y_with_beams">%1$s. %2$s.</string>
     <string name="atlas_month_cell_a11y_free">%1$s. Free day.</string>

@@ -87,6 +87,161 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_23_24 = object : Migration(23, 24) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+//            createAnchorTables(db)
+        }
+    }
+
+    val MIGRATION_24_25 = object : Migration(24, 25) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+//            addColumnIfMissing(
+//                db = db,
+//                table = "ongoing_session",
+//                column = "anchorBreakOverPending",
+//                definition = "INTEGER NOT NULL DEFAULT 0"
+//            )
+        }
+    }
+
+    val MIGRATION_25_26 = object : Migration(25, 26) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            normalizePostAnchorTestSchemaToTargetBranch(db)
+        }
+    }
+
+    private fun normalizePostAnchorTestSchemaToTargetBranch(db: SupportSQLiteDatabase) {
+        db.execSQL("PRAGMA foreign_keys=OFF")
+
+        /*
+         * The Anchor PR/test build may have created Anchor-only tables and/or added
+         * Anchor-only columns to ongoing_session while still leaving the local app DB
+         * at version 25. This target branch does not contain Anchor entities.
+         *
+         * We preserve all normal Scyra data and only remove Anchor-only schema pieces
+         * that prevent Room from validating the current target-branch schema.
+         */
+
+        db.execSQL("DROP TABLE IF EXISTS `anchored_apps`")
+        db.execSQL("DROP TABLE IF EXISTS `anchor_session_summary`")
+
+        rebuildOngoingSessionForTargetBranch(db)
+
+        db.execSQL("PRAGMA foreign_keys=ON")
+    }
+
+    private fun rebuildOngoingSessionForTargetBranch(db: SupportSQLiteDatabase) {
+        val oldTable = "ongoing_session"
+        val newTable = "ongoing_session_v26"
+
+        db.execSQL("DROP TABLE IF EXISTS `$newTable`")
+
+        db.execSQL(
+            """
+        CREATE TABLE IF NOT EXISTS `$newTable` (
+            `id` INTEGER NOT NULL,
+            `flowInstanceId` TEXT NOT NULL,
+            `title` TEXT NOT NULL,
+            `description` TEXT NOT NULL,
+            `tagName` TEXT NOT NULL,
+            `isInFlowMode` INTEGER NOT NULL,
+            `isRunning` INTEGER NOT NULL,
+            `isSoftMode` INTEGER NOT NULL,
+            `baseStartTimeMs` INTEGER,
+            `accumulatedBeforeStartMs` INTEGER NOT NULL,
+            `isSurgeOn` INTEGER NOT NULL,
+            `surgePlannedMs` INTEGER,
+            `surgeMilestonesFiredCsv` TEXT NOT NULL,
+            `surgeTargetReached` INTEGER NOT NULL,
+            `surgeTargetReachedAtMs` INTEGER,
+            `surgeFinalCountdownStarted` INTEGER NOT NULL,
+            `createdAt` INTEGER NOT NULL,
+            `arcId` INTEGER,
+            `arcChainBase` REAL,
+            `arcSessionCountInArc` INTEGER,
+            `arcLastSessionEndTimeMs` INTEGER,
+            `originPulseId` INTEGER,
+            `originPulseTitleSnapshot` TEXT,
+            `originPulseJourneyNameSnapshot` TEXT,
+            PRIMARY KEY(`id`)
+        )
+        """.trimIndent()
+        )
+
+        if (tableExists(db, oldTable)) {
+            val columns = columns(db, oldTable)
+
+            val isInFlowMode = when {
+                "isInFlowMode" in columns -> "`isInFlowMode`"
+                "isInFocusMode" in columns -> "`isInFocusMode`"
+                else -> "0"
+            }
+
+            db.execSQL(
+                """
+            INSERT OR REPLACE INTO `$newTable` (
+                `id`,
+                `flowInstanceId`,
+                `title`,
+                `description`,
+                `tagName`,
+                `isInFlowMode`,
+                `isRunning`,
+                `isSoftMode`,
+                `baseStartTimeMs`,
+                `accumulatedBeforeStartMs`,
+                `isSurgeOn`,
+                `surgePlannedMs`,
+                `surgeMilestonesFiredCsv`,
+                `surgeTargetReached`,
+                `surgeTargetReachedAtMs`,
+                `surgeFinalCountdownStarted`,
+                `createdAt`,
+                `arcId`,
+                `arcChainBase`,
+                `arcSessionCountInArc`,
+                `arcLastSessionEndTimeMs`,
+                `originPulseId`,
+                `originPulseTitleSnapshot`,
+                `originPulseJourneyNameSnapshot`
+            )
+            SELECT
+                ${expr(columns, "id", "1")},
+                ${expr(columns, "flowInstanceId", "'legacy-' || lower(hex(randomblob(16)))")},
+                ${expr(columns, "title", "''")},
+                ${expr(columns, "description", "''")},
+                ${expr(columns, "tagName", "''")},
+                $isInFlowMode,
+                ${expr(columns, "isRunning", "0")},
+                ${expr(columns, "isSoftMode", "0")},
+                ${expr(columns, "baseStartTimeMs", "NULL")},
+                ${expr(columns, "accumulatedBeforeStartMs", "0")},
+                ${expr(columns, "isSurgeOn", "0")},
+                ${expr(columns, "surgePlannedMs", "NULL")},
+                ${expr(columns, "surgeMilestonesFiredCsv", "''")},
+                ${expr(columns, "surgeTargetReached", "0")},
+                ${expr(columns, "surgeTargetReachedAtMs", "NULL")},
+                ${expr(columns, "surgeFinalCountdownStarted", "0")},
+                ${expr(columns, "createdAt", nowSql())},
+                ${expr(columns, "arcId", "NULL")},
+                ${expr(columns, "arcChainBase", "NULL")},
+                ${expr(columns, "arcSessionCountInArc", "NULL")},
+                ${expr(columns, "arcLastSessionEndTimeMs", "NULL")},
+                ${expr(columns, "originPulseId", "NULL")},
+                ${expr(columns, "originPulseTitleSnapshot", "NULL")},
+                ${expr(columns, "originPulseJourneyNameSnapshot", "NULL")}
+            FROM `$oldTable`
+            WHERE ${expr(columns, "id", "1")} = 1
+            LIMIT 1
+            """.trimIndent()
+            )
+
+            db.execSQL("DROP TABLE `$oldTable`")
+        }
+
+        db.execSQL("ALTER TABLE `$newTable` RENAME TO `$oldTable`")
+    }
+
     val ALL_MIGRATIONS: Array<Migration> =
         LEGACY_TO_15_MIGRATIONS +
                 MIGRATION_13_14 +
@@ -98,7 +253,10 @@ object SkillzDatabaseMigrations {
                 MIGRATION_19_20 +
                 MIGRATION_20_21 +
                 MIGRATION_21_22 +
-                MIGRATION_22_23
+                MIGRATION_22_23 +
+                MIGRATION_23_24 +
+                MIGRATION_24_25 +
+                MIGRATION_25_26
 
 
 
