@@ -1924,4 +1924,8 @@
     <string name="anchor_reward_distractions">Scyra noticed %1$d drifts during this Flow.</string>
     <string name="anchor_reward_one_break">You took 1 short break and returned.</string>
     <string name="anchor_reward_breaks">You took %1$d short breaks and returned.</string>
+
+    <string name="anchor_guard_accessibility_label">Scyra Anchor Guard</string>
+    <string name="anchor_guard_accessibility_description">Anchor Guard can detect selected app package changes during active Flows and return you away from those apps. It does not read messages, screen text, keystrokes, photos, camera, microphone, or browsing history.</string>
+    <string name="anchor_notification_guard_return">Anchor Guard returned you from a selected app. Return to your Flow?</string>
 </resources>

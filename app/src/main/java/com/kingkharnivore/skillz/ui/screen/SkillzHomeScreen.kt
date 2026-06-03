@@ -58,6 +58,7 @@ fun SkillzHomeScreen(
     onToggleAnchor: (Boolean) -> Unit = {},
     onAnchorModeSelected: (AnchorMode) -> Unit = {},
     onManageAnchorApps: () -> Unit = {},
+    onEnableGuardMode: () -> Unit = {},
     onEnableAnchorUsageAccess: () -> Unit = {},
     onTestAnchor: () -> Unit = {}
 ) {
@@ -174,6 +175,7 @@ fun SkillzHomeScreen(
                                 onToggleAnchor = onToggleAnchor,
                                 onAnchorModeSelected = onAnchorModeSelected,
                                 onManageAnchorApps = onManageAnchorApps,
+                                onEnableGuardMode = onEnableGuardMode,
                                 onEnableUsageAccess = onEnableAnchorUsageAccess,
                                 onTestAnchor = onTestAnchor,
                                 modifier = Modifier.fillMaxSize()

@@ -12,6 +12,13 @@
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- Anchor Guard Mode requires reliable installed-app discovery so users can choose
+         which launchable apps Scyra should guide/guard during active Flows. The app list
+         stays local and is not uploaded. -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
     <queries>
         <package android:name="com.instagram.android" />
         <package android:name="com.whatsapp" />
@@ -47,6 +54,20 @@
             <meta-data
                 android:name="autoStoreLocales"
                 android:value="true" />
+        </service>
+
+
+        <service
+            android:name=".ui.service.AnchorGuardAccessibilityService"
+            android:exported="true"
+            android:label="@string/anchor_guard_accessibility_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/anchor_guard_accessibility_service" />
         </service>
 
         <service

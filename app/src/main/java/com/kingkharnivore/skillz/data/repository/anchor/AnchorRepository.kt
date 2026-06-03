@@ -1,10 +1,12 @@
 package com.kingkharnivore.skillz.data.repository.anchor
 
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.dao.anchor.AnchoredAppDao
 import com.kingkharnivore.skillz.data.model.entity.anchor.AnchoredAppEntity
 import com.kingkharnivore.skillz.domain.anchor.AnchorMode
@@ -76,10 +78,17 @@ class DefaultAnchorRepository @Inject constructor(
                 lastSeenAt = app.lastUsedAt
             )
         )
+        if (BuildConfig.DEBUG) {
+            Log.d("AnchorApps", "added=$pkg selectedCount=${anchoredAppDao.getAnchoredApps().size}")
+        }
     }
 
     override suspend fun removeAnchoredApp(packageName: String) {
         anchoredAppDao.remove(packageName)
+        if (BuildConfig.DEBUG) {
+            val packages = anchoredAppDao.getAnchoredApps().map { it.packageName }
+            Log.d("AnchorApps", "removed=$packageName selectedCount=${packages.size} packages=$packages")
+        }
     }
 
     override suspend fun getAnchoredPackageSet(): Set<String> =

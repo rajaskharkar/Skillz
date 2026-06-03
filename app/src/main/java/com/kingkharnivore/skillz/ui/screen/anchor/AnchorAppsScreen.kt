@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -95,6 +96,22 @@ fun AnchorAppsScreen(
             SectionTitle("Common Distractions", "Common apps people choose to anchor.")
             state.suggestedApps.forEach { app ->
                 AnchorableAppRow(app) { viewModel.onAction(AnchorAppsAction.AnchorApp(app.packageName)) }
+            }
+
+
+            SectionTitle("Installed Apps", "Search launchable apps installed on this device. This list stays local.")
+            OutlinedTextField(
+                value = state.searchQuery,
+                onValueChange = { viewModel.onAction(AnchorAppsAction.SearchChanged(it)) },
+                label = { Text("Search installed apps") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            state.installedApps.take(40).forEach { app ->
+                AnchorableAppRow(app) { viewModel.onAction(AnchorAppsAction.AnchorApp(app.packageName)) }
+            }
+            if (state.installedApps.size > 40) {
+                Text("Showing 40 of ${state.installedApps.size} installed apps. Search to narrow the list.", style = MaterialTheme.typography.bodySmall)
             }
 
             SectionTitle(

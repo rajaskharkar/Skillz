@@ -31,11 +31,14 @@ data class AnchorAppsUiState(
     val notificationPermissionGranted: Boolean = true,
     val anchoredApps: List<AnchoredAppUiModel> = emptyList(),
     val recentlyUsedApps: List<AnchorableAppUiModel> = emptyList(),
+    val installedApps: List<AnchorableAppUiModel> = emptyList(),
     val suggestedApps: List<AnchorableAppUiModel> = emptyList(),
     val expandedTo30Days: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val debugDiagnostics: List<String> = emptyList()
+    val debugDiagnostics: List<String> = emptyList(),
+    val installedAppCount: Int = 0,
+    val searchQuery: String = ""
 )
 
 sealed interface AnchorAppsAction {
@@ -44,6 +47,7 @@ sealed interface AnchorAppsAction {
     data object ExpandTo30Days : AnchorAppsAction
     data class AnchorApp(val packageName: String) : AnchorAppsAction
     data class RemoveApp(val packageName: String) : AnchorAppsAction
+    data class SearchChanged(val query: String) : AnchorAppsAction
 }
 
 @HiltViewModel
@@ -56,25 +60,36 @@ class AnchorAppsViewModel @Inject constructor(
     private val loading = MutableStateFlow(false)
     private val recentApps = MutableStateFlow<List<AnchorableAppUiModel>>(emptyList())
     private val error = MutableStateFlow<String?>(null)
+    private val installedApps = MutableStateFlow<List<AnchorableAppUiModel>>(emptyList())
+    private val searchQuery = MutableStateFlow("")
 
-    val uiState = combine(
+    private val baseState = combine(
         anchorRepository.anchoredApps,
         expanded,
         loading,
         recentApps,
-        error
-    ) { anchored, isExpanded, isLoading, recent, err ->
+        installedApps
+    ) { anchored, isExpanded, isLoading, recent, installed ->
         val anchoredPackages = anchored.mapTo(mutableSetOf()) { it.packageName }
         AnchorAppsUiState(
             usageAccessGranted = recentAppsProvider.hasUsageAccess(),
-            notificationPermissionGranted = NotificationManagerCompat.from(getApplication()).areNotificationsEnabled(),
+            notificationPermissionGranted = NotificationManagerCompat.from(getApplication<Application>()).areNotificationsEnabled(),
             anchoredApps = anchored.map { AnchoredAppUiModel(it.packageName, if (isInstalled(it.packageName)) it.displayName else "App not found", isInstalled(it.packageName)) },
             recentlyUsedApps = recent.filterNot { it.packageName in anchoredPackages },
+            installedApps = installed.filterNot { it.packageName in anchoredPackages },
             suggestedApps = commonDistractionApps(anchoredPackages),
             expandedTo30Days = isExpanded,
             isLoading = isLoading,
-            errorMessage = err,
-            debugDiagnostics = debugDiagnostics(recent, anchoredPackages)
+            debugDiagnostics = debugDiagnostics(recent, anchoredPackages, installed.size),
+            installedAppCount = installed.size
+        )
+    }
+
+    val uiState = combine(baseState, searchQuery, error) { base, query, err ->
+        base.copy(
+            installedApps = base.installedApps.filter { query.isBlank() || it.displayName.contains(query, ignoreCase = true) || it.packageName.contains(query, ignoreCase = true) },
+            searchQuery = query,
+            errorMessage = err
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AnchorAppsUiState())
 
@@ -86,6 +101,7 @@ class AnchorAppsViewModel @Inject constructor(
             AnchorAppsAction.ExpandTo30Days -> { expanded.value = true; refresh() }
             is AnchorAppsAction.AnchorApp -> add(action.packageName)
             is AnchorAppsAction.RemoveApp -> viewModelScope.launch { anchorRepository.removeAnchoredApp(action.packageName) }
+            is AnchorAppsAction.SearchChanged -> searchQuery.value = action.query
             AnchorAppsAction.RequestUsageAccess -> Unit
         }
     }
@@ -97,6 +113,8 @@ class AnchorAppsViewModel @Inject constructor(
             val max = if (expanded.value) 100 else 40
             recentApps.value = recentAppsProvider.getRecentlyUsedApps(days * 24 * 60 * 60 * 1000L, max)
                 .map { AnchorableAppUiModel(it.packageName, it.displayName, "Detected recently") }
+            installedApps.value = recentAppsProvider.getInstalledLaunchableApps()
+                .map { AnchorableAppUiModel(it.packageName, it.displayName, "Installed app") }
             error.value = null
             loading.value = false
         }
@@ -105,6 +123,7 @@ class AnchorAppsViewModel @Inject constructor(
     private fun add(packageName: String) {
         viewModelScope.launch {
             val app = recentApps.value.firstOrNull { it.packageName == packageName }
+                ?: installedApps.value.firstOrNull { it.packageName == packageName }
                 ?: commonApp(packageName)
                 ?: AnchorableAppUiModel(packageName, recentAppsProvider.displayName(packageName), "Common distraction")
             anchorRepository.addAnchoredApp(AnchorableApp(app.packageName, app.displayName))
@@ -133,13 +152,14 @@ class AnchorAppsViewModel @Inject constructor(
         .firstOrNull { it.packageName == packageName }
         ?.let { AnchorableAppUiModel(it.packageName, it.displayName, "Common distraction", available = true) }
 
-    private fun debugDiagnostics(recent: List<AnchorableAppUiModel>, anchoredPackages: Set<String>): List<String> {
+    private fun debugDiagnostics(recent: List<AnchorableAppUiModel>, anchoredPackages: Set<String>, installedCount: Int): List<String> {
         if (!BuildConfig.DEBUG) return emptyList()
         return listOf(
             "Usage Access: ${recentAppsProvider.hasUsageAccess()}",
             "Detected packages: ${recent.joinToString { it.packageName }.ifBlank { "none" }}",
             "Last foreground package: ${recentAppsProvider.getCurrentForegroundPackage() ?: "unknown"}",
-            "Selected anchored packages: ${anchoredPackages.joinToString().ifBlank { "none" }}"
+            "Selected anchored packages: ${anchoredPackages.joinToString().ifBlank { "none" }}",
+            "Installed app count: $installedCount"
         )
     }
 

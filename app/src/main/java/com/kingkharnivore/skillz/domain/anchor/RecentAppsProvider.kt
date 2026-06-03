@@ -5,6 +5,7 @@ import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.app.usage.UsageStatsManager.INTERVAL_BEST
 import android.content.Context
+import android.content.Intent
 import android.os.Process
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -70,11 +71,24 @@ class RecentAppsProvider @Inject constructor(
             .toList()
     }
 
+    fun getInstalledLaunchableApps(): List<RecentApp> {
+        val pm = context.packageManager
+        val launchIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        return pm.queryIntentActivities(launchIntent, 0)
+            .asSequence()
+            .mapNotNull { it.activityInfo?.packageName }
+            .distinct()
+            .filterNot { neverAnchorPolicy.isNeverAnchored(it) }
+            .map { pkg -> RecentApp(pkg, displayName(pkg), 0L) }
+            .sortedBy { it.displayName.lowercase() }
+            .toList()
+    }
+
     fun getCurrentForegroundPackage(): String? {
         if (!hasUsageAccess()) return null
         val now = System.currentTimeMillis()
         val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-        val events = usageStatsManager.queryEvents(now - 5 * 60_000L, now)
+        val events = usageStatsManager.queryEvents(now - 30_000L, now)
         val event = UsageEvents.Event()
         var current: String? = null
         while (events.hasNextEvent()) {

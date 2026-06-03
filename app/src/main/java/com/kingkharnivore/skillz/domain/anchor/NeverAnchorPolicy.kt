@@ -32,7 +32,13 @@ class NeverAnchorPolicy @Inject constructor(
         "com.android.providers.settings",
         "com.android.deskclock",
         "com.google.android.deskclock",
-        "com.sec.android.app.clockpackage"
+        "com.sec.android.app.clockpackage",
+        "com.google.android.packageinstaller",
+        "com.android.packageinstaller",
+        "com.google.android.inputmethod.latin",
+        "com.samsung.android.honeyboard",
+        "com.google.android.apps.nbu.files",
+        "com.android.vending"
     )
 
     fun isNeverAnchored(packageName: String): Boolean {
@@ -68,7 +74,8 @@ class NeverAnchorPolicy @Inject constructor(
                 packageName.startsWith("com.android.permission") ||
                 packageName.startsWith("com.google.android.gms") ||
                 packageName.startsWith("com.google.android.gsf") ||
-                packageName.startsWith("com.samsung.android.providers.")
+                packageName.startsWith("com.samsung.android.providers.") ||
+                packageName.startsWith("com.android.inputmethod")
         return isSystem && looksCore
     }
 }

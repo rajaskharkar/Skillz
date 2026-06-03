@@ -5,12 +5,17 @@ import android.app.Service
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationManagerCompat
+import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.anchor.AnchorRepository
 import com.kingkharnivore.skillz.domain.anchor.AnchorMode
+import com.kingkharnivore.skillz.domain.anchor.AnchorRuntimeInput
+import com.kingkharnivore.skillz.domain.anchor.AnchorRuntimePolicy
 import com.kingkharnivore.skillz.domain.anchor.NeverAnchorPolicy
+import com.kingkharnivore.skillz.domain.anchor.hasMeaningfulActiveFlow
 import com.kingkharnivore.skillz.domain.anchor.RecentAppsProvider
 import com.kingkharnivore.skillz.ui.notification.AliveFlowNotificationFactory
 import dagger.hilt.android.AndroidEntryPoint
@@ -57,6 +62,7 @@ class AliveFlowService : Service() {
     private var hourlyReminderRuntime: HourlyReminderRuntime? = null
     private var hourlyReminderSessionKey: String? = null
     private var currentAnchorEpisodePackage: String? = null
+    private var anchorGuideDetectionJob: Job? = null
 
     private fun buildHourlyReminderSessionKey(entity: OngoingSessionEntity): String {
         return entity.createdAt.toString()
@@ -111,6 +117,7 @@ class AliveFlowService : Service() {
                     clearSurgeRuntime()
                     clearHourlyReminderRuntime()
                     cancelHourlyReminderNotification()
+                    syncAnchorGuideDetectionLoop(null)
                     stopSelfSafely()
                     return@collectLatest
                 }
@@ -122,6 +129,7 @@ class AliveFlowService : Service() {
                 syncSurgeRuntimeWithEntity(entity)
                 syncHourlyReminderRuntimeWithEntity(entity)
                 publishNotification(entity)
+                syncAnchorGuideDetectionLoop(entity)
             }
         }
     }
@@ -138,7 +146,6 @@ class AliveFlowService : Service() {
                 if (entity.isRunning) {
                     evaluateSurgeIfNeeded(entity)
                     evaluateHourlyReminderIfNeeded(entity)
-                    evaluateAnchorIfNeeded(entity)
                 }
                 evaluateAnchorBreakIfNeeded(entity)
 
@@ -227,20 +234,77 @@ class AliveFlowService : Service() {
             }
 
             SurgeTickEvent.TargetReached -> {
-                surgeHapticsManager.playTargetReached()
             }
         }
     }
 
 
-    private suspend fun evaluateAnchorIfNeeded(entity: OngoingSessionEntity) {
-        if (!entity.isInFlowMode || !entity.isRunning) return
-        if (entity.anchorPaused || entity.anchorBreakEndsAtMs?.let { it > System.currentTimeMillis() } == true) return
+    private fun syncAnchorGuideDetectionLoop(entity: OngoingSessionEntity?) {
+        serviceScope.launch(Dispatchers.IO) {
+            val shouldPoll = shouldContinueGuidePolling(entity)
+            if (shouldPoll && anchorGuideDetectionJob?.isActive != true) {
+                anchorGuideDetectionJob = serviceScope.launch(Dispatchers.IO) {
+                    if (BuildConfig.DEBUG) Log.d("AnchorGuide", "polling started")
+                    while (isActive) {
+                        val latest = aliveFlowRepository.getOngoingSessionNow()
+                        if (!shouldContinueGuidePolling(latest)) break
+                        evaluateAnchorIfNeeded(latest!!)
+                        delay(1_500L)
+                    }
+                    if (BuildConfig.DEBUG) Log.d("AnchorGuide", "polling stopped")
+                    currentAnchorEpisodePackage = null
+                    anchorGuideDetectionJob = null
+                }
+            } else if (!shouldPoll) {
+                if (BuildConfig.DEBUG && anchorGuideDetectionJob?.isActive == true) Log.d("AnchorGuide", "polling cancelled")
+                anchorGuideDetectionJob?.cancel()
+                anchorGuideDetectionJob = null
+                currentAnchorEpisodePackage = null
+                cancelAnchorNotifications()
+            }
+        }
+    }
 
+    private suspend fun shouldContinueGuidePolling(entity: OngoingSessionEntity?): Boolean {
         val settings = anchorRepository.settings.first()
-        if (settings.mode != AnchorMode.GUIDE) return
-        val anchorEnabled = !entity.anchorDisabledForFlow && (entity.anchorEnabledForFlow || settings.enabled)
-        if (!anchorEnabled) return
+        val input = AnchorRuntimeInput(
+            entity = entity,
+            now = System.currentTimeMillis(),
+            mode = settings.mode,
+            globallyEnabled = settings.enabled,
+            selectedPackageCount = anchorRepository.getAnchoredPackageSet().size,
+            usageAccessGranted = recentAppsProvider.hasUsageAccess(),
+            notificationsEnabled = canPostReminderNotifications()
+        )
+        val shouldRun = AnchorRuntimePolicy.shouldRunGuide(input)
+        if (BuildConfig.DEBUG) {
+            Log.d(
+                "AnchorGuide",
+                "shouldPoll=$shouldRun mode=${settings.mode} usage=${input.usageAccessGranted} count=${input.selectedPackageCount} entity=${entity != null}"
+            )
+        }
+        return shouldRun
+    }
+
+    private fun cancelAnchorNotifications() {
+        NotificationManagerCompat.from(this).cancel(AliveFlowNotificationFactory.ANCHOR_GUIDE_NUDGE_NOTIFICATION_ID)
+        NotificationManagerCompat.from(this).cancel(AliveFlowNotificationFactory.ANCHOR_GUARD_RETURN_NOTIFICATION_ID)
+        NotificationManagerCompat.from(this).cancel(AliveFlowNotificationFactory.ANCHOR_BREAK_NOTIFICATION_ID)
+    }
+
+    private suspend fun evaluateAnchorIfNeeded(entity: OngoingSessionEntity) {
+        val settings = anchorRepository.settings.first()
+        val anchoredPackages = anchorRepository.getAnchoredPackageSet()
+        val runtimeInput = AnchorRuntimeInput(
+            entity = entity,
+            now = System.currentTimeMillis(),
+            mode = settings.mode,
+            globallyEnabled = settings.enabled,
+            selectedPackageCount = anchoredPackages.size,
+            usageAccessGranted = recentAppsProvider.hasUsageAccess(),
+            notificationsEnabled = canPostReminderNotifications()
+        )
+        if (!AnchorRuntimePolicy.shouldRunGuide(runtimeInput)) return
 
         if (!recentAppsProvider.hasUsageAccess()) {
             if (!entity.anchorUsageAccessRevoked) {
@@ -250,7 +314,6 @@ class AliveFlowService : Service() {
         }
 
         val currentPackage = recentAppsProvider.getCurrentForegroundPackage()
-        val anchoredPackages = anchorRepository.getAnchoredPackageSet()
         val shouldNudge = currentPackage != null &&
                 currentPackage in anchoredPackages &&
                 !neverAnchorPolicy.isNeverAnchored(currentPackage)
@@ -274,6 +337,7 @@ class AliveFlowService : Service() {
         val endsAt = entity.anchorBreakEndsAtMs ?: return
         val now = System.currentTimeMillis()
         if (now < endsAt) return
+        if (!hasMeaningfulActiveFlow(entity, now)) return
         aliveFlowRepository.completeAnchorBreak(now)
         val updated = aliveFlowRepository.getOngoingSessionNow() ?: entity
         publishBreakOverNotification(updated)
@@ -281,18 +345,24 @@ class AliveFlowService : Service() {
 
     @SuppressLint("MissingPermission")
     private fun publishAnchorNudgeNotification(entity: OngoingSessionEntity) {
-        if (!canPostReminderNotifications()) return
+        if (!canPostReminderNotifications()) {
+            if (BuildConfig.DEBUG) Log.d("AnchorGuide", "notification blocked; return panel pending")
+            return
+        }
         NotificationManagerCompat.from(this).notify(
-            AliveFlowNotificationFactory.NOTIFICATION_ID,
+            AliveFlowNotificationFactory.ANCHOR_GUIDE_NUDGE_NOTIFICATION_ID,
             AliveFlowNotificationFactory.buildAnchorNudgeNotification(this, entity)
         )
     }
 
     @SuppressLint("MissingPermission")
     private fun publishBreakOverNotification(entity: OngoingSessionEntity) {
-        if (!canPostReminderNotifications()) return
+        if (!canPostReminderNotifications()) {
+            if (BuildConfig.DEBUG) Log.d("AnchorGuide", "notification blocked; return panel pending")
+            return
+        }
         NotificationManagerCompat.from(this).notify(
-            AliveFlowNotificationFactory.NOTIFICATION_ID,
+            AliveFlowNotificationFactory.ANCHOR_BREAK_NOTIFICATION_ID,
             AliveFlowNotificationFactory.buildBreakOverNotification(this, entity)
         )
     }
@@ -302,18 +372,18 @@ class AliveFlowService : Service() {
         if (!entity.isInFlowMode || !entity.isRunning || entity.anchorPaused) return@runBlocking false
         if (entity.anchorBreakEndsAtMs?.let { it > System.currentTimeMillis() } == true) return@runBlocking false
         if (entity.anchorDisabledForFlow) return@runBlocking false
-        if (!recentAppsProvider.hasUsageAccess()) return@runBlocking false
         val settings = anchorRepository.settings.first()
-        val enabled = settings.mode == AnchorMode.GUIDE && (entity.anchorEnabledForFlow || settings.enabled)
+        if (settings.mode == AnchorMode.GUIDE && !recentAppsProvider.hasUsageAccess()) return@runBlocking false
+        val enabled = (settings.mode == AnchorMode.GUIDE || settings.mode == AnchorMode.GUARD) && (entity.anchorEnabledForFlow || settings.enabled)
         enabled && anchorRepository.getAnchoredPackageSet().isNotEmpty()
     }
 
     private fun canResumeAnchorFromNotification(entity: OngoingSessionEntity): Boolean = runBlocking(Dispatchers.IO) {
         if (!entity.isInFlowMode || !entity.isRunning || !entity.anchorPaused) return@runBlocking false
         if (entity.anchorDisabledForFlow) return@runBlocking false
-        if (!recentAppsProvider.hasUsageAccess()) return@runBlocking false
         val settings = anchorRepository.settings.first()
-        val enabled = settings.mode == AnchorMode.GUIDE && (entity.anchorEnabledForFlow || settings.enabled)
+        if (settings.mode == AnchorMode.GUIDE && !recentAppsProvider.hasUsageAccess()) return@runBlocking false
+        val enabled = (settings.mode == AnchorMode.GUIDE || settings.mode == AnchorMode.GUARD) && (entity.anchorEnabledForFlow || settings.enabled)
         enabled && anchorRepository.getAnchoredPackageSet().isNotEmpty()
     }
 
@@ -351,9 +421,12 @@ class AliveFlowService : Service() {
     private fun stopSelfSafely() {
         tickerJob?.cancel()
         tickerJob = null
+        anchorGuideDetectionJob?.cancel()
+        anchorGuideDetectionJob = null
 
         clearHourlyReminderRuntime()
         cancelHourlyReminderNotification()
+        cancelAnchorNotifications()
 
         if (hasForegrounded) {
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -386,6 +459,9 @@ class AliveFlowService : Service() {
     }
 
     override fun onDestroy() {
+        anchorGuideDetectionJob?.cancel()
+        anchorGuideDetectionJob = null
+        cancelAnchorNotifications()
         tickerJob?.cancel()
         surgeHapticsManager.cancel()
         clearSurgeRuntime()

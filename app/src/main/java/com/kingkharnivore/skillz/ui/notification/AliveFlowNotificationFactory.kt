@@ -20,6 +20,9 @@ object AliveFlowNotificationFactory {
     const val CHANNEL_ID = "flow_alive_channel"
     const val CHANNEL_NAME = "Flow State"
     const val NOTIFICATION_ID = 1001
+    const val ANCHOR_GUIDE_NUDGE_NOTIFICATION_ID = 1003
+    const val ANCHOR_GUARD_RETURN_NOTIFICATION_ID = 1004
+    const val ANCHOR_BREAK_NOTIFICATION_ID = 1005
 
     const val REMINDER_CHANNEL_ID = "flow_hourly_reminder_channel"
     const val REMINDER_CHANNEL_NAME = "Flow reminders"
@@ -229,6 +232,29 @@ object AliveFlowNotificationFactory {
             .addAction(0, "Return to Flow", openFlowPendingIntent(context, 3101))
             .build()
     }
+
+    fun buildAnchorGuardReturnNotification(context: Context, entity: OngoingSessionEntity): Notification {
+        val text = context.getString(R.string.anchor_notification_guard_return)
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_scyra_notification)
+            .setContentTitle(context.getString(R.string.anchor_title))
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setContentIntent(openFlowPendingIntent(context, 3200))
+            .setOngoing(false)
+            .setAutoCancel(true)
+            .setOnlyAlertOnce(false)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setColor(BuildConfig.PRIMARY_COLOR)
+            .addAction(0, context.getString(R.string.anchor_action_return_to_flow), openFlowPendingIntent(context, 3201))
+            .addAction(0, context.getString(R.string.anchor_action_take_break), serviceActionPendingIntent(context, ACTION_TAKE_ANCHOR_BREAK, 3202))
+            .addAction(0, context.getString(R.string.anchor_action_pause), serviceActionPendingIntent(context, ACTION_PAUSE_ANCHOR, 3203))
+
+        return builder.build()
+    }
+
 
     private fun buildSurgeLine(
         entity: OngoingSessionEntity,

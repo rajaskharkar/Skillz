@@ -74,6 +74,7 @@ fun HelpScreen(
     onToggleAnchor: (Boolean) -> Unit = {},
     onAnchorModeSelected: (AnchorMode) -> Unit = {},
     onManageAnchorApps: () -> Unit = {},
+    onEnableGuardMode: () -> Unit = {},
     onEnableUsageAccess: () -> Unit = {},
     onTestAnchor: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -129,6 +130,7 @@ fun HelpScreen(
             onToggleAnchor = onToggleAnchor,
             onAnchorModeSelected = onAnchorModeSelected,
             onManageAnchorApps = onManageAnchorApps,
+            onEnableGuardMode = onEnableGuardMode,
             onEnableUsageAccess = onEnableUsageAccess,
             onTestAnchor = onTestAnchor
         )
@@ -158,6 +160,7 @@ private fun AnchorSettingsSection(
     onToggleAnchor: (Boolean) -> Unit,
     onAnchorModeSelected: (AnchorMode) -> Unit,
     onManageAnchorApps: () -> Unit,
+    onEnableGuardMode: () -> Unit,
     onEnableUsageAccess: () -> Unit,
     onTestAnchor: () -> Unit
 ) {
@@ -172,22 +175,24 @@ private fun AnchorSettingsSection(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text("Anchor", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            val setupReady = state.usageAccessGranted && state.anchoredAppCount > 0 && state.mode == AnchorMode.GUIDE
+            val setupReady = state.anchoredAppCount > 0 && ((state.mode == AnchorMode.GUIDE && state.usageAccessGranted) || (state.mode == AnchorMode.GUARD && state.guardAccessibilityGranted))
             val status = when {
                 state.activeDuringCurrentFlow -> "Active during current Flow"
                 !state.anchorEnabled -> "Off"
-                state.mode == AnchorMode.GUARD -> "Guard Mode coming soon"
-                !state.usageAccessGranted -> "Usage Access missing"
+                state.mode == AnchorMode.GUARD && !state.guardAccessibilityGranted -> "Guard Mode needs Accessibility"
+                state.mode == AnchorMode.GUIDE && !state.usageAccessGranted -> "Usage Access missing"
                 state.anchoredAppCount == 0 -> "Setup needed"
                 !state.notificationPermissionGranted -> "Notifications disabled"
+                state.mode == AnchorMode.GUARD -> "Guard Mode ready"
                 else -> "Guide Mode ready"
             }
             Text(status, fontWeight = FontWeight.SemiBold)
             Text(
                 text = when {
-                    state.mode == AnchorMode.GUARD -> "Guard Mode is planned for stronger opt-in returns, but it is not available in this version. Guide Mode can nudge you back today."
-                    !state.usageAccessGranted -> "Guide Mode needs Usage Access so Scyra can notice when a chosen app becomes active. It does not block apps."
+                    state.mode == AnchorMode.GUARD && !state.guardAccessibilityGranted -> "Guard Mode needs Android Accessibility permission so Scyra can actively return you from selected apps during active Flows."
+                    state.mode == AnchorMode.GUIDE && !state.usageAccessGranted -> "Guide Mode needs Usage Access so Scyra can notice when a chosen app becomes active. It does not block apps."
                     state.anchoredAppCount == 0 -> "Choose apps that tend to pull you away. Guide Mode nudges you back without blocking."
+                    state.mode == AnchorMode.GUARD -> "Guard Mode is ready. During active Flows, Scyra can return you from selected apps."
                     else -> "Guide Mode is ready. It uses Usage Access and notifications to nudge you back; it does not block apps."
                 },
                 style = MaterialTheme.typography.bodySmall
@@ -202,9 +207,9 @@ private fun AnchorSettingsSection(
                     checked = state.anchorEnabled,
                     onCheckedChange = { checked ->
                         when {
-                            checked && !state.usageAccessGranted -> onEnableUsageAccess()
+                            checked && state.mode == AnchorMode.GUIDE && !state.usageAccessGranted -> onEnableUsageAccess()
                             checked && state.anchoredAppCount == 0 -> onManageAnchorApps()
-                            checked && state.mode == AnchorMode.GUARD -> onAnchorModeSelected(AnchorMode.GUIDE)
+                            checked && state.mode == AnchorMode.GUARD && !state.guardAccessibilityGranted -> onEnableGuardMode()
                             else -> onToggleAnchor(checked)
                         }
                     }
@@ -222,7 +227,7 @@ private fun AnchorSettingsSection(
                 )
                 ModeChoice(
                     label = "Guard",
-                    subtitle = "Coming soon",
+                    subtitle = if (state.guardAccessibilityGranted) "Active protection" else "Needs Accessibility",
                     selected = state.mode == AnchorMode.GUARD,
                     onClick = { onAnchorModeSelected(AnchorMode.GUARD) },
                     modifier = Modifier.weight(1f)
@@ -231,21 +236,21 @@ private fun AnchorSettingsSection(
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 Button(onClick = onManageAnchorApps, modifier = Modifier.weight(1f)) { Text("Manage Anchor Apps") }
-                OutlinedButton(onClick = onEnableUsageAccess, modifier = Modifier.weight(1f)) { Text("Permissions") }
+                OutlinedButton(onClick = { if (state.mode == AnchorMode.GUARD) onEnableGuardMode() else onEnableUsageAccess() }, modifier = Modifier.weight(1f)) { Text("Permissions") }
             }
             TextButton(onClick = onTestAnchor, enabled = setupReady, modifier = Modifier.fillMaxWidth()) {
                 Text("Test Anchor")
             }
 
             Text(
-                "Usage Access: ${if (state.usageAccessGranted) "On" else "Off"} · Notifications: ${if (state.notificationPermissionGranted) "On" else "Off"} · ${state.anchoredAppCount} apps",
+                "Usage Access: ${if (state.usageAccessGranted) "On" else "Off"} · Notifications: ${if (state.notificationPermissionGranted) "On" else "Off"} · Guard Accessibility: ${if (state.guardAccessibilityGranted) "On" else "Off"} · ${state.anchoredAppCount} apps · ${state.installedAppCount} installed",
                 style = MaterialTheme.typography.bodySmall
             )
             if (!state.notificationPermissionGranted) {
                 Text("Anchor can detect drift, but reminders may be harder to see unless notifications are enabled.", style = MaterialTheme.typography.bodySmall)
             }
             Text(
-                "Anchor only checks whether apps you choose become active during an active Flow. It does not read messages, screen content, photos, keystrokes, camera, microphone, or browsing history. Anchor stops when your Flow ends.",
+                "Scyra shows your installed apps locally so you can choose what Anchor should guide or guard. This list is not uploaded. Anchor does not read messages, screen content, keystrokes, photos, camera, microphone, or browsing history. Anchor stops when your Flow ends.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.74f)
             )

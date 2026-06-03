@@ -74,6 +74,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
 import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.R
+import com.kingkharnivore.skillz.domain.anchor.AnchorMode
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 import com.kingkharnivore.skillz.ui.screen.flow.reward.ArcSummaryContent
 import com.kingkharnivore.skillz.ui.screen.flow.reward.SessionRewardContent
@@ -87,7 +88,8 @@ fun FlowScreen(
     onDone: () -> Unit,
     onCancel: () -> Unit,
     onOpenShell: () -> Unit = {},
-    onManageAnchorApps: () -> Unit = {}
+    onManageAnchorApps: () -> Unit = {},
+    onEnableGuardMode: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
@@ -373,7 +375,7 @@ fun FlowScreen(
                     anchorState = uiState.anchorFlowState,
                     onAnchorClick = { showAnchorSheet = true },
                     onAnchorCheckedChange = { checked ->
-                        if (checked && (!uiState.anchorFlowState.usageAccessGranted || uiState.anchorFlowState.anchoredAppCount == 0)) {
+                        if (checked && !uiState.anchorFlowState.configured) {
                             showAnchorSheet = true
                         } else if (checked) {
                             viewModel.enableAnchorForThisFlow()
@@ -586,6 +588,10 @@ fun FlowScreen(
                 onManageApps = {
                     showAnchorSheet = false
                     onManageAnchorApps()
+                },
+                onEnableGuardMode = {
+                    showAnchorSheet = false
+                    onEnableGuardMode()
                 },
                 onEnableForFlow = {
                     showAnchorSheet = false
@@ -1075,8 +1081,9 @@ private fun AnchorFlowToggleRow(
     val label = when {
         anchorState.inBreak -> "Break"
         anchorState.paused -> "Paused"
-        !anchorState.usageAccessGranted -> "Setup"
         anchorState.anchoredAppCount == 0 -> "Setup"
+        anchorState.mode == AnchorMode.GUIDE && !anchorState.usageAccessGranted -> "Setup"
+        anchorState.mode == AnchorMode.GUARD && !anchorState.guardAccessibilityGranted -> "Setup"
         anchorState.enabledForThisFlow -> "On"
         else -> "Off"
     }
@@ -1096,7 +1103,7 @@ private fun AnchorFlowToggleRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text("Anchor", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                 Text(
-                    text = "Guide nudges only · $label",
+                    text = if (anchorState.mode == AnchorMode.GUARD) "Guard actively returns · $label" else "Guide nudges only · $label",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
                 )
@@ -1115,6 +1122,7 @@ private fun AnchorFlowSheet(
     anchorState: com.kingkharnivore.skillz.domain.anchor.AnchorFlowState,
     onEnableUsageAccess: () -> Unit,
     onManageApps: () -> Unit,
+    onEnableGuardMode: () -> Unit,
     onEnableForFlow: () -> Unit,
     onDisableForFlow: () -> Unit,
     onResumeAnchor: () -> Unit,
@@ -1124,13 +1132,17 @@ private fun AnchorFlowSheet(
     val title: String
     val body: String
     when {
-        !anchorState.usageAccessGranted -> {
-            title = "Usage Access needed"
-            body = "Anchor needs Usage Access to detect selected apps during an active Flow."
-        }
         appCount == 0 -> {
             title = "Choose Anchor apps"
-            body = "Pick the apps Scyra should guide you back from during Flows."
+            body = "Pick the apps Scyra should guide or guard you from during Flows."
+        }
+        anchorState.mode == AnchorMode.GUARD && !anchorState.guardAccessibilityGranted -> {
+            title = "Guard Mode needs Accessibility"
+            body = "Enable Accessibility permission so Scyra can return you from selected apps during active Flows."
+        }
+        anchorState.mode == AnchorMode.GUIDE && !anchorState.usageAccessGranted -> {
+            title = "Usage Access needed"
+            body = "Guide Mode needs Usage Access to detect selected apps."
         }
         anchorState.paused -> {
             title = "Anchor paused"
@@ -1138,11 +1150,11 @@ private fun AnchorFlowSheet(
         }
         anchorState.enabledForThisFlow -> {
             title = "Anchor is on"
-            body = "Guide Mode is watching your anchored apps during this Flow and will nudge you back if you drift."
+            body = if (anchorState.mode == AnchorMode.GUARD) "Guard Mode can actively return you from selected apps during this Flow." else "Guide Mode is watching your anchored apps during this Flow and will nudge you back if you drift. It does not block apps."
         }
         else -> {
             title = "Anchor this Flow?"
-            body = "Guide Mode will watch your selected apps during this Flow and nudge you back if you drift. It does not block apps.\n\n$appCount apps anchored"
+            body = if (anchorState.mode == AnchorMode.GUARD) "Guard Mode will actively return you from selected apps during this Flow.\n\n$appCount apps anchored" else "Guide Mode will watch your selected apps during this Flow and nudge you back if you drift. It does not block apps.\n\n$appCount apps anchored"
         }
     }
     Column(
@@ -1152,12 +1164,16 @@ private fun AnchorFlowSheet(
         Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f))
         when {
-            !anchorState.usageAccessGranted -> {
-                Button(onClick = onEnableUsageAccess, modifier = Modifier.fillMaxWidth()) { Text("Enable Usage Access") }
-                TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("Not now") }
-            }
             appCount == 0 -> {
                 Button(onClick = onManageApps, modifier = Modifier.fillMaxWidth()) { Text("Manage Anchor Apps") }
+                TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("Not now") }
+            }
+            anchorState.mode == AnchorMode.GUARD && !anchorState.guardAccessibilityGranted -> {
+                Button(onClick = onEnableGuardMode, modifier = Modifier.fillMaxWidth()) { Text("Enable Guard Mode") }
+                TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("Not now") }
+            }
+            anchorState.mode == AnchorMode.GUIDE && !anchorState.usageAccessGranted -> {
+                Button(onClick = onEnableUsageAccess, modifier = Modifier.fillMaxWidth()) { Text("Enable Usage Access") }
                 TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("Not now") }
             }
             anchorState.paused -> {

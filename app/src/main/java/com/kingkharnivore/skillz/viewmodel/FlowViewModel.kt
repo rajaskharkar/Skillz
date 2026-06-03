@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.model.dao.anchor.AnchorSessionSummaryDao
 import com.kingkharnivore.skillz.data.model.entity.anchor.AnchorSessionSummaryEntity
@@ -18,6 +19,8 @@ import com.kingkharnivore.skillz.data.repository.IdeaGroveRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.data.repository.PulseRepository
 import com.kingkharnivore.skillz.domain.anchor.AnchorFlowState
+import com.kingkharnivore.skillz.domain.anchor.AnchorMode
+import com.kingkharnivore.skillz.domain.anchor.AnchorPermissionStatusProvider
 import com.kingkharnivore.skillz.domain.anchor.RecentAppsProvider
 import com.kingkharnivore.skillz.domain.shell.ShellRewardEventRecorder
 import com.kingkharnivore.skillz.domain.shell.ShellRewardOrchestrator
@@ -71,6 +74,14 @@ data class PendingArcIdeaContinuation(
     val pulseJourneyName: String?
 )
 
+private data class AnchorSettingsSnapshot(
+    val globallyEnabled: Boolean,
+    val mode: AnchorMode,
+    val appCount: Int,
+    val usageGranted: Boolean,
+    val guardAccessibilityGranted: Boolean
+)
+
 @HiltViewModel
 class FlowViewModel @Inject constructor(
     private val tagRepository: JourneyRepository,
@@ -88,6 +99,7 @@ class FlowViewModel @Inject constructor(
     private val shellRewardEventRecorder: ShellRewardEventRecorder,
     private val anchorRepository: AnchorRepository,
     private val recentAppsProvider: RecentAppsProvider,
+    private val anchorPermissionStatusProvider: AnchorPermissionStatusProvider,
     private val anchorSessionSummaryDao: AnchorSessionSummaryDao,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -240,18 +252,24 @@ class FlowViewModel @Inject constructor(
     private fun buildAnchorFlowState(
         globallyEnabled: Boolean? = null,
         anchoredAppCount: Int? = null,
-        usageAccessGranted: Boolean? = null
+        usageAccessGranted: Boolean? = null,
+        guardAccessibilityGranted: Boolean? = null,
+        mode: AnchorMode? = null
     ): AnchorFlowState {
         val current = _uiState.value.anchorFlowState
         val global = globallyEnabled ?: current.globallyEnabled
         val count = anchoredAppCount ?: current.anchoredAppCount
         val usage = usageAccessGranted ?: current.usageAccessGranted
+        val guardAccess = guardAccessibilityGranted ?: current.guardAccessibilityGranted
+        val anchorMode = mode ?: current.mode
         val enabled = !anchorDisabledForFlow && (anchorEnabledForFlow || global)
         val remaining = anchorBreakEndsAtMs?.let { (it - System.currentTimeMillis()).coerceAtLeast(0L) } ?: 0L
         return AnchorFlowState(
             globallyEnabled = global,
-            configured = usage && count > 0,
+            configured = count > 0 && (anchorMode != AnchorMode.GUIDE || usage) && (anchorMode != AnchorMode.GUARD || guardAccess),
             usageAccessGranted = usage,
+            guardAccessibilityGranted = guardAccess,
+            mode = anchorMode,
             anchoredAppCount = count,
             enabledForThisFlow = enabled,
             paused = anchorPaused,
@@ -259,7 +277,8 @@ class FlowViewModel @Inject constructor(
             breakRemainingMs = remaining,
             distractionAttemptCount = anchorDistractionAttemptCount,
             setupMessage = when {
-                !usage -> "Usage Access needed"
+                anchorMode == AnchorMode.GUIDE && !usage -> "Usage Access needed"
+                anchorMode == AnchorMode.GUARD && !guardAccess -> "Guard Mode needs Accessibility"
                 count <= 0 -> "Choose apps to anchor"
                 else -> null
             },
@@ -276,11 +295,16 @@ class FlowViewModel @Inject constructor(
     fun enableAnchorForThisFlow() {
         viewModelScope.launch {
             val appCount = anchorRepository.anchoredApps.first().size
+            val settings = anchorRepository.settings.first()
             val usage = recentAppsProvider.hasUsageAccess()
+            val guardAccess = anchorPermissionStatusProvider.isGuardAccessibilityEnabled()
             logAnchorDiagnostics("enable_requested", appCount, usage)
-            if (!usage || appCount == 0) {
+            val setupMissing = appCount == 0 ||
+                (settings.mode == AnchorMode.GUIDE && !usage) ||
+                (settings.mode == AnchorMode.GUARD && !guardAccess)
+            if (setupMissing) {
                 _uiState.update {
-                    it.copy(anchorFlowState = buildAnchorFlowState(anchoredAppCount = appCount, usageAccessGranted = usage))
+                    it.copy(anchorFlowState = buildAnchorFlowState(anchoredAppCount = appCount, usageAccessGranted = usage, guardAccessibilityGranted = guardAccess, mode = settings.mode))
                 }
                 logAnchorDiagnostics("enable_setup_missing", appCount, usage)
                 return@launch
@@ -291,7 +315,7 @@ class FlowViewModel @Inject constructor(
             anchorPaused = false
             anchorUsageAccessRevoked = false
             _uiState.update {
-                it.copy(anchorFlowState = buildAnchorFlowState(anchoredAppCount = appCount, usageAccessGranted = usage))
+                it.copy(anchorFlowState = buildAnchorFlowState(anchoredAppCount = appCount, usageAccessGranted = usage, guardAccessibilityGranted = guardAccess, mode = settings.mode))
             }
             logAnchorDiagnostics("enable_committed", appCount, usage)
             refreshAnchorFromLatest()
@@ -302,6 +326,8 @@ class FlowViewModel @Inject constructor(
         viewModelScope.launch {
             val appCount = anchorRepository.anchoredApps.first().size
             val usage = recentAppsProvider.hasUsageAccess()
+            val settings = anchorRepository.settings.first()
+            val guardAccess = anchorPermissionStatusProvider.isGuardAccessibilityEnabled()
             logAnchorDiagnostics("disable_requested", appCount, usage)
             focusSessionRepository.disableAnchorForCurrentFlow()
             anchorEnabledForFlow = false
@@ -309,7 +335,7 @@ class FlowViewModel @Inject constructor(
             anchorPaused = false
             anchorReturnPanelPending = false
             _uiState.update {
-                it.copy(anchorFlowState = buildAnchorFlowState(anchoredAppCount = appCount, usageAccessGranted = usage))
+                it.copy(anchorFlowState = buildAnchorFlowState(anchoredAppCount = appCount, usageAccessGranted = usage, guardAccessibilityGranted = guardAccess, mode = settings.mode))
             }
             logAnchorDiagnostics("disable_committed", appCount, usage)
             refreshAnchorFromLatest()
@@ -351,6 +377,7 @@ class FlowViewModel @Inject constructor(
 
 
     private suspend fun logAnchorDiagnostics(reason: String, appCount: Int? = null, usageAccess: Boolean? = null) {
+        if (!BuildConfig.DEBUG) return
         Log.d(
             "AnchorFlow",
             "reason=$reason " +
@@ -359,6 +386,8 @@ class FlowViewModel @Inject constructor(
                 "anchorEnabledForFlow=$anchorEnabledForFlow " +
                 "anchorDisabledForFlow=$anchorDisabledForFlow " +
                 "globallyEnabled=${_uiState.value.anchorFlowState.globallyEnabled} " +
+                "mode=${_uiState.value.anchorFlowState.mode} " +
+                "guardAccessibilityGranted=${_uiState.value.anchorFlowState.guardAccessibilityGranted} " +
                 "ongoingSessionExists=${focusSessionRepository.getOngoingSessionNow() != null}"
         )
     }
@@ -366,8 +395,14 @@ class FlowViewModel @Inject constructor(
     private suspend fun refreshAnchorFromLatest() {
         focusSessionRepository.getOngoingSessionNow()?.let { syncAnchorRuntimeFromEntity(it) }
         val appCount = anchorRepository.anchoredApps.first().size
+        val settings = anchorRepository.settings.first()
         _uiState.update {
-            it.copy(anchorFlowState = buildAnchorFlowState(anchoredAppCount = appCount, usageAccessGranted = recentAppsProvider.hasUsageAccess()))
+            it.copy(anchorFlowState = buildAnchorFlowState(
+                anchoredAppCount = appCount,
+                usageAccessGranted = recentAppsProvider.hasUsageAccess(),
+                guardAccessibilityGranted = anchorPermissionStatusProvider.isGuardAccessibilityEnabled(),
+                mode = settings.mode
+            ))
         }
     }
 
@@ -573,14 +608,16 @@ class FlowViewModel @Inject constructor(
 
         viewModelScope.launch {
             combine(anchorRepository.settings, anchorRepository.anchoredApps) { settings, apps ->
-                Triple(settings.enabled, apps.size, recentAppsProvider.hasUsageAccess())
-            }.collect { (globallyEnabled, appCount, usageGranted) ->
+                AnchorSettingsSnapshot(settings.enabled, settings.mode, apps.size, recentAppsProvider.hasUsageAccess(), anchorPermissionStatusProvider.isGuardAccessibilityEnabled())
+            }.collect { snapshot ->
                 _uiState.update { state ->
                     state.copy(
                         anchorFlowState = buildAnchorFlowState(
-                            globallyEnabled = globallyEnabled,
-                            anchoredAppCount = appCount,
-                            usageAccessGranted = usageGranted
+                            globallyEnabled = snapshot.globallyEnabled,
+                            anchoredAppCount = snapshot.appCount,
+                            usageAccessGranted = snapshot.usageGranted,
+                            guardAccessibilityGranted = snapshot.guardAccessibilityGranted,
+                            mode = snapshot.mode
                         )
                     )
                 }
@@ -981,16 +1018,27 @@ class FlowViewModel @Inject constructor(
     fun resetStopwatch() {
         baseStartTimeMs = null
         accumulatedBeforeStartMs = 0L
+        anchorEnabledForFlow = false
+        anchorDisabledForFlow = false
+        anchorPaused = false
+        anchorBreakStartedAtMs = null
+        anchorBreakEndsAtMs = null
+        anchorReturnPanelPending = false
+        anchorBreakOverPending = false
+        anchorUsageAccessRevoked = false
         _uiState.update {
             it.copy(
+                isInFlowMode = false,
                 stopwatch = StopwatchState(
                     isRunning = false,
                     elapsedMs = 0L
-                )
+                ),
+                anchorFlowState = buildAnchorFlowState()
             )
         }
         stopTicker()
-        saveOngoing()
+        aliveFlowServiceController.stop()
+        viewModelScope.launch { clearOngoing() }
     }
 
     private fun startTicker() {

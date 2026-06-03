@@ -106,6 +106,7 @@ fun SkillzNavHost(
                 onToggleAnchor = anchorSettingsViewModel::setAnchorEnabled,
                 onAnchorModeSelected = anchorSettingsViewModel::setMode,
                 onManageAnchorApps = { navController.navigate(SkillzDestinations.ANCHOR_APPS_ROUTE) },
+                onEnableGuardMode = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
                 onEnableAnchorUsageAccess = { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) },
                 onTestAnchor = { navController.navigate(SkillzDestinations.addSkillRoute()) }
             )
@@ -151,13 +152,15 @@ fun SkillzNavHost(
             )
         ) {
             val addSessionViewModel: FlowViewModel = hiltViewModel()
+            val context = LocalContext.current
 
             FlowScreen(
                 viewModel = addSessionViewModel,
                 onDone = { popToHome(navController) },
                 onCancel = { popToHome(navController) },
                 onOpenShell = { navController.navigate(SkillzDestinations.SHELL) },
-                onManageAnchorApps = { navController.navigate(SkillzDestinations.ANCHOR_APPS_ROUTE) }
+                onManageAnchorApps = { navController.navigate(SkillzDestinations.ANCHOR_APPS_ROUTE) },
+                onEnableGuardMode = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
             )
         }
 
@@ -302,16 +305,19 @@ fun SkillzNavHost(
                 onToggleAnchor = { enabled ->
                     if (!enabled) {
                         anchorSettingsViewModel.setAnchorEnabled(false)
-                    } else if (!anchorState.usageAccessGranted) {
-                        context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
                     } else if (anchorState.anchoredAppCount == 0) {
                         navController.navigate(SkillzDestinations.ANCHOR_APPS_ROUTE)
+                    } else if (anchorState.mode == com.kingkharnivore.skillz.domain.anchor.AnchorMode.GUIDE && !anchorState.usageAccessGranted) {
+                        context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                    } else if (anchorState.mode == com.kingkharnivore.skillz.domain.anchor.AnchorMode.GUARD && !anchorState.guardAccessibilityGranted) {
+                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                     } else {
                         anchorSettingsViewModel.setAnchorEnabled(true)
                     }
                 },
                 onAnchorModeSelected = anchorSettingsViewModel::setMode,
                 onManageAnchorApps = { navController.navigate(SkillzDestinations.ANCHOR_APPS_ROUTE) },
+                onEnableGuardMode = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) },
                 onEnableUsageAccess = { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) },
                 onTestAnchor = { navController.navigate(SkillzDestinations.addSkillRoute()) },
                 modifier = Modifier.fillMaxSize()

@@ -35,6 +35,8 @@ data class AnchorFlowState(
     val globallyEnabled: Boolean = false,
     val configured: Boolean = false,
     val usageAccessGranted: Boolean = false,
+    val guardAccessibilityGranted: Boolean = false,
+    val mode: AnchorMode = AnchorMode.GUIDE,
     val anchoredAppCount: Int = 0,
     val enabledForThisFlow: Boolean = false,
     val paused: Boolean = false,
