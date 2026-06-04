@@ -10,6 +10,18 @@ import com.kingkharnivore.skillz.data.repository.ActiveArcRunRepository
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.ArcPlanRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
+import java.time.Instant
+import com.kingkharnivore.skillz.domain.health.MovementBonusEligibilityPolicy
+import com.kingkharnivore.skillz.domain.health.MovementBonusEligibilityInput
+import com.kingkharnivore.skillz.domain.health.MovementBonusCalculator
+import com.kingkharnivore.skillz.data.model.entity.health.FlowRewardBreakdownEntity
+import com.kingkharnivore.skillz.data.model.entity.health.FlowHealthSyncStatus
+import com.kingkharnivore.skillz.data.model.entity.health.FlowHealthSnapshotEntity
+import com.kingkharnivore.skillz.data.health.MovementReadResult
+import com.kingkharnivore.skillz.data.health.HealthConnectMovementDataSource
+import com.kingkharnivore.skillz.data.repository.health.FlowHealthRepository
+import com.kingkharnivore.skillz.data.repository.health.HealthSettingsRepository
+import com.kingkharnivore.skillz.data.repository.health.HealthPermissionRepository
 import com.kingkharnivore.skillz.data.repository.IdeaGroveRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.data.repository.PulseRepository
@@ -37,6 +49,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -79,6 +92,12 @@ class FlowViewModel @Inject constructor(
     private val surgeHapticsManager: SurgeHapticsManager,
     private val shellRewardOrchestrator: ShellRewardOrchestrator,
     private val shellRewardEventRecorder: ShellRewardEventRecorder,
+    private val healthSettingsRepository: HealthSettingsRepository,
+    private val healthPermissionRepository: HealthPermissionRepository,
+    private val healthMovementDataSource: HealthConnectMovementDataSource,
+    private val flowHealthRepository: FlowHealthRepository,
+    private val movementBonusCalculator: MovementBonusCalculator,
+    private val movementBonusEligibilityPolicy: MovementBonusEligibilityPolicy,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -475,6 +494,9 @@ class FlowViewModel @Inject constructor(
                             originPulseId = entity.originPulseId,
                             originPulseTitle = entity.originPulseTitleSnapshot,
                             originPulseJourneyName = entity.originPulseJourneyNameSnapshot,
+                            healthEnabledAtStart = entity.healthEnabledAtStart,
+                            healthPermissionGrantedAtStart = entity.healthPermissionGrantedAtStart,
+                            movementBonusEligibleAtStart = entity.movementBonusEligibleAtStart,
                             stopwatch = StopwatchState(
                                 isRunning = entity.isRunning,
                                 elapsedMs = elapsed
@@ -576,12 +598,46 @@ class FlowViewModel @Inject constructor(
         }
     }
 
+    private fun captureMovementEligibilityAtFlowStart() {
+        viewModelScope.launch {
+            val settings = healthSettingsRepository.settings.first()
+            val available = healthPermissionRepository.isHealthConnectAvailable()
+            val granted = if (available) healthPermissionRepository.isReadStepsGranted() else false
+            val current = _uiState.value
+            val eligible = movementBonusEligibilityPolicy.isEligible(
+                MovementBonusEligibilityInput(
+                    movementBonusEnabled = settings.movementBonusEnabled,
+                    healthConnectAvailable = available,
+                    readStepsPermissionGranted = granted,
+                    isRegularPointEligibleFlow = !current.isSoftMode,
+                    isSoftFlow = current.isSoftMode
+                )
+            )
+            _uiState.update {
+                it.copy(
+                    healthEnabledAtStart = settings.movementBonusEnabled,
+                    healthPermissionGrantedAtStart = granted,
+                    movementBonusEligibleAtStart = eligible
+                )
+            }
+            saveOngoing()
+        }
+    }
+
     fun startOrResumeStopwatch() {
         if (_uiState.value.stopwatch.isRunning) return
 
         val isResumingSameFlow = accumulatedBeforeStartMs > 0L
 
         if (!isResumingSameFlow) {
+            _uiState.update {
+                it.copy(
+                    healthEnabledAtStart = false,
+                    healthPermissionGrantedAtStart = false,
+                    movementBonusEligibleAtStart = false
+                )
+            }
+            captureMovementEligibilityAtFlowStart()
             arcState?.let { s ->
                 val now = System.currentTimeMillis()
                 if (isArcExpired(now, s)) {
@@ -844,7 +900,10 @@ class FlowViewModel @Inject constructor(
                 arcLastSessionEndTimeMs = arc?.lastSessionEndTimeMs,
                 originPulseId = state.originPulseId,
                 originPulseTitleSnapshot = state.originPulseTitle,
-                originPulseJourneyNameSnapshot = state.originPulseJourneyName
+                originPulseJourneyNameSnapshot = state.originPulseJourneyName,
+                healthEnabledAtStart = state.healthEnabledAtStart,
+                healthPermissionGrantedAtStart = state.healthPermissionGrantedAtStart,
+                movementBonusEligibleAtStart = state.movementBonusEligibleAtStart
             )
             focusSessionRepository.saveOngoingSession(entity)
         }
@@ -977,6 +1036,93 @@ class FlowViewModel @Inject constructor(
         }
     }
 
+    private data class CompletionMovementRead(
+        val steps: Long?,
+        val movementPoints: Long,
+        val status: FlowHealthSyncStatus,
+        val checkedAtMs: Long?
+    )
+
+    private suspend fun readMovementForCompletionIfEligible(
+        state: FlowUiState,
+        sessionStart: Long,
+        sessionEnd: Long
+    ): CompletionMovementRead {
+        if (!state.movementBonusEligibleAtStart || state.isSoftMode) {
+            return CompletionMovementRead(null, 0L, FlowHealthSyncStatus.NOT_ELIGIBLE, null)
+        }
+        val checkedAt = System.currentTimeMillis()
+        return when (val result = healthMovementDataSource.readStepsBetween(
+            Instant.ofEpochMilli(sessionStart),
+            Instant.ofEpochMilli(sessionEnd)
+        )) {
+            MovementReadResult.HealthConnectUnavailable -> CompletionMovementRead(null, 0L, FlowHealthSyncStatus.ERROR_RETRYABLE, checkedAt)
+            MovementReadResult.PermissionMissing -> CompletionMovementRead(null, 0L, FlowHealthSyncStatus.PERMISSION_REVOKED, checkedAt)
+            MovementReadResult.NoData -> CompletionMovementRead(null, 0L, FlowHealthSyncStatus.PENDING, checkedAt)
+            is MovementReadResult.Error -> CompletionMovementRead(null, 0L, FlowHealthSyncStatus.ERROR_RETRYABLE, checkedAt)
+            is MovementReadResult.Success -> {
+                val points = movementBonusCalculator.calculateMovementPoints(result.steps)
+                CompletionMovementRead(
+                    steps = result.steps,
+                    movementPoints = points,
+                    status = if (points > 0L) FlowHealthSyncStatus.CAPTURED else FlowHealthSyncStatus.NO_REWARD,
+                    checkedAtMs = checkedAt
+                )
+            }
+        }
+    }
+
+    private suspend fun saveMovementSnapshotAndBreakdown(
+        sessionId: Long,
+        state: FlowUiState,
+        movementRead: CompletionMovementRead,
+        sessionStart: Long,
+        sessionEnd: Long,
+        baseScyra: Int,
+        finalWithoutMovement: Int,
+        finalScyra: Int,
+        arcMultiplierUsed: Double?,
+        arcBonusPoints: Int
+    ) {
+        if (!state.healthEnabledAtStart && !state.movementBonusEligibleAtStart) return
+        val now = System.currentTimeMillis()
+        val snapshot = FlowHealthSnapshotEntity(
+            sessionId = sessionId,
+            healthEnabledAtStart = state.healthEnabledAtStart,
+            permissionGrantedAtStart = state.healthPermissionGrantedAtStart,
+            status = if (state.movementBonusEligibleAtStart) movementRead.status else FlowHealthSyncStatus.NOT_ELIGIBLE,
+            steps = movementRead.steps,
+            rawMovementPoints = movementRead.movementPoints,
+            finalMovementScyraContribution = (finalScyra - finalWithoutMovement).coerceAtLeast(0).toLong(),
+            finalMovementPearlContribution = if (!state.isSoftMode) (finalScyra - finalWithoutMovement).coerceAtLeast(0).toLong() else 0L,
+            firstCheckedAtMs = movementRead.checkedAtMs,
+            lastCheckedAtMs = movementRead.checkedAtMs,
+            capturedAtMs = if (movementRead.movementPoints > 0L) now else null,
+            expiresAtMs = sessionEnd + FlowHealthRepository.REFRESH_WINDOW_MS,
+            checkCount = if (movementRead.checkedAtMs != null) 1 else 0,
+            flowStartTimeMs = sessionStart,
+            flowEndTimeMs = sessionEnd,
+            activeIntervalJson = null
+        )
+        val breakdown = FlowRewardBreakdownEntity(
+            sessionId = sessionId,
+            baseFlowPoints = baseScyra.toLong(),
+            pulseBonusPoints = 0L,
+            surgeBonusPoints = 0L,
+            otherPreMultiplierBonusPoints = 0L,
+            movementPoints = movementRead.movementPoints,
+            preMultiplierTotal = (baseScyra + movementRead.movementPoints).toLong(),
+            arcMultiplier = arcMultiplierUsed ?: 1.0,
+            streakMultiplier = 1.0,
+            otherMultiplier = 1.0,
+            arcBonusPoints = arcBonusPoints.toLong(),
+            finalScyraPoints = finalScyra.toLong(),
+            pearlsEarned = if (!state.isSoftMode) finalScyra.toLong() else 0L,
+            pearlEligible = !state.isSoftMode
+        )
+        flowHealthRepository.upsertCompletion(snapshot, breakdown)
+    }
+
     private suspend fun saveWithArcBehavior(endMode: FlowEndAction) {
         val state = _uiState.value
         val title = state.title.trim()
@@ -1026,7 +1172,13 @@ class FlowViewModel @Inject constructor(
 
             val breakdown = ScoreCalculator.breakdownFromDuration(realDurationMs)
             val baseScyra = if (isSoft) 0 else breakdown.totalPoints
-            val beforeArc = baseScyra
+
+            val movementRead = readMovementForCompletionIfEligible(
+                state = state,
+                sessionStart = sessionStart,
+                sessionEnd = sessionEnd
+            )
+            val beforeArc = baseScyra + movementRead.movementPoints.toInt()
 
             var localArc = arcState
             if (localArc != null && isArcExpired(sessionStart, localArc)) {
@@ -1073,6 +1225,19 @@ class FlowViewModel @Inject constructor(
                     finalScyraPoints = beforeArc
                 )
 
+                saveMovementSnapshotAndBreakdown(
+                    sessionId = firstSessionId,
+                    state = state,
+                    movementRead = movementRead,
+                    sessionStart = sessionStart,
+                    sessionEnd = sessionEnd,
+                    baseScyra = baseScyra,
+                    finalWithoutMovement = baseScyra,
+                    finalScyra = beforeArc,
+                    arcMultiplierUsed = 1.0,
+                    arcBonusPoints = 0
+                )
+
                 pulseRepository.attachLivePulsesToSession(
                     flowInstanceId = currentFlowInstanceId,
                     sessionId = firstSessionId,
@@ -1084,6 +1249,7 @@ class FlowViewModel @Inject constructor(
                 state.originPulseId?.let { pulseId ->
                     ideaGroveRepository.linkCompletedFlowToPulse(pulseId, firstSessionId)
                 }
+
 
                 val shellReward = runCatching { shellRewardOrchestrator.onSessionCompleted(
                     SessionEntity(
@@ -1123,6 +1289,8 @@ class FlowViewModel @Inject constructor(
                     sixtyMinuteBonuses = breakdown.sixtyMinuteBonuses,
                     finalScyraPoints = beforeArc,
                     surgePoints = surgePoints,
+                    movementSteps = movementRead.steps,
+                    movementPoints = movementRead.movementPoints,
                     arcIndexInArc = 1,
                     arcMultiplierUsed = null,
                     arcBonusPoints = 0,
@@ -1150,11 +1318,19 @@ class FlowViewModel @Inject constructor(
             var nextMultiplier: Double? = null
 
             var finalScyra = beforeArc
+            var finalWithoutMovement = baseScyra
 
             if (isInExistingArc) {
                 val s = localArc!!
 
                 arcIndex = s.sessionCountInArc + 1
+
+                val resWithoutMovement = ScoreCalculator.arcMath(
+                    beforeArcPoints = baseScyra,
+                    chainBase = s.multiplier,
+                    durationMs = realDurationMs
+                )
+                finalWithoutMovement = resWithoutMovement.finalPoints
 
                 val res = ScoreCalculator.arcMath(
                     beforeArcPoints = beforeArc,
@@ -1225,6 +1401,19 @@ class FlowViewModel @Inject constructor(
                 syncArcUi()
             }
 
+            saveMovementSnapshotAndBreakdown(
+                sessionId = insertedId,
+                state = state,
+                movementRead = movementRead,
+                sessionStart = sessionStart,
+                sessionEnd = sessionEnd,
+                baseScyra = baseScyra,
+                finalWithoutMovement = finalWithoutMovement,
+                finalScyra = finalScyra,
+                arcMultiplierUsed = arcMultiplierUsed,
+                arcBonusPoints = arcBonusPoints
+            )
+
             val shellReward = runCatching { shellRewardOrchestrator.onSessionCompleted(
                 SessionEntity(
                     id = insertedId,
@@ -1254,6 +1443,8 @@ class FlowViewModel @Inject constructor(
                 sixtyMinuteBonuses = breakdown.sixtyMinuteBonuses,
                 finalScyraPoints = finalScyra,
                 surgePoints = surgePoints,
+                movementSteps = movementRead.steps,
+                movementPoints = movementRead.movementPoints,
                 arcIndexInArc = arcIndex,
                 arcMultiplierUsed = arcMultiplierUsed,
                 arcBonusPoints = arcBonusPoints,

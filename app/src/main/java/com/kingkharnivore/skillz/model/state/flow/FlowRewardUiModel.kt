@@ -8,6 +8,8 @@ data class FlowRewardUiModel(
     val sixtyMinuteBonuses: Int,
     val finalScyraPoints: Int,
     val surgePoints: Int,
+    val movementSteps: Long? = null,
+    val movementPoints: Long = 0L,
 
     // ARC
     val arcIndexInArc: Int? = null,

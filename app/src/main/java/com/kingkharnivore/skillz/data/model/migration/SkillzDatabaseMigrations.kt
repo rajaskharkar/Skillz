@@ -110,6 +110,12 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_26_27 = object : Migration(26, 27) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            createMovementBonusTables(db)
+        }
+    }
+
     private fun normalizePostAnchorTestSchemaToTargetBranch(db: SupportSQLiteDatabase) {
         db.execSQL("PRAGMA foreign_keys=OFF")
 
@@ -256,8 +262,68 @@ object SkillzDatabaseMigrations {
                 MIGRATION_22_23 +
                 MIGRATION_23_24 +
                 MIGRATION_24_25 +
-                MIGRATION_25_26
+                MIGRATION_25_26 +
+                MIGRATION_26_27
 
+    private fun createMovementBonusTables(db: SupportSQLiteDatabase) {
+        addColumnIfMissing(db, "ongoing_session", "healthEnabledAtStart", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "ongoing_session", "healthPermissionGrantedAtStart", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "ongoing_session", "movementBonusEligibleAtStart", "INTEGER NOT NULL DEFAULT 0")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `flow_health_snapshots` (
+                `sessionId` INTEGER NOT NULL,
+                `healthEnabledAtStart` INTEGER NOT NULL,
+                `permissionGrantedAtStart` INTEGER NOT NULL,
+                `status` TEXT NOT NULL,
+                `steps` INTEGER,
+                `rawMovementPoints` INTEGER NOT NULL,
+                `finalMovementScyraContribution` INTEGER NOT NULL,
+                `finalMovementPearlContribution` INTEGER NOT NULL,
+                `firstCheckedAtMs` INTEGER,
+                `lastCheckedAtMs` INTEGER,
+                `capturedAtMs` INTEGER,
+                `expiresAtMs` INTEGER,
+                `checkCount` INTEGER NOT NULL,
+                `flowStartTimeMs` INTEGER NOT NULL,
+                `flowEndTimeMs` INTEGER NOT NULL,
+                `activeIntervalJson` TEXT,
+                `sourceLabel` TEXT,
+                `updatedAfterSync` INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(`sessionId`),
+                FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_flow_health_snapshots_sessionId` ON `flow_health_snapshots` (`sessionId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_flow_health_snapshots_status` ON `flow_health_snapshots` (`status`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_flow_health_snapshots_expiresAtMs` ON `flow_health_snapshots` (`expiresAtMs`)")
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `flow_reward_breakdowns` (
+                `sessionId` INTEGER NOT NULL,
+                `baseFlowPoints` INTEGER NOT NULL,
+                `pulseBonusPoints` INTEGER NOT NULL,
+                `surgeBonusPoints` INTEGER NOT NULL,
+                `otherPreMultiplierBonusPoints` INTEGER NOT NULL,
+                `movementPoints` INTEGER NOT NULL,
+                `preMultiplierTotal` INTEGER NOT NULL,
+                `arcMultiplier` REAL NOT NULL,
+                `streakMultiplier` REAL NOT NULL,
+                `otherMultiplier` REAL NOT NULL,
+                `arcBonusPoints` INTEGER NOT NULL,
+                `finalScyraPoints` INTEGER NOT NULL,
+                `pearlsEarned` INTEGER NOT NULL,
+                `pearlEligible` INTEGER NOT NULL,
+                `roundingMode` TEXT NOT NULL,
+                PRIMARY KEY(`sessionId`),
+                FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_flow_reward_breakdowns_sessionId` ON `flow_reward_breakdowns` (`sessionId`)")
+    }
 
 
     private fun addIdeaGroveTables(db: SupportSQLiteDatabase) {

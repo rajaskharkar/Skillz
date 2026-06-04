@@ -1886,4 +1886,5 @@
     <string name="idea_grove_expand_a11y">expand</string>
     <string name="idea_grove_collapse_a11y">collapse</string>
 
+    <string name="privacy_health_connect_movement_bonus">If you enable Health Connect, Scyra reads step count data for the time range of your eligible Flows to calculate Movement Bonus rewards. Scyra uses this data only for Movement Points, Scyra Points, Pearls, and related reward displays. Scyra does not sell health data or use it for advertising.</string>
 </resources>

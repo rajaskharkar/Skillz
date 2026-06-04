@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.ui.screen
 
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
@@ -32,6 +33,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -56,7 +59,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.localization.AppLanguage
+import androidx.health.connect.client.PermissionController
 import com.kingkharnivore.skillz.model.state.FlowListUiState
+import com.kingkharnivore.skillz.ui.health.DisableHealthPendingFlowsDialog
+import com.kingkharnivore.skillz.ui.health.HealthConnectSettingsCard
+import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 
@@ -64,6 +71,7 @@ import kotlin.math.absoluteValue
 fun HelpScreen(
     uiState: FlowListUiState,
     selectedLanguageTag: String?,
+    healthViewModel: HealthSettingsViewModel,
     onToggleShowScoreUi: (Boolean) -> Unit,
     onToggleCalmMode: (Boolean) -> Unit,
     onSetAppLanguage: (String?) -> Unit,
@@ -78,6 +86,14 @@ fun HelpScreen(
     val calmModeDescription = stringResource(R.string.help_pref_calm_mode_description)
 
     var showLanguageDialog by rememberSaveable { mutableStateOf(false) }
+    val healthState by healthViewModel.uiState.collectAsState()
+    val healthPermissionLauncher = rememberLauncherForActivityResult(
+        PermissionController.createRequestPermissionResultContract()
+    ) { granted ->
+        healthViewModel.onPermissionResult(granted)
+    }
+
+    LaunchedEffect(Unit) { healthViewModel.refreshState() }
 
     Column(
         modifier = modifier
@@ -115,9 +131,29 @@ fun HelpScreen(
             onClick = { showLanguageDialog = true }
         )
 
+        HealthConnectSettingsCard(
+            state = healthState,
+            onToggle = { checked ->
+                if (checked) {
+                    if (healthState.healthConnectAvailable) {
+                        healthPermissionLauncher.launch(setOf(healthViewModel.readStepsPermission))
+                    }
+                } else {
+                    healthViewModel.requestDisableOrDisableNow()
+                }
+            }
+        )
+
         HelpConceptCarousel(
             pages = pages,
             modifier = Modifier.fillMaxWidth()
+        )
+    }
+
+    if (healthState.showDisableWarning) {
+        DisableHealthPendingFlowsDialog(
+            onKeepHealthOn = healthViewModel::keepHealthOn,
+            onDisableAnyway = healthViewModel::disableAnyway
         )
     }
 

@@ -18,5 +18,8 @@ data class FlowListItemUiModel(
     val arcId: Long? = null,
     val arcIndex: Int? = null,
     val arcMultiplierUsed: Double? = null,
-    val arcBonusPoints: Int = 0
+    val arcBonusPoints: Int = 0,
+    val movementSteps: Long? = null,
+    val movementPoints: Long = 0L,
+    val movementBonusUpdatedAfterSync: Boolean = false
 )

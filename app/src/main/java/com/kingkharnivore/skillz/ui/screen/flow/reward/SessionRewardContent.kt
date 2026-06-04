@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
+import com.kingkharnivore.skillz.ui.health.MovementBonusRewardBlock
 
 @Composable
 fun SessionRewardContent(
@@ -53,6 +54,10 @@ fun SessionRewardContent(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
             )
         }
+        MovementBonusRewardBlock(
+            steps = r.movementSteps ?: 0L,
+            movementPoints = r.movementPoints
+        )
         RewardRevealDeck(cards = cards)
     }
 }

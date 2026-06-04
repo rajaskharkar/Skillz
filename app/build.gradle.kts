@@ -110,6 +110,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.health.connect.client)
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.room.ktx)
