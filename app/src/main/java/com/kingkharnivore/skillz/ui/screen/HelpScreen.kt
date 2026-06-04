@@ -61,6 +61,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.health.connect.client.HealthConnectClient
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.localization.AppLanguage
 import androidx.health.connect.client.PermissionController
@@ -95,11 +96,35 @@ fun HelpScreen(
     val healthState by healthViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+
     val healthPermissionLauncher = rememberLauncherForActivityResult(
-        PermissionController.createRequestPermissionResultContract()
-    ) { granted ->
-        Log.d("HealthSettings", "Health permission result=$granted")
-        healthViewModel.onPermissionResult(granted)
+        contract = PermissionController.createRequestPermissionResultContract()
+    ) { grantedPermissions ->
+        Log.d("HealthSettings", "Health permission result from launcher=$grantedPermissions")
+        healthViewModel.onPermissionResult(grantedPermissions)
+    }
+
+    LaunchedEffect(Unit) {
+        healthViewModel.refreshState()
+    }
+
+    LaunchedEffect(healthState) {
+        Log.d("HealthSettings", "Health card state=$healthState")
+        Log.d("HealthSettings", "packageName=${context.packageName}")
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                healthViewModel.refreshState()
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     LaunchedEffect(Unit) { healthViewModel.refreshState() }
@@ -156,12 +181,26 @@ fun HelpScreen(
         HealthConnectSettingsCard(
             state = healthState,
             onConnectHealth = {
-                Log.d(
-                    "HealthSettings",
-                    "Connect Health clicked availability=${healthState.healthConnectAvailability} permission=${healthViewModel.readStepsPermission}"
-                )
+                healthViewModel.onPermissionLaunchAttempt(context.packageName)
+
+                if (!healthState.healthConnectAvailable) {
+                    healthViewModel.onPermissionLaunchFailed(
+                        IllegalStateException(
+                            "Health Connect is not available. availability=${healthState.healthConnectAvailability} rawSdkStatus=${healthState.rawHealthConnectSdkStatus}"
+                        )
+                    )
+                    return@HealthConnectSettingsCard
+                }
+
                 try {
-                    healthPermissionLauncher.launch(setOf(healthViewModel.readStepsPermission))
+                    Log.d(
+                        "HealthSettings",
+                        "Launching Health Connect permission request. permission=${healthViewModel.readStepsPermission}"
+                    )
+
+                    healthPermissionLauncher.launch(
+                        setOf(healthViewModel.readStepsPermission)
+                    )
                 } catch (t: Throwable) {
                     healthViewModel.onPermissionLaunchFailed(t)
                 }
@@ -177,6 +216,13 @@ fun HelpScreen(
                 healthViewModel.openHealthConnectInstallOrUpdate(context)
             }
         )
+
+        if (healthState.showDisableWarning) {
+            DisableHealthPendingFlowsDialog(
+                onKeepHealthOn = healthViewModel::keepHealthOn,
+                onDisableAnyway = healthViewModel::disableAnyway
+            )
+        }
 
         HelpConceptCarousel(
             pages = pages,

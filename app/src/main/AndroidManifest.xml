@@ -27,6 +27,28 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Skillz">
 
+        <!-- Health Connect permissions rationale entry for Health Connect app / older provider flow -->
+        <activity-alias
+            android:name=".HealthConnectPermissionsRationaleActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Android 14+ Health permission usage entry -->
+        <activity-alias
+            android:name=".HealthConnectViewPermissionUsageActivity"
+            android:exported="true"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
             android:enabled="false"
@@ -40,16 +62,6 @@
             android:name=".ui.service.AliveFlowService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
-
-        <activity-alias
-            android:name=".HealthConnectPermissionsRationaleActivity"
-            android:exported="true"
-            android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
-            android:targetActivity=".MainActivity">
-            <intent-filter>
-                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
-            </intent-filter>
-        </activity-alias>
 
         <activity
             android:name=".MainActivity"

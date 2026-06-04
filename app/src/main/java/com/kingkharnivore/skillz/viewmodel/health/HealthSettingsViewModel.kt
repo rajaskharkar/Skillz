@@ -23,6 +23,7 @@ import javax.inject.Inject
 
 data class HealthSettingsUiState(
     val healthConnectAvailability: HealthConnectAvailability = HealthConnectAvailability.UNAVAILABLE,
+    val rawHealthConnectSdkStatus: Int? = null,
     val readStepsPermissionGranted: Boolean = false,
     val localMovementBonusEnabled: Boolean = false,
     val pendingRefreshableFlows: Boolean = false,
@@ -50,10 +51,16 @@ class HealthSettingsViewModel @Inject constructor(
     private val flowHealthRepository: FlowHealthRepository,
     private val healthRefreshUseCase: HealthRefreshUseCase
 ) : ViewModel() {
+
     private val permissionGranted = MutableStateFlow(false)
     private val availability = MutableStateFlow(HealthConnectAvailability.UNAVAILABLE)
+    private val rawSdkStatus = MutableStateFlow<Int?>(null)
     private val pending = MutableStateFlow(false)
     private val userMessage = MutableStateFlow<String?>(null)
+    private val isBusy = MutableStateFlow(false)
+
+    private val _showDisableWarning = MutableStateFlow(false)
+
     private val _uiState = MutableStateFlow(HealthSettingsUiState())
     val uiState: StateFlow<HealthSettingsUiState> = _uiState.asStateFlow()
 
@@ -65,56 +72,85 @@ class HealthSettingsViewModel @Inject constructor(
                 settingsRepository.settings,
                 permissionGranted,
                 availability,
+                rawSdkStatus,
                 pending,
-                userMessage
-            ) { settings, granted, currentAvailability, hasPending, message ->
+                userMessage,
+                isBusy,
+                _showDisableWarning
+            ) { values ->
+                @Suppress("UNCHECKED_CAST")
+                val settings = values[0] as com.kingkharnivore.skillz.data.repository.health.HealthSettings
+                val granted = values[1] as Boolean
+                val currentAvailability = values[2] as HealthConnectAvailability
+                val rawStatus = values[3] as Int?
+                val hasPending = values[4] as Boolean
+                val message = values[5] as String?
+                val busy = values[6] as Boolean
+                val showWarning = values[7] as Boolean
+
                 HealthSettingsUiState(
                     healthConnectAvailability = currentAvailability,
+                    rawHealthConnectSdkStatus = rawStatus,
                     readStepsPermissionGranted = granted,
                     localMovementBonusEnabled = settings.movementBonusEnabled,
                     pendingRefreshableFlows = hasPending,
-                    showDisableWarning = _uiState.value.showDisableWarning,
-                    isBusy = _uiState.value.isBusy,
+                    showDisableWarning = showWarning,
+                    isBusy = busy,
                     userMessage = message
                 )
-            }.collect { _uiState.value = it }
+            }.collect { state ->
+                Log.d(TAG, "Health UI state=$state")
+                _uiState.value = state
+            }
         }
+
         refreshState()
     }
 
     fun refreshState() {
         viewModelScope.launch {
-            val currentAvailability = permissionRepository.availability()
-            val granted = permissionRepository.isReadStepsGranted()
-            Log.d(TAG, "HealthConnect availability=$currentAvailability")
-            Log.d(TAG, "READ_STEPS granted=$granted")
-            availability.value = currentAvailability
-            permissionGranted.value = granted
-            pending.value = flowHealthRepository.hasPendingRefreshableSnapshots()
-            if (currentAvailability == HealthConnectAvailability.AVAILABLE && granted) {
-                healthRefreshUseCase.refreshForeground()
-            }
+            refreshStateInternal(clearMessage = false)
         }
     }
 
     fun enableMovementBonusIfPermissionGranted() {
         viewModelScope.launch {
-            val currentAvailability = permissionRepository.availability()
-            val granted = permissionRepository.isReadStepsGranted()
-            availability.value = currentAvailability
-            permissionGranted.value = granted
-            if (currentAvailability == HealthConnectAvailability.AVAILABLE && granted) {
-                settingsRepository.setMovementBonusEnabled(true)
-                userMessage.value = null
-                healthRefreshUseCase.refreshForeground()
-            } else {
-                userMessage.value = if (currentAvailability == HealthConnectAvailability.AVAILABLE) {
-                    "Health permission was not granted."
+            isBusy.value = true
+            try {
+                refreshStateInternal(clearMessage = true)
+
+                val currentAvailability = availability.value
+                val granted = permissionGranted.value
+
+                if (currentAvailability == HealthConnectAvailability.AVAILABLE && granted) {
+                    settingsRepository.setMovementBonusEnabled(true)
+                    userMessage.value = null
+                    healthRefreshUseCase.refreshForeground()
                 } else {
-                    null
+                    settingsRepository.setMovementBonusEnabled(false)
+                    userMessage.value = when (currentAvailability) {
+                        HealthConnectAvailability.AVAILABLE ->
+                            "Health permission was not granted."
+
+                        HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED ->
+                            "Health Connect needs to be installed or updated."
+
+                        HealthConnectAvailability.UNAVAILABLE ->
+                            "Health Connect is not available on this device."
+                    }
                 }
+            } finally {
+                isBusy.value = false
             }
         }
+    }
+
+    fun onPermissionLaunchAttempt(packageName: String) {
+        Log.d(
+            TAG,
+            "Connect Health clicked. package=$packageName availability=${availability.value} rawSdkStatus=${rawSdkStatus.value} permission=$readStepsPermission granted=${permissionGranted.value}"
+        )
+        userMessage.value = null
     }
 
     fun onPermissionLaunchFailed(t: Throwable) {
@@ -124,17 +160,42 @@ class HealthSettingsViewModel @Inject constructor(
 
     fun onPermissionResult(grantedPermissions: Set<String>) {
         Log.d(TAG, "Health permission result=$grantedPermissions")
+
         viewModelScope.launch {
-            val currentAvailability = permissionRepository.availability()
-            val granted = readStepsPermission in grantedPermissions || permissionRepository.isReadStepsGranted()
-            availability.value = currentAvailability
-            permissionGranted.value = granted
-            if (granted && currentAvailability == HealthConnectAvailability.AVAILABLE) {
-                settingsRepository.setMovementBonusEnabled(true)
-                userMessage.value = null
-                healthRefreshUseCase.refreshForeground()
-            } else {
-                userMessage.value = "Health permission was not granted."
+            isBusy.value = true
+            try {
+                val currentAvailability = permissionRepository.availability()
+                val rawStatus = permissionRepository.rawSdkStatus()
+                val alreadyGranted = permissionRepository.isReadStepsGranted()
+                val grantedFromResult = readStepsPermission in grantedPermissions
+                val granted = grantedFromResult || alreadyGranted
+
+                Log.d(
+                    TAG,
+                    "Permission result processed. " +
+                            "readStepsPermission=$readStepsPermission " +
+                            "grantedFromResult=$grantedFromResult " +
+                            "alreadyGranted=$alreadyGranted " +
+                            "finalGranted=$granted " +
+                            "availability=$currentAvailability " +
+                            "rawSdkStatus=$rawStatus"
+                )
+
+                availability.value = currentAvailability
+                rawSdkStatus.value = rawStatus
+                permissionGranted.value = granted
+                pending.value = flowHealthRepository.hasPendingRefreshableSnapshots()
+
+                if (granted && currentAvailability == HealthConnectAvailability.AVAILABLE) {
+                    settingsRepository.setMovementBonusEnabled(true)
+                    userMessage.value = null
+                    healthRefreshUseCase.refreshForeground()
+                } else {
+                    settingsRepository.setMovementBonusEnabled(false)
+                    userMessage.value = "Health permission was not granted."
+                }
+            } finally {
+                isBusy.value = false
             }
         }
     }
@@ -171,8 +232,9 @@ class HealthSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val hasPending = flowHealthRepository.hasPendingRefreshableSnapshots()
             pending.value = hasPending
+
             if (hasPending) {
-                _uiState.update { it.copy(showDisableWarning = true) }
+                _showDisableWarning.value = true
             } else {
                 settingsRepository.setMovementBonusEnabled(false)
                 userMessage.value = null
@@ -181,7 +243,7 @@ class HealthSettingsViewModel @Inject constructor(
     }
 
     fun keepHealthOn() {
-        _uiState.update { it.copy(showDisableWarning = false) }
+        _showDisableWarning.value = false
     }
 
     fun disableAnyway() {
@@ -190,7 +252,36 @@ class HealthSettingsViewModel @Inject constructor(
             settingsRepository.setMovementBonusEnabled(false)
             pending.value = false
             userMessage.value = null
-            _uiState.update { it.copy(showDisableWarning = false) }
+            _showDisableWarning.value = false
+        }
+    }
+
+    private suspend fun refreshStateInternal(clearMessage: Boolean) {
+        val currentAvailability = permissionRepository.availability()
+        val rawStatus = permissionRepository.rawSdkStatus()
+        val granted = permissionRepository.isReadStepsGranted()
+        val hasPending = flowHealthRepository.hasPendingRefreshableSnapshots()
+
+        Log.d(
+            TAG,
+            "refreshState availability=$currentAvailability rawSdkStatus=$rawStatus READ_STEPS granted=$granted permission=$readStepsPermission"
+        )
+
+        availability.value = currentAvailability
+        rawSdkStatus.value = rawStatus
+        permissionGranted.value = granted
+        pending.value = hasPending
+
+        if (clearMessage) {
+            userMessage.value = null
+        }
+
+        if (currentAvailability == HealthConnectAvailability.AVAILABLE && granted) {
+            runCatching {
+                healthRefreshUseCase.refreshForeground()
+            }.onFailure {
+                Log.w(TAG, "Foreground health refresh failed", it)
+            }
         }
     }
 

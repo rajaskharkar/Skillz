@@ -30,12 +30,17 @@ import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.data.health.HealthConnectAvailability
 import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsUiState
 
+private sealed interface HealthCardAction {
+    data object None : HealthCardAction
+    data object ConnectHealth : HealthCardAction
+    data object InstallOrUpdate : HealthCardAction
+    data object Toggle : HealthCardAction
+}
+
 private data class HealthCardRenderState(
     val headline: String,
     val body: String,
-    val actionLabel: String? = null,
-    val action: (() -> Unit)? = null,
-    val showSwitch: Boolean = false
+    val action: HealthCardAction
 )
 
 @Composable
@@ -46,40 +51,62 @@ fun HealthConnectSettingsCard(
     onInstallOrUpdateHealthConnect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val title = "Health"
-    val (headline, body, actionLabel, action, showSwitch) = when {
-        state.healthConnectAvailability == HealthConnectAvailability.UNAVAILABLE -> HealthCardRenderState(
-            headline = "Health Connect is not available on this device.",
-            body = "Movement Bonus needs Health Connect to read steps during your Flows."
-        )
-        state.providerUpdateRequired -> HealthCardRenderState(
-            headline = "Health Connect needs to be installed or updated.",
-            body = "Install or update Health Connect to use Movement Bonus.",
-            actionLabel = "Install / Update Health Connect",
-            action = onInstallOrUpdateHealthConnect
-        )
-        state.healthConnectAvailable && !state.readStepsPermissionGranted -> HealthCardRenderState(
-            headline = "Enable Health to earn Movement Points during your Flows.",
-            body = "Scyra reads your step count through Health Connect and gives you +1 Movement Point for every 25 steps during eligible Flows. Movement Points are added to your total Scyra Points.",
-            actionLabel = "Connect Health",
-            action = onConnectHealth
-        )
-        state.healthConnectAvailable && state.localMovementBonusEnabled -> HealthCardRenderState(
-            headline = "Movement Bonus is active.",
-            body = "Steps taken during eligible Flows can earn Movement Points. Movement Points are added to your Scyra Points and can also generate Pearls.",
-            showSwitch = true
-        )
-        else -> HealthCardRenderState(
-            headline = "Movement Bonus is off.",
-            body = "Turn it on to earn Movement Points from steps during eligible Flows.",
-            showSwitch = true
-        )
+    val renderState = when {
+        state.healthConnectAvailability == HealthConnectAvailability.UNAVAILABLE -> {
+            HealthCardRenderState(
+                headline = "Health Connect is not available on this device.",
+                body = "Movement Bonus needs Health Connect to read steps during your Flows.",
+                action = HealthCardAction.None
+            )
+        }
+
+        state.healthConnectAvailability == HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED -> {
+            HealthCardRenderState(
+                headline = "Health Connect needs to be installed or updated.",
+                body = "Install or update Health Connect to use Movement Bonus.",
+                action = HealthCardAction.InstallOrUpdate
+            )
+        }
+
+        state.healthConnectAvailable && !state.readStepsPermissionGranted -> {
+            HealthCardRenderState(
+                headline = "Enable Health to earn Movement Points during your Flows.",
+                body = "Scyra reads your step count through Health Connect and gives you +1 Movement Point for every 25 steps during eligible Flows. Movement Points are added to your total Scyra Points.",
+                action = HealthCardAction.ConnectHealth
+            )
+        }
+
+        state.healthConnectAvailable && state.readStepsPermissionGranted && state.localMovementBonusEnabled -> {
+            HealthCardRenderState(
+                headline = "Movement Bonus is active.",
+                body = "Steps taken during eligible Flows can earn Movement Points. Movement Points are added to your Scyra Points and can also generate Pearls.",
+                action = HealthCardAction.Toggle
+            )
+        }
+
+        state.healthConnectAvailable && state.readStepsPermissionGranted && !state.localMovementBonusEnabled -> {
+            HealthCardRenderState(
+                headline = "Movement Bonus is off.",
+                body = "Turn it on to earn Movement Points from steps during eligible Flows.",
+                action = HealthCardAction.Toggle
+            )
+        }
+
+        else -> {
+            HealthCardRenderState(
+                headline = "Health Connect is not available on this device.",
+                body = "Movement Bonus needs Health Connect to read steps during your Flows.",
+                action = HealthCardAction.None
+            )
+        }
     }
 
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.40f)),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.40f)
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -93,51 +120,93 @@ fun HealthConnectSettingsCard(
                 tint = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.size(24.dp)
             )
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    title,
+                    text = "Health",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
+
                 Spacer(Modifier.height(6.dp))
+
                 Text(
-                    headline,
+                    text = renderState.headline,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
+
                 Spacer(Modifier.height(4.dp))
-                Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.86f))
-                Spacer(Modifier.height(8.dp))
+
                 Text(
-                    "Scyra reads your step count from Health Connect only to calculate Movement Points during eligible Flows.",
+                    text = renderState.body,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.86f)
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                Text(
+                    text = "Scyra reads your step count from Health Connect only to calculate Movement Points during eligible Flows.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
                 )
+
+                state.rawHealthConnectSdkStatus?.let { rawStatus ->
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "Debug · availability=${state.healthConnectAvailability}, sdk=$rawStatus, stepsGranted=${state.readStepsPermissionGranted}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.58f)
+                    )
+                }
+
                 state.userMessage?.let { message ->
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        message,
+                        text = message,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
-                if (actionLabel != null && action != null) {
-                    Spacer(Modifier.height(12.dp))
-                    Button(
-                        onClick = action,
-                        enabled = !state.isBusy,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary,
-                            contentColor = MaterialTheme.colorScheme.onSecondary
-                        )
-                    ) {
-                        Text(actionLabel)
+
+                when (renderState.action) {
+                    HealthCardAction.ConnectHealth -> {
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = onConnectHealth,
+                            enabled = !state.isBusy,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary,
+                                contentColor = MaterialTheme.colorScheme.onSecondary
+                            )
+                        ) {
+                            Text("Connect Health")
+                        }
                     }
+
+                    HealthCardAction.InstallOrUpdate -> {
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = onInstallOrUpdateHealthConnect,
+                            enabled = !state.isBusy,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary,
+                                contentColor = MaterialTheme.colorScheme.onSecondary
+                            )
+                        ) {
+                            Text("Install / Update Health Connect")
+                        }
+                    }
+
+                    HealthCardAction.None,
+                    HealthCardAction.Toggle -> Unit
                 }
             }
-            if (showSwitch) {
+
+            if (renderState.action == HealthCardAction.Toggle) {
                 Switch(
                     checked = state.toggleChecked,
                     enabled = !state.isBusy,
@@ -148,7 +217,6 @@ fun HealthConnectSettingsCard(
     }
 }
 
-
 @Composable
 fun DisableHealthPendingFlowsDialog(
     onKeepHealthOn: () -> Unit,
@@ -158,10 +226,22 @@ fun DisableHealthPendingFlowsDialog(
         onDismissRequest = onKeepHealthOn,
         title = { Text("Disable Health?") },
         text = {
-            Text("Some recent Flows may still be waiting for step data or improved Health Connect sync.\n\nIf you disable Health now, Scyra will stop checking those Flows and any pending Movement Points may not be awarded.\n\nYou can turn Health back on later.")
+            Text(
+                "Some recent Flows may still be waiting for step data or improved Health Connect sync.\n\n" +
+                        "If you disable Health now, Scyra will stop checking those Flows and any pending Movement Points may not be awarded.\n\n" +
+                        "You can turn Health back on later."
+            )
         },
-        confirmButton = { TextButton(onClick = onDisableAnyway) { Text("Disable Anyway") } },
-        dismissButton = { TextButton(onClick = onKeepHealthOn) { Text("Keep Health On") } }
+        confirmButton = {
+            TextButton(onClick = onDisableAnyway) {
+                Text("Disable Anyway")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onKeepHealthOn) {
+                Text("Keep Health On")
+            }
+        }
     )
 }
 
@@ -183,6 +263,7 @@ fun MovementBonusActivePill(modifier: Modifier = Modifier) {
                 tint = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.size(18.dp)
             )
+
             Text(
                 "Movement Bonus active · Every 25 steps earns +1 point",
                 style = MaterialTheme.typography.labelMedium,
@@ -193,24 +274,53 @@ fun MovementBonusActivePill(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun MovementBonusRewardBlock(steps: Long, movementPoints: Long, modifier: Modifier = Modifier) {
+fun MovementBonusRewardBlock(
+    steps: Long,
+    movementPoints: Long,
+    modifier: Modifier = Modifier
+) {
     if (movementPoints <= 0L || steps <= 0L) return
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Movement Bonus", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSecondaryContainer)
-            Text("$steps steps", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSecondaryContainer)
-            Text("+$movementPoints Movement Points", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary)
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                "Movement Bonus",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+
+            Text(
+                "$steps steps",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+
+            Text(
+                "+$movementPoints Movement Points",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.secondary
+            )
         }
     }
 }
 
 @Composable
-fun FlowCardMovementLine(steps: Long?, movementPoints: Long, modifier: Modifier = Modifier) {
+fun FlowCardMovementLine(
+    steps: Long?,
+    movementPoints: Long,
+    modifier: Modifier = Modifier
+) {
     if (movementPoints <= 0L || steps == null || steps <= 0L) return
+
     Text(
         text = "$steps steps · $movementPoints Movement Points",
         modifier = modifier,
