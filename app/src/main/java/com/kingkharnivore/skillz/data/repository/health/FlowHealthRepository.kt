@@ -53,7 +53,7 @@ class FlowHealthRepository @Inject constructor(
 
     suspend fun expireOldSnapshots(nowMs: Long) = dao.expireOldSnapshots(refreshableStatuses, nowMs)
 
-    suspend fun applyDelayedMovementUpdate(
+    suspend fun applyDelayedMovementUpdateTransactionally(
         snapshot: FlowHealthSnapshotEntity,
         breakdown: FlowRewardBreakdownEntity,
         finalScyraPoints: Int,

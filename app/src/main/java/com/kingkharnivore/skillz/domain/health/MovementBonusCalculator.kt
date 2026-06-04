@@ -122,3 +122,65 @@ object FlowActiveIntervalCodec {
         )
     }
 }
+
+data class StoredMovementRewardContext(
+    val nonMovementPreMultiplierPoints: Long,
+    val pulseBonusPoints: Long = 0L,
+    val surgeBonusPoints: Long = 0L,
+    val otherPreMultiplierBonusPoints: Long = 0L,
+    val existingMovementPoints: Long,
+    val oldFinalScyraPoints: Long,
+    val arcMultiplier: Double = 1.0,
+    val streakMultiplier: Double = 1.0,
+    val otherMultiplier: Double = 1.0,
+    val pearlEligible: Boolean
+)
+
+data class DelayedMovementRewardResult(
+    val newRawMovementPoints: Long,
+    val newFinalScyraPoints: Long,
+    val newPreMultiplierTotal: Long,
+    val newArcBonusPoints: Long,
+    val deltaScyraPoints: Long,
+    val pearlDelta: Long,
+    val pearlsEarned: Long
+)
+
+object DelayedMovementRewardPolicy {
+    fun calculate(
+        steps: Long,
+        context: StoredMovementRewardContext,
+        calculator: MovementBonusCalculator = MovementBonusCalculator()
+    ): DelayedMovementRewardResult {
+        val newRawMovementPoints = maxOf(
+            context.existingMovementPoints,
+            calculator.calculateMovementPoints(steps)
+        )
+        val recalculated = MovementRewardRecalculator.withMovementPoints(
+            nonMovementPreMultiplierPoints = context.nonMovementPreMultiplierPoints,
+            pulseBonusPoints = context.pulseBonusPoints,
+            surgeBonusPoints = context.surgeBonusPoints,
+            otherPreMultiplierBonusPoints = context.otherPreMultiplierBonusPoints,
+            movementPoints = newRawMovementPoints,
+            arcMultiplier = context.arcMultiplier,
+            streakMultiplier = context.streakMultiplier,
+            otherMultiplier = context.otherMultiplier,
+            pearlEligible = context.pearlEligible
+        )
+        val delta = (recalculated.finalScyraPoints - context.oldFinalScyraPoints).coerceAtLeast(0L)
+        return DelayedMovementRewardResult(
+            newRawMovementPoints = newRawMovementPoints,
+            newFinalScyraPoints = maxOf(context.oldFinalScyraPoints, recalculated.finalScyraPoints),
+            newPreMultiplierTotal = recalculated.preMultiplierTotal,
+            newArcBonusPoints = recalculated.arcBonusPoints,
+            deltaScyraPoints = delta,
+            pearlDelta = if (context.pearlEligible) delta else 0L,
+            pearlsEarned = if (context.pearlEligible) maxOf(context.oldFinalScyraPoints, recalculated.pearlsEarned) else 0L
+        )
+    }
+}
+
+object MovementPearlDeltaKey {
+    fun reason(sessionId: Long, movementPoints: Long, finalScyraPoints: Long): String =
+        "movement_bonus_delta_session_${sessionId}_movement_${movementPoints}_final_${finalScyraPoints}"
+}

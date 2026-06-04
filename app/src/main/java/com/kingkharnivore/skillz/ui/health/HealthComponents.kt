@@ -48,7 +48,7 @@ fun HealthConnectSettingsCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.40f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -93,7 +93,7 @@ fun DisableHealthPendingFlowsDialog(
         onDismissRequest = onKeepHealthOn,
         title = { Text("Disable Health?") },
         text = {
-            Text("Some recent Flows may still be waiting for step data from Health Connect.\n\nIf you disable Health now, Scyra will stop checking those Flows and any pending Movement Points may not be awarded.\n\nYou can turn Health back on later.")
+            Text("Some recent Flows may still be waiting for step data or improved Health Connect sync.\n\nIf you disable Health now, Scyra will stop checking those Flows and any pending Movement Points may not be awarded.\n\nYou can turn Health back on later.")
         },
         confirmButton = { TextButton(onClick = onDisableAnyway) { Text("Disable Anyway") } },
         dismissButton = { TextButton(onClick = onKeepHealthOn) { Text("Keep Health On") } }

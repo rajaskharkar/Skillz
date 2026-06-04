@@ -43,49 +43,41 @@ class HealthRefreshUseCase @Inject constructor(
         val intervals = FlowActiveIntervalCodec.decode(snapshot.activeIntervalJson).ifEmpty {
             listOf(FlowActiveInterval(snapshot.flowStartTimeMs, snapshot.flowEndTimeMs))
         }
-        var totalSteps = 0L
-        var sawSuccess = false
-        var sawNoData = false
-        intervals.forEach { interval ->
-            when (val result = movementDataSource.readStepsBetween(
+        return MovementStepAggregator().readStepsAcrossActiveIntervals(intervals) { interval ->
+            movementDataSource.readStepsBetween(
                 Instant.ofEpochMilli(interval.startTimeMs),
                 Instant.ofEpochMilli(interval.endTimeMs)
-            )) {
-                MovementReadResult.HealthConnectUnavailable -> return MovementReadResult.HealthConnectUnavailable
-                MovementReadResult.PermissionMissing -> return MovementReadResult.PermissionMissing
-                MovementReadResult.NoData -> sawNoData = true
-                is MovementReadResult.Error -> return result
-                is MovementReadResult.Success -> {
-                    sawSuccess = true
-                    totalSteps += result.steps
-                }
-            }
+            )
         }
-        return if (sawSuccess) MovementReadResult.Success(totalSteps) else if (sawNoData) MovementReadResult.NoData else MovementReadResult.NoData
     }
 
     private suspend fun applySteps(snapshot: FlowHealthSnapshotEntity, steps: Long, nowMs: Long) {
         val currentBreakdown = flowHealthRepository.getRewardBreakdown(snapshot.sessionId) ?: return
-        val newRawMovement = maxOf(snapshot.rawMovementPoints, calculator.calculateMovementPoints(steps))
-        val newBreakdown = MovementRewardRecalculator.withMovementPoints(
-            nonMovementPreMultiplierPoints = currentBreakdown.nonMovementPreMultiplierPoints,
-            pulseBonusPoints = currentBreakdown.pulseBonusPoints,
-            surgeBonusPoints = currentBreakdown.surgeBonusPoints,
-            otherPreMultiplierBonusPoints = currentBreakdown.otherPreMultiplierBonusPoints,
-            movementPoints = newRawMovement,
-            arcMultiplier = currentBreakdown.arcMultiplier,
-            streakMultiplier = currentBreakdown.streakMultiplier,
-            otherMultiplier = currentBreakdown.otherMultiplier,
-            pearlEligible = currentBreakdown.pearlEligible
+        val delayedReward = DelayedMovementRewardPolicy.calculate(
+            steps = steps,
+            context = StoredMovementRewardContext(
+                nonMovementPreMultiplierPoints = currentBreakdown.nonMovementPreMultiplierPoints,
+                pulseBonusPoints = currentBreakdown.pulseBonusPoints,
+                surgeBonusPoints = currentBreakdown.surgeBonusPoints,
+                otherPreMultiplierBonusPoints = currentBreakdown.otherPreMultiplierBonusPoints,
+                existingMovementPoints = currentBreakdown.movementPoints,
+                oldFinalScyraPoints = currentBreakdown.finalScyraPoints,
+                arcMultiplier = currentBreakdown.arcMultiplier,
+                streakMultiplier = currentBreakdown.streakMultiplier,
+                otherMultiplier = currentBreakdown.otherMultiplier,
+                pearlEligible = currentBreakdown.pearlEligible
+            ),
+            calculator = calculator
         )
-        val delta = (newBreakdown.finalScyraPoints - currentBreakdown.finalScyraPoints).coerceAtLeast(0L)
+        val newRawMovement = delayedReward.newRawMovementPoints
+        val delta = delayedReward.deltaScyraPoints
         val status = if (newRawMovement > 0L) FlowHealthSyncStatus.CAPTURED else FlowHealthSyncStatus.NO_REWARD
         val updatedSnapshot = snapshot.copy(
             status = status,
             steps = maxOf(snapshot.steps ?: 0L, steps),
             rawMovementPoints = newRawMovement,
-            finalMovementScyraContribution = newBreakdown.finalScyraPoints - (currentBreakdown.finalScyraPoints - snapshot.finalMovementScyraContribution),
-            finalMovementPearlContribution = if (currentBreakdown.pearlEligible) newBreakdown.pearlsEarned else 0L,
+            finalMovementScyraContribution = (delayedReward.newFinalScyraPoints - currentBreakdown.nonMovementPreMultiplierPoints).coerceAtLeast(0L),
+            finalMovementPearlContribution = if (currentBreakdown.pearlEligible) delayedReward.pearlsEarned else 0L,
             firstCheckedAtMs = snapshot.firstCheckedAtMs ?: nowMs,
             lastCheckedAtMs = nowMs,
             capturedAtMs = if (newRawMovement > 0L) nowMs else snapshot.capturedAtMs,
@@ -93,22 +85,22 @@ class HealthRefreshUseCase @Inject constructor(
             updatedAfterSync = delta > 0L || snapshot.updatedAfterSync
         )
         val updatedBreakdown = currentBreakdown.copy(
-            movementPoints = newBreakdown.movementPoints,
-            preMultiplierTotal = newBreakdown.preMultiplierTotal,
-            arcBonusPoints = newBreakdown.arcBonusPoints,
-            finalScyraPoints = newBreakdown.finalScyraPoints,
-            pearlsEarned = newBreakdown.pearlsEarned
+            movementPoints = delayedReward.newRawMovementPoints,
+            preMultiplierTotal = delayedReward.newPreMultiplierTotal,
+            arcBonusPoints = delayedReward.newArcBonusPoints,
+            finalScyraPoints = delayedReward.newFinalScyraPoints,
+            pearlsEarned = delayedReward.pearlsEarned
         )
         val stablePearlReason = if (delta > 0L && currentBreakdown.pearlEligible) {
-            "movement_bonus_delta_session_${snapshot.sessionId}_$newRawMovement"
+            MovementPearlDeltaKey.reason(snapshot.sessionId, newRawMovement, delayedReward.newFinalScyraPoints)
         } else {
             null
         }
-        flowHealthRepository.applyDelayedMovementUpdate(
+        flowHealthRepository.applyDelayedMovementUpdateTransactionally(
             snapshot = updatedSnapshot,
             breakdown = updatedBreakdown,
-            finalScyraPoints = newBreakdown.finalScyraPoints.toInt(),
-            arcBonusPoints = newBreakdown.arcBonusPoints.toInt(),
+            finalScyraPoints = delayedReward.newFinalScyraPoints.toInt(),
+            arcBonusPoints = delayedReward.newArcBonusPoints.toInt(),
             pearlDelta = delta.toInt(),
             stablePearlReason = stablePearlReason
         )
