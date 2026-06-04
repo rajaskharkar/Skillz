@@ -39,7 +39,7 @@ class MovementBonusCalculatorTest {
 
     @Test fun movementPointsAreIncludedBeforeMultipliersAndPearls() {
         val reward = MovementRewardRecalculator.withMovementPoints(
-            baseFlowPoints = 42,
+            nonMovementPreMultiplierPoints = 42,
             pulseBonusPoints = 0,
             surgeBonusPoints = 15,
             movementPoints = 13,

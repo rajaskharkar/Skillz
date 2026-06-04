@@ -12,7 +12,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DirectionsWalk
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -49,7 +48,7 @@ fun HealthConnectSettingsCard(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.40f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -103,14 +102,29 @@ fun DisableHealthPendingFlowsDialog(
 
 @Composable
 fun MovementBonusActivePill(modifier: Modifier = Modifier) {
-    AssistChip(
+    Surface(
         modifier = modifier,
-        onClick = {},
-        label = { Text("Movement Bonus active · Every 25 steps earns +1 point") },
-        leadingIcon = {
-            Icon(Icons.Outlined.DirectionsWalk, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(18.dp))
+        shape = RoundedCornerShape(50.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                Icons.Outlined.DirectionsWalk,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                "Movement Bonus active · Every 25 steps earns +1 point",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
         }
-    )
+    }
 }
 
 @Composable

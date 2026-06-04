@@ -20,7 +20,7 @@ import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 )
 data class FlowRewardBreakdownEntity(
     @PrimaryKey val sessionId: Long,
-    val baseFlowPoints: Long,
+    val nonMovementPreMultiplierPoints: Long,
     val pulseBonusPoints: Long,
     val surgeBonusPoints: Long,
     val otherPreMultiplierBonusPoints: Long,

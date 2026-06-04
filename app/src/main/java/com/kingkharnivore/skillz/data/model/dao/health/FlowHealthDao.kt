@@ -34,8 +34,17 @@ interface FlowHealthDao {
     @Query("SELECT * FROM flow_health_snapshots WHERE sessionId IN (:sessionIds)")
     suspend fun getSnapshotsForSessions(sessionIds: List<Long>): List<FlowHealthSnapshotEntity>
 
-    @Query("SELECT COUNT(*) FROM flow_health_snapshots WHERE status IN (:statuses)")
-    suspend fun countSnapshotsWithStatus(statuses: List<FlowHealthSyncStatus>): Int
+    @Query("""
+        SELECT COUNT(*) FROM flow_health_snapshots
+        WHERE status IN (:statuses)
+          AND (:nowMs < expiresAtMs OR expiresAtMs IS NULL)
+          AND checkCount < :maxCheckCount
+    """)
+    suspend fun countRefreshableSnapshots(
+        statuses: List<FlowHealthSyncStatus>,
+        nowMs: Long,
+        maxCheckCount: Int
+    ): Int
 
     @Query("""
         SELECT * FROM flow_health_snapshots
@@ -58,11 +67,14 @@ interface FlowHealthDao {
         UPDATE flow_health_snapshots
         SET status = :disabledStatus, lastCheckedAtMs = :nowMs
         WHERE status IN (:statuses)
+          AND (:nowMs < expiresAtMs OR expiresAtMs IS NULL)
+          AND checkCount < :maxCheckCount
     """)
-    suspend fun markStatusesDisabled(
+    suspend fun markRefreshableDisabled(
         statuses: List<FlowHealthSyncStatus>,
         disabledStatus: FlowHealthSyncStatus = FlowHealthSyncStatus.DISABLED_BEFORE_CAPTURE,
-        nowMs: Long
+        nowMs: Long,
+        maxCheckCount: Int
     )
 
     @Query("""

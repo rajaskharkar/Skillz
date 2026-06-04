@@ -269,6 +269,7 @@ object SkillzDatabaseMigrations {
         addColumnIfMissing(db, "ongoing_session", "healthEnabledAtStart", "INTEGER NOT NULL DEFAULT 0")
         addColumnIfMissing(db, "ongoing_session", "healthPermissionGrantedAtStart", "INTEGER NOT NULL DEFAULT 0")
         addColumnIfMissing(db, "ongoing_session", "movementBonusEligibleAtStart", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "ongoing_session", "activeIntervalJson", "TEXT")
         db.execSQL(
             """
             CREATE TABLE IF NOT EXISTS `flow_health_snapshots` (
@@ -303,7 +304,7 @@ object SkillzDatabaseMigrations {
             """
             CREATE TABLE IF NOT EXISTS `flow_reward_breakdowns` (
                 `sessionId` INTEGER NOT NULL,
-                `baseFlowPoints` INTEGER NOT NULL,
+                `nonMovementPreMultiplierPoints` INTEGER NOT NULL,
                 `pulseBonusPoints` INTEGER NOT NULL,
                 `surgeBonusPoints` INTEGER NOT NULL,
                 `otherPreMultiplierBonusPoints` INTEGER NOT NULL,

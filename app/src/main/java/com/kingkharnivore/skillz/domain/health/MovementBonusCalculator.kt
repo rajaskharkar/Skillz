@@ -26,7 +26,7 @@ class MovementBonusEligibilityPolicy {
 }
 
 data class FlowRewardBreakdown(
-    val baseFlowPoints: Long,
+    val nonMovementPreMultiplierPoints: Long,
     val pulseBonusPoints: Long = 0L,
     val surgeBonusPoints: Long = 0L,
     val otherPreMultiplierBonusPoints: Long = 0L,
@@ -40,9 +40,16 @@ data class FlowRewardBreakdown(
     val pearlsEarned: Long
 )
 
+/**
+ * Central Movement Bonus reward formula.
+ *
+ * Scyra currently has an Arc multiplier only in the Flow completion path. Streak and
+ * other multiplier hooks are intentionally represented here and persisted as 1.0 so
+ * future multipliers plug into one formula instead of duplicating health-specific math.
+ */
 object MovementRewardRecalculator {
     fun withMovementPoints(
-        baseFlowPoints: Long,
+        nonMovementPreMultiplierPoints: Long,
         pulseBonusPoints: Long = 0L,
         surgeBonusPoints: Long = 0L,
         otherPreMultiplierBonusPoints: Long = 0L,
@@ -52,13 +59,13 @@ object MovementRewardRecalculator {
         otherMultiplier: Double = 1.0,
         pearlEligible: Boolean
     ): FlowRewardBreakdown {
-        val preMultiplierTotal = baseFlowPoints + pulseBonusPoints + surgeBonusPoints +
+        val preMultiplierTotal = nonMovementPreMultiplierPoints + pulseBonusPoints + surgeBonusPoints +
             otherPreMultiplierBonusPoints + movementPoints
         val multiplier = arcMultiplier * streakMultiplier * otherMultiplier
         val finalScyraPoints = kotlin.math.round(preMultiplierTotal * multiplier).toLong()
         val arcBonusPoints = (finalScyraPoints - preMultiplierTotal).coerceAtLeast(0L)
         return FlowRewardBreakdown(
-            baseFlowPoints = baseFlowPoints,
+            nonMovementPreMultiplierPoints = nonMovementPreMultiplierPoints,
             pulseBonusPoints = pulseBonusPoints,
             surgeBonusPoints = surgeBonusPoints,
             otherPreMultiplierBonusPoints = otherPreMultiplierBonusPoints,
@@ -95,5 +102,23 @@ object FlowActiveIntervalNormalizer {
             }
         }
         return merged
+    }
+}
+
+object FlowActiveIntervalCodec {
+    fun encode(intervals: List<FlowActiveInterval>): String =
+        FlowActiveIntervalNormalizer.normalize(intervals)
+            .joinToString(separator = ";") { "${it.startTimeMs}-${it.endTimeMs}" }
+
+    fun decode(encoded: String?): List<FlowActiveInterval> {
+        if (encoded.isNullOrBlank()) return emptyList()
+        return FlowActiveIntervalNormalizer.normalize(
+            encoded.split(';').mapNotNull { part ->
+                val pieces = part.split('-', limit = 2)
+                val start = pieces.getOrNull(0)?.toLongOrNull() ?: return@mapNotNull null
+                val end = pieces.getOrNull(1)?.toLongOrNull() ?: return@mapNotNull null
+                FlowActiveInterval(start, end)
+            }
+        )
     }
 }

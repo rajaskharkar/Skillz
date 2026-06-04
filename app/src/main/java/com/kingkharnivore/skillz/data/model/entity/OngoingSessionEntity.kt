@@ -31,5 +31,6 @@ data class OngoingSessionEntity(
     val originPulseJourneyNameSnapshot: String? = null,
     val healthEnabledAtStart: Boolean = false,
     val healthPermissionGrantedAtStart: Boolean = false,
-    val movementBonusEligibleAtStart: Boolean = false
+    val movementBonusEligibleAtStart: Boolean = false,
+    val activeIntervalJson: String? = null
 )
