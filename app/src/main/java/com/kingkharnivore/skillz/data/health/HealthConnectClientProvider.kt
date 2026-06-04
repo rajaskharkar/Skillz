@@ -10,8 +10,15 @@ import javax.inject.Singleton
 class HealthConnectClientProvider @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    fun isAvailable(): Boolean =
-        HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE
+    fun availability(): HealthConnectAvailability =
+        when (HealthConnectClient.getSdkStatus(context)) {
+            HealthConnectClient.SDK_AVAILABLE -> HealthConnectAvailability.AVAILABLE
+            HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED ->
+                HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED
+            else -> HealthConnectAvailability.UNAVAILABLE
+        }
+
+    fun isAvailable(): Boolean = availability() == HealthConnectAvailability.AVAILABLE
 
     fun clientOrNull(): HealthConnectClient? =
         if (isAvailable()) HealthConnectClient.getOrCreate(context) else null

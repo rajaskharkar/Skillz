@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DirectionsWalk
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -25,17 +27,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.data.health.HealthConnectAvailability
 import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsUiState
 
 @Composable
 fun HealthConnectSettingsCard(
     state: HealthSettingsUiState,
     onToggle: (Boolean) -> Unit,
+    onConnectHealth: () -> Unit,
+    onInstallOrUpdateHealthConnect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val title = "Health"
     val (headline, body) = when {
-        !state.healthConnectAvailable -> "Health Connect is not available on this device." to
+        state.providerUpdateRequired -> "Health Connect needs to be installed or updated." to
+            "Install or update Health Connect to use Movement Bonus."
+        state.healthConnectAvailability == HealthConnectAvailability.UNAVAILABLE -> "Health Connect is not available on this device." to
             "Movement Bonus needs Health Connect to read steps during your Flows."
         state.localMovementBonusEnabled && !state.readStepsPermissionGranted -> "Health permission was removed." to
             "Reconnect Health to earn Movement Points during eligible Flows."
@@ -43,6 +50,17 @@ fun HealthConnectSettingsCard(
             "Steps taken during eligible Flows can earn Movement Points. Movement Points are added to your Scyra Points and can also generate Pearls."
         else -> "Enable Health to earn Movement Points during your Flows." to
             "Scyra reads your step count through Health Connect and gives you +1 Movement Point for every 25 steps during eligible Flows. Movement Points are added to your total Scyra Points."
+    }
+
+    val actionLabel = when {
+        state.providerUpdateRequired -> "Install / Update Health Connect"
+        state.healthConnectAvailable && !state.toggleChecked -> "Connect Health"
+        else -> null
+    }
+    val action = when {
+        state.providerUpdateRequired -> onInstallOrUpdateHealthConnect
+        state.healthConnectAvailable && !state.toggleChecked -> onConnectHealth
+        else -> null
     }
 
     Card(
@@ -63,9 +81,19 @@ fun HealthConnectSettingsCard(
                 modifier = Modifier.size(24.dp)
             )
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
                 Spacer(Modifier.height(6.dp))
-                Text(headline, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                Text(
+                    headline,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
                 Spacer(Modifier.height(4.dp))
                 Text(body, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.86f))
                 Spacer(Modifier.height(8.dp))
@@ -74,15 +102,31 @@ fun HealthConnectSettingsCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
                 )
+                if (actionLabel != null && action != null) {
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = action,
+                        enabled = !state.isBusy,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary
+                        )
+                    ) {
+                        Text(actionLabel)
+                    }
+                }
             }
-            Switch(
-                checked = state.toggleChecked,
-                enabled = state.toggleEnabled,
-                onCheckedChange = onToggle
-            )
+            if (state.healthConnectAvailable) {
+                Switch(
+                    checked = state.toggleChecked,
+                    enabled = state.toggleEnabled,
+                    onCheckedChange = onToggle
+                )
+            }
         }
     }
 }
+
 
 @Composable
 fun DisableHealthPendingFlowsDialog(

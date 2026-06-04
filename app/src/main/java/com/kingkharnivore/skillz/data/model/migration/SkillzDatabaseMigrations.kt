@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 23.
+     * Current database version is 28.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -113,6 +113,12 @@ object SkillzDatabaseMigrations {
     val MIGRATION_26_27 = object : Migration(26, 27) {
         override fun migrate(db: SupportSQLiteDatabase) {
             createMovementBonusTables(db)
+        }
+    }
+
+    val MIGRATION_27_28 = object : Migration(27, 28) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            normalizeMovementBonusTables(db)
         }
     }
 
@@ -263,7 +269,8 @@ object SkillzDatabaseMigrations {
                 MIGRATION_23_24 +
                 MIGRATION_24_25 +
                 MIGRATION_25_26 +
-                MIGRATION_26_27
+                MIGRATION_26_27 +
+                MIGRATION_27_28
 
     private fun createMovementBonusTables(db: SupportSQLiteDatabase) {
         addColumnIfMissing(db, "ongoing_session", "healthEnabledAtStart", "INTEGER NOT NULL DEFAULT 0")
@@ -323,6 +330,160 @@ object SkillzDatabaseMigrations {
             )
             """.trimIndent()
         )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_flow_reward_breakdowns_sessionId` ON `flow_reward_breakdowns` (`sessionId`)")
+    }
+
+    private fun normalizeMovementBonusTables(db: SupportSQLiteDatabase) {
+        addColumnIfMissing(db, "ongoing_session", "healthEnabledAtStart", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "ongoing_session", "healthPermissionGrantedAtStart", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "ongoing_session", "movementBonusEligibleAtStart", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "ongoing_session", "activeIntervalJson", "TEXT")
+        rebuildFlowHealthSnapshots(db)
+        rebuildFlowRewardBreakdowns(db)
+    }
+
+    private fun rebuildFlowHealthSnapshots(db: SupportSQLiteDatabase) {
+        val sourceTable = "flow_health_snapshots"
+        val tempTable = "flow_health_snapshots_v28"
+        val sourceExists = tableExists(db, sourceTable)
+        val sourceColumns = if (sourceExists) columns(db, sourceTable) else emptySet()
+
+        db.execSQL("DROP TABLE IF EXISTS `$tempTable`")
+        db.execSQL(
+            """
+            CREATE TABLE `$tempTable` (
+                `sessionId` INTEGER NOT NULL,
+                `healthEnabledAtStart` INTEGER NOT NULL,
+                `permissionGrantedAtStart` INTEGER NOT NULL,
+                `status` TEXT NOT NULL,
+                `steps` INTEGER,
+                `rawMovementPoints` INTEGER NOT NULL,
+                `finalMovementScyraContribution` INTEGER NOT NULL,
+                `finalMovementPearlContribution` INTEGER NOT NULL,
+                `firstCheckedAtMs` INTEGER,
+                `lastCheckedAtMs` INTEGER,
+                `capturedAtMs` INTEGER,
+                `expiresAtMs` INTEGER,
+                `checkCount` INTEGER NOT NULL,
+                `flowStartTimeMs` INTEGER NOT NULL,
+                `flowEndTimeMs` INTEGER NOT NULL,
+                `activeIntervalJson` TEXT,
+                `sourceLabel` TEXT,
+                `updatedAfterSync` INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(`sessionId`),
+                FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+
+        if (sourceExists) {
+            db.execSQL(
+                """
+                INSERT OR REPLACE INTO `$tempTable` (
+                    `sessionId`, `healthEnabledAtStart`, `permissionGrantedAtStart`, `status`, `steps`,
+                    `rawMovementPoints`, `finalMovementScyraContribution`, `finalMovementPearlContribution`,
+                    `firstCheckedAtMs`, `lastCheckedAtMs`, `capturedAtMs`, `expiresAtMs`, `checkCount`,
+                    `flowStartTimeMs`, `flowEndTimeMs`, `activeIntervalJson`, `sourceLabel`, `updatedAfterSync`
+                )
+                SELECT
+                    ${expr(sourceColumns, "sessionId", "0")},
+                    ${expr(sourceColumns, "healthEnabledAtStart", "0")},
+                    ${expr(sourceColumns, "permissionGrantedAtStart", "0")},
+                    ${expr(sourceColumns, "status", "'PENDING'")},
+                    ${expr(sourceColumns, "steps", "NULL")},
+                    ${expr(sourceColumns, "rawMovementPoints", "0")},
+                    ${expr(sourceColumns, "finalMovementScyraContribution", "0")},
+                    ${expr(sourceColumns, "finalMovementPearlContribution", "0")},
+                    ${expr(sourceColumns, "firstCheckedAtMs", "NULL")},
+                    ${expr(sourceColumns, "lastCheckedAtMs", "NULL")},
+                    ${expr(sourceColumns, "capturedAtMs", "NULL")},
+                    ${expr(sourceColumns, "expiresAtMs", "NULL")},
+                    ${expr(sourceColumns, "checkCount", "0")},
+                    ${expr(sourceColumns, "flowStartTimeMs", "0")},
+                    ${expr(sourceColumns, "flowEndTimeMs", "0")},
+                    ${expr(sourceColumns, "activeIntervalJson", "NULL")},
+                    ${expr(sourceColumns, "sourceLabel", "'Health Connect'")},
+                    ${expr(sourceColumns, "updatedAfterSync", "0")}
+                FROM `$sourceTable`
+                """.trimIndent()
+            )
+            db.execSQL("DROP TABLE `$sourceTable`")
+        }
+
+        db.execSQL("ALTER TABLE `$tempTable` RENAME TO `$sourceTable`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_flow_health_snapshots_sessionId` ON `flow_health_snapshots` (`sessionId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_flow_health_snapshots_status` ON `flow_health_snapshots` (`status`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_flow_health_snapshots_expiresAtMs` ON `flow_health_snapshots` (`expiresAtMs`)")
+    }
+
+    private fun rebuildFlowRewardBreakdowns(db: SupportSQLiteDatabase) {
+        val sourceTable = "flow_reward_breakdowns"
+        val tempTable = "flow_reward_breakdowns_v28"
+        val sourceExists = tableExists(db, sourceTable)
+        val sourceColumns = if (sourceExists) columns(db, sourceTable) else emptySet()
+
+        db.execSQL("DROP TABLE IF EXISTS `$tempTable`")
+        db.execSQL(
+            """
+            CREATE TABLE `$tempTable` (
+                `sessionId` INTEGER NOT NULL,
+                `nonMovementPreMultiplierPoints` INTEGER NOT NULL,
+                `pulseBonusPoints` INTEGER NOT NULL,
+                `surgeBonusPoints` INTEGER NOT NULL,
+                `otherPreMultiplierBonusPoints` INTEGER NOT NULL,
+                `movementPoints` INTEGER NOT NULL,
+                `preMultiplierTotal` INTEGER NOT NULL,
+                `arcMultiplier` REAL NOT NULL,
+                `streakMultiplier` REAL NOT NULL,
+                `otherMultiplier` REAL NOT NULL,
+                `arcBonusPoints` INTEGER NOT NULL,
+                `finalScyraPoints` INTEGER NOT NULL,
+                `pearlsEarned` INTEGER NOT NULL,
+                `pearlEligible` INTEGER NOT NULL,
+                `roundingMode` TEXT NOT NULL,
+                PRIMARY KEY(`sessionId`),
+                FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+
+        if (sourceExists) {
+            val nonMovementFallback = when {
+                "nonMovementPreMultiplierPoints" in sourceColumns -> "`nonMovementPreMultiplierPoints`"
+                "baseFlowPoints" in sourceColumns -> "`baseFlowPoints`"
+                else -> "0"
+            }
+            db.execSQL(
+                """
+                INSERT OR REPLACE INTO `$tempTable` (
+                    `sessionId`, `nonMovementPreMultiplierPoints`, `pulseBonusPoints`, `surgeBonusPoints`,
+                    `otherPreMultiplierBonusPoints`, `movementPoints`, `preMultiplierTotal`, `arcMultiplier`,
+                    `streakMultiplier`, `otherMultiplier`, `arcBonusPoints`, `finalScyraPoints`,
+                    `pearlsEarned`, `pearlEligible`, `roundingMode`
+                )
+                SELECT
+                    ${expr(sourceColumns, "sessionId", "0")},
+                    $nonMovementFallback,
+                    ${expr(sourceColumns, "pulseBonusPoints", "0")},
+                    ${expr(sourceColumns, "surgeBonusPoints", "0")},
+                    ${expr(sourceColumns, "otherPreMultiplierBonusPoints", "0")},
+                    ${expr(sourceColumns, "movementPoints", "0")},
+                    ${expr(sourceColumns, "preMultiplierTotal", nonMovementFallback)},
+                    ${expr(sourceColumns, "arcMultiplier", "1.0")},
+                    ${expr(sourceColumns, "streakMultiplier", "1.0")},
+                    ${expr(sourceColumns, "otherMultiplier", "1.0")},
+                    ${expr(sourceColumns, "arcBonusPoints", "0")},
+                    ${expr(sourceColumns, "finalScyraPoints", nonMovementFallback)},
+                    ${expr(sourceColumns, "pearlsEarned", "0")},
+                    ${expr(sourceColumns, "pearlEligible", "1")},
+                    ${expr(sourceColumns, "roundingMode", "'KOTLIN_ROUND_TO_INT_COMPAT'")}
+                FROM `$sourceTable`
+                """.trimIndent()
+            )
+            db.execSQL("DROP TABLE `$sourceTable`")
+        }
+
+        db.execSQL("ALTER TABLE `$tempTable` RENAME TO `$sourceTable`")
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_flow_reward_breakdowns_sessionId` ON `flow_reward_breakdowns` (`sessionId`)")
     }
 

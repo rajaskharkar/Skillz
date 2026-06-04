@@ -33,6 +33,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -45,6 +46,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -63,6 +66,8 @@ import androidx.health.connect.client.PermissionController
 import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.ui.health.DisableHealthPendingFlowsDialog
 import com.kingkharnivore.skillz.ui.health.HealthConnectSettingsCard
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
@@ -87,6 +92,8 @@ fun HelpScreen(
 
     var showLanguageDialog by rememberSaveable { mutableStateOf(false) }
     val healthState by healthViewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val healthPermissionLauncher = rememberLauncherForActivityResult(
         PermissionController.createRequestPermissionResultContract()
     ) { granted ->
@@ -94,6 +101,15 @@ fun HelpScreen(
     }
 
     LaunchedEffect(Unit) { healthViewModel.refreshState() }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                healthViewModel.refreshState()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Column(
         modifier = modifier
@@ -135,12 +151,16 @@ fun HelpScreen(
             state = healthState,
             onToggle = { checked ->
                 if (checked) {
-                    if (healthState.healthConnectAvailable) {
-                        healthPermissionLauncher.launch(setOf(healthViewModel.readStepsPermission))
-                    }
+                    healthPermissionLauncher.launch(setOf(healthViewModel.readStepsPermission))
                 } else {
                     healthViewModel.requestDisableOrDisableNow()
                 }
+            },
+            onConnectHealth = {
+                healthPermissionLauncher.launch(setOf(healthViewModel.readStepsPermission))
+            },
+            onInstallOrUpdateHealthConnect = {
+                healthViewModel.openHealthConnectInstallOrUpdate(context)
             }
         )
 

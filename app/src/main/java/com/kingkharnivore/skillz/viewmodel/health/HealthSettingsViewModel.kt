@@ -1,7 +1,12 @@
 package com.kingkharnivore.skillz.viewmodel.health
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kingkharnivore.skillz.data.health.HealthConnectAvailability
 import com.kingkharnivore.skillz.data.repository.health.FlowHealthRepository
 import com.kingkharnivore.skillz.data.repository.health.HealthPermissionRepository
 import com.kingkharnivore.skillz.data.repository.health.HealthSettingsRepository
@@ -16,7 +21,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class HealthSettingsUiState(
-    val healthConnectAvailable: Boolean = false,
+    val healthConnectAvailability: HealthConnectAvailability = HealthConnectAvailability.UNAVAILABLE,
     val readStepsPermissionGranted: Boolean = false,
     val movementBonusEnabled: Boolean = false,
     val localMovementBonusEnabled: Boolean = false,
@@ -24,8 +29,17 @@ data class HealthSettingsUiState(
     val showDisableWarning: Boolean = false,
     val isBusy: Boolean = false
 ) {
-    val toggleChecked: Boolean get() = healthConnectAvailable && readStepsPermissionGranted && movementBonusEnabled
-    val toggleEnabled: Boolean get() = healthConnectAvailable && !isBusy
+    val healthConnectAvailable: Boolean
+        get() = healthConnectAvailability == HealthConnectAvailability.AVAILABLE
+
+    val providerUpdateRequired: Boolean
+        get() = healthConnectAvailability == HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED
+
+    val toggleChecked: Boolean
+        get() = healthConnectAvailable && readStepsPermissionGranted && movementBonusEnabled
+
+    val toggleEnabled: Boolean
+        get() = healthConnectAvailable && !isBusy
 }
 
 @HiltViewModel
@@ -36,7 +50,7 @@ class HealthSettingsViewModel @Inject constructor(
     private val healthRefreshUseCase: HealthRefreshUseCase
 ) : ViewModel() {
     private val permissionGranted = MutableStateFlow(false)
-    private val available = MutableStateFlow(false)
+    private val availability = MutableStateFlow(HealthConnectAvailability.UNAVAILABLE)
     private val pending = MutableStateFlow(false)
     private val _uiState = MutableStateFlow(HealthSettingsUiState())
     val uiState: StateFlow<HealthSettingsUiState> = _uiState.asStateFlow()
@@ -45,9 +59,10 @@ class HealthSettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            combine(settingsRepository.settings, permissionGranted, available, pending) { settings, granted, isAvailable, hasPending ->
+            combine(settingsRepository.settings, permissionGranted, availability, pending) { settings, granted, currentAvailability, hasPending ->
+                val isAvailable = currentAvailability == HealthConnectAvailability.AVAILABLE
                 HealthSettingsUiState(
-                    healthConnectAvailable = isAvailable,
+                    healthConnectAvailability = currentAvailability,
                     readStepsPermissionGranted = granted,
                     movementBonusEnabled = settings.movementBonusEnabled && granted && isAvailable,
                     localMovementBonusEnabled = settings.movementBonusEnabled,
@@ -62,10 +77,11 @@ class HealthSettingsViewModel @Inject constructor(
 
     fun refreshState() {
         viewModelScope.launch {
-            available.value = permissionRepository.isHealthConnectAvailable()
+            val currentAvailability = permissionRepository.availability()
+            availability.value = currentAvailability
             permissionGranted.value = permissionRepository.isReadStepsGranted()
             pending.value = flowHealthRepository.hasPendingRefreshableSnapshots()
-            if (available.value && permissionGranted.value) {
+            if (currentAvailability == HealthConnectAvailability.AVAILABLE && permissionGranted.value) {
                 healthRefreshUseCase.refreshForeground()
             }
         }
@@ -75,11 +91,16 @@ class HealthSettingsViewModel @Inject constructor(
         viewModelScope.launch {
             val granted = readStepsPermission in grantedPermissions || permissionRepository.isReadStepsGranted()
             permissionGranted.value = granted
-            if (granted && available.value) {
+            availability.value = permissionRepository.availability()
+            if (granted && availability.value == HealthConnectAvailability.AVAILABLE) {
                 settingsRepository.setMovementBonusEnabled(true)
                 healthRefreshUseCase.refreshForeground()
             }
         }
+    }
+
+    fun openHealthConnectInstallOrUpdate(context: Context) {
+        openHealthConnectInstallOrUpdateIntent(context)
     }
 
     fun requestDisableOrDisableNow() {
@@ -104,6 +125,28 @@ class HealthSettingsViewModel @Inject constructor(
             settingsRepository.setMovementBonusEnabled(false)
             pending.value = false
             _uiState.update { it.copy(showDisableWarning = false) }
+        }
+    }
+
+    private companion object {
+        const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
+
+        fun openHealthConnectInstallOrUpdateIntent(context: Context) {
+            val marketIntent = Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse("market://details?id=$HEALTH_CONNECT_PACKAGE")
+            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+            val webIntent = Intent(
+                Intent.ACTION_VIEW,
+                Uri.parse("https://play.google.com/store/apps/details?id=$HEALTH_CONNECT_PACKAGE")
+            ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+            try {
+                context.startActivity(marketIntent)
+            } catch (_: ActivityNotFoundException) {
+                context.startActivity(webIntent)
+            }
         }
     }
 }
