@@ -264,13 +264,7 @@ fun ShellRootScreen(
                     onOpenPearlBasin = { showPearlBasin = true }
                 )
 
-                ShellDestination.Focus -> FocusRoomScreen(
-                    uiState = uiState,
-                    onPlace = viewModel::place,
-                    onInvite = viewModel::invitePearlObject,
-                    onReturn = viewModel::returnToChest,
-                    onUpgrade = viewModel::upgrade
-                )
+                ShellDestination.Focus -> FocusRoomScreen()
 
                 ShellDestination.Stillwater -> StillwaterRoomScreen(
                     uiState = uiState,
