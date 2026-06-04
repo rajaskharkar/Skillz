@@ -30,37 +30,50 @@ import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.data.health.HealthConnectAvailability
 import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsUiState
 
+private data class HealthCardRenderState(
+    val headline: String,
+    val body: String,
+    val actionLabel: String? = null,
+    val action: (() -> Unit)? = null,
+    val showSwitch: Boolean = false
+)
+
 @Composable
 fun HealthConnectSettingsCard(
     state: HealthSettingsUiState,
-    onToggle: (Boolean) -> Unit,
+    onToggleMovementBonus: (Boolean) -> Unit,
     onConnectHealth: () -> Unit,
     onInstallOrUpdateHealthConnect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val title = "Health"
-    val (headline, body) = when {
-        state.providerUpdateRequired -> "Health Connect needs to be installed or updated." to
-            "Install or update Health Connect to use Movement Bonus."
-        state.healthConnectAvailability == HealthConnectAvailability.UNAVAILABLE -> "Health Connect is not available on this device." to
-            "Movement Bonus needs Health Connect to read steps during your Flows."
-        state.localMovementBonusEnabled && !state.readStepsPermissionGranted -> "Health permission was removed." to
-            "Reconnect Health to earn Movement Points during eligible Flows."
-        state.toggleChecked -> "Movement Bonus is active." to
-            "Steps taken during eligible Flows can earn Movement Points. Movement Points are added to your Scyra Points and can also generate Pearls."
-        else -> "Enable Health to earn Movement Points during your Flows." to
-            "Scyra reads your step count through Health Connect and gives you +1 Movement Point for every 25 steps during eligible Flows. Movement Points are added to your total Scyra Points."
-    }
-
-    val actionLabel = when {
-        state.providerUpdateRequired -> "Install / Update Health Connect"
-        state.healthConnectAvailable && !state.toggleChecked -> "Connect Health"
-        else -> null
-    }
-    val action = when {
-        state.providerUpdateRequired -> onInstallOrUpdateHealthConnect
-        state.healthConnectAvailable && !state.toggleChecked -> onConnectHealth
-        else -> null
+    val (headline, body, actionLabel, action, showSwitch) = when {
+        state.healthConnectAvailability == HealthConnectAvailability.UNAVAILABLE -> HealthCardRenderState(
+            headline = "Health Connect is not available on this device.",
+            body = "Movement Bonus needs Health Connect to read steps during your Flows."
+        )
+        state.providerUpdateRequired -> HealthCardRenderState(
+            headline = "Health Connect needs to be installed or updated.",
+            body = "Install or update Health Connect to use Movement Bonus.",
+            actionLabel = "Install / Update Health Connect",
+            action = onInstallOrUpdateHealthConnect
+        )
+        state.healthConnectAvailable && !state.readStepsPermissionGranted -> HealthCardRenderState(
+            headline = "Enable Health to earn Movement Points during your Flows.",
+            body = "Scyra reads your step count through Health Connect and gives you +1 Movement Point for every 25 steps during eligible Flows. Movement Points are added to your total Scyra Points.",
+            actionLabel = "Connect Health",
+            action = onConnectHealth
+        )
+        state.healthConnectAvailable && state.localMovementBonusEnabled -> HealthCardRenderState(
+            headline = "Movement Bonus is active.",
+            body = "Steps taken during eligible Flows can earn Movement Points. Movement Points are added to your Scyra Points and can also generate Pearls.",
+            showSwitch = true
+        )
+        else -> HealthCardRenderState(
+            headline = "Movement Bonus is off.",
+            body = "Turn it on to earn Movement Points from steps during eligible Flows.",
+            showSwitch = true
+        )
     }
 
     Card(
@@ -102,6 +115,14 @@ fun HealthConnectSettingsCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
                 )
+                state.userMessage?.let { message ->
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        message,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
                 if (actionLabel != null && action != null) {
                     Spacer(Modifier.height(12.dp))
                     Button(
@@ -116,11 +137,11 @@ fun HealthConnectSettingsCard(
                     }
                 }
             }
-            if (state.healthConnectAvailable) {
+            if (showSwitch) {
                 Switch(
                     checked = state.toggleChecked,
-                    enabled = state.toggleEnabled,
-                    onCheckedChange = onToggle
+                    enabled = !state.isBusy,
+                    onCheckedChange = onToggleMovementBonus
                 )
             }
         }

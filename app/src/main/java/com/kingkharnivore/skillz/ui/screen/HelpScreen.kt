@@ -1,6 +1,7 @@
 package com.kingkharnivore.skillz.ui.screen
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
@@ -97,10 +98,15 @@ fun HelpScreen(
     val healthPermissionLauncher = rememberLauncherForActivityResult(
         PermissionController.createRequestPermissionResultContract()
     ) { granted ->
+        Log.d("HealthSettings", "Health permission result=$granted")
         healthViewModel.onPermissionResult(granted)
     }
 
     LaunchedEffect(Unit) { healthViewModel.refreshState() }
+    LaunchedEffect(healthState) {
+        Log.d("HealthSettings", "Health card state=$healthState")
+        Log.d("HealthSettings", "packageName=${context.packageName}")
+    }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -149,15 +155,23 @@ fun HelpScreen(
 
         HealthConnectSettingsCard(
             state = healthState,
-            onToggle = { checked ->
-                if (checked) {
+            onConnectHealth = {
+                Log.d(
+                    "HealthSettings",
+                    "Connect Health clicked availability=${healthState.healthConnectAvailability} permission=${healthViewModel.readStepsPermission}"
+                )
+                try {
                     healthPermissionLauncher.launch(setOf(healthViewModel.readStepsPermission))
+                } catch (t: Throwable) {
+                    healthViewModel.onPermissionLaunchFailed(t)
+                }
+            },
+            onToggleMovementBonus = { checked ->
+                if (checked) {
+                    healthViewModel.enableMovementBonusIfPermissionGranted()
                 } else {
                     healthViewModel.requestDisableOrDisableNow()
                 }
-            },
-            onConnectHealth = {
-                healthPermissionLauncher.launch(setOf(healthViewModel.readStepsPermission))
             },
             onInstallOrUpdateHealthConnect = {
                 healthViewModel.openHealthConnectInstallOrUpdate(context)
