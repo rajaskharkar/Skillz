@@ -217,6 +217,8 @@ class FlowViewModel @Inject constructor(
 
     private var baseStartTimeMs: Long? = null
     private var accumulatedBeforeStartMs: Long = 0L
+    private val activeIntervals = mutableListOf<FlowActiveInterval>()
+    private var activeIntervalStartMs: Long? = null
     private var tickerJob: Job? = null
     private var ongoingCreatedAtMs: Long = System.currentTimeMillis()
     private var currentFlowInstanceId: String = UUID.randomUUID().toString()
