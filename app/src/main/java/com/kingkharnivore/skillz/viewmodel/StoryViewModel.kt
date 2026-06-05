@@ -80,7 +80,7 @@ class StoryViewModel @Inject constructor(
 
     init {
         observeSessions()
-        viewModelScope.launch { runCatching { healthRefreshUseCase.refreshForeground() } }
+        viewModelScope.launch { runCatching { healthRefreshUseCase.refreshForeground(force = true) } }
     }
 
     fun setShowScoreUi(enabled: Boolean) {
@@ -614,9 +614,11 @@ class StoryViewModel @Inject constructor(
                 arcIndex = session.arcIndex,
                 arcMultiplierUsed = session.arcMultiplierUsed,
                 arcBonusPoints = session.arcBonusPoints,
-                movementSteps = health?.steps,
-                movementPoints = health?.rawMovementPoints ?: 0L,
-                movementBonusUpdatedAfterSync = health?.updatedAfterSync ?: false
+                movementSteps = health?.finalAwardedSteps ?: health?.steps,
+                movementPoints = health?.finalAwardedMovementPoints ?: health?.rawMovementPoints ?: 0L,
+                movementBonusUpdatedAfterSync = health?.updatedAfterSync ?: false,
+                movementDataSource = health?.movementDataSource,
+                movementIsPhoneEstimate = health?.movementDataSource == com.kingkharnivore.skillz.data.model.entity.health.MovementDataSourceType.PHONE_SENSOR
             )
         }
     }

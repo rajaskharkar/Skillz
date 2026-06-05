@@ -49,6 +49,10 @@ fun HealthConnectSettingsCard(
     onToggleMovementBonus: (Boolean) -> Unit,
     onConnectHealth: () -> Unit,
     onInstallOrUpdateHealthConnect: () -> Unit,
+    activityRecognitionPermissionGranted: Boolean = false,
+    phoneStepEstimateUnavailable: Boolean = false,
+    activityRecognitionDenied: Boolean = false,
+    onEnablePhoneStepEstimate: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val renderState = when {
@@ -154,6 +158,47 @@ fun HealthConnectSettingsCard(
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
                 )
 
+
+
+                if (state.localMovementBonusEnabled) {
+                    Spacer(Modifier.height(8.dp))
+                    when {
+                        phoneStepEstimateUnavailable -> Text(
+                            text = "Phone step estimate is not available on this device. Watch steps may still sync through Health Connect.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
+                        )
+                        activityRecognitionPermissionGranted -> Text(
+                            text = "Phone step estimate enabled.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
+                        )
+                        activityRecognitionDenied -> Text(
+                            text = "Phone step estimate is off. Movement Bonus can still use Health Connect.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
+                        )
+                        else -> {
+                            Text(
+                                text = "Scyra can estimate steps from your phone during active Flows. Health Connect may still update watch steps later.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Button(
+                                onClick = onEnablePhoneStepEstimate,
+                                enabled = !state.isBusy,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondary,
+                                    contentColor = MaterialTheme.colorScheme.onSecondary
+                                )
+                            ) {
+                                Text("Enable phone step estimate")
+                            }
+                        }
+                    }
+                }
+
                 state.rawHealthConnectSdkStatus?.let { rawStatus ->
                     Spacer(Modifier.height(8.dp))
                     Text(
@@ -246,7 +291,13 @@ fun DisableHealthPendingFlowsDialog(
 }
 
 @Composable
-fun MovementBonusActivePill(modifier: Modifier = Modifier) {
+fun MovementBonusActivePill(
+    estimatedPhoneSteps: Long?,
+    estimatedMovementPoints: Long,
+    phoneEstimateAvailable: Boolean,
+    activityRecognitionPermissionGranted: Boolean,
+    modifier: Modifier = Modifier
+) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(50.dp),
@@ -264,8 +315,14 @@ fun MovementBonusActivePill(modifier: Modifier = Modifier) {
                 modifier = Modifier.size(18.dp)
             )
 
+            val message = when {
+                phoneEstimateAvailable && (estimatedPhoneSteps ?: 0L) > 0L -> "Movement Bonus active · ~${estimatedPhoneSteps ?: 0L} phone steps · +$estimatedMovementPoints estimated"
+                phoneEstimateAvailable -> "Movement Bonus active · estimating phone steps…"
+                !activityRecognitionPermissionGranted -> "Movement Bonus active · phone estimate off · watch steps may sync later"
+                else -> "Movement Bonus active · final points update after sync"
+            }
             Text(
-                "Movement Bonus active · Every 25 steps earns +1 point",
+                message,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
@@ -277,6 +334,7 @@ fun MovementBonusActivePill(modifier: Modifier = Modifier) {
 fun MovementBonusRewardBlock(
     steps: Long,
     movementPoints: Long,
+    movementIsPhoneEstimate: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     if (movementPoints <= 0L || steps <= 0L) return
@@ -309,6 +367,13 @@ fun MovementBonusRewardBlock(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.secondary
             )
+            if (movementIsPhoneEstimate) {
+                Text(
+                    "Estimated from phone. Health Connect may update this later.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.78f)
+                )
+            }
         }
     }
 }
@@ -317,14 +382,29 @@ fun MovementBonusRewardBlock(
 fun FlowCardMovementLine(
     steps: Long?,
     movementPoints: Long,
+    movementIsPhoneEstimate: Boolean = false,
+    updatedAfterSync: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     if (movementPoints <= 0L || steps == null || steps <= 0L) return
 
-    Text(
-        text = "$steps steps · $movementPoints Movement Points",
-        modifier = modifier,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.secondary
-    )
+    Column(modifier = modifier) {
+        Text(
+            text = "$steps steps · $movementPoints Movement Points",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.secondary
+        )
+        when {
+            updatedAfterSync -> Text(
+                text = "Movement added after sync",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
+            )
+            movementIsPhoneEstimate -> Text(
+                text = "Estimated from phone",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
+            )
+        }
+    }
 }

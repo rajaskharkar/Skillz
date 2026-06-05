@@ -125,7 +125,7 @@ class HealthSettingsViewModel @Inject constructor(
                 if (currentAvailability == HealthConnectAvailability.AVAILABLE && granted) {
                     settingsRepository.setMovementBonusEnabled(true)
                     userMessage.value = null
-                    healthRefreshUseCase.refreshForeground()
+                    healthRefreshUseCase.refreshForeground(force = true)
                 } else {
                     settingsRepository.setMovementBonusEnabled(false)
                     userMessage.value = when (currentAvailability) {
@@ -189,7 +189,7 @@ class HealthSettingsViewModel @Inject constructor(
                 if (granted && currentAvailability == HealthConnectAvailability.AVAILABLE) {
                     settingsRepository.setMovementBonusEnabled(true)
                     userMessage.value = null
-                    healthRefreshUseCase.refreshForeground()
+                    healthRefreshUseCase.refreshForeground(force = true)
                 } else {
                     settingsRepository.setMovementBonusEnabled(false)
                     userMessage.value = "Health permission was not granted."
@@ -278,7 +278,7 @@ class HealthSettingsViewModel @Inject constructor(
 
         if (currentAvailability == HealthConnectAvailability.AVAILABLE && granted) {
             runCatching {
-                healthRefreshUseCase.refreshForeground()
+                healthRefreshUseCase.refreshForeground(force = true)
             }.onFailure {
                 Log.w(TAG, "Foreground health refresh failed", it)
             }

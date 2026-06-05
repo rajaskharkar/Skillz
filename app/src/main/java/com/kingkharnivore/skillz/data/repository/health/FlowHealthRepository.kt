@@ -42,11 +42,11 @@ class FlowHealthRepository @Inject constructor(
             maxCheckCount = MAX_CHECK_COUNT
         )
 
-    suspend fun getRefreshableSnapshots(nowMs: Long, limit: Int = 8): List<FlowHealthSnapshotEntity> =
+    suspend fun getRefreshableSnapshots(nowMs: Long, limit: Int = 8, force: Boolean = false): List<FlowHealthSnapshotEntity> =
         dao.getRefreshableSnapshots(
             statuses = refreshableStatuses,
             nowMs = nowMs,
-            latestAllowedLastCheckMs = nowMs - THROTTLE_MS,
+            latestAllowedLastCheckMs = if (force) Long.MAX_VALUE else nowMs - THROTTLE_MS,
             maxCheckCount = MAX_CHECK_COUNT,
             limit = limit
         )

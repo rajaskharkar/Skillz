@@ -63,7 +63,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         maybeReinstateFlowNotification()
-        lifecycleScope.launch { runCatching { healthRefreshUseCase.refreshForeground() } }
+        lifecycleScope.launch { runCatching { healthRefreshUseCase.refreshForeground(force = true) } }
     }
 
     private fun maybeReinstateFlowNotification() {

@@ -1,26 +1,64 @@
 package com.kingkharnivore.skillz.domain.health
 
+import com.kingkharnivore.skillz.data.model.entity.health.MovementDataSourceType
+
 class MovementBonusCalculator {
     fun calculateMovementPoints(steps: Long): Long = steps.coerceAtLeast(0L) / STEPS_PER_POINT
+
+    fun selectAwardedMovement(
+        previouslyAwardedSteps: Long = 0L,
+        phoneEstimatedSteps: Long? = null,
+        healthConnectSteps: Long? = null,
+        reconciledHealthConnect: Boolean = false
+    ): AwardedMovement {
+        val previous = previouslyAwardedSteps.coerceAtLeast(0L)
+        val phone = phoneEstimatedSteps?.coerceAtLeast(0L) ?: 0L
+        val health = healthConnectSteps?.coerceAtLeast(0L) ?: 0L
+        val finalSteps = maxOf(previous, phone, health)
+        val source = when {
+            finalSteps <= 0L -> MovementDataSourceType.NONE
+            health >= finalSteps && reconciledHealthConnect -> MovementDataSourceType.HEALTH_CONNECT_RECONCILED
+            health >= finalSteps -> MovementDataSourceType.HEALTH_CONNECT
+            phone >= finalSteps -> MovementDataSourceType.PHONE_SENSOR
+            else -> MovementDataSourceType.NONE
+        }
+        return AwardedMovement(
+            finalAwardedSteps = finalSteps.takeIf { it > 0L },
+            finalAwardedMovementPoints = calculateMovementPoints(finalSteps),
+            movementDataSource = source,
+            phoneEstimatedMovementPoints = calculateMovementPoints(phone),
+            healthConnectMovementPoints = calculateMovementPoints(health)
+        )
+    }
 
     companion object {
         const val STEPS_PER_POINT: Long = 25L
     }
 }
 
+data class AwardedMovement(
+    val finalAwardedSteps: Long?,
+    val finalAwardedMovementPoints: Long,
+    val movementDataSource: MovementDataSourceType,
+    val phoneEstimatedMovementPoints: Long,
+    val healthConnectMovementPoints: Long
+)
+
 data class MovementBonusEligibilityInput(
     val movementBonusEnabled: Boolean,
     val healthConnectAvailable: Boolean,
     val readStepsPermissionGranted: Boolean,
     val isRegularPointEligibleFlow: Boolean,
-    val isSoftFlow: Boolean
+    val isSoftFlow: Boolean,
+    val phoneStepTrackingAvailable: Boolean = false,
+    val activityRecognitionPermissionGranted: Boolean = false
 )
 
 class MovementBonusEligibilityPolicy {
     fun isEligible(input: MovementBonusEligibilityInput): Boolean =
         input.movementBonusEnabled &&
-            input.healthConnectAvailable &&
-            input.readStepsPermissionGranted &&
+            (input.healthConnectAvailable && input.readStepsPermissionGranted ||
+                input.phoneStepTrackingAvailable && input.activityRecognitionPermissionGranted) &&
             input.isRegularPointEligibleFlow &&
             !input.isSoftFlow
 }

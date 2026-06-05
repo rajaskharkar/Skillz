@@ -4,6 +4,7 @@ import com.kingkharnivore.skillz.data.health.HealthConnectMovementDataSource
 import com.kingkharnivore.skillz.data.health.MovementReadResult
 import com.kingkharnivore.skillz.data.model.entity.health.FlowHealthSnapshotEntity
 import com.kingkharnivore.skillz.data.model.entity.health.FlowHealthSyncStatus
+import com.kingkharnivore.skillz.data.model.entity.health.MovementDataSourceType
 import com.kingkharnivore.skillz.data.repository.health.FlowHealthRepository
 import com.kingkharnivore.skillz.data.repository.health.HealthPermissionRepository
 import com.kingkharnivore.skillz.data.repository.health.HealthSettingsRepository
@@ -18,13 +19,13 @@ class HealthRefreshUseCase @Inject constructor(
     private val flowHealthRepository: FlowHealthRepository,
     private val calculator: MovementBonusCalculator
 ) {
-    suspend fun refreshForeground(nowMs: Long = System.currentTimeMillis()) {
+    suspend fun refreshForeground(nowMs: Long = System.currentTimeMillis(), force: Boolean = false) {
         if (!settingsRepository.settings.first().movementBonusEnabled) return
         flowHealthRepository.expireOldSnapshots(nowMs)
         if (!permissionRepository.isHealthConnectAvailable()) return
         if (!permissionRepository.isReadStepsGranted()) return
 
-        flowHealthRepository.getRefreshableSnapshots(nowMs).forEach { snapshot ->
+        flowHealthRepository.getRefreshableSnapshots(nowMs, force = force).forEach { snapshot ->
             refreshSnapshot(snapshot, nowMs)
         }
     }
@@ -33,7 +34,7 @@ class HealthRefreshUseCase @Inject constructor(
         when (val result = readStepsForSnapshot(snapshot)) {
             MovementReadResult.HealthConnectUnavailable -> updateSnapshotOnly(snapshot, FlowHealthSyncStatus.ERROR_RETRYABLE, nowMs)
             MovementReadResult.PermissionMissing -> updateSnapshotOnly(snapshot, FlowHealthSyncStatus.PERMISSION_REVOKED, nowMs)
-            MovementReadResult.NoData -> updateSnapshotOnly(snapshot, FlowHealthSyncStatus.PENDING, nowMs)
+            MovementReadResult.NoData -> updateSnapshotOnly(snapshot, if ((snapshot.finalAwardedMovementPoints.takeIf { it > 0L } ?: snapshot.rawMovementPoints) > 0L) FlowHealthSyncStatus.CAPTURED else FlowHealthSyncStatus.PENDING, nowMs)
             is MovementReadResult.Error -> updateSnapshotOnly(snapshot, FlowHealthSyncStatus.ERROR_RETRYABLE, nowMs)
             is MovementReadResult.Success -> applySteps(snapshot, result.steps, nowMs)
         }
@@ -53,8 +54,14 @@ class HealthRefreshUseCase @Inject constructor(
 
     private suspend fun applySteps(snapshot: FlowHealthSnapshotEntity, steps: Long, nowMs: Long) {
         val currentBreakdown = flowHealthRepository.getRewardBreakdown(snapshot.sessionId) ?: return
+        val awarded = calculator.selectAwardedMovement(
+            previouslyAwardedSteps = snapshot.finalAwardedSteps ?: snapshot.steps ?: 0L,
+            phoneEstimatedSteps = snapshot.phoneEstimatedSteps,
+            healthConnectSteps = steps,
+            reconciledHealthConnect = steps > (snapshot.finalAwardedSteps ?: snapshot.steps ?: 0L)
+        )
         val delayedReward = DelayedMovementRewardPolicy.calculate(
-            steps = steps,
+            steps = awarded.finalAwardedSteps ?: 0L,
             context = StoredMovementRewardContext(
                 nonMovementPreMultiplierPoints = currentBreakdown.nonMovementPreMultiplierPoints,
                 pulseBonusPoints = currentBreakdown.pulseBonusPoints,
@@ -74,15 +81,26 @@ class HealthRefreshUseCase @Inject constructor(
         val status = if (newRawMovement > 0L) FlowHealthSyncStatus.CAPTURED else FlowHealthSyncStatus.NO_REWARD
         val updatedSnapshot = snapshot.copy(
             status = status,
-            steps = maxOf(snapshot.steps ?: 0L, steps),
+            steps = awarded.finalAwardedSteps,
             rawMovementPoints = newRawMovement,
+            healthConnectSteps = steps,
+            healthConnectMovementPoints = calculator.calculateMovementPoints(steps),
+            healthConnectLastReadAtMs = nowMs,
+            finalAwardedSteps = awarded.finalAwardedSteps,
+            finalAwardedMovementPoints = newRawMovement,
+            movementDataSource = when {
+                (awarded.finalAwardedSteps ?: 0L) > (snapshot.finalAwardedSteps ?: snapshot.steps ?: 0L) && steps >= (awarded.finalAwardedSteps ?: 0L) -> MovementDataSourceType.HEALTH_CONNECT_RECONCILED
+                (awarded.finalAwardedSteps ?: 0L) > (snapshot.finalAwardedSteps ?: snapshot.steps ?: 0L) -> awarded.movementDataSource
+                else -> snapshot.movementDataSource
+            },
             finalMovementScyraContribution = (delayedReward.newFinalScyraPoints - currentBreakdown.nonMovementPreMultiplierPoints).coerceAtLeast(0L),
             finalMovementPearlContribution = if (currentBreakdown.pearlEligible) delayedReward.pearlsEarned else 0L,
             firstCheckedAtMs = snapshot.firstCheckedAtMs ?: nowMs,
             lastCheckedAtMs = nowMs,
             capturedAtMs = if (newRawMovement > 0L) nowMs else snapshot.capturedAtMs,
             checkCount = snapshot.checkCount + 1,
-            updatedAfterSync = delta > 0L || snapshot.updatedAfterSync
+            updatedAfterSync = ((awarded.finalAwardedSteps ?: 0L) > (snapshot.finalAwardedSteps ?: snapshot.steps ?: 0L)) || delta > 0L || snapshot.updatedAfterSync,
+            healthConnectReadStatus = "SUCCESS"
         )
         val updatedBreakdown = currentBreakdown.copy(
             movementPoints = delayedReward.newRawMovementPoints,

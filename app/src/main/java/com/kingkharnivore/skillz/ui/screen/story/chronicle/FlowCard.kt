@@ -361,12 +361,14 @@ fun FlowCard(
                 Spacer(modifier = Modifier.height(6.dp))
                 FlowCardMovementLine(
                     steps = session.movementSteps,
-                    movementPoints = session.movementPoints
+                    movementPoints = session.movementPoints,
+                    movementIsPhoneEstimate = session.movementIsPhoneEstimate,
+                    updatedAfterSync = session.movementBonusUpdatedAfterSync
                 )
                 if (isExpanded && session.movementBonusUpdatedAfterSync) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Movement Bonus updated after Health Connect synced.",
+                        text = "Movement added after sync",
                         style = MaterialTheme.typography.labelSmall,
                         color = contentColor.copy(alpha = 0.72f)
                     )

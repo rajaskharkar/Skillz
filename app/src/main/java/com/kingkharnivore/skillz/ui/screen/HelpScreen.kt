@@ -1,6 +1,9 @@
 package com.kingkharnivore.skillz.ui.screen
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateDpAsState
@@ -62,6 +65,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.HealthConnectClient
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.localization.AppLanguage
 import androidx.health.connect.client.PermissionController
@@ -96,6 +101,17 @@ fun HelpScreen(
     val healthState by healthViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    var activityRecognitionDenied by rememberSaveable { mutableStateOf(false) }
+    fun activityRecognitionGranted(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
+    } else { true }
+
+    val activityRecognitionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        activityRecognitionDenied = !granted
+        healthViewModel.refreshState()
+    }
 
     val healthPermissionLauncher = rememberLauncherForActivityResult(
         contract = PermissionController.createRequestPermissionResultContract()
@@ -214,6 +230,15 @@ fun HelpScreen(
             },
             onInstallOrUpdateHealthConnect = {
                 healthViewModel.openHealthConnectInstallOrUpdate(context)
+            },
+            activityRecognitionPermissionGranted = activityRecognitionGranted(),
+            activityRecognitionDenied = activityRecognitionDenied,
+            onEnablePhoneStepEstimate = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    activityRecognitionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+                } else {
+                    activityRecognitionDenied = false
+                }
             }
         )
 

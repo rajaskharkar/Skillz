@@ -272,7 +272,13 @@ fun FlowScreen(
                 }
 
                 if (uiState.movementBonusEligibleAtStart) {
-                    MovementBonusActivePill(modifier = Modifier.fillMaxWidth())
+                    MovementBonusActivePill(
+                        estimatedPhoneSteps = uiState.estimatedPhoneSteps,
+                        estimatedMovementPoints = uiState.estimatedPhoneMovementPoints,
+                        phoneEstimateAvailable = uiState.estimatedPhoneSteps != null,
+                        activityRecognitionPermissionGranted = uiState.phonePermissionGrantedAtStart,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     Spacer(Modifier.height(10.dp))
                 }
 

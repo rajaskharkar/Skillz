@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 28.
+     * Current database version is 29.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -119,6 +119,12 @@ object SkillzDatabaseMigrations {
     val MIGRATION_27_28 = object : Migration(27, 28) {
         override fun migrate(db: SupportSQLiteDatabase) {
             normalizeMovementBonusTables(db)
+        }
+    }
+
+    val MIGRATION_28_29 = object : Migration(28, 29) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            addHybridMovementColumns(db)
         }
     }
 
@@ -270,7 +276,30 @@ object SkillzDatabaseMigrations {
                 MIGRATION_24_25 +
                 MIGRATION_25_26 +
                 MIGRATION_26_27 +
-                MIGRATION_27_28
+                MIGRATION_27_28 +
+                MIGRATION_28_29
+
+
+    private fun addHybridMovementColumns(db: SupportSQLiteDatabase) {
+        addColumnIfMissing(db, "flow_health_snapshots", "phoneEstimatedSteps", "INTEGER")
+        addColumnIfMissing(db, "flow_health_snapshots", "phoneEstimatedMovementPoints", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "flow_health_snapshots", "phoneEstimateCapturedAtMs", "INTEGER")
+        addColumnIfMissing(db, "flow_health_snapshots", "healthConnectSteps", "INTEGER")
+        addColumnIfMissing(db, "flow_health_snapshots", "healthConnectMovementPoints", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "flow_health_snapshots", "healthConnectLastReadAtMs", "INTEGER")
+        addColumnIfMissing(db, "flow_health_snapshots", "finalAwardedSteps", "INTEGER")
+        addColumnIfMissing(db, "flow_health_snapshots", "finalAwardedMovementPoints", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "flow_health_snapshots", "movementDataSource", "TEXT NOT NULL DEFAULT 'NONE'")
+        addColumnIfMissing(db, "flow_health_snapshots", "phoneStepSource", "TEXT")
+        addColumnIfMissing(db, "flow_health_snapshots", "phoneEstimateAvailableAtCompletion", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "flow_health_snapshots", "healthConnectAvailableAtCompletion", "INTEGER NOT NULL DEFAULT 0")
+        addColumnIfMissing(db, "flow_health_snapshots", "healthConnectReadStatus", "TEXT")
+        db.execSQL("UPDATE flow_health_snapshots SET healthConnectSteps = steps WHERE healthConnectSteps IS NULL AND steps IS NOT NULL")
+        db.execSQL("UPDATE flow_health_snapshots SET healthConnectMovementPoints = rawMovementPoints WHERE healthConnectMovementPoints = 0 AND steps IS NOT NULL")
+        db.execSQL("UPDATE flow_health_snapshots SET finalAwardedSteps = steps WHERE finalAwardedSteps IS NULL AND steps IS NOT NULL")
+        db.execSQL("UPDATE flow_health_snapshots SET finalAwardedMovementPoints = rawMovementPoints WHERE finalAwardedMovementPoints = 0")
+        db.execSQL("UPDATE flow_health_snapshots SET movementDataSource = CASE WHEN rawMovementPoints > 0 THEN 'HEALTH_CONNECT' ELSE 'NONE' END")
+    }
 
     private fun createMovementBonusTables(db: SupportSQLiteDatabase) {
         addColumnIfMissing(db, "ongoing_session", "healthEnabledAtStart", "INTEGER NOT NULL DEFAULT 0")
@@ -286,6 +315,15 @@ object SkillzDatabaseMigrations {
                 `status` TEXT NOT NULL,
                 `steps` INTEGER,
                 `rawMovementPoints` INTEGER NOT NULL,
+                `phoneEstimatedSteps` INTEGER,
+                `phoneEstimatedMovementPoints` INTEGER NOT NULL DEFAULT 0,
+                `phoneEstimateCapturedAtMs` INTEGER,
+                `healthConnectSteps` INTEGER,
+                `healthConnectMovementPoints` INTEGER NOT NULL DEFAULT 0,
+                `healthConnectLastReadAtMs` INTEGER,
+                `finalAwardedSteps` INTEGER,
+                `finalAwardedMovementPoints` INTEGER NOT NULL DEFAULT 0,
+                `movementDataSource` TEXT NOT NULL DEFAULT 'NONE',
                 `finalMovementScyraContribution` INTEGER NOT NULL,
                 `finalMovementPearlContribution` INTEGER NOT NULL,
                 `firstCheckedAtMs` INTEGER,
@@ -298,6 +336,10 @@ object SkillzDatabaseMigrations {
                 `activeIntervalJson` TEXT,
                 `sourceLabel` TEXT,
                 `updatedAfterSync` INTEGER NOT NULL DEFAULT 0,
+                `phoneStepSource` TEXT,
+                `phoneEstimateAvailableAtCompletion` INTEGER NOT NULL DEFAULT 0,
+                `healthConnectAvailableAtCompletion` INTEGER NOT NULL DEFAULT 0,
+                `healthConnectReadStatus` TEXT,
                 PRIMARY KEY(`sessionId`),
                 FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
             )
@@ -358,6 +400,15 @@ object SkillzDatabaseMigrations {
                 `status` TEXT NOT NULL,
                 `steps` INTEGER,
                 `rawMovementPoints` INTEGER NOT NULL,
+                `phoneEstimatedSteps` INTEGER,
+                `phoneEstimatedMovementPoints` INTEGER NOT NULL DEFAULT 0,
+                `phoneEstimateCapturedAtMs` INTEGER,
+                `healthConnectSteps` INTEGER,
+                `healthConnectMovementPoints` INTEGER NOT NULL DEFAULT 0,
+                `healthConnectLastReadAtMs` INTEGER,
+                `finalAwardedSteps` INTEGER,
+                `finalAwardedMovementPoints` INTEGER NOT NULL DEFAULT 0,
+                `movementDataSource` TEXT NOT NULL DEFAULT 'NONE',
                 `finalMovementScyraContribution` INTEGER NOT NULL,
                 `finalMovementPearlContribution` INTEGER NOT NULL,
                 `firstCheckedAtMs` INTEGER,
@@ -370,6 +421,10 @@ object SkillzDatabaseMigrations {
                 `activeIntervalJson` TEXT,
                 `sourceLabel` TEXT,
                 `updatedAfterSync` INTEGER NOT NULL DEFAULT 0,
+                `phoneStepSource` TEXT,
+                `phoneEstimateAvailableAtCompletion` INTEGER NOT NULL DEFAULT 0,
+                `healthConnectAvailableAtCompletion` INTEGER NOT NULL DEFAULT 0,
+                `healthConnectReadStatus` TEXT,
                 PRIMARY KEY(`sessionId`),
                 FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE
             )
@@ -381,9 +436,13 @@ object SkillzDatabaseMigrations {
                 """
                 INSERT OR REPLACE INTO `$tempTable` (
                     `sessionId`, `healthEnabledAtStart`, `permissionGrantedAtStart`, `status`, `steps`,
-                    `rawMovementPoints`, `finalMovementScyraContribution`, `finalMovementPearlContribution`,
+                    `rawMovementPoints`, `phoneEstimatedSteps`, `phoneEstimatedMovementPoints`, `phoneEstimateCapturedAtMs`,
+                    `healthConnectSteps`, `healthConnectMovementPoints`, `healthConnectLastReadAtMs`,
+                    `finalAwardedSteps`, `finalAwardedMovementPoints`, `movementDataSource`,
+                    `finalMovementScyraContribution`, `finalMovementPearlContribution`,
                     `firstCheckedAtMs`, `lastCheckedAtMs`, `capturedAtMs`, `expiresAtMs`, `checkCount`,
-                    `flowStartTimeMs`, `flowEndTimeMs`, `activeIntervalJson`, `sourceLabel`, `updatedAfterSync`
+                    `flowStartTimeMs`, `flowEndTimeMs`, `activeIntervalJson`, `sourceLabel`, `updatedAfterSync`,
+                    `phoneStepSource`, `phoneEstimateAvailableAtCompletion`, `healthConnectAvailableAtCompletion`, `healthConnectReadStatus`
                 )
                 SELECT
                     ${expr(sourceColumns, "sessionId", "0")},
@@ -392,6 +451,15 @@ object SkillzDatabaseMigrations {
                     ${expr(sourceColumns, "status", "'PENDING'")},
                     ${expr(sourceColumns, "steps", "NULL")},
                     ${expr(sourceColumns, "rawMovementPoints", "0")},
+                    ${expr(sourceColumns, "phoneEstimatedSteps", "NULL")},
+                    ${expr(sourceColumns, "phoneEstimatedMovementPoints", "0")},
+                    ${expr(sourceColumns, "phoneEstimateCapturedAtMs", "NULL")},
+                    ${expr(sourceColumns, "healthConnectSteps", expr(sourceColumns, "steps", "NULL"))},
+                    ${expr(sourceColumns, "healthConnectMovementPoints", expr(sourceColumns, "rawMovementPoints", "0"))},
+                    ${expr(sourceColumns, "healthConnectLastReadAtMs", expr(sourceColumns, "lastCheckedAtMs", "NULL"))},
+                    ${expr(sourceColumns, "finalAwardedSteps", expr(sourceColumns, "steps", "NULL"))},
+                    ${expr(sourceColumns, "finalAwardedMovementPoints", expr(sourceColumns, "rawMovementPoints", "0"))},
+                    ${expr(sourceColumns, "movementDataSource", "'NONE'")},
                     ${expr(sourceColumns, "finalMovementScyraContribution", "0")},
                     ${expr(sourceColumns, "finalMovementPearlContribution", "0")},
                     ${expr(sourceColumns, "firstCheckedAtMs", "NULL")},
@@ -403,7 +471,11 @@ object SkillzDatabaseMigrations {
                     ${expr(sourceColumns, "flowEndTimeMs", "0")},
                     ${expr(sourceColumns, "activeIntervalJson", "NULL")},
                     ${expr(sourceColumns, "sourceLabel", "'Health Connect'")},
-                    ${expr(sourceColumns, "updatedAfterSync", "0")}
+                    ${expr(sourceColumns, "updatedAfterSync", "0")},
+                    ${expr(sourceColumns, "phoneStepSource", "NULL")},
+                    ${expr(sourceColumns, "phoneEstimateAvailableAtCompletion", "0")},
+                    ${expr(sourceColumns, "healthConnectAvailableAtCompletion", "0")},
+                    ${expr(sourceColumns, "healthConnectReadStatus", "NULL")}
                 FROM `$sourceTable`
                 """.trimIndent()
             )
