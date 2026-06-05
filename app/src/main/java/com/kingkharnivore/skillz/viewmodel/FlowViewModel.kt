@@ -1129,7 +1129,8 @@ class FlowViewModel @Inject constructor(
         var sawNoData = false
         var terminalStatus: FlowHealthSyncStatus? = null
         var readStatus = "NOT_READ"
-        activeIntervals.forEach { interval ->
+        for (interval in activeIntervals) {
+            if (terminalStatus != null) break
             when (val result = healthMovementDataSource.readStepsBetween(
                 Instant.ofEpochMilli(interval.startTimeMs),
                 Instant.ofEpochMilli(interval.endTimeMs)
@@ -1156,7 +1157,6 @@ class FlowViewModel @Inject constructor(
                     readStatus = "SUCCESS"
                 }
             }
-            if (terminalStatus != null) return@forEach
         }
         val healthSteps = totalHealthSteps.takeIf { sawSuccess }
         val awarded = movementBonusCalculator.selectAwardedMovement(

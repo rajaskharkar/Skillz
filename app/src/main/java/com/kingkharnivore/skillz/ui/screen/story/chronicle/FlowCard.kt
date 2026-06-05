@@ -365,14 +365,6 @@ fun FlowCard(
                     movementIsPhoneEstimate = session.movementIsPhoneEstimate,
                     updatedAfterSync = session.movementBonusUpdatedAfterSync
                 )
-                if (isExpanded && session.movementBonusUpdatedAfterSync) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Movement added after sync",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = contentColor.copy(alpha = 0.72f)
-                    )
-                }
             }
 
             if (childPulses.isNotEmpty()) {

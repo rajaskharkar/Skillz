@@ -105,7 +105,7 @@ class PhoneStepEstimateTracker @Inject constructor(
         when (event.sensor.type) {
             Sensor.TYPE_STEP_COUNTER -> onStepCounter(event.values.firstOrNull() ?: return)
             Sensor.TYPE_STEP_DETECTOR -> if (tracking) {
-                accumulatedBeforePause += event.values.firstOrNull()?.takeIf { it > 0f }?.toLong() ?: 1L
+                accumulatedBeforePause += 1L
             }
         }
         publish(isTracking = tracking)

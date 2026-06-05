@@ -49,58 +49,38 @@ fun HealthConnectSettingsCard(
     onToggleMovementBonus: (Boolean) -> Unit,
     onConnectHealth: () -> Unit,
     onInstallOrUpdateHealthConnect: () -> Unit,
-    activityRecognitionPermissionGranted: Boolean = false,
-    phoneStepEstimateUnavailable: Boolean = false,
-    activityRecognitionDenied: Boolean = false,
     onEnablePhoneStepEstimate: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val renderState = when {
-        state.healthConnectAvailability == HealthConnectAvailability.UNAVAILABLE -> {
-            HealthCardRenderState(
-                headline = "Health Connect is not available on this device.",
-                body = "Movement Bonus needs Health Connect to read steps during your Flows.",
-                action = HealthCardAction.None
-            )
-        }
-
-        state.healthConnectAvailability == HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED -> {
-            HealthCardRenderState(
-                headline = "Health Connect needs to be installed or updated.",
-                body = "Install or update Health Connect to use Movement Bonus.",
-                action = HealthCardAction.InstallOrUpdate
-            )
-        }
-
-        state.healthConnectAvailable && !state.readStepsPermissionGranted -> {
-            HealthCardRenderState(
-                headline = "Enable Health to earn Movement Points during your Flows.",
-                body = "Scyra reads your step count through Health Connect and gives you +1 Movement Point for every 25 steps during eligible Flows. Movement Points are added to your total Scyra Points.",
-                action = HealthCardAction.ConnectHealth
-            )
-        }
-
-        state.healthConnectAvailable && state.readStepsPermissionGranted && state.localMovementBonusEnabled -> {
-            HealthCardRenderState(
+    val healthReady = state.healthConnectSourceReady
+    val phoneReady = state.phoneStepSourceReady
+    val renderState = if (!state.localMovementBonusEnabled) {
+        HealthCardRenderState(
+            headline = "Movement Bonus is off.",
+            body = "Turn it on to earn Movement Points from steps during eligible Flows.",
+            action = if (state.providerUpdateRequired) HealthCardAction.InstallOrUpdate else HealthCardAction.Toggle
+        )
+    } else {
+        when {
+            healthReady && phoneReady -> HealthCardRenderState(
                 headline = "Movement Bonus is active.",
-                body = "Steps taken during eligible Flows can earn Movement Points. Movement Points are added to your Scyra Points and can also generate Pearls.",
-                action = HealthCardAction.Toggle
+                body = "Scyra uses the higher of Health Connect steps and phone-estimated steps during eligible Flows.",
+                action = if (state.providerUpdateRequired) HealthCardAction.InstallOrUpdate else HealthCardAction.Toggle
             )
-        }
-
-        state.healthConnectAvailable && state.readStepsPermissionGranted && !state.localMovementBonusEnabled -> {
-            HealthCardRenderState(
-                headline = "Movement Bonus is off.",
-                body = "Turn it on to earn Movement Points from steps during eligible Flows.",
-                action = HealthCardAction.Toggle
+            healthReady -> HealthCardRenderState(
+                headline = "Movement Bonus is active.",
+                body = "Scyra can use Health Connect steps during eligible Flows. Watch steps may sync after the Flow.",
+                action = if (state.providerUpdateRequired) HealthCardAction.InstallOrUpdate else HealthCardAction.Toggle
             )
-        }
-
-        else -> {
-            HealthCardRenderState(
-                headline = "Health Connect is not available on this device.",
-                body = "Movement Bonus needs Health Connect to read steps during your Flows.",
-                action = HealthCardAction.None
+            phoneReady -> HealthCardRenderState(
+                headline = "Movement Bonus is active.",
+                body = "Scyra can estimate steps from your phone during active Flows.",
+                action = if (state.providerUpdateRequired) HealthCardAction.InstallOrUpdate else HealthCardAction.Toggle
+            )
+            else -> HealthCardRenderState(
+                headline = "Movement Bonus needs setup.",
+                body = "Movement Bonus needs Health Connect or phone step access to track steps.",
+                action = if (state.providerUpdateRequired) HealthCardAction.InstallOrUpdate else HealthCardAction.Toggle
             )
         }
     }
@@ -127,7 +107,7 @@ fun HealthConnectSettingsCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Health",
+                    text = "Health / Movement Bonus",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
@@ -153,7 +133,7 @@ fun HealthConnectSettingsCard(
                 Spacer(Modifier.height(8.dp))
 
                 Text(
-                    text = "Scyra reads your step count from Health Connect only to calculate Movement Points during eligible Flows.",
+                    text = "Scyra uses step count data only to calculate Movement Points, Scyra Points, Pearls, and related reward displays.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
                 )
@@ -162,40 +142,65 @@ fun HealthConnectSettingsCard(
 
                 if (state.localMovementBonusEnabled) {
                     Spacer(Modifier.height(8.dp))
-                    when {
-                        phoneStepEstimateUnavailable -> Text(
-                            text = "Phone step estimate is not available on this device. Watch steps may still sync through Health Connect.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
-                        )
-                        activityRecognitionPermissionGranted -> Text(
-                            text = "Phone step estimate enabled.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
-                        )
-                        activityRecognitionDenied -> Text(
-                            text = "Phone step estimate is off. Movement Bonus can still use Health Connect.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
-                        )
-                        else -> {
-                            Text(
-                                text = "Scyra can estimate steps from your phone during active Flows. Health Connect may still update watch steps later.",
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        when {
+                            healthReady && phoneReady -> {
+                                Text(
+                                    text = "Phone step estimate enabled.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
+                                )
+                                Text(
+                                    text = "Health Connect connected.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
+                                )
+                            }
+                            healthReady -> Text(
+                                text = "Phone step estimate is off.",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
                             )
-                            Spacer(Modifier.height(8.dp))
-                            Button(
-                                onClick = onEnablePhoneStepEstimate,
-                                enabled = !state.isBusy,
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.secondary,
-                                    contentColor = MaterialTheme.colorScheme.onSecondary
-                                )
-                            ) {
-                                Text("Enable phone step estimate")
-                            }
+                            phoneReady -> Text(
+                                text = "Health Connect is not connected.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
+                            )
                         }
+                        if (!state.phoneStepSensorAvailable) {
+                            Text(
+                                text = "Phone step estimate is not available on this device.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
+                            )
+                        }
+                        when (state.healthConnectAvailability) {
+                            HealthConnectAvailability.UNAVAILABLE -> Text(
+                                text = "Health Connect is not available on this device.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
+                            )
+                            HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED -> Text(
+                                text = "Health Connect needs to be installed or updated.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
+                            )
+                            HealthConnectAvailability.AVAILABLE -> Unit
+                        }
+                    }
+                }
+
+                if (state.localMovementBonusEnabled && state.phoneStepSensorAvailable && !state.activityRecognitionPermissionGranted) {
+                    Spacer(Modifier.height(8.dp))
+                    TextButton(onClick = onEnablePhoneStepEstimate, enabled = !state.isBusy) {
+                        Text("Enable phone estimate")
+                    }
+                }
+
+                if (state.localMovementBonusEnabled && state.healthConnectAvailable && !state.readStepsPermissionGranted) {
+                    Spacer(Modifier.height(4.dp))
+                    TextButton(onClick = onConnectHealth, enabled = !state.isBusy) {
+                        Text("Connect Health")
                     }
                 }
 
@@ -251,7 +256,7 @@ fun HealthConnectSettingsCard(
                 }
             }
 
-            if (renderState.action == HealthCardAction.Toggle) {
+            if (renderState.action == HealthCardAction.Toggle || renderState.action == HealthCardAction.InstallOrUpdate) {
                 Switch(
                     checked = state.toggleChecked,
                     enabled = !state.isBusy,
@@ -274,6 +279,7 @@ fun DisableHealthPendingFlowsDialog(
             Text(
                 "Some recent Flows may still be waiting for step data or improved Health Connect sync.\n\n" +
                         "If you disable Health now, Scyra will stop checking those Flows and any pending Movement Points may not be awarded.\n\n" +
+                        "Already-awarded Movement Points will stay.\n\n" +
                         "You can turn Health back on later."
             )
         },

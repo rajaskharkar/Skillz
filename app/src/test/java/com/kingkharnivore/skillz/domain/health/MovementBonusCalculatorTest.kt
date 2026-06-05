@@ -46,6 +46,8 @@ class MovementBonusCalculatorTest {
             Triple(0L, 240L, MovementDataSourceType.HEALTH_CONNECT) to (240L to 9L),
             Triple(100L, 80L, MovementDataSourceType.PHONE_SENSOR) to (100L to 4L),
             Triple(100L, 200L, MovementDataSourceType.HEALTH_CONNECT) to (200L to 8L),
+            // Health Connect wins ties because it is the reconciled source.
+            Triple(100L, 100L, MovementDataSourceType.HEALTH_CONNECT) to (100L to 4L),
             Triple(20L, 0L, MovementDataSourceType.PHONE_SENSOR) to (20L to 0L),
             Triple(0L, 24L, MovementDataSourceType.HEALTH_CONNECT) to (24L to 0L)
         ).forEach { (input, expected) ->

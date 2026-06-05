@@ -2,7 +2,6 @@ package com.kingkharnivore.skillz.ui.screen
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import android.Manifest
-import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.annotation.DrawableRes
@@ -66,7 +65,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.HealthConnectClient
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.localization.AppLanguage
 import androidx.health.connect.client.PermissionController
@@ -76,6 +74,7 @@ import com.kingkharnivore.skillz.ui.health.HealthConnectSettingsCard
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsViewModel
+import com.kingkharnivore.skillz.viewmodel.health.HealthSetupEvent
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 
@@ -101,16 +100,10 @@ fun HelpScreen(
     val healthState by healthViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    var activityRecognitionDenied by rememberSaveable { mutableStateOf(false) }
-    fun activityRecognitionGranted(): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
-    } else { true }
-
     val activityRecognitionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
-        activityRecognitionDenied = !granted
-        healthViewModel.refreshState()
+        healthViewModel.onActivityRecognitionPermissionResult(granted)
     }
 
     val healthPermissionLauncher = rememberLauncherForActivityResult(
@@ -123,6 +116,28 @@ fun HelpScreen(
     LaunchedEffect(Unit) {
         healthViewModel.refreshState()
     }
+    LaunchedEffect(healthViewModel) {
+        healthViewModel.setupEvents.collect { event ->
+            when (event) {
+                HealthSetupEvent.RequestHealthConnectPermission -> {
+                    healthViewModel.onPermissionLaunchAttempt(context.packageName)
+                    try {
+                        healthPermissionLauncher.launch(setOf(healthViewModel.readStepsPermission))
+                    } catch (t: Throwable) {
+                        healthViewModel.onPermissionLaunchFailed(t)
+                    }
+                }
+                HealthSetupEvent.RequestActivityRecognitionPermission -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        activityRecognitionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+                    } else {
+                        healthViewModel.onActivityRecognitionPermissionResult(true)
+                    }
+                }
+            }
+        }
+    }
+
 
     LaunchedEffect(healthState) {
         Log.d("HealthSettings", "Health card state=$healthState")
@@ -222,23 +237,13 @@ fun HelpScreen(
                 }
             },
             onToggleMovementBonus = { checked ->
-                if (checked) {
-                    healthViewModel.enableMovementBonusIfPermissionGranted()
-                } else {
-                    healthViewModel.requestDisableOrDisableNow()
-                }
+                healthViewModel.onHealthToggleChanged(checked)
             },
             onInstallOrUpdateHealthConnect = {
                 healthViewModel.openHealthConnectInstallOrUpdate(context)
             },
-            activityRecognitionPermissionGranted = activityRecognitionGranted(),
-            activityRecognitionDenied = activityRecognitionDenied,
             onEnablePhoneStepEstimate = {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    activityRecognitionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
-                } else {
-                    activityRecognitionDenied = false
-                }
+                healthViewModel.requestActivityRecognitionFromSecondary()
             }
         )
 
