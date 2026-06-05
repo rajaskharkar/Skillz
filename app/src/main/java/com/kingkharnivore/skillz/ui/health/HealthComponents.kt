@@ -97,7 +97,7 @@ fun HealthConnectSettingsCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.40f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -210,15 +210,6 @@ fun HealthConnectSettingsCard(
                     TextButton(onClick = onConnectHealth, enabled = !state.isBusy) {
                         Text("Connect Health")
                     }
-                }
-
-                state.rawHealthConnectSdkStatus?.let { rawStatus ->
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "Debug · availability=${state.healthConnectAvailability}, sdk=$rawStatus, stepsGranted=${state.readStepsPermissionGranted}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.58f)
-                    )
                 }
 
                 state.userMessage?.let { message ->
