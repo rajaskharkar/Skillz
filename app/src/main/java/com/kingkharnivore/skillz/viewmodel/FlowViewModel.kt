@@ -420,12 +420,16 @@ class FlowViewModel @Inject constructor(
 
         viewModelScope.launch {
             phoneStepEstimateTracker.state.collect { estimate ->
-                _uiState.update {
-                    it.copy(
-                        estimatedPhoneSteps = estimate.estimatedSteps.takeIf { estimate.isAvailable && estimate.permissionGranted },
-                        estimatedPhoneMovementPoints = estimate.estimatedMovementPoints,
-                        phonePermissionGrantedAtStart = it.phonePermissionGrantedAtStart || estimate.permissionGranted,
-                        phoneStepSensorAvailableAtStart = it.phoneStepSensorAvailableAtStart || estimate.isAvailable
+                _uiState.update { current ->
+                    val showCurrentFlowEstimate = current.movementBonusEligibleAtStart &&
+                        estimate.isAvailable &&
+                        estimate.permissionGranted &&
+                        estimate.isTracking
+                    current.copy(
+                        estimatedPhoneSteps = estimate.estimatedSteps.takeIf { showCurrentFlowEstimate },
+                        estimatedPhoneMovementPoints = if (showCurrentFlowEstimate) estimate.estimatedMovementPoints else 0L,
+                        phonePermissionGrantedAtStart = current.phonePermissionGrantedAtStart || estimate.permissionGranted,
+                        phoneStepSensorAvailableAtStart = current.phoneStepSensorAvailableAtStart || estimate.isAvailable
                     )
                 }
             }
@@ -688,7 +692,7 @@ class FlowViewModel @Inject constructor(
             }
             activeIntervals.clear()
             activeIntervalStartMs = null
-            phoneStepEstimateTracker.reset()
+            phoneStepEstimateTracker.beginNewFlow()
             captureMovementEligibilityAtFlowStart()
             arcState?.let { s ->
                 val now = System.currentTimeMillis()
@@ -974,7 +978,7 @@ class FlowViewModel @Inject constructor(
     }
 
     private suspend fun clearOngoing() {
-        phoneStepEstimateTracker.reset()
+        phoneStepEstimateTracker.cancelAndReset()
         focusSessionRepository.clearOngoingSession()
     }
 
@@ -1119,7 +1123,7 @@ class FlowViewModel @Inject constructor(
         state: FlowUiState,
         activeIntervals: List<FlowActiveInterval>
     ): CompletionMovementRead {
-        val phoneSteps = phoneStepEstimateTracker.stopTracking()
+        val phoneSteps = phoneStepEstimateTracker.finishFlowAndGetSteps()
         if (!state.movementBonusEligibleAtStart || state.isSoftMode || activeIntervals.isEmpty()) {
             return CompletionMovementRead(null, 0L, FlowHealthSyncStatus.NOT_ELIGIBLE, null)
         }
@@ -1909,7 +1913,7 @@ class FlowViewModel @Inject constructor(
     }
 
     override fun onCleared() {
-        phoneStepEstimateTracker.stopTracking()
+        phoneStepEstimateTracker.cancelAndReset()
         super.onCleared()
     }
 }

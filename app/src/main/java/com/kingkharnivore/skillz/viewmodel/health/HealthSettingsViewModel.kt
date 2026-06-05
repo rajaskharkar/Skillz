@@ -336,7 +336,7 @@ class HealthSettingsViewModel @Inject constructor(
             if (hasPending) {
                 _showDisableWarning.value = true
             } else {
-                phoneStepEstimateTracker.stopTracking()
+                phoneStepEstimateTracker.cancelAndReset()
                 settingsRepository.setMovementBonusEnabled(false)
                 setupInProgress.value = false
                 setupHealthPermissionRequested = false
@@ -356,7 +356,7 @@ class HealthSettingsViewModel @Inject constructor(
             setupInProgress.value = false
             setupHealthPermissionRequested = false
             setupActivityPermissionRequested = false
-            phoneStepEstimateTracker.stopTracking()
+            phoneStepEstimateTracker.cancelAndReset()
             settingsRepository.setMovementBonusEnabled(false)
             pending.value = false
             userMessage.value = null

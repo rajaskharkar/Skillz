@@ -43,13 +43,22 @@ class FlowHealthRepository @Inject constructor(
         )
 
     suspend fun getRefreshableSnapshots(nowMs: Long, limit: Int = 8, force: Boolean = false): List<FlowHealthSnapshotEntity> =
-        dao.getRefreshableSnapshots(
-            statuses = refreshableStatuses,
-            nowMs = nowMs,
-            latestAllowedLastCheckMs = if (force) Long.MAX_VALUE else nowMs - THROTTLE_MS,
-            maxCheckCount = MAX_CHECK_COUNT,
-            limit = limit
-        )
+        if (force) {
+            dao.getRefreshableSnapshotsIgnoringThrottle(
+                statuses = refreshableStatuses,
+                nowMs = nowMs,
+                maxCheckCount = MAX_CHECK_COUNT,
+                limit = limit
+            )
+        } else {
+            dao.getRefreshableSnapshots(
+                statuses = refreshableStatuses,
+                nowMs = nowMs,
+                latestAllowedLastCheckMs = nowMs - THROTTLE_MS,
+                maxCheckCount = MAX_CHECK_COUNT,
+                limit = limit
+            )
+        }
 
     suspend fun expireOldSnapshots(nowMs: Long) = dao.expireOldSnapshots(refreshableStatuses, nowMs)
 

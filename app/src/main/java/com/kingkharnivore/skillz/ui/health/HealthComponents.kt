@@ -54,35 +54,43 @@ fun HealthConnectSettingsCard(
 ) {
     val healthReady = state.healthConnectSourceReady
     val phoneReady = state.phoneStepSourceReady
-    val renderState = if (!state.localMovementBonusEnabled) {
-        HealthCardRenderState(
+    val providerUpdateRequired = state.providerUpdateRequired
+    val renderState = when {
+        providerUpdateRequired && state.localMovementBonusEnabled && phoneReady -> HealthCardRenderState(
+            headline = "Movement Bonus is active.",
+            body = "Movement Bonus is active through step estimate. Health Connect needs to be installed or updated for watch sync.",
+            action = HealthCardAction.Toggle
+        )
+        providerUpdateRequired && !state.phoneStepSensorAvailable -> HealthCardRenderState(
+            headline = "Health Connect needs to be installed or updated.",
+            body = "Install or update Health Connect to use watch sync for Movement Bonus.",
+            action = HealthCardAction.InstallOrUpdate
+        )
+        !state.localMovementBonusEnabled -> HealthCardRenderState(
             headline = "Movement Bonus is off.",
             body = "Turn it on to earn Movement Points from steps during eligible Flows.",
-            action = if (state.providerUpdateRequired) HealthCardAction.InstallOrUpdate else HealthCardAction.Toggle
+            action = HealthCardAction.Toggle
         )
-    } else {
-        when {
-            healthReady && phoneReady -> HealthCardRenderState(
-                headline = "Movement Bonus is active.",
-                body = "Scyra uses the higher of Health Connect steps and phone-estimated steps during eligible Flows.",
-                action = if (state.providerUpdateRequired) HealthCardAction.InstallOrUpdate else HealthCardAction.Toggle
-            )
-            healthReady -> HealthCardRenderState(
-                headline = "Movement Bonus is active.",
-                body = "Scyra can use Health Connect steps during eligible Flows. Watch steps may sync after the Flow.",
-                action = if (state.providerUpdateRequired) HealthCardAction.InstallOrUpdate else HealthCardAction.Toggle
-            )
-            phoneReady -> HealthCardRenderState(
-                headline = "Movement Bonus is active.",
-                body = "Scyra can estimate steps from your phone during active Flows.",
-                action = if (state.providerUpdateRequired) HealthCardAction.InstallOrUpdate else HealthCardAction.Toggle
-            )
-            else -> HealthCardRenderState(
-                headline = "Movement Bonus needs setup.",
-                body = "Movement Bonus needs Health Connect or phone step access to track steps.",
-                action = if (state.providerUpdateRequired) HealthCardAction.InstallOrUpdate else HealthCardAction.Toggle
-            )
-        }
+        healthReady && phoneReady -> HealthCardRenderState(
+            headline = "Movement Bonus is active.",
+            body = "Scyra uses the higher of Health Connect steps and phone-estimated steps during eligible Flows.",
+            action = HealthCardAction.Toggle
+        )
+        healthReady -> HealthCardRenderState(
+            headline = "Movement Bonus is active.",
+            body = "Scyra can use Health Connect steps during eligible Flows. Watch steps may sync after the Flow.",
+            action = HealthCardAction.Toggle
+        )
+        phoneReady -> HealthCardRenderState(
+            headline = "Movement Bonus is active.",
+            body = "Scyra can estimate steps from your phone during active Flows.",
+            action = HealthCardAction.Toggle
+        )
+        else -> HealthCardRenderState(
+            headline = "Movement Bonus needs setup.",
+            body = "Movement Bonus needs Health Connect or phone step access to track steps.",
+            action = HealthCardAction.Toggle
+        )
     }
 
     Card(
@@ -222,41 +230,22 @@ fun HealthConnectSettingsCard(
                     )
                 }
 
-                when (renderState.action) {
-                    HealthCardAction.ConnectHealth -> {
-                        Spacer(Modifier.height(12.dp))
-                        Button(
-                            onClick = onConnectHealth,
-                            enabled = !state.isBusy,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondary,
-                                contentColor = MaterialTheme.colorScheme.onSecondary
-                            )
-                        ) {
-                            Text("Connect Health")
-                        }
+                if (providerUpdateRequired) {
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = onInstallOrUpdateHealthConnect,
+                        enabled = !state.isBusy,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary
+                        )
+                    ) {
+                        Text("Install / Update Health Connect")
                     }
-
-                    HealthCardAction.InstallOrUpdate -> {
-                        Spacer(Modifier.height(12.dp))
-                        Button(
-                            onClick = onInstallOrUpdateHealthConnect,
-                            enabled = !state.isBusy,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.secondary,
-                                contentColor = MaterialTheme.colorScheme.onSecondary
-                            )
-                        ) {
-                            Text("Install / Update Health Connect")
-                        }
-                    }
-
-                    HealthCardAction.None,
-                    HealthCardAction.Toggle -> Unit
                 }
             }
 
-            if (renderState.action == HealthCardAction.Toggle || renderState.action == HealthCardAction.InstallOrUpdate) {
+            if (renderState.action == HealthCardAction.Toggle) {
                 Switch(
                     checked = state.toggleChecked,
                     enabled = !state.isBusy,
@@ -322,8 +311,8 @@ fun MovementBonusActivePill(
             )
 
             val message = when {
-                phoneEstimateAvailable && (estimatedPhoneSteps ?: 0L) > 0L -> "Movement Bonus active · ~${estimatedPhoneSteps ?: 0L} phone steps · +$estimatedMovementPoints estimated"
-                phoneEstimateAvailable -> "Movement Bonus active · estimating phone steps…"
+                phoneEstimateAvailable && (estimatedPhoneSteps ?: 0L) > 0L -> "Movement Bonus active · ~${estimatedPhoneSteps ?: 0L} steps · +$estimatedMovementPoints estimated"
+                phoneEstimateAvailable -> "Movement Bonus active · estimating steps…"
                 !activityRecognitionPermissionGranted -> "Movement Bonus active · phone estimate off · watch steps may sync later"
                 else -> "Movement Bonus active · final points update after sync"
             }
@@ -375,7 +364,7 @@ fun MovementBonusRewardBlock(
             )
             if (movementIsPhoneEstimate) {
                 Text(
-                    "Estimated from phone. Health Connect may update this later.",
+                    "Estimated during Flow. Health Connect may update this later.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.78f)
                 )
@@ -402,12 +391,12 @@ fun FlowCardMovementLine(
         )
         when {
             updatedAfterSync -> Text(
-                text = "Movement added after sync",
+                text = "Movement Points added after sync",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
             )
             movementIsPhoneEstimate -> Text(
-                text = "Estimated from phone",
+                text = "Estimated during Flow",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
             )

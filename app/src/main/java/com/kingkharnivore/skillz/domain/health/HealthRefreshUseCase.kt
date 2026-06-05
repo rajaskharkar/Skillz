@@ -99,7 +99,7 @@ class HealthRefreshUseCase @Inject constructor(
             lastCheckedAtMs = nowMs,
             capturedAtMs = if (newRawMovement > 0L) nowMs else snapshot.capturedAtMs,
             checkCount = snapshot.checkCount + 1,
-            updatedAfterSync = ((awarded.finalAwardedSteps ?: 0L) > (snapshot.finalAwardedSteps ?: snapshot.steps ?: 0L)) || delta > 0L || snapshot.updatedAfterSync,
+            updatedAfterSync = delta > 0L || newRawMovement > currentBreakdown.movementPoints || snapshot.updatedAfterSync,
             healthConnectReadStatus = "SUCCESS"
         )
         val updatedBreakdown = currentBreakdown.copy(
