@@ -1,6 +1,8 @@
 package com.kingkharnivore.skillz.ui.screen
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import android.Manifest
+import android.os.Build
 import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateDpAsState
@@ -62,6 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.health.connect.client.HealthConnectClient
+import androidx.activity.result.contract.ActivityResultContracts
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.localization.AppLanguage
 import androidx.health.connect.client.PermissionController
@@ -71,6 +74,7 @@ import com.kingkharnivore.skillz.ui.health.HealthConnectSettingsCard
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsViewModel
+import com.kingkharnivore.skillz.viewmodel.health.HealthSetupEvent
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 
@@ -96,6 +100,11 @@ fun HelpScreen(
     val healthState by healthViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val activityRecognitionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        healthViewModel.onActivityRecognitionPermissionResult(granted)
+    }
 
     val healthPermissionLauncher = rememberLauncherForActivityResult(
         contract = PermissionController.createRequestPermissionResultContract()
@@ -107,6 +116,28 @@ fun HelpScreen(
     LaunchedEffect(Unit) {
         healthViewModel.refreshState()
     }
+    LaunchedEffect(healthViewModel) {
+        healthViewModel.setupEvents.collect { event ->
+            when (event) {
+                HealthSetupEvent.RequestHealthConnectPermission -> {
+                    healthViewModel.onPermissionLaunchAttempt(context.packageName)
+                    try {
+                        healthPermissionLauncher.launch(setOf(healthViewModel.readStepsPermission))
+                    } catch (t: Throwable) {
+                        healthViewModel.onPermissionLaunchFailed(t)
+                    }
+                }
+                HealthSetupEvent.RequestActivityRecognitionPermission -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        activityRecognitionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+                    } else {
+                        healthViewModel.onActivityRecognitionPermissionResult(true)
+                    }
+                }
+            }
+        }
+    }
+
 
     LaunchedEffect(healthState) {
         Log.d("HealthSettings", "Health card state=$healthState")
@@ -206,14 +237,13 @@ fun HelpScreen(
                 }
             },
             onToggleMovementBonus = { checked ->
-                if (checked) {
-                    healthViewModel.enableMovementBonusIfPermissionGranted()
-                } else {
-                    healthViewModel.requestDisableOrDisableNow()
-                }
+                healthViewModel.onHealthToggleChanged(checked)
             },
             onInstallOrUpdateHealthConnect = {
                 healthViewModel.openHealthConnectInstallOrUpdate(context)
+            },
+            onEnablePhoneStepEstimate = {
+                healthViewModel.requestActivityRecognitionFromSecondary()
             }
         )
 

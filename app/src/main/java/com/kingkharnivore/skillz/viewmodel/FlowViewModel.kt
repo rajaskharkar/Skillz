@@ -3,6 +3,7 @@ package com.kingkharnivore.skillz.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
@@ -20,8 +21,10 @@ import com.kingkharnivore.skillz.domain.health.FlowActiveInterval
 import com.kingkharnivore.skillz.data.model.entity.health.FlowRewardBreakdownEntity
 import com.kingkharnivore.skillz.data.model.entity.health.FlowHealthSyncStatus
 import com.kingkharnivore.skillz.data.model.entity.health.FlowHealthSnapshotEntity
+import com.kingkharnivore.skillz.data.model.entity.health.MovementDataSourceType
 import com.kingkharnivore.skillz.data.health.MovementReadResult
 import com.kingkharnivore.skillz.data.health.HealthConnectMovementDataSource
+import com.kingkharnivore.skillz.data.health.PhoneStepEstimateTracker
 import com.kingkharnivore.skillz.data.repository.health.FlowHealthRepository
 import com.kingkharnivore.skillz.data.repository.health.HealthSettingsRepository
 import com.kingkharnivore.skillz.data.repository.health.HealthPermissionRepository
@@ -98,6 +101,7 @@ class FlowViewModel @Inject constructor(
     private val healthSettingsRepository: HealthSettingsRepository,
     private val healthPermissionRepository: HealthPermissionRepository,
     private val healthMovementDataSource: HealthConnectMovementDataSource,
+    private val phoneStepEstimateTracker: PhoneStepEstimateTracker,
     private val flowHealthRepository: FlowHealthRepository,
     private val movementBonusCalculator: MovementBonusCalculator,
     private val movementBonusEligibilityPolicy: MovementBonusEligibilityPolicy,
@@ -415,6 +419,23 @@ class FlowViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            phoneStepEstimateTracker.state.collect { estimate ->
+                _uiState.update { current ->
+                    val showCurrentFlowEstimate = current.movementBonusEligibleAtStart &&
+                        estimate.isAvailable &&
+                        estimate.permissionGranted &&
+                        estimate.isTracking
+                    current.copy(
+                        estimatedPhoneSteps = estimate.estimatedSteps.takeIf { showCurrentFlowEstimate },
+                        estimatedPhoneMovementPoints = if (showCurrentFlowEstimate) estimate.estimatedMovementPoints else 0L,
+                        phonePermissionGrantedAtStart = current.phonePermissionGrantedAtStart || estimate.permissionGranted,
+                        phoneStepSensorAvailableAtStart = current.phoneStepSensorAvailableAtStart || estimate.isAvailable
+                    )
+                }
+            }
+        }
+
+        viewModelScope.launch {
             val storedOngoing = focusSessionRepository.getOngoingSession().firstOrNull()
             val ongoing = if (isAbandonedPulseOriginDraft(storedOngoing)) {
                 clearOngoing()
@@ -623,12 +644,19 @@ class FlowViewModel @Inject constructor(
                 healthConnectAvailable = available,
                 readStepsPermissionGranted = granted,
                 isRegularPointEligibleFlow = !current.isSoftMode,
-                isSoftFlow = current.isSoftMode
+                isSoftFlow = current.isSoftMode,
+                phoneStepTrackingAvailable = phoneStepEstimateTracker.isSensorAvailable(),
+                activityRecognitionPermissionGranted = phoneStepEstimateTracker.hasRuntimePermission()
             )
         )
+        val phonePermission = phoneStepEstimateTracker.hasRuntimePermission()
+        val phoneAvailable = phoneStepEstimateTracker.isSensorAvailable()
+        Log.d("MovementBonus", "Flow start eligibility: movementBonusEnabled=${settings.movementBonusEnabled}, healthGranted=$granted, phonePermission=$phonePermission, phoneSensorAvailable=$phoneAvailable, isSoft=${current.isSoftMode}, eligible=$eligible")
         val updated = current.copy(
             healthEnabledAtStart = settings.movementBonusEnabled,
             healthPermissionGrantedAtStart = granted,
+            phonePermissionGrantedAtStart = phonePermission,
+            phoneStepSensorAvailableAtStart = phoneAvailable,
             movementBonusEligibleAtStart = eligible
         )
         _uiState.value = updated
@@ -655,11 +683,16 @@ class FlowViewModel @Inject constructor(
                 it.copy(
                     healthEnabledAtStart = false,
                     healthPermissionGrantedAtStart = false,
+                    phonePermissionGrantedAtStart = false,
+                    phoneStepSensorAvailableAtStart = false,
+                    estimatedPhoneSteps = null,
+                    estimatedPhoneMovementPoints = 0L,
                     movementBonusEligibleAtStart = false
                 )
             }
             activeIntervals.clear()
             activeIntervalStartMs = null
+            phoneStepEstimateTracker.beginNewFlow()
             captureMovementEligibilityAtFlowStart()
             arcState?.let { s ->
                 val now = System.currentTimeMillis()
@@ -672,6 +705,7 @@ class FlowViewModel @Inject constructor(
         val now = System.currentTimeMillis()
         baseStartTimeMs = now
         activeIntervalStartMs = now
+        if (_uiState.value.movementBonusEligibleAtStart) phoneStepEstimateTracker.startOrResumeTracking()
         _uiState.update { it.copy(stopwatch = it.stopwatch.copy(isRunning = true)) }
         applyArcPauseAccountingOnResume(now)
         arcCountdownJob?.cancel()
@@ -753,6 +787,7 @@ class FlowViewModel @Inject constructor(
         }
         activeIntervalStartMs = null
         baseStartTimeMs = null
+        phoneStepEstimateTracker.pauseTracking()
 
         arcState = arcState?.let { s ->
             if (s.pauseStartedAtMs == null) {
@@ -943,6 +978,7 @@ class FlowViewModel @Inject constructor(
     }
 
     private suspend fun clearOngoing() {
+        phoneStepEstimateTracker.cancelAndReset()
         focusSessionRepository.clearOngoingSession()
     }
 
@@ -1075,44 +1111,80 @@ class FlowViewModel @Inject constructor(
         val steps: Long?,
         val movementPoints: Long,
         val status: FlowHealthSyncStatus,
-        val checkedAtMs: Long?
+        val checkedAtMs: Long?,
+        val phoneEstimatedSteps: Long? = null,
+        val healthConnectSteps: Long? = null,
+        val movementDataSource: MovementDataSourceType = MovementDataSourceType.NONE,
+        val phoneStepSource: String? = null,
+        val healthConnectReadStatus: String? = null
     )
 
     private suspend fun readMovementForCompletionIfEligible(
         state: FlowUiState,
         activeIntervals: List<FlowActiveInterval>
     ): CompletionMovementRead {
+        val phoneSteps = phoneStepEstimateTracker.finishFlowAndGetSteps()
         if (!state.movementBonusEligibleAtStart || state.isSoftMode || activeIntervals.isEmpty()) {
             return CompletionMovementRead(null, 0L, FlowHealthSyncStatus.NOT_ELIGIBLE, null)
         }
         val checkedAt = System.currentTimeMillis()
-        var totalSteps = 0L
+        var totalHealthSteps = 0L
         var sawSuccess = false
         var sawNoData = false
-        activeIntervals.forEach { interval ->
+        var terminalStatus: FlowHealthSyncStatus? = null
+        var readStatus = "NOT_READ"
+        for (interval in activeIntervals) {
+            if (terminalStatus != null) break
             when (val result = healthMovementDataSource.readStepsBetween(
                 Instant.ofEpochMilli(interval.startTimeMs),
                 Instant.ofEpochMilli(interval.endTimeMs)
             )) {
-                MovementReadResult.HealthConnectUnavailable -> return CompletionMovementRead(null, 0L, FlowHealthSyncStatus.ERROR_RETRYABLE, checkedAt)
-                MovementReadResult.PermissionMissing -> return CompletionMovementRead(null, 0L, FlowHealthSyncStatus.PERMISSION_REVOKED, checkedAt)
-                MovementReadResult.NoData -> sawNoData = true
-                is MovementReadResult.Error -> return CompletionMovementRead(null, 0L, FlowHealthSyncStatus.ERROR_RETRYABLE, checkedAt)
+                MovementReadResult.HealthConnectUnavailable -> {
+                    terminalStatus = FlowHealthSyncStatus.ERROR_RETRYABLE
+                    readStatus = "HEALTH_CONNECT_UNAVAILABLE"
+                }
+                MovementReadResult.PermissionMissing -> {
+                    terminalStatus = FlowHealthSyncStatus.PERMISSION_REVOKED
+                    readStatus = "PERMISSION_MISSING"
+                }
+                MovementReadResult.NoData -> {
+                    sawNoData = true
+                    readStatus = "NO_DATA"
+                }
+                is MovementReadResult.Error -> {
+                    terminalStatus = FlowHealthSyncStatus.ERROR_RETRYABLE
+                    readStatus = "ERROR"
+                }
                 is MovementReadResult.Success -> {
                     sawSuccess = true
-                    totalSteps += result.steps
+                    totalHealthSteps += result.steps
+                    readStatus = "SUCCESS"
                 }
             }
         }
-        if (!sawSuccess) {
-            return CompletionMovementRead(null, 0L, if (sawNoData) FlowHealthSyncStatus.PENDING else FlowHealthSyncStatus.NO_REWARD, checkedAt)
+        val healthSteps = totalHealthSteps.takeIf { sawSuccess }
+        val awarded = movementBonusCalculator.selectAwardedMovement(
+            previouslyAwardedSteps = 0L,
+            phoneEstimatedSteps = phoneSteps,
+            healthConnectSteps = healthSteps
+        )
+        val status = when {
+            awarded.finalAwardedMovementPoints > 0L -> FlowHealthSyncStatus.CAPTURED
+            terminalStatus != null && phoneSteps == null -> terminalStatus!!
+            phoneSteps != null || sawSuccess -> FlowHealthSyncStatus.NO_REWARD
+            sawNoData -> FlowHealthSyncStatus.PENDING
+            else -> FlowHealthSyncStatus.PENDING
         }
-        val points = movementBonusCalculator.calculateMovementPoints(totalSteps)
         return CompletionMovementRead(
-            steps = totalSteps,
-            movementPoints = points,
-            status = if (points > 0L) FlowHealthSyncStatus.CAPTURED else FlowHealthSyncStatus.NO_REWARD,
-            checkedAtMs = checkedAt
+            steps = awarded.finalAwardedSteps,
+            movementPoints = awarded.finalAwardedMovementPoints,
+            status = status,
+            checkedAtMs = checkedAt,
+            phoneEstimatedSteps = phoneSteps,
+            healthConnectSteps = healthSteps,
+            movementDataSource = awarded.movementDataSource,
+            phoneStepSource = phoneStepEstimateTracker.state.value.source.name,
+            healthConnectReadStatus = readStatus
         )
     }
 
@@ -1138,6 +1210,15 @@ class FlowViewModel @Inject constructor(
             status = if (state.movementBonusEligibleAtStart) movementRead.status else FlowHealthSyncStatus.NOT_ELIGIBLE,
             steps = movementRead.steps,
             rawMovementPoints = movementRead.movementPoints,
+            phoneEstimatedSteps = movementRead.phoneEstimatedSteps,
+            phoneEstimatedMovementPoints = movementBonusCalculator.calculateMovementPoints(movementRead.phoneEstimatedSteps ?: 0L),
+            phoneEstimateCapturedAtMs = movementRead.phoneEstimatedSteps?.let { now },
+            healthConnectSteps = movementRead.healthConnectSteps,
+            healthConnectMovementPoints = movementBonusCalculator.calculateMovementPoints(movementRead.healthConnectSteps ?: 0L),
+            healthConnectLastReadAtMs = movementRead.checkedAtMs,
+            finalAwardedSteps = movementRead.steps,
+            finalAwardedMovementPoints = movementRead.movementPoints,
+            movementDataSource = movementRead.movementDataSource,
             finalMovementScyraContribution = (finalScyra - finalWithoutMovement).coerceAtLeast(0).toLong(),
             finalMovementPearlContribution = if (!state.isSoftMode) (finalScyra - finalWithoutMovement).coerceAtLeast(0).toLong() else 0L,
             firstCheckedAtMs = movementRead.checkedAtMs,
@@ -1147,7 +1228,16 @@ class FlowViewModel @Inject constructor(
             checkCount = if (movementRead.checkedAtMs != null) 1 else 0,
             flowStartTimeMs = sessionStart,
             flowEndTimeMs = sessionEnd,
-            activeIntervalJson = activeIntervalJson
+            activeIntervalJson = activeIntervalJson,
+            sourceLabel = when (movementRead.movementDataSource) {
+                MovementDataSourceType.PHONE_SENSOR -> "Phone sensor"
+                MovementDataSourceType.HEALTH_CONNECT, MovementDataSourceType.HEALTH_CONNECT_RECONCILED -> "Health Connect"
+                MovementDataSourceType.NONE -> null
+            },
+            phoneStepSource = movementRead.phoneStepSource,
+            phoneEstimateAvailableAtCompletion = movementRead.phoneEstimatedSteps != null,
+            healthConnectAvailableAtCompletion = movementRead.healthConnectSteps != null,
+            healthConnectReadStatus = movementRead.healthConnectReadStatus
         )
         val breakdown = FlowRewardBreakdownEntity(
             sessionId = sessionId,
@@ -1339,6 +1429,7 @@ class FlowViewModel @Inject constructor(
                     surgePoints = surgePoints,
                     movementSteps = movementRead.steps,
                     movementPoints = movementRead.movementPoints,
+                    movementIsPhoneEstimate = movementRead.movementDataSource == MovementDataSourceType.PHONE_SENSOR,
                     arcIndexInArc = 1,
                     arcMultiplierUsed = null,
                     arcBonusPoints = 0,
@@ -1496,6 +1587,7 @@ class FlowViewModel @Inject constructor(
                 surgePoints = surgePoints,
                 movementSteps = movementRead.steps,
                 movementPoints = movementRead.movementPoints,
+                movementIsPhoneEstimate = movementRead.movementDataSource == MovementDataSourceType.PHONE_SENSOR,
                 arcIndexInArc = arcIndex,
                 arcMultiplierUsed = arcMultiplierUsed,
                 arcBonusPoints = arcBonusPoints,
@@ -1818,5 +1910,10 @@ class FlowViewModel @Inject constructor(
         _uiState.update {
             it.copy(recentlyResumedArcMessage = null)
         }
+    }
+
+    override fun onCleared() {
+        phoneStepEstimateTracker.cancelAndReset()
+        super.onCleared()
     }
 }

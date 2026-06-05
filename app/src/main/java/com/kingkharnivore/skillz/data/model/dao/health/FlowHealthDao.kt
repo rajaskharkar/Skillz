@@ -63,6 +63,22 @@ interface FlowHealthDao {
         limit: Int
     ): List<FlowHealthSnapshotEntity>
 
+
+    @Query("""
+        SELECT * FROM flow_health_snapshots
+        WHERE status IN (:statuses)
+          AND (:nowMs < expiresAtMs OR expiresAtMs IS NULL)
+          AND checkCount < :maxCheckCount
+        ORDER BY lastCheckedAtMs ASC, flowEndTimeMs DESC
+        LIMIT :limit
+    """)
+    suspend fun getRefreshableSnapshotsIgnoringThrottle(
+        statuses: List<FlowHealthSyncStatus>,
+        nowMs: Long,
+        maxCheckCount: Int,
+        limit: Int
+    ): List<FlowHealthSnapshotEntity>
+
     @Query("""
         UPDATE flow_health_snapshots
         SET status = :disabledStatus, lastCheckedAtMs = :nowMs
@@ -76,6 +92,8 @@ interface FlowHealthDao {
         nowMs: Long,
         maxCheckCount: Int
     )
+
+
 
     @Query("""
         UPDATE flow_health_snapshots

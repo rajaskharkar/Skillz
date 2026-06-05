@@ -10,6 +10,7 @@ data class FlowRewardUiModel(
     val surgePoints: Int,
     val movementSteps: Long? = null,
     val movementPoints: Long = 0L,
+    val movementIsPhoneEstimate: Boolean = false,
 
     // ARC
     val arcIndexInArc: Int? = null,

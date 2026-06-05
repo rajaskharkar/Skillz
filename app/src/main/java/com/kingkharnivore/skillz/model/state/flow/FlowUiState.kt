@@ -27,5 +27,9 @@ data class FlowUiState(
     val originPulseJourneyName: String? = null,
     val healthEnabledAtStart: Boolean = false,
     val healthPermissionGrantedAtStart: Boolean = false,
+    val phonePermissionGrantedAtStart: Boolean = false,
+    val phoneStepSensorAvailableAtStart: Boolean = false,
+    val estimatedPhoneSteps: Long? = null,
+    val estimatedPhoneMovementPoints: Long = 0L,
     val movementBonusEligibleAtStart: Boolean = false
 )

@@ -56,7 +56,8 @@ fun SessionRewardContent(
         }
         MovementBonusRewardBlock(
             steps = r.movementSteps ?: 0L,
-            movementPoints = r.movementPoints
+            movementPoints = r.movementPoints,
+            movementIsPhoneEstimate = r.movementIsPhoneEstimate
         )
         RewardRevealDeck(cards = cards)
     }

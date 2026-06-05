@@ -1,6 +1,7 @@
 package com.kingkharnivore.skillz.model.ui
 
 import androidx.compose.ui.graphics.Color
+import com.kingkharnivore.skillz.data.model.entity.health.MovementDataSourceType
 
 data class FlowListItemUiModel(
     val sessionId: Long,
@@ -21,5 +22,7 @@ data class FlowListItemUiModel(
     val arcBonusPoints: Int = 0,
     val movementSteps: Long? = null,
     val movementPoints: Long = 0L,
-    val movementBonusUpdatedAfterSync: Boolean = false
+    val movementBonusUpdatedAfterSync: Boolean = false,
+    val movementDataSource: MovementDataSourceType? = null,
+    val movementIsPhoneEstimate: Boolean = false
 )
