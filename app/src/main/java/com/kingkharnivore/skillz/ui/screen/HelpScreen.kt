@@ -1,7 +1,6 @@
 package com.kingkharnivore.skillz.ui.screen
 
 import androidx.activity.compose.rememberLauncherForActivityResult
-import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
@@ -61,7 +60,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.localization.AppLanguage
 import androidx.health.connect.client.PermissionController
@@ -73,12 +71,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
-
-private fun logHealthDebug(message: String) {
-    if (BuildConfig.DEBUG) {
-        Log.d("HealthSettings", message)
-    }
-}
 
 @Composable
 fun HelpScreen(
@@ -105,15 +97,10 @@ fun HelpScreen(
     val healthPermissionLauncher = rememberLauncherForActivityResult(
         PermissionController.createRequestPermissionResultContract()
     ) { granted ->
-        logHealthDebug("Health permission result=$granted")
         healthViewModel.onPermissionResult(granted)
     }
 
     LaunchedEffect(Unit) { healthViewModel.refreshState() }
-    LaunchedEffect(healthState) {
-        logHealthDebug("Health card state=$healthState")
-        logHealthDebug("packageName=${context.packageName}")
-    }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -163,9 +150,6 @@ fun HelpScreen(
         HealthConnectSettingsCard(
             state = healthState,
             onConnectHealth = {
-                logHealthDebug(
-                    "Connect Health clicked availability=${healthState.healthConnectAvailability} permission=${healthViewModel.readStepsPermission}"
-                )
                 try {
                     healthPermissionLauncher.launch(setOf(healthViewModel.readStepsPermission))
                 } catch (t: Throwable) {

@@ -1557,4 +1557,57 @@ Piedritas — 60 Perlas</string>
     <string name="beyond_blue_pearls_will_be_used">Se usarán %1$d Perlas.</string>
     <string name="beyond_blue_ready_to_buy">Listo para comprar</string>
     <string name="beyond_blue_adjusted_cost">Costo ajustado</string>
+
+    <!-- Movement Bonus / Health Connect -->
+    <string name="privacy_health_connect_movement_bonus">Si activas Movement Bonus, Scyra lee datos de conteo de pasos de Health Connect durante tus Flows elegibles para calcular recompensas de Movement Bonus. Scyra usa estos datos solo para Movement Points, Scyra Points, Pearls y las vistas de recompensas relacionadas. Scyra no vende estos datos ni los usa para publicidad.</string>
+    <string name="health_settings_title">Movement Bonus</string>
+    <string name="health_connect_unavailable_headline">Health Connect no está disponible en este dispositivo.</string>
+    <string name="health_connect_unavailable_body">Movement Bonus necesita Health Connect para leer pasos durante tus Flows.</string>
+    <string name="health_connect_update_required_headline">Health Connect debe instalarse o actualizarse.</string>
+    <string name="health_connect_update_required_body">Instala o actualiza Health Connect para usar Movement Bonus.</string>
+    <string name="health_connect_enable_headline">Activa Health para ganar Movement Points durante tus Flows.</string>
+    <string name="health_connect_enable_body">Scyra lee tu conteo de pasos mediante Health Connect y te da +1 Movement Point por cada 25 pasos durante Flows elegibles. Los Movement Points se suman a tus Scyra Points totales.</string>
+    <string name="movement_bonus_active_headline">Movement Bonus está activo.</string>
+    <string name="movement_bonus_active_body">Los pasos dados durante Flows elegibles pueden ganar Movement Points. Los Movement Points se suman a tus Scyra Points y también pueden generar Pearls.</string>
+    <string name="movement_bonus_off_headline">Movement Bonus está desactivado.</string>
+    <string name="movement_bonus_off_body">Actívalo para ganar Movement Points con pasos durante Flows elegibles.</string>
+    <string name="movement_bonus_privacy_body">Si activas Movement Bonus, Scyra puede leer datos de conteo de pasos de Health Connect durante Flows elegibles. Scyra usa esto solo para calcular Movement Points, Scyra Points, Pearls y las vistas de recompensas relacionadas. Scyra no vende estos datos ni los usa para publicidad.</string>
+    <string name="health_connect_action_connect">Conectar Health</string>
+    <string name="health_connect_action_install_update">Instalar / actualizar Health Connect</string>
+    <string name="health_user_message_permission_not_granted">No se concedió el permiso de Health.</string>
+    <string name="health_user_message_permissions_unavailable">No se pudieron abrir los permisos de Health Connect.</string>
+    <string name="health_user_message_play_store_unavailable">No se pudo abrir Health Connect en Play Store.</string>
+    <string name="movement_bonus_toggle_content_description">Interruptor de Movement Bonus</string>
+    <string name="movement_bonus_toggle_on">Activado</string>
+    <string name="movement_bonus_toggle_off">Desactivado</string>
+    <string name="movement_bonus_toggle_state_on">Activado. Toca dos veces para desactivar Movement Bonus.</string>
+    <string name="movement_bonus_toggle_state_off">Desactivado. Toca dos veces para activar Movement Bonus.</string>
+    <string name="movement_bonus_active_pill">Movement Bonus activo · Cada 25 pasos gana +1 punto</string>
+    <string name="movement_bonus_active_pill_a11y">Movement Bonus activo. Cada 25 pasos gana 1 Movement Point.</string>
+    <string name="movement_bonus_title">Movement Bonus</string>
+    <string name="movement_bonus_reward_steps">%1$s</string>
+    <string name="movement_bonus_reward_points">+%1$s</string>
+    <string name="movement_bonus_reward_a11y">Movement Bonus. %1$s. %2$s.</string>
+    <string name="movement_bonus_flow_card_line">%1$s · %2$s</string>
+    <string name="movement_bonus_flow_card_line_a11y">%1$s, %2$s.</string>
+    <string name="movement_bonus_updated_after_sync">Movement Points agregados después de sincronizar.</string>
+    <string name="health_disable_title">¿Desactivar Health?</string>
+    <string name="health_disable_body">Algunos Flows recientes todavía pueden estar esperando datos de pasos o una mejor sincronización de Health Connect.
+
+Si desactivas Health ahora, Scyra dejará de revisar esos Flows y puede que no se otorguen Movement Points pendientes.
+
+Los Movement Points ya otorgados se conservarán.
+
+Puedes volver a activar Health más tarde.</string>
+    <string name="health_disable_keep_on">Mantener Health activado</string>
+    <string name="health_disable_anyway">Desactivar de todos modos</string>
+    <plurals name="movement_bonus_steps_count">
+        <item quantity="one">%1$d paso</item>
+        <item quantity="other">%1$d pasos</item>
+    </plurals>
+    <plurals name="movement_bonus_points_count">
+        <item quantity="one">%1$d Movement Point</item>
+        <item quantity="other">%1$d Movement Points</item>
+    </plurals>
+
 </resources>

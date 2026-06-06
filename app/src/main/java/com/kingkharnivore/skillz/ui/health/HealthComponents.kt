@@ -90,7 +90,7 @@ fun HealthConnectSettingsCard(
     val userMessage = state.userMessage?.let { stringResource(it.messageRes()) }
     val toggleLabel = stringResource(R.string.movement_bonus_toggle_content_description)
     val toggleState = stringResource(
-        if (state.toggleChecked) R.string.movement_bonus_toggle_on else R.string.movement_bonus_toggle_off
+        if (state.toggleChecked) R.string.movement_bonus_toggle_state_on else R.string.movement_bonus_toggle_state_off
     )
 
     Surface(
