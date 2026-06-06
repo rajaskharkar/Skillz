@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 28.
+     * Current database version is 30.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -118,6 +118,24 @@ object SkillzDatabaseMigrations {
 
     val MIGRATION_27_28 = object : Migration(27, 28) {
         override fun migrate(db: SupportSQLiteDatabase) {
+            normalizeMovementBonusTables(db)
+        }
+    }
+
+
+    val MIGRATION_28_29 = object : Migration(28, 29) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Compatibility migration for local PR builds that briefly advanced
+            // the database to v29 while the Movement Bonus schema was still
+            // being hardened. Normalize the health tables to the canonical shape.
+            normalizeMovementBonusTables(db)
+        }
+    }
+
+    val MIGRATION_29_30 = object : Migration(29, 30) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Never downgrade v29 developer/test installs back to v28. Upgrade
+            // them into the current canonical Movement Bonus schema instead.
             normalizeMovementBonusTables(db)
         }
     }
@@ -270,7 +288,9 @@ object SkillzDatabaseMigrations {
                 MIGRATION_24_25 +
                 MIGRATION_25_26 +
                 MIGRATION_26_27 +
-                MIGRATION_27_28
+                MIGRATION_27_28 +
+                MIGRATION_28_29 +
+                MIGRATION_29_30
 
     private fun createMovementBonusTables(db: SupportSQLiteDatabase) {
         addColumnIfMissing(db, "ongoing_session", "healthEnabledAtStart", "INTEGER NOT NULL DEFAULT 0")
