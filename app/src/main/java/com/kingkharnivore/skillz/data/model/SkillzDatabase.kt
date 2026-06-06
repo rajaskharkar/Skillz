@@ -5,6 +5,9 @@ import androidx.room.RoomDatabase
 import com.kingkharnivore.skillz.data.model.dao.ActiveArcRunDao
 import com.kingkharnivore.skillz.data.model.dao.ArcPlanDao
 import com.kingkharnivore.skillz.data.model.dao.FlowPlanDao
+import com.kingkharnivore.skillz.data.model.entity.health.FlowRewardBreakdownEntity
+import com.kingkharnivore.skillz.data.model.entity.health.FlowHealthSnapshotEntity
+import com.kingkharnivore.skillz.data.model.dao.health.FlowHealthDao
 import com.kingkharnivore.skillz.data.model.dao.IdeaGroveDao
 import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
 import com.kingkharnivore.skillz.data.model.dao.PulseDao
@@ -59,9 +62,11 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellRoomStateEntit
         ShellRewardEventEntity::class,
         ObjectiveEntity::class,
         ObjectiveCompletionEntity::class,
-        ObjectiveSkippedCycleEntity::class
+        ObjectiveSkippedCycleEntity::class,
+        FlowHealthSnapshotEntity::class,
+        FlowRewardBreakdownEntity::class
     ],
-    version = 26,
+    version = 28,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
@@ -73,6 +78,7 @@ abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
     abstract fun flowPlanDao(): FlowPlanDao
     abstract fun arcPlanDao(): ArcPlanDao
     abstract fun activeArcRunDao(): ActiveArcRunDao
+    abstract fun flowHealthDao(): FlowHealthDao
     override abstract fun shellRewardEventDao(): com.kingkharnivore.skillz.data.model.dao.shell.ShellRewardEventDao
     override abstract fun objectiveDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveDao
     override abstract fun objectiveCompletionDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveCompletionDao
