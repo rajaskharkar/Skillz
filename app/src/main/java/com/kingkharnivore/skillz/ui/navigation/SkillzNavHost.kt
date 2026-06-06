@@ -23,6 +23,7 @@ import com.kingkharnivore.skillz.ui.screen.paths.suggested.SuggestedRoutesCatalo
 import com.kingkharnivore.skillz.ui.screen.story.pulse.PulseScreen
 import com.kingkharnivore.skillz.viewmodel.ArcDetailViewModel
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
+import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsViewModel
 import com.kingkharnivore.skillz.viewmodel.PlanArcViewModel
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
 import com.kingkharnivore.skillz.viewmodel.SuggestedRouteDetailViewModel
@@ -250,10 +251,12 @@ fun SkillzNavHost(
 
         composable("help") {
             val uiState by storyViewModel.uiState.collectAsState()
+            val healthViewModel: HealthSettingsViewModel = hiltViewModel()
 
             HelpScreen(
                 uiState = uiState,
                 selectedLanguageTag = uiState.appLanguageTag,
+                healthViewModel = healthViewModel,
                 onToggleShowScoreUi = storyViewModel::setShowScoreUi,
                 onToggleCalmMode = storyViewModel::setCalmMode,
                 onSetAppLanguage = storyViewModel::setAppLanguage,

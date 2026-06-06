@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.ui.FlowListItemUiModel
 import com.kingkharnivore.skillz.model.ui.PulseListItemUiModel
+import com.kingkharnivore.skillz.ui.health.FlowCardMovementLine
 import com.kingkharnivore.skillz.utils.time.formatDuration
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -354,6 +355,22 @@ fun FlowCard(
                     style = MaterialTheme.typography.labelMedium,
                     color = contentColor.copy(alpha = 0.85f)
                 )
+            }
+
+            if (!isSoft && session.movementPoints > 0L) {
+                Spacer(modifier = Modifier.height(6.dp))
+                FlowCardMovementLine(
+                    steps = session.movementSteps,
+                    movementPoints = session.movementPoints
+                )
+                if (isExpanded && session.movementBonusUpdatedAfterSync) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = stringResource(R.string.movement_bonus_updated_after_sync),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = contentColor.copy(alpha = 0.72f)
+                    )
+                }
             }
 
             if (childPulses.isNotEmpty()) {

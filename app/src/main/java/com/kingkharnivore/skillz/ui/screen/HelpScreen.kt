@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.ui.screen
 
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
@@ -32,6 +33,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -42,6 +46,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -56,7 +62,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.localization.AppLanguage
+import androidx.health.connect.client.PermissionController
 import com.kingkharnivore.skillz.model.state.FlowListUiState
+import com.kingkharnivore.skillz.ui.health.DisableHealthPendingFlowsDialog
+import com.kingkharnivore.skillz.ui.health.HealthConnectSettingsCard
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 
@@ -64,6 +76,7 @@ import kotlin.math.absoluteValue
 fun HelpScreen(
     uiState: FlowListUiState,
     selectedLanguageTag: String?,
+    healthViewModel: HealthSettingsViewModel,
     onToggleShowScoreUi: (Boolean) -> Unit,
     onToggleCalmMode: (Boolean) -> Unit,
     onSetAppLanguage: (String?) -> Unit,
@@ -78,6 +91,25 @@ fun HelpScreen(
     val calmModeDescription = stringResource(R.string.help_pref_calm_mode_description)
 
     var showLanguageDialog by rememberSaveable { mutableStateOf(false) }
+    val healthState by healthViewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val healthPermissionLauncher = rememberLauncherForActivityResult(
+        PermissionController.createRequestPermissionResultContract()
+    ) { granted ->
+        healthViewModel.onPermissionResult(granted)
+    }
+
+    LaunchedEffect(Unit) { healthViewModel.refreshState() }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                healthViewModel.refreshState()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Column(
         modifier = modifier
@@ -115,9 +147,37 @@ fun HelpScreen(
             onClick = { showLanguageDialog = true }
         )
 
+        HealthConnectSettingsCard(
+            state = healthState,
+            onConnectHealth = {
+                try {
+                    healthPermissionLauncher.launch(setOf(healthViewModel.readStepsPermission))
+                } catch (t: Throwable) {
+                    healthViewModel.onPermissionLaunchFailed(t)
+                }
+            },
+            onToggleMovementBonus = { checked ->
+                if (checked) {
+                    healthViewModel.enableMovementBonusIfPermissionGranted()
+                } else {
+                    healthViewModel.requestDisableOrDisableNow()
+                }
+            },
+            onInstallOrUpdateHealthConnect = {
+                healthViewModel.openHealthConnectInstallOrUpdate(context)
+            }
+        )
+
         HelpConceptCarousel(
             pages = pages,
             modifier = Modifier.fillMaxWidth()
+        )
+    }
+
+    if (healthState.showDisableWarning) {
+        DisableHealthPendingFlowsDialog(
+            onKeepHealthOn = healthViewModel::keepHealthOn,
+            onDisableAnyway = healthViewModel::disableAnyway
         )
     }
 

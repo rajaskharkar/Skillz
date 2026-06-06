@@ -67,6 +67,7 @@ import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 import com.kingkharnivore.skillz.ui.screen.flow.reward.ArcSummaryContent
 import com.kingkharnivore.skillz.ui.screen.flow.reward.SessionRewardContent
 import com.kingkharnivore.skillz.ui.screen.flow.reward.SoftSessionRewardContent
+import com.kingkharnivore.skillz.ui.health.MovementBonusActivePill
 import com.kingkharnivore.skillz.viewmodel.FlowEndAction
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 
@@ -267,6 +268,11 @@ fun FlowScreen(
                         isInFlow = uiState.stopwatch.isRunning,
                         calmMode = uiState.calmMode
                     )
+                    Spacer(Modifier.height(10.dp))
+                }
+
+                if (uiState.movementBonusEligibleAtStart) {
+                    MovementBonusActivePill(modifier = Modifier.fillMaxWidth())
                     Spacer(Modifier.height(10.dp))
                 }
 

@@ -49,6 +49,8 @@ fun ArcSummaryContent(
         "discovery_octopus" to stringResource(R.string.shell_find_octopus_title),
         "discovery_pebble" to stringResource(R.string.shell_find_pebble_title)
     )
+    // TODO(Movement Bonus): Arc-level Movement summary is intentionally deferred;
+    // Flow reward and FlowCard movement displays are implemented in V1.
     val cards = buildArcSummaryRewardCards(
         arc = arc,
         isAera = isAera,

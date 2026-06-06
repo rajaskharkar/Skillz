@@ -24,5 +24,8 @@ data class FlowUiState(
     val plannedArcTotalSteps: Int? = null,
     val originPulseId: Long? = null,
     val originPulseTitle: String? = null,
-    val originPulseJourneyName: String? = null
+    val originPulseJourneyName: String? = null,
+    val healthEnabledAtStart: Boolean = false,
+    val healthPermissionGrantedAtStart: Boolean = false,
+    val movementBonusEligibleAtStart: Boolean = false
 )
