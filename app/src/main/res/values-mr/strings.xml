@@ -1608,7 +1608,7 @@
     <string name="health_connect_update_required_headline">Health Connect इंस्टॉल किंवा अपडेट करणे आवश्यक आहे.</string>
     <string name="health_connect_update_required_body">Movement Bonus वापरण्यासाठी Health Connect इंस्टॉल किंवा अपडेट करा.</string>
     <string name="health_connect_enable_headline">तुमच्या Flows दरम्यान Movement Points मिळवण्यासाठी Health चालू करा.</string>
-    <string name="health_connect_enable_body">Scyra Health Connect द्वारे तुमची पावलांची मोजणी वाचते आणि पात्र Flows दरम्यान प्रत्येक 25 पावलांसाठी +1 Movement Point देते. Movement Points तुमच्या एकूण Scyra Points मध्ये जोडले जातात.</string>
+    <string name="health_connect_enable_body">Scyra Health Connect द्वारे तुमची पावलांची मोजणी वाचते आणि पात्र Flows दरम्यान प्रत्येक 100 पावलांसाठी +1 Movement Point देते. Movement Points तुमच्या एकूण Scyra Points मध्ये जोडले जातात.</string>
     <string name="movement_bonus_active_headline">Movement Bonus चालू आहे.</string>
     <string name="movement_bonus_active_body">पात्र Flows दरम्यान घेतलेली पावले Movement Points मिळवू शकतात. Movement Points तुमच्या Scyra Points मध्ये जोडले जातात आणि Pearls देखील तयार करू शकतात.</string>
     <string name="movement_bonus_off_headline">Movement Bonus बंद आहे.</string>
@@ -1624,8 +1624,8 @@
     <string name="movement_bonus_toggle_off">बंद</string>
     <string name="movement_bonus_toggle_state_on">चालू. Movement Bonus बंद करण्यासाठी दोनदा टॅप करा.</string>
     <string name="movement_bonus_toggle_state_off">बंद. Movement Bonus चालू करण्यासाठी दोनदा टॅप करा.</string>
-    <string name="movement_bonus_active_pill">Movement Bonus चालू · प्रत्येक 25 पावलांवर +1 पॉइंट</string>
-    <string name="movement_bonus_active_pill_a11y">Movement Bonus चालू आहे. प्रत्येक 25 पावलांवर 1 Movement Point मिळतो.</string>
+    <string name="movement_bonus_active_pill">Movement Bonus चालू · प्रत्येक 100 पावलांवर +1 पॉइंट</string>
+    <string name="movement_bonus_active_pill_a11y">Movement Bonus चालू आहे. प्रत्येक 100 पावलांवर 1 Movement Point मिळतो.</string>
     <string name="movement_bonus_title">Movement Bonus</string>
     <string name="movement_bonus_reward_steps">%1$s</string>
     <string name="movement_bonus_reward_points">+%1$s</string>
