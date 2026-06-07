@@ -1895,7 +1895,7 @@
     <string name="health_connect_update_required_headline">Health Connect needs to be installed or updated.</string>
     <string name="health_connect_update_required_body">Install or update Health Connect to use Movement Bonus.</string>
     <string name="health_connect_enable_headline">Enable Health to earn Movement Points during your Flows.</string>
-    <string name="health_connect_enable_body">Scyra reads your step count through Health Connect and gives you +1 Movement Point for every 25 steps during eligible Flows. Movement Points are added to your total Scyra Points.</string>
+    <string name="health_connect_enable_body">Scyra reads your step count through Health Connect and gives you +1 Movement Point for every 100 steps during eligible Flows. Movement Points are added to your total Scyra Points.</string>
     <string name="movement_bonus_active_headline">Movement Bonus is active.</string>
     <string name="movement_bonus_active_body">Steps taken during eligible Flows can earn Movement Points. Movement Points are added to your Scyra Points and can also generate Pearls.</string>
     <string name="movement_bonus_off_headline">Movement Bonus is off.</string>

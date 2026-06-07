@@ -1555,7 +1555,7 @@
     <string name="health_connect_update_required_headline">Health Connect इंस्टॉल या अपडेट करना होगा।</string>
     <string name="health_connect_update_required_body">Movement Bonus का उपयोग करने के लिए Health Connect इंस्टॉल या अपडेट करें।</string>
     <string name="health_connect_enable_headline">अपने Flows के दौरान Movement Points पाने के लिए Health चालू करें।</string>
-    <string name="health_connect_enable_body">Scyra Health Connect के ज़रिए आपकी कदमों की गिनती पढ़ता है और पात्र Flows के दौरान हर 25 कदम पर +1 Movement Point देता है। Movement Points आपके कुल Scyra Points में जुड़ते हैं।</string>
+    <string name="health_connect_enable_body">Scyra Health Connect के ज़रिए आपकी कदमों की गिनती पढ़ता है और पात्र Flows के दौरान हर 100 कदम पर +1 Movement Point देता है। Movement Points आपके कुल Scyra Points में जुड़ते हैं।</string>
     <string name="movement_bonus_active_headline">Movement Bonus चालू है।</string>
     <string name="movement_bonus_active_body">पात्र Flows के दौरान लिए गए कदम Movement Points कमा सकते हैं। Movement Points आपके Scyra Points में जुड़ते हैं और Pearls भी बना सकते हैं।</string>
     <string name="movement_bonus_off_headline">Movement Bonus बंद है।</string>

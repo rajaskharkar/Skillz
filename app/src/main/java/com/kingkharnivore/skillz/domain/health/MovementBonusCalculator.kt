@@ -4,7 +4,7 @@ class MovementBonusCalculator {
     fun calculateMovementPoints(steps: Long): Long = steps.coerceAtLeast(0L) / STEPS_PER_POINT
 
     companion object {
-        const val STEPS_PER_POINT: Long = 25L
+        const val STEPS_PER_POINT: Long = 100L
     }
 }
 
