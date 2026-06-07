@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DirectionsWalk
@@ -197,30 +198,84 @@ fun DisableHealthPendingFlowsDialog(
 }
 
 @Composable
-fun MovementBonusActivePill(modifier: Modifier = Modifier) {
-    val visibleText = stringResource(R.string.movement_bonus_active_pill)
-    val a11yText = stringResource(R.string.movement_bonus_active_pill_a11y)
+fun MovementBonusActivePill(
+    steps: Long,
+    movementPoints: Long,
+    isInFlow: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val statusText = stringResource(
+        if (isInFlow) {
+            R.string.movement_bonus_tracking_active
+        } else {
+            R.string.movement_bonus_tracking_paused
+        }
+    )
+    val stepsText = stringResource(R.string.movement_bonus_steps_value, steps)
+    val pointsText = stringResource(R.string.movement_bonus_points_value, movementPoints)
+    val a11yText = stringResource(
+        R.string.movement_bonus_active_pill_a11y,
+        steps,
+        movementPoints
+    )
+
     Surface(
         modifier = modifier.clearAndSetSemantics { contentDescription = a11yText },
-        shape = RoundedCornerShape(50.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.55f)
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                Icons.Outlined.DirectionsWalk,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(18.dp)
-            )
-            Text(
-                visibleText,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
-            )
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ) {
+                Icon(
+                    Icons.Outlined.DirectionsWalk,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .size(20.dp)
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    stringResource(R.string.movement_bonus_active_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    statusText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    stepsText,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    pointsText,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }

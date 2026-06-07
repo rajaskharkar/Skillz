@@ -1582,8 +1582,12 @@ Piedritas — 60 Perlas</string>
     <string name="movement_bonus_toggle_off">Desactivado</string>
     <string name="movement_bonus_toggle_state_on">Activado. Toca dos veces para desactivar Movement Bonus.</string>
     <string name="movement_bonus_toggle_state_off">Desactivado. Toca dos veces para activar Movement Bonus.</string>
-    <string name="movement_bonus_active_pill">Movement Bonus activo · Cada 25 pasos gana +1 punto</string>
-    <string name="movement_bonus_active_pill_a11y">Movement Bonus activo. Cada 25 pasos gana 1 Movement Point.</string>
+    <string name="movement_bonus_active_title">Movement Bonus activo</string>
+    <string name="movement_bonus_tracking_active">Los pasos durante este Flow se están contando</string>
+    <string name="movement_bonus_tracking_paused">Movimiento contado mientras el Flow estuvo activo</string>
+    <string name="movement_bonus_steps_value">%1$d pasos</string>
+    <string name="movement_bonus_points_value">+%1$d Movement Points</string>
+    <string name="movement_bonus_active_pill_a11y">Movement Bonus activo. %1$d pasos contados durante este Flow. %2$d Movement Points ganados.</string>
     <string name="movement_bonus_title">Movement Bonus</string>
     <string name="movement_bonus_reward_steps">%1$s</string>
     <string name="movement_bonus_reward_points">+%1$s</string>

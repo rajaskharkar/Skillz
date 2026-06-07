@@ -507,6 +507,8 @@ class FlowViewModel @Inject constructor(
                             healthEnabledAtStart = entity.healthEnabledAtStart,
                             healthPermissionGrantedAtStart = entity.healthPermissionGrantedAtStart,
                             movementBonusEligibleAtStart = entity.movementBonusEligibleAtStart,
+                            movementStepsDuringFlow = 0L,
+                            movementPointsDuringFlow = 0L,
                             stopwatch = StopwatchState(
                                 isRunning = entity.isRunning,
                                 elapsedMs = elapsed
@@ -514,7 +516,19 @@ class FlowViewModel @Inject constructor(
                         )
                     }
 
-                    if (entity.isRunning) startTicker()
+                    if (entity.isRunning) {
+                        startTicker()
+
+                        if (entity.movementBonusEligibleAtStart && !entity.isSoftMode) {
+                            viewModelScope.launch {
+                                refreshLiveMovementUi()
+                            }
+                        }
+                    } else if (entity.movementBonusEligibleAtStart && !entity.isSoftMode) {
+                        viewModelScope.launch {
+                            refreshLiveMovementUi()
+                        }
+                    }
                 }
             } ?: run {
                 currentFlowInstanceId = UUID.randomUUID().toString()
@@ -629,7 +643,9 @@ class FlowViewModel @Inject constructor(
         val updated = current.copy(
             healthEnabledAtStart = settings.movementBonusEnabled,
             healthPermissionGrantedAtStart = granted,
-            movementBonusEligibleAtStart = eligible
+            movementBonusEligibleAtStart = eligible,
+            movementStepsDuringFlow = 0L,
+            movementPointsDuringFlow = 0L
         )
         _uiState.value = updated
         return updated
@@ -640,6 +656,78 @@ class FlowViewModel @Inject constructor(
             ?.takeIf { _uiState.value.stopwatch.isRunning }
             ?.let { FlowActiveInterval(it, nowMs) }
         return FlowActiveIntervalNormalizer.normalize(activeIntervals + listOfNotNull(openInterval))
+    }
+
+
+    private suspend fun readLiveMovementForUi(
+        nowMs: Long = System.currentTimeMillis()
+    ): Pair<Long, Long>? {
+        val state = _uiState.value
+
+        if (!state.movementBonusEligibleAtStart || state.isSoftMode) {
+            return 0L to 0L
+        }
+
+        val intervals = currentActiveIntervals(nowMs)
+
+        if (intervals.isEmpty()) {
+            return 0L to 0L
+        }
+
+        var totalSteps = 0L
+        var sawSuccess = false
+
+        intervals.forEach { interval ->
+            when (
+                val result = healthMovementDataSource.readStepsBetween(
+                    Instant.ofEpochMilli(interval.startTimeMs),
+                    Instant.ofEpochMilli(interval.endTimeMs)
+                )
+            ) {
+                is MovementReadResult.Success -> {
+                    sawSuccess = true
+                    totalSteps += result.steps
+                }
+
+                MovementReadResult.NoData -> Unit
+
+                MovementReadResult.HealthConnectUnavailable,
+                MovementReadResult.PermissionMissing,
+                is MovementReadResult.Error -> {
+                    return null
+                }
+            }
+        }
+
+        if (!sawSuccess) {
+            return 0L to 0L
+        }
+
+        val movementPoints = movementBonusCalculator.calculateMovementPoints(totalSteps)
+
+        return totalSteps.coerceAtLeast(0L) to movementPoints.coerceAtLeast(0L)
+    }
+
+    private suspend fun refreshLiveMovementUi(
+        nowMs: Long = System.currentTimeMillis()
+    ) {
+        val movement = readLiveMovementForUi(nowMs) ?: return
+
+        _uiState.update { current ->
+            current.copy(
+                movementStepsDuringFlow = movement.first,
+                movementPointsDuringFlow = movement.second
+            )
+        }
+    }
+
+    private fun clearLiveMovementUi() {
+        _uiState.update { current ->
+            current.copy(
+                movementStepsDuringFlow = 0L,
+                movementPointsDuringFlow = 0L
+            )
+        }
     }
 
     fun startOrResumeStopwatch() {
@@ -655,7 +743,9 @@ class FlowViewModel @Inject constructor(
                 it.copy(
                     healthEnabledAtStart = false,
                     healthPermissionGrantedAtStart = false,
-                    movementBonusEligibleAtStart = false
+                    movementBonusEligibleAtStart = false,
+                    movementStepsDuringFlow = 0L,
+                    movementPointsDuringFlow = 0L
                 )
             }
             activeIntervals.clear()
@@ -678,6 +768,11 @@ class FlowViewModel @Inject constructor(
         arcCountdownJob = null
 
         startTicker()
+
+        if (_uiState.value.movementBonusEligibleAtStart && !_uiState.value.isSoftMode) {
+            refreshLiveMovementUi(now)
+        }
+
         saveOngoing()
 
         if (!isResumingSameFlow && _uiState.value.isSurgeOn) {
@@ -748,9 +843,11 @@ class FlowViewModel @Inject constructor(
         baseStartTimeMs?.let { base ->
             accumulatedBeforeStartMs += (now - base).coerceAtLeast(0L)
         }
+
         activeIntervalStartMs?.let { start ->
             if (now > start) activeIntervals += FlowActiveInterval(start, now)
         }
+
         activeIntervalStartMs = null
         baseStartTimeMs = null
 
@@ -765,6 +862,7 @@ class FlowViewModel @Inject constructor(
         arcState?.let { s ->
             viewModelScope.launch { arcPrefs.save(s) }
         }
+
         syncArcUi()
 
         _uiState.update {
@@ -775,7 +873,15 @@ class FlowViewModel @Inject constructor(
                 )
             )
         }
+
         stopTicker()
+
+        if (_uiState.value.movementBonusEligibleAtStart && !_uiState.value.isSoftMode) {
+            viewModelScope.launch {
+                refreshLiveMovementUi(now)
+            }
+        }
+
         startArcCountdown()
         saveOngoing()
     }
@@ -853,14 +959,21 @@ class FlowViewModel @Inject constructor(
         accumulatedBeforeStartMs = 0L
         activeIntervals.clear()
         activeIntervalStartMs = null
+
         _uiState.update {
             it.copy(
                 stopwatch = StopwatchState(
                     isRunning = false,
                     elapsedMs = 0L
-                )
+                ),
+                healthEnabledAtStart = false,
+                healthPermissionGrantedAtStart = false,
+                movementBonusEligibleAtStart = false,
+                movementStepsDuringFlow = 0L,
+                movementPointsDuringFlow = 0L
             )
         }
+
         stopTicker()
         saveOngoing()
     }
@@ -868,20 +981,36 @@ class FlowViewModel @Inject constructor(
     private fun startTicker() {
         tickerJob?.cancel()
         tickerJob = viewModelScope.launch {
+            var movementTick = 0
+
             while (isActive) {
-                delay(1000L)
                 val now = System.currentTimeMillis()
                 val base = baseStartTimeMs
+
                 val elapsed = if (_uiState.value.stopwatch.isRunning && base != null) {
                     accumulatedBeforeStartMs + (now - base).coerceAtLeast(0L)
                 } else {
                     accumulatedBeforeStartMs
                 }
+
                 _uiState.update {
                     it.copy(
                         stopwatch = it.stopwatch.copy(elapsedMs = elapsed)
                     )
                 }
+
+                val shouldRefreshMovement =
+                    _uiState.value.stopwatch.isRunning &&
+                            _uiState.value.movementBonusEligibleAtStart &&
+                            !_uiState.value.isSoftMode
+
+                if (shouldRefreshMovement && movementTick == 0) {
+                    refreshLiveMovementUi(now)
+                }
+
+                movementTick = (movementTick + 1) % 10
+
+                delay(1000L)
             }
         }
     }
@@ -893,16 +1022,32 @@ class FlowViewModel @Inject constructor(
 
     fun enterFocusMode() {
         viewModelScope.launch {
-            if (!_uiState.value.stopwatch.isRunning) startOrResumeStopwatchInternal()
-            _uiState.update { it.copy(isInFlowMode = true) }
+            if (!_uiState.value.stopwatch.isRunning) {
+                startOrResumeStopwatchInternal()
+            }
+
+            _uiState.update {
+                it.copy(isInFlowMode = true)
+            }
+
+            if (_uiState.value.movementBonusEligibleAtStart && !_uiState.value.isSoftMode) {
+                refreshLiveMovementUi()
+            }
+
             saveOngoing()
             aliveFlowServiceController.start()
         }
     }
 
     fun exitFocusMode() {
-        if (uiState.value.stopwatch.isRunning) pauseStopwatch()
-        _uiState.update { it.copy(isInFlowMode = false) }
+        if (uiState.value.stopwatch.isRunning) {
+            pauseStopwatch()
+        }
+
+        _uiState.update {
+            it.copy(isInFlowMode = false)
+        }
+
         saveOngoing()
         aliveFlowServiceController.stop()
     }
@@ -1026,6 +1171,11 @@ class FlowViewModel @Inject constructor(
                     isSoftMode = false,
                     isSurgeOn = false,
                     surgePlannedMs = null,
+                    healthEnabledAtStart = false,
+                    healthPermissionGrantedAtStart = false,
+                    movementBonusEligibleAtStart = false,
+                    movementStepsDuringFlow = 0L,
+                    movementPointsDuringFlow = 0L,
                     isInArc = keepArc != null,
                     arcIsPending = keepArc?.isPending ?: false,
                     arcMultiplier = keepArc?.multiplier,
@@ -1354,6 +1504,19 @@ class FlowViewModel @Inject constructor(
                 accumulatedBeforeStartMs = 0L
                 activeIntervals.clear()
                 activeIntervalStartMs = null
+                _uiState.update {
+                    it.copy(
+                        stopwatch = StopwatchState(
+                            isRunning = false,
+                            elapsedMs = 0L
+                        ),
+                        healthEnabledAtStart = false,
+                        healthPermissionGrantedAtStart = false,
+                        movementBonusEligibleAtStart = false,
+                        movementStepsDuringFlow = 0L,
+                        movementPointsDuringFlow = 0L
+                    )
+                }
                 stopTicker()
                 aliveFlowServiceController.stop()
                 clearOngoing()
@@ -1555,6 +1718,11 @@ class FlowViewModel @Inject constructor(
                                 isRunning = false,
                                 elapsedMs = 0L
                             ),
+                            healthEnabledAtStart = false,
+                            healthPermissionGrantedAtStart = false,
+                            movementBonusEligibleAtStart = false,
+                            movementStepsDuringFlow = 0L,
+                            movementPointsDuringFlow = 0L,
                             plannedArcTitle = null,
                             plannedArcStepIndex = null,
                             plannedArcTotalSteps = null
@@ -1603,6 +1771,11 @@ class FlowViewModel @Inject constructor(
                                 isRunning = false,
                                 elapsedMs = 0L
                             ),
+                            healthEnabledAtStart = false,
+                            healthPermissionGrantedAtStart = false,
+                            movementBonusEligibleAtStart = false,
+                            movementStepsDuringFlow = 0L,
+                            movementPointsDuringFlow = 0L,
                             plannedArcTitle = null,
                             plannedArcStepIndex = null,
                             plannedArcTotalSteps = null
@@ -1641,7 +1814,12 @@ class FlowViewModel @Inject constructor(
                             stopwatch = StopwatchState(
                                 isRunning = false,
                                 elapsedMs = 0L
-                            )
+                            ),
+                            healthEnabledAtStart = false,
+                            healthPermissionGrantedAtStart = false,
+                            movementBonusEligibleAtStart = false,
+                            movementStepsDuringFlow = 0L,
+                            movementPointsDuringFlow = 0L
                         )
                     }
 
@@ -1712,6 +1890,11 @@ class FlowViewModel @Inject constructor(
                 isInFlowMode = false,
                 isSoftMode = nextStep.isSoftModeSnapshot,
                 isSurgeOn = !nextStep.isSoftModeSnapshot && nextStep.launchWithSurgeSnapshot,
+                healthEnabledAtStart = false,
+                healthPermissionGrantedAtStart = false,
+                movementBonusEligibleAtStart = false,
+                movementStepsDuringFlow = 0L,
+                movementPointsDuringFlow = 0L,
                 surgePlannedMs = if (
                     !nextStep.isSoftModeSnapshot &&
                     nextStep.launchWithSurgeSnapshot &&

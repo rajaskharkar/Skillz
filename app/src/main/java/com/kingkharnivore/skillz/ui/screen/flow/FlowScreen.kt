@@ -272,7 +272,12 @@ fun FlowScreen(
                 }
 
                 if (uiState.movementBonusEligibleAtStart) {
-                    MovementBonusActivePill(modifier = Modifier.fillMaxWidth())
+                    MovementBonusActivePill(
+                        steps = uiState.movementStepsDuringFlow,
+                        movementPoints = uiState.movementPointsDuringFlow,
+                        isInFlow = uiState.isInFlowMode,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     Spacer(Modifier.height(10.dp))
                 }
 

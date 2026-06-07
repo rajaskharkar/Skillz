@@ -1911,8 +1911,12 @@
     <string name="movement_bonus_toggle_off">Off</string>
     <string name="movement_bonus_toggle_state_on">On. Double tap to turn off Movement Bonus.</string>
     <string name="movement_bonus_toggle_state_off">Off. Double tap to enable Movement Bonus.</string>
-    <string name="movement_bonus_active_pill">Movement Bonus active · Every 25 steps earns +1 point</string>
-    <string name="movement_bonus_active_pill_a11y">Movement Bonus active. Every 25 steps earns 1 Movement Point.</string>
+    <string name="movement_bonus_active_title">Movement bonus active</string>
+    <string name="movement_bonus_tracking_active">Steps during this Flow are being counted</string>
+    <string name="movement_bonus_tracking_paused">Movement counted while the Flow was active</string>
+    <string name="movement_bonus_steps_value">%1$d steps</string>
+    <string name="movement_bonus_points_value">+%1$d Movement Points</string>
+    <string name="movement_bonus_active_pill_a11y">Movement bonus active. %1$d steps counted during this Flow. %2$d Movement Points earned.</string>
     <string name="movement_bonus_title">Movement Bonus</string>
     <string name="movement_bonus_reward_steps">%1$s</string>
     <string name="movement_bonus_reward_points">+%1$s</string>

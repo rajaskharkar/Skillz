@@ -1624,8 +1624,12 @@
     <string name="movement_bonus_toggle_off">बंद</string>
     <string name="movement_bonus_toggle_state_on">चालू. Movement Bonus बंद करण्यासाठी दोनदा टॅप करा.</string>
     <string name="movement_bonus_toggle_state_off">बंद. Movement Bonus चालू करण्यासाठी दोनदा टॅप करा.</string>
-    <string name="movement_bonus_active_pill">Movement Bonus चालू · प्रत्येक 25 पावलांवर +1 पॉइंट</string>
-    <string name="movement_bonus_active_pill_a11y">Movement Bonus चालू आहे. प्रत्येक 25 पावलांवर 1 Movement Point मिळतो.</string>
+    <string name="movement_bonus_active_title">Movement Bonus सक्रिय</string>
+    <string name="movement_bonus_tracking_active">या Flow दरम्यान पावले मोजली जात आहेत</string>
+    <string name="movement_bonus_tracking_paused">Flow सक्रिय असताना Movement मोजले गेले</string>
+    <string name="movement_bonus_steps_value">%1$d पावले</string>
+    <string name="movement_bonus_points_value">+%1$d Movement Points</string>
+    <string name="movement_bonus_active_pill_a11y">Movement Bonus सक्रिय. या Flow दरम्यान %1$d पावले मोजली. %2$d Movement Points मिळाले.</string>
     <string name="movement_bonus_title">Movement Bonus</string>
     <string name="movement_bonus_reward_steps">%1$s</string>
     <string name="movement_bonus_reward_points">+%1$s</string>
