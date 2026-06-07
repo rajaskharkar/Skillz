@@ -1566,7 +1566,7 @@ Piedritas — 60 Perlas</string>
     <string name="health_connect_update_required_headline">Health Connect debe instalarse o actualizarse.</string>
     <string name="health_connect_update_required_body">Instala o actualiza Health Connect para usar Movement Bonus.</string>
     <string name="health_connect_enable_headline">Activa Health para ganar Movement Points durante tus Flows.</string>
-    <string name="health_connect_enable_body">Scyra lee tu conteo de pasos mediante Health Connect y te da +1 Movement Point por cada 25 pasos durante Flows elegibles. Los Movement Points se suman a tus Scyra Points totales.</string>
+    <string name="health_connect_enable_body">Scyra lee tu conteo de pasos mediante Health Connect y te da +1 Movement Point por cada 100 pasos durante Flows elegibles. Los Movement Points se suman a tus Scyra Points totales.</string>
     <string name="movement_bonus_active_headline">Movement Bonus está activo.</string>
     <string name="movement_bonus_active_body">Los pasos dados durante Flows elegibles pueden ganar Movement Points. Los Movement Points se suman a tus Scyra Points y también pueden generar Pearls.</string>
     <string name="movement_bonus_off_headline">Movement Bonus está desactivado.</string>
@@ -1582,8 +1582,8 @@ Piedritas — 60 Perlas</string>
     <string name="movement_bonus_toggle_off">Desactivado</string>
     <string name="movement_bonus_toggle_state_on">Activado. Toca dos veces para desactivar Movement Bonus.</string>
     <string name="movement_bonus_toggle_state_off">Desactivado. Toca dos veces para activar Movement Bonus.</string>
-    <string name="movement_bonus_active_pill">Movement Bonus activo · Cada 25 pasos gana +1 punto</string>
-    <string name="movement_bonus_active_pill_a11y">Movement Bonus activo. Cada 25 pasos gana 1 Movement Point.</string>
+    <string name="movement_bonus_active_pill">Movement Bonus activo · Cada 100 pasos gana +1 punto</string>
+    <string name="movement_bonus_active_pill_a11y">Movement Bonus activo. Cada 100 pasos gana 1 Movement Point.</string>
     <string name="movement_bonus_title">Movement Bonus</string>
     <string name="movement_bonus_reward_steps">%1$s</string>
     <string name="movement_bonus_reward_points">+%1$s</string>
