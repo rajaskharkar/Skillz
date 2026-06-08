@@ -113,7 +113,7 @@ internal fun buildTheBlueUiState(
                     .map { (level, count) -> FormCountUiModel("Level $level", count) }
                     .sortedByDescending { it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 0 },
                 flowTimeValueMinutes = CreatureCatalog.get(findId)?.flowTimeValueMinutes ?: CreatureCatalog.get(findId)?.requirementMinutes,
-                releaseValuePearls = CreatureCatalog.get(findId)?.let { CreatureEconomy.releaseValuePearls(findId) },
+                releaseValuePearls = CreatureCatalog.get(findId)?.let { CreatureEconomy.releaseValuePearls(findId, highestLevelInstance?.animalLevel ?: 1) },
                 firstActiveInstanceId = instances.firstOrNull()?.instanceId,
                 firstRestingInstanceId = restingInstances.firstOrNull()?.instanceId,
                 highestLevelActiveInstanceId = highestLevelInstance?.instanceId

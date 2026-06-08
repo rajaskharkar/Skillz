@@ -1030,7 +1030,6 @@ Piedritas — 60 Perlas</string>
     <string name="shell_filter_animals">Animales</string>
     <string name="shell_filter_room_objects">Objetos de sala</string>
     <string name="shell_creature_level_value">Nivel %1$d</string>
-    <string name="shell_creature_grow_with_pearls_cost">Crecer con %1$d Perlas</string>
     <string name="shell_creature_not_swimming_lifetime_remains">No está nadando ahora. El registro de vida permanece.</string>
     <string name="shell_creature_swimming_now">Nadando ahora: %1$d</string>
     <string name="shell_creature_lifetime_encountered">Encontrados en total: %1$d</string>
@@ -1045,7 +1044,7 @@ Piedritas — 60 Perlas</string>
     <string name="shell_creature_need_more_pearls_to_grow">Necesitas %1$d Perlas más para crecer.</string>
     <string name="shell_creature_level_up">Subir nivel</string>
     <string name="shell_creature_level_up_cost">Costo de subir nivel: %1$d Perlas</string>
-    <string name="shell_creature_level_up_unavailable_max">Nivel máximo alcanzado</string>
+    <string name="shell_creature_level_up_unavailable_max">Dominado en nivel 99</string>
     <string name="shell_creature_level_up_unavailable_pearls">No hay suficientes Perlas</string>
     <string name="shell_creature_level_up_confirm_title">¿Subir nivel de %1$s?</string>
     <string name="shell_creature_level_up_confirm_body">Esto subirá de nivel una criatura %2$s de nivel %1$d.</string>

@@ -1080,7 +1080,6 @@
     <string name="shell_filter_animals">Animals</string>
     <string name="shell_filter_room_objects">Creatures</string>
     <string name="shell_creature_level_value">Level %1$d</string>
-    <string name="shell_creature_grow_with_pearls_cost">Grow with %1$d Pearls</string>
     <string name="shell_creature_not_swimming_lifetime_remains">Not currently swimming. Lifetime record remains.</string>
     <string name="shell_creature_swimming_now">Swimming now: %1$d</string>
     <string name="shell_creature_lifetime_encountered">Lifetime encountered: %1$d</string>
@@ -1095,7 +1094,7 @@
     <string name="shell_creature_need_more_pearls_to_grow">Need %1$d more Pearls to grow.</string>
     <string name="shell_creature_level_up">Level Up</string>
     <string name="shell_creature_level_up_cost">Level up cost: %1$d Pearls</string>
-    <string name="shell_creature_level_up_unavailable_max">Max level reached</string>
+    <string name="shell_creature_level_up_unavailable_max">Mastered at Level 99</string>
     <string name="shell_creature_level_up_unavailable_pearls">Not enough Pearls</string>
     <string name="shell_creature_level_up_confirm_title">Level up %1$s?</string>
     <string name="shell_creature_level_up_confirm_body">This will level up one Level %1$d %2$s.</string>

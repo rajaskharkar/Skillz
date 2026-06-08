@@ -242,7 +242,7 @@ class ShellRepository @Inject constructor(
         if (find.kind == ShellRewardKind.ANIMAL) {
             require(instance.creatureStatus == CreatureStatus.ACTIVE) { "Only active creatures can grow." }
             val currentLevel = instance.animalLevel.coerceAtLeast(1)
-            require(currentLevel < CreatureEconomy.MAX_CREATURE_LEVEL) { "Max level reached." }
+            require(currentLevel < CreatureEconomy.MAX_CREATURE_LEVEL) { "Mastered at Level 99." }
             val cost = CreatureEconomy.growthCostPearls(instance.findId, currentLevel)
             require(pearlLedgerDao.getBalance() >= cost) { "Insufficient Pearls." }
             pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), -cost, "grow_creature", "shell_reward", instanceId, System.currentTimeMillis(), null))
@@ -264,7 +264,7 @@ class ShellRepository @Inject constructor(
         require(ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL) { "Only animals can grow with Pearls." }
         require(instance.creatureStatus == CreatureStatus.ACTIVE) { "Only active creatures can grow." }
         val currentLevel = instance.animalLevel.coerceAtLeast(1)
-        require(currentLevel < CreatureEconomy.MAX_CREATURE_LEVEL) { "Max level reached." }
+        require(currentLevel < CreatureEconomy.MAX_CREATURE_LEVEL) { "Mastered at Level 99." }
         val cost = CreatureEconomy.growthCostPearls(instance.findId, currentLevel)
         require(pearlLedgerDao.getBalance() >= cost) { "Insufficient Pearls." }
         val now = System.currentTimeMillis()
@@ -276,7 +276,7 @@ class ShellRepository @Inject constructor(
     suspend fun growCreatureByLevel(findId: String, level: Int) = db.withTransaction {
         require(ShellContentCatalog.find(findId)?.kind == ShellRewardKind.ANIMAL) { "Only animals can grow with Pearls." }
         val currentLevel = level.coerceAtLeast(1)
-        require(currentLevel < CreatureEconomy.MAX_CREATURE_LEVEL) { "Max level reached." }
+        require(currentLevel < CreatureEconomy.MAX_CREATURE_LEVEL) { "Mastered at Level 99." }
         val activeAtLevel = findInstanceDao.getActiveByFindIdAndLevel(findId, currentLevel, CreatureStatus.ACTIVE)
         require(activeAtLevel.isNotEmpty()) { "No active Level $currentLevel creature to grow." }
         val instance = activeAtLevel.first()

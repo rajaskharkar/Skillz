@@ -286,6 +286,14 @@ private fun ChestStackDetailSheet(
                 fontWeight = FontWeight.Bold
             )
             Text(stringResource(R.string.shell_chest_detail_level, stack.level))
+            CreatureEconomy.creatureMasteryTitle(stack.level)?.let { masteryTitle ->
+                Text(
+                    text = masteryTitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
             Text(stringResource(R.string.shell_chest_detail_owned, stack.count))
             Text(stringResource(R.string.shell_chest_detail_source), color = MaterialTheme.colorScheme.onSurfaceVariant)
 
