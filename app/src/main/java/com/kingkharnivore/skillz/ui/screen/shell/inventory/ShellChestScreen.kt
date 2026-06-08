@@ -269,12 +269,16 @@ private fun ChestStackDetailSheet(
         !canAffordLevelUp -> stringResource(R.string.shell_creature_level_up_unavailable_pearls)
         else -> stringResource(R.string.shell_creature_level_up_cost, levelUpCost)
     }
-    val levelUpButtonDescription = stringResource(
-        R.string.shell_creature_level_up_a11y,
-        stack.level,
-        stack.creatureName,
-        levelUpCost
-    )
+    val levelUpButtonDescription = when {
+        isMaxLevel -> stringResource(R.string.shell_creature_level_up_mastered_a11y, stack.creatureName)
+        !canAffordLevelUp -> stringResource(R.string.shell_creature_level_up_unavailable_pearls)
+        else -> stringResource(
+            R.string.shell_creature_level_up_a11y,
+            stack.level,
+            stack.creatureName,
+            levelUpCost
+        )
+    }
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.padding(20.dp),

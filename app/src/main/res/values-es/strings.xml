@@ -1056,6 +1056,7 @@ Piedritas — 60 Perlas</string>
     <string name="shell_creature_level_up_confirm_body">Esto subirá de nivel una criatura %2$s de nivel %1$d.</string>
     <string name="shell_creature_level_up_confirm_cost">Costo: %1$d Perlas</string>
     <string name="shell_creature_level_up_a11y">Sube de nivel una criatura %2$s de nivel %1$d. Costo: %3$d Perlas.</string>
+    <string name="shell_creature_level_up_mastered_a11y">%1$s está dominada en nivel 99.</string>
     <string name="shell_creature_level_up_confirm_a11y">Confirmar subida de nivel de una criatura %2$s de nivel %1$d por %3$d Perlas.</string>
     <string name="shell_creature_release_action">Liberar</string>
     <string name="shell_creature_release_confirm_single_body">¿Liberar 1 %2$s de nivel %1$d de vuelta en The Blue?</string>
@@ -1070,8 +1071,6 @@ Piedritas — 60 Perlas</string>
     <string name="shell_creature_release_reward_preview">Recibirás +%1$d Perlas.</string>
     <string name="shell_chest_release_reward_preview_a11y">Seleccionados %1$d de %4$d %3$s de nivel %2$d. Liberarlos dará %5$d Perlas.</string>
     <string name="shell_chest_release_button_a11y">Libera las criaturas seleccionadas.</string>
-    <string name="shell_creature_release_confirm_single">Liberar</string>
-    <string name="shell_creature_release_confirm_bulk">Liberar</string>
     <string name="shell_creature_release_confirm_disabled">Liberar</string>
     <string name="shell_creature_release_quick_select">Selección rápida</string>
     <string name="shell_creature_release_quick_lowest">Nivel más bajo</string>

@@ -176,7 +176,7 @@ fun ReleaseCreatureConfirmationSheet(
                     )
                 }
             } else {
-                Text(stringResource(R.string.shell_creature_release_single_body, name, singleReleaseValue))
+                Text(stringResource(R.string.shell_creature_release_single_body, name))
                 Text(
                     text = stringResource(R.string.shell_creature_release_reward_preview, singleReleaseValue),
                     style = MaterialTheme.typography.titleMedium,
@@ -209,11 +209,7 @@ fun ReleaseCreatureConfirmationSheet(
                 ) {
                     Text(
                         when {
-                            ownedQuantity == 1 -> stringResource(
-                                R.string.shell_creature_release_confirm_single,
-                                singleReleaseValue
-                            )
-                            totalSelected > 0 -> stringResource(R.string.shell_creature_release_confirm_bulk, totalSelected, totalReward)
+                            ownedQuantity == 1 || totalSelected > 0 -> stringResource(R.string.shell_creature_release_action)
                             else -> stringResource(R.string.shell_creature_release_confirm_disabled)
                         }
                     )
