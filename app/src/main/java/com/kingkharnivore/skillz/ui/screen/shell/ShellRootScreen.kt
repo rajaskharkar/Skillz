@@ -231,6 +231,7 @@ fun ShellRootScreen(
                 ShellDestination.ShellChest -> ShellChestScreen(
                     uiState = uiState,
                     onReleaseCreaturesByLevel = viewModel::releaseCreaturesByLevel,
+                    onLevelUpCreatureByLevel = viewModel::growCreatureByLevel,
                     onOpenBlue = { destination = ShellDestination.TheBluePreview }
                 )
 

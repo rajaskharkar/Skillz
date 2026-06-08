@@ -4,6 +4,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 
 const val PEARLS_PER_REQUIRED_FLOW_MINUTE = 2
 const val PEARLS_PER_EXTRA_FLOW_MINUTE = 1
@@ -22,6 +23,8 @@ enum class CreatureZone(val displayName: String) {
 }
 
 enum class CreatureSourceType { FLOW_EARNED, BEYOND_BLUE }
+
+enum class CreatureMasteryTier { SEASONED, PROVEN, VETERAN, ASCENDANT, MASTERED }
 
 enum class CreatureSceneBehavior { SWIM, DRIFT, BOTTOM_DWELL, GLIDE, CRUISE, LEGENDARY }
 
@@ -211,6 +214,13 @@ object CreatureCatalog {
 }
 
 object CreatureEconomy {
+    const val MAX_CREATURE_LEVEL = 99
+
+    private const val GROWTH_LINEAR_FACTOR = 0.12
+    private const val GROWTH_POWER_FACTOR = 0.018
+    private const val GROWTH_POWER = 1.45
+    private const val GROWTH_LOG_FACTOR = 0.35
+
     fun creaturesForRegularFlowMinutes(minutes: Int, isSoftFlow: Boolean = false): List<CreatureReward> {
         if (isSoftFlow || minutes < 10) return emptyList()
         var remaining = minutes
@@ -236,7 +246,16 @@ object CreatureEconomy {
 
     fun beyondBlueTradeContributionMinutes(creatureId: String, level: Int = 1): Int = flowTimeValueMinutes(creatureId, level)
     fun canonicalPearlValue(creatureId: String): Int = pearlPriceForRequirement(flowTimeValueMinutes(creatureId))
-    fun releaseValuePearls(creatureId: String, level: Int = 1): Int = canonicalPearlValue(creatureId)
+
+    fun releaseValuePearls(creatureId: String, level: Int = 1): Int {
+        val safeLevel = level.coerceIn(1, MAX_CREATURE_LEVEL)
+        val base = canonicalPearlValue(creatureId).coerceAtLeast(0)
+        val upgradeInvestment = cumulativeGrowthCostPearls(creatureId, safeLevel)
+        val salvageRate = releaseSalvageRate(safeLevel)
+        val value = base.toLong() + (upgradeInvestment * salvageRate).toLong()
+        return value.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
+    }
+
     fun pearlPriceForRequirement(requirementMinutes: Int): Int = requirementMinutes * PEARLS_PER_REQUIRED_FLOW_MINUTE
 
     fun quoteBeyondBluePayment(targetCreatureId: String, selectedCreatureMinutes: Int, availablePearls: Int): CreaturePaymentQuote {
@@ -247,16 +266,61 @@ object CreatureEconomy {
         return CreaturePaymentQuote(requirement, selectedCreatureMinutes, remaining, cost, overpay, availablePearls >= cost)
     }
 
-    fun growthCostPearls(creatureId: String, currentLevel: Int): Int {
-        val definition = CreatureCatalog.require(creatureId)
-        val level = currentLevel.coerceAtLeast(1)
-        return when (creatureId) {
-            ShellContentCatalog.FOCUS_MINNOW -> 25 * level
-            ShellContentCatalog.FOCUS_SEAHORSE -> 75 * level
-            ShellContentCatalog.FOCUS_MANTA -> 200 * level
-            ShellContentCatalog.FOCUS_WHALE -> 600 * level
-            else -> max(25, (definition.requirementMinutes ?: definition.flowTimeValueMinutes ?: 25) * level)
+    fun baseGrowthCost(creatureId: String): Int = when (creatureId) {
+        ShellContentCatalog.FOCUS_MINNOW -> 25
+        ShellContentCatalog.FOCUS_SEAHORSE -> 75
+        ShellContentCatalog.FOCUS_MANTA -> 200
+        ShellContentCatalog.FOCUS_WHALE -> 600
+        else -> {
+            val definition = CreatureCatalog.require(creatureId)
+            val baseMinutes = definition.requirementMinutes
+                ?: definition.flowTimeValueMinutes
+                ?: 25
+            max(25, baseMinutes)
         }
+    }
+
+    fun growthCostPearls(creatureId: String, currentLevel: Int): Int {
+        val level = currentLevel.coerceIn(1, MAX_CREATURE_LEVEL - 1)
+        val base = baseGrowthCost(creatureId)
+        val multiplier =
+            1.0 +
+                (level * GROWTH_LINEAR_FACTOR) +
+                (level.toDouble().pow(GROWTH_POWER) * GROWTH_POWER_FACTOR) +
+                (ln(level.toDouble()) * GROWTH_LOG_FACTOR)
+        val value = base.toDouble() * multiplier
+        return value.toLong()
+            .coerceIn(1L, Int.MAX_VALUE.toLong())
+            .toInt()
+    }
+
+    fun cumulativeGrowthCostPearls(creatureId: String, level: Int): Long {
+        val safeLevel = level.coerceIn(1, MAX_CREATURE_LEVEL)
+        if (safeLevel <= 1) return 0L
+        return (1 until safeLevel).sumOf { currentLevel ->
+            growthCostPearls(creatureId, currentLevel).toLong()
+        }
+    }
+
+    fun releaseSalvageRate(level: Int): Double {
+        val safeLevel = level.coerceIn(1, MAX_CREATURE_LEVEL)
+        return when {
+            safeLevel >= 99 -> 0.35
+            safeLevel >= 75 -> 0.30
+            safeLevel >= 50 -> 0.25
+            safeLevel >= 25 -> 0.20
+            safeLevel >= 10 -> 0.15
+            else -> 0.10
+        }
+    }
+
+    fun creatureMasteryTier(level: Int): CreatureMasteryTier? = when {
+        level >= 99 -> CreatureMasteryTier.MASTERED
+        level >= 75 -> CreatureMasteryTier.ASCENDANT
+        level >= 50 -> CreatureMasteryTier.VETERAN
+        level >= 25 -> CreatureMasteryTier.PROVEN
+        level >= 10 -> CreatureMasteryTier.SEASONED
+        else -> null
     }
 
     fun animalVisualScale(creatureId: String, level: Int): Float {

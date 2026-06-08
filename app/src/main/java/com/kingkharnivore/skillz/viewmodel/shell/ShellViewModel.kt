@@ -131,6 +131,12 @@ class ShellViewModel @Inject constructor(
             .onFailure { _events.emit(it.message ?: "Could not grow that creature.") }
     }
 
+    fun growCreatureByLevel(findId: String, level: Int) = viewModelScope.launch {
+        runCatching { repository.growCreatureByLevel(findId, level) }
+            .onSuccess { _events.emit("Your creature grew inside The Chest.") }
+            .onFailure { _events.emit(it.message ?: "Could not grow that creature.") }
+    }
+
     fun releaseCreature(instanceId: String) = viewModelScope.launch {
         runCatching { repository.releaseCreature(instanceId) }
             .onSuccess { pearls -> _events.emit("Released back into The Blue. $pearls Pearls returned. Your lifetime record remains.") }

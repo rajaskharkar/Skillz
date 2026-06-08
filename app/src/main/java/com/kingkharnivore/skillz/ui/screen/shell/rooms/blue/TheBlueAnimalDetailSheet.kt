@@ -67,8 +67,10 @@ fun TheBlueAnimalDetailSheet(
     val detailDescription = stringResource(R.string.the_blue_detail_a11y, title, zone, source)
     val growthInstanceId = animal.highestLevelActiveInstanceId ?: animal.firstRestingInstanceId ?: animal.firstActiveInstanceId
     val releaseInstanceId = animal.firstRestingInstanceId ?: animal.firstActiveInstanceId
-    val growthCost = CreatureEconomy.growthCostPearls(animal.findId, animal.highestLevel.coerceAtLeast(1))
-    val canGrow = growthInstanceId != null && pearlBalance >= growthCost
+    val highestLevel = animal.highestLevel.coerceAtLeast(1)
+    val growthCost = CreatureEconomy.growthCostPearls(animal.findId, highestLevel)
+    val isMastered = highestLevel >= CreatureEconomy.MAX_CREATURE_LEVEL
+    val canGrow = growthInstanceId != null && !isMastered && pearlBalance >= growthCost
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
@@ -109,20 +111,30 @@ fun TheBlueAnimalDetailSheet(
                     )
                 }
             }
-            animal.releaseValuePearls?.let {
-                ElevatedCard {
-                    ListItem(
-                        leadingContent = { Icon(Icons.Outlined.Diamond, contentDescription = null) },
-                        headlineContent = { Text(stringResource(R.string.the_blue_pearl_value_title)) },
-                        supportingContent = { Text(stringResource(R.string.shell_creature_pearl_value_each, it)) }
-                    )
-                }
+            if (animal.releaseValueVariesByLevel) {
                 ElevatedCard {
                     ListItem(
                         leadingContent = { Icon(Icons.Outlined.Diamond, contentDescription = null) },
                         headlineContent = { Text(stringResource(R.string.the_blue_release_return_title)) },
-                        supportingContent = { Text(stringResource(R.string.shell_creature_release_value_each, it)) }
+                        supportingContent = { Text(stringResource(R.string.shell_creature_release_value_varies_by_level)) }
                     )
+                }
+            } else {
+                animal.releaseValuePearls?.let { releaseValuePearls ->
+                    ElevatedCard {
+                        ListItem(
+                            leadingContent = { Icon(Icons.Outlined.Diamond, contentDescription = null) },
+                            headlineContent = { Text(stringResource(R.string.the_blue_pearl_value_title)) },
+                            supportingContent = { Text(stringResource(R.string.shell_creature_pearl_value_each, releaseValuePearls)) }
+                        )
+                    }
+                    ElevatedCard {
+                        ListItem(
+                            leadingContent = { Icon(Icons.Outlined.Diamond, contentDescription = null) },
+                            headlineContent = { Text(stringResource(R.string.the_blue_release_return_title)) },
+                            supportingContent = { Text(stringResource(R.string.shell_creature_release_value_each, releaseValuePearls)) }
+                        )
+                    }
                 }
             }
 
@@ -139,6 +151,14 @@ fun TheBlueAnimalDetailSheet(
                 }
             }
             Text(stringResource(R.string.the_blue_growth_support_copy))
+            Text(
+                text = if (isMastered) {
+                    stringResource(R.string.shell_creature_level_up_unavailable_max)
+                } else {
+                    stringResource(R.string.shell_creature_level_up_cost, growthCost)
+                },
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
+            )
 
             Text(stringResource(R.string.the_blue_displayed_in_focus_heading), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(animal.displayedInFocusCount.toString())
@@ -151,12 +171,16 @@ fun TheBlueAnimalDetailSheet(
                 enabled = canGrow,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(stringResource(R.string.shell_creature_grow_with_pearls_cost, growthCost))
+                Text(stringResource(R.string.shell_creature_level_up))
             }
             if (!canGrow) {
                 val missing = (growthCost - pearlBalance).coerceAtLeast(0)
                 Text(
-                    text = if (growthInstanceId == null) stringResource(R.string.shell_creature_no_active_to_grow) else stringResource(R.string.shell_creature_need_more_pearls_to_grow, missing),
+                    text = when {
+                        isMastered -> stringResource(R.string.shell_creature_level_up_unavailable_max)
+                        growthInstanceId == null -> stringResource(R.string.shell_creature_no_active_to_grow)
+                        else -> stringResource(R.string.shell_creature_need_more_pearls_to_grow, missing)
+                    },
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
                 )
             }

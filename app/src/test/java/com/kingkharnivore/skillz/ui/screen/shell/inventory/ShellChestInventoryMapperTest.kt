@@ -47,6 +47,31 @@ class ShellChestInventoryMapperTest {
         assertEquals(1, stacks.single().count)
     }
 
+
+    @Test
+    fun stacksSortByCreatureNameThenLevelDescending() {
+        val stacks = buildChestInventoryStacks(
+            listOf(
+                creature("seahorse-1", ShellContentCatalog.FOCUS_SEAHORSE, level = 1),
+                creature("minnow-1", ShellContentCatalog.FOCUS_MINNOW, level = 1),
+                creature("seahorse-2", ShellContentCatalog.FOCUS_SEAHORSE, level = 2),
+                creature("minnow-2", ShellContentCatalog.FOCUS_MINNOW, level = 5),
+                creature("minnow-3", ShellContentCatalog.FOCUS_MINNOW, level = 3)
+            )
+        )
+
+        assertEquals(
+            listOf(
+                ShellContentCatalog.FOCUS_MINNOW to 5,
+                ShellContentCatalog.FOCUS_MINNOW to 3,
+                ShellContentCatalog.FOCUS_MINNOW to 1,
+                ShellContentCatalog.FOCUS_SEAHORSE to 2,
+                ShellContentCatalog.FOCUS_SEAHORSE to 1
+            ),
+            stacks.map { it.creatureId to it.level }
+        )
+    }
+
     @Test
     fun releaseSelectionTargetsOnlySelectedStackLevelAndClampsCount() {
         val stack = ChestInventoryStackUiModel(
@@ -54,9 +79,7 @@ class ShellChestInventoryMapperTest {
             creatureName = "Minnow",
             level = 3,
             count = 4,
-            iconKey = "minnow",
-            rarityLabel = "Common",
-            sortOrder = 1
+            iconKey = "minnow"
         )
 
         assertEquals(mapOf(3 to 2), chestReleaseSelection(stack, 2))
@@ -71,9 +94,7 @@ class ShellChestInventoryMapperTest {
             creatureName = "Minnow",
             level = 3,
             count = 4,
-            iconKey = "minnow",
-            rarityLabel = "Common",
-            sortOrder = 1
+            iconKey = "minnow"
         )
         val eachReward = CreatureEconomy.releaseValuePearls(ShellContentCatalog.FOCUS_MINNOW, 3)
 

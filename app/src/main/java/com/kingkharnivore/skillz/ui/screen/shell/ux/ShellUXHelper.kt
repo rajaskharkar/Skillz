@@ -161,19 +161,29 @@ fun ObjectCopySheet(
                 }
 
                 if (item.creatureStatus == CreatureStatus.ACTIVE) {
+                    val currentLevel = item.animalLevel.coerceAtLeast(1)
                     val cost = CreatureEconomy.growthCostPearls(
                         item.findId,
-                        item.animalLevel.coerceAtLeast(1)
+                        currentLevel
                     )
+                    val isMastered = currentLevel >= CreatureEconomy.MAX_CREATURE_LEVEL
                     val canAfford = pearlBalance >= cost
 
-                    if (!canAfford) {
+                    Text(
+                        if (isMastered) {
+                            stringResource(R.string.shell_creature_level_up_unavailable_max)
+                        } else {
+                            stringResource(R.string.shell_creature_level_up_cost, cost)
+                        }
+                    )
+
+                    if (!isMastered && !canAfford) {
                         Text(stringResource(R.string.shell_need_more_pearls, cost - pearlBalance))
                     }
 
                     Button(
                         onClick = { onUpgrade(item.instanceId) },
-                        enabled = canAfford,
+                        enabled = !isMastered && canAfford,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.secondary,
                             contentColor = MaterialTheme.colorScheme.onSecondary
@@ -182,7 +192,7 @@ fun ObjectCopySheet(
                             contentDescription = animalUpgradeA11y
                         }
                     ) {
-                        Text(stringResource(R.string.shell_creature_grow_with_pearls_cost, cost))
+                        Text(stringResource(R.string.shell_creature_level_up))
                     }
                 } else {
                     Text(stringResource(R.string.shell_creature_not_swimming_lifetime_remains))
