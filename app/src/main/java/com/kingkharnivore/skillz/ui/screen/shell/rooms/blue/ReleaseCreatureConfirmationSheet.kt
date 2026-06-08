@@ -88,6 +88,7 @@ fun ReleaseCreatureConfirmationSheet(
         if (selected > 0) group.level to selected else null
     }.toMap()
     val canRelease = totalSelected > 0 && !confirming
+    val releaseButtonDescription = stringResource(R.string.shell_chest_release_button_a11y)
 
     fun updateSelected(index: Int, quantity: Int) {
         selectedQuantities = safeSelectedQuantities.mapIndexed { currentIndex, currentQuantity ->
@@ -203,11 +204,7 @@ fun ReleaseCreatureConfirmationSheet(
                     modifier = Modifier
                         .weight(1f)
                         .semantics {
-                            contentDescription = when {
-                                ownedQuantity == 1 -> "Release 1 $name for $singleReleaseValue Pearls"
-                                totalSelected > 0 -> "Release $totalSelected $name for $totalReward Pearls"
-                                else -> "Release"
-                            }
+                            contentDescription = releaseButtonDescription
                         }
                 ) {
                     Text(

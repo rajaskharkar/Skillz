@@ -211,6 +211,8 @@ object CreatureCatalog {
 }
 
 object CreatureEconomy {
+    const val MAX_CREATURE_LEVEL = 10
+
     fun creaturesForRegularFlowMinutes(minutes: Int, isSoftFlow: Boolean = false): List<CreatureReward> {
         if (isSoftFlow || minutes < 10) return emptyList()
         var remaining = minutes

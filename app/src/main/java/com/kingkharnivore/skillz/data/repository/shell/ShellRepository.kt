@@ -242,6 +242,7 @@ class ShellRepository @Inject constructor(
         if (find.kind == ShellRewardKind.ANIMAL) {
             require(instance.creatureStatus == CreatureStatus.ACTIVE) { "Only active creatures can grow." }
             val currentLevel = instance.animalLevel.coerceAtLeast(1)
+            require(currentLevel < CreatureEconomy.MAX_CREATURE_LEVEL) { "Max level reached." }
             val cost = CreatureEconomy.growthCostPearls(instance.findId, currentLevel)
             require(pearlLedgerDao.getBalance() >= cost) { "Insufficient Pearls." }
             pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), -cost, "grow_creature", "shell_reward", instanceId, System.currentTimeMillis(), null))
@@ -263,11 +264,27 @@ class ShellRepository @Inject constructor(
         require(ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL) { "Only animals can grow with Pearls." }
         require(instance.creatureStatus == CreatureStatus.ACTIVE) { "Only active creatures can grow." }
         val currentLevel = instance.animalLevel.coerceAtLeast(1)
+        require(currentLevel < CreatureEconomy.MAX_CREATURE_LEVEL) { "Max level reached." }
         val cost = CreatureEconomy.growthCostPearls(instance.findId, currentLevel)
         require(pearlLedgerDao.getBalance() >= cost) { "Insufficient Pearls." }
         val now = System.currentTimeMillis()
         pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), -cost, "grow_creature", "shell_reward", instanceId, now, null))
         findInstanceDao.updateAnimalLevel(instanceId, currentLevel + 1)
+    }
+
+
+    suspend fun growCreatureByLevel(findId: String, level: Int) = db.withTransaction {
+        require(ShellContentCatalog.find(findId)?.kind == ShellRewardKind.ANIMAL) { "Only animals can grow with Pearls." }
+        val currentLevel = level.coerceAtLeast(1)
+        require(currentLevel < CreatureEconomy.MAX_CREATURE_LEVEL) { "Max level reached." }
+        val activeAtLevel = findInstanceDao.getActiveByFindIdAndLevel(findId, currentLevel, CreatureStatus.ACTIVE)
+        require(activeAtLevel.isNotEmpty()) { "No active Level $currentLevel creature to grow." }
+        val instance = activeAtLevel.first()
+        val cost = CreatureEconomy.growthCostPearls(findId, currentLevel)
+        require(pearlLedgerDao.getBalance() >= cost) { "Insufficient Pearls." }
+        val now = System.currentTimeMillis()
+        pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), -cost, "grow_creature", "shell_reward", instance.instanceId, now, null))
+        findInstanceDao.updateAnimalLevel(instance.instanceId, currentLevel + 1)
     }
 
     suspend fun releaseCreature(instanceId: String): Int = db.withTransaction {
@@ -312,7 +329,7 @@ class ShellRepository @Inject constructor(
             val payout = CreatureEconomy.releaseValuePearls(instance.findId, instance.animalLevel)
             placementDao.removeByInstance(instance.instanceId)
             findInstanceDao.updateCreatureStatus(instance.instanceId, CreatureStatus.RELEASED)
-            pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), payout, "release_creature", "shell_reward", instance.instanceId, now, "Release for Pearls"))
+            pearlLedgerDao.insert(PearlLedgerEntity(UUID.randomUUID().toString(), payout, "release_creature", "shell_reward", instance.instanceId, now, "Creature release"))
             totalPayout += payout
         }
         return totalPayout
