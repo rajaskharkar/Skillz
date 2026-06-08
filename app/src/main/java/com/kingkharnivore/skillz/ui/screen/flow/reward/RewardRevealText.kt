@@ -84,7 +84,7 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
     val arcBonusLineTemplate = stringResource(R.string.reward_card_arc_bonus_line)
     val arcStoryPlaceholderTitle = stringResource(R.string.reward_card_arc_placeholder_title)
     val arcStoryPlaceholderBody = stringResource(R.string.reward_card_arc_placeholder_body)
-    val groupedTrinketsTitle = stringResource(R.string.reward_card_trinkets_grouped_title)
+    val groupedRewardsTitle = stringResource(R.string.reward_card_rewards_grouped_title)
     val groupedBadgesTitle = stringResource(R.string.reward_card_badges_grouped_title)
     val itemCountTemplate = stringResource(R.string.reward_card_item_count)
     val recordsUpdatedFromFlow = stringResource(R.string.reward_card_records_updated_from_flow)
@@ -92,7 +92,7 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
     val recordsUpdatedAcrossArc = stringResource(R.string.reward_card_records_updated_across_arc)
     val arcAnimalsTitle = stringResource(R.string.reward_card_arc_animals_title)
     val arcObjectsTitle = stringResource(R.string.reward_card_arc_objects_title)
-    val arcTrinketsTitle = stringResource(R.string.reward_card_arc_trinkets_title)
+    val arcRewardsTitle = stringResource(R.string.reward_card_arc_rewards_title)
     val arcBadgesTitle = stringResource(R.string.reward_card_arc_badges_title)
     val arcDiscoveriesTitle = stringResource(R.string.reward_card_arc_discoveries_title)
     val foundAcrossArc = stringResource(R.string.reward_card_found_across_arc)
@@ -157,7 +157,7 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         override fun arcBonusLine(points: Int) = arcBonusLineTemplate.format(points)
         override fun arcStoryPlaceholderTitle() = arcStoryPlaceholderTitle
         override fun arcStoryPlaceholderBody() = arcStoryPlaceholderBody
-        override fun groupedTrinketsTitle() = groupedTrinketsTitle
+        override fun groupedRewardsTitle() = groupedRewardsTitle
         override fun groupedBadgesTitle() = groupedBadgesTitle
         override fun itemCount(name: String, count: Int) = itemCountTemplate.format(name, count)
         override fun recordsUpdatedFromFlow() = recordsUpdatedFromFlow
@@ -165,7 +165,7 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         override fun recordsUpdatedAcrossArc() = recordsUpdatedAcrossArc
         override fun arcAnimalsTitle() = arcAnimalsTitle
         override fun arcObjectsTitle() = arcObjectsTitle
-        override fun arcTrinketsTitle() = arcTrinketsTitle
+        override fun arcRewardsTitle() = arcRewardsTitle
         override fun arcBadgesTitle() = arcBadgesTitle
         override fun arcDiscoveriesTitle() = arcDiscoveriesTitle
         override fun foundAcrossArc() = foundAcrossArc

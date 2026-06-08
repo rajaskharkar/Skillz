@@ -908,11 +908,11 @@
     <string name="shell_icon_a11y">Open The Shell</string>
     <string name="shell_pearl_balance">%1$d Pearls</string>
     <string name="shell_pearl_balance_a11y">Pearl balance inside The Shell: %1$d</string>
-    <string name="shell_chest_a11y">Open Shell Chest</string>
+    <string name="shell_chest_a11y">Open The Chest</string>
     <string name="shell_room_heart_title">Heart Room</string>
     <string name="shell_room_heart_description">A glowing chamber where Scyra rests inside The Shell.</string>
     <string name="shell_room_focus_title">Focus Room</string>
-    <string name="shell_room_focus_description">A calm study where regular Flows become displayed Animals and Objects.</string>
+    <string name="shell_room_focus_description">A calm study where regular Flows become displayed creatures.</string>
     <string name="shell_room_stillwater_title">Stillwater Room</string>
     <string name="shell_room_stillwater_description">A quiet room where Soft Flows gather as calm water.</string>
     <string name="shell_room_voyage_title">Voyage Hall</string>
@@ -944,16 +944,16 @@
     <string name="the_blue_best_form">सर्वोच्च स्तर: %1$s</string>
     <string name="the_blue_displayed_in_focus">Focus में प्रदर्शित: %1$d</string>
     <string name="the_blue_swimming_here">यहाँ तैर रहे हैं</string>
-    <string name="the_blue_resting_in_chest">Shell Chest में विश्राम: %1$d</string>
+    <string name="the_blue_resting_in_chest">The Chest में विश्राम: %1$d</string>
     <string name="the_blue_forms">स्तर</string>
     <string name="the_blue_form_count">%1$s ×%2$d</string>
     <string name="the_blue_displayed_in_focus_heading">Focus में प्रदर्शित</string>
-    <string name="the_blue_resting_in_chest_heading">Shell Chest में विश्राम</string>
+    <string name="the_blue_resting_in_chest_heading">The Chest में विश्राम</string>
     <string name="the_blue_actions">कार्रवाइयाँ</string>
     <string name="the_blue_display_one_in_focus">Focus में एक दिखाएँ</string>
-    <string name="the_blue_view_in_chest">Shell Chest में देखें</string>
+    <string name="the_blue_view_in_chest">The Chest में देखें</string>
     <string name="the_blue_no_focus_slot">अभी कोई खाली Focus स्थान नहीं है। %1$s दिखाने के लिए Focus से कुछ वापस लाएँ।</string>
-    <string name="the_blue_no_resting_copy">Shell Chest में कोई विश्राम कॉपी उपलब्ध नहीं है।</string>
+    <string name="the_blue_no_resting_copy">The Chest में कोई विश्राम कॉपी उपलब्ध नहीं है।</string>
     <string name="the_blue_all_first_form">सभी %1$s स्तर 1 पर हैं।</string>
     <string name="the_blue_forms_unavailable">स्तर की जानकारी अभी उपलब्ध नहीं है।</string>
     <string name="the_blue_source_minnow">10 मिनट या अधिक के नियमित Flows से।</string>
@@ -993,15 +993,15 @@
     <string name="shell_pearl_basin_a11y">Pearl Basin. Suggestions for shaping The Shell with Pearls.</string>
     <string name="shell_room_entrances">Room entrances</string>
     <string name="shell_pulse_title">Shell Pulse</string>
-    <string name="shell_pulse_recent">%1$d चीज़ें और टुकड़े Shell Chest में विश्राम कर रहे हैं।</string>
+    <string name="shell_pulse_recent">%1$d चीज़ें और टुकड़े The Chest में विश्राम कर रहे हैं।</string>
     <string name="shell_pulse_mystery">रहस्य संकेत: धारा गहरी होने पर कुछ हलचल होती है।</string>
     <string name="shell_focus_body">अपने जीवों और वस्तुओं को Focus कोनों में दिखाएँ, फिर मोती से उनके रूप गढ़ें।</string>
-    <string name="shell_focus_summary">प्रदर्शित: %1$d। Shell Chest में विश्रामरत: %2$d।</string>
+    <string name="shell_focus_summary">प्रदर्शित: %1$d। The Chest में विश्रामरत: %2$d।</string>
     <string name="shell_empty_slot">खाली कोना</string>
     <string name="shell_empty_slot_title">खाली कोना</string>
     <string name="shell_place_something_here">यहाँ कुछ रखें।</string>
-    <string name="shell_place_free">बिना मोती के Shell Chest से दिखाएँ या रखें।</string>
-    <string name="shell_no_owned_finds_fit">Shell Chest में विश्राम कर रही कोई चीज़ अभी इस कोने में फिट नहीं होती।</string>
+    <string name="shell_place_free">बिना मोती के The Chest से दिखाएँ या रखें।</string>
+    <string name="shell_no_owned_finds_fit">The Chest में विश्राम कर रही कोई चीज़ अभी इस कोने में फिट नहीं होती।</string>
     <string name="shell_shape_with_pearls">इस जगह को मोती से आकार दें</string>
     <string name="shell_contextual_invites_preview">दीपक — 80 मोती
 आसन — 120 मोती
@@ -1012,8 +1012,8 @@
     <string name="shell_upgrade_with_pearls">%1$s को %2$d मोती से</string>
     <string name="shell_upgrade_a11y">इस इनाम को मोती से आकार दें</string>
     <string name="shell_no_more_forms">यह इनाम अपने वर्तमान रूप में विश्राम कर रहा है।</string>
-    <string name="shell_return_to_chest">Shell Chest पर लौटें</string>
-    <string name="shell_chest_title">Shell Chest</string>
+    <string name="shell_return_to_chest">The Chest पर लौटें</string>
+    <string name="shell_chest_title">The Chest</string>
     <string name="shell_chest_body">The Shell के भीतर आपका सब कुछ यहाँ विश्राम करता है जब वह प्रदर्शित नहीं होता।</string>
     <string name="shell_filter_all">सभी</string>
     <string name="shell_filter_animals">जीव</string>
@@ -1060,7 +1060,7 @@
     <string name="shell_badges_title">Badges</string>
     <string name="shell_badges_body">Badges हुए अनुभवों का रिकॉर्ड हैं। ये कोई रोक नहीं हैं।</string>
     <string name="shell_badge_a11y">%1$s बैज। संख्या: %2$d।</string>
-    <string name="shell_journal_title">Discovery Journal</string>
+    <string name="shell_journal_title">Badges</string>
     <string name="shell_journal_body">The Journal remembers how discoveries happened.</string>
     <string name="shell_stillwater_body">Soft Flows Stillwater भरते हैं। कोई स्कोर नहीं। कोई दबाव नहीं। बस शांत पानी The Shell में लाया गया।</string>
     <string name="shell_view_as">View as:</string>
@@ -1105,7 +1105,7 @@
     <string name="shell_category_coral">Coral</string>
     <string name="shell_category_plants">Plants</string>
     <string name="shell_category_trophies">Trophies</string>
-    <string name="shell_category_trinkets">टुकड़ाs</string>
+    <string name="shell_category_rewards">टुकड़ाs</string>
     <string name="shell_category_discoveries">Discoveries</string>
     <string name="shell_slot_left_reef_shelf">Left Reef Shelf</string>
     <string name="shell_slot_right_reef_shelf">Right Reef Shelf</string>
@@ -1132,7 +1132,7 @@
 
     <string name="shell_whisper_new_discovery">A Shell discovery is ready to view.</string>
     <string name="shell_whisper_upgrade_ready">%1$s can brighten — you have enough Pearls.</string>
-    <string name="shell_whisper_chest_waiting">%1$d things are resting in the Shell Chest.</string>
+    <string name="shell_whisper_chest_waiting">%1$d things are resting in the The Chest.</string>
     <string name="shell_whisper_empty_focus">Focus has empty nooks.</string>
 
 
@@ -1151,20 +1151,20 @@
     <string name="shell_room_active_a11y">%1$s। सक्रिय कमरा। %1$s खोलता है।</string>
     <string name="shell_room_preview_a11y">%1$s। पूर्वावलोकन खोलता है।</string>
     <string name="shell_heart_center_a11y">The Shell का हृदय। हृदय विवरण खोलता है।</string>
-    <string name="shell_heart_objects_displayed_resting">प्रदर्शित वस्तुएँ: %1$d। Shell Chest में विश्रामरत: %2$d।</string>
-    <string name="shell_all_nooks_holding">सभी कोने कुछ न कुछ थामे हुए हैं। बदलें, चमकाएँ, या Shell Chest में और इकट्ठा करते रहें। Shell Chest में विश्रामरत: %1$d।</string>
+    <string name="shell_heart_objects_displayed_resting">प्रदर्शित वस्तुएँ: %1$d। The Chest में विश्रामरत: %2$d।</string>
+    <string name="shell_all_nooks_holding">सभी कोने कुछ न कुछ थामे हुए हैं। बदलें, चमकाएँ, या The Chest में और इकट्ठा करते रहें। The Chest में विश्रामरत: %1$d।</string>
     <string name="shell_empty_nook_choices">Choose how this nook should change.</string>
     <string name="shell_place_from_chest">Chest से दिखाएँ या रखें</string>
     <string name="shell_leave_empty">खाली छोड़ें</string>
-    <string name="shell_no_resting_finds_fit">Shell Chest में विश्राम कर रही कोई चीज़ अभी इस कोने में फिट नहीं होती।</string>
+    <string name="shell_no_resting_finds_fit">The Chest में विश्राम कर रही कोई चीज़ अभी इस कोने में फिट नहीं होती।</string>
     <string name="shell_status_displayed_focus">Focus में प्रदर्शित</string>
-    <string name="shell_status_resting">Shell Chest में विश्रामरत</string>
+    <string name="shell_status_resting">The Chest में विश्रामरत</string>
     <string name="shell_chest_group_title">%1$s ×%2$d</string>
     <string name="shell_chest_group_status">श्रेणी: %4$s · उच्चतम स्तर: %1$s · प्रदर्शित %2$d · विश्राम में %3$d।</string>
-    <string name="shell_chest_group_a11y">%1$s। स्वामित्व: %2$d। प्रदर्शित: %3$d। Shell Chest में विश्रामरत: %4$d।</string>
+    <string name="shell_chest_group_a11y">%1$s। स्वामित्व: %2$d। प्रदर्शित: %3$d। The Chest में विश्रामरत: %4$d।</string>
     <string name="shell_choose_something_to_swap">बदलने के लिए कुछ चुनें।</string>
     <string name="shell_swap_with">%1$s से बदलें</string>
-    <string name="shell_no_compatible_nooks">अभी कोई संगत कोना नहीं है। यह प्रति Shell Chest में विश्राम कर सकती है।</string>
+    <string name="shell_no_compatible_nooks">अभी कोई संगत कोना नहीं है। यह प्रति The Chest में विश्राम कर सकती है।</string>
 
     <string name="shell_place_in_focus">Place in Focus</string>
 
@@ -1187,12 +1187,12 @@
     <string name="reward_card_shell_shaped_body">आपके Scyra पॉइंट्स The Shell में Pearls के रूप में ले जाए गए। Pearls से अपनी चीजों को चमकाएं, निखारें और जगाएं।</string>
     <string name="reward_card_animal_encountered_title">%1$s मिला</string>
     <string name="reward_card_object_found_title">%1$s मिला</string>
-    <string name="reward_card_trinket_gathered_title">%1$s इकट्ठा हुआ</string>
+    <string name="reward_card_reward_gathered_title">%1$s इकट्ठा हुआ</string>
     <string name="reward_card_badge_updated_title">%1$s बैज अपडेट हुआ</string>
     <string name="reward_card_discovery_recorded_title">%1$s खोजा गया</string>
     <string name="reward_card_animal_chip">जीव · %1$s</string>
     <string name="reward_card_object_chip">वस्तु</string>
-    <string name="reward_card_trinket_chip">ट्रिंकेट</string>
+    <string name="reward_card_reward_chip">ट्रिंकेट</string>
     <string name="reward_card_discovery_chip">खोज</string>
     <string name="reward_card_badge_chip">बैज</string>
     <string name="reward_card_depth_reef">रीफ</string>
@@ -1206,7 +1206,7 @@
     <string name="reward_card_animal_reason_octopus">30 मिनट या अधिक के 3 नियमित Flows के बाद खोजा गया।</string>
     <string name="reward_card_object_reason_pebble">नियमित Flow में लौटने के बाद मिला।</string>
     <string name="reward_card_object_reason_default">नियमित Flow में लौटने के बाद मिला।</string>
-    <string name="reward_card_trinket_reason_default">नियमित Flow गतिविधि से मिला।</string>
+    <string name="reward_card_reward_reason_default">नियमित Flow गतिविधि से मिला।</string>
     <string name="reward_card_discovery_reason_octopus">30 मिनट या अधिक के 3 नियमित Flows के बाद खोजा गया।</string>
     <string name="reward_card_discovery_reason_pebble">नियमित Flow में लौटने के बाद खोजा गया।</string>
     <string name="reward_card_discovery_reason_sea_glass">नियमित Flow गतिविधि से खोजा गया।</string>
@@ -1220,8 +1220,8 @@
     <string name="reward_card_stillwater_hint">Stillwater Room में देखें।</string>
     <string name="reward_card_shell_hint">The Shell के अंदर देखें।</string>
     <string name="reward_card_pearl_basin_hint">Pearls से The Shell को आकार दें।</string>
-    <string name="reward_card_shell_chest_hint">Shell Chest में रखा है।</string>
-    <string name="reward_card_discovery_journal_hint">Discovery Journal में दर्ज है।</string>
+    <string name="reward_card_shell_chest_hint">The Chest में रखा है।</string>
+    <string name="reward_card_discovery_journal_hint">Badges में दर्ज है।</string>
     <string name="reward_card_badges_hint">Badges में दर्ज है।</string>
     <string name="reward_card_shell_recorded_title">Shell इनाम दर्ज हुआ</string>
     <string name="reward_card_shell_recorded_body">The Shell के अंदर दर्ज हुआ।</string>
@@ -1237,16 +1237,16 @@
     <string name="reward_card_arc_peak_multiplier">शीर्ष गुणक: %1$.1f×</string>
     <string name="reward_card_arc_bonus_line">Arc बोनस: +%1$d</string>
     <string name="reward_card_arc_animals_title">Animals encountered</string>
-    <string name="reward_card_arc_objects_title">Objects found</string>
-    <string name="reward_card_arc_trinkets_title">टुकड़ाs gathered</string>
+    <string name="reward_card_arc_objects_title">Rewards found</string>
+    <string name="reward_card_arc_rewards_title">टुकड़ाs gathered</string>
     <string name="reward_card_arc_badges_title">Badges updated</string>
     <string name="reward_card_arc_discoveries_title">Discoveries recorded</string>
     <string name="reward_card_arc_shell_shaped_body">Scyra Points from this Arc were carried into The Shell as Pearls.</string>
     <string name="reward_card_found_across_arc">Found across this Arc.</string>
-    <string name="reward_card_recorded_in_journal">Recorded in the Discovery Journal.</string>
+    <string name="reward_card_recorded_in_journal">Recorded in the Badges.</string>
     <string name="reward_card_arc_placeholder_title">यह Arc आपकी कहानी का हिस्सा बन गया</string>
     <string name="reward_card_arc_placeholder_body">Voyage Hall भविष्य के Shell अपडेट में Arc यात्राएं इकट्ठा करेगा।</string>
-    <string name="reward_card_trinkets_grouped_title">ट्रिंकेट इकट्ठे हुए</string>
+    <string name="reward_card_rewards_grouped_title">ट्रिंकेट इकट्ठे हुए</string>
     <string name="reward_card_badges_grouped_title">बैज अपडेट हुए</string>
     <string name="reward_card_item_count">%1$s ×%2$d</string>
     <string name="reward_card_records_updated_from_flow">इस Flow से रिकॉर्ड अपडेट हुए।</string>
@@ -1301,7 +1301,7 @@
     <string name="shell_notification_find_body">%1$s</string>
     <string name="shell_notification_stack_body">Encontrado por actividad regular de Flow. Total reunido: %1$d.</string>
     <string name="shell_notification_badge_body">Cantidad: %1$d · Ganado según su criterio de Flow.</string>
-    <string name="shell_notification_discovery_body">Entrada de Discovery Journal registrada por actividad de Flow.</string>
+    <string name="shell_notification_discovery_body">Entrada de Badges registrada por actividad de Flow.</string>
     <string name="shell_find_minnow_title">Minnow</string>
     <string name="shell_find_minnow_description">Encontrado en Sunlit Reef tras un Flow regular de 10 minutos o más.</string>
     <string name="shell_find_seahorse_title">Seahorse</string>
@@ -1376,7 +1376,7 @@
     <string name="session_reward_shell_badges_value">%1$d badge updates</string>
     <string name="shell_feedback_place_success">Mostrado en Focus Room.</string>
     <string name="shell_feedback_upgrade_success">Tus Pearls añadieron calidez a su luz.</string>
-    <string name="shell_feedback_return_success">Devuelto a Shell Chest.</string>
+    <string name="shell_feedback_return_success">Devuelto a The Chest.</string>
     <string name="shell_place_in_slot">%1$s में रखें</string>
     <string name="shell_compatible_slots">Espacios compatibles de Focus Room</string>
     <string name="shell_object_lamp_title">Glow Coral</string>
@@ -1404,7 +1404,7 @@
     <string name="shell_action_deepen">Deepen</string>
     <string name="shell_kind_animal">Animal</string>
     <string name="shell_kind_object">कक्ष वस्तु</string>
-    <string name="shell_kind_trinket">टुकड़ा</string>
+    <string name="shell_kind_reward">टुकड़ा</string>
     <string name="shell_kind_discovery">Discovery</string>
     <string name="shell_depth_reef">Sunlit Reef</string>
     <string name="shell_depth_deeper_reef">Deeper Reef</string>
@@ -1413,12 +1413,12 @@
     <string name="shell_form_label">स्तर: %1$s</string>
     <string name="shell_source_label">स्रोत: %1$s</string>
     <string name="shell_invite_confirm_title">¿Invitar a %1$s?</string>
-    <string name="shell_invite_confirm_body">Esto formará un nuevo %1$s y lo dejará en Shell Chest.</string>
+    <string name="shell_invite_confirm_body">Esto formará un nuevo %1$s y lo dejará en The Chest.</string>
     <string name="shell_invite_confirm_cta">%1$d Pearls से आमंत्रित करें</string>
-    <string name="shell_let_rest_in_chest">Dejar en reposo en Shell Chest</string>
+    <string name="shell_let_rest_in_chest">Dejar en reposo en The Chest</string>
     <string name="shell_display_in_focus">Mostrar en Focus</string>
     <string name="shell_animal_no_more_forms">This Animal is resting at its current Level.</string>
-    <string name="shell_object_no_more_forms">This Object is resting in its current form.</string>
+    <string name="shell_object_no_more_forms">This creature is resting in its current form.</string>
     <string name="shell_reward_no_more_forms">यह इनाम अपने वर्तमान रूप में विश्राम कर रहा है।</string>
     <string name="shell_upgrade_animal_a11y">Haz crecer este animal con Pearls</string>
     <string name="shell_upgrade_object_a11y">Moldea este objeto con Pearls</string>

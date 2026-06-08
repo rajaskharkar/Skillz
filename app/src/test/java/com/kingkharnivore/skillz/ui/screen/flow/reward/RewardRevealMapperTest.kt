@@ -80,24 +80,6 @@ class RewardRevealMapperTest {
     }
 
     @Test
-    fun objectCardUsesFoundLanguage() {
-        val cards = buildSessionRewardCards(
-            reward = reward(shellGrantedFindIds = listOf(ShellContentCatalog.FOCUS_PEBBLE)),
-            isAera = false,
-            calmMode = false,
-            text = text,
-            findTitle = ::findTitle,
-            badgeTitle = ::badgeTitle,
-            discoveryTitle = ::discoveryTitle
-        )
-
-        val objectCard = cards.first { it.type == RewardRevealCardType.OBJECT }
-        assertEquals("Pebble found", objectCard.title)
-        assertEquals("Object", objectCard.subtitle)
-        assertEquals("Resting in the Shell Chest.", objectCard.destinationHint)
-    }
-
-    @Test
     fun softFlowEmitsStillwaterWithoutScoreOrPearls() {
         val cards = buildSoftRewardCards(reward(minutes = 22, shellStillwaterUnits = 220), text)
 
@@ -224,14 +206,13 @@ class RewardRevealMapperTest {
             discoveryTitle = ::discoveryTitle
         )
 
-        assertEquals("Resting in the Shell Chest.", cards.first { it.type == RewardRevealCardType.ARC_OBJECTS }.destinationHint)
+        assertFalse(cards.any { it.type == RewardRevealCardType.ARC_OBJECTS })
         assertFalse(cards.any { it.type == RewardRevealCardType.ARC_TRINKETS })
+        assertFalse(cards.any { it.type == RewardRevealCardType.ARC_DISCOVERIES })
         assertEquals("Recorded in Badges.", cards.first { it.type == RewardRevealCardType.ARC_BADGES }.destinationHint)
-        assertEquals("Recorded in the Discovery Journal.", cards.first { it.type == RewardRevealCardType.ARC_DISCOVERIES }.destinationHint)
         assertEquals("View in Stillwater Room.", cards.first { it.type == RewardRevealCardType.ARC_STILLWATER }.destinationHint)
         assertTrue(cards.filter { it.type != RewardRevealCardType.ARC_ANIMALS }.all { it.destinationHint != "View later in The Blue." })
         assertTrue(cards.first { it.type == RewardRevealCardType.ARC_BADGES }.body.orEmpty().contains("10-minute Flow ×3"))
-        assertTrue(cards.first { it.type == RewardRevealCardType.ARC_DISCOVERIES }.body.orEmpty().contains("Octopus ×1"))
     }
 
     @Test
@@ -346,7 +327,7 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun discoveryTitle(name: String) = "$name discovered"
     override fun animalChip(depth: String) = "Animal · $depth"
     override fun objectChip() = "Object"
-    override fun trinketChip() = "Trinket"
+    override fun trinketChip() = "Reward"
     override fun discoveryChip() = "Discovery"
     override fun badgeChip() = "Badge"
     override fun reef() = "Sunlit Reef"
@@ -362,8 +343,8 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun stillwaterHint() = "View in Stillwater Room."
     override fun shellHint() = "View inside The Shell."
     override fun pearlBasinHint() = "Shape The Shell with Pearls."
-    override fun shellChestHint() = "Resting in the Shell Chest."
-    override fun discoveryJournalHint() = "Recorded in the Discovery Journal."
+    override fun shellChestHint() = "Added to The Chest."
+    override fun discoveryJournalHint() = "Recorded in Badges."
     override fun badgesHint() = "Recorded in Badges."
     override fun shellRewardRecordedTitle() = "Shell reward recorded"
     override fun shellRewardRecordedBody() = "Recorded inside The Shell."
@@ -379,7 +360,7 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun arcBonusLine(points: Int) = "Arc bonus: +$points"
     override fun arcStoryPlaceholderTitle() = "This Arc became part of your story"
     override fun arcStoryPlaceholderBody() = "Voyage Hall will gather Arc journeys in a future Shell update."
-    override fun groupedTrinketsTitle() = "Trinkets gathered"
+    override fun groupedRewardsTitle() = "Rewards gathered"
     override fun groupedBadgesTitle() = "Badges updated"
     override fun itemCount(name: String, count: Int) = "$name ×$count"
     override fun recordsUpdatedFromFlow() = "Records updated from this Flow."
@@ -387,10 +368,10 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun recordsUpdatedAcrossArc() = "Records updated across this Arc."
     override fun arcAnimalsTitle() = "Animals encountered"
     override fun arcObjectsTitle() = "Objects found"
-    override fun arcTrinketsTitle() = "Trinkets gathered"
+    override fun arcRewardsTitle() = "Rewards gathered"
     override fun arcBadgesTitle() = "Badges updated"
     override fun arcDiscoveriesTitle() = "Discoveries recorded"
     override fun foundAcrossArc() = "Found across this Arc."
-    override fun recordedInJournal() = "Recorded in the Discovery Journal."
+    override fun recordedInJournal() = "Recorded in Badges."
     override fun arcShellShapedBody() = "Scyra Points from this Arc were carried into The Shell as Pearls."
 }

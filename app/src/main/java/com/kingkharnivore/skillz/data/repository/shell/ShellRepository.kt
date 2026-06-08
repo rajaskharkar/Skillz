@@ -141,7 +141,7 @@ class ShellRepository @Inject constructor(
         val instance = findInstanceDao.getById(instanceId) ?: error("Shell reward not found")
         val find = ShellContentCatalog.find(instance.findId) ?: error("Shell reward definition missing")
         val slot = ShellContentCatalog.focusSlots.firstOrNull { it.roomId == roomId && it.slotId == slotId } ?: error("Invalid slot.")
-        require(find.placeable) { "This reward rests in the Shell Chest." }
+        require(find.placeable) { "This reward is not displayable." }
         require(find.kind != ShellRewardKind.ANIMAL || instance.creatureStatus == CreatureStatus.ACTIVE) { "This creature is no longer swimming in The Blue." }
         require(ShellContentCatalog.isCompatibleWithSlot(slot, find)) { "Invalid nook for this reward." }
         val currentInSlot = placementDao.getBySlot(roomId.name, slotId)

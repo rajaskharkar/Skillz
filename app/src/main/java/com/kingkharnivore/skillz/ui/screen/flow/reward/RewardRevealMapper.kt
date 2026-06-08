@@ -68,7 +68,7 @@ interface RewardRevealTextProvider {
     fun arcBonusLine(points: Int): String
     fun arcStoryPlaceholderTitle(): String
     fun arcStoryPlaceholderBody(): String
-    fun groupedTrinketsTitle(): String
+    fun groupedRewardsTitle(): String
     fun groupedBadgesTitle(): String
     fun itemCount(name: String, count: Int): String
     fun recordsUpdatedFromFlow(): String
@@ -76,7 +76,7 @@ interface RewardRevealTextProvider {
     fun recordsUpdatedAcrossArc(): String
     fun arcAnimalsTitle(): String
     fun arcObjectsTitle(): String
-    fun arcTrinketsTitle(): String
+    fun arcRewardsTitle(): String
     fun arcBadgesTitle(): String
     fun arcDiscoveriesTitle(): String
     fun foundAcrossArc(): String
@@ -228,8 +228,6 @@ fun buildArcSummaryRewardCards(
 
     val shell = arc.shellSummary
     cards += aggregateCountCard("arc-animals", RewardRevealCardType.ARC_ANIMALS, text.arcAnimalsTitle(), shell.animals, text.flowMilestonesAcrossArc(), text.theBlueHint(), "animal", text, findTitle)
-    cards += aggregateCountCard("arc-discoveries", RewardRevealCardType.ARC_DISCOVERIES, text.arcDiscoveriesTitle(), shell.discoveries, text.recordedInJournal(), text.discoveryJournalHint(), "discovery", text, discoveryTitle)
-    cards += aggregateCountCard("arc-objects", RewardRevealCardType.ARC_OBJECTS, text.arcObjectsTitle(), shell.objects, text.foundAcrossArc(), text.shellChestHint(), "object", text, findTitle)
     cards += aggregateCountCard("arc-badges", RewardRevealCardType.ARC_BADGES, text.arcBadgesTitle(), shell.badges, text.recordsUpdatedAcrossArc(), text.badgesHint(), "badge", text, badgeTitle)
 
     if (shell.stillwaterAdded > 0L) {
@@ -315,7 +313,7 @@ private fun buildShellRewardCards(
 ): List<RewardRevealCardUiModel> {
     val cards = mutableListOf<RewardRevealCardUiModel>()
     val findCounts = reward.shellGrantedFindIds.groupingBy { it }.eachCount()
-    findCounts.filterKeys { ShellContentCatalog.find(it)?.kind != ShellRewardKind.TRINKET }.forEach { (findId, count) ->
+    findCounts.filterKeys { ShellContentCatalog.find(it)?.kind == ShellRewardKind.ANIMAL }.forEach { (findId, count) ->
         val def = ShellContentCatalog.find(findId)
         val name = findTitle(findId) ?: text.shellRewardRecordedTitle()
         when (def?.kind) {
@@ -336,45 +334,15 @@ private fun buildShellRewardCards(
                     animationStyle = animalAnimation(findId)
                 )
             }
-            ShellRewardKind.OBJECT -> {
-                val title = text.objectTitle(name)
-                val body = text.objectReason(findId)
-                cards += RewardRevealCardUiModel(
-                    id = "object-$findId-$count",
-                    type = RewardRevealCardType.OBJECT,
-                    title = if (count > 1) text.itemCount(title, count) else title,
-                    subtitle = text.objectChip(),
-                    body = body,
-                    chip = text.objectChip(),
-                    iconKey = def.iconKey,
-                    destinationHint = text.shellChestHint(),
-                    contentDescription = listOf(title, text.objectChip(), body, text.shellChestHint()).joinToString(". "),
-                    animationStyle = RewardRevealAnimationStyle.OBJECT_PLACE
-                )
-            }
             else -> cards += unknownCard("find-$findId", text)
         }
     }
 
-    // Trinkets are no longer user-facing Shell rewards. Existing inert data is intentionally hidden.
+    // Legacy non-creature rewards are no longer user-facing Shell rewards. Existing inert data is intentionally hidden.
 
 
-    reward.shellDiscoveryIds.distinct().forEach { discoveryId ->
-        val name = discoveryTitle(discoveryId) ?: text.shellRewardRecordedTitle()
-        val title = text.discoveryTitle(name)
-        val body = text.discoveryReason(discoveryId)
-        cards += RewardRevealCardUiModel(
-            id = "discovery-$discoveryId",
-            type = RewardRevealCardType.DISCOVERY,
-            title = title,
-            subtitle = text.discoveryChip(),
-            body = body,
-            chip = text.discoveryChip(),
-            destinationHint = text.discoveryJournalHint(),
-            contentDescription = listOf(title, text.discoveryChip(), body, text.discoveryJournalHint()).joinToString(". "),
-            animationStyle = RewardRevealAnimationStyle.DISCOVERY_REVEAL
-        )
-    }
+    // Legacy discovery rewards are no longer user-facing.
+
 
     val badgeCounts = reward.shellBadgeIds.groupingBy { it }.eachCount()
     if (badgeCounts.size > 1) {

@@ -103,7 +103,7 @@ class ShellViewModel @Inject constructor(
 
     fun returnToChest(instanceId: String) = viewModelScope.launch {
         runCatching { repository.removePlacement(instanceId) }
-            .onSuccess { _events.emit("Returned to the Shell Chest.") }
+            .onSuccess { _events.emit("Returned to The Chest.") }
             .onFailure { _events.emit(it.message ?: "Could not return that reward.") }
     }
 
@@ -115,7 +115,7 @@ class ShellViewModel @Inject constructor(
 
     fun invitePearlObjectToChest(findId: String) = viewModelScope.launch {
         runCatching { repository.invitePearlObjectToChest(findId) }
-            .onSuccess { _events.emit("A new Room Object is resting in the Shell Chest.") }
+            .onSuccess { _events.emit("A creature is in The Chest.") }
             .onFailure { _events.emit(it.message ?: "Could not invite that object.") }
     }
 
