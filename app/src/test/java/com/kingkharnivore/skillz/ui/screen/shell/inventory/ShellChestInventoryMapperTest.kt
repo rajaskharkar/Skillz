@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.ui.screen.shell.inventory
 
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
+import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
 import com.kingkharnivore.skillz.domain.shell.CreatureStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -61,6 +62,24 @@ class ShellChestInventoryMapperTest {
         assertEquals(mapOf(3 to 2), chestReleaseSelection(stack, 2))
         assertEquals(mapOf(3 to 4), chestReleaseSelection(stack, 10))
         assertEquals(mapOf(3 to 1), chestReleaseSelection(stack, 0))
+    }
+
+    @Test
+    fun releaseRewardPreviewUsesSelectedStackLevelAndClampsCount() {
+        val stack = ChestInventoryStackUiModel(
+            creatureId = ShellContentCatalog.FOCUS_MINNOW,
+            creatureName = "Minnow",
+            level = 3,
+            count = 4,
+            iconKey = "minnow",
+            rarityLabel = "Common",
+            sortOrder = 1
+        )
+        val eachReward = CreatureEconomy.releaseValuePearls(ShellContentCatalog.FOCUS_MINNOW, 3)
+
+        assertEquals(eachReward * 2, chestReleaseRewardPearls(stack, 2))
+        assertEquals(eachReward * 4, chestReleaseRewardPearls(stack, 10))
+        assertEquals(eachReward, chestReleaseRewardPearls(stack, 0))
     }
 
     @Test

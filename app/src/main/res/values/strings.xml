@@ -1077,8 +1077,6 @@
     <string name="shell_chest_detail_owned">Owned: %1$d</string>
     <string name="shell_chest_detail_rarity">Rarity: %1$s</string>
     <string name="shell_chest_detail_source">From The Blue</string>
-    <string name="shell_chest_release_selected_count">Selected: %1$d of %2$d</string>
-    <string name="shell_chest_release_count">Release %1$d</string>
     <string name="shell_filter_all">All</string>
     <string name="shell_filter_animals">Animals</string>
     <string name="shell_filter_room_objects">Creatures</string>
@@ -1102,6 +1100,8 @@
     <string name="shell_creature_release_level_aware_body">You own %1$d copies of %2$s. Choose which ones to release back into The Blue.</string>
     <string name="shell_creature_release_selected_total">Selected: %1$d of %2$d</string>
     <string name="shell_creature_release_reward_preview">You will receive +%1$d Pearls.</string>
+    <string name="shell_chest_release_reward_preview_a11y">Releasing %1$d Level %2$d %3$s will give %4$d Pearls.</string>
+    <string name="shell_chest_release_button_a11y">Release %1$d creatures for %2$d Pearls.</string>
     <string name="shell_creature_release_confirm_single">Release for %1$d Pearls</string>
     <string name="shell_creature_release_confirm_bulk">Release %1$d for %2$d Pearls</string>
     <string name="shell_creature_release_confirm_disabled">Release</string>

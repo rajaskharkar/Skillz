@@ -47,6 +47,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellDepthTier
 import com.kingkharnivore.skillz.data.model.shell.ShellFindDefinition
 import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
+import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 import com.kingkharnivore.skillz.ui.screen.shell.ux.RoomHeader
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
@@ -259,6 +260,19 @@ private fun ChestStackDetailSheet(
 ) {
     var releaseCount by remember(stack.creatureId, stack.level, stack.count) { mutableIntStateOf(1) }
     val safeReleaseCount = releaseCount.coerceIn(1, stack.count.coerceAtLeast(1))
+    val releaseRewardPearls = chestReleaseRewardPearls(stack, safeReleaseCount)
+    val rewardPreviewDescription = stringResource(
+        R.string.shell_chest_release_reward_preview_a11y,
+        safeReleaseCount,
+        stack.level,
+        stack.creatureName,
+        releaseRewardPearls
+    )
+    val releaseButtonDescription = stringResource(
+        R.string.shell_chest_release_button_a11y,
+        safeReleaseCount,
+        releaseRewardPearls
+    )
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -276,7 +290,7 @@ private fun ChestStackDetailSheet(
             Text(stringResource(R.string.shell_chest_detail_source), color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (stack.count > 1) {
                 Text(
-                    text = stringResource(R.string.shell_chest_release_selected_count, safeReleaseCount, stack.count),
+                    text = stringResource(R.string.shell_creature_release_selected_total, safeReleaseCount, stack.count),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -289,12 +303,39 @@ private fun ChestStackDetailSheet(
                     steps = (stack.count - 2).coerceAtLeast(0)
                 )
             }
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                tonalElevation = 2.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = rewardPreviewDescription }
+            ) {
+                Text(
+                    text = stringResource(R.string.shell_creature_release_reward_preview, releaseRewardPearls),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
+                )
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
                     Text(stringResource(R.string.common_close))
                 }
-                Button(onClick = { onRelease(safeReleaseCount) }, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.shell_chest_release_count, safeReleaseCount))
+                Button(
+                    onClick = { onRelease(safeReleaseCount) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { contentDescription = releaseButtonDescription }
+                ) {
+                    Text(
+                        if (safeReleaseCount == 1) {
+                            stringResource(R.string.shell_creature_release_confirm_single, releaseRewardPearls)
+                        } else {
+                            stringResource(R.string.shell_creature_release_confirm_bulk, safeReleaseCount, releaseRewardPearls)
+                        }
+                    )
                 }
             }
         }
@@ -304,6 +345,10 @@ private fun ChestStackDetailSheet(
 
 internal fun chestReleaseSelection(stack: ChestInventoryStackUiModel, requestedCount: Int): Map<Int, Int> =
     mapOf(stack.level to requestedCount.coerceIn(1, stack.count.coerceAtLeast(1)))
+
+internal fun chestReleaseRewardPearls(stack: ChestInventoryStackUiModel, requestedCount: Int): Int =
+    CreatureEconomy.releaseValuePearls(stack.creatureId, stack.level) *
+        requestedCount.coerceIn(1, stack.count.coerceAtLeast(1))
 
 internal fun shouldShowChestCountBadge(count: Int): Boolean = count > 1
 

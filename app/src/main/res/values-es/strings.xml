@@ -1049,6 +1049,8 @@ Piedritas — 60 Perlas</string>
     <string name="shell_creature_release_level_aware_body">Tienes %1$d copias de %2$s. Elige cuáles liberar de vuelta en The Blue.</string>
     <string name="shell_creature_release_selected_total">Seleccionados: %1$d de %2$d</string>
     <string name="shell_creature_release_reward_preview">Recibirás +%1$d Perlas.</string>
+    <string name="shell_chest_release_reward_preview_a11y">Liberar %1$d %3$s de nivel %2$d dará %4$d Perlas.</string>
+    <string name="shell_chest_release_button_a11y">Libera %1$d criaturas por %2$d Perlas.</string>
     <string name="shell_creature_release_confirm_single">Liberar por %1$d Perlas</string>
     <string name="shell_creature_release_confirm_bulk">Liberar %1$d por %2$d Perlas</string>
     <string name="shell_creature_release_confirm_disabled">Liberar</string>

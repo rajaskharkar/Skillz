@@ -1038,6 +1038,8 @@
     <string name="shell_creature_release_level_aware_body">आपके पास %2$s की %1$d कॉपी हैं। चुनें कि किन्हें वापस The Blue में छोड़ना है।</string>
     <string name="shell_creature_release_selected_total">चयनित: %1$d में से %2$d</string>
     <string name="shell_creature_release_reward_preview">आपको +%1$d Pearls मिलेंगे।</string>
+    <string name="shell_chest_release_reward_preview_a11y">%1$d Level %2$d %3$s रिलीज़ करने पर %4$d Pearls मिलेंगे।</string>
+    <string name="shell_chest_release_button_a11y">%2$d Pearls के लिए %1$d जीव रिलीज़ करें।</string>
     <string name="shell_creature_release_confirm_single">%1$d Pearls के लिए छोड़ें</string>
     <string name="shell_creature_release_confirm_bulk">%2$d Pearls के लिए %1$d छोड़ें</string>
     <string name="shell_creature_release_confirm_disabled">छोड़ें</string>
