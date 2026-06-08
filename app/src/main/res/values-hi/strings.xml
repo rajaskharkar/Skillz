@@ -1017,7 +1017,7 @@
     <string name="shell_chest_body">The Shell के भीतर आपका सब कुछ यहाँ विश्राम करता है जब वह प्रदर्शित नहीं होता।</string>
     <string name="shell_filter_all">सभी</string>
     <string name="shell_filter_animals">जीव</string>
-    <string name="shell_filter_room_objects">कक्ष वस्तुs</string>
+    <string name="shell_filter_creatures">Creatures</string>
     <string name="shell_creature_level_value">लेवल %1$d</string>
     <string name="shell_creature_grow_with_pearls_cost">%1$d मोतियों से बढ़ाएँ</string>
     <string name="shell_creature_not_swimming_lifetime_remains">अभी तैर नहीं रहा है। जीवनकाल रिकॉर्ड बना रहेगा।</string>
@@ -1028,6 +1028,12 @@
     <string name="shell_creature_highest_level">सबसे ऊँचा लेवल: %1$d</string>
     <string name="shell_creature_flow_time_value_each">प्रति एक फ्लो समय मान: %1$s</string>
     <string name="shell_creature_release_value_each">प्रति एक रिलीज़ मान: %1$d मोती</string>
+    <string name="shell_creature_mastery_seasoned">Seasoned</string>
+    <string name="shell_creature_mastery_proven">Proven</string>
+    <string name="shell_creature_mastery_veteran">Veteran</string>
+    <string name="shell_creature_mastery_ascendant">Ascendant</string>
+    <string name="shell_creature_mastery_mastered">Mastered</string>
+    <string name="shell_creature_release_value_varies_by_level">Pearl return varies by level.</string>
     <string name="shell_creature_pearl_value_each">प्रत्येक का मोती मूल्य: %1$d मोती</string>
     <string name="shell_creature_levels_heading">लेवल</string>
     <string name="shell_creature_no_active_to_grow">बढ़ाने के लिए कोई सक्रिय जीव नहीं है।</string>

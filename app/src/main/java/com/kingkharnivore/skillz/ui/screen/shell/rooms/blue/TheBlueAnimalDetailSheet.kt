@@ -111,20 +111,30 @@ fun TheBlueAnimalDetailSheet(
                     )
                 }
             }
-            animal.releaseValuePearls?.let {
-                ElevatedCard {
-                    ListItem(
-                        leadingContent = { Icon(Icons.Outlined.Diamond, contentDescription = null) },
-                        headlineContent = { Text(stringResource(R.string.the_blue_pearl_value_title)) },
-                        supportingContent = { Text(stringResource(R.string.shell_creature_pearl_value_each, it)) }
-                    )
-                }
+            if (animal.releaseValueVariesByLevel) {
                 ElevatedCard {
                     ListItem(
                         leadingContent = { Icon(Icons.Outlined.Diamond, contentDescription = null) },
                         headlineContent = { Text(stringResource(R.string.the_blue_release_return_title)) },
-                        supportingContent = { Text(stringResource(R.string.shell_creature_release_value_each, it)) }
+                        supportingContent = { Text(stringResource(R.string.shell_creature_release_value_varies_by_level)) }
                     )
+                }
+            } else {
+                animal.releaseValuePearls?.let { releaseValuePearls ->
+                    ElevatedCard {
+                        ListItem(
+                            leadingContent = { Icon(Icons.Outlined.Diamond, contentDescription = null) },
+                            headlineContent = { Text(stringResource(R.string.the_blue_pearl_value_title)) },
+                            supportingContent = { Text(stringResource(R.string.shell_creature_pearl_value_each, releaseValuePearls)) }
+                        )
+                    }
+                    ElevatedCard {
+                        ListItem(
+                            leadingContent = { Icon(Icons.Outlined.Diamond, contentDescription = null) },
+                            headlineContent = { Text(stringResource(R.string.the_blue_release_return_title)) },
+                            supportingContent = { Text(stringResource(R.string.shell_creature_release_value_each, releaseValuePearls)) }
+                        )
+                    }
                 }
             }
 

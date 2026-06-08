@@ -1028,7 +1028,7 @@ Piedritas — 60 Perlas</string>
     <string name="shell_chest_body">Todo lo que posees dentro de The Shell descansa aquí cuando no está mostrado.</string>
     <string name="shell_filter_all">Todo</string>
     <string name="shell_filter_animals">Animales</string>
-    <string name="shell_filter_room_objects">Objetos de sala</string>
+    <string name="shell_filter_creatures">Criaturas</string>
     <string name="shell_creature_level_value">Nivel %1$d</string>
     <string name="shell_creature_not_swimming_lifetime_remains">No está nadando ahora. El registro de vida permanece.</string>
     <string name="shell_creature_swimming_now">Nadando ahora: %1$d</string>
@@ -1038,6 +1038,12 @@ Piedritas — 60 Perlas</string>
     <string name="shell_creature_highest_level">Nivel más alto: %1$d</string>
     <string name="shell_creature_flow_time_value_each">Valor de tiempo de Flujo cada uno: %1$s</string>
     <string name="shell_creature_release_value_each">Retorno en Perlas de cada uno: %1$d Perlas</string>
+    <string name="shell_creature_mastery_seasoned">Experimentada</string>
+    <string name="shell_creature_mastery_proven">Probada</string>
+    <string name="shell_creature_mastery_veteran">Veterana</string>
+    <string name="shell_creature_mastery_ascendant">Ascendente</string>
+    <string name="shell_creature_mastery_mastered">Dominada</string>
+    <string name="shell_creature_release_value_varies_by_level">El retorno en Perlas varía por nivel.</string>
     <string name="shell_creature_pearl_value_each">Valor en Perlas de cada uno: %1$d Perlas</string>
     <string name="shell_creature_levels_heading">Niveles</string>
     <string name="shell_creature_no_active_to_grow">No hay criatura activa para crecer.</string>

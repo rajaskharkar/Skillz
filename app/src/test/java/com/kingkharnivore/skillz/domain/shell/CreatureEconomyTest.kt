@@ -32,12 +32,12 @@ class CreatureEconomyTest {
         assertTrue(50 < CreatureEconomy.MAX_CREATURE_LEVEL)
         assertTrue(98 < CreatureEconomy.MAX_CREATURE_LEVEL)
         assertFalse(99 < CreatureEconomy.MAX_CREATURE_LEVEL)
-        assertNull(CreatureEconomy.creatureMasteryTitle(9))
-        assertEquals("Seasoned", CreatureEconomy.creatureMasteryTitle(10))
-        assertEquals("Proven", CreatureEconomy.creatureMasteryTitle(25))
-        assertEquals("Veteran", CreatureEconomy.creatureMasteryTitle(50))
-        assertEquals("Ascendant", CreatureEconomy.creatureMasteryTitle(75))
-        assertEquals("Mastered", CreatureEconomy.creatureMasteryTitle(99))
+        assertNull(CreatureEconomy.creatureMasteryTier(9))
+        assertEquals(CreatureMasteryTier.SEASONED, CreatureEconomy.creatureMasteryTier(10))
+        assertEquals(CreatureMasteryTier.PROVEN, CreatureEconomy.creatureMasteryTier(25))
+        assertEquals(CreatureMasteryTier.VETERAN, CreatureEconomy.creatureMasteryTier(50))
+        assertEquals(CreatureMasteryTier.ASCENDANT, CreatureEconomy.creatureMasteryTier(75))
+        assertEquals(CreatureMasteryTier.MASTERED, CreatureEconomy.creatureMasteryTier(99))
     }
 
     @Test fun growthCostsUseRisingLevel99Curve() {

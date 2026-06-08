@@ -1078,7 +1078,7 @@
     <string name="shell_chest_detail_source">From The Blue</string>
     <string name="shell_filter_all">All</string>
     <string name="shell_filter_animals">Animals</string>
-    <string name="shell_filter_room_objects">Creatures</string>
+    <string name="shell_filter_creatures">Creatures</string>
     <string name="shell_creature_level_value">Level %1$d</string>
     <string name="shell_creature_not_swimming_lifetime_remains">Not currently swimming. Lifetime record remains.</string>
     <string name="shell_creature_swimming_now">Swimming now: %1$d</string>
@@ -1088,6 +1088,12 @@
     <string name="shell_creature_highest_level">Highest level: %1$d</string>
     <string name="shell_creature_flow_time_value_each">Flow time value each: %1$s</string>
     <string name="shell_creature_release_value_each">Pearl return each: %1$d Pearls</string>
+    <string name="shell_creature_mastery_seasoned">Seasoned</string>
+    <string name="shell_creature_mastery_proven">Proven</string>
+    <string name="shell_creature_mastery_veteran">Veteran</string>
+    <string name="shell_creature_mastery_ascendant">Ascendant</string>
+    <string name="shell_creature_mastery_mastered">Mastered</string>
+    <string name="shell_creature_release_value_varies_by_level">Pearl return varies by level.</string>
     <string name="shell_creature_pearl_value_each">Pearl value each: %1$d Pearls</string>
     <string name="shell_creature_levels_heading">Levels</string>
     <string name="shell_creature_no_active_to_grow">No active creature available to grow.</string>

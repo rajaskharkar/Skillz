@@ -24,6 +24,8 @@ enum class CreatureZone(val displayName: String) {
 
 enum class CreatureSourceType { FLOW_EARNED, BEYOND_BLUE }
 
+enum class CreatureMasteryTier { SEASONED, PROVEN, VETERAN, ASCENDANT, MASTERED }
+
 enum class CreatureSceneBehavior { SWIM, DRIFT, BOTTOM_DWELL, GLIDE, CRUISE, LEGENDARY }
 
 enum class CreaturePlacementBand { REEF_CANOPY, REEF_FLOOR, MID_WATER, OPEN_WATER, DEEP_WATER, SURFACE }
@@ -312,12 +314,12 @@ object CreatureEconomy {
         }
     }
 
-    fun creatureMasteryTitle(level: Int): String? = when {
-        level >= 99 -> "Mastered"
-        level >= 75 -> "Ascendant"
-        level >= 50 -> "Veteran"
-        level >= 25 -> "Proven"
-        level >= 10 -> "Seasoned"
+    fun creatureMasteryTier(level: Int): CreatureMasteryTier? = when {
+        level >= 99 -> CreatureMasteryTier.MASTERED
+        level >= 75 -> CreatureMasteryTier.ASCENDANT
+        level >= 50 -> CreatureMasteryTier.VETERAN
+        level >= 25 -> CreatureMasteryTier.PROVEN
+        level >= 10 -> CreatureMasteryTier.SEASONED
         else -> null
     }
 

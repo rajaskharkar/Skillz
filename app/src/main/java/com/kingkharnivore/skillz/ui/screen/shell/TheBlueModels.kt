@@ -33,6 +33,7 @@ data class TheBlueAnimalGroupUiModel(
     val levelCounts: List<FormCountUiModel> = formCounts,
     val flowTimeValueMinutes: Int? = null,
     val releaseValuePearls: Int? = null,
+    val releaseValueVariesByLevel: Boolean = false,
     val firstActiveInstanceId: String? = null,
     val firstRestingInstanceId: String? = null,
     val highestLevelActiveInstanceId: String? = null
@@ -95,6 +96,8 @@ internal fun buildTheBlueUiState(
                 .eachCount()
                 .map { (stageId, count) -> FormCountUiModel(stageId, count) }
                 .sortedByDescending { formOrder(findId, it.formStageId) }
+            val activeLevels = instances.map { it.animalLevel.coerceAtLeast(1) }.toSet()
+            val singleActiveLevel = activeLevels.singleOrNull()
             TheBlueAnimalGroupUiModel(
                 findId = findId,
                 zoneId = zoneId,
@@ -113,7 +116,10 @@ internal fun buildTheBlueUiState(
                     .map { (level, count) -> FormCountUiModel("Level $level", count) }
                     .sortedByDescending { it.formStageId?.removePrefix("Level ")?.toIntOrNull() ?: 0 },
                 flowTimeValueMinutes = CreatureCatalog.get(findId)?.flowTimeValueMinutes ?: CreatureCatalog.get(findId)?.requirementMinutes,
-                releaseValuePearls = CreatureCatalog.get(findId)?.let { CreatureEconomy.releaseValuePearls(findId, highestLevelInstance?.animalLevel ?: 1) },
+                releaseValuePearls = CreatureCatalog.get(findId)?.let {
+                    singleActiveLevel?.let { level -> CreatureEconomy.releaseValuePearls(findId, level) }
+                },
+                releaseValueVariesByLevel = activeLevels.size > 1,
                 firstActiveInstanceId = instances.firstOrNull()?.instanceId,
                 firstRestingInstanceId = restingInstances.firstOrNull()?.instanceId,
                 highestLevelActiveInstanceId = highestLevelInstance?.instanceId

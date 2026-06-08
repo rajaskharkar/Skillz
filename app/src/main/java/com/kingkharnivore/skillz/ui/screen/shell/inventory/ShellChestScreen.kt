@@ -48,6 +48,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellFindDefinition
 import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
 import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
+import com.kingkharnivore.skillz.domain.shell.CreatureMasteryTier
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 import com.kingkharnivore.skillz.ui.screen.shell.ux.RoomHeader
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
@@ -286,9 +287,9 @@ private fun ChestStackDetailSheet(
                 fontWeight = FontWeight.Bold
             )
             Text(stringResource(R.string.shell_chest_detail_level, stack.level))
-            CreatureEconomy.creatureMasteryTitle(stack.level)?.let { masteryTitle ->
+            CreatureEconomy.creatureMasteryTier(stack.level)?.let { masteryTier ->
                 Text(
-                    text = masteryTitle,
+                    text = stringResource(masteryTier.titleRes),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
@@ -462,6 +463,16 @@ private fun ChestReleaseConfirmationDialog(
         modifier = Modifier.semantics { contentDescription = description }
     )
 }
+
+
+private val CreatureMasteryTier.titleRes: Int
+    get() = when (this) {
+        CreatureMasteryTier.SEASONED -> R.string.shell_creature_mastery_seasoned
+        CreatureMasteryTier.PROVEN -> R.string.shell_creature_mastery_proven
+        CreatureMasteryTier.VETERAN -> R.string.shell_creature_mastery_veteran
+        CreatureMasteryTier.ASCENDANT -> R.string.shell_creature_mastery_ascendant
+        CreatureMasteryTier.MASTERED -> R.string.shell_creature_mastery_mastered
+    }
 
 private fun pluralizedCreatureName(name: String, count: Int): String = when {
     count == 1 -> name

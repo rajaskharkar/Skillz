@@ -4,6 +4,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.ShellPlacementEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
+import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
 import com.kingkharnivore.skillz.domain.shell.CreatureStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -93,6 +94,38 @@ class TheBlueUiModelTest {
         assertEquals(listOf(FormCountUiModel("Level 4", 1), FormCountUiModel("Level 1", 4)), minnow.levelCounts)
     }
 
+
+    @Test
+    fun releaseValueSummaryOnlyShowsPerCreatureValueForSingleActiveLevel() {
+        val state = buildTheBlueUiState(
+            finds = listOf(
+                find("seahorse-l4-a", ShellContentCatalog.FOCUS_SEAHORSE, level = 4),
+                find("seahorse-l4-b", ShellContentCatalog.FOCUS_SEAHORSE, level = 4)
+            ),
+            focusPlacements = emptyList()
+        )
+
+        val seahorse = state.zones.single { it.zoneId == TheBlueZoneId.DEEPER_REEF }.animals.single()
+
+        assertFalse(seahorse.releaseValueVariesByLevel)
+        assertEquals(CreatureEconomy.releaseValuePearls(ShellContentCatalog.FOCUS_SEAHORSE, 4), seahorse.releaseValuePearls)
+    }
+
+    @Test
+    fun releaseValueSummaryVariesByLevelWhenMultipleActiveLevelsExist() {
+        val state = buildTheBlueUiState(
+            finds = listOf(
+                find("seahorse-l1", ShellContentCatalog.FOCUS_SEAHORSE, level = 1),
+                find("seahorse-l20", ShellContentCatalog.FOCUS_SEAHORSE, level = 20)
+            ),
+            focusPlacements = emptyList()
+        )
+
+        val seahorse = state.zones.single { it.zoneId == TheBlueZoneId.DEEPER_REEF }.animals.single()
+
+        assertTrue(seahorse.releaseValueVariesByLevel)
+        assertNull(seahorse.releaseValuePearls)
+    }
 
     @Test
     fun markingTheBlueAnimalsSeenClearsOnlyAnimalNewFlags() {
