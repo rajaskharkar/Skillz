@@ -137,7 +137,7 @@ class TheBlueUiModelTest {
         assertEquals(1, buildTheBlueUiState(finds, emptyList()).newAnimalCount)
 
         val afterMark = finds.map { instance ->
-            if (instance.findId in ShellContentCatalog.animalFindIds) {
+            if (instance.findId in ShellContentCatalog.regularFlowAnimalFindIds) {
                 instance.copy(isNew = false)
             } else {
                 instance

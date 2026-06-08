@@ -1464,7 +1464,7 @@
     <string name="shell_find_sea_urchin_description">Encountered Beyond the Blue.</string>
     <string name="shell_find_pufferfish_title">Pufferfish</string>
     <string name="shell_find_pufferfish_description">Encountered Beyond the Blue.</string>
-    <string name="shell_find_lionfish_title">Lionfish</string>
+    <string name="shell_find_lionfish_title">Scorpionfish</string>
     <string name="shell_find_lionfish_description">Encountered Beyond the Blue.</string>
     <string name="shell_find_moray_eel_title">Moray Eel</string>
     <string name="shell_find_moray_eel_description">Encountered Beyond the Blue.</string>
@@ -1476,7 +1476,7 @@
     <string name="shell_find_squid_description">Encountered Beyond the Blue.</string>
     <string name="shell_find_flying_fish_title">Flying Fish</string>
     <string name="shell_find_flying_fish_description">Encountered Beyond the Blue.</string>
-    <string name="shell_find_barracuda_title">Barracuda</string>
+    <string name="shell_find_barracuda_title">Needlefish</string>
     <string name="shell_find_barracuda_description">Encountered Beyond the Blue.</string>
     <string name="shell_find_swordfish_title">Swordfish</string>
     <string name="shell_find_swordfish_description">Encountered Beyond the Blue.</string>
@@ -1968,6 +1968,7 @@ You can turn Health back on later.</string>
     <string name="shell_stillwater_exclusive">Stillwater exclusive</string>
     <string name="shell_stillwater_added_to_chest">Added to The Chest.</string>
     <string name="shell_stillwater_done">Done</string>
+    <string name="shell_stillwater_cannot_release">Stillwater exclusives cannot be released for Pearls.</string>
     <string name="shell_stillwater_explainer">Stillwater is filled by soft flows. Larger waters draw from deeper exclusive creature categories.</string>
     <string name="flow_complete_soft_title">Soft Flow complete</string>
     <string name="flow_complete_soft_drops_gained">+%1$d Drops</string>
@@ -1985,7 +1986,7 @@ You can turn Health back on later.</string>
     <string name="shell_find_stillwater_goby_title">Goby</string>
     <string name="shell_find_stillwater_wrasse_title">Wrasse</string>
     <string name="shell_find_stillwater_blenny_title">Blenny</string>
-    <string name="shell_find_stillwater_triggerfish_title">Triggerfish</string>
+    <string name="shell_find_stillwater_lionfish_title">Lionfish</string>
     <string name="shell_find_stillwater_anemone_title">Anemone</string>
     <string name="shell_find_stillwater_cuttlefish_title">Cuttlefish</string>
     <string name="shell_find_stillwater_moray_title">Moray</string>
@@ -1993,7 +1994,7 @@ You can turn Health back on later.</string>
     <string name="shell_find_stillwater_mahi_title">Mahi</string>
     <string name="shell_find_stillwater_wahoo_title">Wahoo</string>
     <string name="shell_find_stillwater_bonito_title">Bonito</string>
-    <string name="shell_find_stillwater_tuna_title">Tuna</string>
+    <string name="shell_find_stillwater_barracuda_title">Barracuda</string>
     <string name="shell_find_stillwater_amberjack_title">Amberjack</string>
     <string name="shell_find_stillwater_grouper_title">Grouper</string>
     <string name="shell_find_stillwater_marlin_title">Marlin</string>

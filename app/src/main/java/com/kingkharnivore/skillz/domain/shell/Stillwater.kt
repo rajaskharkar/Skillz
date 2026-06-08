@@ -33,6 +33,16 @@ fun stillwaterDropsNeeded(drops: Long, vessel: StillwaterVessel): Long =
 fun stillwaterVesselProgress(drops: Long, vessel: StillwaterVessel): Float =
     (drops.toFloat() / vessel.dropCost.toFloat()).coerceIn(0f, 1f)
 
+
+fun validateStillwaterDraw(
+    vessel: StillwaterVessel,
+    unlockedZones: Set<CreatureZone>,
+    claimableDrops: Long
+) {
+    require(vessel.zone in unlockedZones) { "Reach this depth in The Blue first." }
+    require(claimableDrops >= vessel.dropCost) { "Not enough Drops yet." }
+}
+
 object StillwaterCatalog {
     val creatures: List<StillwaterCreatureEntry> = listOf(
         entry("stillwater_shrimp", "Shrimp", StillwaterVessel.FISHBOWL, StillwaterRarity.COMMON),
@@ -46,7 +56,7 @@ object StillwaterCatalog {
         entry("stillwater_goby", "Goby", StillwaterVessel.AQUARIUM, StillwaterRarity.COMMON),
         entry("stillwater_wrasse", "Wrasse", StillwaterVessel.AQUARIUM, StillwaterRarity.COMMON),
         entry("stillwater_blenny", "Blenny", StillwaterVessel.AQUARIUM, StillwaterRarity.COMMON),
-        entry("stillwater_triggerfish", "Triggerfish", StillwaterVessel.AQUARIUM, StillwaterRarity.UNCOMMON),
+        entry("stillwater_lionfish", "Lionfish", StillwaterVessel.AQUARIUM, StillwaterRarity.UNCOMMON),
         entry("stillwater_anemone", "Anemone", StillwaterVessel.AQUARIUM, StillwaterRarity.UNCOMMON),
         entry("stillwater_cuttlefish", "Cuttlefish", StillwaterVessel.AQUARIUM, StillwaterRarity.UNCOMMON),
         entry("stillwater_moray", "Moray", StillwaterVessel.AQUARIUM, StillwaterRarity.RARE),
@@ -54,7 +64,7 @@ object StillwaterCatalog {
         entry("stillwater_mahi", "Mahi", StillwaterVessel.POND, StillwaterRarity.COMMON),
         entry("stillwater_wahoo", "Wahoo", StillwaterVessel.POND, StillwaterRarity.COMMON),
         entry("stillwater_bonito", "Bonito", StillwaterVessel.POND, StillwaterRarity.COMMON),
-        entry("stillwater_tuna", "Tuna", StillwaterVessel.POND, StillwaterRarity.UNCOMMON),
+        entry("stillwater_barracuda", "Barracuda", StillwaterVessel.POND, StillwaterRarity.UNCOMMON),
         entry("stillwater_amberjack", "Amberjack", StillwaterVessel.POND, StillwaterRarity.UNCOMMON),
         entry("stillwater_grouper", "Grouper", StillwaterVessel.POND, StillwaterRarity.UNCOMMON),
         entry("stillwater_marlin", "Marlin", StillwaterVessel.POND, StillwaterRarity.RARE),

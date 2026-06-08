@@ -139,7 +139,7 @@ object ShellContentCatalog {
         stillwaterFind("stillwater_goby", R.string.shell_find_stillwater_goby_title, ShellDepthTier.DEEPER_REEF),
         stillwaterFind("stillwater_wrasse", R.string.shell_find_stillwater_wrasse_title, ShellDepthTier.DEEPER_REEF),
         stillwaterFind("stillwater_blenny", R.string.shell_find_stillwater_blenny_title, ShellDepthTier.DEEPER_REEF),
-        stillwaterFind("stillwater_triggerfish", R.string.shell_find_stillwater_triggerfish_title, ShellDepthTier.DEEPER_REEF),
+        stillwaterFind("stillwater_lionfish", R.string.shell_find_stillwater_lionfish_title, ShellDepthTier.DEEPER_REEF),
         stillwaterFind("stillwater_anemone", R.string.shell_find_stillwater_anemone_title, ShellDepthTier.DEEPER_REEF),
         stillwaterFind("stillwater_cuttlefish", R.string.shell_find_stillwater_cuttlefish_title, ShellDepthTier.DEEPER_REEF),
         stillwaterFind("stillwater_moray", R.string.shell_find_stillwater_moray_title, ShellDepthTier.DEEPER_REEF),
@@ -147,7 +147,7 @@ object ShellContentCatalog {
         stillwaterFind("stillwater_mahi", R.string.shell_find_stillwater_mahi_title, ShellDepthTier.OPEN_BLUE),
         stillwaterFind("stillwater_wahoo", R.string.shell_find_stillwater_wahoo_title, ShellDepthTier.OPEN_BLUE),
         stillwaterFind("stillwater_bonito", R.string.shell_find_stillwater_bonito_title, ShellDepthTier.OPEN_BLUE),
-        stillwaterFind("stillwater_tuna", R.string.shell_find_stillwater_tuna_title, ShellDepthTier.OPEN_BLUE),
+        stillwaterFind("stillwater_barracuda", R.string.shell_find_stillwater_barracuda_title, ShellDepthTier.OPEN_BLUE),
         stillwaterFind("stillwater_amberjack", R.string.shell_find_stillwater_amberjack_title, ShellDepthTier.OPEN_BLUE),
         stillwaterFind("stillwater_grouper", R.string.shell_find_stillwater_grouper_title, ShellDepthTier.OPEN_BLUE),
         stillwaterFind("stillwater_marlin", R.string.shell_find_stillwater_marlin_title, ShellDepthTier.OPEN_BLUE),
@@ -289,7 +289,12 @@ object ShellContentCatalog {
     }
 
     val focusPearlObjects = finds.filter { it.isPearlObject && it.primaryRoomId == ShellRoomId.FOCUS }
-    val animalFindIds = finds.filter { it.kind == ShellRewardKind.ANIMAL && !it.findId.startsWith("stillwater_") }.map { it.findId }.toSet()
+    val allAnimalFindIds = finds.filter { it.kind == ShellRewardKind.ANIMAL }.map { it.findId }.toSet()
+    val regularFlowAnimalFindIds = finds
+        .filter { it.kind == ShellRewardKind.ANIMAL && !it.findId.startsWith("stillwater_") }
+        .map { it.findId }
+        .toSet()
+    val animalFindIds = allAnimalFindIds
     fun find(findId: String) = finds.firstOrNull { it.findId == findId }
     fun badge(badgeId: String) = badges.firstOrNull { it.badgeId == badgeId }
     fun discovery(discoveryId: String) = discoveries.firstOrNull { it.discoveryId == discoveryId }

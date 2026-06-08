@@ -9,11 +9,12 @@ import com.kingkharnivore.skillz.data.model.shell.*
 import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
 import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
 import com.kingkharnivore.skillz.domain.shell.CreatureSourceType
+import com.kingkharnivore.skillz.domain.shell.CreatureZone
 import com.kingkharnivore.skillz.domain.shell.CreatureStatus
 import com.kingkharnivore.skillz.domain.shell.StillwaterCatalog
 import com.kingkharnivore.skillz.domain.shell.StillwaterVessel
+import com.kingkharnivore.skillz.domain.shell.validateStillwaterDraw
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -75,9 +76,12 @@ class ShellRepository @Inject constructor(
         true
     }
 
-    suspend fun drawFromStillwater(vessel: StillwaterVessel): UserShellFindInstanceEntity = db.withTransaction {
+    suspend fun drawFromStillwater(
+        vessel: StillwaterVessel,
+        unlockedZones: Set<CreatureZone>
+    ): UserShellFindInstanceEntity = db.withTransaction {
         val balance = stillwaterLedgerDao.getTotal()
-        require(balance >= vessel.dropCost) { "Not enough Drops yet." }
+        validateStillwaterDraw(vessel, unlockedZones, balance)
         val entry = StillwaterCatalog.roll(vessel)
         val definition = CreatureCatalog.require(entry.creatureId)
         require(definition.sourceType == CreatureSourceType.STILLWATER) { "Stillwater can only draw Stillwater creatures." }
@@ -192,7 +196,7 @@ class ShellRepository @Inject constructor(
     }
 
     suspend fun markTheBlueAnimalsSeen() = db.withTransaction {
-        val animalFindIds = ShellContentCatalog.animalFindIds.toList()
+        val animalFindIds = ShellContentCatalog.regularFlowAnimalFindIds.toList()
         if (animalFindIds.isNotEmpty()) {
             findInstanceDao.markFindIdsSeen(animalFindIds)
         }
@@ -314,6 +318,7 @@ class ShellRepository @Inject constructor(
     suspend fun releaseCreature(instanceId: String): Int = db.withTransaction {
         val instance = findInstanceDao.getById(instanceId) ?: error("Creature not found")
         require(ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL) { "Only animals can be released." }
+        require(CreatureCatalog.require(instance.findId).sourceType != CreatureSourceType.STILLWATER) { "Stillwater exclusives cannot be released for Pearls." }
         require(instance.creatureStatus == CreatureStatus.ACTIVE) { "Only active creatures can be released." }
         releaseActiveCreatures(listOf(instance), System.currentTimeMillis())
     }
@@ -325,6 +330,7 @@ class ShellRepository @Inject constructor(
             .filterValues { it > 0 }
         require(requestedSelections.isNotEmpty()) { "Select at least one creature to release." }
         require(ShellContentCatalog.find(findId)?.kind == ShellRewardKind.ANIMAL) { "Only animals can be released." }
+        require(CreatureCatalog.require(findId).sourceType != CreatureSourceType.STILLWATER) { "Stillwater exclusives cannot be released for Pearls." }
 
         val selectedInstances = mutableListOf<UserShellFindInstanceEntity>()
         requestedSelections.toSortedMap(compareByDescending { it }).forEach { (level, quantity) ->

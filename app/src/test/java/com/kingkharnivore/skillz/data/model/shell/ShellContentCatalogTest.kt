@@ -52,6 +52,14 @@ class ShellContentCatalogTest {
     }
 
     @Test
+    fun animalFindIdsSeparateAllCreaturesFromRegularFlowCreatures() {
+        assertTrue("stillwater_shrimp" in ShellContentCatalog.allAnimalFindIds)
+        assertFalse("stillwater_shrimp" in ShellContentCatalog.regularFlowAnimalFindIds)
+        assertTrue(ShellContentCatalog.FOCUS_MINNOW in ShellContentCatalog.allAnimalFindIds)
+        assertTrue(ShellContentCatalog.FOCUS_MINNOW in ShellContentCatalog.regularFlowAnimalFindIds)
+    }
+
+    @Test
     fun focusSlots_useLocalizedTitles() {
         assertTrue(ShellContentCatalog.focusSlots.all { it.titleRes != 0 })
     }

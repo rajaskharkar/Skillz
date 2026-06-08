@@ -49,6 +49,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellFindDefinition
 import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
 import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
 import com.kingkharnivore.skillz.domain.shell.CreatureMasteryTier
+import com.kingkharnivore.skillz.domain.shell.CreatureSourceType
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 import com.kingkharnivore.skillz.ui.screen.shell.ux.RoomHeader
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
@@ -60,7 +61,8 @@ internal data class ChestInventoryStackUiModel(
     val creatureName: String,
     val level: Int,
     val count: Int,
-    val iconKey: String
+    val iconKey: String,
+    val isStillwaterExclusive: Boolean = false
 )
 
 @Composable
@@ -141,7 +143,8 @@ internal fun buildChestInventoryStacks(finds: List<UserShellFindInstanceEntity>)
                 creatureName = creature?.displayName ?: definitionTitleFallback(definition),
                 level = key.second,
                 count = creaturesAtLevel.size,
-                iconKey = definition.iconKey
+                iconKey = definition.iconKey,
+                isStillwaterExclusive = creature?.sourceType == CreatureSourceType.STILLWATER
             )
         }
         .sortedWith(
@@ -251,15 +254,25 @@ private fun ChestStackDetailSheet(
     var showLevelUpConfirmation by remember(stack.creatureId, stack.level) { mutableStateOf(false) }
     val safeReleaseCount = releaseCount.coerceIn(1, stack.count.coerceAtLeast(1))
     val releaseRewardPearls = chestReleaseRewardPearls(stack, safeReleaseCount)
-    val rewardPreviewDescription = stringResource(
-        R.string.shell_chest_release_reward_preview_a11y,
-        safeReleaseCount,
-        stack.level,
-        stack.creatureName,
-        stack.count,
-        releaseRewardPearls
-    )
-    val releaseButtonDescription = stringResource(R.string.shell_chest_release_button_a11y)
+    val canReleaseForPearls = canReleaseStackForPearls(stack)
+    val releaseBlockedCopy = stringResource(R.string.shell_stillwater_cannot_release)
+    val rewardPreviewDescription = if (canReleaseForPearls) {
+        stringResource(
+            R.string.shell_chest_release_reward_preview_a11y,
+            safeReleaseCount,
+            stack.level,
+            stack.creatureName,
+            stack.count,
+            releaseRewardPearls
+        )
+    } else {
+        releaseBlockedCopy
+    }
+    val releaseButtonDescription = if (canReleaseForPearls) {
+        stringResource(R.string.shell_chest_release_button_a11y)
+    } else {
+        releaseBlockedCopy
+    }
     val levelUpCost = CreatureEconomy.growthCostPearls(stack.creatureId, stack.level)
     val isMaxLevel = stack.level >= CreatureEconomy.MAX_CREATURE_LEVEL
     val canAffordLevelUp = pearlBalance >= levelUpCost
@@ -348,7 +361,11 @@ private fun ChestStackDetailSheet(
                     .semantics { contentDescription = rewardPreviewDescription }
             ) {
                 Text(
-                    text = stringResource(R.string.shell_creature_release_reward_preview, releaseRewardPearls),
+                    text = if (canReleaseForPearls) {
+                        stringResource(R.string.shell_creature_release_reward_preview, releaseRewardPearls)
+                    } else {
+                        releaseBlockedCopy
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
@@ -360,6 +377,7 @@ private fun ChestStackDetailSheet(
                 }
                 Button(
                     onClick = { showReleaseConfirmation = true },
+                    enabled = canReleaseForPearls,
                     modifier = Modifier
                         .weight(1f)
                         .semantics { contentDescription = releaseButtonDescription }
@@ -488,9 +506,15 @@ private fun pluralizedCreatureName(name: String, count: Int): String = when {
 internal fun chestReleaseSelection(stack: ChestInventoryStackUiModel, requestedCount: Int): Map<Int, Int> =
     mapOf(stack.level to requestedCount.coerceIn(1, stack.count.coerceAtLeast(1)))
 
+internal fun canReleaseStackForPearls(stack: ChestInventoryStackUiModel): Boolean = !stack.isStillwaterExclusive
+
 internal fun chestReleaseRewardPearls(stack: ChestInventoryStackUiModel, requestedCount: Int): Int =
-    CreatureEconomy.releaseValuePearls(stack.creatureId, stack.level) *
-        requestedCount.coerceIn(1, stack.count.coerceAtLeast(1))
+    if (!canReleaseStackForPearls(stack)) {
+        0
+    } else {
+        CreatureEconomy.releaseValuePearls(stack.creatureId, stack.level) *
+            requestedCount.coerceIn(1, stack.count.coerceAtLeast(1))
+    }
 
 internal fun shouldShowChestCountBadge(count: Int): Boolean = count > 1
 

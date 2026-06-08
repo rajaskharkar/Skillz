@@ -115,7 +115,7 @@ object CreatureCatalog {
                 StillwaterVessel.FISHBOWL -> CreatureRenderFamily.SMALL_FISH
                 StillwaterVessel.AQUARIUM -> CreatureRenderFamily.REEF_FISH
                 StillwaterVessel.POND -> CreatureRenderFamily.LARGE_FISH
-                StillwaterVessel.LAKE -> CreatureRenderFamily.ANGLERFISH
+                StillwaterVessel.LAKE -> CreatureRenderFamily.LARGE_FISH
             },
             sceneBehavior = when (entry.vessel) {
                 StillwaterVessel.FISHBOWL -> CreatureSceneBehavior.DRIFT
@@ -133,7 +133,7 @@ object CreatureCatalog {
                 StillwaterVessel.FISHBOWL -> CreatureScaleClass.SMALL
                 StillwaterVessel.AQUARIUM -> CreatureScaleClass.MEDIUM
                 StillwaterVessel.POND -> CreatureScaleClass.LARGE
-                StillwaterVessel.LAKE -> CreatureScaleClass.MEDIUM
+                StillwaterVessel.LAKE -> CreatureScaleClass.LARGE
             }
         )
     }
@@ -154,7 +154,7 @@ object CreatureCatalog {
         beyond("creature_starfish", "Starfish", CreatureZone.DEEPER_REEF, 90, CreatureRenderFamily.STARFISH),
         beyond("creature_sea_urchin", "Sea Urchin", CreatureZone.DEEPER_REEF, 120, CreatureRenderFamily.SPIKY_URCHIN),
         beyond("creature_pufferfish", "Pufferfish", CreatureZone.DEEPER_REEF, 180, CreatureRenderFamily.PUFFERFISH),
-        beyond("creature_lionfish", "Lionfish", CreatureZone.DEEPER_REEF, 240, CreatureRenderFamily.REEF_FISH),
+        beyond("creature_lionfish", "Scorpionfish", CreatureZone.DEEPER_REEF, 240, CreatureRenderFamily.REEF_FISH),
         beyond("creature_moray_eel", "Moray Eel", CreatureZone.DEEPER_REEF, 300, CreatureRenderFamily.EEL),
         beyond("creature_stingray", "Stingray", CreatureZone.DEEPER_REEF, 360, CreatureRenderFamily.RAY),
         beyond(ShellContentCatalog.FOCUS_OCTOPUS, "Octopus", CreatureZone.DEEPER_REEF, 480, CreatureRenderFamily.OCTOPUS),
@@ -163,7 +163,7 @@ object CreatureCatalog {
 
         flow(ShellContentCatalog.FOCUS_MANTA, "Manta", CreatureZone.OPEN_BLUE, 60, CreatureRenderFamily.RAY),
         beyond("creature_flying_fish", "Flying Fish", CreatureZone.OPEN_BLUE, 120, CreatureRenderFamily.LARGE_FISH),
-        beyond("creature_barracuda", "Barracuda", CreatureZone.OPEN_BLUE, 180, CreatureRenderFamily.LARGE_FISH),
+        beyond("creature_barracuda", "Needlefish", CreatureZone.OPEN_BLUE, 180, CreatureRenderFamily.LARGE_FISH),
         beyond("creature_swordfish", "Swordfish", CreatureZone.OPEN_BLUE, 240, CreatureRenderFamily.LARGE_FISH),
         beyond("creature_dolphin", "Dolphin", CreatureZone.OPEN_BLUE, 360, CreatureRenderFamily.DOLPHIN),
         beyond("creature_ocean_sunfish", "Ocean Sunfish", CreatureZone.OPEN_BLUE, 480, CreatureRenderFamily.SUNFISH),

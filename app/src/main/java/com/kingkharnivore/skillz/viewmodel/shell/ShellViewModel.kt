@@ -101,7 +101,7 @@ class ShellViewModel @Inject constructor(
             stillwaterLifetimeDrops = economy.stillwaterLifetimeDrops,
             stillwaterRevealCreature = revealCreature,
             pendingStillwaterDrawVessel = pendingVessel,
-            unlockedBlueZones = unlockedBlueZonesFor(ownership.finds),
+            unlockedBlueZones = deriveUnlockedBlueZonesFromHistoricalFinds(ownership.finds),
             finds = ownership.finds,
             stacks = ownership.stacks,
             focusPlacements = ownership.focusPlacements,
@@ -207,11 +207,11 @@ class ShellViewModel @Inject constructor(
     }
 
     private suspend fun drawFromStillwater(vessel: StillwaterVessel) {
-        if (vessel.zone !in unlockedBlueZonesFor(uiState.value.finds)) {
+        if (vessel.zone !in deriveUnlockedBlueZonesFromHistoricalFinds(uiState.value.finds)) {
             _events.emit("Reach this depth in The Blue first.")
             return
         }
-        runCatching { repository.drawFromStillwater(vessel) }
+        runCatching { repository.drawFromStillwater(vessel, uiState.value.unlockedBlueZones) }
             .onSuccess { instance ->
                 stillwaterRevealCreature.value = CreatureCatalog.get(instance.findId)
             }
@@ -230,15 +230,24 @@ class ShellViewModel @Inject constructor(
 }
 
 
-private fun unlockedBlueZonesFor(finds: List<UserShellFindInstanceEntity>): Set<CreatureZone> {
-    val zones = mutableSetOf(CreatureZone.SUNLIT_REEF)
-    finds.forEach { instance ->
-        val definition = CreatureCatalog.get(instance.findId) ?: return@forEach
-        if (definition.sourceType != CreatureSourceType.STILLWATER) {
-            zones += definition.zone
-        }
-    }
-    return zones
+internal fun deriveUnlockedBlueZonesFromHistoricalFinds(finds: List<UserShellFindInstanceEntity>): Set<CreatureZone> {
+    val deepestReachedOrder = finds
+        .asSequence()
+        .mapNotNull { instance -> CreatureCatalog.get(instance.findId) }
+        .filter { definition -> definition.sourceType != CreatureSourceType.STILLWATER }
+        .map { definition -> definition.zone.progressionOrder() }
+        .maxOrNull() ?: CreatureZone.SUNLIT_REEF.progressionOrder()
+
+    return CreatureZone.values()
+        .filter { zone -> zone.progressionOrder() <= deepestReachedOrder }
+        .toSet()
+}
+
+private fun CreatureZone.progressionOrder(): Int = when (this) {
+    CreatureZone.SUNLIT_REEF -> 0
+    CreatureZone.DEEPER_REEF -> 1
+    CreatureZone.OPEN_BLUE -> 2
+    CreatureZone.GREAT_BLUE -> 3
 }
 
 fun ShellUiState.isBlueZoneUnlocked(zone: CreatureZone): Boolean = zone in unlockedBlueZones
