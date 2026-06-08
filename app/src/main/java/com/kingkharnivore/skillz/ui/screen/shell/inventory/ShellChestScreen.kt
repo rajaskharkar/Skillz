@@ -21,10 +21,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -44,14 +46,14 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEn
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellDepthTier
 import com.kingkharnivore.skillz.data.model.shell.ShellFindDefinition
-import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
 import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
-import com.kingkharnivore.skillz.domain.shell.CreatureStatus
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 import com.kingkharnivore.skillz.ui.screen.shell.ux.RoomHeader
+import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
+import kotlin.math.roundToInt
 
-private data class ChestInventoryStackUiModel(
+internal data class ChestInventoryStackUiModel(
     val creatureId: String,
     val creatureName: String,
     val level: Int,
@@ -106,25 +108,24 @@ fun ShellChestScreen(
         }
     }
 
-    selectedStack?.let { stack ->
+    selectedStack?.let { selected ->
+        val stack = stacks.firstOrNull { it.creatureId == selected.creatureId && it.level == selected.level } ?: selected
         ChestStackDetailSheet(
             stack = stack,
             onDismiss = { selectedStack = null },
-            onReleaseOne = {
-                onReleaseCreaturesByLevel(stack.creatureId, mapOf(stack.level to 1))
+            onRelease = { releaseCount ->
+                val safeCount = releaseCount.coerceIn(1, stack.count.coerceAtLeast(1))
+                onReleaseCreaturesByLevel(stack.creatureId, chestReleaseSelection(stack, safeCount))
                 selectedStack = null
             }
         )
     }
 }
 
-private fun buildChestInventoryStacks(finds: List<UserShellFindInstanceEntity>): List<ChestInventoryStackUiModel> =
+internal fun buildChestInventoryStacks(finds: List<UserShellFindInstanceEntity>): List<ChestInventoryStackUiModel> =
     finds
         .asSequence()
-        .filter { instance ->
-            instance.creatureStatus == CreatureStatus.ACTIVE &&
-                ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL
-        }
+        .filter(::isActiveChestCreature)
         .groupBy { instance -> instance.findId to instance.animalLevel.coerceAtLeast(1) }
         .mapNotNull { (key, creaturesAtLevel) ->
             val definition = ShellContentCatalog.find(key.first) ?: return@mapNotNull null
@@ -212,7 +213,7 @@ private fun ChestInventoryTile(stack: ChestInventoryStackUiModel, onClick: () ->
             }
     ) {
         Box(Modifier.fillMaxSize().padding(8.dp)) {
-            if (stack.count > 1) {
+            if (shouldShowChestCountBadge(stack.count)) {
                 ChestBadge(
                     text = stringResource(R.string.shell_chest_count_badge, stack.count),
                     modifier = Modifier.align(Alignment.TopEnd)
@@ -254,8 +255,10 @@ private fun ChestBadge(text: String, modifier: Modifier = Modifier) {
 private fun ChestStackDetailSheet(
     stack: ChestInventoryStackUiModel,
     onDismiss: () -> Unit,
-    onReleaseOne: () -> Unit
+    onRelease: (Int) -> Unit
 ) {
+    var releaseCount by remember(stack.creatureId, stack.level, stack.count) { mutableIntStateOf(1) }
+    val safeReleaseCount = releaseCount.coerceIn(1, stack.count.coerceAtLeast(1))
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -271,17 +274,38 @@ private fun ChestStackDetailSheet(
             Text(stringResource(R.string.shell_chest_detail_owned, stack.count))
             Text(stringResource(R.string.shell_chest_detail_rarity, stack.rarityLabel))
             Text(stringResource(R.string.shell_chest_detail_source), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (stack.count > 1) {
+                Text(
+                    text = stringResource(R.string.shell_chest_release_selected_count, safeReleaseCount, stack.count),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Slider(
+                    value = safeReleaseCount.toFloat(),
+                    onValueChange = { value ->
+                        releaseCount = value.roundToInt().coerceIn(1, stack.count)
+                    },
+                    valueRange = 1f..stack.count.toFloat(),
+                    steps = (stack.count - 2).coerceAtLeast(0)
+                )
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
                     Text(stringResource(R.string.common_close))
                 }
-                Button(onClick = onReleaseOne, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.shell_creature_release_confirm_disabled))
+                Button(onClick = { onRelease(safeReleaseCount) }, modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.shell_chest_release_count, safeReleaseCount))
                 }
             }
         }
     }
 }
+
+
+internal fun chestReleaseSelection(stack: ChestInventoryStackUiModel, requestedCount: Int): Map<Int, Int> =
+    mapOf(stack.level to requestedCount.coerceIn(1, stack.count.coerceAtLeast(1)))
+
+internal fun shouldShowChestCountBadge(count: Int): Boolean = count > 1
 
 
 @Composable

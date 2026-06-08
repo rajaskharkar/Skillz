@@ -25,14 +25,8 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
     val shellWasShapedTitle = stringResource(R.string.reward_card_shell_shaped_title)
     val shellWasShapedBody = stringResource(R.string.reward_card_shell_shaped_body)
     val animalTitleTemplate = stringResource(R.string.reward_card_animal_encountered_title)
-    val objectTitleTemplate = stringResource(R.string.reward_card_object_found_title)
-    val trinketTitleTemplate = stringResource(R.string.reward_card_reward_gathered_title)
     val badgeTitleTemplate = stringResource(R.string.reward_card_badge_updated_title)
-    val discoveryTitleTemplate = stringResource(R.string.reward_card_discovery_recorded_title)
     val animalChipTemplate = stringResource(R.string.reward_card_animal_chip)
-    val objectChip = stringResource(R.string.reward_card_object_chip)
-    val trinketChip = stringResource(R.string.reward_card_reward_chip)
-    val discoveryChip = stringResource(R.string.reward_card_discovery_chip)
     val badgeChip = stringResource(R.string.reward_card_badge_chip)
     val reef = stringResource(R.string.reward_card_depth_reef)
     val deeperReef = stringResource(R.string.reward_card_depth_deeper_reef)
@@ -44,17 +38,6 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         ShellContentCatalog.FOCUS_MANTA to stringResource(R.string.reward_card_animal_reason_manta),
         ShellContentCatalog.FOCUS_WHALE to stringResource(R.string.reward_card_animal_reason_whale),
         ShellContentCatalog.FOCUS_OCTOPUS to stringResource(R.string.reward_card_animal_reason_octopus)
-    )
-    val objectReasons = mapOf(
-        ShellContentCatalog.FOCUS_PEBBLE to stringResource(R.string.reward_card_object_reason_pebble)
-    )
-    val objectReasonDefault = stringResource(R.string.reward_card_object_reason_default)
-    val trinketReason = stringResource(R.string.reward_card_reward_reason_default)
-    val discoveryReasons = mapOf(
-        "discovery_octopus" to stringResource(R.string.reward_card_discovery_reason_octopus),
-        "discovery_pebble" to stringResource(R.string.reward_card_discovery_reason_pebble),
-        "discovery_sea_glass_shard" to stringResource(R.string.reward_card_discovery_reason_sea_glass),
-        "discovery_glimmer" to stringResource(R.string.reward_card_discovery_reason_glimmer)
     )
     val badgeReasons = mapOf(
         "badge_flow_10_min" to stringResource(R.string.reward_card_badge_reason_10),
@@ -68,7 +51,6 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
     val shellHint = stringResource(R.string.reward_card_shell_hint)
     val pearlBasinHint = stringResource(R.string.reward_card_pearl_basin_hint)
     val shellChestHint = stringResource(R.string.reward_card_shell_chest_hint)
-    val discoveryJournalHint = stringResource(R.string.reward_card_discovery_journal_hint)
     val badgesHint = stringResource(R.string.reward_card_badges_hint)
     val shellRewardRecordedTitle = stringResource(R.string.reward_card_shell_recorded_title)
     val shellRewardRecordedBody = stringResource(R.string.reward_card_shell_recorded_body)
@@ -84,19 +66,13 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
     val arcBonusLineTemplate = stringResource(R.string.reward_card_arc_bonus_line)
     val arcStoryPlaceholderTitle = stringResource(R.string.reward_card_arc_placeholder_title)
     val arcStoryPlaceholderBody = stringResource(R.string.reward_card_arc_placeholder_body)
-    val groupedRewardsTitle = stringResource(R.string.reward_card_rewards_grouped_title)
     val groupedBadgesTitle = stringResource(R.string.reward_card_badges_grouped_title)
     val itemCountTemplate = stringResource(R.string.reward_card_item_count)
     val recordsUpdatedFromFlow = stringResource(R.string.reward_card_records_updated_from_flow)
     val flowMilestonesAcrossArc = stringResource(R.string.reward_card_flow_milestones_across_arc)
     val recordsUpdatedAcrossArc = stringResource(R.string.reward_card_records_updated_across_arc)
     val arcAnimalsTitle = stringResource(R.string.reward_card_arc_animals_title)
-    val arcObjectsTitle = stringResource(R.string.reward_card_arc_objects_title)
-    val arcRewardsTitle = stringResource(R.string.reward_card_arc_rewards_title)
     val arcBadgesTitle = stringResource(R.string.reward_card_arc_badges_title)
-    val arcDiscoveriesTitle = stringResource(R.string.reward_card_arc_discoveries_title)
-    val foundAcrossArc = stringResource(R.string.reward_card_found_across_arc)
-    val recordedInJournal = stringResource(R.string.reward_card_recorded_in_journal)
     val arcShellShapedBody = stringResource(R.string.reward_card_arc_shell_shaped_body)
 
         return object : RewardRevealTextProvider {
@@ -118,30 +94,20 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         override fun shellWasShapedTitle() = shellWasShapedTitle
         override fun shellWasShapedBody() = shellWasShapedBody
         override fun animalTitle(name: String) = animalTitleTemplate.format(name)
-        override fun objectTitle(name: String) = objectTitleTemplate.format(name)
-        override fun trinketTitle(name: String) = trinketTitleTemplate.format(name)
         override fun badgeTitle(name: String) = badgeTitleTemplate.format(name)
-        override fun discoveryTitle(name: String) = discoveryTitleTemplate.format(name)
         override fun animalChip(depth: String) = animalChipTemplate.format(depth)
-        override fun objectChip() = objectChip
-        override fun trinketChip() = trinketChip
-        override fun discoveryChip() = discoveryChip
         override fun badgeChip() = badgeChip
         override fun reef() = reef
         override fun deeperReef() = deeperReef
         override fun openBlue() = openBlue
         override fun deepOcean() = deepOcean
         override fun animalReason(findId: String) = animalReasons[findId] ?: shellRewardRecordedBody
-        override fun objectReason(findId: String) = objectReasons[findId] ?: objectReasonDefault
-        override fun trinketReason() = trinketReason
-        override fun discoveryReason(discoveryId: String) = discoveryReasons[discoveryId] ?: shellRewardRecordedBody
         override fun badgeReason(badgeId: String) = badgeReasons[badgeId] ?: shellRewardRecordedBody
         override fun theBlueHint() = theBlueHint
         override fun stillwaterHint() = stillwaterHint
         override fun shellHint() = shellHint
         override fun pearlBasinHint() = pearlBasinHint
         override fun shellChestHint() = shellChestHint
-        override fun discoveryJournalHint() = discoveryJournalHint
         override fun badgesHint() = badgesHint
         override fun shellRewardRecordedTitle() = shellRewardRecordedTitle
         override fun shellRewardRecordedBody() = shellRewardRecordedBody
@@ -157,19 +123,13 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         override fun arcBonusLine(points: Int) = arcBonusLineTemplate.format(points)
         override fun arcStoryPlaceholderTitle() = arcStoryPlaceholderTitle
         override fun arcStoryPlaceholderBody() = arcStoryPlaceholderBody
-        override fun groupedRewardsTitle() = groupedRewardsTitle
         override fun groupedBadgesTitle() = groupedBadgesTitle
         override fun itemCount(name: String, count: Int) = itemCountTemplate.format(name, count)
         override fun recordsUpdatedFromFlow() = recordsUpdatedFromFlow
         override fun flowMilestonesAcrossArc() = flowMilestonesAcrossArc
         override fun recordsUpdatedAcrossArc() = recordsUpdatedAcrossArc
         override fun arcAnimalsTitle() = arcAnimalsTitle
-        override fun arcObjectsTitle() = arcObjectsTitle
-        override fun arcRewardsTitle() = arcRewardsTitle
         override fun arcBadgesTitle() = arcBadgesTitle
-        override fun arcDiscoveriesTitle() = arcDiscoveriesTitle
-        override fun foundAcrossArc() = foundAcrossArc
-        override fun recordedInJournal() = recordedInJournal
         override fun arcShellShapedBody() = arcShellShapedBody
     }
 }

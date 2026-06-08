@@ -94,7 +94,7 @@ class RewardRevealMapperTest {
     }
 
     @Test
-    fun trinketsAreHiddenWhileBadgesAreGrouped() {
+    fun legacyNonCreatureRewardsAreHiddenWhileBadgesAreGrouped() {
         val cards = buildSessionRewardCards(
             reward = reward(
                 shellGrantedFindIds = listOf(
@@ -321,30 +321,20 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun shellWasShapedTitle() = "The Shell was shaped"
     override fun shellWasShapedBody() = "Your Scyra Points were carried into The Shell as Pearls."
     override fun animalTitle(name: String) = "$name encountered"
-    override fun objectTitle(name: String) = "$name found"
-    override fun trinketTitle(name: String) = "$name gathered"
     override fun badgeTitle(name: String) = "$name badge updated"
-    override fun discoveryTitle(name: String) = "$name discovered"
     override fun animalChip(depth: String) = "Animal · $depth"
-    override fun objectChip() = "Object"
-    override fun trinketChip() = "Reward"
-    override fun discoveryChip() = "Discovery"
     override fun badgeChip() = "Badge"
     override fun reef() = "Sunlit Reef"
     override fun deeperReef() = "Deeper Reef"
     override fun openBlue() = "Open Blue"
     override fun deepOcean() = "Great Blue"
     override fun animalReason(findId: String) = "From a regular Flow lasting 10 minutes or more."
-    override fun objectReason(findId: String) = "Found after you returned to regular Flow."
-    override fun trinketReason() = "Found through regular Flow activity."
-    override fun discoveryReason(discoveryId: String) = "Encountered beyond The Blue."
     override fun badgeReason(badgeId: String) = "Earned each time a regular Flow lasts 30 minutes or more."
     override fun theBlueHint() = "View later in The Blue."
     override fun stillwaterHint() = "View in Stillwater Room."
     override fun shellHint() = "View inside The Shell."
     override fun pearlBasinHint() = "Shape The Shell with Pearls."
     override fun shellChestHint() = "Added to The Chest."
-    override fun discoveryJournalHint() = "Recorded in Badges."
     override fun badgesHint() = "Recorded in Badges."
     override fun shellRewardRecordedTitle() = "Shell reward recorded"
     override fun shellRewardRecordedBody() = "Recorded inside The Shell."
@@ -360,18 +350,12 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun arcBonusLine(points: Int) = "Arc bonus: +$points"
     override fun arcStoryPlaceholderTitle() = "This Arc became part of your story"
     override fun arcStoryPlaceholderBody() = "Voyage Hall will gather Arc journeys in a future Shell update."
-    override fun groupedRewardsTitle() = "Rewards gathered"
     override fun groupedBadgesTitle() = "Badges updated"
     override fun itemCount(name: String, count: Int) = "$name ×$count"
     override fun recordsUpdatedFromFlow() = "Records updated from this Flow."
     override fun flowMilestonesAcrossArc() = "From Flow milestones across this Arc."
     override fun recordsUpdatedAcrossArc() = "Records updated across this Arc."
     override fun arcAnimalsTitle() = "Animals encountered"
-    override fun arcObjectsTitle() = "Objects found"
-    override fun arcRewardsTitle() = "Rewards gathered"
     override fun arcBadgesTitle() = "Badges updated"
-    override fun arcDiscoveriesTitle() = "Discoveries recorded"
-    override fun foundAcrossArc() = "Found across this Arc."
-    override fun recordedInJournal() = "Recorded in Badges."
     override fun arcShellShapedBody() = "Scyra Points from this Arc were carried into The Shell as Pearls."
 }

@@ -29,30 +29,20 @@ interface RewardRevealTextProvider {
     fun shellWasShapedTitle(): String
     fun shellWasShapedBody(): String
     fun animalTitle(name: String): String
-    fun objectTitle(name: String): String
-    fun trinketTitle(name: String): String
     fun badgeTitle(name: String): String
-    fun discoveryTitle(name: String): String
     fun animalChip(depth: String): String
-    fun objectChip(): String
-    fun trinketChip(): String
-    fun discoveryChip(): String
     fun badgeChip(): String
     fun reef(): String
     fun deeperReef(): String
     fun openBlue(): String
     fun deepOcean(): String
     fun animalReason(findId: String): String
-    fun objectReason(findId: String): String
-    fun trinketReason(): String
-    fun discoveryReason(discoveryId: String): String
     fun badgeReason(badgeId: String): String
     fun theBlueHint(): String
     fun stillwaterHint(): String
     fun shellHint(): String
     fun pearlBasinHint(): String
     fun shellChestHint(): String
-    fun discoveryJournalHint(): String
     fun badgesHint(): String
     fun shellRewardRecordedTitle(): String
     fun shellRewardRecordedBody(): String
@@ -68,19 +58,13 @@ interface RewardRevealTextProvider {
     fun arcBonusLine(points: Int): String
     fun arcStoryPlaceholderTitle(): String
     fun arcStoryPlaceholderBody(): String
-    fun groupedRewardsTitle(): String
     fun groupedBadgesTitle(): String
     fun itemCount(name: String, count: Int): String
     fun recordsUpdatedFromFlow(): String
     fun flowMilestonesAcrossArc(): String
     fun recordsUpdatedAcrossArc(): String
     fun arcAnimalsTitle(): String
-    fun arcObjectsTitle(): String
-    fun arcRewardsTitle(): String
     fun arcBadgesTitle(): String
-    fun arcDiscoveriesTitle(): String
-    fun foundAcrossArc(): String
-    fun recordedInJournal(): String
     fun arcShellShapedBody(): String
 }
 

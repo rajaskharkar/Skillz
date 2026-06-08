@@ -339,18 +339,27 @@ fun shellChamberBrush(): Brush {
     )
 }
 
+
+fun isActiveChestCreature(instance: UserShellFindInstanceEntity): Boolean =
+    instance.creatureStatus == CreatureStatus.ACTIVE &&
+        ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL
+
+fun activeChestCreatures(uiState: ShellUiState): List<UserShellFindInstanceEntity> =
+    uiState.finds.filter(::isActiveChestCreature)
+
+fun activeChestCreatureCount(uiState: ShellUiState): Int = activeChestCreatures(uiState).size
+
+fun activeDisplayedCreatureCount(uiState: ShellUiState): Int {
+    val displayed = displayedInstanceIds(uiState)
+    return activeChestCreatures(uiState).count { it.instanceId in displayed }
+}
+
 fun canDisplayInstance(instance: UserShellFindInstanceEntity, def: ShellFindDefinition?): Boolean =
     isUserVisibleShellFind(def) && (def?.kind != ShellRewardKind.ANIMAL || instance.creatureStatus == CreatureStatus.ACTIVE)
 
 fun isUserVisibleShellFind(def: ShellFindDefinition?): Boolean =
     def != null && def.kind != ShellRewardKind.TRINKET
 
-fun restingFinds(uiState: ShellUiState): List<UserShellFindInstanceEntity> {
-    val displayed = displayedInstanceIds(uiState)
-    return uiState.finds.filter { item ->
-        item.instanceId !in displayed && canDisplayInstance(item, ShellContentCatalog.find(item.findId))
-    }
-}
 
 fun displayedInstanceIds(uiState: ShellUiState): Set<String> =
     uiState.focusPlacements.map { it.instanceId }.toSet()
@@ -359,6 +368,6 @@ fun displayedInstanceIds(uiState: ShellUiState): Set<String> =
 fun kindLabel(kind: ShellRewardKind): String = when (kind) {
     ShellRewardKind.ANIMAL -> stringResource(R.string.shell_kind_animal)
     ShellRewardKind.OBJECT -> stringResource(R.string.shell_kind_object)
-    ShellRewardKind.TRINKET -> stringResource(R.string.shell_kind_reward)
-    ShellRewardKind.DISCOVERY -> stringResource(R.string.shell_kind_discovery)
+    ShellRewardKind.TRINKET -> ""
+    ShellRewardKind.DISCOVERY -> ""
 }

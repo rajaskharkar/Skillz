@@ -94,26 +94,21 @@ import com.kingkharnivore.skillz.ui.screen.shell.rooms.ideagrove.IdeaGroveRoute
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.lookout.LookoutRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.stillwater.StillwaterRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.voyage.VoyageHallScreen
-import com.kingkharnivore.skillz.ui.screen.shell.ux.displayedInstanceIds
-import com.kingkharnivore.skillz.ui.screen.shell.ux.isUserVisibleShellFind
-import com.kingkharnivore.skillz.ui.screen.shell.ux.restingFinds
+import com.kingkharnivore.skillz.ui.screen.shell.ux.activeChestCreatureCount
+import com.kingkharnivore.skillz.ui.screen.shell.ux.activeChestCreatures
+import com.kingkharnivore.skillz.ui.screen.shell.ux.activeDisplayedCreatureCount
 import com.kingkharnivore.skillz.ui.screen.shell.ux.shellChamberBrush
 import com.kingkharnivore.skillz.ui.screen.shell.ux.shellIndicatorColor
 import com.kingkharnivore.skillz.utils.shell.shellBackground
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.ShellViewModel
 
-private fun hasRestingPlaceableFinds(uiState: ShellUiState): Boolean = restingFinds(uiState).any { item ->
-    val def = ShellContentCatalog.find(item.findId)
-    def?.placeable == true
-}
+private fun hasChestCreatures(uiState: ShellUiState): Boolean = activeChestCreatureCount(uiState) > 0
 
 private fun hasAffordablePearlShape(uiState: ShellUiState): Boolean = false
 
 private fun unseenNotificationCount(uiState: ShellUiState): Int =
-    uiState.finds.count { it.isNew && isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) } +
-            uiState.stacks.count { it.isNew && isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) } +
-            uiState.badges.count { it.isNew }
+    activeChestCreatures(uiState).count { it.isNew } + uiState.badges.count { it.isNew }
 
 internal fun hasAffordableFocusPearlAction(uiState: ShellUiState): Boolean = false
 
@@ -301,7 +296,7 @@ private fun HeartRoomScreen(
     onOpenPearlBasin: () -> Unit
 ) {
     var showHeartDetail by remember { mutableStateOf(false) }
-    val chestHasIndicator = restingFinds(uiState).any { it.isNew } || uiState.stacks.any { it.isNew && isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) }
+    val chestHasIndicator = activeChestCreatures(uiState).any { it.isNew }
     val focusChanged = false
 
     Box(
@@ -422,7 +417,7 @@ private fun HeartRoomScreen(
                     val hasEmptyNook = uiState.focusPlacements.size < ShellContentCatalog.focusSlots.size
                     when {
                         hasAffordablePearlShape(uiState) -> onNavigate(ShellDestination.Focus)
-                        hasRestingPlaceableFinds(uiState) -> onNavigate(ShellDestination.ShellChest)
+                        hasChestCreatures(uiState) -> onNavigate(ShellDestination.ShellChest)
                         hasEmptyNook -> onNavigate(ShellDestination.Focus)
                         else -> onNavigate(ShellDestination.Focus)
                     }
@@ -681,7 +676,7 @@ private fun ShellWhisperDock(
     onClick: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
-    val restingCount = restingFinds(uiState).count { item -> ShellContentCatalog.find(item.findId)?.placeable == true }
+    val restingCount = activeChestCreatureCount(uiState)
     val hasEmptyNook = uiState.focusPlacements.size < ShellContentCatalog.focusSlots.size
 
     val text = when {
@@ -812,8 +807,8 @@ private fun HeartDetailSheet(
     onOpenFocus: () -> Unit,
     onOpenChest: () -> Unit
 ) {
-    val totalFinds = uiState.finds.count { isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) } +
-        uiState.stacks.filter { isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) }.sumOf { it.quantity }
+    val chestCreatureCount = activeChestCreatureCount(uiState)
+    val displayedCreatureCount = activeDisplayedCreatureCount(uiState)
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -832,17 +827,12 @@ private fun HeartDetailSheet(
             )
 
             Text(
-                text = stringResource(R.string.shell_heart_finds_owned, totalFinds),
+                text = stringResource(R.string.shell_heart_finds_owned, chestCreatureCount),
                 style = MaterialTheme.typography.bodyMedium
             )
 
             Text(
-                text = stringResource(R.string.shell_heart_discoveries_awakened, uiState.discoveries.size),
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Text(
-                text = stringResource(R.string.shell_heart_objects_displayed_resting, uiState.focusPlacements.size, restingFinds(uiState).size),
+                text = stringResource(R.string.shell_heart_objects_displayed_resting, displayedCreatureCount, chestCreatureCount),
                 style = MaterialTheme.typography.bodyMedium
             )
 

@@ -430,7 +430,7 @@
     <string name="paths_plan_flow_sheet_title">फ्लो नियोजित करा</string>
     <string name="paths_plan_flow_sheet_subtitle">एखादी क्रिया जतन करा, जेणेकरून ती नेहमी सुरू करण्यासाठी तयार असेल.</string>
     <string name="paths_title_label">शीर्षक</string>
-    <string name="paths_title_placeholder">Deep Work, Guitar Practice, Journal…</string>
+    <string name="paths_title_placeholder">Deep Work, Guitar Practice, Reading…</string>
     <string name="paths_journey_tag_label">प्रवास टॅग</string>
     <string name="paths_journey_tag_placeholder">Writing, Music, Fitness…</string>
     <string name="paths_recent_tags">अलीकडील टॅग</string>
@@ -1109,12 +1109,10 @@
     <string name="shell_chest_item_status">प्रकार: %1$s. स्थिती: %2$s.</string>
     <string name="shell_status_placed">दर्शवलेले</string>
     <string name="shell_status_unplaced">विश्रांतीत</string>
-    <string name="shell_stack_quantity">Gathered fragments: %1$d</string>
     <string name="shell_badges_title">Badges</string>
     <string name="shell_badges_body">Badges म्हणजे घडलेल्या गोष्टींची नोंद. ते अडथळे नाहीत.</string>
     <string name="shell_badge_a11y">%1$s बॅज. संख्या: %2$d.</string>
     <string name="shell_journal_title">Badges</string>
-    <string name="shell_journal_body">The Journal remembers how discoveries happened.</string>
     <string name="shell_stillwater_body">Soft Flows Stillwater भरतात. गुण नाहीत. दबाव नाही. फक्त शांत पाणी The Shell मध्ये आणलेले.</string>
     <string name="shell_view_as">View as:</string>
     <string name="shell_soft_flow_copy">Your Soft Flow added to the stream.</string>
@@ -1149,17 +1147,16 @@
     <string name="shell_badge_flow_60_description">Earned each time a regular Flow lasts 60 minutes or more.</string>
     <string name="shell_badge_flow_120_title">2-hour Flow</string>
     <string name="shell_badge_flow_120_description">Earned each time a regular Flow lasts 2 hours or more.</string>
-    <string name="shell_badge_discovery_title">Discovery Awakened</string>
+    <string name="shell_badge_discovery_title">Badge Awakened</string>
     <string name="shell_badge_discovery_description">Earned each time The Shell records a new discovery.</string>
     <string name="shell_discovery_sea_glass_reveal">A Sea Glass Shard was found through regular Flow activity.</string>
-    <string name="shell_discovery_sea_glass_explanation">Discovered because regular effort softened a small fragment into something worth keeping.</string>
+    <string name="shell_discovery_sea_glass_explanation">Found because regular effort softened a small fragment into something worth keeping.</string>
     <string name="shell_category_creatures">जीव</string>
     <string name="shell_category_shells">Shells</string>
     <string name="shell_category_coral">Coral</string>
     <string name="shell_category_plants">Plants</string>
     <string name="shell_category_trophies">Trophies</string>
-    <string name="shell_category_rewards">तुकडाs</string>
-    <string name="shell_category_discoveries">Discoveries</string>
+    <string name="shell_category_discoveries">Badges</string>
     <string name="shell_slot_left_reef_shelf">Left Reef Shelf</string>
     <string name="shell_slot_right_reef_shelf">Right Reef Shelf</string>
     <string name="shell_slot_shell_wall_nook">Shell Wall Nook</string>
@@ -1185,19 +1182,17 @@
 
     <string name="shell_whisper_new_discovery">A Shell discovery is ready to view.</string>
     <string name="shell_whisper_upgrade_ready">%1$s can brighten — you have enough Pearls.</string>
-    <string name="shell_whisper_chest_waiting">%1$d things are resting in the The Chest.</string>
+    <string name="shell_whisper_chest_waiting">%1$d creatures are in The Chest.</string>
     <string name="shell_whisper_empty_focus">Focus has empty nooks.</string>
 
 
     <string name="shell_heart_detail_title">The Shell चे हृदय</string>
     <string name="shell_heart_pearls_gathered">Pearls gathered: %1$d</string>
     <string name="shell_heart_finds_owned">Owned in The Shell: %1$d</string>
-    <string name="shell_heart_discoveries_awakened">Discoveries awakened: %1$d</string>
+    <string name="shell_heart_discoveries_awakened">Badges awakened: %1$d</string>
     <string name="shell_heart_focus_objects_placed">Focus objects displayed: %1$d</string>
 
 
-    <string name="shell_discovery_reveal_title">Discovery recorded</string>
-    <string name="shell_discovery_reveal_view">View</string>
 
 
     <string name="shell_pearl_basin_chip_a11y">Pearl Basin. %1$d Pearls. Opens shaping suggestions.</string>
@@ -1207,14 +1202,12 @@
     <string name="shell_heart_objects_displayed_resting">प्रदर्शित वस्तू: %1$d. The Chest मध्ये विश्रांतीत: %2$d.</string>
     <string name="shell_all_nooks_holding">सर्व कोपऱ्यांत काहीतरी ठेवलेले आहे. बदला, उजळवा किंवा The Chest मध्ये आणखी गोळा करत रहा. The Chest मध्ये विश्रांतीत: %1$d.</string>
     <string name="shell_empty_nook_choices">Choose how this nook should change.</string>
-    <string name="shell_place_from_chest">Chest मधून दाखवा किंवा ठेवा</string>
     <string name="shell_leave_empty">रिकामे ठेवा</string>
     <string name="shell_no_resting_finds_fit">The Chest मध्ये विश्रांती घेत असलेले काहीही अजून या कोपऱ्यात बसत नाही.</string>
     <string name="shell_status_displayed_focus">Focus मध्ये प्रदर्शित</string>
     <string name="shell_status_resting">The Chest मध्ये विश्रांतीत</string>
     <string name="shell_chest_group_title">%1$s ×%2$d</string>
     <string name="shell_chest_group_status">वर्ग: %4$s · सर्वोच्च स्तर: %1$s · प्रदर्शित %2$d · विश्रांतीत %3$d.</string>
-    <string name="shell_chest_group_a11y">%1$s. मालकीचे: %2$d. प्रदर्शित: %3$d. The Chest मध्ये विश्रांतीत: %4$d.</string>
     <string name="shell_choose_something_to_swap">बदलण्यासाठी काहीतरी निवडा.</string>
     <string name="shell_swap_with">%1$s सोबत बदला</string>
     <string name="shell_no_compatible_nooks">अजून सुसंगत कोपरे नाहीत. ही प्रत The Chest मध्ये विश्रांती घेऊ शकते.</string>
@@ -1239,14 +1232,8 @@
     <string name="reward_card_shell_shaped_title">The Shell आकारले गेले</string>
     <string name="reward_card_shell_shaped_body">तुमचे Scyra पॉइंट्स The Shell मध्ये Pearls म्हणून नेले गेले. Pearls वापरून तुमच्याकडे असलेले उजळवा, घासून निखारा आणि जागे करा.</string>
     <string name="reward_card_animal_encountered_title">%1$s भेटला</string>
-    <string name="reward_card_object_found_title">%1$s सापडले</string>
-    <string name="reward_card_reward_gathered_title">%1$s गोळा झाले</string>
     <string name="reward_card_badge_updated_title">%1$s बॅज अपडेट झाला</string>
-    <string name="reward_card_discovery_recorded_title">%1$s शोधले गेले</string>
     <string name="reward_card_animal_chip">प्राणी · %1$s</string>
-    <string name="reward_card_object_chip">वस्तू</string>
-    <string name="reward_card_reward_chip">ट्रिंकेट</string>
-    <string name="reward_card_discovery_chip">शोध</string>
     <string name="reward_card_badge_chip">बॅज</string>
     <string name="reward_card_depth_reef">रीफ</string>
     <string name="reward_card_depth_deeper_reef">खोल रीफ</string>
@@ -1257,13 +1244,6 @@
     <string name="reward_card_animal_reason_manta">1 तास किंवा अधिक चाललेल्या नियमित Flow मधून.</string>
     <string name="reward_card_animal_reason_whale">2 तास किंवा अधिक चाललेल्या नियमित Flow मधून.</string>
     <string name="reward_card_animal_reason_octopus">30 मिनिटे किंवा अधिक चाललेल्या 3 नियमित Flows नंतर शोधले गेले.</string>
-    <string name="reward_card_object_reason_pebble">तुम्ही नियमित Flow मध्ये परतल्यानंतर सापडले.</string>
-    <string name="reward_card_object_reason_default">तुम्ही नियमित Flow मध्ये परतल्यानंतर सापडले.</string>
-    <string name="reward_card_reward_reason_default">नियमित Flow क्रियेतून सापडले.</string>
-    <string name="reward_card_discovery_reason_octopus">30 मिनिटे किंवा अधिक चाललेल्या 3 नियमित Flows नंतर शोधले गेले.</string>
-    <string name="reward_card_discovery_reason_pebble">नियमित Flow मध्ये परतल्यानंतर शोधले गेले.</string>
-    <string name="reward_card_discovery_reason_sea_glass">नियमित Flow क्रियेतून शोधले गेले.</string>
-    <string name="reward_card_discovery_reason_glimmer">नियमित Flow क्रियेतून शोधले गेले.</string>
     <string name="reward_card_badge_reason_10">प्रत्येक वेळी नियमित Flow 10 मिनिटे किंवा अधिक चालला की मिळते.</string>
     <string name="reward_card_badge_reason_30">प्रत्येक वेळी नियमित Flow 30 मिनिटे किंवा अधिक चालला की मिळते.</string>
     <string name="reward_card_badge_reason_60">प्रत्येक वेळी नियमित Flow 1 तास किंवा अधिक चालला की मिळते.</string>
@@ -1274,7 +1254,6 @@
     <string name="reward_card_shell_hint">The Shell मध्ये पहा.</string>
     <string name="reward_card_pearl_basin_hint">Pearls वापरून The Shell आकारा.</string>
     <string name="reward_card_shell_chest_hint">The Chest मध्ये विसावले आहे.</string>
-    <string name="reward_card_discovery_journal_hint">Badges मध्ये नोंदले आहे.</string>
     <string name="reward_card_badges_hint">Badges मध्ये नोंदले आहे.</string>
     <string name="reward_card_shell_recorded_title">Shell बक्षीस नोंदले</string>
     <string name="reward_card_shell_recorded_body">The Shell मध्ये नोंदले.</string>
@@ -1290,16 +1269,10 @@
     <string name="reward_card_arc_peak_multiplier">सर्वोच्च गुणक: %1$.1f×</string>
     <string name="reward_card_arc_bonus_line">Arc बोनस: +%1$d</string>
     <string name="reward_card_arc_animals_title">Animals encountered</string>
-    <string name="reward_card_arc_objects_title">Rewards found</string>
-    <string name="reward_card_arc_rewards_title">तुकडाs gathered</string>
     <string name="reward_card_arc_badges_title">Badges updated</string>
-    <string name="reward_card_arc_discoveries_title">Discoveries recorded</string>
     <string name="reward_card_arc_shell_shaped_body">Scyra Points from this Arc were carried into The Shell as Pearls.</string>
-    <string name="reward_card_found_across_arc">Found across this Arc.</string>
-    <string name="reward_card_recorded_in_journal">Recorded in the Badges.</string>
     <string name="reward_card_arc_placeholder_title">हा Arc तुमच्या कथेचा भाग झाला</string>
     <string name="reward_card_arc_placeholder_body">भविष्यातील Shell अपडेटमध्ये Voyage Hall Arc प्रवास गोळा करेल.</string>
-    <string name="reward_card_rewards_grouped_title">ट्रिंकेट्स गोळा झाले</string>
     <string name="reward_card_badges_grouped_title">बॅज अपडेट झाले</string>
     <string name="reward_card_item_count">%1$s ×%2$d</string>
     <string name="reward_card_records_updated_from_flow">या Flow मधून नोंदी अपडेट झाल्या.</string>
@@ -1424,7 +1397,6 @@
     <string name="session_reward_shell_stillwater">Stillwater</string>
     <string name="session_reward_shell_stillwater_units">%1$d Stillwater units</string>
     <string name="session_reward_shell_find">Shell reward</string>
-    <string name="session_reward_shell_discovery">Discovery revealed</string>
     <string name="session_reward_shell_badges">Badges updated</string>
     <string name="session_reward_shell_badges_value">%1$d badge updates</string>
     <string name="shell_feedback_place_success">Mostrado en Focus Room.</string>
@@ -1447,7 +1419,6 @@
     <string name="shell_basin_soon_upgrade">%1$s · %2$s</string>
     <string name="shell_badge_notification_title">%1$s badge</string>
     <string name="shell_badge_notification_body">संख्या: %1$d · %2$s</string>
-    <string name="shell_discovery_notification_title">%1$s discovered</string>
     <string name="shell_source_invited_with_pearls">%1$d Pearls सह आमंत्रित.</string>
     <string name="shell_notification_title_encountered">%1$s भेटला</string>
     <string name="shell_notification_title_invited">%1$s आमंत्रित</string>
@@ -1457,8 +1428,6 @@
     <string name="shell_action_deepen">Deepen</string>
     <string name="shell_kind_animal">Animal</string>
     <string name="shell_kind_object">खोलीतील वस्तू</string>
-    <string name="shell_kind_reward">तुकडा</string>
-    <string name="shell_kind_discovery">Discovery</string>
     <string name="shell_depth_reef">Sunlit Reef</string>
     <string name="shell_depth_deeper_reef">Deeper Reef</string>
     <string name="shell_depth_open_blue">Open Blue</string>

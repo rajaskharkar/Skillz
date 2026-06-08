@@ -1067,12 +1067,10 @@ Piedritas — 60 Perlas</string>
     <string name="shell_chest_item_status">Tipo: %1$s. Estado: %2$s.</string>
     <string name="shell_status_placed">En exhibición</string>
     <string name="shell_status_unplaced">En reposo</string>
-    <string name="shell_stack_quantity">Gathered fragments: %1$d</string>
     <string name="shell_badges_title">Badges</string>
     <string name="shell_badges_body">Las insignias registran lo que pasó. No son barreras.</string>
     <string name="shell_badge_a11y">Insignia %1$s. Cantidad: %2$d.</string>
     <string name="shell_journal_title">Badges</string>
-    <string name="shell_journal_body">The Journal remembers how discoveries happened.</string>
     <string name="shell_stillwater_body">Los Soft Flows llenan Stillwater. Sin puntuación. Sin presión. Solo agua tranquila llevada a The Shell.</string>
     <string name="shell_view_as">View as:</string>
     <string name="shell_soft_flow_copy">Your Soft Flow added to the stream.</string>
@@ -1107,17 +1105,16 @@ Piedritas — 60 Perlas</string>
     <string name="shell_badge_flow_60_description">Earned each time a regular Flow lasts 60 minutes or more.</string>
     <string name="shell_badge_flow_120_title">2-hour Flow</string>
     <string name="shell_badge_flow_120_description">Earned each time a regular Flow lasts 2 hours or more.</string>
-    <string name="shell_badge_discovery_title">Discovery Awakened</string>
+    <string name="shell_badge_discovery_title">Badge Awakened</string>
     <string name="shell_badge_discovery_description">Earned each time The Shell records a new discovery.</string>
     <string name="shell_discovery_sea_glass_reveal">A Sea Glass Shard was found through regular Flow activity.</string>
-    <string name="shell_discovery_sea_glass_explanation">Discovered because regular effort softened a small fragment into something worth keeping.</string>
+    <string name="shell_discovery_sea_glass_explanation">Found because regular effort softened a small fragment into something worth keeping.</string>
     <string name="shell_category_creatures">Criaturas</string>
     <string name="shell_category_shells">Shells</string>
     <string name="shell_category_coral">Coral</string>
     <string name="shell_category_plants">Plants</string>
     <string name="shell_category_trophies">Trophies</string>
-    <string name="shell_category_rewards">Fragmentos</string>
-    <string name="shell_category_discoveries">Discoveries</string>
+    <string name="shell_category_discoveries">Badges</string>
     <string name="shell_slot_left_reef_shelf">Left Reef Shelf</string>
     <string name="shell_slot_right_reef_shelf">Right Reef Shelf</string>
     <string name="shell_slot_shell_wall_nook">Shell Wall Nook</string>
@@ -1143,19 +1140,17 @@ Piedritas — 60 Perlas</string>
 
     <string name="shell_whisper_new_discovery">A Shell discovery is ready to view.</string>
     <string name="shell_whisper_upgrade_ready">%1$s can brighten — you have enough Pearls.</string>
-    <string name="shell_whisper_chest_waiting">%1$d things are resting in the The Chest.</string>
+    <string name="shell_whisper_chest_waiting">%1$d creatures are in The Chest.</string>
     <string name="shell_whisper_empty_focus">Focus has empty nooks.</string>
 
 
     <string name="shell_heart_detail_title">Corazón de The Shell</string>
     <string name="shell_heart_pearls_gathered">Pearls gathered: %1$d</string>
     <string name="shell_heart_finds_owned">Owned in The Shell: %1$d</string>
-    <string name="shell_heart_discoveries_awakened">Discoveries awakened: %1$d</string>
+    <string name="shell_heart_discoveries_awakened">Badges awakened: %1$d</string>
     <string name="shell_heart_focus_objects_placed">Focus objects displayed: %1$d</string>
 
 
-    <string name="shell_discovery_reveal_title">Discovery recorded</string>
-    <string name="shell_discovery_reveal_view">View</string>
 
 
     <string name="shell_pearl_basin_chip_a11y">Pearl Basin. %1$d Pearls. Opens shaping suggestions.</string>
@@ -1165,14 +1160,12 @@ Piedritas — 60 Perlas</string>
     <string name="shell_heart_objects_displayed_resting">Objetos mostrados: %1$d. En reposo en The Chest: %2$d.</string>
     <string name="shell_all_nooks_holding">Todos los rincones sostienen algo. Cambia, ilumina o sigue reuniendo más en The Chest. En reposo en The Chest: %1$d.</string>
     <string name="shell_empty_nook_choices">Choose how this nook should change.</string>
-    <string name="shell_place_from_chest">Mostrar o colocar desde Chest</string>
     <string name="shell_leave_empty">Dejar vacío</string>
     <string name="shell_no_resting_finds_fit">Nada en reposo en The Chest encaja todavía en este rincón.</string>
     <string name="shell_status_displayed_focus">Mostrado en Focus</string>
     <string name="shell_status_resting">En reposo en The Chest</string>
     <string name="shell_chest_group_title">%1$s ×%2$d</string>
     <string name="shell_chest_group_status">Categoría: %4$s · Nivel más alto: %1$s · Mostrados %2$d · En reposo %3$d.</string>
-    <string name="shell_chest_group_a11y">%1$s. Propios: %2$d. Mostrados: %3$d. En reposo en The Chest: %4$d.</string>
     <string name="shell_choose_something_to_swap">Elige algo para cambiar.</string>
     <string name="shell_swap_with">Cambiar por %1$s</string>
     <string name="shell_no_compatible_nooks">Aún no hay rincones compatibles. Esta copia puede seguir descansando en The Chest.</string>
@@ -1197,14 +1190,8 @@ Piedritas — 60 Perlas</string>
     <string name="reward_card_shell_shaped_title">The Shell tomó forma</string>
     <string name="reward_card_shell_shaped_body">Tus Puntos Scyra se llevaron a The Shell como Pearls. Usa Pearls para iluminar, pulir y despertar lo que tienes.</string>
     <string name="reward_card_animal_encountered_title">%1$s encontrado</string>
-    <string name="reward_card_object_found_title">%1$s encontrado</string>
-    <string name="reward_card_reward_gathered_title">%1$s reunido</string>
     <string name="reward_card_badge_updated_title">Insignia %1$s actualizada</string>
-    <string name="reward_card_discovery_recorded_title">%1$s descubierto</string>
     <string name="reward_card_animal_chip">Animal · %1$s</string>
-    <string name="reward_card_object_chip">Objeto</string>
-    <string name="reward_card_reward_chip">Abalorio</string>
-    <string name="reward_card_discovery_chip">Descubrimiento</string>
     <string name="reward_card_badge_chip">Insignia</string>
     <string name="reward_card_depth_reef">Arrecife</string>
     <string name="reward_card_depth_deeper_reef">Arrecife profundo</string>
@@ -1215,13 +1202,6 @@ Piedritas — 60 Perlas</string>
     <string name="reward_card_animal_reason_manta">De un Flow regular de 1 hora o más.</string>
     <string name="reward_card_animal_reason_whale">De un Flow regular de 2 horas o más.</string>
     <string name="reward_card_animal_reason_octopus">Descubierto después de 3 Flows regulares de 30 minutos o más.</string>
-    <string name="reward_card_object_reason_pebble">Encontrado después de volver al Flow regular.</string>
-    <string name="reward_card_object_reason_default">Encontrado después de volver al Flow regular.</string>
-    <string name="reward_card_reward_reason_default">Encontrado mediante actividad de Flow regular.</string>
-    <string name="reward_card_discovery_reason_octopus">Descubierto después de 3 Flows regulares de 30 minutos o más.</string>
-    <string name="reward_card_discovery_reason_pebble">Descubierto después de volver al Flow regular.</string>
-    <string name="reward_card_discovery_reason_sea_glass">Descubierto mediante actividad de Flow regular.</string>
-    <string name="reward_card_discovery_reason_glimmer">Descubierto mediante actividad de Flow regular.</string>
     <string name="reward_card_badge_reason_10">Se obtiene cada vez que un Flow regular dura 10 minutos o más.</string>
     <string name="reward_card_badge_reason_30">Se obtiene cada vez que un Flow regular dura 30 minutos o más.</string>
     <string name="reward_card_badge_reason_60">Se obtiene cada vez que un Flow regular dura 1 hora o más.</string>
@@ -1232,7 +1212,6 @@ Piedritas — 60 Perlas</string>
     <string name="reward_card_shell_hint">Ver dentro de The Shell.</string>
     <string name="reward_card_pearl_basin_hint">Da forma a The Shell con Pearls.</string>
     <string name="reward_card_shell_chest_hint">Descansando en The Chest.</string>
-    <string name="reward_card_discovery_journal_hint">Registrado en Badges.</string>
     <string name="reward_card_badges_hint">Registrado en Badges.</string>
     <string name="reward_card_shell_recorded_title">Recompensa de Shell registrada</string>
     <string name="reward_card_shell_recorded_body">Registrada dentro de The Shell.</string>
@@ -1248,16 +1227,10 @@ Piedritas — 60 Perlas</string>
     <string name="reward_card_arc_peak_multiplier">Multiplicador máximo: %1$.1f×</string>
     <string name="reward_card_arc_bonus_line">Bono de Arc: +%1$d</string>
     <string name="reward_card_arc_animals_title">Animals encountered</string>
-    <string name="reward_card_arc_objects_title">Rewards found</string>
-    <string name="reward_card_arc_rewards_title">Fragmentos gathered</string>
     <string name="reward_card_arc_badges_title">Badges updated</string>
-    <string name="reward_card_arc_discoveries_title">Discoveries recorded</string>
     <string name="reward_card_arc_shell_shaped_body">Scyra Points from this Arc were carried into The Shell as Pearls.</string>
-    <string name="reward_card_found_across_arc">Found across this Arc.</string>
-    <string name="reward_card_recorded_in_journal">Recorded in the Badges.</string>
     <string name="reward_card_arc_placeholder_title">Este Arc se volvió parte de tu historia</string>
     <string name="reward_card_arc_placeholder_body">Voyage Hall reunirá viajes de Arc en una futura actualización de Shell.</string>
-    <string name="reward_card_rewards_grouped_title">Abalorios reunidos</string>
     <string name="reward_card_badges_grouped_title">Insignias actualizadas</string>
     <string name="reward_card_item_count">%1$s ×%2$d</string>
     <string name="reward_card_records_updated_from_flow">Registros actualizados desde este Flow.</string>
@@ -1382,7 +1355,6 @@ Piedritas — 60 Perlas</string>
     <string name="session_reward_shell_stillwater">Stillwater</string>
     <string name="session_reward_shell_stillwater_units">%1$d unidades de Stillwater</string>
     <string name="session_reward_shell_find">Shell reward</string>
-    <string name="session_reward_shell_discovery">Discovery revealed</string>
     <string name="session_reward_shell_badges">Badges updated</string>
     <string name="session_reward_shell_badges_value">%1$d badge updates</string>
     <string name="shell_feedback_place_success">Mostrado en Focus Room.</string>
@@ -1405,7 +1377,6 @@ Piedritas — 60 Perlas</string>
     <string name="shell_basin_soon_upgrade">%1$s · %2$s</string>
     <string name="shell_badge_notification_title">%1$s badge</string>
     <string name="shell_badge_notification_body">Cantidad: %1$d · %2$s</string>
-    <string name="shell_discovery_notification_title">%1$s discovered</string>
     <string name="shell_source_invited_with_pearls">Invitado con %1$d Pearls.</string>
     <string name="shell_notification_title_encountered">%1$s encontrado</string>
     <string name="shell_notification_title_invited">%1$s invitado</string>
@@ -1415,8 +1386,6 @@ Piedritas — 60 Perlas</string>
     <string name="shell_action_deepen">Deepen</string>
     <string name="shell_kind_animal">Animal</string>
     <string name="shell_kind_object">Objeto de sala</string>
-    <string name="shell_kind_reward">Fragmento</string>
-    <string name="shell_kind_discovery">Discovery</string>
     <string name="shell_depth_reef">Sunlit Reef</string>
     <string name="shell_depth_deeper_reef">Deeper Reef</string>
     <string name="shell_depth_open_blue">Open Blue</string>

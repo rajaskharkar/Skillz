@@ -434,7 +434,7 @@
     <string name="paths_plan_flow_sheet_title">Plan Flow</string>
     <string name="paths_plan_flow_sheet_subtitle">Save an activity so it’s always ready to begin.</string>
     <string name="paths_title_label">Title</string>
-    <string name="paths_title_placeholder">Deep Work, Guitar Practice, Journal…</string>
+    <string name="paths_title_placeholder">Deep Work, Guitar Practice, Reading…</string>
     <string name="paths_journey_tag_label">Journey Tag</string>
     <string name="paths_journey_tag_placeholder">Writing, Music, Fitness…</string>
     <string name="paths_recent_tags">Recent Tags</string>
@@ -1050,7 +1050,7 @@
     <string name="shell_pulse_recent">%1$d creatures are in The Chest.</string>
     <string name="shell_pulse_mystery">Focus has empty nooks for future rewards.</string>
     <string name="shell_focus_body">Display owned creatures in Focus nooks, then shape their forms with Pearls.</string>
-    <string name="shell_focus_summary">Displayed: %1$d. Resting in Chest: %2$d.</string>
+    <string name="shell_focus_summary">Displayed: %1$d. In The Chest: %2$d.</string>
     <string name="shell_empty_slot">Empty nook</string>
     <string name="shell_empty_slot_title">Empty Nook</string>
     <string name="shell_place_something_here">Place something here.</string>
@@ -1064,7 +1064,7 @@
     <string name="shell_upgrade_with_pearls">%1$s with %2$d Pearls</string>
     <string name="shell_upgrade_a11y">Shape this reward with Pearls</string>
     <string name="shell_no_more_forms">This reward is resting in its current form.</string>
-    <string name="shell_return_to_chest">Return to Chest</string>
+    <string name="shell_return_to_chest">Return to The Chest</string>
     <string name="shell_chest_title">The Chest</string>
     <string name="shell_chest_body">Your creatures from The Blue.</string>
     <string name="shell_chest_inventory_stats">%1$d creatures owned · %2$d stacks</string>
@@ -1077,6 +1077,8 @@
     <string name="shell_chest_detail_owned">Owned: %1$d</string>
     <string name="shell_chest_detail_rarity">Rarity: %1$s</string>
     <string name="shell_chest_detail_source">From The Blue</string>
+    <string name="shell_chest_release_selected_count">Selected: %1$d of %2$d</string>
+    <string name="shell_chest_release_count">Release %1$d</string>
     <string name="shell_filter_all">All</string>
     <string name="shell_filter_animals">Animals</string>
     <string name="shell_filter_room_objects">Creatures</string>
@@ -1118,15 +1120,13 @@
     <string name="shell_chest_item_status">Type: %1$s. Status: %2$s.</string>
     <string name="shell_status_placed">Displayed</string>
     <string name="shell_status_unplaced">Resting</string>
-    <string name="shell_stack_quantity">Gathered fragments: %1$d</string>
     <string name="shell_badges_title">Badges</string>
     <string name="shell_badges_body">Badges are records of what happened. They are not gates.</string>
     <string name="shell_badge_a11y">%1$s badge. Count: %2$d.</string>
     <string name="shell_badge_row_title">%1$s ×%2$d</string>
     <string name="shell_journal_title">Badges</string>
-    <string name="shell_journal_body">Achievements from your Flow activity.</string>
     <string name="shell_notifications_title">Shell Notifications</string>
-    <string name="shell_notifications_body">New finds, fragments, badges, and discoveries gather here until you visit.</string>
+    <string name="shell_notifications_body">New creatures and badges gather here until you visit.</string>
     <string name="shell_notifications_a11y">Shell Notifications. %1$d new.</string>
     <string name="shell_notifications_empty_title">No new Shell notifications</string>
     <string name="shell_notifications_empty_body">The Shell is quiet for now. New rewards will gather here after future Flows.</string>
@@ -1222,7 +1222,7 @@
     <string name="shell_badge_flow_60_description">Earned each time a regular Flow lasts 60 minutes or more.</string>
     <string name="shell_badge_flow_120_title">2-hour Flow</string>
     <string name="shell_badge_flow_120_description">Earned each time a regular Flow lasts 2 hours or more.</string>
-    <string name="shell_badge_discovery_title">Discovery Awakened</string>
+    <string name="shell_badge_discovery_title">Badge Awakened</string>
     <string name="shell_badge_discovery_description">Earned each time The Shell records a new discovery.</string>
     <string name="shell_discovery_sea_glass_reveal">A Sea Glass Shard was found through regular Flow activity.</string>
     <string name="shell_discovery_sea_glass_explanation">Found through regular Flow activity.</string>
@@ -1239,8 +1239,7 @@
     <string name="shell_category_coral">Coral</string>
     <string name="shell_category_plants">Plants</string>
     <string name="shell_category_trophies">Trophies</string>
-    <string name="shell_category_rewards">Rewards</string>
-    <string name="shell_category_discoveries">Discoveries</string>
+    <string name="shell_category_discoveries">Badges</string>
     <string name="session_reward_shell_title">The Shell</string>
     <string name="session_reward_shell_regular_message">Your Flow updated The Shell.</string>
     <string name="session_reward_shell_soft_message">Your stream kept flowing.</string>
@@ -1250,7 +1249,6 @@
     <string name="session_reward_shell_stillwater">Stillwater</string>
     <string name="session_reward_shell_stillwater_units">%1$d Stillwater units</string>
     <string name="session_reward_shell_find">Shell reward</string>
-    <string name="session_reward_shell_discovery">Discovery revealed</string>
     <string name="session_reward_shell_badges">Badges updated</string>
     <string name="session_reward_shell_badges_value">%1$d badge updates</string>
     <string name="shell_feedback_place_success">Displayed in the Focus Room.</string>
@@ -1305,12 +1303,10 @@
     <string name="shell_heart_detail_title">Heart of The Shell</string>
     <string name="shell_heart_pearls_gathered">Pearls gathered: %1$d</string>
     <string name="shell_heart_finds_owned">Owned in The Shell: %1$d</string>
-    <string name="shell_heart_discoveries_awakened">Discoveries awakened: %1$d</string>
+    <string name="shell_heart_discoveries_awakened">Badges awakened: %1$d</string>
     <string name="shell_heart_focus_objects_placed">Focus objects displayed: %1$d</string>
 
 
-    <string name="shell_discovery_reveal_title">Discovery recorded</string>
-    <string name="shell_discovery_reveal_view">View</string>
 
 
     <string name="shell_pearl_basin_chip_a11y">Pearl Basin. %1$d Pearls. Opens shaping suggestions.</string>
@@ -1320,14 +1316,12 @@
     <string name="shell_heart_objects_displayed_resting">Creatures displayed: %1$d. In The Chest: %2$d.</string>
     <string name="shell_all_nooks_holding">All nooks are holding something. Keep finding creatures in The Blue. In The Chest: %1$d.</string>
     <string name="shell_empty_nook_choices">Choose how this nook should change.</string>
-    <string name="shell_place_from_chest">Display or place from Chest</string>
     <string name="shell_leave_empty">Leave empty</string>
     <string name="shell_no_resting_finds_fit">No creature in The Chest fits this nook yet.</string>
     <string name="shell_status_displayed_focus">Displayed in Focus</string>
     <string name="shell_status_resting">In The Chest</string>
     <string name="shell_chest_group_title">%1$s ×%2$d</string>
     <string name="shell_chest_group_status">%4$s · Highest level: %1$s · Displayed %2$d · Resting %3$d.</string>
-    <string name="shell_chest_group_a11y">%1$s. Owned: %2$d. Displayed: %3$d. Resting in Chest: %4$d.</string>
     <string name="shell_choose_something_to_swap">Choose something to swap.</string>
     <string name="shell_swap_with">Swap with %1$s</string>
     <string name="shell_no_compatible_nooks">No compatible nooks yet. This creature can stay in The Chest.</string>
@@ -1336,7 +1330,6 @@
 
     <string name="shell_badge_notification_title">%1$s badge</string>
     <string name="shell_badge_notification_body">Count: %1$d · %2$s</string>
-    <string name="shell_discovery_notification_title">%1$s discovered</string>
     <string name="shell_source_invited_with_pearls">Invited with %1$d Pearls.</string>
     <string name="shell_notification_title_encountered">%1$s encountered</string>
     <string name="shell_notification_title_invited">%1$s invited</string>
@@ -1346,8 +1339,6 @@
     <string name="shell_action_deepen">Deepen</string>
     <string name="shell_kind_animal">Animal</string>
     <string name="shell_kind_object">Creature</string>
-    <string name="shell_kind_reward">Reward</string>
-    <string name="shell_kind_discovery">Discovery</string>
     <string name="shell_depth_reef">Sunlit Reef</string>
     <string name="shell_depth_deeper_reef">Deeper Reef</string>
     <string name="shell_depth_open_blue">Open Blue</string>
@@ -1357,7 +1348,7 @@
     <string name="shell_invite_confirm_title">Invite %1$s?</string>
     <string name="shell_invite_confirm_body">This will add %1$s to The Chest.</string>
     <string name="shell_invite_confirm_cta">Invite with %1$d Pearls</string>
-    <string name="shell_let_rest_in_chest">Let rest in Chest</string>
+    <string name="shell_let_rest_in_chest">Keep in The Chest</string>
     <string name="shell_display_in_focus">Display in Focus</string>
     <string name="shell_animal_no_more_forms">This Animal is resting at its current Level.</string>
     <string name="shell_object_no_more_forms">This creature is resting in its current form.</string>
@@ -1385,14 +1376,8 @@
     <string name="reward_card_shell_shaped_title">The Shell was shaped</string>
     <string name="reward_card_shell_shaped_body">Your Scyra Points were carried into The Shell as Pearls. Use Pearls to brighten, polish, and awaken what you own.</string>
     <string name="reward_card_animal_encountered_title">%1$s encountered</string>
-    <string name="reward_card_object_found_title">%1$s found</string>
-    <string name="reward_card_reward_gathered_title">%1$s gathered</string>
     <string name="reward_card_badge_updated_title">%1$s badge updated</string>
-    <string name="reward_card_discovery_recorded_title">%1$s discovered</string>
     <string name="reward_card_animal_chip">Animal · %1$s</string>
-    <string name="reward_card_object_chip">Reward</string>
-    <string name="reward_card_reward_chip">Reward</string>
-    <string name="reward_card_discovery_chip">Discovery</string>
     <string name="reward_card_badge_chip">Badge</string>
     <string name="reward_card_depth_reef">Sunlit Reef</string>
     <string name="reward_card_depth_deeper_reef">Deeper Reef</string>
@@ -1403,13 +1388,6 @@
     <string name="reward_card_animal_reason_manta">From a regular Flow lasting 1 hour or more.</string>
     <string name="reward_card_animal_reason_whale">From a regular Flow lasting 2 hours or more.</string>
     <string name="reward_card_animal_reason_octopus">Encountered beyond The Blue and now hiding in the Deeper Reef.</string>
-    <string name="reward_card_object_reason_pebble">Found after you returned to regular Flow.</string>
-    <string name="reward_card_object_reason_default">Found after you returned to regular Flow.</string>
-    <string name="reward_card_reward_reason_default">Found through regular Flow activity.</string>
-    <string name="reward_card_discovery_reason_octopus">Encountered beyond The Blue and now hiding in the Deeper Reef.</string>
-    <string name="reward_card_discovery_reason_pebble">Discovered after returning to regular Flow.</string>
-    <string name="reward_card_discovery_reason_sea_glass">Discovered through regular Flow activity.</string>
-    <string name="reward_card_discovery_reason_glimmer">Discovered through regular Flow activity.</string>
     <string name="reward_card_badge_reason_10">Earned each time a regular Flow lasts 10 minutes or more.</string>
     <string name="reward_card_badge_reason_30">Earned each time a regular Flow lasts 30 minutes or more.</string>
     <string name="reward_card_badge_reason_60">Earned each time a regular Flow lasts 1 hour or more.</string>
@@ -1420,7 +1398,6 @@
     <string name="reward_card_shell_hint">View inside The Shell.</string>
     <string name="reward_card_pearl_basin_hint">Shape The Shell with Pearls.</string>
     <string name="reward_card_shell_chest_hint">Added to The Chest.</string>
-    <string name="reward_card_discovery_journal_hint">Recorded in Badges.</string>
     <string name="reward_card_badges_hint">Recorded in Badges.</string>
     <string name="reward_card_shell_recorded_title">Shell reward recorded</string>
     <string name="reward_card_shell_recorded_body">Recorded inside The Shell.</string>
@@ -1436,16 +1413,10 @@
     <string name="reward_card_arc_peak_multiplier">Peak multiplier: %1$.1f×</string>
     <string name="reward_card_arc_bonus_line">Arc bonus: +%1$d</string>
     <string name="reward_card_arc_animals_title">Animals encountered</string>
-    <string name="reward_card_arc_objects_title">Rewards found</string>
-    <string name="reward_card_arc_rewards_title">Rewards gathered</string>
     <string name="reward_card_arc_badges_title">Badges updated</string>
-    <string name="reward_card_arc_discoveries_title">Discoveries recorded</string>
     <string name="reward_card_arc_shell_shaped_body">Scyra Points from this Arc were carried into The Shell as Pearls.</string>
-    <string name="reward_card_found_across_arc">Found across this Arc.</string>
-    <string name="reward_card_recorded_in_journal">Recorded in Badges.</string>
     <string name="reward_card_arc_placeholder_title">This Arc became part of your story</string>
     <string name="reward_card_arc_placeholder_body">Voyage Hall will gather Arc journeys in a future Shell update.</string>
-    <string name="reward_card_rewards_grouped_title">Rewards gathered</string>
     <string name="reward_card_badges_grouped_title">Badges updated</string>
     <string name="reward_card_item_count">%1$s ×%2$d</string>
     <string name="reward_card_records_updated_from_flow">Records updated from this Flow.</string>
