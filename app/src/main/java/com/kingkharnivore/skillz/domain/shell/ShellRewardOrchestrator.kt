@@ -6,6 +6,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val MILLIS_PER_MINUTE = 60_000L
+private const val MILLIS_PER_SECOND = 1_000L
 
 data class ShellRewardResult(
     val pearlsEarned: Int = 0,
@@ -31,11 +32,12 @@ class ShellRewardOrchestrator @Inject constructor(
         val sourceId = session.id.toString()
         val minutes = (session.durationMs / MILLIS_PER_MINUTE).toInt().coerceAtLeast(0)
         val result = if (session.isSoftMode) {
-            val units = minutes * 10L
-            if (!shellRepository.addStillwater(units, "session", sourceId)) {
+            val durationSeconds = (session.durationMs / MILLIS_PER_SECOND).coerceAtLeast(0L)
+            val drops = calculateDropsForSoftFlow(durationSeconds)
+            if (!shellRepository.addStillwater(drops, "session", sourceId)) {
                 ShellRewardResult()
             } else {
-                ShellRewardResult(stillwaterUnits = units)
+                ShellRewardResult(stillwaterUnits = drops)
             }
         } else {
             val grantedFinds = mutableListOf<String>()

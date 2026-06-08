@@ -84,7 +84,6 @@ data class DiscoveryDefinition(
     val oncePerUser: Boolean
 )
 
-enum class StillwaterPerspective { CUPS, BOWLS, TANK, POOL, LAKE, LAKE_TAHOE_PERCENT, WORLD_OCEAN_PERCENT, STREAM_TIME }
 
 object ShellContentCatalog {
     const val FOCUS_MINNOW = "focus_minnow"
@@ -109,6 +108,58 @@ object ShellContentCatalog {
         ShellRoomDefinition(ShellRoomId.THE_BLUE, R.string.shell_room_the_blue_title, R.string.shell_room_the_blue_description, "shell_the_blue", null, null),
         ShellRoomDefinition(ShellRoomId.IDEA_GROVE, R.string.shell_room_idea_title, R.string.shell_room_idea_description, "shell_idea", null, null),
         ShellRoomDefinition(ShellRoomId.LOOKOUT, R.string.shell_room_lookout_title, R.string.shell_room_lookout_description, "shell_lookout", null, null)
+    )
+
+    private fun stillwaterFind(id: String, titleRes: Int, depthTier: ShellDepthTier): ShellFindDefinition =
+        ShellFindDefinition(
+            findId = id,
+            titleRes = titleRes,
+            descriptionRes = R.string.shell_find_stillwater_creature_description,
+            category = ShellFindCategory.CREATURES,
+            primaryRoomId = ShellRoomId.FOCUS,
+            iconKey = "creature_icon_$id",
+            assetKey = id,
+            placeable = true,
+            upgradeable = true,
+            stackable = false,
+            acceptedSlotTypes = setOf(ShellSlotType.CREATURE_PERCH, ShellSlotType.TIDEPOOL_EDGE, ShellSlotType.CURRENT_PATH, ShellSlotType.CENTERPIECE),
+            kind = ShellRewardKind.ANIMAL,
+            depthTier = depthTier
+        )
+
+    private val stillwaterFinds = listOf(
+        stillwaterFind("stillwater_shrimp", R.string.shell_find_stillwater_shrimp_title, ShellDepthTier.REEF),
+        stillwaterFind("stillwater_crab", R.string.shell_find_stillwater_crab_title, ShellDepthTier.REEF),
+        stillwaterFind("stillwater_clam", R.string.shell_find_stillwater_clam_title, ShellDepthTier.REEF),
+        stillwaterFind("stillwater_snail", R.string.shell_find_stillwater_snail_title, ShellDepthTier.REEF),
+        stillwaterFind("stillwater_limpet", R.string.shell_find_stillwater_limpet_title, ShellDepthTier.REEF),
+        stillwaterFind("stillwater_barnacle", R.string.shell_find_stillwater_barnacle_title, ShellDepthTier.REEF),
+        stillwaterFind("stillwater_cowrie", R.string.shell_find_stillwater_cowrie_title, ShellDepthTier.REEF),
+        stillwaterFind("stillwater_horseshoe", R.string.shell_find_stillwater_horseshoe_title, ShellDepthTier.REEF),
+        stillwaterFind("stillwater_goby", R.string.shell_find_stillwater_goby_title, ShellDepthTier.DEEPER_REEF),
+        stillwaterFind("stillwater_wrasse", R.string.shell_find_stillwater_wrasse_title, ShellDepthTier.DEEPER_REEF),
+        stillwaterFind("stillwater_blenny", R.string.shell_find_stillwater_blenny_title, ShellDepthTier.DEEPER_REEF),
+        stillwaterFind("stillwater_triggerfish", R.string.shell_find_stillwater_triggerfish_title, ShellDepthTier.DEEPER_REEF),
+        stillwaterFind("stillwater_anemone", R.string.shell_find_stillwater_anemone_title, ShellDepthTier.DEEPER_REEF),
+        stillwaterFind("stillwater_cuttlefish", R.string.shell_find_stillwater_cuttlefish_title, ShellDepthTier.DEEPER_REEF),
+        stillwaterFind("stillwater_moray", R.string.shell_find_stillwater_moray_title, ShellDepthTier.DEEPER_REEF),
+        stillwaterFind("stillwater_nautilus", R.string.shell_find_stillwater_nautilus_title, ShellDepthTier.DEEPER_REEF),
+        stillwaterFind("stillwater_mahi", R.string.shell_find_stillwater_mahi_title, ShellDepthTier.OPEN_BLUE),
+        stillwaterFind("stillwater_wahoo", R.string.shell_find_stillwater_wahoo_title, ShellDepthTier.OPEN_BLUE),
+        stillwaterFind("stillwater_bonito", R.string.shell_find_stillwater_bonito_title, ShellDepthTier.OPEN_BLUE),
+        stillwaterFind("stillwater_tuna", R.string.shell_find_stillwater_tuna_title, ShellDepthTier.OPEN_BLUE),
+        stillwaterFind("stillwater_amberjack", R.string.shell_find_stillwater_amberjack_title, ShellDepthTier.OPEN_BLUE),
+        stillwaterFind("stillwater_grouper", R.string.shell_find_stillwater_grouper_title, ShellDepthTier.OPEN_BLUE),
+        stillwaterFind("stillwater_marlin", R.string.shell_find_stillwater_marlin_title, ShellDepthTier.OPEN_BLUE),
+        stillwaterFind("stillwater_sailfish", R.string.shell_find_stillwater_sailfish_title, ShellDepthTier.OPEN_BLUE),
+        stillwaterFind("stillwater_fangtooth", R.string.shell_find_stillwater_fangtooth_title, ShellDepthTier.DEEP_OCEAN),
+        stillwaterFind("stillwater_viperfish", R.string.shell_find_stillwater_viperfish_title, ShellDepthTier.DEEP_OCEAN),
+        stillwaterFind("stillwater_hatchetfish", R.string.shell_find_stillwater_hatchetfish_title, ShellDepthTier.DEEP_OCEAN),
+        stillwaterFind("stillwater_gulper", R.string.shell_find_stillwater_gulper_title, ShellDepthTier.DEEP_OCEAN),
+        stillwaterFind("stillwater_grenadier", R.string.shell_find_stillwater_grenadier_title, ShellDepthTier.DEEP_OCEAN),
+        stillwaterFind("stillwater_oarfish", R.string.shell_find_stillwater_oarfish_title, ShellDepthTier.DEEP_OCEAN),
+        stillwaterFind("stillwater_blackdragon", R.string.shell_find_stillwater_blackdragon_title, ShellDepthTier.DEEP_OCEAN),
+        stillwaterFind("stillwater_coelacanth", R.string.shell_find_stillwater_coelacanth_title, ShellDepthTier.DEEP_OCEAN)
     )
 
     val finds = listOf(
@@ -160,7 +211,7 @@ object ShellContentCatalog {
         ShellFindDefinition(FOCUS_PEBBLES, R.string.shell_object_pebbles_title, R.string.shell_object_pebbles_description, ShellFindCategory.CORAL, ShellRoomId.FOCUS, "pebbles", "pebbles", true, false, false, setOf(ShellSlotType.REEF_SHELF, ShellSlotType.MEMORY_NOOK), 60, true, ShellRewardKind.OBJECT),
         ShellFindDefinition(FOCUS_CURTAIN, R.string.shell_object_curtain_title, R.string.shell_object_curtain_description, ShellFindCategory.PLANTS, ShellRoomId.FOCUS, "curtain", "curtain", true, false, false, setOf(ShellSlotType.CORAL_BED, ShellSlotType.SHELL_WALL), 140, true, ShellRewardKind.OBJECT),
         ShellFindDefinition(FOCUS_BUBBLES, R.string.shell_object_bubbles_title, R.string.shell_object_bubbles_description, ShellFindCategory.CORAL, ShellRoomId.FOCUS, "bubbles", "bubbles", true, false, false, setOf(ShellSlotType.CURRENT_PATH, ShellSlotType.CENTERPIECE, ShellSlotType.MEMORY_NOOK), 100, true, ShellRewardKind.OBJECT)
-    )
+    ) + stillwaterFinds
 
     val focusSlots = listOf(
         ShellSlotDefinition("left_reef_shelf", ShellRoomId.FOCUS, ShellSlotType.REEF_SHELF, R.string.shell_slot_left_reef_shelf, .18f, .34f, .28f, .14f, 2, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS, ShellFindCategory.CORAL)),
@@ -238,7 +289,7 @@ object ShellContentCatalog {
     }
 
     val focusPearlObjects = finds.filter { it.isPearlObject && it.primaryRoomId == ShellRoomId.FOCUS }
-    val animalFindIds = finds.filter { it.kind == ShellRewardKind.ANIMAL }.map { it.findId }.toSet()
+    val animalFindIds = finds.filter { it.kind == ShellRewardKind.ANIMAL && !it.findId.startsWith("stillwater_") }.map { it.findId }.toSet()
     fun find(findId: String) = finds.firstOrNull { it.findId == findId }
     fun badge(badgeId: String) = badges.firstOrNull { it.badgeId == badgeId }
     fun discovery(discoveryId: String) = discoveries.firstOrNull { it.discoveryId == discoveryId }

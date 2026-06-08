@@ -9,24 +9,31 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserDiscoveryEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindStackEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
-import com.kingkharnivore.skillz.data.model.shell.StillwaterPerspective
 import com.kingkharnivore.skillz.data.repository.shell.ShellRepository
 import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
+import com.kingkharnivore.skillz.domain.shell.CreatureDefinition
+import com.kingkharnivore.skillz.domain.shell.CreatureSourceType
+import com.kingkharnivore.skillz.domain.shell.CreatureZone
+import com.kingkharnivore.skillz.domain.shell.StillwaterVessel
+import com.kingkharnivore.skillz.domain.shell.requiresStillwaterConfirmation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class ShellUiState(
     val pearlBalance: Int = 0,
-    val stillwaterTotal: Long = 0,
-    val perspective: StillwaterPerspective = StillwaterPerspective.BOWLS,
+    val stillwaterClaimableDrops: Long = 0,
+    val stillwaterLifetimeDrops: Long = 0,
+    val stillwaterRevealCreature: CreatureDefinition? = null,
+    val pendingStillwaterDrawVessel: StillwaterVessel? = null,
+    val unlockedBlueZones: Set<CreatureZone> = setOf(CreatureZone.SUNLIT_REEF),
     val finds: List<UserShellFindInstanceEntity> = emptyList(),
     val stacks: List<UserShellFindStackEntity> = emptyList(),
     val focusPlacements: List<ShellPlacementEntity> = emptyList(),
@@ -37,8 +44,8 @@ data class ShellUiState(
 
 private data class ShellEconomyState(
     val pearlBalance: Int,
-    val stillwaterTotal: Long,
-    val perspective: StillwaterPerspective
+    val stillwaterClaimableDrops: Long,
+    val stillwaterLifetimeDrops: Long
 )
 
 private data class ShellOwnershipState(
@@ -60,14 +67,14 @@ class ShellViewModel @Inject constructor(
     private val _events = MutableSharedFlow<String>()
     val events: SharedFlow<String> = _events
 
+    private val stillwaterRevealCreature = MutableStateFlow<CreatureDefinition?>(null)
+    private val pendingStillwaterDrawVessel = MutableStateFlow<StillwaterVessel?>(null)
+
     private val economy = combine(
         repository.observePearlBalance(),
         repository.observeStillwaterTotal(),
-        repository.observeStillwaterPreference().map { pref ->
-            pref?.perspective?.let { runCatching { StillwaterPerspective.valueOf(it) }.getOrNull() }
-                ?: StillwaterPerspective.BOWLS
-        }
-    ) { pearls, stillwater, perspective -> ShellEconomyState(pearls, stillwater, perspective) }
+        repository.observeStillwaterLifetimeTotal()
+    ) { pearls, claimableDrops, lifetimeDrops -> ShellEconomyState(pearls, claimableDrops, lifetimeDrops) }
 
     private val ownership = combine(
         repository.observeOwnedFinds(),
@@ -81,11 +88,20 @@ class ShellViewModel @Inject constructor(
         repository.observeObjectiveCompletions()
     ) { badges, discoveries, objectiveCompletions -> ShellMemoryState(badges, discoveries, objectiveCompletions) }
 
-    val uiState: StateFlow<ShellUiState> = combine(economy, ownership, memory) { economy, ownership, memory ->
+    val uiState: StateFlow<ShellUiState> = combine(
+        economy,
+        ownership,
+        memory,
+        stillwaterRevealCreature,
+        pendingStillwaterDrawVessel
+    ) { economy, ownership, memory, revealCreature, pendingVessel ->
         ShellUiState(
             pearlBalance = economy.pearlBalance,
-            stillwaterTotal = economy.stillwaterTotal,
-            perspective = economy.perspective,
+            stillwaterClaimableDrops = economy.stillwaterClaimableDrops,
+            stillwaterLifetimeDrops = economy.stillwaterLifetimeDrops,
+            stillwaterRevealCreature = revealCreature,
+            pendingStillwaterDrawVessel = pendingVessel,
+            unlockedBlueZones = unlockedBlueZonesFor(ownership.finds),
             finds = ownership.finds,
             stacks = ownership.stacks,
             focusPlacements = ownership.focusPlacements,
@@ -160,8 +176,46 @@ class ShellViewModel @Inject constructor(
             .onFailure { _events.emit(it.message ?: "Could not encounter that creature.") }
     }
 
-    fun setPerspective(perspective: StillwaterPerspective) = viewModelScope.launch {
-        repository.updateStillwaterPerspective(perspective)
+    fun onDrawFromStillwater(vessel: StillwaterVessel) = viewModelScope.launch {
+        val state = uiState.value
+        if (vessel.zone !in state.unlockedBlueZones) {
+            _events.emit("Reach this depth in The Blue first.")
+            return@launch
+        }
+        if (state.stillwaterClaimableDrops < vessel.dropCost) {
+            _events.emit("Not enough Drops yet.")
+            return@launch
+        }
+        if (requiresStillwaterConfirmation(vessel)) {
+            pendingStillwaterDrawVessel.value = vessel
+        } else {
+            drawFromStillwater(vessel)
+        }
+    }
+
+    fun onConfirmStillwaterDraw(vessel: StillwaterVessel) = viewModelScope.launch {
+        pendingStillwaterDrawVessel.value = null
+        drawFromStillwater(vessel)
+    }
+
+    fun onDismissStillwaterReveal() {
+        stillwaterRevealCreature.value = null
+    }
+
+    fun onDismissStillwaterDrawConfirmation() {
+        pendingStillwaterDrawVessel.value = null
+    }
+
+    private suspend fun drawFromStillwater(vessel: StillwaterVessel) {
+        if (vessel.zone !in unlockedBlueZonesFor(uiState.value.finds)) {
+            _events.emit("Reach this depth in The Blue first.")
+            return
+        }
+        runCatching { repository.drawFromStillwater(vessel) }
+            .onSuccess { instance ->
+                stillwaterRevealCreature.value = CreatureCatalog.get(instance.findId)
+            }
+            .onFailure { _events.emit(it.message ?: "Could not draw from Stillwater.") }
     }
 
     fun markNotificationsSeen() = viewModelScope.launch {
@@ -174,3 +228,17 @@ class ShellViewModel @Inject constructor(
 
     fun markRoomOpened(roomId: ShellRoomId) = viewModelScope.launch { repository.markRoomOpened(roomId) }
 }
+
+
+private fun unlockedBlueZonesFor(finds: List<UserShellFindInstanceEntity>): Set<CreatureZone> {
+    val zones = mutableSetOf(CreatureZone.SUNLIT_REEF)
+    finds.forEach { instance ->
+        val definition = CreatureCatalog.get(instance.findId) ?: return@forEach
+        if (definition.sourceType != CreatureSourceType.STILLWATER) {
+            zones += definition.zone
+        }
+    }
+    return zones
+}
+
+fun ShellUiState.isBlueZoneUnlocked(zone: CreatureZone): Boolean = zone in unlockedBlueZones

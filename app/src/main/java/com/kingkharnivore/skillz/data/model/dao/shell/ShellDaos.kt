@@ -82,6 +82,7 @@ interface UserDiscoveryDao {
 interface StillwaterLedgerDao {
     @Insert(onConflict = OnConflictStrategy.ABORT) suspend fun insert(entity: StillwaterLedgerEntity)
     @Query("SELECT COALESCE(SUM(units), 0) FROM stillwater_ledger") fun observeTotal(): Flow<Long>
+    @Query("SELECT COALESCE(SUM(units), 0) FROM stillwater_ledger WHERE units > 0") fun observeLifetimeTotal(): Flow<Long>
     @Query("SELECT COALESCE(SUM(units), 0) FROM stillwater_ledger") suspend fun getTotal(): Long
     @Query("SELECT COUNT(*) FROM stillwater_ledger WHERE sourceType = :sourceType AND sourceId = :sourceId") suspend fun sourceCount(sourceType: String, sourceId: String?): Int
     @Query("SELECT * FROM stillwater_ledger ORDER BY createdAt DESC LIMIT :limit") fun observeRecent(limit: Int = 20): Flow<List<StillwaterLedgerEntity>>

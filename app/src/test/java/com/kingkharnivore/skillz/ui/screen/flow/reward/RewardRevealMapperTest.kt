@@ -84,11 +84,10 @@ class RewardRevealMapperTest {
         val cards = buildSoftRewardCards(reward(minutes = 22, shellStillwaterUnits = 220), text)
 
         assertEquals(RewardRevealCardType.STILLWATER_RESULT, cards[0].type)
-        assertEquals("Stillwater added", cards[0].title)
-        assertEquals("22 quiet minutes carried into the stream.", cards[0].subtitle)
-        assertTrue(cards.any { it.type == RewardRevealCardType.SOFT_RULE })
+        assertEquals("Soft Flow complete", cards[0].title)
+        assertEquals("+220 Drops", cards[0].amountText)
+        assertEquals("Added to Stillwater.", cards[0].subtitle)
         assertEquals("View in Stillwater Room.", cards[0].destinationHint)
-        assertEquals("View in Stillwater Room.", cards[2].destinationHint)
         assertFalse(cards.any { it.destinationHint == "View later in The Blue." })
         assertFalse(cards.any { it.title.contains("Scyra") || it.title.contains("Pearl") })
     }
@@ -338,7 +337,10 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun badgesHint() = "Recorded in Badges."
     override fun shellRewardRecordedTitle() = "Shell reward recorded"
     override fun shellRewardRecordedBody() = "Recorded inside The Shell."
-    override fun stillwaterAddedTitle() = "Stillwater added"
+    override fun stillwaterAddedTitle() = "Soft Flow complete"
+    override fun softDropsGained(drops: Long) = "+$drops Drops"
+    override fun softAddedToStillwater() = "Added to Stillwater."
+    override fun softExplainer() = "Spend Drops in Stillwater to draw exclusive creatures."
     override fun softRuleTitle() = "Soft Flow stayed soft"
     override fun softRuleBody() = "No score. No Pearls. Only Stillwater was added."
     override fun stillwaterPerspectiveTitle() = "Same Stillwater, different view"

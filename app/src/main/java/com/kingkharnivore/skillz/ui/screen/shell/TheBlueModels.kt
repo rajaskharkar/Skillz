@@ -7,6 +7,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
 import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
+import com.kingkharnivore.skillz.domain.shell.CreatureSourceType
 import com.kingkharnivore.skillz.domain.shell.CreatureStatus
 
 enum class TheBlueZoneId { SUNLIT_REEF, DEEPER_REEF, OPEN_BLUE, GREAT_BLUE }
@@ -75,7 +76,8 @@ internal fun buildTheBlueUiState(
         .toSet()
 
     val allAnimalFinds = finds.filter { instance ->
-        ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL
+        ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL &&
+            CreatureCatalog.get(instance.findId)?.sourceType != CreatureSourceType.STILLWATER
     }
     val animalFinds = allAnimalFinds.filter { it.creatureStatus == CreatureStatus.ACTIVE }
 

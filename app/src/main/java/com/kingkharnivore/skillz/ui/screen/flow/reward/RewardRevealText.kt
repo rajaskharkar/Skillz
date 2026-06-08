@@ -55,6 +55,9 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
     val shellRewardRecordedTitle = stringResource(R.string.reward_card_shell_recorded_title)
     val shellRewardRecordedBody = stringResource(R.string.reward_card_shell_recorded_body)
     val stillwaterAddedTitle = stringResource(R.string.reward_card_stillwater_added_title)
+    val softDropsGainedTemplate = stringResource(R.string.flow_complete_soft_drops_gained)
+    val softAddedToStillwater = stringResource(R.string.flow_complete_soft_added_to_stillwater)
+    val softExplainer = stringResource(R.string.flow_complete_soft_explainer)
     val softRuleTitle = stringResource(R.string.reward_card_soft_rule_title)
     val softRuleBody = stringResource(R.string.reward_card_soft_rule_body)
     val stillwaterPerspectiveTitle = stringResource(R.string.reward_card_stillwater_perspective_title)
@@ -112,6 +115,9 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         override fun shellRewardRecordedTitle() = shellRewardRecordedTitle
         override fun shellRewardRecordedBody() = shellRewardRecordedBody
         override fun stillwaterAddedTitle() = stillwaterAddedTitle
+        override fun softDropsGained(drops: Long) = softDropsGainedTemplate.format(drops)
+        override fun softAddedToStillwater() = softAddedToStillwater
+        override fun softExplainer() = softExplainer
         override fun softRuleTitle() = softRuleTitle
         override fun softRuleBody() = softRuleBody
         override fun stillwaterPerspectiveTitle() = stillwaterPerspectiveTitle

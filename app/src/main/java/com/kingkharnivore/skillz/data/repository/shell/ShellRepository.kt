@@ -10,6 +10,8 @@ import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
 import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
 import com.kingkharnivore.skillz.domain.shell.CreatureSourceType
 import com.kingkharnivore.skillz.domain.shell.CreatureStatus
+import com.kingkharnivore.skillz.domain.shell.StillwaterCatalog
+import com.kingkharnivore.skillz.domain.shell.StillwaterVessel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.util.UUID
@@ -34,6 +36,7 @@ class ShellRepository @Inject constructor(
 ) {
     fun observePearlBalance(): Flow<Int> = pearlLedgerDao.observeBalance()
     fun observeStillwaterTotal(): Flow<Long> = stillwaterLedgerDao.observeTotal()
+    fun observeStillwaterLifetimeTotal(): Flow<Long> = stillwaterLedgerDao.observeLifetimeTotal()
     fun observeOwnedFinds(): Flow<List<UserShellFindInstanceEntity>> = findInstanceDao.observeAll()
     fun observeStacks(): Flow<List<UserShellFindStackEntity>> = findStackDao.observeAll()
     fun observePlacements(roomId: ShellRoomId): Flow<List<ShellPlacementEntity>> = placementDao.observeByRoom(roomId.name)
@@ -70,6 +73,27 @@ class ShellRepository @Inject constructor(
         if (units <= 0 || stillwaterLedgerDao.sourceCount(sourceType, sourceId) > 0) return@withTransaction false
         stillwaterLedgerDao.insert(StillwaterLedgerEntity(UUID.randomUUID().toString(), units, sourceType, sourceId, System.currentTimeMillis()))
         true
+    }
+
+    suspend fun drawFromStillwater(vessel: StillwaterVessel): UserShellFindInstanceEntity = db.withTransaction {
+        val balance = stillwaterLedgerDao.getTotal()
+        require(balance >= vessel.dropCost) { "Not enough Drops yet." }
+        val entry = StillwaterCatalog.roll(vessel)
+        val definition = CreatureCatalog.require(entry.creatureId)
+        require(definition.sourceType == CreatureSourceType.STILLWATER) { "Stillwater can only draw Stillwater creatures." }
+        require(definition.zone == vessel.zone) { "Stillwater vessel depth mismatch." }
+        val now = System.currentTimeMillis()
+        val instance = grantFindCopy(entry.creatureId, "stillwater", vessel.name.lowercase())
+        stillwaterLedgerDao.insert(
+            StillwaterLedgerEntity(
+                id = UUID.randomUUID().toString(),
+                units = -vessel.dropCost,
+                sourceType = "stillwater_draw",
+                sourceId = instance.instanceId,
+                createdAt = now
+            )
+        )
+        instance
     }
 
     suspend fun incrementBadge(badgeId: String, by: Int = 1): Int {
@@ -357,10 +381,6 @@ class ShellRepository @Inject constructor(
         }
         val encountered = grantFindCopy(targetCreatureId, "beyond_blue", targetCreatureId)
         encountered
-    }
-
-    suspend fun updateStillwaterPerspective(perspective: StillwaterPerspective) {
-        stillwaterPreferenceDao.upsert(StillwaterPreferenceEntity(perspective = perspective.name, updatedAt = System.currentTimeMillis()))
     }
 
     suspend fun regularFlowCount(): Int = sessionDao.getRegularSessionCount()
