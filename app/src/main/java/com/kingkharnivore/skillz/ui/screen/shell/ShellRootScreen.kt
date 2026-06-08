@@ -82,12 +82,10 @@ import kotlinx.coroutines.launch
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellFindDefinition
-import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellPearlMiniIcon
 import com.kingkharnivore.skillz.ui.screen.shell.icons.draw.TurtleShellInteriorBackground
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgesScreen
-import com.kingkharnivore.skillz.ui.screen.shell.inventory.DiscoveryJournalScreen
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellChestScreen
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellNotificationsScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.TheBlueRoomScreen
@@ -96,65 +94,24 @@ import com.kingkharnivore.skillz.ui.screen.shell.rooms.ideagrove.IdeaGroveRoute
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.lookout.LookoutRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.stillwater.StillwaterRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.voyage.VoyageHallScreen
-import com.kingkharnivore.skillz.ui.screen.shell.ux.displayedInstanceIds
-import com.kingkharnivore.skillz.ui.screen.shell.ux.isUserVisibleShellFind
-import com.kingkharnivore.skillz.ui.screen.shell.ux.restingFinds
+import com.kingkharnivore.skillz.ui.screen.shell.ux.activeChestCreatureCount
+import com.kingkharnivore.skillz.ui.screen.shell.ux.activeChestCreatures
+import com.kingkharnivore.skillz.ui.screen.shell.ux.activeDisplayedCreatureCount
 import com.kingkharnivore.skillz.ui.screen.shell.ux.shellChamberBrush
 import com.kingkharnivore.skillz.ui.screen.shell.ux.shellIndicatorColor
 import com.kingkharnivore.skillz.utils.shell.shellBackground
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.ShellViewModel
 
-private fun hasRestingPlaceableFinds(uiState: ShellUiState): Boolean = restingFinds(uiState).any { item ->
-    val def = ShellContentCatalog.find(item.findId)
-    def?.placeable == true
-}
+private fun hasChestCreatures(uiState: ShellUiState): Boolean = activeChestCreatureCount(uiState) > 0
 
-private fun hasAffordablePearlShape(uiState: ShellUiState): Boolean =
-    uiState.finds.any { item ->
-        val def = ShellContentCatalog.find(item.findId) ?: return@any false
-        if (def.kind != ShellRewardKind.OBJECT) return@any false
-        val next = ShellContentCatalog.nextUpgrade(def.findId, item.currentUpgradeStageId) ?: return@any false
-        next.pearlCost <= uiState.pearlBalance
-    } || ShellContentCatalog.focusPearlObjects.any { (it.pearlCost ?: Int.MAX_VALUE) <= uiState.pearlBalance }
+private fun hasAffordablePearlShape(uiState: ShellUiState): Boolean = false
 
 private fun unseenNotificationCount(uiState: ShellUiState): Int =
-    uiState.finds.count { it.isNew && isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) } +
-            uiState.stacks.count { it.isNew && isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) } +
-            uiState.badges.count { it.isNew } +
-            uiState.discoveries.count { it.isNew }
+    activeChestCreatures(uiState).count { it.isNew } + uiState.badges.count { it.isNew }
 
-internal fun hasAffordableFocusPearlAction(uiState: ShellUiState): Boolean {
-    val displayed = displayedInstanceIds(uiState)
+internal fun hasAffordableFocusPearlAction(uiState: ShellUiState): Boolean = false
 
-    val hasAffordableDisplayedUpgrade = uiState.finds.any { item ->
-        if (item.instanceId !in displayed) return@any false
-
-        val def = ShellContentCatalog.find(item.findId) ?: return@any false
-        if (def.kind != ShellRewardKind.OBJECT) return@any false
-        val next = ShellContentCatalog.nextUpgrade(
-            findId = def.findId,
-            currentStageId = item.currentUpgradeStageId
-        ) ?: return@any false
-
-        next.pearlCost <= uiState.pearlBalance
-    }
-
-    if (hasAffordableDisplayedUpgrade) return true
-
-    val occupiedSlots = uiState.focusPlacements.map { it.slotId }.toSet()
-    val emptySlots = ShellContentCatalog.focusSlots.filter { slot ->
-        slot.slotId !in occupiedSlots
-    }
-
-    if (emptySlots.isEmpty()) return false
-
-    return ShellContentCatalog.focusPearlObjects.any { def ->
-        val cost = def.pearlCost ?: return@any false
-        cost <= uiState.pearlBalance &&
-                emptySlots.any { slot -> ShellContentCatalog.isCompatibleWithSlot(slot, def) }
-    }
-}
 
 @Composable
 fun sourceReasonFor(def: ShellFindDefinition): String = when (def.findId) {
@@ -273,14 +230,11 @@ fun ShellRootScreen(
 
                 ShellDestination.ShellChest -> ShellChestScreen(
                     uiState = uiState,
-                    onPlace = viewModel::place,
-                    onReturn = viewModel::returnToChest,
-                    onUpgrade = viewModel::upgrade,
-                    onOpenFocus = { destination = ShellDestination.Focus }
+                    onReleaseCreaturesByLevel = viewModel::releaseCreaturesByLevel,
+                    onOpenBlue = { destination = ShellDestination.TheBluePreview }
                 )
 
                 ShellDestination.Badges -> BadgesScreen(uiState)
-                ShellDestination.DiscoveryJournal -> DiscoveryJournalScreen(uiState)
                 ShellDestination.Notifications -> ShellNotificationsScreen(uiState)
 
                 ShellDestination.VoyagePreview -> VoyageHallScreen()
@@ -329,15 +283,6 @@ fun ShellRootScreen(
                 onOpenChest = {
                     showPearlBasin = false
                     destination = ShellDestination.ShellChest
-                },
-                onOpenObject = {
-                    showPearlBasin = false
-                    destination = ShellDestination.Focus
-                },
-                onInviteObject = { findId ->
-                    viewModel.invitePearlObjectToChest(findId)
-                    showPearlBasin = false
-                    destination = ShellDestination.ShellChest
                 }
             )
         }
@@ -351,9 +296,8 @@ private fun HeartRoomScreen(
     onOpenPearlBasin: () -> Unit
 ) {
     var showHeartDetail by remember { mutableStateOf(false) }
-    val chestHasIndicator = restingFinds(uiState).any { it.isNew } || uiState.stacks.any { it.isNew && isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) }
-    val hasNewDiscovery = uiState.discoveries.any { it.isNew }
-    val focusChanged = hasAffordableFocusPearlAction(uiState)
+    val chestHasIndicator = activeChestCreatures(uiState).any { it.isNew }
+    val focusChanged = false
 
     Box(
         modifier = Modifier
@@ -472,9 +416,8 @@ private fun HeartRoomScreen(
                 onClick = {
                     val hasEmptyNook = uiState.focusPlacements.size < ShellContentCatalog.focusSlots.size
                     when {
-                        uiState.discoveries.any { it.isNew } -> onNavigate(ShellDestination.DiscoveryJournal)
                         hasAffordablePearlShape(uiState) -> onNavigate(ShellDestination.Focus)
-                        hasRestingPlaceableFinds(uiState) -> onNavigate(ShellDestination.ShellChest)
+                        hasChestCreatures(uiState) -> onNavigate(ShellDestination.ShellChest)
                         hasEmptyNook -> onNavigate(ShellDestination.Focus)
                         else -> onNavigate(ShellDestination.Focus)
                     }
@@ -483,10 +426,8 @@ private fun HeartRoomScreen(
 
             HeartShortcutDock(
                 chestHasIndicator = chestHasIndicator,
-                journalHasIndicator = hasNewDiscovery,
                 onChest = { onNavigate(ShellDestination.ShellChest) },
                 onBadges = { onNavigate(ShellDestination.Badges) },
-                onJournal = { onNavigate(ShellDestination.DiscoveryJournal) },
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -507,11 +448,21 @@ private fun HeartRoomScreen(
             onOpenChest = {
                 showHeartDetail = false
                 onNavigate(ShellDestination.ShellChest)
-            },
-            onOpenJournal = {
-                showHeartDetail = false
-                onNavigate(ShellDestination.DiscoveryJournal)
             }
+        )
+    }
+}
+
+@Composable
+private fun HeartShellBackground(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(32.dp))
+            .background(shellChamberBrush())
+    ) {
+        TurtleShellInteriorBackground(
+            modifier = Modifier.matchParentSize(),
+            centerGlow = true
         )
     }
 }
@@ -725,19 +676,10 @@ private fun ShellWhisperDock(
     onClick: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
-    val displayedIds = displayedInstanceIds(uiState)
-    val affordableUpgrade = uiState.finds.firstOrNull { item ->
-        val def = ShellContentCatalog.find(item.findId) ?: return@firstOrNull false
-        if (def.kind != ShellRewardKind.OBJECT) return@firstOrNull false
-        val next = ShellContentCatalog.nextUpgrade(def.findId, item.currentUpgradeStageId) ?: return@firstOrNull false
-        item.instanceId in displayedIds && next.pearlCost <= uiState.pearlBalance
-    }
-    val restingCount = restingFinds(uiState).count { item -> ShellContentCatalog.find(item.findId)?.placeable == true }
+    val restingCount = activeChestCreatureCount(uiState)
     val hasEmptyNook = uiState.focusPlacements.size < ShellContentCatalog.focusSlots.size
 
     val text = when {
-        uiState.discoveries.any { it.isNew } -> stringResource(R.string.shell_whisper_new_discovery)
-        affordableUpgrade != null -> stringResource(R.string.shell_whisper_upgrade_ready, ShellContentCatalog.find(affordableUpgrade.findId)?.let { stringResource(it.titleRes) } ?: stringResource(R.string.shell_empty_slot))
         restingCount > 0 -> stringResource(R.string.shell_whisper_chest_waiting, restingCount)
         hasEmptyNook -> stringResource(R.string.shell_whisper_empty_focus)
         else -> stringResource(R.string.shell_pulse_mystery)
@@ -776,10 +718,8 @@ private fun ShellWhisperDock(
 @Composable
 private fun HeartShortcutDock(
     chestHasIndicator: Boolean,
-    journalHasIndicator: Boolean,
     onChest: () -> Unit,
     onBadges: () -> Unit,
-    onJournal: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -807,13 +747,6 @@ private fun HeartShortcutDock(
                 labelRes = R.string.shell_badges_title,
                 hasIndicator = false,
                 onClick = onBadges
-            )
-
-            HeartShortcut(
-                icon = Icons.Outlined.AutoStories,
-                labelRes = R.string.shell_journal_title,
-                hasIndicator = journalHasIndicator,
-                onClick = onJournal
             )
         }
     }
@@ -872,11 +805,10 @@ private fun HeartDetailSheet(
     onDismiss: () -> Unit,
     onOpenPearlBasin: () -> Unit,
     onOpenFocus: () -> Unit,
-    onOpenChest: () -> Unit,
-    onOpenJournal: () -> Unit
+    onOpenChest: () -> Unit
 ) {
-    val totalFinds = uiState.finds.count { isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) } +
-        uiState.stacks.filter { isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) }.sumOf { it.quantity }
+    val chestCreatureCount = activeChestCreatureCount(uiState)
+    val displayedCreatureCount = activeDisplayedCreatureCount(uiState)
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -895,17 +827,12 @@ private fun HeartDetailSheet(
             )
 
             Text(
-                text = stringResource(R.string.shell_heart_finds_owned, totalFinds),
+                text = stringResource(R.string.shell_heart_finds_owned, chestCreatureCount),
                 style = MaterialTheme.typography.bodyMedium
             )
 
             Text(
-                text = stringResource(R.string.shell_heart_discoveries_awakened, uiState.discoveries.size),
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Text(
-                text = stringResource(R.string.shell_heart_objects_displayed_resting, uiState.focusPlacements.size, restingFinds(uiState).size),
+                text = stringResource(R.string.shell_heart_objects_displayed_resting, displayedCreatureCount, chestCreatureCount),
                 style = MaterialTheme.typography.bodyMedium
             )
 
@@ -932,23 +859,11 @@ private fun HeartDetailSheet(
                 }
             }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            OutlinedButton(
+                onClick = onOpenChest,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                OutlinedButton(
-                    onClick = onOpenChest,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.shell_chest_title))
-                }
-
-                OutlinedButton(
-                    onClick = onOpenJournal,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.shell_journal_title))
-                }
+                Text(stringResource(R.string.shell_chest_title))
             }
         }
     }
@@ -959,12 +874,8 @@ private fun PearlBasinSheet(
     uiState: ShellUiState,
     onDismiss: () -> Unit,
     onOpenFocus: () -> Unit,
-    onOpenChest: () -> Unit,
-    onOpenObject: () -> Unit,
-    onInviteObject: (String) -> Unit
+    onOpenChest: () -> Unit
 ) {
-    var inviteConfirmation by remember { mutableStateOf<ShellFindDefinition?>(null) }
-
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -992,62 +903,10 @@ private fun PearlBasinSheet(
 
             Text(stringResource(R.string.shell_pearl_basin_copy))
 
-            val displayedIds = displayedInstanceIds(uiState)
-            val upgradeSuggestions = uiState.finds.mapNotNull { item ->
-                val def = ShellContentCatalog.find(item.findId) ?: return@mapNotNull null
-                if (def.kind != ShellRewardKind.OBJECT) return@mapNotNull null
-                val next = ShellContentCatalog.nextUpgrade(def.findId, item.currentUpgradeStageId) ?: return@mapNotNull null
-                Triple(item, def, next)
-            }.sortedBy { it.third.pearlCost }
-            val displayedUpgradeSuggestions = upgradeSuggestions.filter { it.first.instanceId in displayedIds }
-            val objectSuggestions = ShellContentCatalog.focusPearlObjects
-                .sortedBy { it.pearlCost ?: Int.MAX_VALUE }
-            val allCosts = displayedUpgradeSuggestions.map { it.third.pearlCost } + objectSuggestions.mapNotNull { it.pearlCost }
-            val hasAvailable = allCosts.any { it <= uiState.pearlBalance }
-
             Text(
-                text = stringResource(R.string.shell_available_now),
-                fontWeight = FontWeight.SemiBold
+                text = stringResource(R.string.shell_no_available_shapes),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (hasAvailable) {
-                displayedUpgradeSuggestions.filter { it.third.pearlCost <= uiState.pearlBalance }.take(2).forEach { (item, def, next) ->
-                    SuggestionRow(
-                        title = stringResource(R.string.shell_basin_brighten_suggestion, stringResource(def.titleRes)),
-                        cost = next.pearlCost,
-                        onClick = onOpenObject
-                    )
-                }
-                objectSuggestions.filter { (it.pearlCost ?: 0) <= uiState.pearlBalance }.take(2).forEach { def ->
-                    SuggestionRow(
-                        title = stringResource(R.string.shell_basin_invite_suggestion, stringResource(def.titleRes)),
-                        cost = def.pearlCost ?: 0,
-                        onClick = { inviteConfirmation = def }
-                    )
-                }
-            } else {
-                Text(stringResource(R.string.shell_no_available_shapes))
-            }
-
-            Text(
-                text = stringResource(R.string.shell_affordable_soon),
-                fontWeight = FontWeight.SemiBold
-            )
-            (displayedUpgradeSuggestions.filter { it.third.pearlCost > uiState.pearlBalance }.map { (_, def, next) ->
-                stringResource(R.string.shell_basin_soon_upgrade, stringResource(def.titleRes), stringResource(next.titleRes)) to next.pearlCost
-            } + objectSuggestions.filter { (it.pearlCost ?: 0) > uiState.pearlBalance }.map { def ->
-                stringResource(R.string.shell_basin_invite_suggestion, stringResource(def.titleRes)) to (def.pearlCost ?: 0)
-            })
-                .sortedBy { it.second }
-                .take(3)
-                .forEach { (title, cost) ->
-                    SuggestionRow(
-                        title = title,
-                        cost = cost,
-                        enabled = false,
-                        supportingText = stringResource(R.string.shell_need_more_pearls, cost - uiState.pearlBalance),
-                        onClick = {}
-                    )
-                }
 
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1074,341 +933,32 @@ private fun PearlBasinSheet(
         }
     }
 
-    inviteConfirmation?.let { def ->
-        InvitePearlObjectConfirmationSheet(
-            definition = def,
-            onDismiss = { inviteConfirmation = null },
-            onConfirm = {
-                inviteConfirmation = null
-                onInviteObject(def.findId)
-            }
-        )
-    }
 }
 
 @Composable
-private fun InvitePearlObjectConfirmationSheet(
-    definition: ShellFindDefinition,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    val title = stringResource(definition.titleRes)
-    val cost = definition.pearlCost ?: 0
-
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.shell_invite_confirm_title, title),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Text(stringResource(R.string.shell_invite_confirm_body, title))
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary
-                )
-            ) {
-                Text(stringResource(R.string.shell_invite_confirm_cta, cost))
-            }
-            OutlinedButton(onClick = onDismiss) {
-                Text(stringResource(R.string.shell_cancel))
-            }
-        }
-    }
-}
-
-@Composable
-private fun SuggestionRow(
-    title: String,
-    cost: Int,
-    enabled: Boolean = true,
-    supportingText: String? = null,
-    onClick: () -> Unit
-) {
-    ListItem(
-        headlineContent = { Text(title) },
-        supportingContent = { Text(supportingText ?: stringResource(R.string.shell_pearl_cost, cost)) },
-        modifier = Modifier
-            .clickable(enabled = enabled, onClick = onClick)
-            .semantics { role = Role.Button }
-    )
-}
-
-@Composable
-private fun HeartShellBackground(
-    modifier: Modifier = Modifier
-) {
+private fun ShellPearlBasinIcon(modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
-
     Canvas(modifier) {
-        val w = size.width
-        val h = size.height
-
-        drawOval(
-            color = scheme.primary.copy(alpha = 0.20f),
-            topLeft = Offset(-w * 0.16f, h * 0.02f),
-            size = Size(w * 1.32f, h * 0.96f)
-        )
-
-        drawOval(
-            color = scheme.secondary.copy(alpha = 0.10f),
-            topLeft = Offset(w * 0.08f, h * 0.09f),
-            size = Size(w * 0.84f, h * 0.76f)
-        )
-
-        val centerSeam = Path().apply {
-            moveTo(w * 0.50f, h * 0.07f)
-            cubicTo(
-                w * 0.46f,
-                h * 0.26f,
-                w * 0.54f,
-                h * 0.48f,
-                w * 0.50f,
-                h * 0.86f
-            )
-        }
-
-        drawPath(
-            path = centerSeam,
-            color = scheme.secondary.copy(alpha = 0.18f),
-            style = Stroke(width = 4f)
-        )
-
-        listOf(0.20f, 0.35f, 0.50f, 0.66f, 0.80f).forEach { yFraction ->
-            val y = h * yFraction
-
-            val band = Path().apply {
-                moveTo(w * 0.12f, y)
-                cubicTo(
-                    w * 0.30f,
-                    y - h * 0.05f,
-                    w * 0.43f,
-                    y + h * 0.025f,
-                    w * 0.50f,
-                    y
-                )
-                cubicTo(
-                    w * 0.57f,
-                    y + h * 0.025f,
-                    w * 0.70f,
-                    y - h * 0.05f,
-                    w * 0.88f,
-                    y
-                )
-            }
-
-            drawPath(
-                path = band,
-                color = scheme.secondary.copy(alpha = 0.10f),
-                style = Stroke(width = 2.5f)
-            )
-        }
-
-        drawOval(
-            color = Color.Black.copy(alpha = 0.08f),
-            topLeft = Offset(-w * 0.10f, h * 0.02f),
-            size = Size(w * 1.20f, h * 0.96f),
-            style = Stroke(width = w * 0.10f)
-        )
+        drawCircle(color = scheme.secondary, radius = size.minDimension * 0.42f, center = center)
+        drawCircle(color = scheme.onPrimary, radius = size.minDimension * 0.18f, center = center)
+        drawCircle(color = scheme.primary.copy(alpha = 0.45f), radius = size.minDimension * 0.08f, center = Offset(size.width * 0.57f, size.height * 0.43f))
     }
 }
 
 @Composable
-private fun ShellPearlBasinIcon(
-    modifier: Modifier = Modifier
-) {
+private fun TurtleShellCardPattern(modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
-
     Canvas(modifier) {
-        val w = size.width
-        val h = size.height
-
-        drawOval(
-            color = scheme.secondary.copy(alpha = 0.90f),
-            topLeft = Offset(w * 0.08f, h * 0.32f),
-            size = Size(w * 0.84f, h * 0.50f)
-        )
-
-        drawOval(
-            color = scheme.surface.copy(alpha = 0.86f),
-            topLeft = Offset(w * 0.16f, h * 0.36f),
-            size = Size(w * 0.68f, h * 0.34f)
-        )
-
-        repeat(4) { index ->
-            val x = w * (0.30f + index * 0.13f)
-            val groove = Path().apply {
-                moveTo(x, h * 0.42f)
-                cubicTo(
-                    x - w * 0.04f,
-                    h * 0.52f,
-                    x - w * 0.02f,
-                    h * 0.62f,
-                    x,
-                    h * 0.70f
-                )
-            }
-
-            drawPath(
-                path = groove,
-                color = scheme.onSecondary.copy(alpha = 0.26f),
-                style = Stroke(width = 2f)
-            )
-        }
-
-        drawCircle(
-            color = scheme.onPrimary,
-            radius = w * 0.16f,
-            center = Offset(w * 0.50f, h * 0.36f)
-        )
-
-        drawCircle(
-            color = scheme.primary.copy(alpha = 0.40f),
-            radius = w * 0.08f,
-            center = Offset(w * 0.56f, h * 0.31f)
-        )
-    }
-}
-
-@Composable
-private fun TurtleShellCardPattern(
-    modifier: Modifier = Modifier
-) {
-    val scheme = MaterialTheme.colorScheme
-
-    Canvas(modifier) {
-        val w = size.width
-        val h = size.height
-
         drawOval(
             color = scheme.secondary.copy(alpha = 0.08f),
-            topLeft = Offset(w * 0.08f, -h * 0.30f),
-            size = Size(w * 0.84f, h * 1.30f)
+            topLeft = Offset(size.width * 0.08f, -size.height * 0.25f),
+            size = Size(size.width * 0.84f, size.height * 1.25f)
         )
-
-        val seamColor = scheme.onSurface.copy(alpha = 0.10f)
-
-        val center = Path().apply {
-            moveTo(w * 0.50f, 0f)
-            cubicTo(
-                w * 0.46f,
-                h * 0.35f,
-                w * 0.54f,
-                h * 0.60f,
-                w * 0.50f,
-                h
-            )
-        }
-
-        drawPath(
-            path = center,
-            color = seamColor,
-            style = Stroke(width = 2f)
+        drawLine(
+            color = scheme.onSurface.copy(alpha = 0.10f),
+            start = Offset(size.width * 0.50f, 0f),
+            end = Offset(size.width * 0.50f, size.height),
+            strokeWidth = 2f
         )
-
-        repeat(3) { index ->
-            val y = h * (0.28f + index * 0.22f)
-
-            val band = Path().apply {
-                moveTo(w * 0.10f, y)
-                cubicTo(
-                    w * 0.32f,
-                    y - h * 0.08f,
-                    w * 0.44f,
-                    y + h * 0.05f,
-                    w * 0.50f,
-                    y
-                )
-                cubicTo(
-                    w * 0.56f,
-                    y + h * 0.05f,
-                    w * 0.68f,
-                    y - h * 0.08f,
-                    w * 0.90f,
-                    y
-                )
-            }
-
-            drawPath(
-                path = band,
-                color = seamColor,
-                style = Stroke(width = 2f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun DormantPreviewScreen(
-    titleRes: Int,
-    bodyRes: Int,
-    icon: ImageVector
-) {
-    val scheme = MaterialTheme.colorScheme
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-            .clip(RoundedCornerShape(32.dp))
-            .background(shellChamberBrush())
-    ) {
-        TurtleShellInteriorBackground(
-            modifier = Modifier.matchParentSize(),
-            centerGlow = true
-        )
-
-        Surface(
-            shape = RoundedCornerShape(32.dp),
-            color = scheme.surface.copy(alpha = 0.94f),
-            border = BorderStroke(1.dp, scheme.secondary.copy(alpha = 0.24f)),
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = scheme.primary,
-                    modifier = Modifier.size(72.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(38.dp),
-                            tint = scheme.onPrimary
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(18.dp))
-
-                Text(
-                    text = stringResource(titleRes),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = scheme.onSurface,
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(Modifier.height(8.dp))
-
-                Text(
-                    text = stringResource(bodyRes),
-                    color = scheme.onSurface.copy(alpha = 0.78f),
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
     }
 }

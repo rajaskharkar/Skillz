@@ -6,7 +6,6 @@ sealed class ShellDestination {
     data object Stillwater : ShellDestination()
     data object ShellChest : ShellDestination()
     data object Badges : ShellDestination()
-    data object DiscoveryJournal : ShellDestination()
     data object Notifications : ShellDestination()
     data object VoyagePreview : ShellDestination()
     data object TheBluePreview : ShellDestination()

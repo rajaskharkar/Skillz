@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AutoStories
-import androidx.compose.material.icons.outlined.Diamond
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.FilterVintage
 import androidx.compose.material.icons.outlined.Grass
@@ -32,19 +30,15 @@ import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellDepthTier
 import com.kingkharnivore.skillz.data.model.shell.ShellFindCategory
 import com.kingkharnivore.skillz.data.model.shell.ShellFindDefinition
-import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
-import com.kingkharnivore.skillz.ui.screen.shell.sourceReasonFor
 import com.kingkharnivore.skillz.ui.screen.shell.ux.RoomHeader
-import com.kingkharnivore.skillz.ui.screen.shell.ux.isUserVisibleShellFind
+import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 
 @Composable
 fun ShellNotificationsScreen(uiState: ShellUiState) {
-    val newFinds = uiState.finds.filter { it.isNew && isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) }
-    val newStacks = uiState.stacks.filter { it.isNew && isUserVisibleShellFind(ShellContentCatalog.find(it.findId)) }
+    val newFinds = uiState.finds.filter { it.isNew && isActiveChestCreature(it) }
     val newBadges = uiState.badges.filter { it.isNew }
-    val newDiscoveries = uiState.discoveries.filter { it.isNew }
-    val hasNotifications = newFinds.isNotEmpty() || newStacks.isNotEmpty() || newBadges.isNotEmpty() || newDiscoveries.isNotEmpty()
+    val hasNotifications = newFinds.isNotEmpty() || newBadges.isNotEmpty()
 
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
@@ -88,15 +82,6 @@ fun ShellNotificationsScreen(uiState: ShellUiState) {
             )
         }
 
-        items(newStacks, key = { it.findId }) { stack ->
-            val def = ShellContentCatalog.find(stack.findId) ?: return@items
-            val title = stringResource(def.titleRes)
-            ShellNotificationCard(
-                icon = iconFor(def.category),
-                title = stringResource(R.string.shell_chest_group_title, title, stack.quantity),
-                body = stringResource(R.string.shell_notification_stack_body, stack.quantity)
-            )
-        }
 
         items(newBadges, key = { it.badgeId }) { badge ->
             val def = ShellContentCatalog.badge(badge.badgeId) ?: return@items
@@ -105,16 +90,6 @@ fun ShellNotificationsScreen(uiState: ShellUiState) {
                 icon = Icons.Outlined.MilitaryTech,
                 title = stringResource(R.string.shell_badge_notification_title, title),
                 body = stringResource(R.string.shell_badge_notification_body, badge.count, stringResource(def.descriptionRes))
-            )
-        }
-
-        items(newDiscoveries, key = { it.userDiscoveryId }) { discovery ->
-            val def = ShellContentCatalog.discovery(discovery.discoveryId) ?: return@items
-            val title = stringResource(def.titleRes)
-            ShellNotificationCard(
-                icon = Icons.Outlined.AutoStories,
-                title = stringResource(R.string.shell_discovery_notification_title, title),
-                body = stringResource(def.explanationRes)
             )
         }
     }
@@ -151,19 +126,14 @@ private fun ShellNotificationCard(
 @Composable
 private fun notificationTitleFor(def: ShellFindDefinition): String {
     val title = stringResource(def.titleRes)
-    return when (def.kind) {
-        ShellRewardKind.ANIMAL -> stringResource(R.string.shell_notification_title_encountered, title)
-        ShellRewardKind.OBJECT -> if (def.isPearlObject) stringResource(R.string.shell_notification_title_invited, title) else stringResource(R.string.shell_notification_title_found, title)
-        ShellRewardKind.TRINKET -> title
-        ShellRewardKind.DISCOVERY -> title
-    }
+    return stringResource(R.string.shell_notification_title_encountered, title)
 }
 
 @Composable
 private fun notificationBodyFor(def: ShellFindDefinition): String {
     val depth = depthLabel(def.depthTier)
-    val reason = sourceReasonFor(def)
-    return if (depth != null) stringResource(R.string.shell_notification_depth_body, depth, reason) else reason
+    return depth?.let { stringResource(R.string.shell_notification_depth_body, it, stringResource(def.descriptionRes)) }
+        ?: stringResource(def.descriptionRes)
 }
 
 @Composable
@@ -181,6 +151,6 @@ private fun iconFor(category: ShellFindCategory): ImageVector = when (category) 
     ShellFindCategory.CORAL -> Icons.Outlined.FilterVintage
     ShellFindCategory.PLANTS -> Icons.Outlined.Grass
     ShellFindCategory.TROPHIES -> Icons.Outlined.EmojiEvents
-    ShellFindCategory.TRINKETS -> Icons.Outlined.Diamond
-    ShellFindCategory.DISCOVERIES -> Icons.Outlined.AutoStories
+    ShellFindCategory.TRINKETS -> Icons.Outlined.EmojiEvents
+    ShellFindCategory.DISCOVERIES -> Icons.Outlined.EmojiEvents
 }
