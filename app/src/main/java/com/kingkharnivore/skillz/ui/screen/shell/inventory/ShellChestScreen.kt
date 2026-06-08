@@ -1,6 +1,5 @@
 package com.kingkharnivore.skillz.ui.screen.shell.inventory
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -202,7 +201,6 @@ private fun ChestInventoryTile(stack: ChestInventoryStackUiModel, onClick: () ->
     )
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)),
         modifier = Modifier
             .size(104.dp)
             .clickable(onClick = onClick)
@@ -276,7 +274,7 @@ private fun ChestStackDetailSheet(
                     Text(stringResource(R.string.common_close))
                 }
                 Button(onClick = onReleaseOne, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.the_blue_release_action))
+                    Text(stringResource(R.string.shell_creature_release_confirm_disabled))
                 }
             }
         }

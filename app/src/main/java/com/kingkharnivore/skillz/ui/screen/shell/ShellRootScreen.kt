@@ -459,6 +459,20 @@ private fun HeartRoomScreen(
 }
 
 @Composable
+private fun HeartShellBackground(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(32.dp))
+            .background(shellChamberBrush())
+    ) {
+        TurtleShellInteriorBackground(
+            modifier = Modifier.matchParentSize(),
+            centerGlow = true
+        )
+    }
+}
+
+@Composable
 private fun RoomOrbitPair(
     modifier: Modifier = Modifier,
     nodeWidth: Dp,

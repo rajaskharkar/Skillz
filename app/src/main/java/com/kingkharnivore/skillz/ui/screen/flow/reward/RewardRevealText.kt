@@ -26,12 +26,12 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
     val shellWasShapedBody = stringResource(R.string.reward_card_shell_shaped_body)
     val animalTitleTemplate = stringResource(R.string.reward_card_animal_encountered_title)
     val objectTitleTemplate = stringResource(R.string.reward_card_object_found_title)
-    val trinketTitleTemplate = stringResource(R.string.reward_card_trinket_gathered_title)
+    val trinketTitleTemplate = stringResource(R.string.reward_card_reward_gathered_title)
     val badgeTitleTemplate = stringResource(R.string.reward_card_badge_updated_title)
     val discoveryTitleTemplate = stringResource(R.string.reward_card_discovery_recorded_title)
     val animalChipTemplate = stringResource(R.string.reward_card_animal_chip)
     val objectChip = stringResource(R.string.reward_card_object_chip)
-    val trinketChip = stringResource(R.string.reward_card_trinket_chip)
+    val trinketChip = stringResource(R.string.reward_card_reward_chip)
     val discoveryChip = stringResource(R.string.reward_card_discovery_chip)
     val badgeChip = stringResource(R.string.reward_card_badge_chip)
     val reef = stringResource(R.string.reward_card_depth_reef)
@@ -49,7 +49,7 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         ShellContentCatalog.FOCUS_PEBBLE to stringResource(R.string.reward_card_object_reason_pebble)
     )
     val objectReasonDefault = stringResource(R.string.reward_card_object_reason_default)
-    val trinketReason = stringResource(R.string.reward_card_trinket_reason_default)
+    val trinketReason = stringResource(R.string.reward_card_reward_reason_default)
     val discoveryReasons = mapOf(
         "discovery_octopus" to stringResource(R.string.reward_card_discovery_reason_octopus),
         "discovery_pebble" to stringResource(R.string.reward_card_discovery_reason_pebble),

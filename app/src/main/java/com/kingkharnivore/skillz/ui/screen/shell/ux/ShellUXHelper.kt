@@ -359,6 +359,6 @@ fun displayedInstanceIds(uiState: ShellUiState): Set<String> =
 fun kindLabel(kind: ShellRewardKind): String = when (kind) {
     ShellRewardKind.ANIMAL -> stringResource(R.string.shell_kind_animal)
     ShellRewardKind.OBJECT -> stringResource(R.string.shell_kind_object)
-    ShellRewardKind.TRINKET -> stringResource(R.string.shell_kind_trinket)
+    ShellRewardKind.TRINKET -> stringResource(R.string.shell_kind_reward)
     ShellRewardKind.DISCOVERY -> stringResource(R.string.shell_kind_discovery)
 }
