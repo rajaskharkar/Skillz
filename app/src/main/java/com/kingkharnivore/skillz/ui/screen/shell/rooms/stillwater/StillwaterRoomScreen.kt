@@ -207,7 +207,7 @@ private fun StillwaterVesselCard(
                     shape = RoundedCornerShape(999.dp),
                     color = when {
                         !isUnlocked -> scheme.surfaceVariant
-                        canDraw -> scheme.primaryContainer
+                        canDraw -> scheme.secondary
                         else -> scheme.secondaryContainer
                     }
                 ) {
