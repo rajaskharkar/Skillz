@@ -12,7 +12,7 @@ import com.kingkharnivore.skillz.data.repository.health.FlowHealthRepository
 import com.kingkharnivore.skillz.data.model.entity.health.FlowHealthSnapshotEntity
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.data.repository.PulseRepository
-import com.kingkharnivore.skillz.domain.health.HealthRefreshUseCase
+import com.kingkharnivore.skillz.utils.health.HealthRefreshUseCase
 import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.model.ui.ArcFlowItemUiModel
 import com.kingkharnivore.skillz.model.ui.ChronicleUiModel
@@ -56,7 +56,10 @@ class StoryViewModel @Inject constructor(
 
     private val period = MutableStateFlow(StoryPeriod.WEEK)
     private val anchorDayStartMs = MutableStateFlow(
-        TimeWindowUtils.startOfPeriodMs(System.currentTimeMillis(), StoryPeriod.WEEK)
+        TimeWindowUtils.startOfPeriodMs(
+            System.currentTimeMillis(),
+            StoryPeriod.WEEK
+        )
     )
 
     private val viewJourneysTagId = MutableStateFlow<Long?>(null)
@@ -66,7 +69,8 @@ class StoryViewModel @Inject constructor(
     private var nextJourneyColorIndex = 0
 
     private val sessionsFlow: Flow<List<SessionEntity>> = sessionRepository.getAllSessions()
-    private val healthSnapshotsFlow: Flow<List<FlowHealthSnapshotEntity>> = flowHealthRepository.observeSnapshots()
+    private val healthSnapshotsFlow: Flow<List<FlowHealthSnapshotEntity>> =
+        flowHealthRepository.observeSnapshots()
     private val pulsesFlow: Flow<List<PulseEntity>> = pulseRepository.getAllPulses()
     private val tagsFlow: Flow<List<TagEntity>> = tagRepository.getAllTags()
 
@@ -157,7 +161,8 @@ class StoryViewModel @Inject constructor(
 
     fun goToday() {
         val p = period.value
-        val todayAnchor = TimeWindowUtils.startOfPeriodMs(System.currentTimeMillis(), p)
+        val todayAnchor = TimeWindowUtils
+            .startOfPeriodMs(System.currentTimeMillis(), p)
         setAnchorClamped(todayAnchor, p)
     }
 
@@ -364,11 +369,15 @@ class StoryViewModel @Inject constructor(
                         pulses.filter { it.tagId != null && it.tagId in effectiveSelectedTagIds }
                     }
 
-                val normalizedAnchor = TimeWindowUtils.normalizeAnchor(anchorStartMs, currentPeriod)
-                val window = TimeWindowUtils.windowFor(normalizedAnchor, currentPeriod)
+                val normalizedAnchor = TimeWindowUtils
+                    .normalizeAnchor(anchorStartMs, currentPeriod)
+                val window = TimeWindowUtils
+                    .windowFor(normalizedAnchor, currentPeriod)
 
                 val visibleSessions =
-                    sessionsForTags.filter { it.createdAt in window.startMs until window.endMs }
+                    sessionsForTags.filter {
+                        it.createdAt in window.startMs until window.endMs
+                    }
 
                 val visiblePulses =
                     pulsesForTags.filter { it.createdAt in window.startMs until window.endMs }
@@ -397,7 +406,9 @@ class StoryViewModel @Inject constructor(
                         )
                         .map { it.key }
 
-                val journeyColors = getOrCreateJourneyColors(visibleJourneyIdsInPriorityOrder)
+                val journeyColors = getOrCreateJourneyColors(
+                    visibleJourneyIdsInPriorityOrder
+                )
 
                 val chronicleItems = buildChronicleItems(
                     allSessions = sessions,
@@ -432,7 +443,9 @@ class StoryViewModel @Inject constructor(
                             }
                             .filter { it.tagName.isNotBlank() }
                             .sortedWith(
-                                compareByDescending<Journey7dStatUiModel> { it.totalScore }
+                                compareByDescending<Journey7dStatUiModel> {
+                                    it.totalScore
+                                }
                                     .thenByDescending { it.totalDurationMs }
                                     .thenByDescending { it.sessionsCount }
                             )
@@ -540,7 +553,9 @@ class StoryViewModel @Inject constructor(
         nowMs: Long = System.currentTimeMillis()
     ) {
         anchorDayStartMs.value = TimeWindowUtils.clampToFirstAndToday(
-            anchorStartMs = TimeWindowUtils.normalizeAnchor(anchorCandidateMs, periodValue),
+            anchorStartMs = TimeWindowUtils.normalizeAnchor(
+                anchorCandidateMs, periodValue
+            ),
             period = periodValue,
             firstSessionStartMs = uiState.value.firstSessionStartMs,
             nowMs = nowMs
@@ -577,8 +592,12 @@ class StoryViewModel @Inject constructor(
             Color(0xFF3E8F6B)
         )
 
-        val lighter = base.map { androidx.compose.ui.graphics.lerp(it, Color.White, 0.18f) }
-        val darker = base.map { androidx.compose.ui.graphics.lerp(it, Color.Black, 0.12f) }
+        val lighter = base.map {
+            androidx.compose.ui.graphics.lerp(it, Color.White, 0.18f)
+        }
+        val darker = base.map {
+            androidx.compose.ui.graphics.lerp(it, Color.Black, 0.12f)
+        }
 
         return buildList {
             addAll(base)
@@ -694,7 +713,8 @@ class StoryViewModel @Inject constructor(
             if (!emittedArcIds.add(arcId)) return@forEach
 
             val allArcSessions = allByArcId[arcId].orEmpty().sortedByDescending { it.createdAt }
-            val visibleArcSessions = visibleByArcId[arcId].orEmpty().sortedByDescending { it.createdAt }
+            val visibleArcSessions = visibleByArcId[arcId]
+                .orEmpty().sortedByDescending { it.createdAt }
 
             if (allArcSessions.size < 2) {
                 val flowUi = visibleFlowUiBySessionId[session.id] ?: return@forEach
@@ -723,7 +743,8 @@ class StoryViewModel @Inject constructor(
                 )
             }
 
-            val hiddenFlowsCount = (allArcSessions.size - visibleArcSessions.size).coerceAtLeast(0)
+            val hiddenFlowsCount = (allArcSessions.size - visibleArcSessions.size)
+                .coerceAtLeast(0)
             val totalArcDurationMs = allArcSessions.sumOf { it.durationMs }
             val totalArcScore = allArcSessions.sumOf { it.scyraPoints }
             val peakMultiplier = allArcSessions.maxOfOrNull { it.arcMultiplierUsed ?: 0.0 }

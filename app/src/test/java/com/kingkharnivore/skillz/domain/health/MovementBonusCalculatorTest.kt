@@ -1,5 +1,9 @@
 package com.kingkharnivore.skillz.domain.health
 
+import com.kingkharnivore.skillz.utils.health.MovementBonusCalculator
+import com.kingkharnivore.skillz.utils.health.MovementBonusEligibilityInput
+import com.kingkharnivore.skillz.utils.health.MovementBonusEligibilityPolicy
+import com.kingkharnivore.skillz.utils.health.MovementRewardRecalculator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

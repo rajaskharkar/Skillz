@@ -2,8 +2,8 @@ package com.kingkharnivore.skillz.ui.screen.shell.inventory
 
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
-import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
-import com.kingkharnivore.skillz.domain.shell.CreatureStatus
+import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
+import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.domain.voyage
+package com.kingkharnivore.skillz.utils.shell.voyage
 
 import java.time.Instant
 import java.time.LocalDate

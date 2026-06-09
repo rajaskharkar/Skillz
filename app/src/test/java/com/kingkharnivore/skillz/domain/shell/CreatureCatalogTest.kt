@@ -1,5 +1,8 @@
 package com.kingkharnivore.skillz.domain.shell
 
+import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
+import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
+import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import org.junit.Assert.*
 import org.junit.Test
 

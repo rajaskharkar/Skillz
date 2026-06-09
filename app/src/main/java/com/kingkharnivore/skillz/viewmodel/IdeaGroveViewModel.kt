@@ -7,7 +7,7 @@ import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseGroveStatusValues
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
-import com.kingkharnivore.skillz.data.repository.IdeaGroveRepository
+import com.kingkharnivore.skillz.data.repository.shell.IdeaGroveRepository
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemType
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemUiModel
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveSort
@@ -93,7 +93,11 @@ class IdeaGroveViewModel @Inject constructor(
             isFlowRunning = ongoing.isMeaningfulActiveFlow(),
             isLoading = false
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), IdeaGroveUiState())
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        IdeaGroveUiState()
+    )
 
     init {
         viewModelScope.launch {

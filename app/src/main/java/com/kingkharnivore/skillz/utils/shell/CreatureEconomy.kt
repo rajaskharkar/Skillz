@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.domain.shell
+package com.kingkharnivore.skillz.utils.shell
 
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import kotlin.math.ln

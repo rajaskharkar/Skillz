@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.data.repository.lookout
+package com.kingkharnivore.skillz.data.repository.shell
 
 import androidx.room.withTransaction
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
@@ -27,12 +27,16 @@ class LookoutRepository @Inject constructor(
     private val badgeDao: UserBadgeDao
 ) {
     fun observeObjectives(): Flow<List<ObjectiveEntity>> = objectiveDao.observeActiveObjectives()
-    fun observeCompletions(): Flow<List<ObjectiveCompletionEntity>> = completionDao.observeCompletions()
-    fun observeSkippedCycles(): Flow<List<ObjectiveSkippedCycleEntity>> = skippedCycleDao.observeSkippedCycles()
+    fun observeCompletions(): Flow<List<ObjectiveCompletionEntity>> =
+        completionDao.observeCompletions()
+    fun observeSkippedCycles(): Flow<List<ObjectiveSkippedCycleEntity>> =
+        skippedCycleDao.observeSkippedCycles()
 
     suspend fun getActiveObjectives(): List<ObjectiveEntity> = objectiveDao.getActiveObjectives()
-    suspend fun insertObjective(objective: ObjectiveEntity): Long = objectiveDao.insertObjective(objective)
-    suspend fun archiveObjective(id: Long) = objectiveDao.archiveObjective(id, System.currentTimeMillis())
+    suspend fun insertObjective(objective: ObjectiveEntity): Long =
+        objectiveDao.insertObjective(objective)
+    suspend fun archiveObjective(id: Long) =
+        objectiveDao.archiveObjective(id, System.currentTimeMillis())
 
     suspend fun skipCycle(objectiveId: Long, periodStartMs: Long, periodEndMs: Long) {
         skippedCycleDao.insertSkippedCycle(
@@ -45,9 +49,22 @@ class LookoutRepository @Inject constructor(
         )
     }
 
-    suspend fun applyCompletionGrant(grant: ObjectiveCompletionEntity, newCurrentStreak: Int?, newMaxStreak: Int?, newTotalCompletions: Int?): Boolean = db.withTransaction {
-        if (completionDao.getCompletion(grant.objectiveId, grant.periodStartMs, grant.periodEndMs) != null) return@withTransaction false
-        val inserted = completionDao.insertCompletion(grant.copy(pearlsGranted = false, pearlsClaimed = false, pearlsClaimedAt = null)) != -1L
+    suspend fun applyCompletionGrant(
+        grant: ObjectiveCompletionEntity,
+        newCurrentStreak: Int?,
+        newMaxStreak: Int?,
+        newTotalCompletions: Int?
+    ): Boolean = db.withTransaction {
+        if (completionDao
+            .getCompletion(
+                grant.objectiveId, grant.periodStartMs, grant.periodEndMs
+            ) != null) return@withTransaction false
+        val inserted = completionDao
+            .insertCompletion(
+                grant.copy(
+                    pearlsGranted = false, pearlsClaimed = false, pearlsClaimedAt = null
+                )
+            ) != -1L
         if (!inserted) return@withTransaction false
 
         incrementBadgeInTransaction(grant.badgeKey, grant.completedAt)
@@ -64,8 +81,10 @@ class LookoutRepository @Inject constructor(
         true
     }
 
-    suspend fun claimObjectivePearls(completionId: Long): ObjectiveCompletionEntity? = db.withTransaction {
-        val completion = completionDao.getCompletionById(completionId) ?: return@withTransaction null
+    suspend fun claimObjectivePearls(completionId: Long):
+            ObjectiveCompletionEntity? = db.withTransaction {
+        val completion = completionDao.getCompletionById(completionId)
+            ?: return@withTransaction null
         if (completion.pearlsClaimed) return@withTransaction null
 
         val now = System.currentTimeMillis()
@@ -97,7 +116,13 @@ class LookoutRepository @Inject constructor(
         val current = badgeDao.get(badgeId)
         badgeDao.upsert(
             current?.copy(count = current.count + 1, lastEarnedAt = now, isNew = true)
-                ?: UserBadgeEntity(badgeId = badgeId, count = 1, firstEarnedAt = now, lastEarnedAt = now, isNew = true)
+                ?: UserBadgeEntity(
+                    badgeId = badgeId,
+                    count = 1,
+                    firstEarnedAt = now,
+                    lastEarnedAt = now,
+                    isNew = true
+                )
         )
     }
 }

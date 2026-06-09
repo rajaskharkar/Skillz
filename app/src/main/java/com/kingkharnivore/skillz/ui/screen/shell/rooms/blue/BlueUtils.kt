@@ -4,8 +4,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
-import com.kingkharnivore.skillz.domain.shell.CreatureDefinition
-import com.kingkharnivore.skillz.domain.shell.CreatureZone
+import com.kingkharnivore.skillz.utils.shell.CreatureDefinition
+import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.ui.screen.shell.TheBlueZoneId
 import com.kingkharnivore.skillz.ui.screen.shell.TheBlueZoneUiModel
 

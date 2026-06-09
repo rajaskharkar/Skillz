@@ -37,13 +37,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
-import com.kingkharnivore.skillz.domain.shell.CreatureDefinition
-import com.kingkharnivore.skillz.domain.shell.StillwaterVessel
-import com.kingkharnivore.skillz.domain.shell.stillwaterDropsNeeded
-import com.kingkharnivore.skillz.domain.shell.stillwaterVesselProgress
+import com.kingkharnivore.skillz.utils.shell.CreatureDefinition
+import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
+import com.kingkharnivore.skillz.utils.shell.stillwaterDropsNeeded
+import com.kingkharnivore.skillz.utils.shell.stillwaterVesselProgress
 import com.kingkharnivore.skillz.ui.screen.shell.icons.draw.TurtleShellInteriorBackground
 import com.kingkharnivore.skillz.ui.screen.shell.ux.RoomHeader
 import com.kingkharnivore.skillz.ui.screen.shell.ux.shellChamberBrush
+import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.isBlueZoneUnlocked
 
@@ -376,9 +377,9 @@ private fun categoryFor(vessel: StillwaterVessel): Int = when (vessel) {
 }
 
 @Composable
-private fun categoryForZone(zone: com.kingkharnivore.skillz.domain.shell.CreatureZone): String = when (zone) {
-    com.kingkharnivore.skillz.domain.shell.CreatureZone.SUNLIT_REEF -> stringResource(R.string.shell_stillwater_fishbowl_category)
-    com.kingkharnivore.skillz.domain.shell.CreatureZone.DEEPER_REEF -> stringResource(R.string.shell_stillwater_aquarium_category)
-    com.kingkharnivore.skillz.domain.shell.CreatureZone.OPEN_BLUE -> stringResource(R.string.shell_stillwater_pond_category)
-    com.kingkharnivore.skillz.domain.shell.CreatureZone.GREAT_BLUE -> stringResource(R.string.shell_stillwater_lake_category)
+private fun categoryForZone(zone: CreatureZone): String = when (zone) {
+    CreatureZone.SUNLIT_REEF -> stringResource(R.string.shell_stillwater_fishbowl_category)
+    CreatureZone.DEEPER_REEF -> stringResource(R.string.shell_stillwater_aquarium_category)
+    CreatureZone.OPEN_BLUE -> stringResource(R.string.shell_stillwater_pond_category)
+    CreatureZone.GREAT_BLUE -> stringResource(R.string.shell_stillwater_lake_category)
 }

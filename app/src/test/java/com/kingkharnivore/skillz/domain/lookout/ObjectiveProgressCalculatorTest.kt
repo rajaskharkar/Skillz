@@ -2,6 +2,11 @@ package com.kingkharnivore.skillz.domain.lookout
 
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveSkippedCycleEntity
+import com.kingkharnivore.skillz.utils.shell.lookout.ObjectiveCardState
+import com.kingkharnivore.skillz.utils.shell.lookout.ObjectiveKind
+import com.kingkharnivore.skillz.utils.shell.lookout.ObjectivePeriod
+import com.kingkharnivore.skillz.utils.shell.lookout.ObjectiveProgressCalculator
+import com.kingkharnivore.skillz.utils.shell.lookout.ObjectiveSourceFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -179,5 +184,6 @@ class ObjectiveProgressCalculatorTest {
         updatedAt = startAtMs
     )
 
-    private fun flow(id: Long, end: Long, duration: Long, soft: Boolean) = ObjectiveSourceFlow(id, 12, end - duration, end, duration, soft)
+    private fun flow(id: Long, end: Long, duration: Long, soft: Boolean) =
+        ObjectiveSourceFlow(id, 12, end - duration, end, duration, soft)
 }

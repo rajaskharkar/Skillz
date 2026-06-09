@@ -81,7 +81,8 @@ class PlanArcViewModel @Inject constructor(
 
         viewModelScope.launch {
             val arc = arcPlanRepository.getArcPlanById(arcId) ?: return@launch
-            val steps = arcPlanRepository.getStepsForArcPlanOnce(arcId).sortedBy { it.orderIndex }
+            val steps = arcPlanRepository
+                .getStepsForArcPlanOnce(arcId).sortedBy { it.orderIndex }
 
             _uiState.update { current ->
                 current.copy(
@@ -225,7 +226,8 @@ class PlanArcViewModel @Inject constructor(
 
     fun onFlowToggled(flowPlanId: Long) {
         _uiState.update { current ->
-            val flow = current.availableFlows.firstOrNull { it.id == flowPlanId } ?: return@update current
+            val flow = current.availableFlows.firstOrNull { it.id == flowPlanId }
+                ?: return@update current
             if (flow.isSoftMode) {
                 return@update current.copy(errorMessage = "Soft Flows cannot be added to Arcs.")
             }
@@ -233,7 +235,8 @@ class PlanArcViewModel @Inject constructor(
 
             if (alreadySelected) {
                 current.copy(
-                    selectedFlowIdsInOrder = current.selectedFlowIdsInOrder.filterNot { it == flowPlanId },
+                    selectedFlowIdsInOrder = current.selectedFlowIdsInOrder
+                        .filterNot { it == flowPlanId },
                     targetMinutesTextByFlowId = current.targetMinutesTextByFlowId - flowPlanId,
                     launchWithSurgeByFlowId = current.launchWithSurgeByFlowId - flowPlanId,
                     errorMessage = null
@@ -284,7 +287,8 @@ class PlanArcViewModel @Inject constructor(
     fun removeSelectedFlow(flowPlanId: Long) {
         _uiState.update { current ->
             current.copy(
-                selectedFlowIdsInOrder = current.selectedFlowIdsInOrder.filterNot { it == flowPlanId },
+                selectedFlowIdsInOrder = current.selectedFlowIdsInOrder
+                    .filterNot { it == flowPlanId },
                 targetMinutesTextByFlowId = current.targetMinutesTextByFlowId - flowPlanId,
                 launchWithSurgeByFlowId = current.launchWithSurgeByFlowId - flowPlanId,
                 errorMessage = null
@@ -365,7 +369,8 @@ class PlanArcViewModel @Inject constructor(
         val digitsOnly = value.filter(Char::isDigit)
 
         _uiState.update { current ->
-            val flow = current.availableFlows.firstOrNull { it.id == flowPlanId } ?: return@update current
+            val flow = current.availableFlows.firstOrNull { it.id == flowPlanId }
+                ?: return@update current
             val updatedTargetMap = current.targetMinutesTextByFlowId + (flowPlanId to digitsOnly)
 
             val hasValidTarget = digitsOnly.toIntOrNull()?.let { it > 0 } == true
@@ -385,13 +390,15 @@ class PlanArcViewModel @Inject constructor(
 
     fun onStepLaunchWithSurgeChanged(flowPlanId: Long, enabled: Boolean) {
         _uiState.update { current ->
-            val flow = current.availableFlows.firstOrNull { it.id == flowPlanId } ?: return@update current
+            val flow = current.availableFlows.firstOrNull { it.id == flowPlanId }
+                ?: return@update current
             val targetText = current.targetMinutesTextByFlowId[flowPlanId].orEmpty()
             val hasValidTarget = targetText.toIntOrNull()?.let { it > 0 } == true
             val normalized = !flow.isSoftMode && hasValidTarget && enabled
 
             current.copy(
-                launchWithSurgeByFlowId = current.launchWithSurgeByFlowId + (flowPlanId to normalized),
+                launchWithSurgeByFlowId =
+                    current.launchWithSurgeByFlowId + (flowPlanId to normalized),
                 errorMessage = null
             )
         }

@@ -1,6 +1,12 @@
 package com.kingkharnivore.skillz.domain.shell
 
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
+import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
+import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
+import com.kingkharnivore.skillz.utils.shell.CreatureLedgerEntry
+import com.kingkharnivore.skillz.utils.shell.CreatureMasteryTier
+import com.kingkharnivore.skillz.utils.shell.CreaturePaymentQuote
+import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -107,7 +113,11 @@ class CreatureEconomyTest {
             listOf(
                 CreatureLedgerEntry(ShellContentCatalog.FOCUS_WHALE, CreatureStatus.ACTIVE, 2),
                 CreatureLedgerEntry(ShellContentCatalog.FOCUS_WHALE, CreatureStatus.RELEASED, 7),
-                CreatureLedgerEntry(ShellContentCatalog.FOCUS_WHALE, CreatureStatus.USED_BEYOND_BLUE, 3)
+                CreatureLedgerEntry(
+                    ShellContentCatalog.FOCUS_WHALE,
+                    CreatureStatus.USED_BEYOND_BLUE,
+                    3
+                )
             ),
             ShellContentCatalog.FOCUS_WHALE
         )

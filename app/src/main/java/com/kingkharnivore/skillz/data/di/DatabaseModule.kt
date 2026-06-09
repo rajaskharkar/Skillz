@@ -10,7 +10,7 @@ import com.kingkharnivore.skillz.data.model.dao.ActiveArcRunDao
 import com.kingkharnivore.skillz.data.model.dao.ArcPlanDao
 import com.kingkharnivore.skillz.data.model.dao.FlowPlanDao
 import com.kingkharnivore.skillz.data.model.dao.health.FlowHealthDao
-import com.kingkharnivore.skillz.data.model.dao.IdeaGroveDao
+import com.kingkharnivore.skillz.data.model.dao.shell.IdeaGroveDao
 import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
 import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao

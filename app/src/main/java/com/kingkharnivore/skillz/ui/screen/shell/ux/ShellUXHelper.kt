@@ -38,8 +38,8 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEn
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellFindDefinition
 import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
-import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
-import com.kingkharnivore.skillz.domain.shell.CreatureStatus
+import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
+import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellAnimalCanvasIcon
 import com.kingkharnivore.skillz.ui.screen.shell.sourceReasonFor
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState

@@ -1,5 +1,15 @@
 package com.kingkharnivore.skillz.domain.shell
 
+import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
+import com.kingkharnivore.skillz.utils.shell.CreatureRenderFamily
+import com.kingkharnivore.skillz.utils.shell.CreatureScaleClass
+import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
+import com.kingkharnivore.skillz.utils.shell.CreatureZone
+import com.kingkharnivore.skillz.utils.shell.StillwaterCatalog
+import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
+import com.kingkharnivore.skillz.utils.shell.calculateDropsForSoftFlow
+import com.kingkharnivore.skillz.utils.shell.requiresStillwaterConfirmation
+import com.kingkharnivore.skillz.utils.shell.validateStillwaterDraw
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -52,7 +62,11 @@ class StillwaterCatalogTest {
             validateStillwaterDraw(StillwaterVessel.LAKE, setOf(CreatureZone.SUNLIT_REEF), 100_000L)
         }
         assertFailsWith<IllegalArgumentException> {
-            validateStillwaterDraw(StillwaterVessel.FISHBOWL, setOf(CreatureZone.SUNLIT_REEF), 14_999L)
+            validateStillwaterDraw(
+                StillwaterVessel.FISHBOWL,
+                setOf(CreatureZone.SUNLIT_REEF),
+                14_999L
+            )
         }
         validateStillwaterDraw(StillwaterVessel.FISHBOWL, setOf(CreatureZone.SUNLIT_REEF), 15_000L)
     }

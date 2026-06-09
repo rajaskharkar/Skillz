@@ -20,7 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
-import com.kingkharnivore.skillz.domain.shell.CreatureStatus
+import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 import com.kingkharnivore.skillz.ui.screen.shell.TheBlueAnimalGroupUiModel
 import com.kingkharnivore.skillz.ui.screen.shell.TheBlueZoneId
 import com.kingkharnivore.skillz.ui.screen.shell.buildTheBlueUiState

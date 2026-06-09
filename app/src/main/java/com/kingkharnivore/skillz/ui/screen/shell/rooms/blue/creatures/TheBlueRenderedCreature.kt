@@ -2,9 +2,9 @@ package com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.creatures
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import com.kingkharnivore.skillz.domain.shell.CreatureDefinition
-import com.kingkharnivore.skillz.domain.shell.CreaturePlacementBand
-import com.kingkharnivore.skillz.domain.shell.CreatureSceneBehavior
+import com.kingkharnivore.skillz.utils.shell.CreatureDefinition
+import com.kingkharnivore.skillz.utils.shell.CreaturePlacementBand
+import com.kingkharnivore.skillz.utils.shell.CreatureSceneBehavior
 import com.kingkharnivore.skillz.ui.screen.shell.TheBlueAnimalGroupUiModel
 
 data class TheBlueRenderedCreature(

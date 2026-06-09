@@ -1,6 +1,11 @@
 package com.kingkharnivore.skillz.domain.health
 
 import com.kingkharnivore.skillz.data.health.MovementReadResult
+import com.kingkharnivore.skillz.utils.health.FlowActiveInterval
+import com.kingkharnivore.skillz.utils.health.FlowActiveIntervalCodec
+import com.kingkharnivore.skillz.utils.health.FlowActiveIntervalNormalizer
+import com.kingkharnivore.skillz.utils.health.MovementBonusCalculator
+import com.kingkharnivore.skillz.utils.health.MovementStepAggregator
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -79,8 +84,16 @@ class FlowActiveIntervalTest {
     }
 
     @Test fun restoredRunningFlowDoesNotDoubleCountSavedOpenInterval() {
-        val savedWhileRunning = FlowActiveIntervalCodec.encode(listOf(FlowActiveInterval(0, 10 * MINUTE)))
-        val restoredIntervals = FlowActiveIntervalCodec.decode(savedWhileRunning) + FlowActiveInterval(0, 20 * MINUTE)
+        val savedWhileRunning = FlowActiveIntervalCodec.encode(listOf(
+            FlowActiveInterval(
+                0,
+                10 * MINUTE
+            )
+        ))
+        val restoredIntervals = FlowActiveIntervalCodec.decode(savedWhileRunning) + FlowActiveInterval(
+            0,
+            20 * MINUTE
+        )
 
         assertEquals(listOf(FlowActiveInterval(0, 20 * MINUTE)), FlowActiveIntervalNormalizer.normalize(restoredIntervals))
     }
