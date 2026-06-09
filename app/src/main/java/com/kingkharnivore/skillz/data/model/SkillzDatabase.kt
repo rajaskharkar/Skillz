@@ -8,7 +8,7 @@ import com.kingkharnivore.skillz.data.model.dao.FlowPlanDao
 import com.kingkharnivore.skillz.data.model.entity.health.FlowRewardBreakdownEntity
 import com.kingkharnivore.skillz.data.model.entity.health.FlowHealthSnapshotEntity
 import com.kingkharnivore.skillz.data.model.dao.health.FlowHealthDao
-import com.kingkharnivore.skillz.data.model.dao.IdeaGroveDao
+import com.kingkharnivore.skillz.data.model.dao.shell.IdeaGroveDao
 import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
 import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao

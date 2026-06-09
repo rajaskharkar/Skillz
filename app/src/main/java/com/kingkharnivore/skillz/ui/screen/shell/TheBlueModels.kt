@@ -5,10 +5,10 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEn
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
-import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
-import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
-import com.kingkharnivore.skillz.domain.shell.CreatureSourceType
-import com.kingkharnivore.skillz.domain.shell.CreatureStatus
+import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
+import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
+import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
+import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 
 enum class TheBlueZoneId { SUNLIT_REEF, DEEPER_REEF, OPEN_BLUE, GREAT_BLUE }
 

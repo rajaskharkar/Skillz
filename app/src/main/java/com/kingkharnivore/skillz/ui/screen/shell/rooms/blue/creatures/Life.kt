@@ -1,6 +1,6 @@
 package com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.creatures
 
-import com.kingkharnivore.skillz.domain.shell.CreaturePlacementBand
+import com.kingkharnivore.skillz.utils.shell.CreaturePlacementBand
 
 data class LifeAgent(
     val key: String,

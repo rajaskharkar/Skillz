@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.domain.lookout
+package com.kingkharnivore.skillz.utils.shell.lookout
 
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveCompletionEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveEntity
@@ -6,7 +6,6 @@ import com.kingkharnivore.skillz.data.model.entity.shell.ObjectivePeriodTypes
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveSkippedCycleEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveTypes
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 import kotlin.math.floor

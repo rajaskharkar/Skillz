@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.domain.shell
+package com.kingkharnivore.skillz.utils.shell
 
 import kotlin.random.Random
 

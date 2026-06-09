@@ -1,16 +1,17 @@
-package com.kingkharnivore.skillz.data.repository
+package com.kingkharnivore.skillz.data.repository.shell
 
 import androidx.room.withTransaction
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
-import com.kingkharnivore.skillz.data.model.dao.IdeaGroveDao
 import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.dao.TagDao
+import com.kingkharnivore.skillz.data.model.dao.shell.IdeaGroveDao
 import com.kingkharnivore.skillz.data.model.entity.PulseEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseFlowLinkEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseGroveStatusValues
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
+import com.kingkharnivore.skillz.data.repository.PulseRepository
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveFlowUiModel
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemType
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemUiModel
@@ -150,7 +151,8 @@ class IdeaGroveRepository @Inject constructor(
             }
             val type = when {
                 effectiveStatus == PulseGroveStatusValues.INSIGHT -> IdeaGroveItemType.INSIGHT
-                effectiveStatus == PulseGroveStatusValues.COMPLETED -> IdeaGroveItemType.COMPLETED_IDEA
+                effectiveStatus == PulseGroveStatusValues.COMPLETED ->
+                    IdeaGroveItemType.COMPLETED_IDEA
                 flowCount > 0 -> IdeaGroveItemType.IDEA
                 else -> IdeaGroveItemType.RAW_PULSE
             }
@@ -169,7 +171,8 @@ class IdeaGroveRepository @Inject constructor(
                 totalFlowDurationMs = flows.sumOf { it.durationMs },
                 lastWorkedAt = flows.maxOfOrNull { it.endTime ?: it.startTime },
                 flows = flows,
-                wasCapturedDuringFlow = pulse.parentSessionId != null || pulse.parentFlowInstanceId != null
+                wasCapturedDuringFlow = pulse.parentSessionId != null
+                        || pulse.parentFlowInstanceId != null
             )
         }
     }

@@ -3,6 +3,7 @@ package com.kingkharnivore.skillz.domain.shell
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellRewardEventEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellRewardEventTypes
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
+import com.kingkharnivore.skillz.utils.shell.ShellRewardEventAggregator
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

@@ -38,8 +38,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
-import com.kingkharnivore.skillz.domain.shell.CreatureCatalog
-import com.kingkharnivore.skillz.domain.shell.CreatureEconomy
+import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
+import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
 import com.kingkharnivore.skillz.ui.screen.shell.TheBlueAnimalGroupUiModel
 import com.kingkharnivore.skillz.ui.screen.shell.TheBlueDisplayDisabledReason
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon

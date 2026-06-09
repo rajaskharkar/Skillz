@@ -5,6 +5,8 @@ import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellRewardEventEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellRewardEventTypes
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
+import com.kingkharnivore.skillz.utils.shell.ShellRewardEventRecorder
+import com.kingkharnivore.skillz.utils.shell.ShellRewardResult
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -37,9 +39,15 @@ class ShellRewardEventRecorderTest {
         val dao = FakeShellRewardEventDao()
         val recorder = ShellRewardEventRecorder(dao)
 
-        recorder.recordSessionRewards(session(id = 1L, arcId = null), ShellRewardResult(pearlsEarned = 10))
-        recorder.recordSessionRewards(session(id = 2L, arcId = 7L), ShellRewardResult(pearlsEarned = 20))
-        recorder.recordSessionRewards(session(id = 3L, arcId = 8L), ShellRewardResult(pearlsEarned = 30))
+        recorder.recordSessionRewards(session(id = 1L, arcId = null),
+            ShellRewardResult(pearlsEarned = 10)
+        )
+        recorder.recordSessionRewards(session(id = 2L, arcId = 7L),
+            ShellRewardResult(pearlsEarned = 20)
+        )
+        recorder.recordSessionRewards(session(id = 3L, arcId = 8L),
+            ShellRewardResult(pearlsEarned = 30)
+        )
 
         assertNull(dao.getEventsForSession(1L).single().arcId)
         assertEquals(listOf(2L), dao.getEventsForArc(7L).map { it.sourceSessionId })
@@ -52,7 +60,12 @@ class ShellRewardEventRecorderTest {
 
         recorder.recordSessionRewards(
             session(id = 4L, arcId = 7L, isSoftMode = true),
-            ShellRewardResult(pearlsEarned = 100, stillwaterUnits = 42L, grantedFindIds = listOf(ShellContentCatalog.FOCUS_MINNOW), badgeIds = listOf("badge_flow_10_min"))
+            ShellRewardResult(
+                pearlsEarned = 100,
+                stillwaterUnits = 42L,
+                grantedFindIds = listOf(ShellContentCatalog.FOCUS_MINNOW),
+                badgeIds = listOf("badge_flow_10_min")
+            )
         )
 
         val events = dao.getEventsForArc(7L)

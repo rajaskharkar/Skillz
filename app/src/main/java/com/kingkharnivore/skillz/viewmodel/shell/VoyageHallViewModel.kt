@@ -5,9 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
-import com.kingkharnivore.skillz.domain.voyage.VoyageHallStats
-import com.kingkharnivore.skillz.domain.voyage.VoyageSourceFlow
-import com.kingkharnivore.skillz.domain.voyage.VoyageStatsCalculator
+import com.kingkharnivore.skillz.utils.shell.voyage.VoyageHallStats
+import com.kingkharnivore.skillz.utils.shell.voyage.VoyageSourceFlow
+import com.kingkharnivore.skillz.utils.shell.voyage.VoyageStatsCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Duration
 import java.time.Instant

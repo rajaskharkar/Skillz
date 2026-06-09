@@ -16,7 +16,9 @@ class HealthConnectMovementDataSource @Inject constructor(
         val client = clientProvider.clientOrNull() ?: return MovementReadResult.HealthConnectUnavailable
         return try {
             val permissions = client.permissionController.getGrantedPermissions()
-            if (HealthPermission.getReadPermission(StepsRecord::class) !in permissions) {
+            if (HealthPermission.getReadPermission(
+                    StepsRecord::class
+            ) !in permissions) {
                 return MovementReadResult.PermissionMissing
             }
             val response = client.aggregate(

@@ -17,7 +17,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
-import com.kingkharnivore.skillz.domain.health.HealthRefreshUseCase
+import com.kingkharnivore.skillz.utils.health.HealthRefreshUseCase
 import com.kingkharnivore.skillz.ui.navigation.SkillzNavHost
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
 import com.kingkharnivore.skillz.ui.screen.NotificationPermissionGate

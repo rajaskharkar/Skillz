@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.domain.shell
+package com.kingkharnivore.skillz.utils.shell
 
 import com.kingkharnivore.skillz.data.model.dao.shell.ShellRewardEventDao
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity

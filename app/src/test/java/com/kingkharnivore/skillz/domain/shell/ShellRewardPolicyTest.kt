@@ -1,6 +1,7 @@
 package com.kingkharnivore.skillz.domain.shell
 
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
+import com.kingkharnivore.skillz.utils.shell.ShellRewardPolicy
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

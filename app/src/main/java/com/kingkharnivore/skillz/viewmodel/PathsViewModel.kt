@@ -272,14 +272,16 @@ class PathsViewModel @Inject constructor(
     }
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    private fun observeActiveArcPlansWithSteps(): Flow<List<Pair<ArcPlanEntity, List<ArcPlanStepEntity>>>> =
+    private fun observeActiveArcPlansWithSteps():
+            Flow<List<Pair<ArcPlanEntity, List<ArcPlanStepEntity>>>> =
         arcPlanRepository.getActiveArcPlans().flatMapLatest { plans ->
             if (plans.isEmpty()) {
                 flowOf(emptyList())
             } else {
                 combine(
                     plans.map { plan ->
-                        arcPlanRepository.getStepsForArcPlan(plan.id).map { steps -> plan to steps }
+                        arcPlanRepository
+                            .getStepsForArcPlan(plan.id).map { steps -> plan to steps }
                     }
                 ) { it.toList() }
             }

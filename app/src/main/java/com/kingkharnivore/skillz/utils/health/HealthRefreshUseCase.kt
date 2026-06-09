@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.domain.health
+package com.kingkharnivore.skillz.utils.health
 
 import com.kingkharnivore.skillz.data.health.HealthConnectMovementDataSource
 import com.kingkharnivore.skillz.data.health.MovementReadResult

@@ -9,9 +9,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
-import com.kingkharnivore.skillz.domain.shell.CreatureDefinition
-import com.kingkharnivore.skillz.domain.shell.CreatureRenderFamily
-import com.kingkharnivore.skillz.domain.shell.CreatureScaleClass
+import com.kingkharnivore.skillz.utils.shell.CreatureDefinition
+import com.kingkharnivore.skillz.utils.shell.CreatureRenderFamily
+import com.kingkharnivore.skillz.utils.shell.CreatureScaleClass
 import com.kingkharnivore.skillz.ui.screen.shell.TheBlueZoneId
 import com.kingkharnivore.skillz.ui.screen.shell.depthOrder
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.TheBlueSceneSafeBounds

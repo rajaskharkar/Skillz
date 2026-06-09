@@ -58,7 +58,8 @@ class SuggestedRouteDetailViewModel @Inject constructor(
                         tagIdSnapshot = tagId,
                         isSoftModeSnapshot = false,
                         targetMinutesSnapshot = step.targetMinutes,
-                        launchWithSurgeSnapshot = step.launchWithSurge && step.targetMinutes != null,
+                        launchWithSurgeSnapshot =
+                            step.launchWithSurge && step.targetMinutes != null,
                         linkState = ArcPlanStepEntity.LINK_STATE_CUSTOMIZED
                     )
                 }
@@ -106,7 +107,8 @@ class SuggestedRouteDetailViewModel @Inject constructor(
                         tagIdSnapshot = tagId,
                         isSoftModeSnapshot = false,
                         targetMinutesSnapshot = step.targetMinutes,
-                        launchWithSurgeSnapshot = step.launchWithSurge && step.targetMinutes != null,
+                        launchWithSurgeSnapshot =
+                            step.launchWithSurge && step.targetMinutes != null,
                         linkState = ArcPlanStepEntity.LINK_STATE_CUSTOMIZED
                     )
                 }

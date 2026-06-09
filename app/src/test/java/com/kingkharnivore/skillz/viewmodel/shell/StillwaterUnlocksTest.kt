@@ -2,8 +2,8 @@ package com.kingkharnivore.skillz.viewmodel.shell
 
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
-import com.kingkharnivore.skillz.domain.shell.CreatureStatus
-import com.kingkharnivore.skillz.domain.shell.CreatureZone
+import com.kingkharnivore.skillz.utils.shell.CreatureStatus
+import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.data.model.dao
+package com.kingkharnivore.skillz.data.model.dao.shell
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -28,7 +28,7 @@ interface IdeaGroveDao {
         changedAt: Long
     )
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.Companion.IGNORE)
     suspend fun insertPulseFlowLink(entity: PulseFlowLinkEntity)
 
     @Query("SELECT * FROM pulse_flow_links WHERE pulseId = :pulseId")

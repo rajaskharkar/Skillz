@@ -1,4 +1,4 @@
-package com.kingkharnivore.skillz.domain.shell
+package com.kingkharnivore.skillz.utils.shell
 
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.repository.shell.ShellRepository

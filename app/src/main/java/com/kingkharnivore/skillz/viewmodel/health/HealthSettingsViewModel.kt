@@ -12,7 +12,7 @@ import com.kingkharnivore.skillz.data.health.HealthConnectAvailability
 import com.kingkharnivore.skillz.data.repository.health.FlowHealthRepository
 import com.kingkharnivore.skillz.data.repository.health.HealthPermissionRepository
 import com.kingkharnivore.skillz.data.repository.health.HealthSettingsRepository
-import com.kingkharnivore.skillz.domain.health.HealthRefreshUseCase
+import com.kingkharnivore.skillz.utils.health.HealthRefreshUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +29,8 @@ sealed interface HealthUserMessage {
 }
 
 data class HealthSettingsUiState(
-    val healthConnectAvailability: HealthConnectAvailability = HealthConnectAvailability.UNAVAILABLE,
+    val healthConnectAvailability: HealthConnectAvailability =
+        HealthConnectAvailability.UNAVAILABLE,
     val readStepsPermissionGranted: Boolean = false,
     val localMovementBonusEnabled: Boolean = false,
     val pendingRefreshableFlows: Boolean = false,
@@ -115,7 +116,8 @@ class HealthSettingsViewModel @Inject constructor(
                 userMessage.value = null
                 healthRefreshUseCase.refreshForeground()
             } else {
-                userMessage.value = if (currentAvailability == HealthConnectAvailability.AVAILABLE) {
+                userMessage.value = if (currentAvailability
+                    == HealthConnectAvailability.AVAILABLE) {
                     HealthUserMessage.HealthPermissionNotGranted
                 } else {
                     null
@@ -133,7 +135,8 @@ class HealthSettingsViewModel @Inject constructor(
         logDebug("Health permission result=$grantedPermissions")
         viewModelScope.launch {
             val currentAvailability = permissionRepository.availability()
-            val granted = readStepsPermission in grantedPermissions || permissionRepository.isReadStepsGranted()
+            val granted = readStepsPermission in grantedPermissions
+                    || permissionRepository.isReadStepsGranted()
             availability.value = currentAvailability
             permissionGranted.value = granted
             if (granted && currentAvailability == HealthConnectAvailability.AVAILABLE) {
@@ -154,7 +157,9 @@ class HealthSettingsViewModel @Inject constructor(
 
         val webIntent = Intent(
             Intent.ACTION_VIEW,
-            Uri.parse("https://play.google.com/store/apps/details?id=$HEALTH_CONNECT_PACKAGE")
+            Uri.parse(
+                "https://play.google.com/store/apps/details?id=$HEALTH_CONNECT_PACKAGE"
+            )
         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
         try {

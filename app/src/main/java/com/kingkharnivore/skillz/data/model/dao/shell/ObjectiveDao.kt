@@ -63,7 +63,8 @@ interface ObjectiveCompletionDao {
         LIMIT 1
         """
     )
-    suspend fun getCompletion(objectiveId: Long, periodStartMs: Long, periodEndMs: Long): ObjectiveCompletionEntity?
+    suspend fun getCompletion(objectiveId: Long, periodStartMs: Long, periodEndMs: Long):
+            ObjectiveCompletionEntity?
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertCompletion(entity: ObjectiveCompletionEntity): Long
