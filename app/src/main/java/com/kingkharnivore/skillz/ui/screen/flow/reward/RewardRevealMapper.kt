@@ -47,6 +47,9 @@ interface RewardRevealTextProvider {
     fun shellRewardRecordedTitle(): String
     fun shellRewardRecordedBody(): String
     fun stillwaterAddedTitle(): String
+    fun softDropsGained(drops: Long): String
+    fun softAddedToStillwater(): String
+    fun softExplainer(): String
     fun softRuleTitle(): String
     fun softRuleBody(): String
     fun stillwaterPerspectiveTitle(): String
@@ -140,35 +143,18 @@ fun buildSoftRewardCards(
     reward: FlowRewardUiModel,
     text: RewardRevealTextProvider
 ): List<RewardRevealCardUiModel> {
-    val quietMinutes = text.quietMinutes(reward.minutes)
+    val dropsText = text.softDropsGained(reward.shellStillwaterUnits)
     return listOf(
         RewardRevealCardUiModel(
             id = "soft-stillwater",
             type = RewardRevealCardType.STILLWATER_RESULT,
             title = text.stillwaterAddedTitle(),
-            subtitle = quietMinutes,
-            amountText = text.minutes(reward.minutes),
+            subtitle = text.softAddedToStillwater(),
+            body = text.softExplainer(),
+            amountText = dropsText,
             iconKey = "stillwater",
             destinationHint = text.stillwaterHint(),
-            contentDescription = listOf(text.stillwaterAddedTitle(), quietMinutes, text.softRuleBody(), text.stillwaterHint()).joinToString(". "),
-            animationStyle = RewardRevealAnimationStyle.STILLWATER_RIPPLE
-        ),
-        RewardRevealCardUiModel(
-            id = "soft-rule",
-            type = RewardRevealCardType.SOFT_RULE,
-            title = text.softRuleTitle(),
-            body = text.softRuleBody(),
-            iconKey = "soft",
-            contentDescription = listOf(text.softRuleTitle(), text.softRuleBody()).joinToString(". ")
-        ),
-        RewardRevealCardUiModel(
-            id = "soft-perspective",
-            type = RewardRevealCardType.STILLWATER_PERSPECTIVE,
-            title = text.stillwaterPerspectiveTitle(),
-            body = text.stillwaterPerspectiveBody(),
-            iconKey = "stillwater",
-            destinationHint = text.stillwaterHint(),
-            contentDescription = listOf(text.stillwaterPerspectiveTitle(), text.stillwaterPerspectiveBody(), text.stillwaterHint()).joinToString(". "),
+            contentDescription = listOf(text.stillwaterAddedTitle(), dropsText, text.softAddedToStillwater(), text.softExplainer()).joinToString(". "),
             animationStyle = RewardRevealAnimationStyle.STILLWATER_RIPPLE
         )
     )

@@ -22,7 +22,7 @@ enum class CreatureZone(val displayName: String) {
     GREAT_BLUE("Great Blue")
 }
 
-enum class CreatureSourceType { FLOW_EARNED, BEYOND_BLUE }
+enum class CreatureSourceType { FLOW_EARNED, BEYOND_BLUE, STILLWATER }
 
 enum class CreatureMasteryTier { SEASONED, PROVEN, VETERAN, ASCENDANT, MASTERED }
 
@@ -102,6 +102,42 @@ data class CreatureLedgerEntry(
 )
 
 object CreatureCatalog {
+    private val stillwaterDefinitions: List<CreatureDefinition> = StillwaterCatalog.creatures.map { entry ->
+        CreatureDefinition(
+            creatureId = entry.creatureId,
+            displayName = entry.displayName,
+            zone = entry.vessel.zone,
+            sourceType = CreatureSourceType.STILLWATER,
+            requirementMinutes = (entry.vessel.dropCost / 60L).toInt(),
+            staticIconKey = "creature_icon_${entry.creatureId}",
+            animatedRendererKey = "creature_renderer_${entry.creatureId}",
+            renderFamily = when (entry.vessel) {
+                StillwaterVessel.FISHBOWL -> CreatureRenderFamily.SMALL_FISH
+                StillwaterVessel.AQUARIUM -> CreatureRenderFamily.REEF_FISH
+                StillwaterVessel.POND -> CreatureRenderFamily.LARGE_FISH
+                StillwaterVessel.LAKE -> CreatureRenderFamily.LARGE_FISH
+            },
+            sceneBehavior = when (entry.vessel) {
+                StillwaterVessel.FISHBOWL -> CreatureSceneBehavior.DRIFT
+                StillwaterVessel.AQUARIUM -> CreatureSceneBehavior.SWIM
+                StillwaterVessel.POND -> CreatureSceneBehavior.CRUISE
+                StillwaterVessel.LAKE -> CreatureSceneBehavior.BOTTOM_DWELL
+            },
+            placementBand = when (entry.vessel) {
+                StillwaterVessel.FISHBOWL -> CreaturePlacementBand.REEF_FLOOR
+                StillwaterVessel.AQUARIUM -> CreaturePlacementBand.MID_WATER
+                StillwaterVessel.POND -> CreaturePlacementBand.OPEN_WATER
+                StillwaterVessel.LAKE -> CreaturePlacementBand.DEEP_WATER
+            },
+            scaleClass = when (entry.vessel) {
+                StillwaterVessel.FISHBOWL -> CreatureScaleClass.SMALL
+                StillwaterVessel.AQUARIUM -> CreatureScaleClass.MEDIUM
+                StillwaterVessel.POND -> CreatureScaleClass.LARGE
+                StillwaterVessel.LAKE -> CreatureScaleClass.LARGE
+            }
+        )
+    }
+
     val all: List<CreatureDefinition> = listOf(
         flow(ShellContentCatalog.FOCUS_MINNOW, "Minnow", CreatureZone.SUNLIT_REEF, 10, CreatureRenderFamily.SMALL_FISH),
         beyond("creature_clownfish", "Clownfish", CreatureZone.SUNLIT_REEF, 30, CreatureRenderFamily.REEF_FISH),
@@ -118,7 +154,7 @@ object CreatureCatalog {
         beyond("creature_starfish", "Starfish", CreatureZone.DEEPER_REEF, 90, CreatureRenderFamily.STARFISH),
         beyond("creature_sea_urchin", "Sea Urchin", CreatureZone.DEEPER_REEF, 120, CreatureRenderFamily.SPIKY_URCHIN),
         beyond("creature_pufferfish", "Pufferfish", CreatureZone.DEEPER_REEF, 180, CreatureRenderFamily.PUFFERFISH),
-        beyond("creature_lionfish", "Lionfish", CreatureZone.DEEPER_REEF, 240, CreatureRenderFamily.REEF_FISH),
+        beyond("creature_lionfish", "Scorpionfish", CreatureZone.DEEPER_REEF, 240, CreatureRenderFamily.REEF_FISH),
         beyond("creature_moray_eel", "Moray Eel", CreatureZone.DEEPER_REEF, 300, CreatureRenderFamily.EEL),
         beyond("creature_stingray", "Stingray", CreatureZone.DEEPER_REEF, 360, CreatureRenderFamily.RAY),
         beyond(ShellContentCatalog.FOCUS_OCTOPUS, "Octopus", CreatureZone.DEEPER_REEF, 480, CreatureRenderFamily.OCTOPUS),
@@ -127,7 +163,7 @@ object CreatureCatalog {
 
         flow(ShellContentCatalog.FOCUS_MANTA, "Manta", CreatureZone.OPEN_BLUE, 60, CreatureRenderFamily.RAY),
         beyond("creature_flying_fish", "Flying Fish", CreatureZone.OPEN_BLUE, 120, CreatureRenderFamily.LARGE_FISH),
-        beyond("creature_barracuda", "Barracuda", CreatureZone.OPEN_BLUE, 180, CreatureRenderFamily.LARGE_FISH),
+        beyond("creature_barracuda", "Needlefish", CreatureZone.OPEN_BLUE, 180, CreatureRenderFamily.LARGE_FISH),
         beyond("creature_swordfish", "Swordfish", CreatureZone.OPEN_BLUE, 240, CreatureRenderFamily.LARGE_FISH),
         beyond("creature_dolphin", "Dolphin", CreatureZone.OPEN_BLUE, 360, CreatureRenderFamily.DOLPHIN),
         beyond("creature_ocean_sunfish", "Ocean Sunfish", CreatureZone.OPEN_BLUE, 480, CreatureRenderFamily.SUNFISH),
@@ -145,11 +181,13 @@ object CreatureCatalog {
         beyond("creature_megalodon", "Megalodon", CreatureZone.GREAT_BLUE, 1200, CreatureRenderFamily.SHARK),
         beyond("creature_kraken", "Kraken", CreatureZone.GREAT_BLUE, 1500, CreatureRenderFamily.GIANT_TENTACLE),
         beyond("creature_leviathan", "Leviathan", CreatureZone.GREAT_BLUE, 1800, CreatureRenderFamily.LEGENDARY)
-    )
+    ) + stillwaterDefinitions
+
 
     val byId: Map<String, CreatureDefinition> = all.associateBy { it.creatureId }
     val flowEarned: List<CreatureDefinition> = all.filter { it.sourceType == CreatureSourceType.FLOW_EARNED }
     val beyondBlue: List<CreatureDefinition> = all.filter { it.sourceType == CreatureSourceType.BEYOND_BLUE }
+    val stillwater: List<CreatureDefinition> = all.filter { it.sourceType == CreatureSourceType.STILLWATER }
 
     fun get(creatureId: String): CreatureDefinition? = byId[creatureId]
     fun require(creatureId: String): CreatureDefinition = get(creatureId) ?: error("Unknown creature: $creatureId")
@@ -248,6 +286,7 @@ object CreatureEconomy {
     fun canonicalPearlValue(creatureId: String): Int = pearlPriceForRequirement(flowTimeValueMinutes(creatureId))
 
     fun releaseValuePearls(creatureId: String, level: Int = 1): Int {
+        if (CreatureCatalog.require(creatureId).sourceType == CreatureSourceType.STILLWATER) return 0
         val safeLevel = level.coerceIn(1, MAX_CREATURE_LEVEL)
         val base = canonicalPearlValue(creatureId).coerceAtLeast(0)
         val upgradeInvestment = cumulativeGrowthCostPearls(creatureId, safeLevel)

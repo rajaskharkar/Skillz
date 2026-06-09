@@ -103,6 +103,34 @@ class ShellChestInventoryMapperTest {
         assertEquals(eachReward, chestReleaseRewardPearls(stack, 0))
     }
 
+
+    @Test
+    fun stillwaterCreaturesAreChestCreaturesButCannotReleaseForPearls() {
+        val stacks = buildChestInventoryStacks(
+            listOf(creature("shrimp-1", "stillwater_shrimp", level = 1))
+        )
+
+        val stack = stacks.single()
+        assertEquals("stillwater_shrimp", stack.creatureId)
+        assertTrue(stack.isStillwaterExclusive)
+        assertFalse(canReleaseStackForPearls(stack))
+        assertEquals(0, chestReleaseRewardPearls(stack, 1))
+    }
+
+    @Test
+    fun normalBlueCreatureReleaseBehaviorRemainsEnabled() {
+        val stack = ChestInventoryStackUiModel(
+            creatureId = ShellContentCatalog.FOCUS_MINNOW,
+            creatureName = "Minnow",
+            level = 1,
+            count = 1,
+            iconKey = "minnow"
+        )
+
+        assertTrue(canReleaseStackForPearls(stack))
+        assertTrue(chestReleaseRewardPearls(stack, 1) > 0)
+    }
+
     @Test
     fun countBadgeIsOnlyShownForStackedCopies() {
         assertFalse(shouldShowChestCountBadge(1))

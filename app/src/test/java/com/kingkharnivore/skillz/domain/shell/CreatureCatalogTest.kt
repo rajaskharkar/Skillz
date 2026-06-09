@@ -19,12 +19,12 @@ class CreatureCatalogTest {
             assertTrue(creature.flowTimeValueMinutes != null || creature.requirementMinutes != null)
         }
         assertEquals(1, CreatureCatalog.all.count { it.displayName == "Sea Turtle" })
-        assertEquals(40, CreatureCatalog.all.size)
+        assertEquals(72, CreatureCatalog.all.size)
     }
 
     @Test fun bannedCreaturesAreAbsent() {
         val banned = setOf("Anchovy", "Sardine", "Salmon", "Tuna", "Mackerel", "Crab", "Lobster", "Shrimp", "Goldfish", "Betta", "Narwhal", "False Killer Whale", "Basking Shark", "Greenland Shark", "Whale Shark", "Deep-Sea Anglerfish")
-        assertTrue(CreatureCatalog.all.none { it.displayName in banned })
+        assertTrue(CreatureCatalog.all.filter { it.sourceType != CreatureSourceType.STILLWATER }.none { it.displayName in banned })
     }
 
     @Test

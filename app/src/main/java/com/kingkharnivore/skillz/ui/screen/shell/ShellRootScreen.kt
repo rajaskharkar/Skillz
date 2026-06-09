@@ -225,7 +225,10 @@ fun ShellRootScreen(
 
                 ShellDestination.Stillwater -> StillwaterRoomScreen(
                     uiState = uiState,
-                    onPerspective = viewModel::setPerspective
+                    onDrawFromStillwater = viewModel::onDrawFromStillwater,
+                    onConfirmStillwaterDraw = viewModel::onConfirmStillwaterDraw,
+                    onDismissStillwaterReveal = viewModel::onDismissStillwaterReveal,
+                    onDismissStillwaterDrawConfirmation = viewModel::onDismissStillwaterDrawConfirmation
                 )
 
                 ShellDestination.ShellChest -> ShellChestScreen(
