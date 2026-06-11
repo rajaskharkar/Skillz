@@ -179,7 +179,7 @@ class ShellViewModel @Inject constructor(
     fun onDrawFromStillwater(vessel: StillwaterVessel) = viewModelScope.launch {
         val state = uiState.value
         if (vessel.zone !in state.unlockedBlueZones) {
-            _events.emit("Reach this depth in The Blue first.")
+            _events.emit("Progress farther in The Blue to unlock this vessel.")
             return@launch
         }
         if (state.stillwaterClaimableDrops < vessel.dropCost) {
@@ -208,7 +208,7 @@ class ShellViewModel @Inject constructor(
 
     private suspend fun drawFromStillwater(vessel: StillwaterVessel) {
         if (vessel.zone !in deriveUnlockedBlueZonesFromHistoricalFinds(uiState.value.finds)) {
-            _events.emit("Reach this depth in The Blue first.")
+            _events.emit("Progress farther in The Blue to unlock this vessel.")
             return
         }
         runCatching { repository.drawFromStillwater(vessel, uiState.value.unlockedBlueZones) }

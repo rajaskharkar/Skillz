@@ -26,6 +26,9 @@ class StillwaterCatalogTest {
         assertTrue(CreatureCatalog.beyondBlue.none { it.sourceType == CreatureSourceType.STILLWATER })
         assertTrue(StillwaterCatalog.creatures.any { it.displayName == "Lionfish" })
         assertTrue(StillwaterCatalog.creatures.any { it.displayName == "Barracuda" })
+        assertEquals("Scorpionfish", CreatureCatalog.require("creature_lionfish").displayName)
+        assertEquals("Needlefish", CreatureCatalog.require("creature_barracuda").displayName)
+        assertFalse(CreatureCatalog.beyondBlue.any { it.displayName == "Lionfish" || it.displayName == "Barracuda" })
 
         val blueCreatures = CreatureCatalog.all.filter { it.sourceType != CreatureSourceType.STILLWATER }
         val stillwaterCreatures = CreatureCatalog.stillwater
@@ -41,7 +44,7 @@ class StillwaterCatalogTest {
 
     @Test
     fun forbiddenStillwaterNamesAreNotPresent() {
-        val forbidden = setOf("Seahorse", "Leviathan", "Urchin", "Octopus", "Anglerfish", "Triggerfish", "Tuna")
+        val forbidden = setOf("Seahorse", "Leviathan", "Urchin", "Octopus", "Anglerfish", "Triggerfish", "Tuna", "Starfish")
         val names = CreatureCatalog.stillwater.map { it.displayName }.toSet()
         assertTrue(names.none { it in forbidden })
     }

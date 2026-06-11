@@ -1066,26 +1066,7 @@
     <string name="shell_badges_body">Badges हुए अनुभवों का रिकॉर्ड हैं। ये कोई रोक नहीं हैं।</string>
     <string name="shell_badge_a11y">%1$s बैज। संख्या: %2$d।</string>
     <string name="shell_journal_title">Badges</string>
-    <string name="shell_stillwater_body">Soft Flows Stillwater भरते हैं। कोई स्कोर नहीं। कोई दबाव नहीं। बस शांत पानी The Shell में लाया गया।</string>
-    <string name="shell_view_as">View as:</string>
-    <string name="shell_soft_flow_copy">Your Soft Flow added to the stream.</string>
-    <string name="shell_stillwater_selector_a11y">Stillwater दृष्टिकोण चयनकर्ता</string>
-    <string name="shell_perspective_cups">Cups</string>
-    <string name="shell_perspective_bowls">Bowls</string>
-    <string name="shell_perspective_tank">Tank</string>
-    <string name="shell_perspective_pool">Pool</string>
-    <string name="shell_perspective_lake">Lake</string>
-    <string name="shell_perspective_tahoe">Lake Tahoe</string>
-    <string name="shell_perspective_ocean">World Oceans</string>
-    <string name="shell_perspective_stream">Stream</string>
-    <string name="shell_stillwater_cups">आपके Soft Flows ने Stillwater के %.1f कप भर दिए हैं।</string>
-    <string name="shell_stillwater_bowls">आपके Soft Flows ने Stillwater के %.1f कटोरे भर दिए हैं।</string>
-    <string name="shell_stillwater_tank">आपके Soft Flows ने Stillwater के %.3f टैंक भर दिए हैं।</string>
-    <string name="shell_stillwater_pool">आपके Soft Flows ने Stillwater के %.5f पूल भर दिए हैं।</string>
-    <string name="shell_stillwater_lake">आपके Soft Flows ने Stillwater की %.7f झीलें भर दी हैं।</string>
-    <string name="shell_stillwater_tahoe">आपका Stillwater Lake Tahoe का %.10f%% है।</string>
-    <string name="shell_stillwater_ocean">आपका Stillwater विश्व महासागरों का %.14f%% है।</string>
-    <string name="shell_stillwater_stream">Your Soft Flows have carried %1$d quiet minutes into the stream.</string>
+    <string name="shell_stillwater_body">Soft flows gather Drops. Spend them in quiet vessels to draw Stillwater-exclusive creatures.</string>
     <string name="shell_action_brighten">Brighten</string>
     <string name="shell_action_grow">Grow</string>
     <string name="shell_action_enrich">Enrich</string>
@@ -1130,7 +1111,6 @@
     <string name="shell_no_available_shapes">इस समय कुछ भी तैयार नहीं है। कुछ और मोती एक नया रूप जगा देंगे।</string>
     <string name="shell_empty_slot_a11y">%1$s। खाली Focus Room स्थान। रखने और मोती से आकार देने के विकल्प खोलता है।</string>
     <string name="shell_placed_object_a11y">%1$s। Focus Room में प्रदर्शित। वस्तु विवरण खोलता है।</string>
-    <string name="shell_stillwater_same_water">वही Stillwater, अलग दृश्य।</string>
 
 
     <string name="shell_whisper_new_discovery">A Shell discovery is ready to view.</string>
@@ -1211,11 +1191,6 @@
     <string name="reward_card_shell_recorded_title">Shell इनाम दर्ज हुआ</string>
     <string name="reward_card_shell_recorded_body">The Shell के अंदर दर्ज हुआ।</string>
     <string name="reward_card_stillwater_added_title">Stillwater जोड़ा गया</string>
-    <string name="reward_card_stillwater_quiet_minutes">%1$d शांत मिनट धारा में ले जाए गए।</string>
-    <string name="reward_card_soft_rule_title">Soft Flow नरम ही रहा</string>
-    <string name="reward_card_soft_rule_body">कोई स्कोर नहीं। कोई Pearls नहीं। केवल Stillwater जोड़ा गया।</string>
-    <string name="reward_card_stillwater_perspective_title">वही Stillwater, अलग नज़रिया</string>
-    <string name="reward_card_stillwater_perspective_body">The Shell के अंदर, आप Stillwater को कप, कटोरे, धाराओं, झीलों या महासागरों के रूप में देख सकते हैं।</string>
     <string name="reward_card_arc_complete_title">Arc पूरा हुआ</string>
     <string name="reward_card_arc_flows">%1$d Flows</string>
     <string name="reward_card_arc_total_duration">कुल %1$s</string>

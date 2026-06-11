@@ -58,10 +58,6 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
     val softDropsGainedTemplate = stringResource(R.string.flow_complete_soft_drops_gained)
     val softAddedToStillwater = stringResource(R.string.flow_complete_soft_added_to_stillwater)
     val softExplainer = stringResource(R.string.flow_complete_soft_explainer)
-    val softRuleTitle = stringResource(R.string.reward_card_soft_rule_title)
-    val softRuleBody = stringResource(R.string.reward_card_soft_rule_body)
-    val stillwaterPerspectiveTitle = stringResource(R.string.reward_card_stillwater_perspective_title)
-    val stillwaterPerspectiveBody = stringResource(R.string.reward_card_stillwater_perspective_body)
     val arcCompleteTitle = stringResource(R.string.reward_card_arc_complete_title)
     val arcFlowsTemplate = stringResource(R.string.reward_card_arc_flows)
     val arcTotalDurationTemplate = stringResource(R.string.reward_card_arc_total_duration)
@@ -118,10 +114,6 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         override fun softDropsGained(drops: Long) = softDropsGainedTemplate.format(drops)
         override fun softAddedToStillwater() = softAddedToStillwater
         override fun softExplainer() = softExplainer
-        override fun softRuleTitle() = softRuleTitle
-        override fun softRuleBody() = softRuleBody
-        override fun stillwaterPerspectiveTitle() = stillwaterPerspectiveTitle
-        override fun stillwaterPerspectiveBody() = stillwaterPerspectiveBody
         override fun arcCompleteTitle() = arcCompleteTitle
         override fun arcFlows(count: Int) = arcFlowsTemplate.format(count)
         override fun totalDuration(duration: String) = arcTotalDurationTemplate.format(duration)

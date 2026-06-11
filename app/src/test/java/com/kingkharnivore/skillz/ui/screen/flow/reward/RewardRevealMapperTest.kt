@@ -88,6 +88,7 @@ class RewardRevealMapperTest {
         assertEquals("+220 Drops", cards[0].amountText)
         assertEquals("Added to Stillwater.", cards[0].subtitle)
         assertEquals("View in Stillwater Room.", cards[0].destinationHint)
+        assertEquals("Spend Drops in Stillwater to draw exclusive creatures from quiet vessels.", cards[0].body)
         assertFalse(cards.any { it.destinationHint == "View later in The Blue." })
         assertFalse(cards.any { it.title.contains("Scyra") || it.title.contains("Pearl") })
     }
@@ -305,7 +306,7 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun scyraPoints(points: Int) = "$points Scyra Points"
     override fun pointsDelta(points: Int) = "+$points"
     override fun minutes(minutes: Int) = "$minutes min"
-    override fun quietMinutes(minutes: Int) = "$minutes quiet minutes carried into the stream."
+    override fun quietMinutes(minutes: Int) = "$minutes quiet minutes carried into Stillwater."
     override fun carriedAsPearls() = "Carried into The Shell as Pearls."
     override fun scoreBuiltFrom() = "Built from:"
     override fun baseFlow(points: Int) = "Base Flow $points"
@@ -340,11 +341,7 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun stillwaterAddedTitle() = "Soft Flow complete"
     override fun softDropsGained(drops: Long) = "+$drops Drops"
     override fun softAddedToStillwater() = "Added to Stillwater."
-    override fun softExplainer() = "Spend Drops in Stillwater to draw exclusive creatures."
-    override fun softRuleTitle() = "Soft Flow stayed soft"
-    override fun softRuleBody() = "No score. No Pearls. Only Stillwater was added."
-    override fun stillwaterPerspectiveTitle() = "Same Stillwater, different view"
-    override fun stillwaterPerspectiveBody() = "Inside The Shell, you can view Stillwater as cups, bowls, streams, lakes, or oceans."
+    override fun softExplainer() = "Spend Drops in Stillwater to draw exclusive creatures from quiet vessels."
     override fun arcCompleteTitle() = "Arc complete"
     override fun arcFlows(count: Int) = "$count Flows"
     override fun totalDuration(duration: String) = "$duration total"

@@ -50,10 +50,6 @@ interface RewardRevealTextProvider {
     fun softDropsGained(drops: Long): String
     fun softAddedToStillwater(): String
     fun softExplainer(): String
-    fun softRuleTitle(): String
-    fun softRuleBody(): String
-    fun stillwaterPerspectiveTitle(): String
-    fun stillwaterPerspectiveBody(): String
     fun arcCompleteTitle(): String
     fun arcFlows(count: Int): String
     fun totalDuration(duration: String): String

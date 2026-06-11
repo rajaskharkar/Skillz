@@ -48,6 +48,42 @@ import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.isBlueZoneUnlocked
 
+internal data class StillwaterDropsCardUiModel(
+    @StringRes val primaryStringRes: Int,
+    val primaryDrops: Long,
+    val secondaryDrops: Long
+)
+
+internal data class StillwaterVesselCardUiModel(
+    val claimableDrops: Long,
+    val canAfford: Boolean,
+    val canDraw: Boolean,
+    val dropsNeeded: Long,
+    val progress: Float
+)
+
+internal fun buildStillwaterDropsCardUiModel(uiState: ShellUiState): StillwaterDropsCardUiModel =
+    StillwaterDropsCardUiModel(
+        primaryStringRes = R.string.shell_stillwater_drops_available,
+        primaryDrops = uiState.stillwaterClaimableDrops,
+        secondaryDrops = uiState.stillwaterLifetimeDrops
+    )
+
+internal fun buildStillwaterVesselCardUiModel(
+    vessel: StillwaterVessel,
+    claimableDrops: Long,
+    isUnlocked: Boolean
+): StillwaterVesselCardUiModel {
+    val canAfford = claimableDrops >= vessel.dropCost
+    return StillwaterVesselCardUiModel(
+        claimableDrops = claimableDrops,
+        canAfford = canAfford,
+        canDraw = isUnlocked && canAfford,
+        dropsNeeded = stillwaterDropsNeeded(claimableDrops, vessel),
+        progress = stillwaterVesselProgress(claimableDrops, vessel)
+    )
+}
+
 @Composable
 fun StillwaterRoomScreen(
     uiState: ShellUiState,
@@ -56,8 +92,8 @@ fun StillwaterRoomScreen(
     onDismissStillwaterReveal: () -> Unit,
     onDismissStillwaterDrawConfirmation: () -> Unit
 ) {
-    val drops = uiState.stillwaterClaimableDrops
-    val lifetimeDrops = uiState.stillwaterLifetimeDrops
+    val dropsCard = buildStillwaterDropsCardUiModel(uiState)
+    val drops = dropsCard.primaryDrops
 
     Column(
         modifier = Modifier
@@ -71,10 +107,7 @@ fun StillwaterRoomScreen(
             body = R.string.shell_stillwater_body
         )
 
-        StillwaterDropsCard(
-            drops = drops,
-            lifetimeDrops = lifetimeDrops
-        )
+        StillwaterDropsCard(dropsCard = dropsCard)
 
         Text(
             text = stringResource(R.string.shell_stillwater_draw_prompt),
@@ -113,8 +146,7 @@ fun StillwaterRoomScreen(
 
 @Composable
 private fun StillwaterDropsCard(
-    drops: Long,
-    lifetimeDrops: Long
+    dropsCard: StillwaterDropsCardUiModel
 ) {
     val scheme = MaterialTheme.colorScheme
     ElevatedCard(
@@ -149,14 +181,14 @@ private fun StillwaterDropsCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.shell_stillwater_drops_gathered, drops),
+                    text = stringResource(dropsCard.primaryStringRes, dropsCard.primaryDrops),
                     color = scheme.onPrimary,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = stringResource(R.string.shell_stillwater_lifetime_drops, lifetimeDrops),
+                    text = stringResource(R.string.shell_stillwater_lifetime_drops, dropsCard.secondaryDrops),
                     color = scheme.onPrimary.copy(alpha = 0.82f),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
@@ -175,10 +207,11 @@ private fun StillwaterVesselCard(
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
-    val canAfford = claimableDrops >= vessel.dropCost
-    val canDraw = isUnlocked && canAfford
-    val needed = stillwaterDropsNeeded(claimableDrops, vessel)
-    val progress = stillwaterVesselProgress(claimableDrops, vessel)
+    val cardState = buildStillwaterVesselCardUiModel(vessel, claimableDrops, isUnlocked)
+    val canAfford = cardState.canAfford
+    val canDraw = cardState.canDraw
+    val needed = cardState.dropsNeeded
+    val progress = cardState.progress
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -305,8 +338,7 @@ private fun StillwaterDrawConfirmDialog(
             Text(
                 stringResource(
                     R.string.shell_stillwater_confirm_draw_body,
-                    vessel.dropCost,
-                    stringResource(rewardFor(vessel)).replaceFirstChar { it.lowercase() }
+                    vessel.dropCost
                 )
             )
         },
