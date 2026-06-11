@@ -492,8 +492,6 @@ private fun pluralizedCreatureName(name: String, count: Int): String = when {
 internal fun chestReleaseSelection(stack: ChestInventoryStackUiModel, requestedCount: Int): Map<Int, Int> =
     mapOf(stack.level to requestedCount.coerceIn(1, stack.count.coerceAtLeast(1)))
 
-internal fun canReleaseStackForPearls(stack: ChestInventoryStackUiModel): Boolean = true
-
 internal fun chestReleaseRewardPearls(stack: ChestInventoryStackUiModel, requestedCount: Int): Int =
     CreatureEconomy.releaseValuePearls(stack.creatureId, stack.level) *
         requestedCount.coerceIn(1, stack.count.coerceAtLeast(1))

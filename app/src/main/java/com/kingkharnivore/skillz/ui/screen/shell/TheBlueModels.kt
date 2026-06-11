@@ -155,11 +155,47 @@ internal fun isTheBlueOwnedDisplayCreature(findId: String): Boolean =
 
 
 internal fun zoneForFind(findId: String): TheBlueZoneId? = when (findId) {
-    ShellContentCatalog.FOCUS_MINNOW -> TheBlueZoneId.SUNLIT_REEF
-    ShellContentCatalog.FOCUS_SEAHORSE -> TheBlueZoneId.DEEPER_REEF
-    ShellContentCatalog.FOCUS_OCTOPUS -> TheBlueZoneId.DEEPER_REEF
-    ShellContentCatalog.FOCUS_MANTA -> TheBlueZoneId.OPEN_BLUE
-    ShellContentCatalog.FOCUS_WHALE -> TheBlueZoneId.GREAT_BLUE
+    ShellContentCatalog.FOCUS_MINNOW,
+    "stillwater_shrimp",
+    "stillwater_crab",
+    "stillwater_clam",
+    "stillwater_snail",
+    "stillwater_limpet",
+    "stillwater_barnacle",
+    "stillwater_cowrie",
+    "stillwater_horseshoe" -> TheBlueZoneId.SUNLIT_REEF
+
+    ShellContentCatalog.FOCUS_SEAHORSE,
+    ShellContentCatalog.FOCUS_OCTOPUS,
+    "stillwater_goby",
+    "stillwater_wrasse",
+    "stillwater_blenny",
+    "stillwater_lionfish",
+    "stillwater_anemone",
+    "stillwater_cuttlefish",
+    "stillwater_moray",
+    "stillwater_nautilus" -> TheBlueZoneId.DEEPER_REEF
+
+    ShellContentCatalog.FOCUS_MANTA,
+    "stillwater_mahi",
+    "stillwater_wahoo",
+    "stillwater_bonito",
+    "stillwater_barracuda",
+    "stillwater_amberjack",
+    "stillwater_grouper",
+    "stillwater_marlin",
+    "stillwater_sailfish" -> TheBlueZoneId.OPEN_BLUE
+
+    ShellContentCatalog.FOCUS_WHALE,
+    "stillwater_fangtooth",
+    "stillwater_viperfish",
+    "stillwater_hatchetfish",
+    "stillwater_gulper",
+    "stillwater_grenadier",
+    "stillwater_oarfish",
+    "stillwater_blackdragon",
+    "stillwater_coelacanth" -> TheBlueZoneId.GREAT_BLUE
+
     else -> ShellContentCatalog.find(findId)?.depthTier?.let { depth ->
         when (depth) {
             com.kingkharnivore.skillz.data.model.shell.ShellDepthTier.REEF -> TheBlueZoneId.SUNLIT_REEF

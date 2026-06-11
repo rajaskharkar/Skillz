@@ -113,7 +113,6 @@ class ShellChestInventoryMapperTest {
         val stack = stacks.single()
         assertEquals("stillwater_clam", stack.creatureId)
         assertTrue(stack.isStillwaterExclusive)
-        assertTrue(canReleaseStackForPearls(stack))
         assertTrue(chestReleaseRewardPearls(stack, 1) > 0)
     }
 
@@ -127,7 +126,6 @@ class ShellChestInventoryMapperTest {
             iconKey = "minnow"
         )
 
-        assertTrue(canReleaseStackForPearls(stack))
         assertTrue(chestReleaseRewardPearls(stack, 1) > 0)
     }
 

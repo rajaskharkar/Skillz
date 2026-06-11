@@ -4,7 +4,9 @@ import com.kingkharnivore.skillz.data.model.entity.shell.ShellPlacementEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
+import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
+import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
 import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -20,6 +22,15 @@ class TheBlueUiModelTest {
         assertEquals(TheBlueZoneId.DEEPER_REEF, zoneForFind(ShellContentCatalog.FOCUS_OCTOPUS))
         assertEquals(TheBlueZoneId.OPEN_BLUE, zoneForFind(ShellContentCatalog.FOCUS_MANTA))
         assertEquals(TheBlueZoneId.GREAT_BLUE, zoneForFind(ShellContentCatalog.FOCUS_WHALE))
+        assertEquals(TheBlueZoneId.SUNLIT_REEF, zoneForFind("stillwater_clam"))
+        assertEquals(TheBlueZoneId.DEEPER_REEF, zoneForFind("stillwater_lionfish"))
+        assertEquals(TheBlueZoneId.OPEN_BLUE, zoneForFind("stillwater_barracuda"))
+        assertEquals(TheBlueZoneId.GREAT_BLUE, zoneForFind("stillwater_coelacanth"))
+        assertTrue(
+            CreatureCatalog.all
+                .filter { it.sourceType == CreatureSourceType.STILLWATER }
+                .all { zoneForFind(it.creatureId) != null }
+        )
     }
 
     @Test

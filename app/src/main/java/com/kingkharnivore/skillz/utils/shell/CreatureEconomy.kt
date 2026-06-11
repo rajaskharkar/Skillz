@@ -5,9 +5,11 @@ import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.math.roundToInt
 
 const val PEARLS_PER_REQUIRED_FLOW_MINUTE = 2
 const val PEARLS_PER_EXTRA_FLOW_MINUTE = 1
+private const val STILLWATER_RELEASE_VALUE_MULTIPLIER = 0.25
 
 object CreatureStatus {
     const val ACTIVE = "ACTIVE"
@@ -330,11 +332,17 @@ object CreatureEconomy {
 
     fun releaseValuePearls(creatureId: String, level: Int = 1): Int {
         val safeLevel = level.coerceIn(1, MAX_CREATURE_LEVEL)
+        val definition = CreatureCatalog.require(creatureId)
         val base = canonicalPearlValue(creatureId).coerceAtLeast(0)
         val upgradeInvestment = cumulativeGrowthCostPearls(creatureId, safeLevel)
         val salvageRate = releaseSalvageRate(safeLevel)
-        val value = base.toLong() + (upgradeInvestment * salvageRate).toLong()
-        return value.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
+        val normalValue = base.toLong() + (upgradeInvestment * salvageRate).toLong()
+        val adjustedValue = if (definition.sourceType == CreatureSourceType.STILLWATER) {
+            (normalValue * STILLWATER_RELEASE_VALUE_MULTIPLIER).roundToInt().coerceAtLeast(1).toLong()
+        } else {
+            normalValue
+        }
+        return adjustedValue.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
     }
 
     fun pearlPriceForRequirement(requirementMinutes: Int): Int = requirementMinutes * PEARLS_PER_REQUIRED_FLOW_MINUTE

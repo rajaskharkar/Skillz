@@ -84,10 +84,15 @@ class StillwaterCatalogTest {
         val barracuda = CreatureEconomy.releaseValuePearls("stillwater_barracuda")
         val coelacanth = CreatureEconomy.releaseValuePearls("stillwater_coelacanth")
 
+        assertEquals(125, clam)
+        assertEquals(208, lionfish)
+        assertEquals(375, barracuda)
+        assertEquals(625, coelacanth)
         assertTrue(clam > 0)
         assertTrue(lionfish > clam)
         assertTrue(barracuda > lionfish)
         assertTrue(coelacanth > barracuda)
+        assertTrue(clam < CreatureEconomy.canonicalPearlValue("stillwater_clam"))
     }
 
     @Test
