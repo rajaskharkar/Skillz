@@ -1946,7 +1946,6 @@ You can turn Health back on later.</string>
     <string name="shell_stillwater_exclusive">Stillwater exclusive</string>
     <string name="shell_stillwater_added_to_chest">Added to The Chest.</string>
     <string name="shell_stillwater_done">Done</string>
-    <string name="shell_stillwater_cannot_release">Stillwater exclusives cannot be released for Pearls.</string>
     <string name="shell_stillwater_explainer">Each vessel holds its own Stillwater creatures. Larger vessels require more Drops and reveal rarer life.</string>
     <string name="flow_complete_soft_title">Soft Flow complete</string>
     <string name="flow_complete_soft_drops_gained">+%1$d Drops</string>

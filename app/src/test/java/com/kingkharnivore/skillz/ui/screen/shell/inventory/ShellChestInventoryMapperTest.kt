@@ -105,16 +105,16 @@ class ShellChestInventoryMapperTest {
 
 
     @Test
-    fun stillwaterCreaturesAreChestCreaturesButCannotReleaseForPearls() {
+    fun stillwaterClamAppearsInChestAndCanReleaseForPearls() {
         val stacks = buildChestInventoryStacks(
-            listOf(creature("shrimp-1", "stillwater_shrimp", level = 1))
+            listOf(creature("clam-1", "stillwater_clam", level = 1))
         )
 
         val stack = stacks.single()
-        assertEquals("stillwater_shrimp", stack.creatureId)
+        assertEquals("stillwater_clam", stack.creatureId)
         assertTrue(stack.isStillwaterExclusive)
-        assertFalse(canReleaseStackForPearls(stack))
-        assertEquals(0, chestReleaseRewardPearls(stack, 1))
+        assertTrue(canReleaseStackForPearls(stack))
+        assertTrue(chestReleaseRewardPearls(stack, 1) > 0)
     }
 
     @Test

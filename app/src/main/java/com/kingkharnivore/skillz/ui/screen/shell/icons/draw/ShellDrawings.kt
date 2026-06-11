@@ -7,6 +7,21 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 
+
+private val stillwaterStaticVisualIds = setOf(
+    "stillwater_shrimp", "stillwater_crab", "stillwater_clam", "stillwater_snail",
+    "stillwater_limpet", "stillwater_barnacle", "stillwater_cowrie", "stillwater_horseshoe",
+    "stillwater_goby", "stillwater_wrasse", "stillwater_blenny", "stillwater_lionfish",
+    "stillwater_anemone", "stillwater_cuttlefish", "stillwater_moray", "stillwater_nautilus",
+    "stillwater_mahi", "stillwater_wahoo", "stillwater_bonito", "stillwater_barracuda",
+    "stillwater_amberjack", "stillwater_grouper", "stillwater_marlin", "stillwater_sailfish",
+    "stillwater_fangtooth", "stillwater_viperfish", "stillwater_hatchetfish", "stillwater_gulper",
+    "stillwater_grenadier", "stillwater_oarfish", "stillwater_blackdragon", "stillwater_coelacanth"
+)
+
+fun hasKnownStillwaterStaticIcon(key: String): Boolean =
+    stillwaterStaticVisualIds.any { id -> id in key.lowercase() }
+
 fun DrawScope.drawStaticCreatureIcon(key: String, scheme: androidx.compose.material3.ColorScheme) {
     val w = size.width
     val h = size.height
@@ -45,6 +60,81 @@ fun DrawScope.drawStaticCreatureIcon(key: String, scheme: androidx.compose.mater
         repeat(18) { i -> val a=i*6.28318f/18f; drawLine(primary, Offset(w*0.5f,h*0.5f), Offset(w*(0.5f+kotlin.math.cos(a)*0.45f), h*(0.5f+kotlin.math.sin(a)*0.45f)), strokeWidth=w*0.028f) }
         drawCircle(secondary.copy(alpha=0.72f), w*0.25f, Offset(w*0.5f,h*0.5f))
         drawCircle(surface.copy(alpha=0.5f), w*0.05f, Offset(w*0.44f,h*0.44f))
+    }
+    fun shellBivalve(clam: Boolean) {
+        val shell = if (clam) Color(0xFFD7B78A) else Color(0xFFE7C779)
+        drawOval(shell.copy(alpha = 0.82f), Offset(w*0.16f,h*0.25f), Size(w*0.68f,h*0.50f))
+        drawArc(secondary.copy(alpha=0.55f), 185f, 170f, false, Offset(w*0.16f,h*0.22f), Size(w*0.68f,h*0.55f), style=Stroke(width=w*0.035f))
+        drawLine(surface.copy(alpha=0.55f), Offset(w*0.22f,h*0.52f), Offset(w*0.78f,h*0.52f), strokeWidth=w*0.025f)
+        repeat(6){i-> drawLine(secondary.copy(alpha=0.38f), Offset(w*0.50f,h*0.52f), Offset(w*(0.24f+i*0.10f),h*0.30f), strokeWidth=w*0.018f)}
+        if (!clam) drawLine(surface.copy(alpha=0.62f), Offset(w*0.34f,h*0.35f), Offset(w*0.66f,h*0.66f), strokeWidth=w*0.04f)
+    }
+    fun spiralShell(nautilus: Boolean) {
+        drawCircle(Color(0xFFD9C08A).copy(alpha=0.82f), w*0.25f, Offset(w*0.48f,h*0.48f))
+        drawArc(secondary.copy(alpha=0.62f), 20f, 310f, false, Offset(w*0.27f,h*0.27f), Size(w*0.42f,h*0.42f), style=Stroke(width=w*0.045f))
+        drawCircle(surface.copy(alpha=0.55f), w*0.06f, Offset(w*0.49f,h*0.48f))
+        if (nautilus) repeat(5){i->drawLine(secondary.copy(alpha=0.45f), Offset(w*0.58f,h*0.56f), Offset(w*(0.72f+i*0.04f),h*(0.60f+i%2*0.08f)), strokeWidth=w*0.025f)}
+        else { drawOval(primary.copy(alpha=0.45f), Offset(w*0.50f,h*0.55f), Size(w*0.30f,h*0.14f)); repeat(2){i->drawLine(primary.copy(alpha=0.55f), Offset(w*(0.74f+i*0.04f),h*0.56f), Offset(w*(0.86f+i*0.03f),h*0.42f), strokeWidth=w*0.018f)} }
+    }
+    fun crustacean(kind: String) {
+        val c = Color(0xFFD98263).copy(alpha=0.80f)
+        when(kind){
+            "shrimp" -> { drawArc(c, 190f, 250f, false, Offset(w*0.20f,h*0.22f), Size(w*0.48f,h*0.44f), style=Stroke(width=w*0.10f)); drawPath(Path().apply{moveTo(w*0.24f,h*0.54f);lineTo(w*0.08f,h*0.42f);lineTo(w*0.14f,h*0.62f);close()}, c); repeat(3){i->drawLine(c.copy(alpha=0.55f),Offset(w*(0.42f+i*0.08f),h*0.58f),Offset(w*(0.38f+i*0.08f),h*0.75f),strokeWidth=w*0.02f)}; drawLine(c.copy(alpha=0.55f),Offset(w*0.64f,h*0.36f),Offset(w*0.92f,h*0.18f),strokeWidth=w*0.014f) }
+            "horseshoe" -> { drawOval(Color(0xFF8B7A5C).copy(alpha=0.82f),Offset(w*0.20f,h*0.24f),Size(w*0.50f,h*0.38f)); drawLine(secondary.copy(alpha=0.60f),Offset(w*0.66f,h*0.50f),Offset(w*0.96f,h*0.58f),strokeWidth=w*0.025f); repeat(5){i->drawLine(secondary.copy(alpha=0.42f),Offset(w*(0.28f+i*0.08f),h*0.58f),Offset(w*(0.25f+i*0.08f),h*0.76f),strokeWidth=w*0.018f)} }
+            else -> { drawOval(c, Offset(w*0.30f,h*0.32f), Size(w*0.40f,h*0.30f)); repeat(4){i->drawLine(c.copy(alpha=0.62f),Offset(w*(0.34f+i*0.09f),h*0.58f),Offset(w*(0.22f+i*0.18f),h*0.78f),strokeWidth=w*0.025f)}; drawCircle(c,w*0.08f,Offset(w*0.22f,h*0.34f)); drawCircle(c,w*0.08f,Offset(w*0.78f,h*0.34f)) }
+        }
+    }
+    fun attached(kind: String) { when(kind) {
+        "anemone" -> { drawOval(secondary.copy(alpha=0.55f),Offset(w*0.34f,h*0.60f),Size(w*0.32f,h*0.18f)); repeat(12){i->val a=i*6.28318f/12f; drawLine(Color(0xFFE68AB2).copy(alpha=0.75f),Offset(w*0.50f,h*0.62f),Offset(w*(0.5f+kotlin.math.cos(a)*0.30f),h*(0.45f+kotlin.math.sin(a)*0.25f)),strokeWidth=w*0.025f)} }
+        "barnacle" -> repeat(4){i-> val x=w*(0.26f+i*0.14f); drawPath(Path().apply{moveTo(x,h*0.70f);lineTo(x+w*0.07f,h*0.30f);lineTo(x+w*0.14f,h*0.70f);close()}, Color(0xFFC9B89A).copy(alpha=0.82f)); drawCircle(surface.copy(alpha=0.55f),w*0.035f,Offset(x+w*0.07f,h*0.42f)) }
+        else -> { drawOval(Color(0xFFC6A87A).copy(alpha=0.82f),Offset(w*0.22f,h*0.38f),Size(w*0.56f,h*0.30f)); repeat(6){i->drawLine(secondary.copy(alpha=0.42f),Offset(w*0.50f,h*0.40f),Offset(w*(0.26f+i*0.09f),h*0.62f),strokeWidth=w*0.018f)} }
+    } }
+    fun eelLike(dark: Boolean = false) { val c=if(dark) Color(0xFF24313D).copy(alpha=0.82f) else primary.copy(alpha=0.72f); drawArc(c,165f,245f,false,Offset(w*0.10f,h*0.30f),Size(w*0.72f,h*0.48f),style=Stroke(width=w*0.11f)); drawOval(c,Offset(w*0.66f,h*0.34f),Size(w*0.20f,h*0.16f)); drawCircle(surface,w*0.025f,Offset(w*0.78f,h*0.39f)) }
+    fun oddFish(kind: String) { when(kind) {
+        "sailfish" -> { fishBody(Color(0xFF3C7AA5), Color(0xFFE9C46A), tall=0.22f, long=0.62f, beak=true); drawPath(Path().apply{moveTo(w*0.34f,h*0.40f);lineTo(w*0.55f,h*0.04f);lineTo(w*0.72f,h*0.42f);close()}, Color(0xFF5DA9E9).copy(alpha=0.65f)) }
+        "marlin" -> { fishBody(Color(0xFF386FA4), secondary.copy(alpha=0.55f), tall=0.22f, long=0.66f, beak=true); drawLine(secondary,Offset(w*0.74f,h*0.48f),Offset(w*0.98f,h*0.42f),strokeWidth=w*0.018f) }
+        "grouper" -> fishBody(Color(0xFF7F675B), secondary.copy(alpha=0.42f), tall=0.42f, long=0.58f)
+        "coelacanth" -> { fishBody(Color(0xFF38505E), Color(0xFF8FA6AC), tall=0.34f, long=0.64f); repeat(4){i->drawCircle(surface.copy(alpha=0.45f),w*0.018f,Offset(w*(0.34f+i*0.09f),h*0.42f))} }
+        "hatchetfish" -> { drawPath(Path().apply{moveTo(w*0.36f,h*0.26f);lineTo(w*0.68f,h*0.42f);lineTo(w*0.54f,h*0.74f);lineTo(w*0.28f,h*0.56f);close()}, Color(0xFF35424E).copy(alpha=0.82f)); drawCircle(surface,w*0.035f,Offset(w*0.58f,h*0.40f)) }
+        "gulper" -> { drawOval(Color(0xFF263238).copy(alpha=0.82f),Offset(w*0.46f,h*0.34f),Size(w*0.34f,h*0.30f)); drawLine(primary.copy(alpha=0.55f),Offset(w*0.46f,h*0.50f),Offset(w*0.08f,h*0.56f),strokeWidth=w*0.045f) }
+        "oarfish" -> { drawPath(Path().apply{moveTo(w*0.08f,h*0.55f);cubicTo(w*0.28f,h*0.22f,w*0.54f,h*0.78f,w*0.92f,h*0.40f)}, Color(0xFFD8DCE2).copy(alpha=0.80f), style=Stroke(width=w*0.08f)); drawPath(Path().apply{moveTo(w*0.22f,h*0.44f);lineTo(w*0.28f,h*0.12f);lineTo(w*0.34f,h*0.46f);close()}, Color(0xFFE85D75).copy(alpha=0.65f)) }
+        else -> fishBody(Color(0xFF263238).copy(alpha=0.78f), secondary.copy(alpha=0.45f), tall=0.26f, long=0.62f)
+    } }
+    val stillwaterId = stillwaterStaticVisualIds.firstOrNull { id -> id in key.lowercase() }
+    if (stillwaterId != null) {
+        when (stillwaterId) {
+            "stillwater_clam" -> shellBivalve(true)
+            "stillwater_cowrie" -> shellBivalve(false)
+            "stillwater_snail" -> spiralShell(false)
+            "stillwater_nautilus" -> spiralShell(true)
+            "stillwater_shrimp" -> crustacean("shrimp")
+            "stillwater_crab" -> crustacean("crab")
+            "stillwater_horseshoe" -> crustacean("horseshoe")
+            "stillwater_limpet" -> attached("limpet")
+            "stillwater_barnacle" -> attached("barnacle")
+            "stillwater_anemone" -> attached("anemone")
+            "stillwater_moray" -> eelLike()
+            "stillwater_cuttlefish" -> { drawOval(Color(0xFFD09A8B).copy(alpha=0.78f),Offset(w*0.34f,h*0.20f),Size(w*0.34f,h*0.42f)); repeat(6){i->drawLine(secondary.copy(alpha=0.55f),Offset(w*(0.38f+i*0.05f),h*0.58f),Offset(w*(0.20f+i*0.11f),h*0.84f),strokeWidth=w*0.025f)} }
+            "stillwater_goby", "stillwater_blenny" -> fishBody(primary.copy(alpha=0.65f), secondary.copy(alpha=0.42f), tall=0.24f, long=0.44f)
+            "stillwater_wrasse" -> fishBody(Color(0xFF5FB3A6), Color(0xFFE9C46A), tall=0.25f, long=0.58f, stripes=1)
+            "stillwater_lionfish" -> { fishBody(Color(0xFFB45A3C), Color(0xFFF3D6A2), tall=0.38f, long=0.50f, stripes=4); repeat(7){i->drawLine(secondary.copy(alpha=0.55f),Offset(w*(0.30f+i*0.06f),h*0.34f),Offset(w*(0.18f+i*0.10f),h*0.08f),strokeWidth=w*0.018f)} }
+            "stillwater_marlin" -> oddFish("marlin")
+            "stillwater_sailfish" -> oddFish("sailfish")
+            "stillwater_grouper" -> oddFish("grouper")
+            "stillwater_coelacanth" -> oddFish("coelacanth")
+            "stillwater_hatchetfish" -> oddFish("hatchetfish")
+            "stillwater_gulper" -> oddFish("gulper")
+            "stillwater_oarfish" -> oddFish("oarfish")
+            "stillwater_blackdragon" -> eelLike(true)
+            "stillwater_fangtooth", "stillwater_viperfish" -> { fishBody(Color(0xFF28313A), Color(0xFFE9C46A), tall=0.28f, long=0.62f); repeat(3){i->drawLine(surface,Offset(w*(0.58f+i*0.04f),h*0.52f),Offset(w*(0.60f+i*0.04f),h*0.66f),strokeWidth=w*0.012f)} }
+            "stillwater_barracuda" -> fishBody(Color(0xFF566B6F), secondary.copy(alpha=0.45f), tall=0.20f, long=0.72f, beak=true)
+            "stillwater_mahi" -> fishBody(Color(0xFF2A9D8F), Color(0xFFE9C46A), tall=0.28f, long=0.66f)
+            "stillwater_wahoo" -> fishBody(Color(0xFF587A8A), secondary.copy(alpha=0.45f), tall=0.20f, long=0.72f)
+            "stillwater_bonito" -> fishBody(Color(0xFF667C89), secondary.copy(alpha=0.42f), tall=0.26f, long=0.58f)
+            "stillwater_amberjack" -> fishBody(Color(0xFF7A8C6A), Color(0xFFE9C46A), tall=0.30f, long=0.62f)
+            "stillwater_grenadier" -> fishBody(Color(0xFF39434B), secondary.copy(alpha=0.36f), tall=0.30f, long=0.64f)
+        }
+        return
     }
     when {
         "starfish" in key -> starFish()

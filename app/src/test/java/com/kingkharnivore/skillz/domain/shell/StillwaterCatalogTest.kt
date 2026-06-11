@@ -1,6 +1,9 @@
 package com.kingkharnivore.skillz.domain.shell
 
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
+import com.kingkharnivore.skillz.ui.screen.shell.icons.draw.hasKnownStillwaterStaticIcon
+import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.draw.hasKnownTheBlueCreatureRenderer
+import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
 import com.kingkharnivore.skillz.utils.shell.CreatureRenderFamily
 import com.kingkharnivore.skillz.utils.shell.CreatureScaleClass
 import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
@@ -72,6 +75,30 @@ class StillwaterCatalogTest {
             )
         }
         validateStillwaterDraw(StillwaterVessel.FISHBOWL, setOf(CreatureZone.SUNLIT_REEF), 15_000L)
+    }
+
+    @Test
+    fun stillwaterReleaseValuesArePositiveAndScaleByVesselTier() {
+        val clam = CreatureEconomy.releaseValuePearls("stillwater_clam")
+        val lionfish = CreatureEconomy.releaseValuePearls("stillwater_lionfish")
+        val barracuda = CreatureEconomy.releaseValuePearls("stillwater_barracuda")
+        val coelacanth = CreatureEconomy.releaseValuePearls("stillwater_coelacanth")
+
+        assertTrue(clam > 0)
+        assertTrue(lionfish > clam)
+        assertTrue(barracuda > lionfish)
+        assertTrue(coelacanth > barracuda)
+    }
+
+    @Test
+    fun allStillwaterCreaturesResolveToExplicitVisualHandlers() {
+        StillwaterCatalog.creatures.forEach { entry ->
+            val definition = CreatureCatalog.require(entry.creatureId)
+            assertTrue(hasKnownStillwaterStaticIcon(definition.staticIconKey))
+            assertTrue(hasKnownTheBlueCreatureRenderer(entry.creatureId))
+        }
+        assertTrue(hasKnownStillwaterStaticIcon(CreatureCatalog.require("stillwater_clam").staticIconKey))
+        assertTrue(hasKnownTheBlueCreatureRenderer("stillwater_clam"))
     }
 
     @Test

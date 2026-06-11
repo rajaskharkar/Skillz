@@ -22,6 +22,21 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 
+private val stillwaterSceneRendererIds = setOf(
+    "stillwater_shrimp", "stillwater_crab", "stillwater_clam", "stillwater_snail",
+    "stillwater_limpet", "stillwater_barnacle", "stillwater_cowrie", "stillwater_horseshoe",
+    "stillwater_goby", "stillwater_wrasse", "stillwater_blenny", "stillwater_lionfish",
+    "stillwater_anemone", "stillwater_cuttlefish", "stillwater_moray", "stillwater_nautilus",
+    "stillwater_mahi", "stillwater_wahoo", "stillwater_bonito", "stillwater_barracuda",
+    "stillwater_amberjack", "stillwater_grouper", "stillwater_marlin", "stillwater_sailfish",
+    "stillwater_fangtooth", "stillwater_viperfish", "stillwater_hatchetfish", "stillwater_gulper",
+    "stillwater_grenadier", "stillwater_oarfish", "stillwater_blackdragon", "stillwater_coelacanth"
+)
+
+internal fun hasKnownTheBlueCreatureRenderer(creatureId: String): Boolean =
+    stillwaterSceneRendererIds.any { id -> id in creatureId.lowercase() }
+
+
 fun DrawScope.drawTheBlueWaterBackground(
     zoneId: TheBlueZoneId,
     scheme: androidx.compose.material3.ColorScheme,
@@ -289,6 +304,89 @@ private fun DrawScope.drawSpeciesSwimmer(origin: Offset, scale: Float, drift: Fl
         if (beak) drawPath(Path().apply { moveTo(c.x+w*0.48f,c.y-h*0.12f); lineTo(c.x+w*0.70f,c.y-h*0.25f); lineTo(c.x+w*0.50f,c.y+h*0.18f); close() }, accent)
         repeat(stripes) { n -> drawLine(scheme.surface.copy(alpha=0.42f), Offset(c.x - w*0.18f + n*w*0.14f, c.y-h*0.42f), Offset(c.x - w*0.12f + n*w*0.14f, c.y+h*0.42f), strokeWidth=2f*scale) }
         drawCircle(scheme.onSurface.copy(alpha=0.55f), 1.8f*scale, Offset(c.x+w*0.28f, c.y-h*0.16f))
+    }
+    fun stillwaterShell(kind: String) {
+        val c = Offset(origin.x, origin.y + bob)
+        when (kind) {
+            "clam", "cowrie" -> {
+                val shell = if (kind == "clam") Color(0xFFD7B78A) else Color(0xFFE7C779)
+                drawOval(shell.copy(alpha = 0.78f), Offset(c.x - 20f*scale, c.y - 12f*scale), Size(40f*scale, 24f*scale))
+                drawLine(scheme.surface.copy(alpha=0.55f), Offset(c.x-16f*scale,c.y+1f*scale), Offset(c.x+17f*scale,c.y+1f*scale), strokeWidth=1.5f*scale)
+                repeat(5){i->drawLine(scheme.secondary.copy(alpha=0.38f),Offset(c.x,c.y+1f*scale),Offset(c.x+(-14f+i*7f)*scale,c.y-10f*scale),strokeWidth=1f*scale)}
+                if (kind == "cowrie") drawLine(scheme.surface.copy(alpha=0.65f), Offset(c.x-9f*scale,c.y-7f*scale), Offset(c.x+9f*scale,c.y+8f*scale), strokeWidth=2f*scale)
+            }
+            "snail", "nautilus" -> {
+                drawCircle(Color(0xFFD9C08A).copy(alpha=0.78f), 13f*scale, c)
+                drawArc(scheme.secondary.copy(alpha=0.58f), 20f, 310f, false, Offset(c.x-11f*scale,c.y-11f*scale), Size(22f*scale,22f*scale), style=Stroke(width=2f*scale))
+                if (kind == "snail") drawOval(scheme.primary.copy(alpha=0.45f), Offset(c.x+8f*scale,c.y+8f*scale), Size(18f*scale,7f*scale))
+                else repeat(5){i->drawLine(scheme.secondary.copy(alpha=0.45f),Offset(c.x+9f*scale,c.y+7f*scale),Offset(c.x+(18f+i*3f)*scale,c.y+(6f+(i%2)*5f)*scale),strokeWidth=1.3f*scale)}
+            }
+            "limpet" -> { drawOval(Color(0xFFC6A87A).copy(alpha=0.78f), Offset(c.x-18f*scale,c.y-8f*scale), Size(36f*scale,16f*scale)); repeat(5){i->drawLine(scheme.secondary.copy(alpha=0.36f),Offset(c.x,c.y-6f*scale),Offset(c.x+(-14f+i*7f)*scale,c.y+8f*scale),strokeWidth=1f*scale)} }
+            "barnacle" -> repeat(4){i-> val x=c.x+(-18f+i*10f)*scale; drawPath(Path().apply{moveTo(x,c.y+12f*scale);lineTo(x+5f*scale,c.y-10f*scale);lineTo(x+10f*scale,c.y+12f*scale);close()}, Color(0xFFC9B89A).copy(alpha=0.76f)); drawCircle(scheme.surface.copy(alpha=0.52f),2f*scale,Offset(x+5f*scale,c.y-3f*scale)) }
+        }
+    }
+    fun stillwaterCrustacean(kind: String) {
+        val c = Offset(origin.x, origin.y + bob)
+        val color = Color(0xFFD98263).copy(alpha=0.72f)
+        when (kind) {
+            "shrimp" -> { drawArc(color, 190f, 250f, false, Offset(c.x-20f*scale,c.y-16f*scale), Size(34f*scale,28f*scale), style=Stroke(width=5f*scale)); drawLine(color.copy(alpha=0.55f),Offset(c.x+12f*scale,c.y-8f*scale),Offset(c.x+32f*scale,c.y-22f*scale),strokeWidth=1f*scale) }
+            "horseshoe" -> { drawOval(Color(0xFF8B7A5C).copy(alpha=0.72f),Offset(c.x-17f*scale,c.y-12f*scale),Size(34f*scale,23f*scale)); drawLine(scheme.secondary.copy(alpha=0.55f),Offset(c.x+13f*scale,c.y+2f*scale),Offset(c.x+34f*scale,c.y+8f*scale),strokeWidth=1.4f*scale) }
+            else -> { drawOval(color, Offset(c.x-14f*scale,c.y-10f*scale), Size(28f*scale,20f*scale)); drawCircle(color,5f*scale,Offset(c.x-20f*scale,c.y-8f*scale)); drawCircle(color,5f*scale,Offset(c.x+20f*scale,c.y-8f*scale)); repeat(4){i->drawLine(color.copy(alpha=0.55f),Offset(c.x+(-10f+i*7f)*scale,c.y+8f*scale),Offset(c.x+(-22f+i*14f)*scale,c.y+20f*scale),strokeWidth=1.3f*scale)} }
+        }
+    }
+    fun stillwaterAttached(kind: String) {
+        val c = Offset(origin.x, origin.y + bob)
+        if (kind == "anemone") { drawOval(scheme.secondary.copy(alpha=0.48f),Offset(c.x-12f*scale,c.y+8f*scale),Size(24f*scale,10f*scale)); repeat(12){i->val a=i*6.28318f/12f; drawLine(Color(0xFFE68AB2).copy(alpha=0.68f),c,Offset(c.x+kotlin.math.cos(a)*22f*scale,c.y+kotlin.math.sin(a)*17f*scale),strokeWidth=1.5f*scale)} }
+    }
+    fun stillwaterEel(dark: Boolean = false) { val c=if(dark) Color(0xFF24313D).copy(alpha=0.75f) else scheme.primary.copy(alpha=0.62f); drawArc(c,165f,245f,false,Offset(origin.x-28f*scale,origin.y-15f*scale+bob),Size(55f*scale,35f*scale),style=Stroke(width=6f*scale)); drawOval(c,Offset(origin.x+18f*scale,origin.y-8f*scale+bob),Size(16f*scale,11f*scale)); drawCircle(scheme.surface,1.5f*scale,Offset(origin.x+28f*scale,origin.y-4f*scale+bob)) }
+    fun stillwaterOddFish(kind: String) { when(kind) {
+        "sailfish" -> { fish(Color(0xFF3C7AA5).copy(alpha=0.65f), Color(0xFFE9C46A).copy(alpha=0.55f), wMul=1.60f, hMul=0.75f, beak=true); drawPath(Path().apply{moveTo(origin.x-8f*scale,origin.y-6f*scale+bob);lineTo(origin.x+8f*scale,origin.y-34f*scale+bob);lineTo(origin.x+28f*scale,origin.y-6f*scale+bob);close()}, Color(0xFF5DA9E9).copy(alpha=0.48f)) }
+        "marlin" -> { fish(Color(0xFF386FA4).copy(alpha=0.62f), scheme.secondary.copy(alpha=0.42f), wMul=1.75f, hMul=0.70f, beak=true); drawLine(scheme.secondary.copy(alpha=0.58f),Offset(origin.x+24f*scale,origin.y+bob),Offset(origin.x+60f*scale,origin.y-5f*scale+bob),strokeWidth=1.4f*scale) }
+        "grouper" -> fish(Color(0xFF7F675B).copy(alpha=0.65f), scheme.secondary.copy(alpha=0.35f), wMul=1.25f, hMul=1.35f)
+        "coelacanth" -> fish(Color(0xFF38505E).copy(alpha=0.70f), Color(0xFF8FA6AC).copy(alpha=0.44f), wMul=1.55f, hMul=1.05f)
+        "hatchetfish" -> { val c=Offset(origin.x,origin.y+bob); drawPath(Path().apply{moveTo(c.x-10f*scale,c.y-17f*scale);lineTo(c.x+18f*scale,c.y-5f*scale);lineTo(c.x+5f*scale,c.y+18f*scale);lineTo(c.x-20f*scale,c.y+4f*scale);close()},Color(0xFF35424E).copy(alpha=0.75f)); drawCircle(scheme.surface,2f*scale,Offset(c.x+10f*scale,c.y-6f*scale)) }
+        "gulper" -> { val c=Offset(origin.x,origin.y+bob); drawOval(Color(0xFF263238).copy(alpha=0.78f),Offset(c.x+0f*scale,c.y-9f*scale),Size(26f*scale,18f*scale)); drawLine(scheme.primary.copy(alpha=0.48f),Offset(c.x,c.y),Offset(c.x-36f*scale,c.y+5f*scale),strokeWidth=3f*scale) }
+        "oarfish" -> { val c=Offset(origin.x,origin.y+bob); drawPath(Path().apply{moveTo(c.x-44f*scale,c.y+4f*scale);cubicTo(c.x-18f*scale,c.y-22f*scale,c.x+6f*scale,c.y+24f*scale,c.x+46f*scale,c.y-8f*scale)},Color(0xFFD8DCE2).copy(alpha=0.72f),style=Stroke(width=5f*scale)); drawPath(Path().apply{moveTo(c.x-18f*scale,c.y-4f*scale);lineTo(c.x-12f*scale,c.y-28f*scale);lineTo(c.x-6f*scale,c.y-3f*scale);close()},Color(0xFFE85D75).copy(alpha=0.58f)) }
+        else -> fish(Color(0xFF263238).copy(alpha=0.68f), scheme.secondary.copy(alpha=0.40f), wMul=1.30f, hMul=0.90f)
+    } }
+    fun drawStillwaterCreature() {
+        val stillwaterId = stillwaterSceneRendererIds.first { known -> known in id }
+        when (stillwaterId) {
+            "stillwater_clam" -> stillwaterShell("clam")
+            "stillwater_cowrie" -> stillwaterShell("cowrie")
+            "stillwater_snail" -> stillwaterShell("snail")
+            "stillwater_nautilus" -> stillwaterShell("nautilus")
+            "stillwater_limpet" -> stillwaterShell("limpet")
+            "stillwater_barnacle" -> stillwaterShell("barnacle")
+            "stillwater_shrimp" -> stillwaterCrustacean("shrimp")
+            "stillwater_crab" -> stillwaterCrustacean("crab")
+            "stillwater_horseshoe" -> stillwaterCrustacean("horseshoe")
+            "stillwater_anemone" -> stillwaterAttached("anemone")
+            "stillwater_moray" -> stillwaterEel()
+            "stillwater_blackdragon" -> stillwaterEel(true)
+            "stillwater_cuttlefish" -> drawSquidScene(origin, scale * 0.85f, bob, scheme, giant = false)
+            "stillwater_lionfish" -> { fish(Color(0xFFB45A3C).copy(alpha=0.68f), Color(0xFFF3D6A2).copy(alpha=0.60f), hMul=1.2f, stripes=4); repeat(6){n->drawLine(scheme.secondary.copy(alpha=0.40f), Offset(origin.x-10f*scale+n*5f*scale, origin.y-7f*scale+bob), Offset(origin.x-22f*scale+n*8f*scale, origin.y-30f*scale+bob), strokeWidth=1.5f*scale)} }
+            "stillwater_goby", "stillwater_blenny" -> fish(scheme.primary.copy(alpha=0.56f), scheme.secondary.copy(alpha=0.38f), wMul=0.85f, hMul=0.82f)
+            "stillwater_wrasse" -> fish(Color(0xFF5FB3A6).copy(alpha=0.66f), Color(0xFFE9C46A).copy(alpha=0.56f), wMul=1.15f, hMul=0.85f, stripes=1)
+            "stillwater_marlin" -> stillwaterOddFish("marlin")
+            "stillwater_sailfish" -> stillwaterOddFish("sailfish")
+            "stillwater_grouper" -> stillwaterOddFish("grouper")
+            "stillwater_coelacanth" -> stillwaterOddFish("coelacanth")
+            "stillwater_hatchetfish" -> stillwaterOddFish("hatchetfish")
+            "stillwater_gulper" -> stillwaterOddFish("gulper")
+            "stillwater_oarfish" -> stillwaterOddFish("oarfish")
+            "stillwater_fangtooth", "stillwater_viperfish" -> { fish(Color(0xFF28313A).copy(alpha=0.72f), Color(0xFFE9C46A).copy(alpha=0.46f), wMul=1.35f, hMul=0.95f); repeat(3){i->drawLine(scheme.surface.copy(alpha=0.72f),Offset(origin.x+(7f+i*3f)*scale,origin.y+5f*scale+bob),Offset(origin.x+(8f+i*3f)*scale,origin.y+15f*scale+bob),strokeWidth=0.9f*scale)} }
+            "stillwater_barracuda" -> fish(scheme.onSurface.copy(alpha=0.46f), scheme.secondary.copy(alpha=0.36f), wMul=1.75f, hMul=0.70f, beak=true)
+            "stillwater_mahi" -> fish(Color(0xFF2A9D8F).copy(alpha=0.68f), Color(0xFFE9C46A).copy(alpha=0.58f), wMul=1.55f, hMul=0.90f)
+            "stillwater_wahoo" -> fish(Color(0xFF587A8A).copy(alpha=0.66f), scheme.secondary.copy(alpha=0.40f), wMul=1.75f, hMul=0.68f)
+            "stillwater_bonito" -> fish(Color(0xFF667C89).copy(alpha=0.66f), scheme.secondary.copy(alpha=0.38f), wMul=1.35f, hMul=0.85f)
+            "stillwater_amberjack" -> fish(Color(0xFF7A8C6A).copy(alpha=0.66f), Color(0xFFE9C46A).copy(alpha=0.54f), wMul=1.45f, hMul=0.95f)
+            "stillwater_grenadier" -> fish(Color(0xFF39434B).copy(alpha=0.68f), scheme.secondary.copy(alpha=0.32f), wMul=1.45f, hMul=0.90f)
+        }
+    }
+    if (hasKnownTheBlueCreatureRenderer(id)) {
+        drawStillwaterCreature()
+        return
     }
     when {
         "clownfish" in id -> fish(Color(0xFFE9782E).copy(alpha=0.74f), scheme.surface.copy(alpha=0.60f), hMul=1.10f, stripes=3)

@@ -117,18 +117,8 @@ object CreatureCatalog {
                 StillwaterVessel.POND -> CreatureRenderFamily.LARGE_FISH
                 StillwaterVessel.LAKE -> CreatureRenderFamily.LARGE_FISH
             },
-            sceneBehavior = when (entry.vessel) {
-                StillwaterVessel.FISHBOWL -> CreatureSceneBehavior.DRIFT
-                StillwaterVessel.AQUARIUM -> CreatureSceneBehavior.SWIM
-                StillwaterVessel.POND -> CreatureSceneBehavior.CRUISE
-                StillwaterVessel.LAKE -> CreatureSceneBehavior.BOTTOM_DWELL
-            },
-            placementBand = when (entry.vessel) {
-                StillwaterVessel.FISHBOWL -> CreaturePlacementBand.REEF_FLOOR
-                StillwaterVessel.AQUARIUM -> CreaturePlacementBand.MID_WATER
-                StillwaterVessel.POND -> CreaturePlacementBand.OPEN_WATER
-                StillwaterVessel.LAKE -> CreaturePlacementBand.DEEP_WATER
-            },
+            sceneBehavior = stillwaterSceneBehaviorFor(entry.creatureId, entry.vessel),
+            placementBand = stillwaterPlacementBandFor(entry.creatureId, entry.vessel),
             scaleClass = when (entry.vessel) {
                 StillwaterVessel.FISHBOWL -> CreatureScaleClass.SMALL
                 StillwaterVessel.AQUARIUM -> CreatureScaleClass.MEDIUM
@@ -137,6 +127,59 @@ object CreatureCatalog {
             }
         )
     }
+    private fun stillwaterSceneBehaviorFor(id: String, vessel: StillwaterVessel): CreatureSceneBehavior = when (id) {
+        "stillwater_clam",
+        "stillwater_limpet",
+        "stillwater_barnacle",
+        "stillwater_cowrie",
+        "stillwater_snail",
+        "stillwater_horseshoe",
+        "stillwater_crab",
+        "stillwater_anemone",
+        "stillwater_moray" -> CreatureSceneBehavior.BOTTOM_DWELL
+        "stillwater_shrimp",
+        "stillwater_cuttlefish",
+        "stillwater_nautilus" -> CreatureSceneBehavior.DRIFT
+        "stillwater_fangtooth",
+        "stillwater_viperfish",
+        "stillwater_gulper",
+        "stillwater_oarfish",
+        "stillwater_blackdragon",
+        "stillwater_coelacanth" -> CreatureSceneBehavior.CRUISE
+        "stillwater_hatchetfish",
+        "stillwater_grenadier" -> CreatureSceneBehavior.BOTTOM_DWELL
+        else -> when (vessel) {
+            StillwaterVessel.FISHBOWL -> CreatureSceneBehavior.BOTTOM_DWELL
+            StillwaterVessel.AQUARIUM -> CreatureSceneBehavior.SWIM
+            StillwaterVessel.POND -> CreatureSceneBehavior.CRUISE
+            StillwaterVessel.LAKE -> CreatureSceneBehavior.BOTTOM_DWELL
+        }
+    }
+
+    private fun stillwaterPlacementBandFor(id: String, vessel: StillwaterVessel): CreaturePlacementBand = when (id) {
+        "stillwater_clam",
+        "stillwater_limpet",
+        "stillwater_barnacle",
+        "stillwater_cowrie",
+        "stillwater_snail",
+        "stillwater_horseshoe",
+        "stillwater_crab",
+        "stillwater_anemone",
+        "stillwater_moray" -> CreaturePlacementBand.REEF_FLOOR
+        "stillwater_hatchetfish",
+        "stillwater_gulper",
+        "stillwater_grenadier",
+        "stillwater_oarfish",
+        "stillwater_blackdragon",
+        "stillwater_coelacanth" -> CreaturePlacementBand.DEEP_WATER
+        else -> when (vessel) {
+            StillwaterVessel.FISHBOWL -> CreaturePlacementBand.REEF_FLOOR
+            StillwaterVessel.AQUARIUM -> CreaturePlacementBand.MID_WATER
+            StillwaterVessel.POND -> CreaturePlacementBand.OPEN_WATER
+            StillwaterVessel.LAKE -> CreaturePlacementBand.DEEP_WATER
+        }
+    }
+
 
     val all: List<CreatureDefinition> = listOf(
         flow(ShellContentCatalog.FOCUS_MINNOW, "Minnow", CreatureZone.SUNLIT_REEF, 10, CreatureRenderFamily.SMALL_FISH),
@@ -286,7 +329,6 @@ object CreatureEconomy {
     fun canonicalPearlValue(creatureId: String): Int = pearlPriceForRequirement(flowTimeValueMinutes(creatureId))
 
     fun releaseValuePearls(creatureId: String, level: Int = 1): Int {
-        if (CreatureCatalog.require(creatureId).sourceType == CreatureSourceType.STILLWATER) return 0
         val safeLevel = level.coerceIn(1, MAX_CREATURE_LEVEL)
         val base = canonicalPearlValue(creatureId).coerceAtLeast(0)
         val upgradeInvestment = cumulativeGrowthCostPearls(creatureId, safeLevel)

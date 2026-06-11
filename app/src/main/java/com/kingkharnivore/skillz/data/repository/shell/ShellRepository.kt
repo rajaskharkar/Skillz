@@ -489,9 +489,6 @@ class ShellRepository @Inject constructor(
         require(ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL) {
             "Only animals can be released."
         }
-        require(CreatureCatalog.require(
-            instance.findId).sourceType != CreatureSourceType.STILLWATER
-        ) { "Stillwater exclusives cannot be released for Pearls." }
         require(instance.creatureStatus == CreatureStatus.ACTIVE) {
             "Only active creatures can be released."
         }
@@ -512,11 +509,6 @@ class ShellRepository @Inject constructor(
         require(ShellContentCatalog.find(findId)?.kind == ShellRewardKind.ANIMAL) {
             "Only animals can be released."
         }
-        require(CreatureCatalog.require(findId).sourceType
-                != CreatureSourceType.STILLWATER) {
-            "Stillwater exclusives cannot be released for Pearls."
-        }
-
         val selectedInstances = mutableListOf<UserShellFindInstanceEntity>()
         requestedSelections.toSortedMap(
             compareByDescending { it }

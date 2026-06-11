@@ -75,10 +75,7 @@ internal fun buildTheBlueUiState(
         .map { it.instanceId }
         .toSet()
 
-    val allAnimalFinds = finds.filter { instance ->
-        ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL &&
-            CreatureCatalog.get(instance.findId)?.sourceType != CreatureSourceType.STILLWATER
-    }
+    val allAnimalFinds = finds.filter { instance -> isTheBlueOwnedDisplayCreature(instance.findId) }
     val animalFinds = allAnimalFinds.filter { it.creatureStatus == CreatureStatus.ACTIVE }
 
     val historicalByFindId = allAnimalFinds.groupBy { it.findId }
@@ -141,10 +138,21 @@ internal fun buildTheBlueUiState(
         totalAnimals = animalFinds.size,
         speciesCount = groups.size,
         deepestZoneId = inhabitedZones.maxByOrNull { it.depthOrder() },
-        newAnimalCount = animalFinds.count { it.isNew },
+        newAnimalCount = animalFinds.count { it.isNew && isBlueAcquisitionCreature(it.findId) },
         zones = zones
     )
 }
+
+internal fun isBlueAcquisitionCreature(findId: String): Boolean {
+    val definition = CreatureCatalog.get(findId) ?: return false
+    return ShellContentCatalog.find(findId)?.kind == ShellRewardKind.ANIMAL &&
+        definition.sourceType != CreatureSourceType.STILLWATER
+}
+
+internal fun isTheBlueOwnedDisplayCreature(findId: String): Boolean =
+    ShellContentCatalog.find(findId)?.kind == ShellRewardKind.ANIMAL &&
+        CreatureCatalog.get(findId) != null
+
 
 internal fun zoneForFind(findId: String): TheBlueZoneId? = when (findId) {
     ShellContentCatalog.FOCUS_MINNOW -> TheBlueZoneId.SUNLIT_REEF
