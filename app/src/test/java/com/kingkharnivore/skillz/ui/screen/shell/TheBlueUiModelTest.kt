@@ -4,7 +4,9 @@ import com.kingkharnivore.skillz.data.model.entity.shell.ShellPlacementEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
+import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
+import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
 import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -20,6 +22,15 @@ class TheBlueUiModelTest {
         assertEquals(TheBlueZoneId.DEEPER_REEF, zoneForFind(ShellContentCatalog.FOCUS_OCTOPUS))
         assertEquals(TheBlueZoneId.OPEN_BLUE, zoneForFind(ShellContentCatalog.FOCUS_MANTA))
         assertEquals(TheBlueZoneId.GREAT_BLUE, zoneForFind(ShellContentCatalog.FOCUS_WHALE))
+        assertEquals(TheBlueZoneId.SUNLIT_REEF, zoneForFind("stillwater_clam"))
+        assertEquals(TheBlueZoneId.DEEPER_REEF, zoneForFind("stillwater_lionfish"))
+        assertEquals(TheBlueZoneId.OPEN_BLUE, zoneForFind("stillwater_barracuda"))
+        assertEquals(TheBlueZoneId.GREAT_BLUE, zoneForFind("stillwater_coelacanth"))
+        assertTrue(
+            CreatureCatalog.all
+                .filter { it.sourceType == CreatureSourceType.STILLWATER }
+                .all { zoneForFind(it.creatureId) != null }
+        )
     }
 
     @Test
@@ -52,6 +63,38 @@ class TheBlueUiModelTest {
         assertFalse(state.zones.any { zone -> zone.animals.any { it.findId == ShellContentCatalog.TRINKET_SEA_GLASS_SHARD } })
     }
 
+    @Test
+    fun acquisitionPoolExcludesStillwaterButOwnedDisplayIncludesActiveStillwater() {
+        assertFalse(isBlueAcquisitionCreature("stillwater_clam"))
+        assertTrue(isBlueAcquisitionCreature(ShellContentCatalog.FOCUS_MINNOW))
+
+        val state = buildTheBlueUiState(
+            finds = listOf(
+                find("clam-active", "stillwater_clam", isNew = true),
+                find("clam-released", "stillwater_clam", status = CreatureStatus.RELEASED),
+                find("minnow-active", ShellContentCatalog.FOCUS_MINNOW, isNew = true)
+            ),
+            focusPlacements = emptyList()
+        )
+
+        val reefAnimals = state.zones.single { it.zoneId == TheBlueZoneId.SUNLIT_REEF }.animals
+        assertTrue(reefAnimals.any { it.findId == "stillwater_clam" })
+        assertTrue(reefAnimals.any { it.findId == ShellContentCatalog.FOCUS_MINNOW })
+        assertEquals(1, reefAnimals.single { it.findId == "stillwater_clam" }.totalCount)
+        assertEquals(2, reefAnimals.single { it.findId == "stillwater_clam" }.lifetimeEncounteredCount)
+        assertEquals(1, reefAnimals.single { it.findId == "stillwater_clam" }.releasedCount)
+        assertEquals(1, state.newAnimalCount)
+    }
+
+    @Test
+    fun releasedStillwaterCreaturesDoNotAppearInOwnedDisplay() {
+        val state = buildTheBlueUiState(
+            finds = listOf(find("clam-released", "stillwater_clam", status = CreatureStatus.RELEASED)),
+            focusPlacements = emptyList()
+        )
+
+        assertFalse(state.zones.any { zone -> zone.animals.any { it.findId == "stillwater_clam" } })
+    }
 
     @Test
     fun releasedAndUsedCreaturesAreHistoricalButNotActiveInTheBlue() {

@@ -1,6 +1,9 @@
 package com.kingkharnivore.skillz.domain.shell
 
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
+import com.kingkharnivore.skillz.ui.screen.shell.icons.draw.hasKnownStillwaterStaticIcon
+import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.draw.hasKnownTheBlueCreatureRenderer
+import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
 import com.kingkharnivore.skillz.utils.shell.CreatureRenderFamily
 import com.kingkharnivore.skillz.utils.shell.CreatureScaleClass
 import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
@@ -26,6 +29,9 @@ class StillwaterCatalogTest {
         assertTrue(CreatureCatalog.beyondBlue.none { it.sourceType == CreatureSourceType.STILLWATER })
         assertTrue(StillwaterCatalog.creatures.any { it.displayName == "Lionfish" })
         assertTrue(StillwaterCatalog.creatures.any { it.displayName == "Barracuda" })
+        assertEquals("Scorpionfish", CreatureCatalog.require("creature_lionfish").displayName)
+        assertEquals("Needlefish", CreatureCatalog.require("creature_barracuda").displayName)
+        assertFalse(CreatureCatalog.beyondBlue.any { it.displayName == "Lionfish" || it.displayName == "Barracuda" })
 
         val blueCreatures = CreatureCatalog.all.filter { it.sourceType != CreatureSourceType.STILLWATER }
         val stillwaterCreatures = CreatureCatalog.stillwater
@@ -41,7 +47,7 @@ class StillwaterCatalogTest {
 
     @Test
     fun forbiddenStillwaterNamesAreNotPresent() {
-        val forbidden = setOf("Seahorse", "Leviathan", "Urchin", "Octopus", "Anglerfish", "Triggerfish", "Tuna")
+        val forbidden = setOf("Seahorse", "Leviathan", "Urchin", "Octopus", "Anglerfish", "Triggerfish", "Tuna", "Starfish")
         val names = CreatureCatalog.stillwater.map { it.displayName }.toSet()
         assertTrue(names.none { it in forbidden })
     }
@@ -69,6 +75,35 @@ class StillwaterCatalogTest {
             )
         }
         validateStillwaterDraw(StillwaterVessel.FISHBOWL, setOf(CreatureZone.SUNLIT_REEF), 15_000L)
+    }
+
+    @Test
+    fun stillwaterReleaseValuesArePositiveAndScaleByVesselTier() {
+        val clam = CreatureEconomy.releaseValuePearls("stillwater_clam")
+        val lionfish = CreatureEconomy.releaseValuePearls("stillwater_lionfish")
+        val barracuda = CreatureEconomy.releaseValuePearls("stillwater_barracuda")
+        val coelacanth = CreatureEconomy.releaseValuePearls("stillwater_coelacanth")
+
+        assertEquals(125, clam)
+        assertEquals(208, lionfish)
+        assertEquals(375, barracuda)
+        assertEquals(625, coelacanth)
+        assertTrue(clam > 0)
+        assertTrue(lionfish > clam)
+        assertTrue(barracuda > lionfish)
+        assertTrue(coelacanth > barracuda)
+        assertTrue(clam < CreatureEconomy.canonicalPearlValue("stillwater_clam"))
+    }
+
+    @Test
+    fun allStillwaterCreaturesResolveToExplicitVisualHandlers() {
+        StillwaterCatalog.creatures.forEach { entry ->
+            val definition = CreatureCatalog.require(entry.creatureId)
+            assertTrue(hasKnownStillwaterStaticIcon(definition.staticIconKey))
+            assertTrue(hasKnownTheBlueCreatureRenderer(entry.creatureId))
+        }
+        assertTrue(hasKnownStillwaterStaticIcon(CreatureCatalog.require("stillwater_clam").staticIconKey))
+        assertTrue(hasKnownTheBlueCreatureRenderer("stillwater_clam"))
     }
 
     @Test

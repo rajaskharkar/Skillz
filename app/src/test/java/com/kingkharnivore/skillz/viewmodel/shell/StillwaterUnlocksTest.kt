@@ -10,16 +10,35 @@ import org.junit.Test
 
 class StillwaterUnlocksTest {
     @Test
-    fun derivesUnlockedZonesFromHistoricalNonStillwaterFinds() {
+    fun releasedHistoricalOpenBlueCreatureStillUnlocksPond() {
         val zones = deriveUnlockedBlueZonesFromHistoricalFinds(
-            listOf(
-                creature("released-manta", ShellContentCatalog.FOCUS_MANTA, CreatureStatus.RELEASED),
-                creature("stillwater-lake", "stillwater_coelacanth", CreatureStatus.ACTIVE)
-            )
+            listOf(creature("released-manta", ShellContentCatalog.FOCUS_MANTA, CreatureStatus.RELEASED))
         )
 
         assertTrue(CreatureZone.SUNLIT_REEF in zones)
+        assertTrue(CreatureZone.DEEPER_REEF in zones)
         assertTrue(CreatureZone.OPEN_BLUE in zones)
+        assertFalse(CreatureZone.GREAT_BLUE in zones)
+    }
+
+    @Test
+    fun releasedHistoricalGreatBlueCreatureStillUnlocksLake() {
+        val zones = deriveUnlockedBlueZonesFromHistoricalFinds(
+            listOf(creature("released-whale", ShellContentCatalog.FOCUS_WHALE, CreatureStatus.RELEASED))
+        )
+
+        assertTrue(CreatureZone.GREAT_BLUE in zones)
+    }
+
+    @Test
+    fun stillwaterCreaturesDoNotUnlockBlueProgression() {
+        val zones = deriveUnlockedBlueZonesFromHistoricalFinds(
+            listOf(creature("stillwater-lake", "stillwater_coelacanth", CreatureStatus.ACTIVE))
+        )
+
+        assertTrue(CreatureZone.SUNLIT_REEF in zones)
+        assertFalse(CreatureZone.DEEPER_REEF in zones)
+        assertFalse(CreatureZone.OPEN_BLUE in zones)
         assertFalse(CreatureZone.GREAT_BLUE in zones)
     }
 

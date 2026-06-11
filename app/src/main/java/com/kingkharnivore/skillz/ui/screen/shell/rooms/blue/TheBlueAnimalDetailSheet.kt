@@ -40,6 +40,7 @@ import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
+import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
 import com.kingkharnivore.skillz.ui.screen.shell.TheBlueAnimalGroupUiModel
 import com.kingkharnivore.skillz.ui.screen.shell.TheBlueDisplayDisabledReason
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
@@ -237,11 +238,12 @@ private fun theBlueEncounteredReason(findId: String): String = when (findId) {
 }
 
 @Composable
-private fun theBlueSourceReason(findId: String): String = when (findId) {
-    ShellContentCatalog.FOCUS_MINNOW -> stringResource(R.string.the_blue_source_minnow)
-    ShellContentCatalog.FOCUS_SEAHORSE -> stringResource(R.string.the_blue_source_seahorse)
-    ShellContentCatalog.FOCUS_MANTA -> stringResource(R.string.the_blue_source_manta)
-    ShellContentCatalog.FOCUS_WHALE -> stringResource(R.string.the_blue_source_whale)
-    ShellContentCatalog.FOCUS_OCTOPUS -> stringResource(R.string.the_blue_source_octopus)
+private fun theBlueSourceReason(findId: String): String = when {
+    CreatureCatalog.get(findId)?.sourceType == CreatureSourceType.STILLWATER -> stringResource(R.string.shell_stillwater_exclusive)
+    findId == ShellContentCatalog.FOCUS_MINNOW -> stringResource(R.string.the_blue_source_minnow)
+    findId == ShellContentCatalog.FOCUS_SEAHORSE -> stringResource(R.string.the_blue_source_seahorse)
+    findId == ShellContentCatalog.FOCUS_MANTA -> stringResource(R.string.the_blue_source_manta)
+    findId == ShellContentCatalog.FOCUS_WHALE -> stringResource(R.string.the_blue_source_whale)
+    findId == ShellContentCatalog.FOCUS_OCTOPUS -> stringResource(R.string.the_blue_source_octopus)
     else -> ShellContentCatalog.find(findId)?.let { stringResource(it.descriptionRes) } ?: stringResource(R.string.reward_card_shell_recorded_body)
 }

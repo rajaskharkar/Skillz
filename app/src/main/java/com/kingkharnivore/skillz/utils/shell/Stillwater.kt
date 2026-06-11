@@ -39,7 +39,7 @@ fun validateStillwaterDraw(
     unlockedZones: Set<CreatureZone>,
     claimableDrops: Long
 ) {
-    require(vessel.zone in unlockedZones) { "Reach this depth in The Blue first." }
+    require(vessel.zone in unlockedZones) { "Progress farther in The Blue to unlock this vessel." }
     require(claimableDrops >= vessel.dropCost) { "Not enough Drops yet." }
 }
 

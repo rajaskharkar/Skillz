@@ -34,7 +34,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.utils.shell.CreatureDefinition
@@ -48,6 +47,49 @@ import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.isBlueZoneUnlocked
 
+internal data class StillwaterDropsCardUiModel(
+    @StringRes val primaryStringRes: Int,
+    val primaryDrops: Long,
+    val secondaryDrops: Long,
+    val hasAvailableDraw: Boolean
+)
+
+internal data class StillwaterVesselCardUiModel(
+    val claimableDrops: Long,
+    val canAfford: Boolean,
+    val canDraw: Boolean,
+    val dropsNeeded: Long,
+    val progress: Float
+)
+
+internal fun buildStillwaterDropsCardUiModel(uiState: ShellUiState): StillwaterDropsCardUiModel {
+    val hasAvailableDraw = StillwaterVessel.entries.any { vessel ->
+        uiState.isBlueZoneUnlocked(vessel.zone) &&
+            uiState.stillwaterClaimableDrops >= vessel.dropCost
+    }
+    return StillwaterDropsCardUiModel(
+        primaryStringRes = R.string.shell_stillwater_drops_available,
+        primaryDrops = uiState.stillwaterClaimableDrops,
+        secondaryDrops = uiState.stillwaterLifetimeDrops,
+        hasAvailableDraw = hasAvailableDraw
+    )
+}
+
+internal fun buildStillwaterVesselCardUiModel(
+    vessel: StillwaterVessel,
+    claimableDrops: Long,
+    isUnlocked: Boolean
+): StillwaterVesselCardUiModel {
+    val canAfford = claimableDrops >= vessel.dropCost
+    return StillwaterVesselCardUiModel(
+        claimableDrops = claimableDrops,
+        canAfford = canAfford,
+        canDraw = isUnlocked && canAfford,
+        dropsNeeded = stillwaterDropsNeeded(claimableDrops, vessel),
+        progress = stillwaterVesselProgress(claimableDrops, vessel)
+    )
+}
+
 @Composable
 fun StillwaterRoomScreen(
     uiState: ShellUiState,
@@ -56,8 +98,8 @@ fun StillwaterRoomScreen(
     onDismissStillwaterReveal: () -> Unit,
     onDismissStillwaterDrawConfirmation: () -> Unit
 ) {
-    val drops = uiState.stillwaterClaimableDrops
-    val lifetimeDrops = uiState.stillwaterLifetimeDrops
+    val dropsCard = buildStillwaterDropsCardUiModel(uiState)
+    val drops = dropsCard.primaryDrops
 
     Column(
         modifier = Modifier
@@ -71,10 +113,7 @@ fun StillwaterRoomScreen(
             body = R.string.shell_stillwater_body
         )
 
-        StillwaterDropsCard(
-            drops = drops,
-            lifetimeDrops = lifetimeDrops
-        )
+        StillwaterDropsCard(dropsCard = dropsCard)
 
         Text(
             text = stringResource(R.string.shell_stillwater_draw_prompt),
@@ -113,18 +152,17 @@ fun StillwaterRoomScreen(
 
 @Composable
 private fun StillwaterDropsCard(
-    drops: Long,
-    lifetimeDrops: Long
+    dropsCard: StillwaterDropsCardUiModel
 ) {
     val scheme = MaterialTheme.colorScheme
     ElevatedCard(
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.elevatedCardColors(containerColor = scheme.primary)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
+                .height(240.dp)
                 .background(shellChamberBrush())
         ) {
             TurtleShellInteriorBackground(
@@ -132,34 +170,75 @@ private fun StillwaterDropsCard(
                 centerGlow = true
             )
             Canvas(Modifier.matchParentSize()) {
-                repeat(4) { i ->
+                repeat(5) { index ->
                     drawCircle(
-                        color = scheme.onPrimary.copy(alpha = 0.10f),
-                        radius = 52f + i * 34f,
-                        center = Offset(size.width / 2, size.height / 2),
-                        style = Stroke(3f)
+                        color = scheme.onPrimary.copy(alpha = 0.07f - index * 0.008f),
+                        radius = 56f + index * 38f,
+                        center = Offset(size.width * 0.72f, size.height * 0.35f),
+                        style = Stroke(width = 3f)
+                    )
+                }
+                repeat(4) { index ->
+                    drawCircle(
+                        color = scheme.onPrimary.copy(alpha = 0.05f - index * 0.007f),
+                        radius = 36f + index * 28f,
+                        center = Offset(size.width * 0.22f, size.height * 0.78f),
+                        style = Stroke(width = 2f)
                     )
                 }
             }
             Column(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .fillMaxSize()
+                    .padding(22.dp),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.shell_room_stillwater_title),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = scheme.onPrimary.copy(alpha = 0.82f),
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    if (dropsCard.hasAvailableDraw) {
+                        Surface(
+                            shape = RoundedCornerShape(999.dp),
+                            color = scheme.onPrimary.copy(alpha = 0.14f)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.shell_stillwater_ready_to_draw),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = scheme.onPrimary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = stringResource(dropsCard.primaryStringRes, dropsCard.primaryDrops),
+                        color = scheme.onPrimary,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = stringResource(R.string.shell_stillwater_lifetime_drops, dropsCard.secondaryDrops),
+                        color = scheme.onPrimary.copy(alpha = 0.78f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
                 Text(
-                    text = stringResource(R.string.shell_stillwater_drops_gathered, drops),
-                    color = scheme.onPrimary,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = stringResource(R.string.shell_stillwater_lifetime_drops, lifetimeDrops),
-                    color = scheme.onPrimary.copy(alpha = 0.82f),
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center
+                    text = stringResource(R.string.shell_stillwater_soft_flows_gather_drops),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onPrimary.copy(alpha = 0.76f)
                 )
             }
         }
@@ -175,10 +254,11 @@ private fun StillwaterVesselCard(
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
-    val canAfford = claimableDrops >= vessel.dropCost
-    val canDraw = isUnlocked && canAfford
-    val needed = stillwaterDropsNeeded(claimableDrops, vessel)
-    val progress = stillwaterVesselProgress(claimableDrops, vessel)
+    val cardState = buildStillwaterVesselCardUiModel(vessel, claimableDrops, isUnlocked)
+    val canAfford = cardState.canAfford
+    val canDraw = cardState.canDraw
+    val needed = cardState.dropsNeeded
+    val progress = cardState.progress
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -305,8 +385,7 @@ private fun StillwaterDrawConfirmDialog(
             Text(
                 stringResource(
                     R.string.shell_stillwater_confirm_draw_body,
-                    vessel.dropCost,
-                    stringResource(rewardFor(vessel)).replaceFirstChar { it.lowercase() }
+                    vessel.dropCost
                 )
             )
         },
