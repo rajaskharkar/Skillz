@@ -1915,6 +1915,8 @@ You can turn Health back on later.</string>
 
     <string name="shell_stillwater_drops_available">%1$d Drops available</string>
     <string name="shell_stillwater_lifetime_drops">%1$d Drops gathered all time</string>
+    <string name="shell_stillwater_ready_to_draw">Ready to draw</string>
+    <string name="shell_stillwater_soft_flows_gather_drops">Soft flows gather Drops.</string>
     <string name="shell_stillwater_draw_prompt">Choose a vessel. Something quiet may surface.</string>
     <string name="shell_stillwater_fishbowl_title">Fishbowl</string>
     <string name="shell_stillwater_aquarium_title">Aquarium</string>
