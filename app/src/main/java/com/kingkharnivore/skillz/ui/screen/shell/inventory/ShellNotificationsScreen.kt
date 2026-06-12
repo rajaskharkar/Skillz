@@ -52,6 +52,7 @@ import com.kingkharnivore.skillz.data.repository.shell.SHELL_BADGES_ROUTE
 import com.kingkharnivore.skillz.data.repository.shell.SHELL_CHEST_ROUTE
 import com.kingkharnivore.skillz.data.repository.shell.ShellNotificationType
 import com.kingkharnivore.skillz.data.repository.shell.notificationId
+import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 
 sealed interface ShellNotificationInlayItem {
@@ -74,26 +75,11 @@ sealed interface ShellNotificationInlayItem {
         override val createdAt: Long,
         override val deepLinkRoute: String? = SHELL_BADGES_ROUTE
     ) : ShellNotificationInlayItem
-
-    data class Stack(
-        override val id: String,
-        val findId: String,
-        val quantity: Int,
-        override val createdAt: Long,
-        override val deepLinkRoute: String? = SHELL_CHEST_ROUTE
-    ) : ShellNotificationInlayItem
-
-    data class Discovery(
-        override val id: String,
-        val discoveryId: String,
-        override val createdAt: Long,
-        override val deepLinkRoute: String? = SHELL_CHEST_ROUTE
-    ) : ShellNotificationInlayItem
 }
 
 fun unviewedShellNotifications(uiState: ShellUiState): List<ShellNotificationInlayItem> = buildList {
     uiState.finds
-        .filter { it.viewedAt == null }
+        .filter { it.viewedAt == null && isActiveChestCreature(it) }
         .forEach { find ->
             add(
                 ShellNotificationInlayItem.Find(
@@ -114,31 +100,6 @@ fun unviewedShellNotifications(uiState: ShellUiState): List<ShellNotificationInl
                     badgeId = badge.badgeId,
                     count = badge.count,
                     createdAt = badge.lastEarnedAt
-                )
-            )
-        }
-
-    uiState.stacks
-        .filter { it.viewedAt == null }
-        .forEach { stack ->
-            add(
-                ShellNotificationInlayItem.Stack(
-                    id = notificationId(ShellNotificationType.STACK, stack.findId),
-                    findId = stack.findId,
-                    quantity = stack.quantity,
-                    createdAt = stack.lastAcquiredAt
-                )
-            )
-        }
-
-    uiState.discoveries
-        .filter { it.viewedAt == null }
-        .forEach { discovery ->
-            add(
-                ShellNotificationInlayItem.Discovery(
-                    id = notificationId(ShellNotificationType.DISCOVERY, discovery.userDiscoveryId),
-                    discoveryId = discovery.discoveryId,
-                    createdAt = discovery.discoveredAt
                 )
             )
         }
@@ -280,18 +241,6 @@ private fun NotificationInlayRow(
                 stringResource(def.descriptionRes)
             )
             icon = Icons.Outlined.MilitaryTech
-        }
-        is ShellNotificationInlayItem.Stack -> {
-            val def = ShellContentCatalog.find(notification.findId)
-            val rewardTitle = def?.let { stringResource(it.titleRes) } ?: "Shell reward"
-            title = rewardTitle
-            body = "Quantity: ${notification.quantity}"
-            icon = def?.let { iconFor(it.category) } ?: Icons.Outlined.Notifications
-        }
-        is ShellNotificationInlayItem.Discovery -> {
-            title = "New discovery"
-            body = notification.discoveryId
-            icon = Icons.Outlined.EmojiEvents
         }
     }
 

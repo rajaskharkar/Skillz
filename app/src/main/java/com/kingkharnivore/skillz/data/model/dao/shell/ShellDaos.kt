@@ -55,17 +55,20 @@ interface ShellFindInstanceDao {
     @Query("UPDATE user_shell_find_instance SET isArchivedInChest = :archived WHERE instanceId = :instanceId")
     suspend fun updateArchivedState(instanceId: String, archived: Boolean)
 
-    @Query("UPDATE user_shell_find_instance SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt)")
-    suspend fun markAllSeen(viewedAt: Long)
+    @Query("UPDATE user_shell_find_instance SET isNew = 0")
+    suspend fun markAllSeen()
 
     @Query("UPDATE user_shell_find_instance SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE viewedAt IS NULL")
     suspend fun markAllViewed(viewedAt: Long)
 
+    @Query("UPDATE user_shell_find_instance SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE viewedAt IS NULL AND findId IN (:findIds)")
+    suspend fun markFindIdsViewed(findIds: List<String>, viewedAt: Long)
+
     @Query("UPDATE user_shell_find_instance SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE instanceId = :instanceId")
     suspend fun markViewed(instanceId: String, viewedAt: Long)
 
-    @Query("UPDATE user_shell_find_instance SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE findId IN (:findIds)")
-    suspend fun markFindIdsSeen(findIds: List<String>, viewedAt: Long)
+    @Query("UPDATE user_shell_find_instance SET isNew = 0 WHERE findId IN (:findIds)")
+    suspend fun markFindIdsSeen(findIds: List<String>)
 
     @Query("UPDATE user_shell_find_instance SET animalLevel = :level WHERE instanceId = :instanceId")
     suspend fun updateAnimalLevel(instanceId: String, level: Int)
@@ -91,8 +94,8 @@ interface ShellFindStackDao {
     @Query("SELECT * FROM user_shell_find_stack ORDER BY lastAcquiredAt DESC")
     fun observeAll(): Flow<List<UserShellFindStackEntity>>
 
-    @Query("UPDATE user_shell_find_stack SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt)")
-    suspend fun markAllSeen(viewedAt: Long)
+    @Query("UPDATE user_shell_find_stack SET isNew = 0")
+    suspend fun markAllSeen()
 
     @Query("UPDATE user_shell_find_stack SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE viewedAt IS NULL")
     suspend fun markAllViewed(viewedAt: Long)
@@ -145,8 +148,8 @@ interface UserBadgeDao {
     @Query("SELECT * FROM user_badge ORDER BY firstEarnedAt DESC")
     fun observeEarned(): Flow<List<UserBadgeEntity>>
 
-    @Query("UPDATE user_badge SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt)")
-    suspend fun markAllSeen(viewedAt: Long)
+    @Query("UPDATE user_badge SET isNew = 0")
+    suspend fun markAllSeen()
 
     @Query("UPDATE user_badge SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE viewedAt IS NULL")
     suspend fun markAllViewed(viewedAt: Long)
@@ -169,8 +172,8 @@ interface UserDiscoveryDao {
     @Query("SELECT COUNT(*) FROM user_discovery")
     suspend fun countAll(): Int
 
-    @Query("UPDATE user_discovery SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt)")
-    suspend fun markAllSeen(viewedAt: Long)
+    @Query("UPDATE user_discovery SET isNew = 0")
+    suspend fun markAllSeen()
 
     @Query("UPDATE user_discovery SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE viewedAt IS NULL")
     suspend fun markAllViewed(viewedAt: Long)
