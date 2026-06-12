@@ -15,9 +15,27 @@ import com.kingkharnivore.skillz.utils.shell.StillwaterCatalog
 import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
 import com.kingkharnivore.skillz.utils.shell.validateStillwaterDraw
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+
+
+enum class ShellNotificationType { FIND, STACK, BADGE, DISCOVERY }
+
+data class ShellNotificationRecord(
+    val id: String,
+    val type: ShellNotificationType,
+    val title: String,
+    val body: String,
+    val createdAt: Long,
+    val viewedAt: Long?,
+    val deepLinkRoute: String?,
+    val metadataJson: String? = null
+) {
+    val isUnviewed: Boolean get() = viewedAt == null
+}
 
 @Singleton
 class ShellRepository @Inject constructor(
@@ -48,6 +66,75 @@ class ShellRepository @Inject constructor(
         objectiveCompletionDao.observeCompletions()
     fun observeStillwaterPreference(): Flow<StillwaterPreferenceEntity?> =
         stillwaterPreferenceDao.observe()
+
+    fun observeUnviewedNotifications(): Flow<List<ShellNotificationRecord>> = combine(
+        findInstanceDao.observeAll(),
+        findStackDao.observeAll(),
+        badgeDao.observeEarned(),
+        discoveryDao.observeAll()
+    ) { finds, stacks, badges, discoveries ->
+        buildList {
+            finds.filter { it.viewedAt == null }.forEach { find ->
+                add(
+                    ShellNotificationRecord(
+                        id = notificationId(ShellNotificationType.FIND, find.instanceId),
+                        type = ShellNotificationType.FIND,
+                        title = find.findId,
+                        body = find.sourceType,
+                        createdAt = find.acquiredAt,
+                        viewedAt = find.viewedAt,
+                        deepLinkRoute = SHELL_CHEST_ROUTE,
+                        metadataJson = null
+                    )
+                )
+            }
+            stacks.filter { it.viewedAt == null }.forEach { stack ->
+                add(
+                    ShellNotificationRecord(
+                        id = notificationId(ShellNotificationType.STACK, stack.findId),
+                        type = ShellNotificationType.STACK,
+                        title = stack.findId,
+                        body = stack.quantity.toString(),
+                        createdAt = stack.lastAcquiredAt,
+                        viewedAt = stack.viewedAt,
+                        deepLinkRoute = SHELL_CHEST_ROUTE,
+                        metadataJson = null
+                    )
+                )
+            }
+            badges.filter { it.viewedAt == null }.forEach { badge ->
+                add(
+                    ShellNotificationRecord(
+                        id = notificationId(ShellNotificationType.BADGE, badge.badgeId),
+                        type = ShellNotificationType.BADGE,
+                        title = badge.badgeId,
+                        body = badge.count.toString(),
+                        createdAt = badge.lastEarnedAt,
+                        viewedAt = badge.viewedAt,
+                        deepLinkRoute = SHELL_BADGES_ROUTE,
+                        metadataJson = null
+                    )
+                )
+            }
+            discoveries.filter { it.viewedAt == null }.forEach { discovery ->
+                add(
+                    ShellNotificationRecord(
+                        id = notificationId(ShellNotificationType.DISCOVERY, discovery.userDiscoveryId),
+                        type = ShellNotificationType.DISCOVERY,
+                        title = discovery.discoveryId,
+                        body = discovery.sourceType,
+                        createdAt = discovery.discoveredAt,
+                        viewedAt = discovery.viewedAt,
+                        deepLinkRoute = SHELL_CHEST_ROUTE,
+                        metadataJson = null
+                    )
+                )
+            }
+        }.sortedByDescending { it.createdAt }
+    }
+
+    fun observeUnviewedNotificationCount(): Flow<Int> =
+        observeUnviewedNotifications().map { it.size }
 
     suspend fun getPearlBalance(): Int = pearlLedgerDao.getBalance()
     suspend fun getStillwaterTotal(): Long = stillwaterLedgerDao.getTotal()
@@ -134,7 +221,7 @@ class ShellRepository @Inject constructor(
         val current = badgeDao.get(badgeId)
         val newCount = (current?.count ?: 0) + by
         badgeDao.upsert(
-            current?.copy(count = newCount, lastEarnedAt = now, isNew = true)
+            current?.copy(count = newCount, lastEarnedAt = now, isNew = true, viewedAt = null)
                 ?: UserBadgeEntity(
                     badgeId, by, now, now, true
                 )
@@ -181,7 +268,8 @@ class ShellRepository @Inject constructor(
             current?.copy(
                 quantity = current.quantity + quantity,
                 lastAcquiredAt = now,
-                isNew = true
+                isNew = true,
+                viewedAt = null
             )
                 ?: UserShellFindStackEntity(
                     findId, quantity, now, now, true
@@ -257,17 +345,28 @@ class ShellRepository @Inject constructor(
         findInstanceDao.updateArchivedState(instanceId, true)
     }
 
-    suspend fun markAllNotificationsSeen() = db.withTransaction {
-        findInstanceDao.markAllSeen()
-        findStackDao.markAllSeen()
-        badgeDao.markAllSeen()
-        discoveryDao.markAllSeen()
+    suspend fun markNotificationViewed(notificationId: String) = db.withTransaction {
+        val now = System.currentTimeMillis()
+        when (notificationId.substringBefore(':')) {
+            ShellNotificationType.FIND.name -> findInstanceDao.markViewed(notificationId.substringAfter(':'), now)
+            ShellNotificationType.STACK.name -> findStackDao.markViewed(notificationId.substringAfter(':'), now)
+            ShellNotificationType.BADGE.name -> badgeDao.markViewed(notificationId.substringAfter(':'), now)
+            ShellNotificationType.DISCOVERY.name -> discoveryDao.markViewed(notificationId.substringAfter(':'), now)
+        }
+    }
+
+    suspend fun markAllNotificationsViewed() = db.withTransaction {
+        val now = System.currentTimeMillis()
+        findInstanceDao.markAllViewed(now)
+        findStackDao.markAllViewed(now)
+        badgeDao.markAllViewed(now)
+        discoveryDao.markAllViewed(now)
     }
 
     suspend fun markTheBlueAnimalsSeen() = db.withTransaction {
         val animalFindIds = ShellContentCatalog.regularFlowAnimalFindIds.toList()
         if (animalFindIds.isNotEmpty()) {
-            findInstanceDao.markFindIdsSeen(animalFindIds)
+            findInstanceDao.markFindIdsSeen(animalFindIds, System.currentTimeMillis())
         }
     }
 
@@ -638,3 +737,9 @@ class ShellRepository @Inject constructor(
     suspend fun lastRegularFlowBefore(endTime: Long): Long? =
         sessionDao.getLastRegularSessionEndBefore(endTime)
 }
+
+
+const val SHELL_CHEST_ROUTE: String = "shell/chest"
+const val SHELL_BADGES_ROUTE: String = "shell/badges"
+
+fun notificationId(type: ShellNotificationType, sourceId: String): String = "${type.name}:$sourceId"

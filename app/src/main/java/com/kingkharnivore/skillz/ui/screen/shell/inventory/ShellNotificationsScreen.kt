@@ -1,10 +1,23 @@
 package com.kingkharnivore.skillz.ui.screen.shell.inventory
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.FilterVintage
 import androidx.compose.material.icons.outlined.Grass
@@ -15,99 +28,285 @@ import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellDepthTier
 import com.kingkharnivore.skillz.data.model.shell.ShellFindCategory
 import com.kingkharnivore.skillz.data.model.shell.ShellFindDefinition
-import com.kingkharnivore.skillz.ui.screen.shell.ux.RoomHeader
-import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
+import com.kingkharnivore.skillz.data.repository.shell.SHELL_BADGES_ROUTE
+import com.kingkharnivore.skillz.data.repository.shell.SHELL_CHEST_ROUTE
+import com.kingkharnivore.skillz.data.repository.shell.ShellNotificationType
+import com.kingkharnivore.skillz.data.repository.shell.notificationId
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 
-@Composable
-fun ShellNotificationsScreen(uiState: ShellUiState) {
-    val newFinds = uiState.finds.filter { it.isNew && isActiveChestCreature(it) }
-    val newBadges = uiState.badges.filter { it.isNew }
-    val hasNotifications = newFinds.isNotEmpty() || newBadges.isNotEmpty()
+sealed interface ShellNotificationInlayItem {
+    val id: String
+    val createdAt: Long
+    val deepLinkRoute: String?
 
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        item {
-            RoomHeader(
-                title = R.string.shell_notifications_title,
-                body = R.string.shell_notifications_body
+    data class Find(
+        override val id: String,
+        val findId: String,
+        val instanceId: String,
+        override val createdAt: Long,
+        override val deepLinkRoute: String? = SHELL_CHEST_ROUTE
+    ) : ShellNotificationInlayItem
+
+    data class Badge(
+        override val id: String,
+        val badgeId: String,
+        val count: Int,
+        override val createdAt: Long,
+        override val deepLinkRoute: String? = SHELL_BADGES_ROUTE
+    ) : ShellNotificationInlayItem
+
+    data class Stack(
+        override val id: String,
+        val findId: String,
+        val quantity: Int,
+        override val createdAt: Long,
+        override val deepLinkRoute: String? = SHELL_CHEST_ROUTE
+    ) : ShellNotificationInlayItem
+
+    data class Discovery(
+        override val id: String,
+        val discoveryId: String,
+        override val createdAt: Long,
+        override val deepLinkRoute: String? = SHELL_CHEST_ROUTE
+    ) : ShellNotificationInlayItem
+}
+
+fun unviewedShellNotifications(uiState: ShellUiState): List<ShellNotificationInlayItem> = buildList {
+    uiState.finds
+        .filter { it.viewedAt == null }
+        .forEach { find ->
+            add(
+                ShellNotificationInlayItem.Find(
+                    id = notificationId(ShellNotificationType.FIND, find.instanceId),
+                    findId = find.findId,
+                    instanceId = find.instanceId,
+                    createdAt = find.acquiredAt
+                )
             )
         }
 
-        if (!hasNotifications) {
-            item {
-                ElevatedCard(
-                    colors = CardDefaults.elevatedCardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+    uiState.badges
+        .filter { it.viewedAt == null }
+        .forEach { badge ->
+            add(
+                ShellNotificationInlayItem.Badge(
+                    id = notificationId(ShellNotificationType.BADGE, badge.badgeId),
+                    badgeId = badge.badgeId,
+                    count = badge.count,
+                    createdAt = badge.lastEarnedAt
+                )
+            )
+        }
+
+    uiState.stacks
+        .filter { it.viewedAt == null }
+        .forEach { stack ->
+            add(
+                ShellNotificationInlayItem.Stack(
+                    id = notificationId(ShellNotificationType.STACK, stack.findId),
+                    findId = stack.findId,
+                    quantity = stack.quantity,
+                    createdAt = stack.lastAcquiredAt
+                )
+            )
+        }
+
+    uiState.discoveries
+        .filter { it.viewedAt == null }
+        .forEach { discovery ->
+            add(
+                ShellNotificationInlayItem.Discovery(
+                    id = notificationId(ShellNotificationType.DISCOVERY, discovery.userDiscoveryId),
+                    discoveryId = discovery.discoveryId,
+                    createdAt = discovery.discoveredAt
+                )
+            )
+        }
+}.sortedByDescending { it.createdAt }
+
+@Composable
+fun NotificationInlayOverlay(
+    uiState: ShellUiState,
+    onDismiss: () -> Unit,
+    onMarkNotificationViewed: (String) -> Unit,
+    onMarkAllViewed: () -> Unit,
+    onDeepLinkRoute: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val notifications = unviewedShellNotifications(uiState)
+    val backgroundInteraction = remember { MutableInteractionSource() }
+
+    BackHandler(onBack = onDismiss)
+
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxSize()
+            .clickable(
+                interactionSource = backgroundInteraction,
+                indication = null,
+                onClick = onDismiss
+            )
+            .padding(top = 8.dp, start = 12.dp, end = 12.dp)
+    ) {
+        ElevatedCard(
+            shape = RoundedCornerShape(24.dp),
+            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 12.dp),
+            colors = CardDefaults.elevatedCardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            modifier = Modifier
+                .then(if (maxWidth < 600.dp) Modifier.fillMaxWidth() else Modifier.width(380.dp))
+                .heightIn(max = 420.dp)
+                .align(Alignment.TopEnd)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {}
+                )
+                .semantics { contentDescription = "Notifications inlay" }
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 20.dp, top = 16.dp, end = 12.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ListItem(
-                        leadingContent = {
-                            Icon(
-                                imageVector = Icons.Outlined.Notifications,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.shell_notifications_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = stringResource(R.string.shell_notifications_body),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    TextButton(onClick = onMarkAllViewed) {
+                        Text("Mark Viewed")
+                    }
+                }
+
+                if (notifications.isEmpty()) {
+                    NotificationEmptyState()
+                } else {
+                    LazyColumn(
+                        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(notifications, key = { it.id }) { notification ->
+                            NotificationInlayRow(
+                                notification = notification,
+                                onMarkViewed = { onMarkNotificationViewed(notification.id) },
+                                onClick = {
+                                    notification.deepLinkRoute?.let { route ->
+                                        onMarkNotificationViewed(notification.id)
+                                        onDismiss()
+                                        onDeepLinkRoute(route)
+                                    }
+                                }
                             )
-                        },
-                        headlineContent = { Text(stringResource(R.string.shell_notifications_empty_title)) },
-                        supportingContent = { Text(stringResource(R.string.shell_notifications_empty_body)) }
-                    )
+                        }
+                    }
                 }
             }
-        }
-
-        items(newFinds, key = { it.instanceId }) { find ->
-            val def = ShellContentCatalog.find(find.findId) ?: return@items
-            ShellNotificationCard(
-                icon = iconFor(def.category),
-                title = notificationTitleFor(def),
-                body = notificationBodyFor(def)
-            )
-        }
-
-
-        items(newBadges, key = { it.badgeId }) { badge ->
-            val def = ShellContentCatalog.badge(badge.badgeId) ?: return@items
-            val title = stringResource(def.titleRes)
-            ShellNotificationCard(
-                icon = Icons.Outlined.MilitaryTech,
-                title = stringResource(R.string.shell_badge_notification_title, title),
-                body = stringResource(R.string.shell_badge_notification_body, badge.count, stringResource(def.descriptionRes))
-            )
         }
     }
 }
 
 @Composable
-private fun ShellNotificationCard(
-    icon: ImageVector,
-    title: String,
-    body: String
+private fun NotificationEmptyState() {
+    ListItem(
+        leadingContent = {
+            Icon(
+                imageVector = Icons.Outlined.Notifications,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary
+            )
+        },
+        headlineContent = { Text("No new notifications") },
+        supportingContent = { Text("You’re all caught up.") },
+        modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 12.dp)
+    )
+}
+
+@Composable
+private fun NotificationInlayRow(
+    notification: ShellNotificationInlayItem,
+    onMarkViewed: () -> Unit,
+    onClick: () -> Unit
 ) {
+    val rowInteraction = remember { MutableInteractionSource() }
+    val title: String
+    val body: String
+    val icon: ImageVector
+
+    when (notification) {
+        is ShellNotificationInlayItem.Find -> {
+            val def = ShellContentCatalog.find(notification.findId)
+            title = def?.let { notificationTitleFor(it) } ?: "New shell reward"
+            body = def?.let { notificationBodyFor(it) } ?: "A new reward is waiting in The Shell."
+            icon = def?.let { iconFor(it.category) } ?: Icons.Outlined.Notifications
+        }
+        is ShellNotificationInlayItem.Badge -> {
+            val def = ShellContentCatalog.badge(notification.badgeId) ?: return
+            val badgeTitle = stringResource(def.titleRes)
+            title = stringResource(R.string.shell_badge_notification_title, badgeTitle)
+            body = stringResource(
+                R.string.shell_badge_notification_body,
+                notification.count,
+                stringResource(def.descriptionRes)
+            )
+            icon = Icons.Outlined.MilitaryTech
+        }
+        is ShellNotificationInlayItem.Stack -> {
+            val def = ShellContentCatalog.find(notification.findId)
+            val rewardTitle = def?.let { stringResource(it.titleRes) } ?: "Shell reward"
+            title = rewardTitle
+            body = "Quantity: ${notification.quantity}"
+            icon = def?.let { iconFor(it.category) } ?: Icons.Outlined.Notifications
+        }
+        is ShellNotificationInlayItem.Discovery -> {
+            title = "New discovery"
+            body = notification.discoveryId
+            icon = Icons.Outlined.EmojiEvents
+        }
+    }
+
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
         ),
-        modifier = Modifier.semantics {
-            contentDescription = title
-        }
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                interactionSource = rowInteraction,
+                indication = null,
+                onClick = onClick
+            )
+            .semantics { contentDescription = title }
     ) {
         ListItem(
             leadingContent = {
@@ -118,7 +317,15 @@ private fun ShellNotificationCard(
                 )
             },
             headlineContent = { Text(title) },
-            supportingContent = { Text(body) }
+            supportingContent = { Text(body) },
+            trailingContent = {
+                IconButton(onClick = onMarkViewed) {
+                    Icon(
+                        imageVector = Icons.Outlined.CheckCircle,
+                        contentDescription = "Mark notification viewed"
+                    )
+                }
+            }
         )
     }
 }

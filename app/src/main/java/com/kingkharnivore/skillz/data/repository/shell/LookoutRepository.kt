@@ -115,7 +115,7 @@ class LookoutRepository @Inject constructor(
     private suspend fun incrementBadgeInTransaction(badgeId: String, now: Long) {
         val current = badgeDao.get(badgeId)
         badgeDao.upsert(
-            current?.copy(count = current.count + 1, lastEarnedAt = now, isNew = true)
+            current?.copy(count = current.count + 1, lastEarnedAt = now, isNew = true, viewedAt = null)
                 ?: UserBadgeEntity(
                     badgeId = badgeId,
                     count = 1,

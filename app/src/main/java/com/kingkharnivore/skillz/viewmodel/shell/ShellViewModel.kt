@@ -218,8 +218,12 @@ class ShellViewModel @Inject constructor(
             .onFailure { _events.emit(it.message ?: "Could not draw from Stillwater.") }
     }
 
-    fun markNotificationsSeen() = viewModelScope.launch {
-        repository.markAllNotificationsSeen()
+    fun markNotificationViewed(notificationId: String) = viewModelScope.launch {
+        repository.markNotificationViewed(notificationId)
+    }
+
+    fun markAllNotificationsViewed() = viewModelScope.launch {
+        repository.markAllNotificationsViewed()
     }
 
     fun markTheBlueAnimalsSeen() = viewModelScope.launch {
