@@ -170,8 +170,10 @@ fun NotificationInlayOverlay(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    TextButton(onClick = onMarkAllViewed) {
-                        Text(stringResource(R.string.shell_notifications_mark_viewed))
+                    if (notifications.isNotEmpty()) {
+                        TextButton(onClick = onMarkAllViewed) {
+                            Text(stringResource(R.string.shell_notifications_mark_viewed))
+                        }
                     }
                 }
 
