@@ -66,6 +66,8 @@ import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 import com.kingkharnivore.skillz.ui.screen.flow.reward.ArcSummaryContent
 import com.kingkharnivore.skillz.ui.screen.flow.reward.SessionRewardContent
+import com.kingkharnivore.skillz.ui.screen.flow.reward.SoftSessionRewardContent
+import com.kingkharnivore.skillz.ui.health.MovementBonusActivePill
 import com.kingkharnivore.skillz.viewmodel.FlowEndAction
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 
@@ -73,7 +75,8 @@ import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 fun FlowScreen(
     viewModel: FlowViewModel,
     onDone: () -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onOpenShell: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
@@ -82,12 +85,14 @@ fun FlowScreen(
     val reward by viewModel.lastReward.collectAsState()
     val exitAfterReward by viewModel.exitAfterReward.collectAsState()
     val awaitingNextFlow by viewModel.awaitingNextFlowAfterContinue.collectAsState()
+    val pendingArcIdeaContinuation by viewModel.pendingArcIdeaContinuation.collectAsState()
 
     var showSurgeDialog by remember { mutableStateOf(false) }
     var showEndDialog by remember { mutableStateOf(false) }
     var showPointsDialog by remember { mutableStateOf(false) }
     var showPulseDialog by remember { mutableStateOf(false) }
     var showSoftArcConfirmDialog by remember { mutableStateOf(false) }
+    var showArcIdeaContinuationDialog by remember { mutableStateOf(false) }
 
     var surgeMinutesInput by remember { mutableStateOf("") }
     var surgeMinutesInline by rememberSaveable { mutableStateOf("") }
@@ -175,6 +180,32 @@ fun FlowScreen(
 
             RitualFrame(rotation = -0.08f, corner = 32.dp, showBorder = false) {
 
+                if (uiState.originPulseId != null && !uiState.originPulseTitle.isNullOrBlank()) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.idea_grove_from_pulse),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = uiState.originPulseTitle.orEmpty(),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
+                }
+
                 if (
                     !uiState.plannedArcTitle.isNullOrBlank() &&
                     uiState.plannedArcStepIndex != null &&
@@ -237,6 +268,11 @@ fun FlowScreen(
                         isInFlow = uiState.stopwatch.isRunning,
                         calmMode = uiState.calmMode
                     )
+                    Spacer(Modifier.height(10.dp))
+                }
+
+                if (uiState.movementBonusEligibleAtStart) {
+                    MovementBonusActivePill(modifier = Modifier.fillMaxWidth())
                     Spacer(Modifier.height(10.dp))
                 }
 
@@ -652,7 +688,11 @@ fun FlowScreen(
                         } else {
                             showPointsDialog = false
                             if (awaitingNextFlow) {
-                                viewModel.beginNextFlowAfterContinue()
+                                if (pendingArcIdeaContinuation != null) {
+                                    showArcIdeaContinuationDialog = true
+                                } else {
+                                    viewModel.beginNextFlowAfterContinue()
+                                }
                             } else {
                                 viewModel.clearLastReward()
                                 if (exitAfterReward && viewModel.consumeExitAfterReward()) onDone()
@@ -668,7 +708,46 @@ fun FlowScreen(
                     Text(label)
                 }
             },
-            dismissButton = {}
+            dismissButton = {
+                if (r.hasShellReward()) {
+                    TextButton(
+                        onClick = {
+                            showPointsDialog = false
+                            viewModel.abandonPendingArcContinuationForShellEntry()
+                            onOpenShell()
+                        }
+                    ) { Text(stringResource(R.string.session_reward_enter_shell)) }
+                }
+            }
+        )
+    }
+
+
+    if (showArcIdeaContinuationDialog && pendingArcIdeaContinuation != null) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text(stringResource(R.string.idea_grove_continue_idea_title)) },
+            text = { Text(stringResource(R.string.idea_grove_continue_idea_body)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showArcIdeaContinuationDialog = false
+                        viewModel.continueArcOnlyAfterIdeaPrompt()
+                    }
+                ) {
+                    Text(stringResource(R.string.idea_grove_continue_arc_only))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showArcIdeaContinuationDialog = false
+                        viewModel.continueArcAndIdeaAfterIdeaPrompt()
+                    }
+                ) {
+                    Text(stringResource(R.string.idea_grove_continue_arc_and_idea))
+                }
+            }
         )
     }
 
@@ -891,66 +970,9 @@ private fun ModeOptionCard(
     }
 }
 
-@Composable
-private fun SoftSessionRewardContent(
-    r: FlowRewardUiModel
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Surface(
-            shape = RoundedCornerShape(22.dp),
-            color = MaterialTheme.colorScheme.secondary,
-            contentColor = MaterialTheme.colorScheme.onSecondary,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.flow_screen_soft_flow_label),
-                    style = MaterialTheme.typography.labelLarge
-                )
-                Text(
-                    text = stringResource(R.string.flow_screen_soft_reward_body),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
-
-        Surface(
-            shape = RoundedCornerShape(18.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.flow_screen_duration_label),
-                    style = MaterialTheme.typography.titleSmall
-                )
-                Text(
-                    text = stringResource(R.string.flow_screen_minutes_value, r.minutes),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        }
-
-        Text(
-            text = stringResource(R.string.flow_screen_soft_reward_footer),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
-        )
-    }
-}
+private fun FlowRewardUiModel.hasShellReward(): Boolean =
+    shellPearlsEarned > 0 || shellStillwaterUnits > 0L ||
+        shellGrantedFindIds.isNotEmpty() || shellDiscoveryIds.isNotEmpty() || shellBadgeIds.isNotEmpty()
 
 fun formatMsAsMmSs(ms: Long): String {
     val totalSeconds = (ms.coerceAtLeast(0L) / 1000L)

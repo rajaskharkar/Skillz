@@ -19,6 +19,9 @@ interface TagDao {
     @Query("SELECT * FROM tags ORDER BY name COLLATE NOCASE ASC")
     fun getAllTags(): Flow<List<TagEntity>>
 
+    @Query("SELECT * FROM tags ORDER BY name COLLATE NOCASE ASC")
+    suspend fun getAllTagsSnapshot(): List<TagEntity>
+
     @Query("DELETE FROM tags WHERE id = :tagId")
     suspend fun deleteTagById(tagId: Long)
 }

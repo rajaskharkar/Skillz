@@ -17,6 +17,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
+import com.kingkharnivore.skillz.utils.health.HealthRefreshUseCase
 import com.kingkharnivore.skillz.ui.navigation.SkillzNavHost
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
 import com.kingkharnivore.skillz.ui.screen.NotificationPermissionGate
@@ -34,6 +35,9 @@ class MainActivity : AppCompatActivity() {
 
     @Inject
     lateinit var aliveFlowServiceController: AliveFlowServiceController
+
+    @Inject
+    lateinit var healthRefreshUseCase: HealthRefreshUseCase
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -59,6 +63,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         maybeReinstateFlowNotification()
+        lifecycleScope.launch { runCatching { healthRefreshUseCase.refreshForeground() } }
     }
 
     private fun maybeReinstateFlowNotification() {

@@ -7,28 +7,146 @@ object SuggestedRoutesCatalog {
 
     val routes: List<SuggestedRouteUiModel> = listOf(
         SuggestedRouteUiModel(
-            id = "morning_reset",
-            title = "Morning Reset",
-            subtitle = "Ease into the day with clarity and movement.",
-            category = "Morning",
-            approxMinutes = 25,
+            id = "deep_work_launch",
+            title = "Deep Work Launch",
+            subtitle = "Start serious work without drifting.",
+            category = "Focus",
+            approxMinutes = 75,
             steps = listOf(
                 SuggestedRouteStepUiModel(
-                    title = "Hydrate and Wake Up",
-                    tagName = "Wellness",
-                    isSoftMode = false,
-                    targetMinutes = 5,
-                    launchWithSurge = false
-                ),
-                SuggestedRouteStepUiModel(
-                    title = "Gentle Movement",
-                    tagName = "Fitness",
+                    title = "Clear the Desk",
+                    tagName = "Focus",
                     isSoftMode = false,
                     targetMinutes = 10,
                     launchWithSurge = false
                 ),
                 SuggestedRouteStepUiModel(
-                    title = "Set Day Intention",
+                    title = "Define the Target",
+                    tagName = "Planning",
+                    isSoftMode = false,
+                    targetMinutes = 10,
+                    launchWithSurge = false
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Deep Work Block",
+                    tagName = "Work",
+                    isSoftMode = false,
+                    targetMinutes = 45,
+                    launchWithSurge = true
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Capture Next Action",
+                    tagName = "Planning",
+                    isSoftMode = false,
+                    targetMinutes = 10,
+                    launchWithSurge = false
+                )
+            )
+        ),
+        SuggestedRouteUiModel(
+            id = "learn_and_lock_in",
+            title = "Learn and Lock In",
+            subtitle = "Turn study into retained knowledge.",
+            category = "Learning",
+            approxMinutes = 90,
+            steps = listOf(
+                SuggestedRouteStepUiModel(
+                    title = "Read or Watch Lesson",
+                    tagName = "Learning",
+                    isSoftMode = false,
+                    targetMinutes = 30,
+                    launchWithSurge = false
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Practice Actively",
+                    tagName = "Practice",
+                    isSoftMode = false,
+                    targetMinutes = 30,
+                    launchWithSurge = true
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Write Notes",
+                    tagName = "Notes",
+                    isSoftMode = false,
+                    targetMinutes = 15,
+                    launchWithSurge = false
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Recall From Memory",
+                    tagName = "Learning",
+                    isSoftMode = false,
+                    targetMinutes = 15,
+                    launchWithSurge = false
+                )
+            )
+        ),
+        SuggestedRouteUiModel(
+            id = "ship_one_thing",
+            title = "Ship One Thing",
+            subtitle = "Finish one tangible piece before momentum fades.",
+            category = "Build",
+            approxMinutes = 105,
+            steps = listOf(
+                SuggestedRouteStepUiModel(
+                    title = "Pick the Smallest Shippable Piece",
+                    tagName = "Planning",
+                    isSoftMode = false,
+                    targetMinutes = 15,
+                    launchWithSurge = false
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Build the Core",
+                    tagName = "Build",
+                    isSoftMode = false,
+                    targetMinutes = 60,
+                    launchWithSurge = true
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Polish the Edge",
+                    tagName = "Craft",
+                    isSoftMode = false,
+                    targetMinutes = 20,
+                    launchWithSurge = false
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Publish or Commit",
+                    tagName = "Ship",
+                    isSoftMode = false,
+                    targetMinutes = 10,
+                    launchWithSurge = false
+                )
+            )
+        ),
+        SuggestedRouteUiModel(
+            id = "reset_room_reset_mind",
+            title = "Reset the Room, Reset the Mind",
+            subtitle = "Recover control of your space and attention.",
+            category = "Reset",
+            approxMinutes = 45,
+            steps = listOf(
+                SuggestedRouteStepUiModel(
+                    title = "Clear Visible Clutter",
+                    tagName = "Home",
+                    isSoftMode = false,
+                    targetMinutes = 15,
+                    launchWithSurge = false
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Reset One Surface",
+                    tagName = "Home",
+                    isSoftMode = false,
+                    targetMinutes = 10,
+                    launchWithSurge = false
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Prep the Next Task",
+                    tagName = "Planning",
+                    isSoftMode = false,
+                    targetMinutes = 10,
+                    launchWithSurge = false
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Soft Reflection",
                     tagName = "Reflection",
                     isSoftMode = false,
                     targetMinutes = 10,
@@ -37,145 +155,113 @@ object SuggestedRoutesCatalog {
             )
         ),
         SuggestedRouteUiModel(
-            id = "deep_work_launch",
-            title = "Deep Work Launch",
-            subtitle = "Clear friction and enter focused work cleanly.",
-            category = "Focus",
-            approxMinutes = 45,
+            id = "evening_closeout",
+            title = "Evening Closeout",
+            subtitle = "End the day with fewer open loops.",
+            category = "Evening",
+            approxMinutes = 35,
             steps = listOf(
                 SuggestedRouteStepUiModel(
-                    title = "Clear Desk",
+                    title = "Review What Moved",
+                    tagName = "Reflection",
+                    isSoftMode = false,
+                    targetMinutes = 10,
+                    launchWithSurge = false
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Capture Unfinished Loops",
+                    tagName = "Notes",
+                    isSoftMode = false,
+                    targetMinutes = 10,
+                    launchWithSurge = false
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Choose Tomorrow’s First Flow",
+                    tagName = "Planning",
+                    isSoftMode = false,
+                    targetMinutes = 10,
+                    launchWithSurge = false
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Wind Down",
+                    tagName = "Wellness",
+                    isSoftMode = false,
+                    targetMinutes = 5,
+                    launchWithSurge = false
+                )
+            )
+        ),
+        SuggestedRouteUiModel(
+            id = "creative_forge",
+            title = "Creative Forge",
+            subtitle = "Shape raw sparks into something you can return to.",
+            category = "Creative",
+            approxMinutes = 90,
+            steps = listOf(
+                SuggestedRouteStepUiModel(
+                    title = "Gather Sparks",
+                    tagName = "Creative",
+                    isSoftMode = false,
+                    targetMinutes = 15,
+                    launchWithSurge = false
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Make the Rough Version",
+                    tagName = "Creative",
+                    isSoftMode = false,
+                    targetMinutes = 45,
+                    launchWithSurge = true
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Refine One Section",
+                    tagName = "Craft",
+                    isSoftMode = false,
+                    targetMinutes = 20,
+                    launchWithSurge = false
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Save the Next Thread",
+                    tagName = "Notes",
+                    isSoftMode = false,
+                    targetMinutes = 10,
+                    launchWithSurge = false
+                )
+            )
+        ),
+        SuggestedRouteUiModel(
+            id = "body_before_battle",
+            title = "Body Before Battle",
+            subtitle = "Prepare your body before intense focus.",
+            category = "Prep",
+            approxMinutes = 35,
+            steps = listOf(
+                SuggestedRouteStepUiModel(
+                    title = "Walk or Warm Up",
+                    tagName = "Fitness",
+                    isSoftMode = false,
+                    targetMinutes = 15,
+                    launchWithSurge = false
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Hydrate",
+                    tagName = "Wellness",
+                    isSoftMode = false,
+                    targetMinutes = 5,
+                    launchWithSurge = false
+                ),
+                SuggestedRouteStepUiModel(
+                    title = "Quick Reset",
                     tagName = "Focus",
                     isSoftMode = false,
                     targetMinutes = 5,
                     launchWithSurge = false
                 ),
                 SuggestedRouteStepUiModel(
-                    title = "Review Priorities",
-                    tagName = "Planning",
-                    isSoftMode = false,
-                    targetMinutes = 10,
-                    launchWithSurge = false
-                ),
-                SuggestedRouteStepUiModel(
-                    title = "First Focus Block",
+                    title = "Begin Focus Block",
                     tagName = "Work",
                     isSoftMode = false,
-                    targetMinutes = 30,
-                    launchWithSurge = true
-                )
-            )
-        ),
-        SuggestedRouteUiModel(
-            id = "evening_wind_down",
-            title = "Evening Wind Down",
-            subtitle = "Slow the nervous system before sleep.",
-            category = "Evening",
-            approxMinutes = 30,
-            steps = listOf(
-                SuggestedRouteStepUiModel(
-                    title = "Tidy Reset",
-                    tagName = "Home",
-                    isSoftMode = false,
-                    targetMinutes = 10,
-                    launchWithSurge = false
-                ),
-                SuggestedRouteStepUiModel(
-                    title = "Quiet Reflection",
-                    tagName = "Reflection",
-                    isSoftMode = false,
-                    targetMinutes = 10,
-                    launchWithSurge = false
-                ),
-                SuggestedRouteStepUiModel(
-                    title = "Sleep Prep",
-                    tagName = "Wellness",
-                    isSoftMode = false,
-                    targetMinutes = 10,
-                    launchWithSurge = false
-                )
-            )
-        ),
-        SuggestedRouteUiModel(
-            id = "creative_warmup",
-            title = "Creative Warmup",
-            subtitle = "Open the door before the real session begins.",
-            category = "Creative",
-            approxMinutes = 35,
-            steps = listOf(
-                SuggestedRouteStepUiModel(
-                    title = "Free Write or Improv",
-                    tagName = "Creative",
-                    isSoftMode = false,
-                    targetMinutes = 10,
-                    launchWithSurge = false
-                ),
-                SuggestedRouteStepUiModel(
-                    title = "Skill Drill",
-                    tagName = "Practice",
-                    isSoftMode = false,
                     targetMinutes = 10,
                     launchWithSurge = true
-                ),
-                SuggestedRouteStepUiModel(
-                    title = "Main Creative Session",
-                    tagName = "Creative",
-                    isSoftMode = false,
-                    targetMinutes = 15,
-                    launchWithSurge = true
-                )
-            )
-        ),
-        SuggestedRouteUiModel(
-            id = "walk_and_reflect",
-            title = "Walk and Reflect",
-            subtitle = "Move the body and let thoughts settle into place.",
-            category = "Recovery",
-            approxMinutes = 30,
-            steps = listOf(
-                SuggestedRouteStepUiModel(
-                    title = "Go for a Walk",
-                    tagName = "Wellness",
-                    isSoftMode = false,
-                    targetMinutes = 20,
-                    launchWithSurge = false
-                ),
-                SuggestedRouteStepUiModel(
-                    title = "Capture a Thought",
-                    tagName = "Reflection",
-                    isSoftMode = false,
-                    targetMinutes = 10,
-                    launchWithSurge = false
-                )
-            )
-        ),
-        SuggestedRouteUiModel(
-            id = "sunday_recovery",
-            title = "Sunday Recovery",
-            subtitle = "Reset the mind and space before the week begins.",
-            category = "Weekend",
-            approxMinutes = 40,
-            steps = listOf(
-                SuggestedRouteStepUiModel(
-                    title = "Reset One Space",
-                    tagName = "Home",
-                    isSoftMode = false,
-                    targetMinutes = 15,
-                    launchWithSurge = false
-                ),
-                SuggestedRouteStepUiModel(
-                    title = "Reflect on the Week",
-                    tagName = "Reflection",
-                    isSoftMode = false,
-                    targetMinutes = 10,
-                    launchWithSurge = false
-                ),
-                SuggestedRouteStepUiModel(
-                    title = "Light Plan for Tomorrow",
-                    tagName = "Planning",
-                    isSoftMode = false,
-                    targetMinutes = 15,
-                    launchWithSurge = false
                 )
             )
         )

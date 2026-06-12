@@ -11,6 +11,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
+import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.model.state.flow.ArcSummaryUiModel
 
 @Composable
@@ -19,32 +20,46 @@ fun ArcSummaryContent(
     isAera: Boolean,
     calmMode: Boolean
 ) {
-    val completedText = stringResource(R.string.arc_summary_completed)
-    val totalsSubtitle = stringResource(R.string.arc_summary_totals_subtitle)
-    val cardTitle = stringResource(R.string.arc_summary_card_title)
-    val cardSubtitle = if (calmMode || isAera) {
-        stringResource(R.string.arc_summary_card_subtitle_time)
-    } else {
-        null
-    }
-    val flowsLabel = stringResource(R.string.arc_summary_flows)
-    val flowsValue = stringResource(R.string.arc_summary_flows_value, arc.totalSessions)
-    val durationLabel = stringResource(R.string.arc_summary_total_duration)
-    val durationValue = formatDuration(arc.totalDurationMs)
-    val peakMultiplierLabel = stringResource(R.string.arc_summary_peak_multiplier)
-    val peakMultiplierValue = stringResource(
-        R.string.arc_summary_multiplier_value,
-        arc.peakMultiplier
+    val duration = formatDuration(arc.totalDurationMs)
+    val findTitles = mapOf(
+        ShellContentCatalog.FOCUS_MINNOW to stringResource(R.string.shell_find_minnow_title),
+        ShellContentCatalog.FOCUS_SEAHORSE to stringResource(R.string.shell_find_seahorse_title),
+        ShellContentCatalog.FOCUS_MANTA to stringResource(R.string.shell_find_manta_title),
+        ShellContentCatalog.FOCUS_WHALE to stringResource(R.string.shell_find_whale_title),
+        ShellContentCatalog.FOCUS_OCTOPUS to stringResource(R.string.shell_find_octopus_title),
+        ShellContentCatalog.FOCUS_PEBBLE to stringResource(R.string.shell_find_pebble_title),
+        ShellContentCatalog.TRINKET_SEA_GLASS_SHARD to stringResource(R.string.shell_find_sea_glass_title),
+        ShellContentCatalog.TRINKET_GLIMMER to stringResource(R.string.shell_find_glimmer_title),
+        ShellContentCatalog.FOCUS_LAMP to stringResource(R.string.shell_object_lamp_title),
+        ShellContentCatalog.FOCUS_PERCH to stringResource(R.string.shell_object_perch_title),
+        ShellContentCatalog.FOCUS_PEBBLES to stringResource(R.string.shell_object_pebbles_title),
+        ShellContentCatalog.FOCUS_CURTAIN to stringResource(R.string.shell_object_curtain_title),
+        ShellContentCatalog.FOCUS_BUBBLES to stringResource(R.string.shell_object_bubbles_title)
     )
-    val bonusLabel = stringResource(R.string.arc_summary_bonus_points)
-    val bonusValue = stringResource(
-        R.string.arc_summary_points_value,
-        arc.totalArcBonusPoints
+    val badgeTitles = mapOf(
+        "badge_flow_10_min" to stringResource(R.string.shell_badge_flow_10_title),
+        "badge_flow_30_min" to stringResource(R.string.shell_badge_flow_30_title),
+        "badge_flow_60_min" to stringResource(R.string.shell_badge_flow_60_title),
+        "badge_flow_120_min" to stringResource(R.string.shell_badge_flow_120_title),
+        "badge_discovery" to stringResource(R.string.shell_badge_discovery_title)
     )
-    val totalScoreLabel = stringResource(R.string.arc_summary_total_score)
-    val totalScoreValue = stringResource(
-        R.string.arc_summary_points_value,
-        arc.totalFinalPoints
+    val discoveryTitles = mapOf(
+        "discovery_sea_glass_shard" to stringResource(R.string.shell_find_sea_glass_title),
+        "discovery_glimmer" to stringResource(R.string.shell_find_glimmer_title),
+        "discovery_octopus" to stringResource(R.string.shell_find_octopus_title),
+        "discovery_pebble" to stringResource(R.string.shell_find_pebble_title)
+    )
+    // TODO(Movement Bonus): Arc-level Movement summary is intentionally deferred;
+    // Flow reward and FlowCard movement displays are implemented in V1.
+    val cards = buildArcSummaryRewardCards(
+        arc = arc,
+        isAera = isAera,
+        calmMode = calmMode,
+        text = rememberRewardRevealTextProvider(),
+        durationText = duration,
+        findTitle = { findTitles[it] },
+        badgeTitle = { badgeTitles[it] },
+        discoveryTitle = { discoveryTitles[it] }
     )
 
     Column(
@@ -52,30 +67,16 @@ fun ArcSummaryContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = completedText,
+            text = stringResource(R.string.arc_summary_completed),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold
         )
         Text(
-            text = totalsSubtitle,
+            text = stringResource(R.string.arc_summary_totals_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
         )
-
-        RewardCard(
-            title = cardTitle,
-            subtitle = cardSubtitle
-        ) {
-            MetricLine(flowsLabel, flowsValue, MetricTone.Neutral)
-            MetricLine(durationLabel, durationValue, MetricTone.Neutral)
-
-            if (!isAera && !calmMode) {
-                DividerSoft()
-                MetricLine(peakMultiplierLabel, peakMultiplierValue, MetricTone.Glow)
-                HighlightMetric(bonusLabel, bonusValue, glow = true)
-                HighlightMetric(totalScoreLabel, totalScoreValue, glow = true)
-            }
-        }
+        RewardRevealDeck(cards = cards)
     }
 }
 

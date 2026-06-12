@@ -1,9 +1,16 @@
 package com.kingkharnivore.skillz.data.model.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+
+object PulseGroveStatusValues {
+    const val ALIVE = "ALIVE"
+    const val INSIGHT = "INSIGHT"
+    const val COMPLETED = "COMPLETED"
+}
 
 @Entity(
     tableName = "pulses",
@@ -38,5 +45,8 @@ data class PulseEntity(
     val parentFlowInstanceId: String? = null,
     val arcId: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "'ALIVE'")
+    val groveStatus: String = PulseGroveStatusValues.ALIVE,
+    val groveStatusChangedAt: Long? = null
 )

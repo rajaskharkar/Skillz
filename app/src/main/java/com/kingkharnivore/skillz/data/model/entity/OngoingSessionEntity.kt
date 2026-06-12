@@ -26,4 +26,11 @@ data class OngoingSessionEntity(
     val arcChainBase: Double? = null,
     val arcSessionCountInArc: Int? = null,
     val arcLastSessionEndTimeMs: Long? = null,
+    val originPulseId: Long? = null,
+    val originPulseTitleSnapshot: String? = null,
+    val originPulseJourneyNameSnapshot: String? = null,
+    val healthEnabledAtStart: Boolean = false,
+    val healthPermissionGrantedAtStart: Boolean = false,
+    val movementBonusEligibleAtStart: Boolean = false,
+    val activeIntervalJson: String? = null
 )

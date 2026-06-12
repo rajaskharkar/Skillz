@@ -16,8 +16,8 @@ android {
         applicationId = "com.kingkharnivore.skillz"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -43,6 +43,10 @@ android {
         buildConfig = true
     }
 
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
+
     flavorDimensions += "mode"
 
     productFlavors {
@@ -64,6 +68,11 @@ android {
             buildConfigField("int", "PRIMARY_COLOR", "0xFF2F4F6F") // GryffindorRed
         }
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.incremental", "true")
 }
 
 hilt {
@@ -90,6 +99,7 @@ dependencies {
 
     implementation(libs.androidx.navigation.compose)
     implementation("androidx.lifecycle:lifecycle-service:2.10.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
 
     implementation(libs.hilt.android)
     implementation(libs.androidx.compose.animation.core)
@@ -100,6 +110,7 @@ dependencies {
     implementation(libs.androidx.appcompat)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.health.connect.client)
 
     implementation(libs.androidx.room.runtime)
     implementation(libs.room.ktx)
@@ -119,6 +130,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation("androidx.room:room-testing:2.8.4")
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)

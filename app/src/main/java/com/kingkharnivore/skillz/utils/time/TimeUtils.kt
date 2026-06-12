@@ -145,3 +145,27 @@ object TimeWindowUtils {
         return normalizeAnchor(anchorStartMs, period).coerceIn(minAnchor, maxAnchor)
     }
 }
+
+fun formatIdeaGroveDuration(durationMs: Long): String {
+    val totalSeconds = (durationMs / 1000L).coerceAtLeast(0L)
+    val hours = totalSeconds / 3600L
+    val minutes = (totalSeconds % 3600L) / 60L
+    val seconds = totalSeconds % 60L
+    return buildList {
+        if (hours > 0) add("${hours}h")
+        if (minutes > 0 || hours > 0) add("${minutes}m")
+        if (seconds > 0 || isEmpty()) add("${seconds}s")
+    }.joinToString(" ")
+}
+
+fun formatIdeaGroveDurationForSpeech(durationMs: Long): String {
+    val totalSeconds = (durationMs / 1000L).coerceAtLeast(0L)
+    val hours = totalSeconds / 3600L
+    val minutes = (totalSeconds % 3600L) / 60L
+    val seconds = totalSeconds % 60L
+    return buildList {
+        if (hours > 0) add("$hours ${if (hours == 1L) "hour" else "hours"}")
+        if (minutes > 0) add("$minutes ${if (minutes == 1L) "minute" else "minutes"}")
+        if (seconds > 0 || isEmpty()) add("$seconds ${if (seconds == 1L) "second" else "seconds"}")
+    }.joinToString(" ")
+}

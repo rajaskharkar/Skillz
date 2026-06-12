@@ -9,6 +9,8 @@ import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.dao.ActiveArcRunDao
 import com.kingkharnivore.skillz.data.model.dao.ArcPlanDao
 import com.kingkharnivore.skillz.data.model.dao.FlowPlanDao
+import com.kingkharnivore.skillz.data.model.dao.health.FlowHealthDao
+import com.kingkharnivore.skillz.data.model.dao.shell.IdeaGroveDao
 import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
 import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
@@ -50,6 +52,9 @@ object DatabaseModule {
     fun providePulseDao(db: SkillzDatabase): PulseDao = db.pulseDao()
 
     @Provides
+    fun provideIdeaGroveDao(db: SkillzDatabase): IdeaGroveDao = db.ideaGroveDao()
+
+    @Provides
     fun provideOngoingSessionDao(db: SkillzDatabase): OngoingSessionDao =
         db.ongoingSessionDao()
 
@@ -62,6 +67,9 @@ object DatabaseModule {
     @Provides
     fun provideActiveArcRunDao(db: SkillzDatabase): ActiveArcRunDao =
         db.activeArcRunDao()
+
+    @Provides
+    fun provideFlowHealthDao(db: SkillzDatabase): FlowHealthDao = db.flowHealthDao()
 
     @Provides
     @Singleton

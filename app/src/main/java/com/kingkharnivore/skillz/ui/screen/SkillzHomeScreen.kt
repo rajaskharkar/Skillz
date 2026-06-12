@@ -29,6 +29,7 @@ import com.kingkharnivore.skillz.ui.screen.story.StoryScreen
 import com.kingkharnivore.skillz.viewmodel.NotepadViewModel
 import com.kingkharnivore.skillz.viewmodel.PathsViewModel
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
+import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsViewModel
 import kotlinx.coroutines.launch
 
 const val PAGE_STORY = 0
@@ -43,6 +44,7 @@ fun SkillzHomeScreen(
     skillzViewModel: StoryViewModel = hiltViewModel(),
     notepadViewModel: NotepadViewModel = hiltViewModel(),
     pathsViewModel: PathsViewModel = hiltViewModel(),
+    healthViewModel: HealthSettingsViewModel = hiltViewModel(),
     onAddSessionClick: () -> Unit,
     onAddPulseClick: () -> Unit,
     onOpenPlannedFlow: (title: String, tagName: String?, isSoftMode: Boolean) -> Unit,
@@ -50,7 +52,8 @@ fun SkillzHomeScreen(
     onOpenArc: (Long) -> Unit,
     onOpenSuggestedRoute: (String) -> Unit,
     onGoToActiveSession: () -> Unit,
-    isFlowModeOn: Boolean
+    isFlowModeOn: Boolean,
+    onOpenShell: () -> Unit
 ) {
     val notepadText by notepadViewModel.notepadText.collectAsStateWithLifecycle()
 
@@ -98,7 +101,7 @@ fun SkillzHomeScreen(
         )
     ) {
         Scaffold(
-            topBar = { SkillzTopAppBar() }
+            topBar = { SkillzTopAppBar(onOpenShell = onOpenShell) }
         ) { innerPadding ->
             Box(
                 modifier = Modifier
@@ -158,6 +161,7 @@ fun SkillzHomeScreen(
                             HelpScreen(
                                 uiState = storyUiState,
                                 selectedLanguageTag = storyUiState.appLanguageTag,
+                                healthViewModel = healthViewModel,
                                 onToggleShowScoreUi = skillzViewModel::setShowScoreUi,
                                 onToggleCalmMode = skillzViewModel::setCalmMode,
                                 onSetAppLanguage = skillzViewModel::setAppLanguage,

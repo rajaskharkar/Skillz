@@ -8,6 +8,8 @@ data class FlowRewardUiModel(
     val sixtyMinuteBonuses: Int,
     val finalScyraPoints: Int,
     val surgePoints: Int,
+    val movementSteps: Long? = null,
+    val movementPoints: Long = 0L,
 
     // ARC
     val arcIndexInArc: Int? = null,
@@ -16,6 +18,11 @@ data class FlowRewardUiModel(
     val arcNextMultiplier: Double? = null,
     val arcProgressTowardNextMs: Long = 0L,
     val arcDidLevelUp: Boolean = false,
+    val shellPearlsEarned: Int = 0,
+    val shellStillwaterUnits: Long = 0L,
+    val shellGrantedFindIds: List<String> = emptyList(),
+    val shellDiscoveryIds: List<String> = emptyList(),
+    val shellBadgeIds: List<String> = emptyList(),
     val arcSummary: ArcSummaryUiModel? = null,
     val isArcOnlySummary: Boolean = false
 )

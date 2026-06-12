@@ -11,7 +11,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
+import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
+import com.kingkharnivore.skillz.ui.health.MovementBonusRewardBlock
 
 @Composable
 fun SessionRewardContent(
@@ -19,38 +21,22 @@ fun SessionRewardContent(
     isAera: Boolean,
     calmMode: Boolean
 ) {
-    val titleText = stringResource(
-        if (r.surgePoints > 0) {
-            R.string.session_reward_title_surge_completed
-        } else {
-            R.string.session_reward_title_flow_completed
-        }
+    val text = rememberRewardRevealTextProvider()
+    val findTitles = ShellContentCatalog.finds.associate { it.findId to stringResource(it.titleRes) }
+    val badgeTitles = ShellContentCatalog.badges.associate { it.badgeId to stringResource(it.titleRes) }
+    val discoveryTitles = ShellContentCatalog.discoveries.associate { it.discoveryId to stringResource(it.titleRes) }
+    val cards = buildSessionRewardCards(
+        reward = r,
+        isAera = isAera,
+        calmMode = calmMode,
+        text = text,
+        findTitle = { findId -> findTitles[findId] },
+        badgeTitle = { badgeId -> badgeTitles[badgeId] },
+        discoveryTitle = { discoveryId -> discoveryTitles[discoveryId] }
     )
-    val subtitleText = stringResource(R.string.session_reward_subtitle_logged_story)
-    val sessionDetailsTitle = stringResource(R.string.session_reward_card_session_details)
-    val storyInTimeSubtitle = stringResource(R.string.session_reward_card_story_in_time)
-    val totalTimeLabel = stringResource(R.string.session_reward_total_time)
-    val minutesText = stringResource(R.string.session_reward_minutes_value, r.minutes)
-    val totalScoreTitle = stringResource(R.string.session_reward_total_score_title)
-    val totalScoreFootnote = stringResource(R.string.session_reward_total_score_footnote)
-    val breakdownTitle = stringResource(R.string.session_reward_breakdown_title)
-    val breakdownSubtitle = stringResource(R.string.session_reward_breakdown_subtitle)
-    val baseScoreLabel = stringResource(R.string.session_reward_base_score)
-    val baseScoreValue = stringResource(R.string.session_reward_points_value, r.baseScyraPoints)
-    val timeBonusesTitle = stringResource(R.string.session_reward_time_bonuses)
-    val tenMinuteBonusLabel = stringResource(R.string.session_reward_10_min_bonus)
-    val thirtyMinuteBonusLabel = stringResource(R.string.session_reward_30_min_bonus)
-    val sixtyMinuteBonusLabel = stringResource(R.string.session_reward_60_min_bonus)
-    val arcSectionTitle = stringResource(R.string.session_reward_arc_section)
-    val arcMultiplierUsedLabel = stringResource(R.string.session_reward_arc_multiplier_used)
-    val arcPointsGainedLabel = stringResource(R.string.session_reward_arc_points_gained)
-    val arcPointsGainedValue = stringResource(R.string.session_reward_points_value, r.arcBonusPoints)
-    val arcLevelUpText = stringResource(R.string.session_reward_arc_level_up)
-    val dashText = stringResource(R.string.session_reward_dash)
-
-    val arcMultiplierText = r.arcMultiplierUsed?.let {
-        stringResource(R.string.session_reward_multiplier_1dp, it)
-    } ?: dashText
+    val titleText = stringResource(
+        if (r.surgePoints > 0) R.string.session_reward_title_surge_completed else R.string.session_reward_title_flow_completed
+    )
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -63,91 +49,15 @@ fun SessionRewardContent(
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = subtitleText,
+                text = stringResource(R.string.session_reward_subtitle_logged_story),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
             )
         }
-
-        if (calmMode || isAera) {
-            RewardCard(
-                title = sessionDetailsTitle,
-                subtitle = storyInTimeSubtitle
-            ) {
-                MetricLine(totalTimeLabel, minutesText, MetricTone.Neutral)
-            }
-            return
-        }
-
-        RewardChipRowV2(
-            isAera = isAera,
-            totalMinutes = r.minutes,
-            totalScyra = r.finalScyraPoints,
-            surgePoints = r.surgePoints
+        MovementBonusRewardBlock(
+            steps = r.movementSteps ?: 0L,
+            movementPoints = r.movementPoints
         )
-
-        RewardTotalCard(
-            title = totalScoreTitle,
-            value = r.finalScyraPoints,
-            footnote = totalScoreFootnote
-        )
-
-        RewardCard(
-            title = breakdownTitle,
-            subtitle = breakdownSubtitle
-        ) {
-            HighlightMetric(baseScoreLabel, baseScoreValue)
-
-            val hasAnyBonus =
-                r.tenMinuteBonuses > 0 || r.thirtyMinuteBonuses > 0 || r.sixtyMinuteBonuses > 0
-
-            if (hasAnyBonus) {
-                DividerSoft()
-                Text(
-                    text = timeBonusesTitle,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
-                )
-
-                if (r.tenMinuteBonuses > 0) {
-                    BonusLine(tenMinuteBonusLabel, r.tenMinuteBonuses, 5)
-                }
-                if (r.thirtyMinuteBonuses > 0) {
-                    BonusLine(thirtyMinuteBonusLabel, r.thirtyMinuteBonuses, 15)
-                }
-                if (r.sixtyMinuteBonuses > 0) {
-                    BonusLine(sixtyMinuteBonusLabel, r.sixtyMinuteBonuses, 50)
-                }
-            }
-
-            val showArcUi =
-                (r.arcIndexInArc ?: 0) >= 2 &&
-                        (r.arcBonusPoints > 0 || r.arcMultiplierUsed != null)
-
-            if (showArcUi) {
-                DividerSoft()
-                Text(
-                    text = arcSectionTitle,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.80f)
-                )
-
-                MetricLine(
-                    label = arcMultiplierUsedLabel,
-                    value = arcMultiplierText,
-                    tone = if (r.arcMultiplierUsed != null) MetricTone.Glow else MetricTone.Muted
-                )
-
-                HighlightMetric(arcPointsGainedLabel, arcPointsGainedValue, glow = true)
-
-                if (r.arcDidLevelUp) {
-                    Text(
-                        text = arcLevelUpText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
+        RewardRevealDeck(cards = cards)
     }
 }

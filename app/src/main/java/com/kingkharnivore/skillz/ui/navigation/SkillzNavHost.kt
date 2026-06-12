@@ -16,12 +16,14 @@ import com.kingkharnivore.skillz.ui.screen.HelpScreen
 import com.kingkharnivore.skillz.ui.screen.SkillzHomeScreen
 import com.kingkharnivore.skillz.ui.screen.flow.FlowScreen
 import com.kingkharnivore.skillz.ui.screen.paths.arc.ArcDetailScreen
+import com.kingkharnivore.skillz.ui.screen.shell.ShellRootScreen
 import com.kingkharnivore.skillz.ui.screen.paths.arc.PlanArcScreen
 import com.kingkharnivore.skillz.ui.screen.paths.suggested.SuggestedRouteDetailScreen
 import com.kingkharnivore.skillz.ui.screen.paths.suggested.SuggestedRoutesCatalog
 import com.kingkharnivore.skillz.ui.screen.story.pulse.PulseScreen
 import com.kingkharnivore.skillz.viewmodel.ArcDetailViewModel
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
+import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsViewModel
 import com.kingkharnivore.skillz.viewmodel.PlanArcViewModel
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
 import com.kingkharnivore.skillz.viewmodel.SuggestedRouteDetailViewModel
@@ -35,6 +37,7 @@ fun SkillzNavHost(
     val storyViewModel: StoryViewModel = hiltViewModel()
     val ongoing by focusVm.ongoingSession.collectAsState()
     val isFocusModeOn = ongoing?.isInFlowMode == true
+    val hasOngoingFlow = ongoing != null
 
     NavHost(
         navController = navController,
@@ -75,7 +78,8 @@ fun SkillzNavHost(
                 onGoToActiveSession = {
                     navController.navigate(SkillzDestinations.addSkillRoute())
                 },
-                isFlowModeOn = isFocusModeOn
+                isFlowModeOn = isFocusModeOn,
+                onOpenShell = { navController.navigate(SkillzDestinations.SHELL) }
             )
         }
 
@@ -95,6 +99,10 @@ fun SkillzNavHost(
                 navArgument(SkillzDestinations.ADD_SKILL_ARG_PREFILL_SOFT_MODE) {
                     type = NavType.BoolType
                     defaultValue = false
+                },
+                navArgument(SkillzDestinations.ADD_SKILL_ARG_ORIGIN_PULSE_ID) {
+                    type = NavType.LongType
+                    defaultValue = -1L
                 },
                 navArgument(SkillzDestinations.ADD_SKILL_ARG_PLANNED_ARC_TITLE) {
                     type = NavType.StringType
@@ -119,7 +127,8 @@ fun SkillzNavHost(
             FlowScreen(
                 viewModel = addSessionViewModel,
                 onDone = { popToHome(navController) },
-                onCancel = { popToHome(navController) }
+                onCancel = { popToHome(navController) },
+                onOpenShell = { navController.navigate(SkillzDestinations.SHELL) }
             )
         }
 
@@ -209,6 +218,28 @@ fun SkillzNavHost(
             }
         }
 
+        composable(SkillzDestinations.SHELL) {
+            ShellRootScreen(
+                onBack = { navController.popBackStack() },
+                isFlowActive = hasOngoingFlow,
+                onLaunchFlowForJourney = { journeyName ->
+                    navController.navigate(SkillzDestinations.addSkillRoute(prefillJourney = journeyName))
+                },
+                onLaunchFlowFromPulse = { pulseId, title, journeyName ->
+                    navController.navigate(
+                        SkillzDestinations.addSkillRoute(
+                            prefillJourney = journeyName,
+                            prefillTitle = title,
+                            originPulseId = pulseId
+                        )
+                    )
+                },
+                onOpenActiveFlow = {
+                    navController.navigate(SkillzDestinations.addSkillRoute())
+                }
+            )
+        }
+
         composable(SkillzDestinations.ADD_PULSE_ROUTE) {
             PulseScreen(
                 viewModel = storyViewModel,
@@ -220,10 +251,12 @@ fun SkillzNavHost(
 
         composable("help") {
             val uiState by storyViewModel.uiState.collectAsState()
+            val healthViewModel: HealthSettingsViewModel = hiltViewModel()
 
             HelpScreen(
                 uiState = uiState,
                 selectedLanguageTag = uiState.appLanguageTag,
+                healthViewModel = healthViewModel,
                 onToggleShowScoreUi = storyViewModel::setShowScoreUi,
                 onToggleCalmMode = storyViewModel::setCalmMode,
                 onSetAppLanguage = storyViewModel::setAppLanguage,

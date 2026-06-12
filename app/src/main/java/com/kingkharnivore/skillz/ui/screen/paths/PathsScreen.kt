@@ -37,8 +37,6 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -85,6 +83,7 @@ import com.kingkharnivore.skillz.model.state.paths.PathsPrimaryTab
 import com.kingkharnivore.skillz.model.state.paths.PathsTimeLens
 import com.kingkharnivore.skillz.model.state.paths.PathsUiState
 import com.kingkharnivore.skillz.model.ui.ArcPlanListItemUiModel
+import com.kingkharnivore.skillz.model.ui.ArcPlanStepPreviewUiModel
 import com.kingkharnivore.skillz.model.ui.FlowPlanListItemUiModel
 import com.kingkharnivore.skillz.ui.screen.paths.suggested.SuggestedRoutesCatalog
 import com.kingkharnivore.skillz.ui.theme.color
@@ -130,8 +129,6 @@ fun PathsScreen(
         onDream = viewModel::moveFlowPlanToDreams,
         onRestoreFromDreams = viewModel::restoreFlowPlanFromDreams,
         onDeleteFlow = viewModel::deleteFlowPlan,
-        onAddArcToStudio = viewModel::addArcToStudio,
-        onRemoveArcFromStudio = viewModel::removeArcFromStudio,
         onOpenArc = onOpenArc,
         onDeleteArc = viewModel::deleteArcPlan
     )
@@ -171,8 +168,6 @@ private fun PathsScreenContent(
     onDream: (Long) -> Unit,
     onRestoreFromDreams: (Long) -> Unit,
     onDeleteFlow: (Long) -> Unit,
-    onAddArcToStudio: (Long) -> Unit,
-    onRemoveArcFromStudio: (Long) -> Unit,
     onOpenArc: (Long) -> Unit,
     onDeleteArc: (Long) -> Unit,
 ) {
@@ -185,13 +180,12 @@ private fun PathsScreenContent(
     val emptyArcsTitle = stringResource(R.string.paths_empty_arcs_title)
     val emptyArcsBody = stringResource(R.string.paths_empty_arcs_body)
     val planArcText = stringResource(R.string.paths_plan_arc)
-    val studioTitle = stringResource(R.string.paths_studio_title)
-    val studioSubtitle = stringResource(R.string.paths_studio_subtitle)
     val suggestedRoutesTitle = stringResource(R.string.paths_suggested_scenes_title)
     val suggestedRoutesSubtitle = stringResource(R.string.paths_suggested_scenes_subtitle)
-    val yourArcsTitle = stringResource(R.string.paths_your_arcs_title)
-    val yourArcsSubtitle = stringResource(R.string.paths_your_arcs_subtitle)
-    val emptyMoreArcsBody = stringResource(R.string.paths_empty_more_arcs_body)
+    val plannedArcsTitle = stringResource(R.string.paths_your_arcs_title)
+    val plannedArcsSubtitle = stringResource(R.string.paths_your_arcs_subtitle)
+    val suggestionHelperTitle = stringResource(R.string.paths_suggested_sequences_helper_title)
+    val suggestionHelperBody = stringResource(R.string.paths_suggested_sequences_helper_body)
 
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing
@@ -301,7 +295,8 @@ private fun PathsScreenContent(
                 }
 
                 else -> {
-                    if (uiState.studioArcPlans.isEmpty() && uiState.arcPlans.isEmpty()) {
+                    val plannedArcs = uiState.arcPlans
+                    if (plannedArcs.isEmpty()) {
                         item {
                             EmptyPathsState(
                                 icon = {
@@ -317,74 +312,42 @@ private fun PathsScreenContent(
                                 onClick = onPlanArcClick
                             )
                         }
+
+                        item {
+                            SuggestedSequencesHelper(
+                                title = suggestionHelperTitle,
+                                body = suggestionHelperBody,
+                                sectionTitle = suggestedRoutesTitle,
+                                sectionSubtitle = suggestedRoutesSubtitle,
+                                onOpenSuggestedRoute = onOpenSuggestedRoute
+                            )
+                        }
                     } else {
-                        if (uiState.studioArcPlans.isNotEmpty()) {
-                            item {
-                                SectionHeader(
-                                    title = studioTitle,
-                                    subtitle = studioSubtitle
-                                )
-                            }
-
-                            items(uiState.studioArcPlans, key = { "studio_${it.id}" }) { arc ->
-                                StudioArcCard(
-                                    arc = arc,
-                                    onClick = { onOpenArc(arc.id) },
-                                    onRemoveFromStudio = { onRemoveArcFromStudio(arc.id) }
-                                )
-                            }
-                        }
-
                         item {
-                            SectionHeader(
-                                title = suggestedRoutesTitle,
-                                subtitle = suggestedRoutesSubtitle
-                            )
-                        }
-
-                        items(SuggestedRoutesCatalog.routes, key = { "suggested_${it.id}" }) { route ->
-                            SuggestedRouteCard(
-                                title = route.title,
-                                subtitle = route.subtitle,
-                                category = route.category,
-                                approxMinutes = route.approxMinutes,
-                                onClick = { onOpenSuggestedRoute(route.id) }
-                            )
-                        }
-
-                        item {
-                            YourArcsHeader(
-                                title = yourArcsTitle,
-                                subtitle = yourArcsSubtitle,
+                            PlannedArcsHeader(
+                                title = plannedArcsTitle,
+                                subtitle = plannedArcsSubtitle,
                                 cta = planArcText,
                                 onClick = onPlanArcClick
                             )
                         }
 
-                        if (uiState.arcPlans.isEmpty()) {
-                            item {
-                                Surface(
-                                    shape = RoundedCornerShape(24.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        text = emptyMoreArcsBody,
-                                        modifier = Modifier.padding(16.dp),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
-                                    )
-                                }
-                            }
-                        } else {
-                            items(uiState.arcPlans, key = { it.id }) { arc ->
-                                ArcLibraryCard(
-                                    arc = arc,
-                                    onClick = { onOpenArc(arc.id) },
-                                    onAddToStudio = { onAddArcToStudio(arc.id) },
-                                    onDelete = { onDeleteArc(arc.id) }
-                                )
-                            }
+                        items(plannedArcs, key = { it.id }) { arc ->
+                            PlannedArcCard(
+                                arc = arc,
+                                onClick = { onOpenArc(arc.id) },
+                                onDelete = { onDeleteArc(arc.id) }
+                            )
+                        }
+
+                        item {
+                            SuggestedSequencesHelper(
+                                title = suggestionHelperTitle,
+                                body = suggestionHelperBody,
+                                sectionTitle = suggestedRoutesTitle,
+                                sectionSubtitle = suggestedRoutesSubtitle,
+                                onOpenSuggestedRoute = onOpenSuggestedRoute
+                            )
                         }
                     }
                 }
@@ -447,7 +410,7 @@ private fun PlannedFlowsHeader(
 }
 
 @Composable
-private fun YourArcsHeader(
+private fun PlannedArcsHeader(
     title: String,
     subtitle: String,
     cta: String,
@@ -1548,158 +1511,50 @@ private fun DreamFlowPlanCard(
 }
 
 @Composable
-private fun StudioArcCard(
+private fun PlannedArcCard(
     arc: ArcPlanListItemUiModel,
     onClick: () -> Unit,
-    onRemoveFromStudio: () -> Unit
-) {
-    var menuExpanded by remember { mutableStateOf(false) }
-
-    val studioTitle = stringResource(R.string.paths_studio_title)
-    val moreActionsText = stringResource(R.string.paths_more_actions)
-    val removeFromStudioText = stringResource(R.string.paths_remove_from_studio)
-
-    val launchText = if (arc.launchCount > 0) {
-        pluralStringResource(R.plurals.paths_launch_count, arc.launchCount, arc.launchCount)
-    } else {
-        stringResource(R.string.paths_ready_to_return)
-    }
-
-    val cardA11y = stringResource(
-        R.string.paths_studio_arc_card_a11y,
-        arc.title,
-        launchText
-    )
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .semantics {
-                role = Role.Button
-                contentDescription = cardA11y
-            },
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Star,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = studioTitle,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Box {
-                    IconButton(
-                        onClick = { menuExpanded = true },
-                        modifier = Modifier.semantics {
-                            contentDescription = moreActionsText
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.MoreVert,
-                            contentDescription = null
-                        )
-                    }
-
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(removeFromStudioText) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Outlined.StarBorder,
-                                    contentDescription = null
-                                )
-                            },
-                            onClick = {
-                                menuExpanded = false
-                                onRemoveFromStudio()
-                            }
-                        )
-                    }
-                }
-            }
-
-            Text(
-                text = arc.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Text(
-                text = launchText,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ArcLibraryCard(
-    arc: ArcPlanListItemUiModel,
-    onClick: () -> Unit,
-    onAddToStudio: () -> Unit,
     onDelete: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     val moreActionsText = stringResource(R.string.paths_more_actions)
-    val addToStudioText = stringResource(R.string.paths_add_to_studio)
     val deleteText = stringResource(R.string.common_delete)
     val cancelText = stringResource(R.string.common_cancel)
     val deleteTitle = stringResource(R.string.paths_delete_arc_title)
     val deleteBody = stringResource(R.string.paths_delete_arc_body)
+    val editText = stringResource(R.string.paths_edit_arc)
     val arcLibraryBody = stringResource(R.string.paths_arc_library_body)
-
+    val stepCountText = pluralStringResource(
+        R.plurals.paths_arc_flow_count,
+        arc.stepCount,
+        arc.stepCount
+    )
+    var expanded by rememberSaveable(arc.id) { mutableStateOf(false) }
+    val previewLimit = 4
+    val visibleSteps = if (expanded || arc.stepCount <= previewLimit) arc.steps else arc.steps.take(previewLimit)
+    val stepPreviewText = visibleSteps.joinToString(" → ") { it.title }
+        .ifBlank { arcLibraryBody }
+    val expandedText = if (expanded) {
+        stringResource(R.string.paths_expanded)
+    } else {
+        stringResource(R.string.paths_collapsed)
+    }
     val launchText = if (arc.launchCount > 0) {
         pluralStringResource(R.plurals.paths_launch_count, arc.launchCount, arc.launchCount)
     } else {
         stringResource(R.string.paths_not_launched_yet)
     }
-
     val cardA11y = stringResource(
         R.string.paths_arc_library_card_a11y,
         arc.title,
-        launchText
+        buildList {
+            add(stepCountText)
+            arc.totalTargetMinutes?.let { add(stringResource(R.string.paths_approx_minutes, it)) }
+            add(expandedText)
+        }.joinToString(". "),
+        stringResource(R.string.paths_arc_step_preview_a11y, stepPreviewText)
     )
 
     Card(
@@ -1710,38 +1565,53 @@ private fun ArcLibraryCard(
                 role = Role.Button
                 contentDescription = cardA11y
             },
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.AutoGraph,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.AutoGraph,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(9.dp)
+                    )
+                }
 
                 Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 10.dp)
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
                         text = arc.title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MiniBadge(text = stepCountText)
+                        arc.totalTargetMinutes?.let {
+                            MiniBadge(text = stringResource(R.string.paths_approx_minutes, it))
+                        }
+                    }
+
                     Text(
                         text = launchText,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.62f)
                     )
                 }
 
@@ -1762,20 +1632,6 @@ private fun ArcLibraryCard(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false }
                     ) {
-                        DropdownMenuItem(
-                            text = { Text(addToStudioText) },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Outlined.StarBorder,
-                                    contentDescription = null
-                                )
-                            },
-                            onClick = {
-                                menuExpanded = false
-                                onAddToStudio()
-                            }
-                        )
-
                         DropdownMenuItem(
                             text = { Text(deleteText) },
                             leadingIcon = {
@@ -1793,13 +1649,22 @@ private fun ArcLibraryCard(
                 }
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-
-            Text(
-                text = arcLibraryBody,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f)
+            ArcStepPreview(
+                arc = arc,
+                visibleSteps = visibleSteps,
+                expanded = expanded,
+                onExpandedChange = { expanded = it }
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onClick) {
+                    Text(editText)
+                }
+            }
         }
     }
 
@@ -1824,6 +1689,167 @@ private fun ArcLibraryCard(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun ArcStepPreview(
+    arc: ArcPlanListItemUiModel,
+    visibleSteps: List<ArcPlanStepPreviewUiModel>,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit
+) {
+    val fallbackBody = stringResource(R.string.paths_arc_library_body)
+    val collapseText = stringResource(R.string.paths_collapse)
+    val expandedA11yText = stringResource(R.string.paths_expanded)
+    val collapsedA11yText = stringResource(R.string.paths_collapsed)
+    val viewAllText = pluralStringResource(
+        R.plurals.paths_view_all_flows,
+        arc.stepCount,
+        arc.stepCount
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (visibleSteps.isEmpty()) {
+            Text(
+                text = fallbackBody,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.66f)
+            )
+        }
+
+        visibleSteps.forEachIndexed { index, step ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(999.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                ) {
+                    Text(
+                        text = (index + 1).toString(),
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Text(
+                    text = step.title,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f)
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    step.targetMinutes?.let {
+                        MiniBadge(text = stringResource(R.string.paths_minutes_short, it))
+                    }
+                    if (step.launchWithSurge) MiniBadge(text = stringResource(R.string.paths_surge))
+                    if (step.isSoftMode) MiniBadge(text = stringResource(R.string.paths_soft))
+                }
+            }
+        }
+
+        if (arc.stepCount > visibleSteps.size || expanded) {
+            TextButton(
+                onClick = { onExpandedChange(!expanded) },
+                modifier = Modifier.semantics {
+                    role = Role.Button
+                    contentDescription = if (expanded) collapseText else viewAllText
+                    stateDescription = if (expanded) expandedA11yText else collapsedA11yText
+                }
+            ) {
+                Text(if (expanded) collapseText else viewAllText)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SuggestedSequencesHelper(
+    title: String,
+    body: String,
+    sectionTitle: String,
+    sectionSubtitle: String,
+    onOpenSuggestedRoute: (String) -> Unit
+) {
+    var showAllSuggestions by rememberSaveable { mutableStateOf(false) }
+    val browseText = stringResource(R.string.paths_browse_suggested_scenes)
+    val collapseText = stringResource(R.string.paths_collapse)
+    val expandedA11yText = stringResource(R.string.paths_expanded)
+    val collapsedA11yText = stringResource(R.string.paths_collapsed)
+    val suggestions = if (showAllSuggestions) {
+        SuggestedRoutesCatalog.routes
+    } else {
+        SuggestedRoutesCatalog.routes.take(2)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Explore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
+            )
+
+            SectionHeader(
+                title = sectionTitle,
+                subtitle = sectionSubtitle
+            )
+
+            suggestions.forEach { route ->
+                SuggestedRouteCard(
+                    title = route.title,
+                    subtitle = route.subtitle,
+                    category = route.category,
+                    approxMinutes = route.approxMinutes,
+                    onClick = { onOpenSuggestedRoute(route.id) }
+                )
+            }
+
+            TextButton(
+                onClick = { showAllSuggestions = !showAllSuggestions },
+                modifier = Modifier.semantics {
+                    role = Role.Button
+                    contentDescription = if (showAllSuggestions) collapseText else browseText
+                    stateDescription = if (showAllSuggestions) expandedA11yText else collapsedA11yText
+                }
+            ) {
+                Text(
+                    if (showAllSuggestions) collapseText else browseText
+                )
+            }
+        }
     }
 }
 
