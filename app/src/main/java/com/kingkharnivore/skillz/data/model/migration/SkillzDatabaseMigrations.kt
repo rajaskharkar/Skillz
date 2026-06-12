@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 30.
+     * Current database version is 31.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -137,6 +137,12 @@ object SkillzDatabaseMigrations {
             // Never downgrade v29 developer/test installs back to v28. Upgrade
             // them into the current canonical Movement Bonus schema instead.
             normalizeMovementBonusTables(db)
+        }
+    }
+
+    val MIGRATION_30_31 = object : Migration(30, 31) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            addNotificationViewedAtColumns(db)
         }
     }
 
@@ -290,7 +296,20 @@ object SkillzDatabaseMigrations {
                 MIGRATION_26_27 +
                 MIGRATION_27_28 +
                 MIGRATION_28_29 +
-                MIGRATION_29_30
+                MIGRATION_29_30 +
+                MIGRATION_30_31
+
+    private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
+        listOf(
+            "user_shell_find_instance",
+            "user_shell_find_stack",
+            "user_badge",
+            "user_discovery"
+        ).forEach { table ->
+            addColumnIfMissing(db, table, "viewedAt", "INTEGER DEFAULT NULL")
+            db.execSQL("UPDATE `$table` SET viewedAt = 0 WHERE isNew = 0 AND viewedAt IS NULL")
+        }
+    }
 
     private fun createMovementBonusTables(db: SupportSQLiteDatabase) {
         addColumnIfMissing(db, "ongoing_session", "healthEnabledAtStart", "INTEGER NOT NULL DEFAULT 0")

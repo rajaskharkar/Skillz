@@ -58,6 +58,15 @@ interface ShellFindInstanceDao {
     @Query("UPDATE user_shell_find_instance SET isNew = 0")
     suspend fun markAllSeen()
 
+    @Query("UPDATE user_shell_find_instance SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE viewedAt IS NULL")
+    suspend fun markAllViewed(viewedAt: Long)
+
+    @Query("UPDATE user_shell_find_instance SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE viewedAt IS NULL AND findId IN (:findIds)")
+    suspend fun markFindIdsViewed(findIds: List<String>, viewedAt: Long)
+
+    @Query("UPDATE user_shell_find_instance SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE instanceId = :instanceId")
+    suspend fun markViewed(instanceId: String, viewedAt: Long)
+
     @Query("UPDATE user_shell_find_instance SET isNew = 0 WHERE findId IN (:findIds)")
     suspend fun markFindIdsSeen(findIds: List<String>)
 
@@ -87,6 +96,12 @@ interface ShellFindStackDao {
 
     @Query("UPDATE user_shell_find_stack SET isNew = 0")
     suspend fun markAllSeen()
+
+    @Query("UPDATE user_shell_find_stack SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE viewedAt IS NULL")
+    suspend fun markAllViewed(viewedAt: Long)
+
+    @Query("UPDATE user_shell_find_stack SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE findId = :findId")
+    suspend fun markViewed(findId: String, viewedAt: Long)
 }
 
 @Dao
@@ -135,6 +150,12 @@ interface UserBadgeDao {
 
     @Query("UPDATE user_badge SET isNew = 0")
     suspend fun markAllSeen()
+
+    @Query("UPDATE user_badge SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE viewedAt IS NULL")
+    suspend fun markAllViewed(viewedAt: Long)
+
+    @Query("UPDATE user_badge SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE badgeId = :badgeId")
+    suspend fun markViewed(badgeId: String, viewedAt: Long)
 }
 
 @Dao
@@ -153,6 +174,12 @@ interface UserDiscoveryDao {
 
     @Query("UPDATE user_discovery SET isNew = 0")
     suspend fun markAllSeen()
+
+    @Query("UPDATE user_discovery SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE viewedAt IS NULL")
+    suspend fun markAllViewed(viewedAt: Long)
+
+    @Query("UPDATE user_discovery SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE userDiscoveryId = :userDiscoveryId")
+    suspend fun markViewed(userDiscoveryId: String, viewedAt: Long)
 }
 
 @Dao

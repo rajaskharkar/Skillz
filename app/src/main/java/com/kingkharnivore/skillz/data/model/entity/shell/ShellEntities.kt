@@ -30,6 +30,8 @@ data class UserShellFindInstanceEntity(
     val customName: String?,
     val isNew: Boolean,
     val isArchivedInChest: Boolean,
+    @ColumnInfo(defaultValue = "NULL")
+    val viewedAt: Long? = null,
     @ColumnInfo(defaultValue = "1")
     val animalLevel: Int = 1,
     @ColumnInfo(defaultValue = "'ACTIVE'")
@@ -44,7 +46,9 @@ data class UserShellFindStackEntity(
     val quantity: Int,
     val firstAcquiredAt: Long,
     val lastAcquiredAt: Long,
-    val isNew: Boolean
+    val isNew: Boolean,
+    @ColumnInfo(defaultValue = "NULL")
+    val viewedAt: Long? = null
 )
 
 @Entity(
@@ -80,7 +84,9 @@ data class UserBadgeEntity(
     val count: Int,
     val firstEarnedAt: Long,
     val lastEarnedAt: Long,
-    val isNew: Boolean
+    val isNew: Boolean,
+    @ColumnInfo(defaultValue = "NULL")
+    val viewedAt: Long? = null
 )
 
 @Entity(
@@ -94,7 +100,9 @@ data class UserDiscoveryEntity(
     val sourceType: String,
     val sourceId: String?,
     val grantedFindInstanceId: String?,
-    val isNew: Boolean
+    val isNew: Boolean,
+    @ColumnInfo(defaultValue = "NULL")
+    val viewedAt: Long? = null
 )
 
 @Entity(

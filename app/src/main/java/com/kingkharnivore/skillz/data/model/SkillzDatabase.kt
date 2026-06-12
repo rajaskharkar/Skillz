@@ -66,7 +66,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellRoomStateEntit
         FlowHealthSnapshotEntity::class,
         FlowRewardBreakdownEntity::class
     ],
-    version = 30,
+    version = 31,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {

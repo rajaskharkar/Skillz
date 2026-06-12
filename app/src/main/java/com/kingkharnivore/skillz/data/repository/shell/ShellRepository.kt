@@ -19,6 +19,10 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+
+enum class ShellNotificationType { FIND, BADGE }
+
+
 @Singleton
 class ShellRepository @Inject constructor(
     private val db: SkillzDatabase,
@@ -48,6 +52,8 @@ class ShellRepository @Inject constructor(
         objectiveCompletionDao.observeCompletions()
     fun observeStillwaterPreference(): Flow<StillwaterPreferenceEntity?> =
         stillwaterPreferenceDao.observe()
+
+
 
     suspend fun getPearlBalance(): Int = pearlLedgerDao.getBalance()
     suspend fun getStillwaterTotal(): Long = stillwaterLedgerDao.getTotal()
@@ -134,7 +140,7 @@ class ShellRepository @Inject constructor(
         val current = badgeDao.get(badgeId)
         val newCount = (current?.count ?: 0) + by
         badgeDao.upsert(
-            current?.copy(count = newCount, lastEarnedAt = now, isNew = true)
+            current?.copy(count = newCount, lastEarnedAt = now, isNew = true, viewedAt = null)
                 ?: UserBadgeEntity(
                     badgeId, by, now, now, true
                 )
@@ -181,7 +187,8 @@ class ShellRepository @Inject constructor(
             current?.copy(
                 quantity = current.quantity + quantity,
                 lastAcquiredAt = now,
-                isNew = true
+                isNew = true,
+                viewedAt = null
             )
                 ?: UserShellFindStackEntity(
                     findId, quantity, now, now, true
@@ -257,11 +264,18 @@ class ShellRepository @Inject constructor(
         findInstanceDao.updateArchivedState(instanceId, true)
     }
 
-    suspend fun markAllNotificationsSeen() = db.withTransaction {
-        findInstanceDao.markAllSeen()
-        findStackDao.markAllSeen()
-        badgeDao.markAllSeen()
-        discoveryDao.markAllSeen()
+    suspend fun markNotificationViewed(notificationId: String) = db.withTransaction {
+        val now = System.currentTimeMillis()
+        when (notificationId.substringBefore(':')) {
+            ShellNotificationType.FIND.name -> findInstanceDao.markViewed(notificationId.substringAfter(':'), now)
+            ShellNotificationType.BADGE.name -> badgeDao.markViewed(notificationId.substringAfter(':'), now)
+        }
+    }
+
+    suspend fun markAllNotificationsViewed() = db.withTransaction {
+        val now = System.currentTimeMillis()
+        findInstanceDao.markFindIdsViewed(ShellContentCatalog.allAnimalFindIds.toList(), now)
+        badgeDao.markAllViewed(now)
     }
 
     suspend fun markTheBlueAnimalsSeen() = db.withTransaction {
@@ -638,3 +652,9 @@ class ShellRepository @Inject constructor(
     suspend fun lastRegularFlowBefore(endTime: Long): Long? =
         sessionDao.getLastRegularSessionEndBefore(endTime)
 }
+
+
+const val SHELL_CHEST_ROUTE: String = "shell/chest"
+const val SHELL_BADGES_ROUTE: String = "shell/badges"
+
+fun notificationId(type: ShellNotificationType, sourceId: String): String = "${type.name}:$sourceId"

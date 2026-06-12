@@ -1145,6 +1145,10 @@
     <string name="shell_notifications_title">Shell Notifications</string>
     <string name="shell_notifications_body">New creatures and badges gather here until you visit.</string>
     <string name="shell_notifications_a11y">Shell Notifications. %1$d new.</string>
+    <string name="shell_notifications_mark_viewed">Mark Viewed</string>
+    <string name="shell_notifications_inlay_empty_title">No new notifications</string>
+    <string name="shell_notifications_inlay_empty_body">You’re all caught up.</string>
+    <string name="shell_notifications_mark_notification_viewed_a11y">Mark notification viewed</string>
     <string name="shell_notifications_empty_title">No new Shell notifications</string>
     <string name="shell_notifications_empty_body">The Shell is quiet for now. New rewards will gather here after future Flows.</string>
     <string name="shell_notification_find_body">%1$s</string>

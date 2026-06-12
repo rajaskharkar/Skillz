@@ -87,7 +87,10 @@ import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellPearlMiniIcon
 import com.kingkharnivore.skillz.ui.screen.shell.icons.draw.TurtleShellInteriorBackground
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgesScreen
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellChestScreen
-import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellNotificationsScreen
+import com.kingkharnivore.skillz.data.repository.shell.SHELL_BADGES_ROUTE
+import com.kingkharnivore.skillz.data.repository.shell.SHELL_CHEST_ROUTE
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.NotificationInlayOverlay
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.unviewedShellNotifications
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.TheBlueRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.focus.FocusRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.ideagrove.IdeaGroveRoute
@@ -108,7 +111,7 @@ private fun hasChestCreatures(uiState: ShellUiState): Boolean = activeChestCreat
 private fun hasAffordablePearlShape(uiState: ShellUiState): Boolean = false
 
 private fun unseenNotificationCount(uiState: ShellUiState): Int =
-    activeChestCreatures(uiState).count { it.isNew } + uiState.badges.count { it.isNew }
+    unviewedShellNotifications(uiState).size
 
 internal fun hasAffordableFocusPearlAction(uiState: ShellUiState): Boolean = false
 
@@ -145,8 +148,8 @@ fun ShellRootScreen(
     val activeFlowMessage = stringResource(R.string.lookout_flow_already_active)
     var destination by remember { mutableStateOf<ShellDestination>(ShellDestination.Heart) }
     var showPearlBasin by remember { mutableStateOf(false) }
-    var shouldMarkNotificationsSeenOnExit by remember { mutableStateOf(false) }
-    val notificationCount = if (destination == ShellDestination.Notifications) 0 else unseenNotificationCount(uiState)
+    var showNotifications by remember { mutableStateOf(false) }
+    val notificationCount = unseenNotificationCount(uiState)
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { message ->
@@ -170,19 +173,13 @@ fun ShellRootScreen(
         if (destination == ShellDestination.TheBluePreview) {
             viewModel.markTheBlueAnimalsSeen()
         }
-        if (destination == ShellDestination.Notifications) {
-            shouldMarkNotificationsSeenOnExit = true
-        } else if (shouldMarkNotificationsSeenOnExit) {
-            viewModel.markNotificationsSeen()
-            shouldMarkNotificationsSeenOnExit = false
-        }
     }
 
-    BackHandler(enabled = showPearlBasin || destination != ShellDestination.Heart) {
-        if (showPearlBasin) {
-            showPearlBasin = false
-        } else {
-            destination = ShellDestination.Heart
+    BackHandler(enabled = showNotifications || showPearlBasin || destination != ShellDestination.Heart) {
+        when {
+            showNotifications -> showNotifications = false
+            showPearlBasin -> showPearlBasin = false
+            else -> destination = ShellDestination.Heart
         }
     }
 
@@ -202,7 +199,7 @@ fun ShellRootScreen(
                     }
                 },
                 onPearls = { showPearlBasin = true },
-                onNotifications = { destination = ShellDestination.Notifications },
+                onNotifications = { showNotifications = !showNotifications },
                 onChest = { destination = ShellDestination.ShellChest }
             )
         },
@@ -239,7 +236,6 @@ fun ShellRootScreen(
                 )
 
                 ShellDestination.Badges -> BadgesScreen(uiState)
-                ShellDestination.Notifications -> ShellNotificationsScreen(uiState)
 
                 ShellDestination.VoyagePreview -> VoyageHallScreen()
 
@@ -274,6 +270,23 @@ fun ShellRootScreen(
                     }
                 )
             }
+        }
+
+        if (showNotifications) {
+            NotificationInlayOverlay(
+                uiState = uiState,
+                modifier = Modifier.padding(padding),
+                onDismiss = { showNotifications = false },
+                onMarkNotificationViewed = viewModel::markNotificationViewed,
+                onMarkAllViewed = viewModel::markAllNotificationsViewed,
+                onDeepLinkRoute = { route ->
+                    destination = when (route) {
+                        SHELL_CHEST_ROUTE -> ShellDestination.ShellChest
+                        SHELL_BADGES_ROUTE -> ShellDestination.Badges
+                        else -> destination
+                    }
+                }
+            )
         }
 
         if (showPearlBasin) {

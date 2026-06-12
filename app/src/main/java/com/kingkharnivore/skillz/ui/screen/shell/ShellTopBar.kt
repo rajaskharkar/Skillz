@@ -53,7 +53,6 @@ fun ShellTopBar(
         ShellDestination.Stillwater -> stringResource(R.string.shell_room_stillwater_title)
         ShellDestination.ShellChest -> stringResource(R.string.shell_chest_title)
         ShellDestination.Badges -> stringResource(R.string.shell_badges_title)
-        ShellDestination.Notifications -> stringResource(R.string.shell_notifications_title)
         ShellDestination.VoyagePreview -> stringResource(R.string.shell_room_voyage_title)
         ShellDestination.TheBluePreview -> stringResource(R.string.shell_room_the_blue_title)
         ShellDestination.IdeaGrovePreview -> stringResource(R.string.shell_room_idea_title)
