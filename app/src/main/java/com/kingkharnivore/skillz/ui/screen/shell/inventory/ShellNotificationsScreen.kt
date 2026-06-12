@@ -171,7 +171,7 @@ fun NotificationInlayOverlay(
                         )
                     }
                     TextButton(onClick = onMarkAllViewed) {
-                        Text("Mark Viewed")
+                        Text(stringResource(R.string.shell_notifications_mark_viewed))
                     }
                 }
 
@@ -212,8 +212,8 @@ private fun NotificationEmptyState() {
                 tint = MaterialTheme.colorScheme.secondary
             )
         },
-        headlineContent = { Text("No new notifications") },
-        supportingContent = { Text("You’re all caught up.") },
+        headlineContent = { Text(stringResource(R.string.shell_notifications_inlay_empty_title)) },
+        supportingContent = { Text(stringResource(R.string.shell_notifications_inlay_empty_body)) },
         modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 12.dp)
     )
 }
@@ -287,7 +287,7 @@ private fun NotificationInlayRow(
                 IconButton(onClick = onMarkViewed) {
                     Icon(
                         imageVector = Icons.Outlined.CheckCircle,
-                        contentDescription = "Mark notification viewed"
+                        contentDescription = stringResource(R.string.shell_notifications_mark_notification_viewed_a11y)
                     )
                 }
             }

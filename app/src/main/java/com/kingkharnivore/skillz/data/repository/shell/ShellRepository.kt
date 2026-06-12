@@ -15,8 +15,6 @@ import com.kingkharnivore.skillz.utils.shell.StillwaterCatalog
 import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
 import com.kingkharnivore.skillz.utils.shell.validateStillwaterDraw
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -24,18 +22,6 @@ import javax.inject.Singleton
 
 enum class ShellNotificationType { FIND, BADGE }
 
-data class ShellNotificationRecord(
-    val id: String,
-    val type: ShellNotificationType,
-    val title: String,
-    val body: String,
-    val createdAt: Long,
-    val viewedAt: Long?,
-    val deepLinkRoute: String?,
-    val metadataJson: String? = null
-) {
-    val isUnviewed: Boolean get() = viewedAt == null
-}
 
 @Singleton
 class ShellRepository @Inject constructor(
@@ -67,48 +53,7 @@ class ShellRepository @Inject constructor(
     fun observeStillwaterPreference(): Flow<StillwaterPreferenceEntity?> =
         stillwaterPreferenceDao.observe()
 
-    fun observeUnviewedNotifications(): Flow<List<ShellNotificationRecord>> = combine(
-        findInstanceDao.observeAll(),
-        badgeDao.observeEarned()
-    ) { finds, badges ->
-        buildList {
-            finds
-                .filter { it.viewedAt == null }
-                .filter { it.creatureStatus == CreatureStatus.ACTIVE }
-                .filter { ShellContentCatalog.find(it.findId)?.kind == ShellRewardKind.ANIMAL }
-                .forEach { find ->
-                    add(
-                        ShellNotificationRecord(
-                            id = notificationId(ShellNotificationType.FIND, find.instanceId),
-                            type = ShellNotificationType.FIND,
-                            title = find.findId,
-                            body = find.sourceType,
-                            createdAt = find.acquiredAt,
-                            viewedAt = find.viewedAt,
-                            deepLinkRoute = SHELL_CHEST_ROUTE,
-                            metadataJson = null
-                        )
-                    )
-                }
-            badges.filter { it.viewedAt == null }.forEach { badge ->
-                add(
-                    ShellNotificationRecord(
-                        id = notificationId(ShellNotificationType.BADGE, badge.badgeId),
-                        type = ShellNotificationType.BADGE,
-                        title = badge.badgeId,
-                        body = badge.count.toString(),
-                        createdAt = badge.lastEarnedAt,
-                        viewedAt = badge.viewedAt,
-                        deepLinkRoute = SHELL_BADGES_ROUTE,
-                        metadataJson = null
-                    )
-                )
-            }
-        }.sortedByDescending { it.createdAt }
-    }
 
-    fun observeUnviewedNotificationCount(): Flow<Int> =
-        observeUnviewedNotifications().map { it.size }
 
     suspend fun getPearlBalance(): Int = pearlLedgerDao.getBalance()
     suspend fun getStillwaterTotal(): Long = stillwaterLedgerDao.getTotal()

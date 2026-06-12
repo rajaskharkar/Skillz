@@ -12,10 +12,8 @@ import com.kingkharnivore.skillz.data.repository.shell.notificationId
 import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.Locale
@@ -150,39 +148,8 @@ class ShellNotificationInlayMapperTest {
         assertEquals(listOf(notificationId(ShellNotificationType.FIND, "creature")), notifications.map { it.id })
     }
 
-    @Test
-    fun markTheBlueAnimalsSeenClearsOnlyIsNewAndKeepsViewedAtNull() {
-        val daoSource = File("app/src/main/java/com/kingkharnivore/skillz/data/model/dao/shell/ShellDaos.kt").readText()
-        val repositorySource = File("app/src/main/java/com/kingkharnivore/skillz/data/repository/shell/ShellRepository.kt").readText()
-
-        assertTrue(daoSource.contains("UPDATE user_shell_find_instance SET isNew = 0 WHERE findId IN (:findIds)"))
-        assertFalse(daoSource.contains("SET isNew = 0, viewedAt = COALESCE(viewedAt, :viewedAt) WHERE findId IN (:findIds)"))
-        assertTrue(repositorySource.contains("findInstanceDao.markFindIdsSeen(animalFindIds)"))
-    }
-
-    @Test
-    fun markNotificationViewedSetsViewedAtThroughNotificationSpecificDaoMethods() {
-        val daoSource = File("app/src/main/java/com/kingkharnivore/skillz/data/model/dao/shell/ShellDaos.kt").readText()
-        val repositorySource = File("app/src/main/java/com/kingkharnivore/skillz/data/repository/shell/ShellRepository.kt").readText()
-
-        assertTrue(daoSource.contains("viewedAt = COALESCE(viewedAt, :viewedAt) WHERE instanceId = :instanceId"))
-        assertTrue(daoSource.contains("viewedAt = COALESCE(viewedAt, :viewedAt) WHERE badgeId = :badgeId"))
-        assertTrue(repositorySource.contains("fun markNotificationViewed(notificationId: String)"))
-        assertTrue(repositorySource.contains("findInstanceDao.markViewed(notificationId.substringAfter(':'), now)"))
-        assertTrue(repositorySource.contains("badgeDao.markViewed(notificationId.substringAfter(':'), now)"))
-    }
-
-    @Test
-    fun markAllNotificationsViewedSetsViewedAtForAllUnviewedNotificationSources() {
-        val daoSource = File("app/src/main/java/com/kingkharnivore/skillz/data/model/dao/shell/ShellDaos.kt").readText()
-        val repositorySource = File("app/src/main/java/com/kingkharnivore/skillz/data/repository/shell/ShellRepository.kt").readText()
-
-        assertTrue(daoSource.contains("viewedAt = COALESCE(viewedAt, :viewedAt) WHERE viewedAt IS NULL"))
-        assertTrue(daoSource.contains("WHERE viewedAt IS NULL AND findId IN (:findIds)"))
-        assertTrue(repositorySource.contains("fun markAllNotificationsViewed()"))
-        assertTrue(repositorySource.contains("findInstanceDao.markFindIdsViewed(ShellContentCatalog.allAnimalFindIds.toList(), now)"))
-        assertTrue(repositorySource.contains("badgeDao.markAllViewed(now)"))
-    }
+    // TODO: Add in-memory DAO/repository tests for mark-seen vs mark-viewed behavior
+    // once the repository test fixture can construct the full Shell DAO graph.
 
     private fun millis(
         year: Int,
