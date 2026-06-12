@@ -54,6 +54,11 @@ import com.kingkharnivore.skillz.data.repository.shell.ShellNotificationType
 import com.kingkharnivore.skillz.data.repository.shell.notificationId
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 sealed interface ShellNotificationInlayItem {
     val id: String
@@ -224,6 +229,8 @@ private fun NotificationInlayRow(
     val body: String
     val icon: ImageVector
 
+    val deliveredAt = formatNotificationDeliveredAt(notification.createdAt)
+
     when (notification) {
         is ShellNotificationInlayItem.Find -> {
             val def = ShellContentCatalog.find(notification.findId)
@@ -266,7 +273,16 @@ private fun NotificationInlayRow(
                 )
             },
             headlineContent = { Text(title) },
-            supportingContent = { Text(body) },
+            supportingContent = {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(body)
+                    Text(
+                        text = deliveredAt,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
             trailingContent = {
                 IconButton(onClick = onMarkViewed) {
                     Icon(
@@ -275,6 +291,27 @@ private fun NotificationInlayRow(
                     )
                 }
             }
+        )
+    }
+}
+
+internal fun formatNotificationDeliveredAt(
+    createdAt: Long,
+    now: Long = System.currentTimeMillis(),
+    zoneId: ZoneId = ZoneId.systemDefault(),
+    locale: Locale = Locale.getDefault()
+): String {
+    val deliveredAt = Instant.ofEpochMilli(createdAt).atZone(zoneId)
+    val nowAtZone = Instant.ofEpochMilli(now).atZone(zoneId)
+    return when {
+        deliveredAt.toLocalDate() == nowAtZone.toLocalDate() -> deliveredAt.format(
+            DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale)
+        )
+        deliveredAt.year == nowAtZone.year -> deliveredAt.format(
+            DateTimeFormatter.ofPattern("MMM d", locale)
+        )
+        else -> deliveredAt.format(
+            DateTimeFormatter.ofPattern("MMM d, yyyy", locale)
         )
     }
 }

@@ -16,6 +16,9 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.util.Locale
 
 class ShellNotificationInlayMapperTest {
     @Test
@@ -65,6 +68,54 @@ class ShellNotificationInlayMapperTest {
         assertEquals(notificationId(ShellNotificationType.BADGE, "badge-new"), notifications[0].id)
         assertEquals(SHELL_BADGES_ROUTE, notifications[0].deepLinkRoute)
         assertEquals(SHELL_CHEST_ROUTE, notifications[1].deepLinkRoute)
+    }
+
+    @Test
+    fun deliveredAtLabelShowsOnlyTimeForTodayInUserTimezone() {
+        val zoneId = ZoneId.of("America/New_York")
+        val now = millis(2026, 6, 12, 22, 0, zoneId)
+        val createdAt = millis(2026, 6, 12, 20, 42, zoneId)
+
+        assertEquals(
+            "8:42 PM",
+            formatNotificationDeliveredAt(createdAt, now, zoneId, Locale.US)
+        )
+    }
+
+    @Test
+    fun deliveredAtLabelShowsMonthDayForEarlierDateInCurrentYear() {
+        val zoneId = ZoneId.of("America/New_York")
+        val now = millis(2026, 6, 12, 22, 0, zoneId)
+        val createdAt = millis(2026, 6, 10, 20, 42, zoneId)
+
+        assertEquals(
+            "Jun 10",
+            formatNotificationDeliveredAt(createdAt, now, zoneId, Locale.US)
+        )
+    }
+
+    @Test
+    fun deliveredAtLabelShowsMonthDayYearForPreviousYear() {
+        val zoneId = ZoneId.of("America/New_York")
+        val now = millis(2026, 6, 12, 22, 0, zoneId)
+        val createdAt = millis(2025, 6, 10, 20, 42, zoneId)
+
+        assertEquals(
+            "Jun 10, 2025",
+            formatNotificationDeliveredAt(createdAt, now, zoneId, Locale.US)
+        )
+    }
+
+    @Test
+    fun deliveredAtLabelUsesUserTimezoneToDecideToday() {
+        val zoneId = ZoneId.of("America/Los_Angeles")
+        val now = millis(2026, 6, 12, 1, 30, zoneId)
+        val createdAt = millis(2026, 6, 12, 0, 15, zoneId)
+
+        assertEquals(
+            "12:15 AM",
+            formatNotificationDeliveredAt(createdAt, now, zoneId, Locale.US)
+        )
     }
 
     @Test
@@ -132,6 +183,18 @@ class ShellNotificationInlayMapperTest {
         assertTrue(repositorySource.contains("findInstanceDao.markFindIdsViewed(ShellContentCatalog.allAnimalFindIds.toList(), now)"))
         assertTrue(repositorySource.contains("badgeDao.markAllViewed(now)"))
     }
+
+    private fun millis(
+        year: Int,
+        month: Int,
+        day: Int,
+        hour: Int,
+        minute: Int,
+        zoneId: ZoneId
+    ): Long = LocalDateTime.of(year, month, day, hour, minute)
+        .atZone(zoneId)
+        .toInstant()
+        .toEpochMilli()
 
     private fun find(
         instanceId: String,
