@@ -36,7 +36,10 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kingkharnivore.skillz.R
 
 data class SkillzHomeNavState(
@@ -49,29 +52,22 @@ val LocalSkillzHomeNav = compositionLocalOf<SkillzHomeNavState?> { null }
 @Composable
 fun SkillzTopAppBar(onOpenShell: (() -> Unit)? = null) {
     val nav = LocalSkillzHomeNav.current
-    val shellLabel = stringResource(R.string.shell_icon_a11y)
 
     TopAppBar(
         title = {
-            IconButton(
-                onClick = { onOpenShell?.invoke() },
-                enabled = onOpenShell != null,
-                modifier = Modifier.semantics {
-                    contentDescription = shellLabel
-                }
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.scyra_turtle),
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp)
-                )
-            }
+            Text(
+                text = "Scyra",
+                fontFamily = FontFamily(Font(R.font.caveatsb)),
+                fontSize = 30.sp,
+                color = MaterialTheme.colorScheme.onPrimary
+            )
         },
         actions = {
             if (nav != null) {
                 HomeNavIcons(
                     selected = nav.currentPage,
-                    onSelect = nav.onSelectPage
+                    onSelect = nav.onSelectPage,
+                    onOpenShell = onOpenShell
                 )
             }
         },
@@ -86,13 +82,15 @@ fun SkillzTopAppBar(onOpenShell: (() -> Unit)? = null) {
 @Composable
 private fun HomeNavIcons(
     selected: Int,
-    onSelect: (Int) -> Unit
+    onSelect: (Int) -> Unit,
+    onOpenShell: (() -> Unit)?
 ) {
     val storyLabel = stringResource(R.string.home_nav_story)
     val pathsLabel = stringResource(R.string.home_nav_paths)
     val notepadLabel = stringResource(R.string.home_nav_notepad)
     val helpLabel = stringResource(R.string.home_nav_help)
     val navBarLabel = stringResource(R.string.home_nav_bar)
+    val shellLabel = stringResource(R.string.shell_icon_a11y)
 
     Row(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -127,6 +125,20 @@ private fun HomeNavIcons(
                 )
             }
         )
+
+        IconButton(
+            onClick = { onOpenShell?.invoke() },
+            enabled = onOpenShell != null,
+            modifier = Modifier.semantics {
+                contentDescription = shellLabel
+            }
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.scyra_turtle),
+                contentDescription = null,
+                modifier = Modifier.size(34.dp)
+            )
+        }
 
         NavIcon(
             selected = selected == PAGE_NOTEPAD,
