@@ -1,0 +1,63 @@
+package com.kingkharnivore.skillz.utils.user
+
+import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import com.kingkharnivore.skillz.BuildConfig
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
+
+private val Context.userPrefsDataStore by preferencesDataStore(name = "user_prefs")
+
+@Singleton
+class UserPrefs @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
+    companion object {
+        val KEY_SHOW_SCORE_UI = booleanPreferencesKey("show_score_ui")
+        val KEY_CALM_MODE = booleanPreferencesKey("calm_mode")
+        val KEY_APP_LANGUAGE_TAG = stringPreferencesKey("app_language_tag")
+    }
+
+    val showScoreUi: Flow<Boolean> =
+        context.userPrefsDataStore.data.map { prefs ->
+            prefs[KEY_SHOW_SCORE_UI] ?: BuildConfig.SHOW_SCORE
+        }
+
+    val calmMode: Flow<Boolean> =
+        context.userPrefsDataStore.data.map { prefs ->
+            prefs[KEY_CALM_MODE] ?: false
+        }
+
+    val appLanguageTag: Flow<String?> =
+        context.userPrefsDataStore.data.map { prefs ->
+            prefs[KEY_APP_LANGUAGE_TAG]
+        }
+
+    suspend fun setShowScoreUi(enabled: Boolean) {
+        context.userPrefsDataStore.edit { prefs ->
+            prefs[KEY_SHOW_SCORE_UI] = enabled
+        }
+    }
+
+    suspend fun setCalmMode(enabled: Boolean) {
+        context.userPrefsDataStore.edit { prefs ->
+            prefs[KEY_CALM_MODE] = enabled
+        }
+    }
+
+    suspend fun setAppLanguageTag(tag: String?) {
+        context.userPrefsDataStore.edit { prefs ->
+            if (tag == null) {
+                prefs.remove(KEY_APP_LANGUAGE_TAG)
+            } else {
+                prefs[KEY_APP_LANGUAGE_TAG] = tag
+            }
+        }
+    }
+}
