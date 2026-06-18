@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Skillz</string>
+    <string name="app_name">Scyra</string>
     <string name="story_fab_schedule_beam">बीम शेड्यूल करा</string>
     <string name="story_fab_record_pulse">पल्स नोंदवा</string>
     <string name="story_fab_start_flow">फ्लो सुरू करा</string>
@@ -102,7 +102,6 @@
     <string name="home_page_help">Help</string>
     <string name="home_pager_a11y">मुख्य पृष्ठे</string>
     <string name="home_pager_state">%1$s, पृष्ठ %2$d पैकी %3$d</string>
-    <string name="home_app_name_aera">Aera</string>
     <string name="home_app_name_scyra">Scyra</string>
     <string name="home_app_name_skillz">Skillz</string>
     <string name="home_nav_atlas">Atlas</string>

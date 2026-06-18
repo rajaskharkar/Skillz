@@ -18,7 +18,6 @@ import com.kingkharnivore.skillz.ui.health.MovementBonusRewardBlock
 @Composable
 fun SessionRewardContent(
     r: FlowRewardUiModel,
-    isAera: Boolean,
     calmMode: Boolean
 ) {
     val text = rememberRewardRevealTextProvider()
@@ -27,7 +26,6 @@ fun SessionRewardContent(
     val discoveryTitles = ShellContentCatalog.discoveries.associate { it.discoveryId to stringResource(it.titleRes) }
     val cards = buildSessionRewardCards(
         reward = r,
-        isAera = isAera,
         calmMode = calmMode,
         text = text,
         findTitle = { findId -> findTitles[findId] },

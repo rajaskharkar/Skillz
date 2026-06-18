@@ -20,8 +20,6 @@ import com.kingkharnivore.skillz.R
 
 @Composable
 fun RewardChipRowV2(
-    isAera: Boolean,
-    totalMinutes: Int,
     totalScyra: Int,
     surgePoints: Int
 ) {
@@ -30,13 +28,6 @@ fun RewardChipRowV2(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (isAera) {
-            RewardChip(
-                text = stringResource(R.string.reward_chip_time_minutes, totalMinutes)
-            )
-            return@Row
-        }
-
         RewardChip(
             text = stringResource(R.string.reward_chip_score_points, totalScyra)
         )

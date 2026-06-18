@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name">Skillz</string>
+    <string name="app_name">Scyra</string>
     <string name="story_fab_schedule_beam">बीम अनुसूचित करें</string>
     <string name="story_fab_record_pulse">पल्स रिकॉर्ड करें</string>
     <string name="story_fab_start_flow">फ्लो शुरू करें</string>
@@ -86,7 +86,6 @@
     <string name="home_page_help">सहायता</string>
     <string name="home_pager_a11y">मुखपृष्ठ</string>
     <string name="home_pager_state">%1$s, पृष्ठ %2$d / %3$d</string>
-    <string name="home_app_name_aera">Aera</string>
     <string name="home_app_name_scyra">Scyra</string>
     <string name="home_app_name_skillz">Skillz</string>
     <string name="home_nav_atlas">एटलस</string>

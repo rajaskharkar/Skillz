@@ -69,7 +69,6 @@ interface RewardRevealTextProvider {
 
 fun buildSessionRewardCards(
     reward: FlowRewardUiModel,
-    isAera: Boolean,
     calmMode: Boolean,
     text: RewardRevealTextProvider,
     findTitle: (String) -> String?,
@@ -77,7 +76,7 @@ fun buildSessionRewardCards(
     discoveryTitle: (String) -> String?
 ): List<RewardRevealCardUiModel> {
     val cards = mutableListOf<RewardRevealCardUiModel>()
-    val timeFirst = calmMode || isAera
+    val timeFirst = calmMode
     val scoreBody = buildList {
         if (timeFirst) {
             add(text.minutes(reward.minutes))
@@ -158,7 +157,6 @@ fun buildSoftRewardCards(
 
 fun buildArcSummaryRewardCards(
     arc: ArcSummaryUiModel,
-    isAera: Boolean,
     calmMode: Boolean,
     text: RewardRevealTextProvider,
     durationText: String,
@@ -166,7 +164,7 @@ fun buildArcSummaryRewardCards(
     badgeTitle: (String) -> String? = { null },
     discoveryTitle: (String) -> String? = { null }
 ): List<RewardRevealCardUiModel> {
-    val showScore = !isAera && !calmMode
+    val showScore = !calmMode
     val body = buildList {
         add(text.arcFlows(arc.totalSessions))
         add(text.totalDuration(durationText))

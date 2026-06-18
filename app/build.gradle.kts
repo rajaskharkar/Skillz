@@ -19,6 +19,9 @@ android {
         versionCode = 2
         versionName = "1.1"
 
+        buildConfigField("boolean", "SHOW_SCORE", "true")
+        buildConfigField("int", "PRIMARY_COLOR", "0xFF2F4F6F") // GryffindorRed
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -47,27 +50,6 @@ android {
         getByName("androidTest").assets.srcDir("$projectDir/schemas")
     }
 
-    flavorDimensions += "mode"
-
-    productFlavors {
-        create("scyra") {
-            dimension = "mode"
-            applicationIdSuffix = ".scyra"
-            versionNameSuffix = "-scyra"
-            resValue("string", "app_name", "Scyra")
-            buildConfigField("boolean", "SHOW_SCORE", "true")
-            buildConfigField("int", "PRIMARY_COLOR", "0xFF2F4F6F") // GryffindorRed
-        }
-
-        create("aera") {
-            dimension = "mode"
-            applicationIdSuffix = ".aera"
-            versionNameSuffix = "-aera"
-            resValue("string", "app_name", "Aera")
-            buildConfigField("boolean", "SHOW_SCORE", "false")
-            buildConfigField("int", "PRIMARY_COLOR", "0xFF3F8F8B") // RavenclawBlue
-        }
-    }
 }
 
 ksp {

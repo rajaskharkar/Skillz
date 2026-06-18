@@ -19,7 +19,6 @@ class RewardRevealMapperTest {
     fun regularFlowUnifiesScyraPointsAndPearls() {
         val cards = buildSessionRewardCards(
             reward = reward(finalScyraPoints = 482, shellPearlsEarned = 482),
-            isAera = false,
             calmMode = false,
             text = text,
             findTitle = ::findTitle,
@@ -37,7 +36,6 @@ class RewardRevealMapperTest {
     fun nonAnimalFallbackCardsDoNotUseTheBlueDestination() {
         val shellBridgeCards = buildSessionRewardCards(
             reward = reward(shellPearlsEarned = 482),
-            isAera = false,
             calmMode = false,
             text = text,
             findTitle = ::findTitle,
@@ -46,7 +44,6 @@ class RewardRevealMapperTest {
         )
         val unknownCards = buildSessionRewardCards(
             reward = reward(shellPearlsEarned = 0, shellGrantedFindIds = listOf("missing")),
-            isAera = false,
             calmMode = false,
             text = text,
             findTitle = ::findTitle,
@@ -63,7 +60,6 @@ class RewardRevealMapperTest {
     fun animalCardsMapMinnowAndWhaleDepths() {
         val cards = buildSessionRewardCards(
             reward = reward(shellGrantedFindIds = listOf(ShellContentCatalog.FOCUS_MINNOW, ShellContentCatalog.FOCUS_WHALE)),
-            isAera = false,
             calmMode = false,
             text = text,
             findTitle = ::findTitle,
@@ -104,7 +100,6 @@ class RewardRevealMapperTest {
                 ),
                 shellBadgeIds = listOf("badge_flow_10_min", "badge_flow_30_min")
             ),
-            isAera = false,
             calmMode = false,
             text = text,
             findTitle = ::findTitle,
@@ -120,7 +115,6 @@ class RewardRevealMapperTest {
     fun unknownIdsDoNotCrash() {
         val cards = buildSessionRewardCards(
             reward = reward(shellGrantedFindIds = listOf("missing"), shellDiscoveryIds = listOf("missing"), shellBadgeIds = listOf("missing")),
-            isAera = false,
             calmMode = false,
             text = text,
             findTitle = ::findTitle,
@@ -143,7 +137,6 @@ class RewardRevealMapperTest {
                 totalArcBonusPoints = 220,
                 peakMultiplier = 1.4
             ),
-            isAera = false,
             calmMode = false,
             text = text,
             durationText = "1h 25m"
@@ -167,7 +160,6 @@ class RewardRevealMapperTest {
                     )
                 )
             ),
-            isAera = false,
             calmMode = false,
             text = text,
             durationText = "1h 25m",
@@ -197,7 +189,6 @@ class RewardRevealMapperTest {
                     stillwaterAdded = 42L
                 )
             ),
-            isAera = false,
             calmMode = false,
             text = text,
             durationText = "1h 25m",
@@ -219,7 +210,6 @@ class RewardRevealMapperTest {
     fun arcSummaryWithOnlyPearlsShowsShellShapedCardWithoutPearlDuplicate() {
         val cards = buildArcSummaryRewardCards(
             arc = arcSummary(shellSummary = ArcShellRewardSummaryUiModel(pearlsCarried = 482)),
-            isAera = false,
             calmMode = false,
             text = text,
             durationText = "30m",
@@ -238,7 +228,6 @@ class RewardRevealMapperTest {
     fun arcSummaryUnknownRewardUsesShellFallbackWithoutCrashing() {
         val cards = buildArcSummaryRewardCards(
             arc = arcSummary(shellSummary = ArcShellRewardSummaryUiModel(unknownRewards = listOf(ArcShellRewardCountUiModel("missing", 1)))),
-            isAera = false,
             calmMode = false,
             text = text,
             durationText = "30m"
