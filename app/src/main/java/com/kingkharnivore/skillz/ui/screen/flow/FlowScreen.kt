@@ -61,7 +61,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
-import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 import com.kingkharnivore.skillz.ui.screen.flow.reward.ArcSummaryContent
@@ -317,7 +316,7 @@ fun FlowScreen(
                     )
                 }
 
-                if (BuildConfig.FLAVOR != "aera" && !uiState.isSoftMode) {
+                if (!uiState.isSoftMode) {
                     val locked = viewModel.isSurgeLocked()
 
                     Spacer(Modifier.height(10.dp))
@@ -661,7 +660,6 @@ fun FlowScreen(
                         showArcSummary && r.arcSummary != null -> {
                             ArcSummaryContent(
                                 arc = r.arcSummary!!,
-                                isAera = BuildConfig.FLAVOR == "aera",
                                 calmMode = uiState.calmMode
                             )
                         }
@@ -673,7 +671,6 @@ fun FlowScreen(
                         else -> {
                             SessionRewardContent(
                                 r = r,
-                                isAera = BuildConfig.FLAVOR == "aera",
                                 calmMode = uiState.calmMode
                             )
                         }

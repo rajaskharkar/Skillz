@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.model.state
 
+import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.model.ui.ChronicleUiModel
 import com.kingkharnivore.skillz.model.ui.FlowListItemUiModel
 import com.kingkharnivore.skillz.model.ui.Journey7dStatUiModel
@@ -32,7 +33,7 @@ data class FlowListUiState(
     val isViewJourneysOpen: Boolean = false,
     val viewJourneysTitle: String = "",
     val viewJourneysSessions: List<FlowListItemUiModel> = emptyList(),
-    val showScoreUi: Boolean = false,
+    val showScoreUi: Boolean = BuildConfig.SHOW_SCORE,
     val calmMode: Boolean = false,
     val appLanguageTag: String? = null,
 )

@@ -19,6 +19,9 @@ android {
         versionCode = 2
         versionName = "1.1"
 
+        buildConfigField("boolean", "SHOW_SCORE", "true")
+        buildConfigField("int", "PRIMARY_COLOR", "0xFF2F4F6F") // GryffindorRed
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -68,6 +71,7 @@ android {
             buildConfigField("int", "PRIMARY_COLOR", "0xFF2F4F6F") // GryffindorRed
         }
     }
+
 }
 
 ksp {

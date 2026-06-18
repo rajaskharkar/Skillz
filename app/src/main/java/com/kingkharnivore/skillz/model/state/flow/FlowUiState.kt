@@ -1,5 +1,7 @@
 package com.kingkharnivore.skillz.model.state.flow
 
+import com.kingkharnivore.skillz.BuildConfig
+
 data class FlowUiState(
     val title: String = "",
     val description: String = "",
@@ -9,7 +11,7 @@ data class FlowUiState(
     val isSoftMode: Boolean = false,
     val isSurgeOn: Boolean = false,
     val surgePlannedMs: Long? = null,
-    val showScoreUi: Boolean = false,
+    val showScoreUi: Boolean = BuildConfig.SHOW_SCORE,
     val calmMode: Boolean = false,
     val isInArc: Boolean = false,
     val arcIsPending: Boolean = false,

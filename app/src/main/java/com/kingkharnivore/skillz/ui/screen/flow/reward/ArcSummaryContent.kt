@@ -17,7 +17,6 @@ import com.kingkharnivore.skillz.model.state.flow.ArcSummaryUiModel
 @Composable
 fun ArcSummaryContent(
     arc: ArcSummaryUiModel,
-    isAera: Boolean,
     calmMode: Boolean
 ) {
     val duration = formatDuration(arc.totalDurationMs)
@@ -53,7 +52,6 @@ fun ArcSummaryContent(
     // Flow reward and FlowCard movement displays are implemented in V1.
     val cards = buildArcSummaryRewardCards(
         arc = arc,
-        isAera = isAera,
         calmMode = calmMode,
         text = rememberRewardRevealTextProvider(),
         durationText = duration,
