@@ -50,15 +50,6 @@ android {
     flavorDimensions += "mode"
 
     productFlavors {
-        create("aera") {
-            dimension = "mode"
-            applicationIdSuffix = ".aera"
-            versionNameSuffix = "-aera"
-            resValue("string", "app_name", "Aera")
-            buildConfigField("boolean", "SHOW_SCORE", "false")
-            buildConfigField("int", "PRIMARY_COLOR", "0xFF3F8F8B") // RavenclawBlue
-        }
-
         create("scyra") {
             dimension = "mode"
             applicationIdSuffix = ".scyra"
@@ -66,6 +57,15 @@ android {
             resValue("string", "app_name", "Scyra")
             buildConfigField("boolean", "SHOW_SCORE", "true")
             buildConfigField("int", "PRIMARY_COLOR", "0xFF2F4F6F") // GryffindorRed
+        }
+
+        create("aera") {
+            dimension = "mode"
+            applicationIdSuffix = ".aera"
+            versionNameSuffix = "-aera"
+            resValue("string", "app_name", "Aera")
+            buildConfigField("boolean", "SHOW_SCORE", "false")
+            buildConfigField("int", "PRIMARY_COLOR", "0xFF3F8F8B") // RavenclawBlue
         }
     }
 }

@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.kingkharnivore.skillz.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -25,7 +26,7 @@ class UserPrefs @Inject constructor(
 
     val showScoreUi: Flow<Boolean> =
         context.userPrefsDataStore.data.map { prefs ->
-            prefs[KEY_SHOW_SCORE_UI] ?: false
+            prefs[KEY_SHOW_SCORE_UI] ?: BuildConfig.SHOW_SCORE
         }
 
     val calmMode: Flow<Boolean> =
