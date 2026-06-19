@@ -13,7 +13,7 @@
     <string name="story_tab_sagas">Sagas</string>
     <string name="story_tab_chronicles">Chronicles</string>
     <string name="flow_card_type_flow">Flow</string>
-    <string name="flow_card_type_soft">Soft flow</string>
+    <string name="flow_card_type_soft">Soft Flow</string>
     <string name="flow_card_duration_value">Duración: %1$s</string>
     <string name="flow_card_multiplier_used_value">Multiplicador usado: ×%1$s</string>
     <string name="flow_card_scyra_score_value">Scyra Score: %1$d</string>
@@ -23,11 +23,11 @@
         <item quantity="one">%1$d momento</item>
         <item quantity="other">%1$d momentos</item>
     </plurals>
-    <string name="flow_card_delete_flow">Eliminar flow</string>
-    <string name="flow_card_edit_flow">Editar flow</string>
-    <string name="flow_card_expand">Expandir flow</string>
-    <string name="flow_card_collapse">Contraer flow</string>
-    <string name="flow_card_open_details">Abrir detalles del flow</string>
+    <string name="flow_card_delete_flow">Eliminar Flow</string>
+    <string name="flow_card_edit_flow">Editar Flow</string>
+    <string name="flow_card_expand">Expandir Flow</string>
+    <string name="flow_card_collapse">Contraer Flow</string>
+    <string name="flow_card_open_details">Abrir detalles del Flow</string>
     <string name="flow_card_delete_dialog_title">¿Eliminar entrada?</string>
     <string name="flow_card_delete_dialog_body">Esto eliminará permanentemente esta entrada.</string>
     <string name="a11y_expanded">Expandido</string>
@@ -37,9 +37,9 @@
     <string name="pulse_card_type">Pulse</string>
     <string name="pulse_card_delete_entry">Eliminar entrada</string>
     <string name="pulse_card_edit_entry">Editar entrada</string>
-    <string name="pulse_card_expand">Expandir pulse</string>
-    <string name="pulse_card_collapse">Contraer pulse</string>
-    <string name="pulse_card_open_details">Abrir detalles del pulse</string>
+    <string name="pulse_card_expand">Expandir Pulse</string>
+    <string name="pulse_card_collapse">Contraer Pulse</string>
+    <string name="pulse_card_open_details">Abrir detalles del Pulse</string>
     <string name="pulse_card_captured_during_with_tag">Capturado durante: %1$s • %2$s</string>
     <string name="pulse_card_captured_during_without_tag">Capturado durante: %1$s</string>
     <string name="pulse_card_delete_dialog_title">¿Eliminar entrada?</string>
@@ -47,22 +47,22 @@
     <string name="beam_bonus_chip_points_compact">+%1$d</string>
     <string name="beam_bonus_chip_a11y">Bonus de Beam: %1$d puntos</string>
     <plurals name="arc_group_flow_count_label">
-        <item quantity="one">Duración del Arc · %1$d flow</item>
-        <item quantity="other">Duración del Arc · %1$d flows</item>
+        <item quantity="one">Duración del Arc · %1$d Flow</item>
+        <item quantity="other">Duración del Arc · %1$d Flows</item>
     </plurals>
     <string name="arc_group_total_time">Tiempo total · %1$s</string>
-    <string name="arc_group_show_flows">Mostrar flows</string>
-    <string name="arc_group_hide_flows">Ocultar flows</string>
+    <string name="arc_group_show_flows">Mostrar Flows</string>
+    <string name="arc_group_hide_flows">Ocultar Flows</string>
     <string name="arc_group_stat_arc_score">Arc Score</string>
     <string name="arc_group_stat_peak">Pico</string>
     <string name="arc_group_stat_journey">Journey</string>
     <plurals name="arc_group_hidden_flows">
-        <item quantity="one">%1$d otro flow en el arc</item>
-        <item quantity="other">%1$d otros flows en el arc</item>
+        <item quantity="one">%1$d otro Flow en el Arc</item>
+        <item quantity="other">%1$d otros Flows en el Arc</item>
     </plurals>
-    <string name="arc_group_a11y_expand">Expandir arc</string>
-    <string name="arc_group_a11y_collapse">Contraer arc</string>
-    <string name="arc_group_a11y_open_flow">Abrir flow</string>
+    <string name="arc_group_a11y_expand">Expandir Arc</string>
+    <string name="arc_group_a11y_collapse">Contraer Arc</string>
+    <string name="arc_group_a11y_open_flow">Abrir Flow</string>
     <string name="story_header_time_in_selected_journeys">Tiempo en los journeys seleccionados</string>
     <string name="pulse_screen_title">Pulse</string>
     <string name="common_back">Atrás</string>
@@ -74,10 +74,10 @@
     <string name="pulse_hero_body">Captura un momento, una idea, una realización o una emoción.</string>
     <string name="pulse_journey_singular">Journey</string>
     <string name="pulse_journey_plural">Journeys</string>
-    <string name="pulse_journey_placeholder">Empieza un nuevo journey…</string>
-    <string name="pulse_a11y_attach_switch">Adjuntar pulse al flow actual</string>
-    <string name="pulse_a11y_tag_suggestions">Sugerencias de journey</string>
-    <string name="pulse_a11y_select_journey">Seleccionar journey %1$s</string>
+    <string name="pulse_journey_placeholder">Empieza un nuevo Journey…</string>
+    <string name="pulse_a11y_attach_switch">Adjuntar Pulse al Flow actual</string>
+    <string name="pulse_a11y_tag_suggestions">Sugerencias de Journey</string>
+    <string name="pulse_a11y_select_journey">Seleccionar Journey %1$s</string>
     <string name="pulse_a11y_pulse_hero">Registrar un Pulse. Captura un momento, una idea, una realización o una emoción.</string>
     <string name="home_page_atlas">Atlas</string>
     <string name="home_page_story">Story</string>
@@ -109,8 +109,8 @@
     <string name="schedule_beam_screen_title">Programar Beam</string>
     <string name="schedule_beam_journey">Journey</string>
     <string name="common_edit">Editar</string>
-    <string name="schedule_beam_journey_hint">Toca un journey para seleccionarlo, o escribe para crear uno.</string>
-    <string name="schedule_beam_journey_placeholder">Escribe un nombre de journey</string>
+    <string name="schedule_beam_journey_hint">Toca un Journey para seleccionarlo, o escribe para crear uno.</string>
+    <string name="schedule_beam_journey_placeholder">Escribe un nombre de Journey</string>
     <string name="schedule_beam_duration">Duración</string>
     <string name="schedule_beam_custom">Personalizado</string>
     <string name="schedule_beam_duration_set">%1$dm establecidos</string>
@@ -127,15 +127,15 @@
     <string name="schedule_beam_a11y_when_sheet">Opciones de cuándo</string>
     <string name="schedule_beam_a11y_open_date_picker">Abrir selector de fecha</string>
     <string name="schedule_beam_a11y_open_time_picker">Abrir selector de hora</string>
-    <string name="schedule_beam_a11y_select_journey">Seleccionar journey %1$s</string>
-    <string name="schedule_beam_a11y_journey_suggestions">Sugerencias de journey</string>
+    <string name="schedule_beam_a11y_select_journey">Seleccionar Journey %1$s</string>
+    <string name="schedule_beam_a11y_journey_suggestions">Sugerencias de Journey</string>
     <string name="schedule_beam_a11y_when_field">Seleccionar fecha y hora</string>
     <string name="schedule_beam_a11y_custom_duration">Establecer duración personalizada</string>
     <string name="schedule_beam_a11y_duration_option">%1$d minutos</string>
     <string name="tag_filter_observe_journeys">Observar journeys:</string>
     <string name="tag_filter_observe_journeys_selected">Observar journeys (%1$d seleccionados):</string>
     <string name="tag_filter_all">Todos</string>
-    <string name="tag_filter_row_a11y">Filtros de journey</string>
+    <string name="tag_filter_row_a11y">Filtros de Journey</string>
     <string name="tag_filter_all_a11y">Todos los journeys</string>
     <string name="tag_filter_selected">Seleccionado</string>
     <string name="tag_filter_not_selected">No seleccionado</string>
@@ -161,9 +161,9 @@
     <string name="pulse_edit_journey_singular">Journey</string>
     <string name="pulse_edit_journey_field_label">Journey</string>
     <string name="pulse_edit_journey_placeholder">Déjalo en blanco si no tiene etiqueta</string>
-    <string name="pulse_edit_sheet_pane_title">Editar pulse</string>
-    <string name="pulse_edit_sheet_tag_suggestions">Sugerencias de journey</string>
-    <string name="pulse_edit_sheet_select_journey">Seleccionar journey %1$s</string>
+    <string name="pulse_edit_sheet_pane_title">Editar Pulse</string>
+    <string name="pulse_edit_sheet_tag_suggestions">Sugerencias de Journey</string>
+    <string name="pulse_edit_sheet_select_journey">Seleccionar Journey %1$s</string>
     <string name="pulse_edit_sheet_header_a11y">Editar Pulse. Refina el momento, la etiqueta o el significado.</string>
     <string name="period_navigator_previous">Anterior</string>
     <string name="period_navigator_next">Siguiente</string>
@@ -177,29 +177,27 @@
     <string name="period_navigator_selected">Seleccionado</string>
     <string name="period_navigator_not_selected">No seleccionado</string>
     <string name="period_navigator_current_period">%1$s, %2$s</string>
-    <string name="flow_details_sheet_pane_title">Detalles del flow</string>
-
+    <string name="flow_details_sheet_pane_title">Detalles del Flow</string>
     <string name="flow_details_type_flow">Flow</string>
     <string name="flow_details_type_soft_flow">Soft Flow</string>
-
     <string name="flow_details_notes_title">Notas</string>
     <string name="flow_details_notes_placeholder">Refina lo que ocurrió en este Flow.</string>
     <string name="common_close">Cerrar</string>
     <string name="flow_details_save_notes">Guardar notas</string>
     <string name="flow_details_pulses_title">Pulses</string>
     <string name="flow_details_pulses_subtitle">Momentos capturados dentro de este Flow o añadidos a él</string>
-    <string name="flow_details_no_pulses">Aún no hay pulses.</string>
+    <string name="flow_details_no_pulses">Aún no hay Pulse.</string>
     <string name="flow_details_hide_pulse_composer">Ocultar compositor de Pulse</string>
     <string name="flow_details_add_pulse">Añadir Pulse</string>
-    <string name="flow_details_pulse_title_label">Título del pulse</string>
+    <string name="flow_details_pulse_title_label">Título del Pulse</string>
     <string name="flow_details_journey_optional_label">Journey (opcional)</string>
-    <string name="flow_details_pulse_description_label">Descripción del pulse</string>
+    <string name="flow_details_pulse_description_label">Descripción del Pulse</string>
     <string name="flow_details_save_pulse">Guardar Pulse</string>
     <string name="flow_details_suggestions">Sugerencias: %1$s</string>
     <string name="flow_details_flow_summary_a11y">%1$s, %2$s</string>
     <string name="flow_details_flow_summary_with_tag_a11y">%1$s, %2$s, %3$s</string>
-    <string name="flow_details_pulse_count_a11y">%1$d pulses</string>
-    <string name="flow_details_toggle_pulse_composer_a11y">Alternar compositor de pulse</string>
+    <string name="flow_details_pulse_count_a11y">%1$d Pulse</string>
+    <string name="flow_details_toggle_pulse_composer_a11y">Alternar compositor de Pulse</string>
     <string name="first_time_user_message">Tu Story comienza con el primer Flow.</string>
     <string name="first_time_user_cta">¡Comienza tu Story!</string>
     <string name="first_time_user_card_a11y">Tu Story comienza con el primer Flow.</string>
@@ -230,21 +228,21 @@
     <string name="saga_header_stats_a11y">Flows: %1$d. Duración: %2$s. Puntuación: %3$d.</string>
     <string name="saga_header_stats_a11y_with_surge">Flows: %1$d. Duración: %2$s. Puntuación: %3$d. Bonus Surge: %4$d.</string>
     <plurals name="saga_journey_row_flows_count">
-        <item quantity="one">%1$d flow</item>
-        <item quantity="other">%1$d flows</item>
+        <item quantity="one">%1$d Flow</item>
+        <item quantity="other">%1$d Flows</item>
     </plurals>
     <string name="saga_journey_row_rank">#%1$d</string>
     <string name="saga_journey_row_meta">%1$s • %2$s</string>
     <string name="saga_journey_row_score_value">%1$d</string>
     <string name="saga_journey_row_score_a11y">Puntuación: %1$d</string>
-    <string name="saga_journey_row_open_details">Abrir detalles del journey</string>
+    <string name="saga_journey_row_open_details">Abrir detalles del Journey</string>
     <string name="saga_journey_row_a11y">%1$s. Rango %2$d. %3$s. Puntuación: %4$d.</string>
     <string name="saga_pulse_section_title">Pulses</string>
     <string name="saga_pulse_section_subtitle">Momentos capturados en este capítulo</string>
     <string name="saga_pulse_section_untagged">Sin etiqueta</string>
-    <string name="saga_pulse_section_expand">Expandir pulses</string>
-    <string name="saga_pulse_section_collapse">Contraer pulses</string>
-    <string name="saga_pulse_section_state">%1$s, %2$d pulses</string>
+    <string name="saga_pulse_section_expand">Expandir Pulse</string>
+    <string name="saga_pulse_section_collapse">Contraer Pulse</string>
+    <string name="saga_pulse_section_state">%1$s, %2$d Pulse</string>
     <string name="saga_pulse_item_a11y_with_tag">%1$s. %2$s. %3$s.</string>
     <string name="saga_pulse_item_a11y_without_tag">%1$s. %2$s. Sin etiqueta.</string>
     <string name="saga_pulse_item_a11y_title_only_with_tag">%1$s. %2$s.</string>
@@ -262,7 +260,7 @@
     <string name="journey_session_detail_beam_bonus">Bonus de Beam</string>
     <string name="journey_session_detail_scyra_score">Scyra Score</string>
     <string name="journey_session_detail_surge">Surge</string>
-    <string name="journey_session_detail_open_full_flow">Abrir flow completo</string>
+    <string name="journey_session_detail_open_full_flow">Abrir Flow completo</string>
     <string name="journey_session_detail_beam_bonus_value">+%1$d</string>
     <string name="journey_session_detail_scyra_score_value">🔥 %1$d</string>
     <string name="journey_session_detail_surge_value">+%1$d</string>
@@ -270,12 +268,12 @@
     <string name="journey_session_detail_a11y_without_description">%1$s. %2$s. %3$s.</string>
     <string name="journey_session_row_score_value">%1$d</string>
     <string name="journey_session_row_scry">Scry</string>
-    <string name="journey_session_row_scry_a11y">Hacer scry de este flow</string>
+    <string name="journey_session_row_scry_a11y">Hacer scry de este Flow</string>
     <string name="journey_session_row_score_a11y">Puntuación: %1$d</string>
     <string name="journey_session_row_a11y">%1$s. %2$s. Puntuación: %3$d.</string>
     <plurals name="journey_view_summary_flows_count">
-        <item quantity="one">%1$d flow</item>
-        <item quantity="other">%1$d flows</item>
+        <item quantity="one">%1$d Flow</item>
+        <item quantity="other">%1$d Flows</item>
     </plurals>
     <string name="journey_view_summary_duration_value">⏱ %1$s</string>
     <string name="journey_view_summary_base">Base</string>
@@ -284,12 +282,12 @@
     <string name="journey_view_summary_surge">Surge</string>
     <string name="journey_view_summary_plus_value">+%1$d</string>
     <string name="journey_view_summary_score_value">🔥 %1$d</string>
-    <string name="journey_view_summary_a11y_no_surge">%1$s. Duración %2$s. Base %3$d. Puntuación Scyra %4$d.</string>
-    <string name="journey_view_summary_a11y_with_surge">%1$s. Duración %2$s. Base %3$d. Puntuación Scyra %4$d. Surge %5$d.</string>
-    <string name="view_journeys_sheet_pane_title">Detalles del journey</string>
+    <string name="journey_view_summary_a11y_no_surge">%1$s. Duración %2$s. Base %3$d. Scyra Score %4$d.</string>
+    <string name="journey_view_summary_a11y_with_surge">%1$s. Duración %2$s. Base %3$d. Scyra Score %4$d. Surge %5$d.</string>
+    <string name="view_journeys_sheet_pane_title">Detalles del Journey</string>
     <string name="view_journeys_fallback_title">Journey</string>
     <string name="view_journeys_window_label">%1$s • %2$s</string>
-    <string name="view_journeys_empty">No hay flows para este journey en esta vista.</string>
+    <string name="view_journeys_empty">No hay Flows para este Journey en esta vista.</string>
     <string name="view_journeys_header_a11y">%1$s. %2$s.</string>
     <string name="help_screen_title">Ayuda</string>
     <string name="help_pref_keep_score_title">Mantener visible la puntuación</string>
@@ -300,7 +298,6 @@
     <string name="help_carousel_a11y">Temas de ayuda</string>
     <string name="help_carousel_page_a11y">Tema de ayuda %1$d de %2$d</string>
     <string name="help_carousel_select_page">Ir al tema de ayuda %1$d</string>
-
     <string name="help_page_flow_kicker">Flow</string>
     <string name="help_page_flow_title">Un Flow es una sesión enfocada.</string>
     <string name="help_page_flow_subtitle">Inicia un Flow cuando quieras dedicar tiempo intencionalmente a algo que importa.</string>
@@ -318,9 +315,9 @@
     <string name="help_page_pulse_tip">Usa Pulse para reflexiones rápidas, ideas, avances, emociones, check-ins o pequeños momentos que no quieras perder.</string>
     <string name="help_page_arc_kicker">Arc</string>
     <string name="help_page_arc_title">Los Arcs recompensan la continuidad.</string>
-    <string name="help_page_arc_subtitle">Un Arc se forma cuando mantienes tu impulso a lo largo de Flows consecutivos.</string>
+    <string name="help_page_arc_subtitle">Un Arc se forma cuando mantienes tu imPulse a lo largo de Flows consecutivos.</string>
     <string name="help_page_arc_body">Sigue adelante y tu Arc crecerá. Después de cada Flow completado de 10 minutos o más, el multiplicador del Arc aumenta +0.1. Tienes una breve ventana de gracia entre Flows, así que continuar rápido ayuda a preservar la cadena.</string>
-    <string name="help_page_arc_tip">Piensa en un Arc como el impulso a través de sesiones. Guarda el Flow, continúa y mantén viva la cadena.</string>
+    <string name="help_page_arc_tip">Piensa en un Arc como el imPulse a través de sesiones. Guarda el Flow, continúa y mantén viva la cadena.</string>
     <string name="help_page_surge_kicker">Surge</string>
     <string name="help_page_surge_title">Surge recompensa la precisión.</string>
     <string name="help_page_surge_subtitle">Establece una duración objetivo antes de empezar e intenta terminar cerca de ella.</string>
@@ -358,14 +355,13 @@
     <string name="notepad_toolbar_actions">Acciones del editor</string>
     <string name="notepad_toolbar_formatting">Formato de texto</string>
     <string name="notepad_editor_area">Editor de notepad</string>
-
     <string name="help_language_title">Idioma de la app</string>
     <string name="help_language_description">Seguir el idioma de tu dispositivo o elegir uno para esta app.</string>
     <string name="help_language_system_default">Predeterminado del sistema</string>
     <string name="help_language_english">English</string>
     <string name="help_language_spanish">Español</string>
-    <string name="help_language_hindi">हिन्दी</string>
-    <string name="help_language_marathi">मराठी</string>
+    <string name="help_language_hindi">Hindi</string>
+    <string name="help_language_marathi">Marathi</string>
     <string name="help_language_dialog_title">Elegir idioma de la app</string>
     <string name="help_language_dialog_confirm">Listo</string>
     <string name="help_language_current_value">%1$s</string>
@@ -382,11 +378,11 @@
     <string name="paths_collapsed">Contraído</string>
     <string name="paths_on">Activado</string>
     <string name="paths_off">Desactivado</string>
-    <string name="paths_empty_flows_title">Aún no hay flows planificados</string>
+    <string name="paths_empty_flows_title">Aún no hay Flows planificados</string>
     <string name="paths_empty_flows_body">Guarda actividades para que siempre estén listas para comenzar.</string>
     <string name="paths_empty_arcs_title">Crea tu primer Arc</string>
     <string name="paths_empty_arcs_body">Usa Your Studio cuando sepas los próximos Flows por los que quieres avanzar.</string>
-    <string name="paths_empty_more_arcs_body">Aún no hay arcs adicionales. Añade uno a Studio cuando encuentres una ruta a la que vuelvas con frecuencia.</string>
+    <string name="paths_empty_more_arcs_body">Aún no hay Arcs adicionales. Añade uno a Studio cuando encuentres una ruta a la que vuelvas con frecuencia.</string>
     <string name="paths_plan_flow">Planificar Flow</string>
     <string name="paths_plan_arc">Crear Arc</string>
     <string name="paths_planned_flows_title">Flows planificados</string>
@@ -411,8 +407,8 @@
     <string name="paths_target_minutes_label">Minutos objetivo</string>
     <string name="paths_target_minutes_placeholder">25</string>
     <string name="paths_launch_with_surge_title">Abrir con Surge</string>
-    <string name="paths_launch_with_surge_enabled_body">Abre este flow con Surge activado por defecto.</string>
-    <string name="paths_launch_with_surge_disabled_soft">Surge no está disponible para Soft flows.</string>
+    <string name="paths_launch_with_surge_enabled_body">Abre este Flow con Surge activado por defecto.</string>
+    <string name="paths_launch_with_surge_disabled_soft">Surge no está disponible para Soft Flows.</string>
     <string name="paths_launch_with_surge_disabled_no_target">Establece minutos objetivo para habilitar Surge.</string>
     <string name="paths_launch_with_surge_switch_a11y">Abrir con Surge</string>
     <string name="paths_cancel">Cancelarar</string>
@@ -421,8 +417,8 @@
     <string name="paths_dreams_title">Dreams</string>
     <string name="paths_dreams_header_a11y">Dreams. %1$s.</string>
     <plurals name="paths_dreams_count">
-        <item quantity="one">%1$d flow para algún día</item>
-        <item quantity="other">%1$d flows para algún día</item>
+        <item quantity="one">%1$d Flow para algún día</item>
+        <item quantity="other">%1$d Flows para algún día</item>
     </plurals>
     <string name="paths_show">Mostrar</string>
     <string name="paths_hide">Ocultar</string>
@@ -440,12 +436,12 @@
         <item quantity="one">Lanzado %1$d vez</item>
         <item quantity="other">Lanzado %1$d veces</item>
     </plurals>
-    <string name="paths_delete_planned_flow_title">¿Eliminar flow planificado?</string>
-    <string name="paths_delete_planned_flow_body">Esto eliminará permanentemente este flow planificado.</string>
-    <string name="paths_delete_dream_flow_title">¿Eliminar dream flow?</string>
-    <string name="paths_delete_dream_flow_body">Esto eliminará permanentemente este flow de Dreams.</string>
-    <string name="paths_delete_arc_title">¿Eliminar arc?</string>
-    <string name="paths_delete_arc_body">Esto eliminará permanentemente este arc.</string>
+    <string name="paths_delete_planned_flow_title">¿Eliminar Flow planificado?</string>
+    <string name="paths_delete_planned_flow_body">Esto eliminará permanentemente este Flow planificado.</string>
+    <string name="paths_delete_dream_flow_title">¿Eliminar dream Flow?</string>
+    <string name="paths_delete_dream_flow_body">Esto eliminará permanentemente este Flow de Dreams.</string>
+    <string name="paths_delete_arc_title">¿Eliminar Arc?</string>
+    <string name="paths_delete_arc_body">Esto eliminará permanentemente este Arc.</string>
     <string name="paths_saved_in_dreams">Guardado en Dreams</string>
     <string name="paths_arc_library_body">Ábrelo para revisar la ruta antes de comenzar.</string>
     <string name="paths_surge">Surge</string>
@@ -454,8 +450,8 @@
     <string name="paths_minutes_short">%1$d min</string>
     <string name="paths_approx_minutes">~%1$d min</string>
     <string name="paths_tap_to_preview">Usar esta forma</string>
-    <string name="paths_studio_arc_card_a11y">%1$s. Studio arc. %2$s.</string>
-    <string name="paths_arc_library_card_a11y">%1$s. Planned arc. %2$s. %3$s.</string>
+    <string name="paths_studio_arc_card_a11y">%1$s. Studio Arc. %2$s.</string>
+    <string name="paths_arc_library_card_a11y">%1$s. Planned Arc. %2$s. %3$s.</string>
     <string name="paths_suggested_route_card_a11y">%1$s. %2$s. %3$s. %4$s.</string>
     <string name="paths_edit_arc">Editar</string>
     <string name="paths_suggested_sequences_helper_title">¿Necesitas un punto de partida?</string>
@@ -472,25 +468,24 @@
         <item quantity="one">Ver %1$d Flow</item>
         <item quantity="other">Ver los %1$d Flows</item>
     </plurals>
-
     <string name="plan_arc_route_studio">Your Studio</string>
     <string name="plan_arc_step_counter">%1$d de %2$d</string>
-    <string name="plan_arc_stage_name_title">Nombra tu arc</string>
+    <string name="plan_arc_stage_name_title">Nombra tu Arc</string>
     <string name="plan_arc_stage_name_subtitle">Dale una identidad a esta ruta antes de dar forma a sus pasos.</string>
     <string name="plan_arc_stage_choose_title">Elige tus Flows</string>
     <string name="plan_arc_stage_choose_subtitle">Elige Flows existentes o crea los pasos que faltan para este Arc.</string>
     <string name="plan_arc_stage_shape_title">Da forma a la ruta</string>
-    <string name="plan_arc_stage_shape_subtitle">Ordena la secuencia por la que avanzará tu arc.</string>
+    <string name="plan_arc_stage_shape_subtitle">Ordena la secuencia por la que avanzará tu Arc.</string>
     <string name="plan_arc_stage_timing_title">Define la intención temporal</string>
     <string name="plan_arc_stage_timing_subtitle">Refina la duración y la intensidad de cada paso.</string>
-    <string name="plan_arc_stage_review_title">Revisa tu arc</string>
+    <string name="plan_arc_stage_review_title">Revisa tu Arc</string>
     <string name="plan_arc_stage_review_subtitle">Mira la ruta completa antes de confirmarla.</string>
     <string name="plan_arc_identity_title">¿Cómo se llama esta ruta?</string>
     <string name="plan_arc_identity_examples">Ejemplos: Rutina de mañana, Cadena de escritura, Calma nocturna</string>
     <string name="plan_arc_title_label">Título del Arc</string>
     <string name="plan_arc_title_placeholder">Rutina de mañana</string>
     <string name="plan_arc_preview_title">Qué viene después</string>
-    <string name="plan_arc_preview_body">Después, elegirás los flows planificados que pertenecen a esta ruta.</string>
+    <string name="plan_arc_preview_body">Después, elegirás los Flows planificados que pertenecen a esta ruta.</string>
     <string name="plan_arc_selection_summary_needs_second">1 Flow seleccionado — agrega uno más para crear un Arc.</string>
     <string name="plan_arc_selected_sequence_title">Secuencia seleccionada</string>
     <string name="plan_arc_view_sequence">Ver secuencia</string>
@@ -506,10 +501,10 @@
     <string name="plan_arc_create_flow_adding">Agregando...</string>
     <string name="plan_arc_selection_summary_choose">Elige al menos dos Flows para este Arc.</string>
     <plurals name="plan_arc_selection_summary_selected">
-        <item quantity="one">%1$d flow seleccionado</item>
-        <item quantity="other">%1$d flows seleccionados</item>
+        <item quantity="one">%1$d Flow seleccionado</item>
+        <item quantity="other">%1$d Flows seleccionados</item>
     </plurals>
-    <string name="plan_arc_shape_empty_summary">Aún no hay flows seleccionados.</string>
+    <string name="plan_arc_shape_empty_summary">Aún no hay Flows seleccionados.</string>
     <plurals name="plan_arc_shape_summary_steps">
         <item quantity="one">%1$d paso en esta ruta</item>
         <item quantity="other">%1$d pasos en esta ruta</item>
@@ -582,8 +577,8 @@
     <string name="plan_arc_not_selected">No seleccionado</string>
     <string name="plan_arc_reuse_title">Reutilizar</string>
     <string name="plan_arc_reuse_body">El ritmo recurrente, la colocación en Studio y las opciones de reutilización vivirán aquí después.</string>
-    <string name="plan_arc_empty_flow_picker">Aún no hay flows planificados que coincidan con este filtro.</string>
-    <string name="plan_arc_empty_route_shape">Esta ruta aún no tiene pasos. Vuelve atrás y elige algunos flows primero.</string>
+    <string name="plan_arc_empty_flow_picker">Aún no hay Flows planificados que coincidan con este filtro.</string>
+    <string name="plan_arc_empty_route_shape">Esta ruta aún no tiene pasos. Vuelve atrás y elige algunos Flows primero.</string>
     <string name="plan_arc_footer_continue">Continuar</string>
     <string name="plan_arc_footer_update_arc">Actualizar Arc</string>
     <string name="plan_arc_footer_save_arc">Guardar Arc</string>
@@ -592,14 +587,12 @@
     <string name="plan_arc_footer_saving">Guardando...</string>
     <string name="plan_arc_progress_a11y">Paso %1$d de %2$d</string>
     <string name="plan_arc_error_a11y">%1$s</string>
-
     <string name="suggested_route_save_as_arc">Guardar como Arc</string>
-
     <string name="arc_detail_back">Atrás</string>
     <string name="arc_detail_restart">Reiniciar</string>
     <string name="arc_detail_resume_arc">Reanudar Arc</string>
     <string name="arc_detail_begin_arc">Comenzar Arc</string>
-    <string name="arc_detail_loading">Cargando detalles del arc</string>
+    <string name="arc_detail_loading">Cargando detalles del Arc</string>
     <string name="arc_detail_error_generic">Algo salió mal</string>
     <string name="arc_detail_route_title">Ruta</string>
     <string name="arc_detail_route_subtitle">Esta es la secuencia que seguirás cuando comiences.</string>
@@ -721,7 +714,7 @@
     <string name="common_ok">Aceptar</string>
     <string name="flow_title_field_label">Enfoque</string>
     <string name="flow_title_field_placeholder">¿A través de qué estás fluyendo?</string>
-    <string name="flow_title_field_a11y">Título del flow. %1$s</string>
+    <string name="flow_title_field_a11y">Título del Flow. %1$s</string>
     <string name="pulse_title_field_label">Idea</string>
     <string name="pulse_title_field_placeholder">Ponle título a tu idea</string>
     <string name="pulse_title_field_a11y">Campo de título de la idea de Pulse</string>
@@ -730,10 +723,10 @@
         <item quantity="other">Journeys</item>
     </plurals>
     <string name="flow_journey_section_a11y">%1$s</string>
-    <string name="flow_journey_suggestions_a11y">Sugerencias de journey</string>
-    <string name="flow_journey_chip_a11y">Seleccionar journey %1$s</string>
-    <string name="flow_journey_input_a11y">Nombre del journey</string>
-    <string name="flow_journey_placeholder">Empieza un nuevo journey…</string>
+    <string name="flow_journey_suggestions_a11y">Sugerencias de Journey</string>
+    <string name="flow_journey_chip_a11y">Seleccionar Journey %1$s</string>
+    <string name="flow_journey_input_a11y">Nombre del Journey</string>
+    <string name="flow_journey_placeholder">Empieza un nuevo Journey…</string>
     <string name="stopwatch_title_calm">Calma</string>
     <string name="stopwatch_title_in_flow">En Flow</string>
     <string name="stopwatch_timer_a11y">Tiempo transcurrido: %1$s</string>
@@ -744,7 +737,6 @@
         <item quantity="one">Ya te has enfocado durante %1$d minuto. ¿Seguro que quieres reiniciar y perder este progreso?</item>
         <item quantity="other">Ya te has enfocado durante %1$d minutos. ¿Seguro que quieres reiniciar y perder este progreso?</item>
     </plurals>
-
     <string name="arc_summary_completed">Arc completado.</string>
     <string name="arc_summary_totals_subtitle">Totales de este Arc.</string>
     <string name="arc_summary_card_title">Totales del Arc</string>
@@ -759,13 +751,11 @@
     <string name="arc_summary_points_value">+%1$d</string>
     <string name="arc_summary_duration_hours_minutes">%1$dh %2$dm</string>
     <string name="arc_summary_duration_minutes">%1$dm</string>
-
     <string name="reward_chip_time_minutes">⏱ %1$d min</string>
     <string name="reward_chip_score_points">🔥 +%1$d</string>
     <string name="reward_chip_beam_points">⭐ +%1$d</string>
     <string name="reward_chip_surge_points">⚡ +%1$d</string>
     <string name="reward_total_value_points">+%1$d</string>
-
     <string name="reward_bonus_count_multiplier">×%1$d</string>
     <string name="reward_bonus_total_points">+%1$d</string>
     <string name="session_reward_title_surge_completed">Surge completado.</string>
@@ -796,7 +786,6 @@
     <string name="session_reward_arc_multiplier_used">Multiplicador de Arc usado</string>
     <string name="session_reward_arc_points_gained">Puntos de Arc ganados</string>
     <string name="session_reward_arc_level_up">El multiplicador creció +0.1</string>
-
     <string name="atlas_screen_title_fallback">Atlas</string>
     <string name="atlas_header_day_beam_count_one">1 beam</string>
     <string name="atlas_header_day_beam_count_other">%1$d beams</string>
@@ -836,7 +825,7 @@
     <string name="now_zone_beam_active_title">⭐ BEAM ACTIVO</string>
     <string name="now_zone_minutes_left">%1$d min restantes</string>
     <string name="now_zone_percent_left">%1$d%% restante</string>
-    <string name="now_zone_enter_flow">¡Entrar en flow!</string>
+    <string name="now_zone_enter_flow">¡Entrar en Flow!</string>
     <string name="now_zone_active_beam_a11y">%1$s. %2$s restantes. %3$d por ciento restante.</string>
     <string name="now_zone_atlas_label">ATLAS</string>
     <string name="now_zone_intro">Crea tu camino. Da un paso al frente. Recorrelo sin vacilar.</string>
@@ -901,18 +890,16 @@
     <string name="atlas_week_empty_panel_a11y_title">No hay beams planificados</string>
     <string name="atlas_week_empty_panel_a11y">%1$s. %2$s</string>
     <string name="atlas_week_beam_row_a11y">%1$s. %2$s.</string>
-    
     <string name="horizon_header_body">Explora qué hacer después</string>
     <string name="horizon_title">Horizonte</string>
     <string name="paths_suggested_scenes_subtitle">Empieza con una forma y luego hazla tuya.</string>
     <string name="paths_suggested_scenes_title">Suggested Scenes</string>
-    <string name="paths_journey_inline_placeholder">Etiqueta de journey opcional</string>
+    <string name="paths_journey_inline_placeholder">Etiqueta de Journey opcional</string>
     <string name="paths_minutes_field_placeholder">25</string>
     <string name="common_minutes_short">min</string>
-    <string name="paths_flow_intent_prompt">¿En qué quieres entrar en flow?</string>
+    <string name="paths_flow_intent_prompt">¿En qué quieres entrar en Flow?</string>
     <string name="paths_journey_label">Journey</string>
     <string name="paths_journey_optional_placeholder">Opcional</string>
-
     <string name="shell_title">The Shell</string>
     <string name="shell_back_a11y">Return from The Shell</string>
     <string name="shell_icon_a11y">Open The Shell</string>
@@ -939,7 +926,7 @@
     <string name="the_blue_zone_sunlit_reef_subtitle">Aquí comienza la vida con Flows regulares cortos.</string>
     <string name="the_blue_zone_deeper_reef_title">Arrecife Profundo</string>
     <string name="the_blue_zone_deeper_reef_subtitle">Flows regulares más largos traen vida más rara.</string>
-    <string name="the_blue_zone_open_blue_title">Azul Abierto</string>
+    <string name="the_blue_zone_open_blue_title">Open Blue</string>
     <string name="the_blue_zone_open_blue_subtitle">Flows de una hora dejan corrientes amplias.</string>
     <string name="the_blue_zone_great_blue_title">Great Blue</string>
     <string name="the_blue_zone_great_blue_subtitle">Los Flows más largos resuenan en la gran profundidad.</string>
@@ -1005,22 +992,22 @@
     <string name="shell_pulse_title">Shell Pulse</string>
     <string name="shell_pulse_recent">%1$d cosas y fragmentos descansan en The Chest.</string>
     <string name="shell_pulse_mystery">Pista misteriosa: algo se mueve cuando una corriente se hace más profunda.</string>
-    <string name="shell_focus_body">Muestra Animales y Objetos propios en rincones Focus, luego da forma a sus formas con Perlas.</string>
+    <string name="shell_focus_body">Muestra Animales y Objetos propios en rincones Focus, luego da forma a sus formas con Pearls.</string>
     <string name="shell_focus_summary">Mostrados: %1$d. En reposo en The Chest: %2$d.</string>
     <string name="shell_empty_slot">Rincón vacío</string>
     <string name="shell_empty_slot_title">Rincón vacío</string>
     <string name="shell_place_something_here">Coloca algo aquí.</string>
-    <string name="shell_place_free">Muestra o coloca desde The Chest sin necesitar Perlas.</string>
+    <string name="shell_place_free">Muestra o coloca desde The Chest sin necesitar Pearls.</string>
     <string name="shell_no_owned_finds_fit">Nada en reposo en The Chest encaja todavía en este rincón.</string>
-    <string name="shell_shape_with_pearls">Dar forma a este espacio con Perlas</string>
-    <string name="shell_contextual_invites_preview">Lámpara — 80 Perlas
-Percha — 120 Perlas
-Piedritas — 60 Perlas</string>
+    <string name="shell_shape_with_pearls">Dar forma a este espacio con Pearls</string>
+    <string name="shell_contextual_invites_preview">Lámpara — 80 Pearls
+Percha — 120 Pearls
+Piedritas — 60 Pearls</string>
     <string name="shell_earned_from_flow">Traído de vuelta por Scyra y poseído en The Shell.</string>
     <string name="shell_current_form">Forma actual: %1$s</string>
     <string name="shell_next_form">Siguiente forma: %1$s</string>
-    <string name="shell_upgrade_with_pearls">%1$s con %2$d Perlas</string>
-    <string name="shell_upgrade_a11y">Da forma a esta recompensa con Perlas</string>
+    <string name="shell_upgrade_with_pearls">%1$s con %2$d Pearls</string>
+    <string name="shell_upgrade_a11y">Da forma a esta recompensa con Pearls</string>
     <string name="shell_no_more_forms">Esta recompensa descansa en su forma actual.</string>
     <string name="shell_return_to_chest">Volver a The Chest</string>
     <string name="shell_chest_title">The Chest</string>
@@ -1033,42 +1020,42 @@ Piedritas — 60 Perlas</string>
     <string name="shell_creature_swimming_now">Nadando ahora: %1$d</string>
     <string name="shell_creature_lifetime_encountered">Encontrados en total: %1$d</string>
     <string name="shell_creature_released">Liberados: %1$d</string>
-    <string name="shell_creature_used_beyond_blue">Usados más allá de El Azul: %1$d</string>
+    <string name="shell_creature_used_beyond_blue">Usados más allá de The Blue: %1$d</string>
     <string name="shell_creature_highest_level">Nivel más alto: %1$d</string>
-    <string name="shell_creature_flow_time_value_each">Valor de tiempo de Flujo cada uno: %1$s</string>
-    <string name="shell_creature_release_value_each">Retorno en Perlas de cada uno: %1$d Perlas</string>
+    <string name="shell_creature_flow_time_value_each">Valor de tiempo de Flow cada uno: %1$s</string>
+    <string name="shell_creature_release_value_each">Retorno en Pearls de cada uno: %1$d Pearls</string>
     <string name="shell_creature_mastery_seasoned">Experimentada</string>
     <string name="shell_creature_mastery_proven">Probada</string>
     <string name="shell_creature_mastery_veteran">Veterana</string>
     <string name="shell_creature_mastery_ascendant">Ascendente</string>
     <string name="shell_creature_mastery_mastered">Dominada</string>
-    <string name="shell_creature_release_value_varies_by_level">El retorno en Perlas varía por nivel.</string>
-    <string name="shell_creature_pearl_value_each">Valor en Perlas de cada uno: %1$d Perlas</string>
+    <string name="shell_creature_release_value_varies_by_level">El retorno en Pearls varía por nivel.</string>
+    <string name="shell_creature_pearl_value_each">Valor en Pearls de cada uno: %1$d Pearls</string>
     <string name="shell_creature_levels_heading">Niveles</string>
     <string name="shell_creature_no_active_to_grow">No hay criatura activa para crecer.</string>
-    <string name="shell_creature_need_more_pearls_to_grow">Necesitas %1$d Perlas más para crecer.</string>
+    <string name="shell_creature_need_more_pearls_to_grow">Necesitas %1$d Pearls más para crecer.</string>
     <string name="shell_creature_level_up">Subir nivel</string>
-    <string name="shell_creature_level_up_cost">Costo de subir nivel: %1$d Perlas</string>
+    <string name="shell_creature_level_up_cost">Costo de subir nivel: %1$d Pearls</string>
     <string name="shell_creature_level_up_unavailable_max">Dominado en nivel 99</string>
-    <string name="shell_creature_level_up_unavailable_pearls">No hay suficientes Perlas</string>
+    <string name="shell_creature_level_up_unavailable_pearls">No hay suficientes Pearls</string>
     <string name="shell_creature_level_up_confirm_title">¿Subir nivel de %1$s?</string>
     <string name="shell_creature_level_up_confirm_body">Esto subirá de nivel una criatura %2$s de nivel %1$d.</string>
-    <string name="shell_creature_level_up_confirm_cost">Costo: %1$d Perlas</string>
-    <string name="shell_creature_level_up_a11y">Sube de nivel una criatura %2$s de nivel %1$d. Costo: %3$d Perlas.</string>
+    <string name="shell_creature_level_up_confirm_cost">Costo: %1$d Pearls</string>
+    <string name="shell_creature_level_up_a11y">Sube de nivel una criatura %2$s de nivel %1$d. Costo: %3$d Pearls.</string>
     <string name="shell_creature_level_up_mastered_a11y">%1$s está dominada en nivel 99.</string>
-    <string name="shell_creature_level_up_confirm_a11y">Confirmar subida de nivel de una criatura %2$s de nivel %1$d por %3$d Perlas.</string>
+    <string name="shell_creature_level_up_confirm_a11y">Confirmar subida de nivel de una criatura %2$s de nivel %1$d por %3$d Pearls.</string>
     <string name="shell_creature_release_action">Liberar</string>
     <string name="shell_creature_release_confirm_single_body">¿Liberar 1 %2$s de nivel %1$d de vuelta en The Blue?</string>
     <string name="shell_creature_release_confirm_bulk_body">¿Liberar %1$d %3$s de nivel %2$d de vuelta en The Blue?</string>
-    <string name="shell_creature_release_confirm_reward">Recibirás +%1$d Perlas.</string>
-    <string name="shell_creature_release_confirm_a11y">Confirmar liberación de %1$d %3$s de nivel %2$d por %4$d Perlas.</string>
+    <string name="shell_creature_release_confirm_reward">Recibirás +%1$d Pearls.</string>
+    <string name="shell_creature_release_confirm_a11y">Confirmar liberación de %1$d %3$s de nivel %2$d por %4$d Pearls.</string>
     <string name="shell_creature_release_for_pearls">Liberar</string>
     <string name="shell_creature_release_confirm_title">¿Liberar %1$s?</string>
     <string name="shell_creature_release_single_body">¿Liberar este %1$s de vuelta en The Blue?</string>
     <string name="shell_creature_release_level_aware_body">Tienes %1$d copias de %2$s. Elige cuáles liberar de vuelta en The Blue.</string>
     <string name="shell_creature_release_selected_total">Seleccionados: %1$d de %2$d</string>
-    <string name="shell_creature_release_reward_preview">Recibirás +%1$d Perlas.</string>
-    <string name="shell_chest_release_reward_preview_a11y">Seleccionados %1$d de %4$d %3$s de nivel %2$d. Liberarlos dará %5$d Perlas.</string>
+    <string name="shell_creature_release_reward_preview">Recibirás +%1$d Pearls.</string>
+    <string name="shell_chest_release_reward_preview_a11y">Seleccionados %1$d de %4$d %3$s de nivel %2$d. Liberarlos dará %5$d Pearls.</string>
     <string name="shell_chest_release_button_a11y">Libera las criaturas seleccionadas.</string>
     <string name="shell_creature_release_confirm_disabled">Liberar</string>
     <string name="shell_creature_release_quick_select">Selección rápida</string>
@@ -1079,7 +1066,7 @@ Piedritas — 60 Perlas</string>
     <string name="shell_creature_release_level_label">Nivel %1$d</string>
     <string name="shell_creature_release_level_owned">Tienes: %1$d</string>
     <string name="shell_creature_release_level_selected">Seleccionados: %1$d</string>
-    <string name="shell_creature_release_level_reward_each">+%1$d Perlas cada uno</string>
+    <string name="shell_creature_release_level_reward_each">+%1$d Pearls cada uno</string>
     <string name="shell_creature_release_quantity_decrease_level">Reducir selección de Nivel %1$d %2$s</string>
     <string name="shell_creature_release_quantity_increase_level">Aumentar selección de Nivel %1$d %2$s</string>
     <string name="shell_creature_keep_swimming">Seguir nadando</string>
@@ -1123,34 +1110,26 @@ Piedritas — 60 Perlas</string>
     <string name="shell_slot_center_focus_nook">Center Focus Nook</string>
     <string name="shell_slot_memory_nook">Memory Nook</string>
     <string name="shell_slot_named_title">Space: %1$s</string>
-    <string name="shell_shape_space_with_pearls">Dar forma a este espacio con Perlas</string>
+    <string name="shell_shape_space_with_pearls">Dar forma a este espacio con Pearls</string>
     <string name="shell_invite_with_pearls">Invite with %1$d Pearls</string>
-    <string name="shell_need_more_pearls">Necesitas %1$d Perlas más.</string>
+    <string name="shell_need_more_pearls">Necesitas %1$d Pearls más.</string>
     <string name="shell_available_now">Disponible ahora</string>
     <string name="shell_affordable_soon">Pronto</string>
     <string name="shell_pearl_cost">%1$d Pearls</string>
     <string name="shell_basin_brighten_suggestion">Brighten %1$s</string>
     <string name="shell_basin_invite_suggestion">Invite %1$s</string>
-    <string name="shell_no_available_shapes">Nada está listo en este momento. Unas Perlas más despertarán una nueva forma.</string>
-    <string name="shell_empty_slot_a11y">%1$s. Espacio vacío de sala Focus. Abre opciones de colocación y modelado con Perlas.</string>
+    <string name="shell_no_available_shapes">Nada está listo en este momento. Unas Pearls más despertarán una nueva forma.</string>
+    <string name="shell_empty_slot_a11y">%1$s. Espacio vacío de sala Focus. Abre opciones de colocación y modelado con Pearls.</string>
     <string name="shell_placed_object_a11y">%1$s. Mostrado en la sala Focus. Abre los detalles del objeto.</string>
-
-
     <string name="shell_whisper_new_discovery">A Shell discovery is ready to view.</string>
     <string name="shell_whisper_upgrade_ready">%1$s can brighten — you have enough Pearls.</string>
     <string name="shell_whisper_chest_waiting">%1$d creatures are in The Chest.</string>
     <string name="shell_whisper_empty_focus">Focus has empty nooks.</string>
-
-
     <string name="shell_heart_detail_title">Corazón de The Shell</string>
     <string name="shell_heart_pearls_gathered">Pearls gathered: %1$d</string>
     <string name="shell_heart_finds_owned">Owned in The Shell: %1$d</string>
     <string name="shell_heart_discoveries_awakened">Badges awakened: %1$d</string>
     <string name="shell_heart_focus_objects_placed">Focus objects displayed: %1$d</string>
-
-
-
-
     <string name="shell_pearl_basin_chip_a11y">Pearl Basin. %1$d Pearls. Opens shaping suggestions.</string>
     <string name="shell_room_active_a11y">%1$s. Sala activa. Abre %1$s.</string>
     <string name="shell_room_preview_a11y">%1$s. Abre la vista previa.</string>
@@ -1167,14 +1146,10 @@ Piedritas — 60 Perlas</string>
     <string name="shell_choose_something_to_swap">Elige algo para cambiar.</string>
     <string name="shell_swap_with">Cambiar por %1$s</string>
     <string name="shell_no_compatible_nooks">Aún no hay rincones compatibles. Esta copia puede seguir descansando en The Chest.</string>
-
     <string name="shell_place_in_focus">Place in Focus</string>
-
-
-    
     <string name="reward_card_page_count">%1$d de %2$d</string>
     <string name="reward_card_page_announcement">Recompensa %1$d de %2$d</string>
-    <string name="reward_card_scyra_points_template">%1$d Puntos Scyra</string>
+    <string name="reward_card_scyra_points_template">%1$d Scyra Points</string>
     <string name="reward_card_points_carried_as_pearls">Llevados a The Shell como Pearls.</string>
     <string name="reward_card_score_built_from">Construido a partir de:</string>
     <string name="reward_card_base_flow">Flow base %1$d</string>
@@ -1186,14 +1161,14 @@ Piedritas — 60 Perlas</string>
     <string name="reward_card_swipe_arc_hint">Desliza para ver lo que trajo este Arc.</string>
     <string name="reward_card_time_logged_title">Tiempo registrado</string>
     <string name="reward_card_shell_shaped_title">The Shell tomó forma</string>
-    <string name="reward_card_shell_shaped_body">Tus Puntos Scyra se llevaron a The Shell como Pearls. Usa Pearls para iluminar, pulir y despertar lo que tienes.</string>
+    <string name="reward_card_shell_shaped_body">Tus Scyra Points se llevaron a The Shell como Pearls. Usa Pearls para iluminar, pulir y despertar lo que tienes.</string>
     <string name="reward_card_animal_encountered_title">%1$s encontrado</string>
     <string name="reward_card_badge_updated_title">Insignia %1$s actualizada</string>
     <string name="reward_card_animal_chip">Animal · %1$s</string>
     <string name="reward_card_badge_chip">Insignia</string>
     <string name="reward_card_depth_reef">Arrecife</string>
     <string name="reward_card_depth_deeper_reef">Arrecife profundo</string>
-    <string name="reward_card_depth_open_blue">Azul abierto</string>
+    <string name="reward_card_depth_open_blue">Open Blue</string>
     <string name="reward_card_depth_deep_ocean">Great Blue</string>
     <string name="reward_card_animal_reason_minnow">De un Flow regular de 10 minutos o más.</string>
     <string name="reward_card_animal_reason_seahorse">De un Flow regular de 30 minutos o más.</string>
@@ -1229,7 +1204,6 @@ Piedritas — 60 Perlas</string>
     <string name="reward_card_records_updated_from_flow">Registros actualizados desde este Flow.</string>
     <string name="reward_card_flow_milestones_across_arc">De hitos de Flow a lo largo de este Arc.</string>
     <string name="reward_card_records_updated_across_arc">Registros actualizados a lo largo de este Arc.</string>
-
     <string name="beyond_blue_title">Beyond Blue</string>
     <string name="beyond_blue_intro">Encuentra nueva vida más allá de The Blue usando creatures, Pearls o ambos.</string>
     <string name="beyond_blue_requires_value">Requiere %1$s de valor de creature</string>
@@ -1266,9 +1240,6 @@ Piedritas — 60 Perlas</string>
     <string name="beyond_blue_confirm_enters_zone">%1$s entrará en %2$s.</string>
     <string name="beyond_blue_cancel">Cancelarar</string>
     <string name="beyond_blue_discover_depth_copy">Descubre vida cerca de esta profundidad.</string>
-
-
-    
     <string name="shell_badge_row_title">%1$s ×%2$d</string>
     <string name="shell_notifications_title">Notificaciones de The Shell</string>
     <string name="shell_notifications_body">Nuevos hallazgos, fragmentos, badges y descubrimientos se reúnen aquí hasta que los revises.</string>
@@ -1473,16 +1444,16 @@ Piedritas — 60 Perlas</string>
     <string name="the_blue_beyond_blue_chip">Beyond Blue %1$d</string>
     <string name="the_blue_created_by_flow_title">Creado por Flow</string>
     <string name="the_blue_created_by_flow_value">%1$s cada uno</string>
-    <string name="the_blue_pearl_value_title">Valor en Perlas</string>
+    <string name="the_blue_pearl_value_title">Valor en Pearls</string>
     <string name="the_blue_release_return_title">Retorno al liberar</string>
-    <string name="the_blue_growth_support_copy">Las Perlas ayudan a que esta criatura crezca más en The Blue.</string>
+    <string name="the_blue_growth_support_copy">Las Pearls ayudan a que esta criatura crezca más en The Blue.</string>
     <string name="beyond_blue_zone_encounters">Encuentros de %1$s</string>
     <string name="beyond_blue_ready">Listo</string>
     <string name="beyond_blue_trade_or_return_later">Intercambia criaturas o vuelve más tarde.</string>
     <string name="beyond_blue_contribution_title">Tu contribución</string>
     <string name="beyond_blue_contribution_value">%1$s / %2$s</string>
     <string name="beyond_blue_encounter_summary">Resumen del encuentro</string>
-    <string name="beyond_blue_payment_returned">Devuelto: %1$d Perlas</string>
+    <string name="beyond_blue_payment_returned">Devuelto: %1$d Pearls</string>
     <string name="shell_view_all">Ver todo</string>
     <string name="shell_hide">Ocultar</string>
     <string name="the_blue_zone_life_title">Vida en %1$s</string>
@@ -1501,7 +1472,7 @@ Piedritas — 60 Perlas</string>
     <string name="shell_chest_best_form">Mejor forma: %1$s</string>
     <string name="shell_lifetime_record_status_released">Registro histórico · Liberado</string>
     <string name="shell_lifetime_record_status_used_beyond_blue">Registro histórico · Usado en Beyond Blue</string>
-    <string name="beyond_blue_need_pearls_badge">Faltan Perlas</string>
+    <string name="beyond_blue_need_pearls_badge">Faltan Pearls</string>
     <string name="beyond_blue_life_waiting_depth">Vida esperando más allá de esta profundidad.</string>
     <string name="beyond_blue_calling_life_in">Llamando esta vida</string>
     <string name="beyond_blue_trade_from_blue">Intercambia desde The Blue</string>
@@ -1510,41 +1481,40 @@ Piedritas — 60 Perlas</string>
     <string name="beyond_blue_selected_count">Seleccionados %1$d</string>
     <string name="beyond_blue_contributes_value">Aporta %1$s</string>
     <string name="beyond_blue_life_selected">Vida seleccionada: %1$s</string>
-    <string name="beyond_blue_pearls_used">Perlas utilizadas: %1$d</string>
-    <string name="beyond_blue_pearls_call_life_in">Las Perlas llamarán esta vida.</string>
-    <string name="beyond_blue_pearls_cover_rest">Las Perlas cubrirán el resto.</string>
-    <string name="beyond_blue_extra_value_returns">El valor extra vuelve como Perlas.</string>
+    <string name="beyond_blue_pearls_used">Pearls utilizadas: %1$d</string>
+    <string name="beyond_blue_pearls_call_life_in">Las Pearls llamarán esta vida.</string>
+    <string name="beyond_blue_pearls_cover_rest">Las Pearls cubrirán el resto.</string>
+    <string name="beyond_blue_extra_value_returns">El valor extra vuelve como Pearls.</string>
     <string name="beyond_blue_trade_or_return_after_flow">Intercambia criaturas o vuelve después de más Flow.</string>
     <string name="beyond_blue_trade_and_encounter">Intercambiar y encontrar</string>
     <string name="beyond_blue_confirm_title_short">¿Encontrar %1$s?</string>
     <string name="beyond_blue_trade_for_title">¿Intercambiar por %1$s?</string>
-    <string name="beyond_blue_confirm_pearls_call_in">%1$d Perlas llamarán esta vida.</string>
-    <string name="beyond_blue_ready_with_pearls">Listo con Perlas</string>
+    <string name="beyond_blue_confirm_pearls_call_in">%1$d Pearls llamarán esta vida.</string>
+    <string name="beyond_blue_ready_with_pearls">Listo con Pearls</string>
     <string name="beyond_blue_how_to_encounter">Cómo encontrar</string>
-    <string name="beyond_blue_pearls_only">Solo Perlas</string>
-    <string name="beyond_blue_use_pearls_only_amount">Usa %1$d Perlas</string>
-    <string name="beyond_blue_encounter_with_pearls">Encontrar con Perlas</string>
+    <string name="beyond_blue_pearls_only">Solo Pearls</string>
+    <string name="beyond_blue_use_pearls_only_amount">Usa %1$d Pearls</string>
+    <string name="beyond_blue_encounter_with_pearls">Encontrar con Pearls</string>
     <string name="beyond_blue_add_one">Añadir uno de %1$s al intercambio</string>
     <string name="beyond_blue_remove_one">Quitar uno de %1$s del intercambio</string>
-    <string name="beyond_blue_buy_with_pearls">Comprar con Perlas</string>
-    <string name="beyond_blue_balance_pearls">Tu saldo: %1$d Perlas</string>
+    <string name="beyond_blue_buy_with_pearls">Comprar con Pearls</string>
+    <string name="beyond_blue_balance_pearls">Tu saldo: %1$d Pearls</string>
     <string name="beyond_blue_optional">Opcional</string>
-    <string name="beyond_blue_trade_reduce_optional">Intercambia criaturas para reducir el costo en Perlas</string>
+    <string name="beyond_blue_trade_reduce_optional">Intercambia criaturas para reducir el costo en Pearls</string>
     <string name="beyond_blue_trade_and_buy">Intercambiar y comprar</string>
     <string name="beyond_blue_buy">Comprar</string>
-    <string name="beyond_blue_buy_with_pearls_title">¿Comprar %1$s con Perlas?</string>
+    <string name="beyond_blue_buy_with_pearls_title">¿Comprar %1$s con Pearls?</string>
     <string name="beyond_blue_trade_and_buy_title">¿Intercambiar y comprar %1$s?</string>
-    <string name="beyond_blue_pearls_will_be_used">Se usarán %1$d Perlas.</string>
+    <string name="beyond_blue_pearls_will_be_used">Se usarán %1$d Pearls.</string>
     <string name="beyond_blue_ready_to_buy">Listo para comprar</string>
     <string name="beyond_blue_adjusted_cost">Costo ajustado</string>
-
     <string name="voyage_hall_title">Voyage Hall</string>
     <string name="voyage_hall_subtitle">Tus récords más altos de cada Flow y Arc.</string>
     <string name="voyage_hall_shell_subtitle">The Shell recuerda el esfuerzo al que vuelves.</string>
     <string name="voyage_hall_tab_core_stats">Estadísticas principales</string>
     <string name="voyage_hall_tab_bonus_stats">Estadísticas de bonus</string>
     <string name="voyage_hall_tab_selected_a11y">%1$s seleccionado</string>
-    <string name="voyage_hall_section_momentum">Impulso</string>
+    <string name="voyage_hall_section_momentum">ImPulse</string>
     <string name="voyage_hall_section_arc_records">Récords de Arc</string>
     <string name="voyage_hall_section_point_records">Récords de puntos</string>
     <string name="voyage_hall_section_flow_records">Récords de Flow</string>
@@ -1569,7 +1539,7 @@ Piedritas — 60 Perlas</string>
     <string name="voyage_hall_current_daily_streak_subtitle">Tu racha activa de esfuerzo diario.</string>
     <string name="voyage_hall_longest_daily_streak_subtitle">Tu mejor récord de constancia.</string>
     <string name="voyage_hall_longest_arc_by_time_subtitle">Tu tramo más largo de esfuerzo conectado.</string>
-    <string name="voyage_hall_highest_arc_multiplier_subtitle">Tu impulso de Arc más fuerte hasta ahora.</string>
+    <string name="voyage_hall_highest_arc_multiplier_subtitle">Tu imPulse de Arc más fuerte hasta ahora.</string>
     <string name="voyage_hall_most_chained_flows_subtitle">Tu cadena de Flow más grande.</string>
     <string name="voyage_hall_best_day_points_subtitle">Tu día con mayor puntuación.</string>
     <string name="voyage_hall_best_week_points_subtitle">Tu semana con mayor puntuación.</string>
@@ -1589,7 +1559,6 @@ Piedritas — 60 Perlas</string>
     <string name="voyage_hall_chained_flows_detail">%1$d Flows encadenados</string>
     <string name="voyage_hall_multiplier_value">%1$.1fx</string>
     <string name="voyage_hall_count_value">%1$s %2$s</string>
-
     <string name="voyage_hall_not_active">No activo</string>
     <string name="voyage_hall_return_today">Vuelve hoy para empezar de nuevo.</string>
     <string name="voyage_hall_best_value">Mejor: %1$s</string>
@@ -1617,7 +1586,6 @@ Piedritas — 60 Perlas</string>
     <string name="voyage_hall_part_of_arc">Parte de Arc</string>
     <string name="voyage_hall_arc_number">Arc %1$d</string>
     <string name="voyage_hall_numbered_title">%1$d. %2$s</string>
-
     <plurals name="voyage_hall_days_count">
         <item quantity="one">%1$d día</item>
         <item quantity="other">%1$d días</item>
@@ -1634,8 +1602,6 @@ Piedritas — 60 Perlas</string>
         <item quantity="one">%1$d Arc</item>
         <item quantity="other">%1$d Arcs</item>
     </plurals>
-
-    <!-- The Lookout -->
     <string name="lookout_title">The Lookout</string>
     <string name="lookout_subtitle">Establece Objetivos para los Journeys que quieres avanzar.</string>
     <string name="lookout_set">Establecer</string>
@@ -1732,7 +1698,6 @@ Piedritas — 60 Perlas</string>
     <string name="shell_objective_badge_row_title">Objetivo %1$s x%2$d</string>
     <string name="shell_objective_badge_row_body">Completaste Objetivos %1$s para %2$s.</string>
     <string name="shell_objective_badge_unknown_journey">Journey %1$d</string>
-
     <string name="idea_grove_title">Idea Grove</string>
     <string name="idea_grove_tab_alive">Vivas</string>
     <string name="idea_grove_tab_completed">Completadas</string>
@@ -1802,8 +1767,6 @@ Piedritas — 60 Perlas</string>
     <string name="idea_grove_card_a11y">%1$s. %2$s %3$s %4$s. Toca dos veces para %5$s.</string>
     <string name="idea_grove_expand_a11y">expandir</string>
     <string name="idea_grove_collapse_a11y">contraer</string>
-
-    <!-- Movement Bonus / Health Connect -->
     <string name="privacy_health_connect_movement_bonus">Si activas Movement Bonus, Scyra lee datos de conteo de pasos de Health Connect durante tus Flows elegibles para calcular recompensas de Movement Bonus. Scyra usa estos datos solo para Movement Points, Scyra Points, Pearls y las vistas de recompensas relacionadas. Scyra no vende estos datos ni los usa para publicidad.</string>
     <string name="health_settings_title">Movement Bonus</string>
     <string name="health_connect_unavailable_headline">Health Connect no está disponible en este dispositivo.</string>
@@ -1854,5 +1817,90 @@ Puedes volver a activar Health más tarde.</string>
         <item quantity="one">%1$d Movement Point</item>
         <item quantity="other">%1$d Movement Points</item>
     </plurals>
-
+    <string name="flow_complete_soft_added_to_stillwater">Añadido a Stillwater.</string>
+    <string name="flow_complete_soft_drops_gained">+%1$d Drops</string>
+    <string name="flow_complete_soft_explainer">Usa Drops en Stillwater para extraer criaturas exclusivas de vasijas tranquilas.</string>
+    <string name="flow_complete_soft_title">Soft Flow completado</string>
+    <string name="reward_card_stillwater_quiet_minutes">%1$d minutos tranquilos llevados a Stillwater.</string>
+    <string name="shell_chest_count_badge">x%1$d</string>
+    <string name="shell_chest_detail_level">Level %1$d</string>
+    <string name="shell_chest_detail_owned">En propiedad: %1$d</string>
+    <string name="shell_chest_detail_source">De The Blue</string>
+    <string name="shell_chest_empty_action">Ir a The Blue</string>
+    <string name="shell_chest_empty_body">Sumérgete en The Blue para encontrar tu primera criatura.</string>
+    <string name="shell_chest_empty_title">The Chest está vacío.</string>
+    <string name="shell_chest_inventory_stats">%1$d criaturas en propiedad · %2$d grupos</string>
+    <string name="shell_chest_stack_a11y">%1$s. Level %2$d. En propiedad: %3$d.</string>
+    <string name="shell_find_stillwater_creature_description">Criatura exclusiva de Stillwater.</string>
+    <string name="shell_notifications_inlay_empty_body">Ya estás al día.</string>
+    <string name="shell_notifications_inlay_empty_title">No hay notificaciones nuevas</string>
+    <string name="shell_notifications_mark_notification_viewed_a11y">Marcar notificación como vista</string>
+    <string name="shell_notifications_mark_viewed">Visto</string>
+    <string name="shell_stillwater_added_to_chest">Añadido a The Chest.</string>
+    <string name="shell_stillwater_aquarium_category">Level 2 · Stillwater tipo arrecife</string>
+    <string name="shell_stillwater_aquarium_reward">Criatura colorida tipo arrecife</string>
+    <string name="shell_stillwater_aquarium_title">Acuario</string>
+    <string name="shell_stillwater_body">Los Soft Flow reúnen Drops. Úsalos en vasijas tranquilas para extraer criaturas exclusivas de Stillwater.</string>
+    <string name="shell_stillwater_confirm_draw_body">Usa %1$d Drops para extraer una criatura de esta vasija.</string>
+    <string name="shell_stillwater_confirm_draw_title">¿Extraer de %1$s?</string>
+    <string name="shell_stillwater_creature_found">Algo salió a la superficie.</string>
+    <string name="shell_stillwater_done">Listo</string>
+    <string name="shell_stillwater_draw">Extraer</string>
+    <string name="shell_stillwater_draw_from">Extraer de %1$s</string>
+    <string name="shell_stillwater_draw_prompt">Elige una vasija. Algo tranquilo puede salir a la superficie.</string>
+    <string name="shell_stillwater_drops_available">%1$d Drops disponibles</string>
+    <string name="shell_stillwater_exclusive">Exclusivo de Stillwater</string>
+    <string name="shell_stillwater_explainer">Cada vasija contiene sus propias criaturas de Stillwater. Las vasijas grandes requieren más Drops y revelan vida más rara.</string>
+    <string name="shell_stillwater_filling">Llenando</string>
+    <string name="shell_stillwater_fishbowl_category">Level 1 · Stillwater poco profundo</string>
+    <string name="shell_stillwater_fishbowl_reward">Criatura pequeña de aguas poco profundas</string>
+    <string name="shell_stillwater_fishbowl_title">Pecera</string>
+    <string name="shell_stillwater_keep_filling">Seguir llenando</string>
+    <string name="shell_stillwater_lake_category">Level 4 · Stillwater oscuro</string>
+    <string name="shell_stillwater_lake_reward">Criatura rara de aguas oscuras</string>
+    <string name="shell_stillwater_lake_title">Lago</string>
+    <string name="shell_stillwater_lifetime_drops">%1$d Drops reunidos en total</string>
+    <string name="shell_stillwater_locked">Bloqueado</string>
+    <string name="shell_stillwater_more_needed">Faltan %1$d Drops</string>
+    <string name="shell_stillwater_pond_category">Level 3 · Stillwater amplio</string>
+    <string name="shell_stillwater_pond_reward">Criatura grande de aguas abiertas</string>
+    <string name="shell_stillwater_pond_title">Estanque</string>
+    <string name="shell_stillwater_progress">%1$d / %2$d Drops</string>
+    <string name="shell_stillwater_reach_depth_first">Avanza más en The Blue para desbloquear esta vasija.</string>
+    <string name="shell_stillwater_ready">Listo</string>
+    <string name="shell_stillwater_ready_to_draw">Listo para extraer</string>
+    <string name="shell_stillwater_soft_flows_gather_drops">Los Soft Flow reúnen Drops.</string>
+    <string name="shell_stillwater_vessel_cost">%1$d Drops</string>
+    <string name="shell_find_stillwater_amberjack_title">Amberjack</string>
+    <string name="shell_find_stillwater_anemone_title">Anemone</string>
+    <string name="shell_find_stillwater_barnacle_title">Barnacle</string>
+    <string name="shell_find_stillwater_barracuda_title">Barracuda</string>
+    <string name="shell_find_stillwater_blackdragon_title">Blackdragon</string>
+    <string name="shell_find_stillwater_blenny_title">Blenny</string>
+    <string name="shell_find_stillwater_bonito_title">Bonito</string>
+    <string name="shell_find_stillwater_clam_title">Clam</string>
+    <string name="shell_find_stillwater_coelacanth_title">Coelacanth</string>
+    <string name="shell_find_stillwater_cowrie_title">Cowrie</string>
+    <string name="shell_find_stillwater_crab_title">Crab</string>
+    <string name="shell_find_stillwater_cuttlefish_title">Cuttlefish</string>
+    <string name="shell_find_stillwater_fangtooth_title">Fangtooth</string>
+    <string name="shell_find_stillwater_goby_title">Goby</string>
+    <string name="shell_find_stillwater_grenadier_title">Grenadier</string>
+    <string name="shell_find_stillwater_grouper_title">Grouper</string>
+    <string name="shell_find_stillwater_gulper_title">Gulper</string>
+    <string name="shell_find_stillwater_hatchetfish_title">Hatchetfish</string>
+    <string name="shell_find_stillwater_horseshoe_title">Horseshoe</string>
+    <string name="shell_find_stillwater_limpet_title">Limpet</string>
+    <string name="shell_find_stillwater_lionfish_title">Lionfish</string>
+    <string name="shell_find_stillwater_mahi_title">Mahi</string>
+    <string name="shell_find_stillwater_marlin_title">Marlin</string>
+    <string name="shell_find_stillwater_moray_title">Moray</string>
+    <string name="shell_find_stillwater_nautilus_title">Nautilus</string>
+    <string name="shell_find_stillwater_oarfish_title">Oarfish</string>
+    <string name="shell_find_stillwater_sailfish_title">Sailfish</string>
+    <string name="shell_find_stillwater_shrimp_title">Shrimp</string>
+    <string name="shell_find_stillwater_snail_title">Snail</string>
+    <string name="shell_find_stillwater_viperfish_title">Viperfish</string>
+    <string name="shell_find_stillwater_wahoo_title">Wahoo</string>
+    <string name="shell_find_stillwater_wrasse_title">Wrasse</string>
 </resources>
