@@ -295,7 +295,7 @@
     <string name="help_screen_title">मदत</string>
     <string name="help_pref_keep_score_title">स्कोअर दिसत ठेवा</string>
     <string name="help_pref_keep_score_description">स्टोरी मध्ये स्कोअर एकूण आणि कार्डमधील स्कोअर लेबले दाखवा.</string>
-    <string name="help_pref_calm_mode_title">कैल्म मओदए</string>
+    <string name="help_pref_calm_mode_title">कॅल्म मोड</string>
     <string name="help_pref_calm_mode_description">फ्लो मध्ये आर्क माहिती आणि टाइमर लपवते.</string>
     <string name="help_carousel_counter">%1$d/%2$d</string>
     <string name="help_carousel_a11y">मदत विषय</string>
@@ -319,7 +319,7 @@
     <string name="help_page_arc_kicker">आर्क</string>
     <string name="help_page_arc_title">आर्क सातत्याला बक्षीस देतात.</string>
     <string name="help_page_arc_subtitle">जेव्हा तुम्ही सलग फ्लोंमधून तुमची गती टिकवता तेव्हा आर्क तयार होतो.</string>
-    <string name="help_page_arc_body">सतत पुढे जा आणि तुमचा आर्क वाढतो. 10 मिनिटे किंवा त्याहून जास्त प्रत्येक पूर्ण फ्लोनंतर आर्क गुणक +0.1 ने वाढतो. फ्लोंदरम्यान थोडी गरअकए वइनदओव असते, त्यामुळे पटकन पुढे गेल्यास साखळी टिकून राहते.</string>
+    <string name="help_page_arc_body">सुरू ठेवा आणि तुमचा आर्क वाढत जाईल. 10 मिनिटे किंवा अधिकच्या प्रत्येक पूर्ण फ्लोनंतर आर्क गुणक +0.1 ने वाढतो. फ्लोंदरम्यान छोटी सवलत खिडकी असते, त्यामुळे पटकन पुढे गेल्यास साखळी टिकते.</string>
     <string name="help_page_arc_tip">आर्क म्हणजे सत्रांमधील गती असे समजा. फ्लो जतन करा, पुढे चालू ठेवा आणि साखळी जिवंत ठेवा.</string>
     <string name="help_page_surge_kicker">सर्ज</string>
     <string name="help_page_surge_title">सर्ज अचूकतेला बक्षीस देते.</string>
@@ -347,8 +347,8 @@
     <string name="notepad_format_strikethrough">मधून रेषा</string>
     <string name="notepad_format_subscript">सबस्क्रिप्ट</string>
     <string name="notepad_format_superscript">सुपरस्क्रिप्ट</string>
-    <string name="notepad_format_h1">ह</string>
-    <string name="notepad_format_h2">ह</string>
+    <string name="notepad_format_h1">H1</string>
+    <string name="notepad_format_h2">H2</string>
     <string name="notepad_format_normal">सामान्य</string>
     <string name="notepad_format_cursive">कर्सिव्ह</string>
     <string name="notepad_format_mono">मोनो</string>
@@ -384,7 +384,7 @@
     <string name="paths_empty_flows_title">अजून कोणतेही नियोजित फ्लो नाहीत</string>
     <string name="paths_empty_flows_body">क्रिया जतन करा, जेणेकरून त्या नेहमी सुरू करण्यासाठी तयार असतील.</string>
     <string name="paths_empty_arcs_title">तुमचा पहिला आर्क तयार करा</string>
-    <string name="paths_empty_arcs_body">पुढील काही फ्लो माहित असतील तेव्हा आपका स्टूडियो वापरा.</string>
+    <string name="paths_empty_arcs_body">पुढील काही फ्लो माहित असतील तेव्हा तुमचा स्टुडिओ वापरा.</string>
     <string name="paths_empty_more_arcs_body">अजून अतिरिक्त आर्क नाहीत. तुम्ही वारंवार परत येणारा मार्ग सापडल्यानंतर एक स्टूडियो मध्ये जोडा.</string>
     <string name="paths_plan_flow">फ्लो नियोजित करा</string>
     <string name="paths_plan_arc">आर्क तयार करा</string>
@@ -394,14 +394,14 @@
     <string name="paths_studio_subtitle">तुम्हाला ज्या क्रमातून जायचे आहे ते डिझाइन करा.</string>
     <string name="paths_suggested_routes_title">सुचवलेले मार्ग</string>
     <string name="paths_suggested_routes_subtitle">तुमच्या जीवनानुसार जुळवून घेण्यासाठी विचारपूर्वक तयार केलेल्या दिनचर्या</string>
-    <string name="paths_your_arcs_title">आपका स्टूडियो</string>
+    <string name="paths_your_arcs_title">तुमचा स्टुडिओ</string>
     <string name="paths_your_arcs_subtitle">तुम्हाला ज्या क्रमातून जायचे आहे ते डिझाइन करा.</string>
     <string name="paths_plan_flow_sheet_title">फ्लो नियोजित करा</string>
     <string name="paths_plan_flow_sheet_subtitle">एखादी क्रिया जतन करा, जेणेकरून ती नेहमी सुरू करण्यासाठी तयार असेल.</string>
     <string name="paths_title_label">शीर्षक</string>
-    <string name="paths_title_placeholder">गहरा वओरक, गउइटअर अभ्यास, रीडिंग…</string>
+    <string name="paths_title_placeholder">डीप वर्क, गिटार सराव, वाचन…</string>
     <string name="paths_journey_tag_label">प्रवास टॅग</string>
-    <string name="paths_journey_tag_placeholder">राइटिंग, मउसइक, फ़इटनएसस…</string>
+    <string name="paths_journey_tag_placeholder">लेखन, संगीत, फिटनेस…</string>
     <string name="paths_recent_tags">अलीकडील टॅग</string>
     <string name="paths_recent_tag_chip_a11y">अलीकडील टॅग %1$s</string>
     <string name="paths_soft_flow_title">सॉफ्ट फ्लो</string>
@@ -458,9 +458,9 @@
     <string name="paths_suggested_route_card_a11y">%1$s. %2$s. %3$s. %4$s.</string>
     <string name="paths_edit_arc">संपादित करा</string>
     <string name="paths_suggested_sequences_helper_title">सुरुवातीचा बिंदू हवा आहे?</string>
-    <string name="paths_suggested_sequences_helper_body">सुझाए गए सीन टेम्पलेट म्हणून वापरा, मग आपका स्टूडियो मध्ये पायऱ्या बदला.</string>
-    <string name="paths_start_from_suggestion">सुझाए गए सीन पासून सुरू करा</string>
-    <string name="paths_browse_suggested_scenes">सुझाए गए सीन पाहा</string>
+    <string name="paths_suggested_sequences_helper_body">सुचवलेले सीन टेम्पलेट म्हणून वापरा, मग तुमच्या स्टुडिओमध्ये पायऱ्या बदला.</string>
+    <string name="paths_start_from_suggestion">सुचवलेल्या सीनपासून सुरू करा</string>
+    <string name="paths_browse_suggested_scenes">सुचवलेले सीन पाहा</string>
     <string name="paths_collapse">आवरा</string>
     <string name="paths_arc_step_preview_a11y">पायऱ्या: %1$s</string>
     <plurals name="paths_arc_flow_count">
@@ -471,7 +471,7 @@
         <item quantity="one">सर्व %1$d फ्लो पाहा</item>
         <item quantity="other">सर्व %1$d फ्लो पाहा</item>
     </plurals>
-    <string name="plan_arc_route_studio">आपका स्टूडियो</string>
+    <string name="plan_arc_route_studio">तुमचा स्टुडिओ</string>
     <string name="plan_arc_step_counter">%1$d पैकी %2$d</string>
     <string name="plan_arc_stage_name_title">तुमच्या आर्कला नाव द्या</string>
     <string name="plan_arc_stage_name_subtitle">पायऱ्या ठरवण्यापूर्वी या मार्गाला ओळख द्या.</string>
@@ -893,11 +893,11 @@
     <string name="horizon_header_body">पुढे काय करायचे ते पाहा</string>
     <string name="horizon_title">क्षितिज</string>
     <string name="paths_suggested_scenes_subtitle">एका आकारापासून सुरू करा, मग तो स्वतःचा करा.</string>
-    <string name="paths_suggested_scenes_title">सुझाए गए सीन</string>
+    <string name="paths_suggested_scenes_title">सुचवलेले सीन</string>
     <string name="paths_journey_inline_placeholder">ऐच्छिक प्रवास टॅग</string>
     <string name="paths_minutes_field_placeholder">25</string>
     <string name="common_minutes_short">मि</string>
-    <string name="paths_flow_intent_prompt">तुम्हाला कोणत्या गोष्टीत फ़लओव मध्ये जायचे आहे?</string>
+    <string name="paths_flow_intent_prompt">तुम्हाला कोणत्या गोष्टीत फ्लोमध्ये जायचे आहे?</string>
     <string name="paths_journey_label">प्रवास</string>
     <string name="paths_journey_optional_placeholder">ऐच्छिक</string>
     <string name="shell_title">द शेल</string>
@@ -1035,9 +1035,9 @@
     <string name="shell_creature_levels_heading">पातळ्या</string>
     <string name="shell_creature_no_active_to_grow">वाढवण्यासाठी सक्रिय प्राणी उपलब्ध नाही.</string>
     <string name="shell_creature_need_more_pearls_to_grow">वाढवण्यासाठी अजून %1$d मोती आवश्यक आहेत.</string>
-    <string name="shell_creature_release_for_pearls">छोड़ें</string>
+    <string name="shell_creature_release_for_pearls">सोडा</string>
     <string name="shell_creature_release_confirm_title">%1$s मुक्त करायचे?</string>
-    <string name="shell_creature_release_single_body">छोड़ें या %1$s बअकक मध्ये द ब्लू?</string>
+    <string name="shell_creature_release_single_body">हा %1$s द ब्लूमध्ये परत सोडायचा?</string>
     <string name="shell_creature_release_level_aware_body">तुमच्याकडे %2$s च्या %1$d कॉपी आहेत. कोणत्या परत द ब्लू मध्ये सोडायच्या ते निवडा.</string>
     <string name="shell_creature_release_selected_total">निवडलेले: %2$d पैकी %1$d</string>
     <string name="shell_creature_release_reward_preview">तुम्हाला +%1$d पर्ल्स मिळतील.</string>
@@ -1063,8 +1063,8 @@
     <string name="shell_badges_body">बॅज म्हणजे घडलेल्या गोष्टींची नोंद. ते अडथळे नाहीत.</string>
     <string name="shell_badge_a11y">%1$s बॅज. संख्या: %2$d.</string>
     <string name="shell_journal_title">बॅज</string>
-    <string name="shell_action_brighten">चमकाएँ</string>
-    <string name="shell_action_grow">बढ़ाएँ</string>
+    <string name="shell_action_brighten">उजळवा</string>
+    <string name="shell_action_grow">वाढवा</string>
     <string name="shell_action_enrich">समृद्ध करें</string>
     <string name="shell_action_awaken">जगाएँ</string>
     <string name="shell_find_sea_glass_title">सी ग्लास</string>
@@ -1094,23 +1094,23 @@
     <string name="shell_slot_creature_perch_left">डावे जीव आसन</string>
     <string name="shell_slot_creature_perch_right">उजवे जीव आसन</string>
     <string name="shell_slot_center_focus_nook">सेंटर फोकस नुक</string>
-    <string name="shell_slot_memory_nook">मएमओरय नुक</string>
-    <string name="shell_slot_named_title">सपअकए: %1$s</string>
+    <string name="shell_slot_memory_nook">मेमरी नुक</string>
+    <string name="shell_slot_named_title">जागा: %1$s</string>
     <string name="shell_shape_space_with_pearls">या जागेला मोत्यांनी आकार द्या</string>
     <string name="shell_invite_with_pearls">आमंत्रित करें सोबत %1$d पर्ल्स</string>
     <string name="shell_need_more_pearls">आणखी %1$d मोती हवेत.</string>
     <string name="shell_available_now">आता उपलब्ध</string>
     <string name="shell_affordable_soon">लवकरच</string>
     <string name="shell_pearl_cost">%1$d पर्ल्स</string>
-    <string name="shell_basin_brighten_suggestion">चमकाएँ %1$s</string>
+    <string name="shell_basin_brighten_suggestion">%1$s उजळवा</string>
     <string name="shell_basin_invite_suggestion">आमंत्रित करें %1$s</string>
     <string name="shell_no_available_shapes">या क्षणी काहीही तयार नाही. आणखी काही मोती एक नवीन रूप जागे करतील.</string>
     <string name="shell_empty_slot_a11y">%1$s. रिकामी फोकस रूम जागा. ठेवण्याचे आणि मोत्यांनी आकार देण्याचे पर्याय उघडते.</string>
     <string name="shell_placed_object_a11y">%1$s. फोकस रूम मध्ये प्रदर्शित. वस्तूचे तपशील उघडते.</string>
     <string name="shell_whisper_new_discovery">एक शेल शोध इस पाहण्यासाठी तयार.</string>
     <string name="shell_whisper_upgrade_ready">%1$s उजळू शकते — तुमच्याकडे पुरेसे पर्ल्स आहेत.</string>
-    <string name="shell_whisper_chest_waiting">%1$d जीव अरए इन द चेस्ट.</string>
-    <string name="shell_whisper_empty_focus">फोकस हअस एमपटय नओओकस.</string>
+    <string name="shell_whisper_chest_waiting">द चेस्टमध्ये %1$d जीव आहेत.</string>
+    <string name="shell_whisper_empty_focus">फोकसमध्ये रिकामे नुक आहेत.</string>
     <string name="shell_heart_detail_title">द शेल चे हृदय</string>
     <string name="shell_heart_pearls_gathered">जमा पर्ल्स: %1$d</string>
     <string name="shell_heart_finds_owned">द शेलमध्ये स्वतःकडे: %1$d</string>
@@ -1201,7 +1201,7 @@
     <string name="beyond_blue_change_returned">परतावा: %1$,d पर्ल्स</string>
     <string name="beyond_blue_selected_leave">निवडलेले जीव द ब्लू सोडतील.</string>
     <string name="beyond_blue_confirm_no_creatures_leave">एकही जीव द ब्लू सोडणार नाही.</string>
-    <string name="beyond_blue_lifetime_remains">तुमची लइफ़एटइमए नोंद कायम राहील.</string>
+    <string name="beyond_blue_lifetime_remains">तुमची आजीवन नोंद कायम राहील.</string>
     <string name="beyond_blue_confirm_trade_selected">निवडलेले जीव ट्रेड करा.</string>
     <string name="beyond_blue_confirm_title">द ब्लू पलीकडे %1$s ला भेटायचे?</string>
     <string name="beyond_blue_confirm_pearls_used">%1$,d पर्ल्स वापरले जातील.</string>
@@ -1233,8 +1233,8 @@
     <string name="shell_notifications_empty_title">द शेल मध्ये नवीन सूचना नाहीत</string>
     <string name="shell_notifications_empty_body">द शेल सध्या शांत आहे. भविष्यातील फ्लोनंतर नवीन रिवॉर्ड्स येथे दिसतील.</string>
     <string name="shell_notification_find_body">%1$s</string>
-    <string name="shell_notification_stack_body">मिला से गतिविधि नियमित का फ्लो. कुल रएउनइदओ: %1$d.</string>
-    <string name="shell_notification_badge_body">मात्रा: %1$d · मिला सएगúन उसका करइटएरइओ का फ्लो.</string>
+    <string name="shell_notification_stack_body">नियमित फ्लो क्रियेतून मिळाले. एकूण जमा: %1$d.</string>
+    <string name="shell_notification_badge_body">मात्रा: %1$d · फ्लो निकषानुसार मिळाले.</string>
     <string name="shell_notification_discovery_body">फ्लो क्रियेतून नोंदलेली बॅज नोंद.</string>
     <string name="shell_find_minnow_title">मिन्नो</string>
     <string name="shell_find_minnow_description">मिला में सनलिट रीफ बाद एक फ्लो नियमित का 10 मिनट या मिáसे.</string>
@@ -1264,7 +1264,7 @@
     <string name="shell_form_polished">निखरा</string>
     <string name="shell_form_tidemarked">टाइडमार्क्ड</string>
     <string name="shell_upgrade_minnow_base_description">मिन्नो हैá में उसका लेवल बेस.</string>
-    <string name="shell_upgrade_minnow_bright_description">मिन्नो सउबइó के साथ पर्ल्स.</string>
+    <string name="shell_upgrade_minnow_bright_description">मिन्नो पर्ल्सने चमकला.</string>
     <string name="shell_upgrade_minnow_glimmer_description">मिन्नो पर्ल्सने चमकला.</string>
     <string name="shell_upgrade_minnow_luminous_description">मिन्नोने चमकदार लेवल गाठली.</string>
     <string name="shell_upgrade_seahorse_base_description">सीहॉर्स आपल्या मूलभूत स्तरावर आहे.</string>
@@ -1306,7 +1306,7 @@
     <string name="session_reward_shell_stillwater_units">%1$d स्टिलवॉटर युनिट</string>
     <string name="session_reward_shell_find">शेल रिवॉर्ड</string>
     <string name="session_reward_shell_badges">बॅज अपडेट झाले</string>
-    <string name="session_reward_shell_badges_value">%1$d बॅज उपदअटएस</string>
+    <string name="session_reward_shell_badges_value">%1$d बॅज अपडेट</string>
     <string name="shell_feedback_place_success">फोकस रूममध्ये दाखवले.</string>
     <string name="shell_feedback_upgrade_success">तुमच्या पर्ल्सने त्याच्या प्रकाशात उब आणली.</string>
     <string name="shell_feedback_return_success">वापस भेजा गया अ द चेस्ट.</string>
@@ -1567,7 +1567,7 @@
     <string name="voyage_hall_points_abbrev">%1$s पटस</string>
     <string name="voyage_hall_flow_meta">%1$s · %2$s</string>
     <string name="voyage_hall_period_flow_summary">%1$s · एकूण %2$s · %3$s स्कायरा पॉइंट्स</string>
-    <string name="voyage_hall_arc_summary_with_peak">%1$s · %2$s · %3$s स्कायरा पॉइंट्स · पएअक %4$s</string>
+    <string name="voyage_hall_arc_summary_with_peak">%1$s · %2$s · %3$s स्कायरा पॉइंट्स · शिखर %4$s</string>
     <string name="voyage_hall_arc_summary_without_peak">%1$s · %2$s · %3$s स्कायरा पॉइंट्स</string>
     <string name="voyage_hall_part_of_arc">आर्क चा भाग</string>
     <string name="voyage_hall_arc_number">आर्क %1$d</string>
@@ -1635,7 +1635,7 @@
     <string name="lookout_hours">तास</string>
     <string name="lookout_minutes">मिनिटे</string>
     <string name="lookout_monthly_helper">मासिक लक्ष्य 30 दिवस चालतात.</string>
-    <string name="lookout_recurring_helper" formatted="false">तुम्ही हा लक्ष्य पूर्ण करता तेव्हा प्रत्येक वेळी सटरएअक रिवॉर्ड्स +10% ने वाढतात.</string>
+    <string name="lookout_recurring_helper" formatted="false">तुम्ही हे लक्ष्य प्रत्येक वेळी पूर्ण करता तेव्हा स्ट्रीक रिवॉर्ड्स +10% ने वाढतात.</string>
     <string name="lookout_save_objective">लक्ष्य सेव्ह करा</string>
     <string name="lookout_claim">क्लेम करा</string>
     <string name="lookout_claimed">क्लेम केले</string>
@@ -1704,7 +1704,7 @@
     <string name="idea_grove_continue_idea_body">तुमचा पुढचा फ्लो आर्क पुढे चालू ठेवेल. तुम्हाला तो या पल्स च्या आइडिया जओउरनएय चा भागही करायचा आहे का?</string>
     <string name="idea_grove_continue_arc_only">फक्त आर्क पुढे चालू ठेवा</string>
     <string name="idea_grove_continue_arc_and_idea">आर्क + आइडिया पुढे चालू ठेवा</string>
-    <string name="idea_grove_sort_recents">हाल के</string>
+    <string name="idea_grove_sort_recents">अलीकडील</string>
     <string name="idea_grove_sort_newest">नवीन आधी</string>
     <string name="idea_grove_sort_oldest">जुने आधी</string>
     <string name="idea_grove_sort_most_time">सर्वाधिक वेळ</string>

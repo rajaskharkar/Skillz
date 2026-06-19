@@ -344,8 +344,8 @@
     <string name="notepad_format_strikethrough">स्ट्राइकथ्रू</string>
     <string name="notepad_format_subscript">सबस्क्रिप्ट</string>
     <string name="notepad_format_superscript">सुपरस्क्रिप्ट</string>
-    <string name="notepad_format_h1">ह</string>
-    <string name="notepad_format_h2">ह</string>
+    <string name="notepad_format_h1">H1</string>
+    <string name="notepad_format_h2">H2</string>
     <string name="notepad_format_normal">सामान्य</string>
     <string name="notepad_format_cursive">कर्सिव</string>
     <string name="notepad_format_mono">मोनो</string>
@@ -1016,7 +1016,7 @@
     <string name="shell_filter_animals">जीव</string>
     <string name="shell_filter_creatures">जीव</string>
     <string name="shell_creature_level_value">लेवल %1$d</string>
-    <string name="shell_creature_grow_with_pearls_cost">%1$d मोतियों से बढ़ाएँ</string>
+    <string name="shell_creature_grow_with_pearls_cost">%1$d पर्ल्स से बढ़ाएँ</string>
     <string name="shell_creature_not_swimming_lifetime_remains">अभी तैर नहीं रहा है। जीवनकाल रिकॉर्ड बना रहेगा।</string>
     <string name="shell_creature_swimming_now">अभी तैर रहे: %1$d</string>
     <string name="shell_creature_lifetime_encountered">जीवनकाल में मिले: %1$d</string>
@@ -1094,8 +1094,8 @@
     <string name="shell_slot_creature_perch_left">बायाँ जीव आसन</string>
     <string name="shell_slot_creature_perch_right">दायाँ जीव आसन</string>
     <string name="shell_slot_center_focus_nook">सेंटर फोकस नुक</string>
-    <string name="shell_slot_memory_nook">मएमओरय नुक</string>
-    <string name="shell_slot_named_title">सपअकए: %1$s</string>
+    <string name="shell_slot_memory_nook">मेमोरी नुक</string>
+    <string name="shell_slot_named_title">स्थान: %1$s</string>
     <string name="shell_shape_space_with_pearls">इस जगह को पर्ल्स से आकार दें</string>
     <string name="shell_invite_with_pearls">%1$d पर्ल्स से आमंत्रित करें</string>
     <string name="shell_need_more_pearls">%1$d और पर्ल्स चाहिए।</string>
@@ -1109,8 +1109,8 @@
     <string name="shell_placed_object_a11y">%1$s। फोकस रूम में प्रदर्शित। वस्तु विवरण खोलता है।</string>
     <string name="shell_whisper_new_discovery">एक शेल खोज देखने के लिए तैयार है.</string>
     <string name="shell_whisper_upgrade_ready">%1$s चमक सकता है — आपके पास पर्याप्त पर्ल्स हैं.</string>
-    <string name="shell_whisper_chest_waiting">%1$d जीव अरए इन द चेस्ट.</string>
-    <string name="shell_whisper_empty_focus">फोकस हअस एमपटय नओओकस.</string>
+    <string name="shell_whisper_chest_waiting">द चेस्ट में %1$d जीव हैं.</string>
+    <string name="shell_whisper_empty_focus">फोकस में खाली नुक हैं.</string>
     <string name="shell_heart_detail_title">द शेल का हृदय</string>
     <string name="shell_heart_pearls_gathered">पर्ल्स जुटाए: %1$d</string>
     <string name="shell_heart_finds_owned">द शेल में अपने पास: %1$d</string>
@@ -1264,7 +1264,7 @@
     <string name="shell_form_polished">निखरा</string>
     <string name="shell_form_tidemarked">टाइडमार्क्ड</string>
     <string name="shell_upgrade_minnow_base_description">मिन्नो हैá में उसका लेवल बेस.</string>
-    <string name="shell_upgrade_minnow_bright_description">मिन्नो सउबइó के साथ पर्ल्स.</string>
+    <string name="shell_upgrade_minnow_bright_description">मिन्नो पर्ल्स से चमका.</string>
     <string name="shell_upgrade_minnow_glimmer_description">मिन्नो पर्ल्स से चमका.</string>
     <string name="shell_upgrade_minnow_luminous_description">मिन्नो ने चमकदार लेवल पाया.</string>
     <string name="shell_upgrade_seahorse_base_description">सीहॉर्स अपने आधार स्तर पर है।</string>
