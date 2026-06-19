@@ -44,7 +44,7 @@ Tests inspected:
 Expected path notes:
 
 - No dedicated badge/mastery award service was found. Creature mastery currently appears as economy tier logic and test coverage, not a persisted award workflow. TODO: verify if another feature path awards Mastery badges.
-- `MovementBonusCalculator.kt` source currently uses `STEPS_PER_POINT = 100`, while `MovementBonusCalculatorTest.kt` still expects 25-step behavior. This conflict is documented below and must be resolved before iOS implementation.
+- `MovementBonusCalculator.kt` source uses `STEPS_PER_POINT = 100`. Final product/iOS parity decision: 100 steps = 1 Movement Point; older 25-step expectations/tests/notes are stale.
 
 ## 3. Reward System Overview
 
@@ -53,7 +53,7 @@ Expected path notes:
 1. User completes a Flow in `FlowViewModel.saveWithArcBehavior`.
 2. `ScoreCalculator.breakdownFromDuration(realDurationMs)` calculates minute-based base/timed score.
 3. Soft mode is false, so `baseScyra = breakdown.totalPoints`.
-4. Surge points are calculated if a Surge plan exists; Android currently stores/displays Surge points separately but does not add them into `baseScyra` in the inspected `FlowViewModel` completion path. TODO: verify whether this is intended or a bug.
+4. Surge points are calculated if a Surge plan exists; Android currently stores/displays Surge points separately but does not add them into `baseScyra` in the inspected `FlowViewModel` completion path. iOS should match this current Android behavior for parity until Android changes.
 5. Movement eligibility is checked from Health settings/permission captured at Flow start. If eligible, steps are read across active intervals and Movement Points are calculated.
 6. Pre-Arc points are `baseScyra + movementPoints`.
 7. If an Arc is active, `ScoreCalculator.arcMath` applies the Arc multiplier to the pre-Arc total.
@@ -172,9 +172,9 @@ Surge is a target-duration focus mode with haptic milestones and a separate bonu
 ### Behavior answers
 
 - Is Surge bonus stored in `SessionEntity.surgePoints`? **Yes**, `FlowViewModel` passes `surgePoints` to `FlowRepository.addSession` and `SessionEntity` stores it.
-- Is Surge stored in `FlowRewardBreakdownEntity.surgeBonusPoints`? **No in inspected completion code**: `saveMovementSnapshotAndBreakdown` sets `surgeBonusPoints = 0L`. This conflicts with the model’s field and `MovementRewardRecalculator` support. TODO: verify whether Surge should be included in persisted reward breakdown.
-- Does Surge affect final Scyra Points? **Current inspected `FlowViewModel` does not add `surgePoints` into `baseScyra`, `beforeArc`, or `finalScyra`**. Reward reveal can display `reward.surgePoints`, but final score appears not to include it. TODO: verify whether this is intended or a bug.
-- Does Surge affect Pearls? Since Pearls follow `session.scyraPoints`, current inspected behavior suggests **not unless Surge is included in final Scyra elsewhere**. TODO: verify.
+- Is Surge stored in `FlowRewardBreakdownEntity.surgeBonusPoints`? **No in inspected completion code**: `saveMovementSnapshotAndBreakdown` sets `surgeBonusPoints = 0L`. This conflicts with the model’s field and `MovementRewardRecalculator` support. For iOS parity, match Android and do not add Surge into persisted reward breakdown unless Android changes.
+- Does Surge affect final Scyra Points? **Current inspected `FlowViewModel` does not add `surgePoints` into `baseScyra`, `beforeArc`, or `finalScyra`**. Reward reveal can display `reward.surgePoints`, but final score appears not to include it. For iOS parity, treat this as current Android behavior and match it.
+- Does Surge affect Pearls? Since Pearls follow `session.scyraPoints`, current inspected behavior suggests **not unless Surge is included in final Scyra elsewhere**. For iOS parity, match current Android behavior.
 - Does Surge affect creature drops? No direct evidence; creature drops use Flow duration minutes only.
 - Does Surge apply to Soft Flow? No.
 - Does Surge interact with Arc multipliers? Intended fields imply it could be pre-multiplier, but current inspected completion passes only `baseScyra + movementPoints` into Arc math. TODO: verify intended Surge/Arc relationship.
@@ -212,7 +212,7 @@ Surge is a target-duration focus mode with haptic milestones and a separate bonu
 - First session that starts an Arc is saved with `arcMultiplierUsed = 1.0`, `arcBonusPoints = 0`, `finalScyraPoints = beforeArc`; then `ArcPrefs` stores `multiplier = 1.3` for the next Flow.
 - Existing Arc sessions use the saved `ArcPrefs.multiplier` as `chainBase`.
 - Multiplier applies to `beforeArc = baseScyra + movementPoints`; it therefore applies to Movement Points.
-- Because Surge is not currently included in `beforeArc`, current inspected behavior says Arc does not multiply Surge points. TODO: verify intent.
+- Because Surge is not currently included in `beforeArc`, current inspected behavior says Arc does not multiply Surge points. iOS should match this behavior for parity until Android changes.
 - Pearls are based on final `session.scyraPoints`, so Arc multipliers affect Pearls for eligible regular Flows.
 - `arcBonusPoints` is persisted in `SessionEntity` and `FlowRewardBreakdownEntity`.
 - Room `ActiveArcRunEntity` tracks active planned Arc run progress; `ArcPrefs` appears canonical for current reward multiplier runtime in `FlowViewModel`. TODO: verify whether all Arc launch paths synchronize both.
@@ -232,11 +232,11 @@ Surge is a target-duration focus mode with haptic milestones and a separate bonu
 
 ### Conflict / product decision
 
-`MovementBonusCalculatorTest.kt` currently has a test named `calculatesEveryTwentyFiveStepsUncapped` expecting 25-step behavior, but the inspected production source has `STEPS_PER_POINT = 100L`. Therefore:
+`MovementBonusCalculatorTest.kt` currently has a stale test name/expectation around 25-step behavior, but the inspected production source has `STEPS_PER_POINT = 100L` and product direction is now final. Therefore:
 
-- Current Android production source: **steps / 100**.
-- Possible desired/product direction: **1 point per 25 steps**.
-- iOS recommendation: preserve Android parity only after product decides which ratio is authoritative. Treat 25-step behavior as a product/test-source conflict, not current source truth.
+- Authoritative Android/product/iOS parity behavior: **steps / 100**.
+- Final decision: **100 steps = 1 Movement Point**.
+- Older 25-step expectations/tests/product notes are stale and should be updated in future Android/iOS test cleanup rather than copied into iOS.
 
 ### Delayed refresh
 
@@ -272,7 +272,7 @@ Current write path in `FlowViewModel.saveMovementSnapshotAndBreakdown`:
 - Inserts/updates alongside `FlowHealthSnapshotEntity` via `FlowHealthDao.upsertCompletionSnapshotAndBreakdown`.
 - `nonMovementPreMultiplierPoints = baseScyra`.
 - `pulseBonusPoints = 0L`.
-- `surgeBonusPoints = 0L` despite computed `surgePoints` elsewhere. TODO: verify.
+- `surgeBonusPoints = 0L` despite computed `surgePoints` elsewhere. For iOS parity, match current Android behavior.
 - `movementPoints = movementRead.movementPoints`.
 - `preMultiplierTotal = baseScyra + movementPoints`.
 - `arcMultiplier = arcMultiplierUsed ?: 1.0`.
@@ -605,12 +605,12 @@ Delayed Health:
 
 | Area | Current Android behavior | Desired/current product direction | iOS recommendation | Needs decision? |
 | ---- | ------------------------ | --------------------------------- | ------------------ | --------------- |
-| Movement Points ratio | Source uses `steps / 100`; test expects 25-step behavior | Possible desired ratio may be 1 point per 25 steps | Do not implement until product chooses; parity should follow chosen source | Yes |
+| Movement Points ratio | Production source uses `steps / 100`; older 25-step expectations are stale | Final product direction is 100 steps = 1 Movement Point | Implement Android production parity exactly: 100 steps per point | No |
 | Aera/Scyra score | Flavor/default settings can hide score for Aera | iOS should start Scyra-first unless Aera requested | Implement Scyra score-visible first | Yes for Aera |
 | Pulse bonus field | `pulseBonusPoints` exists but completion writes 0 | Pulses should not be rewarded sessions | Treat as reserved/legacy and keep 0 | Verify |
-| Surge | Surge formula exists and UI displays points, but final score path does not add it | Product likely expects a Surge bonus to matter | Verify before iOS; do not invent | Yes |
+| Surge | Surge formula exists and UI displays points, but inspected final score/Pearl path does not add it | Product direction is Android parity during iOS port | Match current Android exactly; do not fix/reinterpret until Android changes | No |
 | Creature Mastery | Economy tier at 99 exists; no award/idempotency found | Countable species Mastery per Level 99 creature | Add explicit design later | Yes |
-| ShellFind/object/discovery | Android includes umbrella/legacy concepts | Chest creature-only; avoid legacy | Map only creatures for MVP | Yes |
+| ShellFind/object/discovery | Android includes umbrella/legacy concepts | Chest creature-only; avoid legacy | Map only creatures for iOS Scyra parity unless product confirms legacy data compatibility | Yes |
 | Stillwater drops | Source formula is 1 drop per second; some UI tests use manually supplied values | Soft Flow should grant Stillwater if in scope | Use source formula unless product changes | Maybe |
 
 ## 25. Worked Examples
@@ -621,7 +621,7 @@ Delayed Health:
 | 10-minute regular Flow | duration 10m | base=10, 10m bonus=5 | final=15, Pearls=15 | 1 Minnow, `badge_flow_10_min` | session, creature instance, badge, events, animal/badge cards |
 | 30-minute regular Flow | duration 30m | base=30, 2×10m=10, 1×30m=15 | final=55, Pearls=55 | 1 Seahorse, badges 10/30 | session, ledger, creature, badges |
 | 60-minute regular Flow | duration 60m | base=60, 4×10m=20, 1×30m=15, 1×60m=50 | final=145, Pearls=145 | 1 Manta, badges 10/30/60 | reward deck with score/animal/badges |
-| Regular Flow with Surge | planned 25m, actual 25m | surge formula returns round(25*1.35)=34 | current final score TODO: inspected path does not add Surge | no creature effect beyond duration | TODO verify if bug before iOS |
+| Regular Flow with Surge | planned 25m, actual 25m | surge formula returns round(25*1.35)=34 | current final score excludes Surge in inspected path; iOS should match | no creature effect beyond duration | add parity test to prevent accidental divergence |
 | Regular Flow with Arc multiplier | active Arc chainBase 1.3, 30m Flow | base=55, tierExtra=0.1, used=1.4, final=round(55*1.4)=77, bonus=22 | Pearls=77 | creature by duration, Arc reward lines | session Arc fields + reward breakdown |
 | Regular Flow with Movement | 30m, 1000 steps, source ratio 100 | base=55, movement=10, preArc=65 | final=65 no Arc, Pearls=65 | creature by duration | health snapshot/breakdown persisted |
 | Delayed movement update | old movement 0, later steps 342 | source ratio 100 => 3 points; test conflict would expect 13 | reward can only increase; stable Pearl delta reason | Pearl delta if final increases | health snapshot/breakdown/session/ledger updated |
@@ -638,7 +638,7 @@ Recommended future iOS services/components only; do not create code now:
 - `RewardCalculator`: pure base Flow score and timed bonus calculator.
 - `MovementRewardCalculator`: steps-to-points, eligibility, delayed recalculation.
 - `ArcRewardCalculator`: Arc multiplier/tier math and next multiplier.
-- `SurgeRewardCalculator`: Surge formula; verify whether it contributes to final score before implementing.
+- `SurgeRewardCalculator`: Surge formula; match current Android final-score/Pearl behavior exactly.
 - `PearlLedgerService`: append-only Pearl entries, balance derivation, idempotency keys.
 - `ShellRewardOrchestrator`: one entry point after Flow completion for Pearls, creatures, badges, Stillwater, events.
 - `CreatureEconomy`: drops, growth costs, release values, Beyond Blue quotes.
@@ -656,8 +656,8 @@ Reward calculators should be pure/testable where possible. Repositories should o
 |---|---|---|---|
 | Base score | `ScoreCalculator.kt` | 1 point/minute + timed bonus formula | Critical |
 | Timed bonuses | `ScoreCalculator.kt`; add tests | 10/30/60 chunk counts/values exactly | Critical |
-| Surge | `ScoreCalculator.surgePoints`; add integration tests | Exact formula and final-score decision | High |
-| Arc multiplier | `ScoreCalculator.arcMath`, `ArcRules` | Start 1.3, tier extras, +0.1 next base | Critical if Arc MVP |
+| Surge | `ScoreCalculator.surgePoints`; add integration tests | Exact formula plus current Android non-contribution to final Scyra/Pearls | High |
+| Arc multiplier | `ScoreCalculator.arcMath`, `ArcRules` | Start 1.3, tier extras, +0.1 next base | Critical for Arc parity phase |
 | Movement Points | `MovementBonusCalculatorTest` plus source conflict | Chosen ratio; floor division; eligibility | Critical |
 | Delayed movement | `DelayedMovementRewardPolicyTest` | Never lowers; Pearl delta idempotent | Critical |
 | Pearl ledger | `ShellRepository`, `FlowHealthRepository`, Lookout | Balance from ledger; duplicate prevention | Critical |
@@ -676,11 +676,11 @@ Reward calculators should be pure/testable where possible. Repositories should o
 
 | Risk/open question | Why it matters | iOS impact | Recommended follow-up |
 |---|---|---|---|
-| Exact reward math mismatch | Source/tests conflict for movement; Surge unclear | iOS could intentionally match wrong behavior | Product/Android parity decision review. |
-| Movement ratio decision | 100 vs 25 changes economy dramatically | Score/Pearl inflation risk | Decide before implementation. |
+| Exact reward math mismatch | Movement is settled at 100 steps/point; Surge must match current Android non-contribution behavior | iOS could accidentally reintroduce stale assumptions | Parity tests for movement and Surge. |
+| Movement ratio implementation | 100 vs 25 changes economy dramatically | Score/Pearl inflation risk | Decide before implementation. |
 | `pulseBonusPoints` ambiguity | Field exists but appears zero | Pulse reward product violation risk | Confirm/remove/reserve in reward spec. |
 | Arc Room vs DataStore source | Runtime multiplier appears in DataStore while planned runs use Room | Restoration bugs | Arc architecture cleanup/spec. |
-| Surge formula clarity | Formula exists but not applied to final score in inspected path | User-visible mismatch | Add Android tests or bug decision. |
+| Surge parity coverage | Formula exists but is not applied to final score in inspected path | iOS could accidentally include it and inflate rewards/Pearls | Add Android/iOS parity tests documenting current behavior. |
 | Delayed Health refresh on iOS | HealthKit background differs | Late rewards may be missed | HealthKit refresh design. |
 | Pearl duplicate-award risk | Ledgers need idempotency | Economy inflation | Unique constraints/idempotency service. |
 | Creature Mastery idempotency | No per-instance award flag | Double/missed badges | Mastery persistence design. |
@@ -710,7 +710,7 @@ Reward calculators should be pure/testable where possible. Repositories should o
 - Creature Mastery behavior and idempotency gap are explicitly addressed.
 - Pearl ledger/idempotency behavior is documented.
 - Soft Flow and Stillwater behavior are documented.
-- Legacy reward concepts are clearly separated from iOS MVP behavior.
+- Legacy reward concepts are clearly separated from iOS Scyra parity behavior.
 - iOS recommendations preserve repo boundary rules.
 
 ## 30. Codex Summary
@@ -718,15 +718,15 @@ Reward calculators should be pure/testable where possible. Repositories should o
 - Docs and Android reward/economy files inspected: prior docs `00` through `05`, `ScoreCalculator`, `ScoreBreakdown`, Flow reward UI models, `FlowViewModel`, reward reveal mapper/content/deck files, Movement/Health utilities and repositories, Arc/Surge files, Shell reward orchestration/recorder/economy files, Shell repository/entity files, Lookout calculator/repository/entities, and reward/economy tests.
 - Exact reward formulas discovered: base Scyra Score is full minutes plus tiered timed bonuses; Surge formula is exponential accuracy bonus; Arc formula multiplies pre-Arc points by chain base plus duration tier extra; Movement source currently uses `steps / 100`; Stillwater drops equal Soft Flow duration seconds; creature growth/release formulas are in `CreatureEconomy`.
 - Timed bonus rules discovered: 10-minute counted chunks `+5`, 30-minute counted chunks `+15`, 60-minute chunks `+50`, with lower-tier counts reduced by higher-tier chunks.
-- Surge rules discovered: exact formula exists and `surgePoints` is stored/displayed, but inspected final score/reward breakdown path does not add Surge points; TODO verify intended behavior.
+- Surge rules discovered: exact formula exists and `surgePoints` is stored/displayed, but inspected final score/reward breakdown path does not add Surge points; iOS should match current Android behavior until Android changes.
 - Arc multiplier rules discovered: start multiplier 1.3, +0.1 chain step after qualifying durations, tier extras 0.0/0.1/0.2/0.3/0.4 by duration, Arc applies to base plus Movement Points.
-- Movement Point rules discovered: production source uses `STEPS_PER_POINT = 100`; tests still expect 25-step behavior, so ratio requires product/parity decision.
+- Movement Point rules discovered: production source uses `STEPS_PER_POINT = 100`; 25-step expectations are stale, and iOS should implement 100 steps = 1 Movement Point.
 - Pearl ledger rules discovered: Pearls are ledger-backed; eligible regular Flow Pearls equal final Scyra Points; Movement/Arc affect Pearls; delayed movement deltas use stable reason/source checks.
 - Creature economy rules discovered: regular Flow creature drops are deterministic by duration; growth max is level 99 with Pearl cost curve; release changes status and pays Pearl salvage value; Beyond Blue uses creatures and/or Pearls.
 - Stillwater rules discovered: Soft Flow drops are duration seconds; vessel costs are 15k/25k/45k/75k Drops; draw consumes ledger units transactionally and grants Stillwater creatures by rarity roll.
 - Lookout reward rules discovered: progress uses non-Soft Flow duration in Journey windows; completions grant countable badges; Pearls are only written on explicit claim.
 - Badge/Mastery rules discovered: Flow duration and objective badges are countable; Creature Mastery tier exists at Level 99, but no inspected code awards idempotent species Mastery badges.
 - Specific concerns answered: base score, timed bonuses, movement ratio, Pulse no-reward rule, `pulseBonusPoints`, Arc math, Surge formula, Pearl equality/effects, delayed movement idempotency, creature drops, Stillwater exclusivity/drops, creature growth/release formulas, Mastery gap, legacy concepts, and future iOS reward services are all documented above.
-- Open product decisions: Movement ratio 100 vs 25, Surge contribution to final score/Pearls, Pulse bonus field fate, Aera support, Creature Mastery persistence, legacy objects/trinkets/discoveries, Stillwater iOS scope/randomness, and cloud sync economy strategy.
+- Remaining risks/gaps: Pulse bonus field fate, Aera support timing, Creature Mastery per-instance idempotency, legacy objects/trinkets/discoveries, Stillwater randomness parity, reward parity test coverage, and future cloud sync economy strategy.
 - Anything outside `docs/06_REWARD_AND_ECONOMY_SPEC.md` changed: no.
 - Repo boundary rules preserved: yes. The document is reference-only under `docs/`; no Android code/build files were modified, no tests/migrations/schema copies were created, and no iOS files were created.

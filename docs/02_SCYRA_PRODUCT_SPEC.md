@@ -42,14 +42,14 @@ Android source areas inspected:
 - Aera relationship: Android has an `aera` flavor with `applicationIdSuffix = ".aera"`, app name `Aera`, and `SHOW_SCORE = false`. This makes Aera visible as a score-hidden/calm variant at build-flavor level.
 - Scyra relationship: Android has a `scyra` flavor with `applicationIdSuffix = ".scyra"`, app name `Scyra`, and `SHOW_SCORE = true`. Scyra is the score-enabled experience.
 - Primary Scyra visual identity: focused, reflective, rewarding, and mythic/oceanic, especially inside The Shell and The Blue.
-- Primary color: Scyra primary color should be treated as **Royal Manuscript Blue / Scyra primary blue**, even if Android comments contain stale labels such as `GryffindorRed`. The observed Scyra value is `0xFF2F4F6F`.
-- Title font: Android includes `android/app/src/main/res/font/caveatsb.ttf`, and Compose typography/theme files should be treated as evidence for a Caveat-style title/accent treatment. TODO: verify every screen where the custom font is applied.
+- Primary color: **teal is the main Scyra color for iOS and current product direction**. Android still contains/reference values such as `0xFF2F4F6F` (Royal Manuscript Blue / prior Scyra blue reference) and stale source comments, but iOS should follow the teal visual direction.
+- Typography: Android includes `android/app/src/main/res/font/caveatsb.ttf`, but **iOS should not use or copy Caveat**. iOS should use regular/system iOS typography for Scyra while preserving the calm brand tone with layout, color, and spacing.
 - Design tone: deliberate focus sessions, reflective story/history, reward reveal satisfaction, and an oceanic/mythic Shell meta-layer with creatures, Pearls, The Blue, Stillwater, and room progression.
 
 ### iOS parity note
 
-- iOS should prioritize **Scyra first**.
-- Aera support should be deferred unless explicitly requested later.
+- iOS target is **full Android app parity for Scyra**, implemented in safe phases rather than as a reduced product scope.
+- Aera support remains deferred unless explicitly requested later.
 - If Aera is later requested, implement it as a deliberate product target, not as an accidental byproduct of Scyra settings.
 
 ## 4. Core Product Model
@@ -62,18 +62,18 @@ Android source areas inspected:
 | Story / Chronicle | History of completed Flows and Pulses. | Review cards, filter by time/Journey, edit details/pulses. | `StoryScreen.kt`, `StoryBody.kt`, `FlowCard.kt`, `PulseCard.kt`. | iOS history/chronicle timeline. | Naming varies; desired terminology should be confirmed. |
 | Horizon / Home | Main dashboard/planning surface. | Start Flow/Pulse, open Paths/Shell/Help/active Flow. | `SkillzHomeScreen.kt`, `PathsScreen.kt`, Lookout strings referencing Horizon. | iOS root dashboard. | Android uses Home/Paths/Story; Horizon appears in strings. TODO: verify desired naming. |
 | Arc | Structured multi-step Flow progression/momentum chain. | Create Arc plan, launch steps, continue chain. | `ArcPlanEntity.kt`, `ArcPlanStepEntity.kt`, `ActiveArcRunEntity.kt`, `PlanArcScreen.kt`. | iOS Arc builder/detail and Flow launch integration. | Math belongs in reward spec. |
-| Surge | Timed target/precision challenge inside Flow. | Enable target, receive haptics, earn bonus. | `SurgeMiniControl.kt`, `SurgeRuntime.kt`, `AliveFlowService.kt`, `ScoreCalculator.kt`. | iOS foreground haptics/timer with timestamp catch-up. | TODO: product priority for first iOS pass. |
+| Surge | Timed target/precision challenge inside Flow. | Enable target, receive haptics, see current Android bonus presentation. | `SurgeMiniControl.kt`, `SurgeRuntime.kt`, `AliveFlowService.kt`, `ScoreCalculator.kt`. | iOS foreground haptics/timer with timestamp catch-up. | Match current Android behavior exactly; do not fix/reinterpret Surge during the iOS port. |
 | Soft Flow | Gentle unscored session. | Track time without score/Surge/Arc progression. | Flow strings, `isSoftMode`, `SoftSessionRewardContent.kt`, `Stillwater.kt`. | iOS must distinguish regular Flow from Soft Flow. | Soft Flow can feed Stillwater but should not award Scyra Score. |
 | Scyra Score | Score representing focused effort. | Earn through regular Flows and modifiers; view in Story/rewards. | `ScoreCalculator.kt`, `SessionEntity.scyraPoints`, `ScoreDisplay.kt`. | iOS must preserve score behavior. | Detailed math deferred to reward spec. |
 | Pearls | Spendable Shell/The Blue currency. | Earn from Flow/rewards/objectives; spend/grow/release creatures. | `PearlLedgerEntity`, `ShellRepository.kt`, `CreatureEconomy.kt`. | iOS ledger-backed currency. | Must avoid duplicate awards. |
-| Movement Points | Physical effort bonus derived from steps. | Enable Health; earn delayed movement contribution. | `MovementBonusCalculator.kt`, Health repositories/entities. | HealthKit step bonus with same persisted breakdown semantics. | Android uses 100 steps/point; desired ratio requires product decision. |
+| Movement Points | Physical effort bonus derived from steps. | Enable Health; earn delayed movement contribution. | `MovementBonusCalculator.kt`, Health repositories/entities. | HealthKit step bonus with same persisted breakdown semantics. | Final product/iOS parity decision: 100 steps = 1 Movement Point. |
 | Shell | Gamified reward/meta layer. | Enter Shell, visit rooms, manage rewards/creatures. | `ShellRootScreen.kt`, `ShellViewModel.kt`. | iOS Shell hub with rooms. | Port current desired rooms; legacy concepts require confirmation. |
-| Shell rooms | The Shell's feature spaces. | Navigate to The Blue, Stillwater, Idea Grove, Lookout, Voyage Hall, Focus Room, Chest, Badges. | `ShellDestination.kt`, Shell room files. | iOS room navigation. | MVP/phasing open. |
+| Shell rooms | The Shell's feature spaces. | Navigate to The Blue, Stillwater, Idea Grove, Lookout, Voyage Hall, Focus Room, Chest, Badges. | `ShellDestination.kt`, Shell room files. | iOS room navigation. | Full parity target; implementation can be phased for safety. |
 | The Blue | Ocean creature collection scene. | View creatures, levels, zones, details, release/encounter. | `rooms/blue/`, `CreatureEconomy.kt`. | iOS ocean/creature collection. | Creature-only direction should be preserved. |
-| Stillwater | Soft Flow drop/reward room. | Accumulate Drops, draw vessels for Stillwater creatures. | `Stillwater.kt`, `StillwaterRoomScreen.kt`. | iOS Stillwater if in MVP. | Soft Flow reward layer; no Scyra Score. |
+| Stillwater | Soft Flow drop/reward room. | Accumulate Drops, draw vessels for Stillwater creatures. | `Stillwater.kt`, `StillwaterRoomScreen.kt`. | iOS Stillwater in full parity implementation order. | Soft Flow reward layer; no Scyra Score. |
 | Idea Grove | Pulse-derived idea room. | Browse/sort/expand/status/delete Pulses. | `IdeaGroveScreen.kt`, `IdeaGroveViewModel.kt`. | iOS pulse idea garden. | No direct Pulse rewards. |
 | The Lookout | Objectives/goals room. | Set objectives, track periods, claim rewards, manage streaks/skips. | `LookoutRoomScreen.kt`, `LookoutViewModel.kt`, `ObjectiveEntities.kt`. | iOS objectives if in scope. | Objective reward details need deeper spec. |
-| Voyage Hall | Stats/analytics room. | View Flow/Journey/time/score analytics. | `VoyageHallScreen.kt`, `VoyageHallViewModel.kt`. | iOS analytics room. | MVP/phasing open. |
+| Voyage Hall | Stats/analytics room. | View Flow/Journey/time/score analytics. | `VoyageHallScreen.kt`, `VoyageHallViewModel.kt`. | iOS analytics room. | Full parity target; phase based on engineering order. |
 | Focus Room | Guided focus exercise room and creature display context. | Start guided exercises; view displayed creatures. | `FocusRoomScreen.kt`, `FocusRoomModels.kt`, `FocusExerciseVoiceGuide.kt`. | iOS calm guided exercises, likely TTS/audio decision needed. | Exercises explicitly do not affect rewards/stats. |
 | The Chest | Creature inventory. | View level-aware creature stacks, level up, release. | `ShellChestScreen.kt`, `ShellChestInventoryMapperTest.kt`. | iOS creature-only inventory. | Desired direction: The Chest contains creatures only. |
 | Badges | Lifetime records/achievements. | View countable badges. | `UserBadgeEntity`, `BadgesScreen.kt`, `ShellRewardOrchestrator.kt`. | iOS badge records. | Creature Mastery badge behavior requires implementation/spec verification. |
@@ -217,7 +217,7 @@ Arc is structured multi-step Flow progression and momentum across related sessio
 
 ### iOS parity requirements
 
-- Support Arc plans, ordered steps, launch into Flow, active Arc progress, continuation, and reward reveal summaries if Arc is in MVP.
+- Support Arc plans, ordered steps, launch into Flow, active Arc progress, continuation, and reward reveal summaries in the Arc parity phase.
 - Preserve user-facing Arc concept as “structured momentum across Flows.”
 - TODO: expand exact scoring/multiplier rules in `docs/06_REWARD_AND_ECONOMY_SPEC.md`.
 
@@ -236,9 +236,9 @@ Surge exists in Android as a timed target/precision behavior inside Flow.
 
 ### iOS parity requirements
 
-- If included, Surge should be implemented as a foreground SwiftUI timer/haptic feature with persisted target state and timestamp catch-up.
-- Do not assume iOS can continue haptics/countdown indefinitely in background.
-- TODO: product priority — confirm whether Surge is required for the first iOS pass or can follow core Flow/reward parity.
+- Implement Surge to match current Android behavior exactly, including whether Android displays/stores Surge separately from final Scyra/Pearls.
+- Do not “fix” or reinterpret Surge during the iOS port; if Android changes later, update iOS parity then.
+- Use iOS-native haptics/timers with persisted target state and timestamp catch-up; do not assume iOS can continue haptics/countdown indefinitely in background.
 
 ## 11. Scyra Score
 
@@ -295,10 +295,11 @@ Movement Points represent physical effort derived from health step data.
 - Delayed refresh: `FlowHealthSnapshotEntity`, `FlowRewardBreakdownEntity`, `HealthRefreshUseCase`, and `FlowHealthRepository` allow movement data to be refreshed after Flow completion, with score/Pearl deltas applied transactionally.
 - Failure states: permission missing, unavailable, no data, and error are modeled in `MovementReadResult`.
 
-### Desired product direction / open decision
+### Final product direction
 
-- Do not silently change Android parity. The current Android ratio is 100 steps per point.
-- TODO: product decision — confirm whether the desired Scyra behavior should remain 100 steps per point, change to 1 point per 25 steps, or use another ratio.
+- Final product/iOS parity decision: **100 steps = 1 Movement Point**.
+- Android production source using `steps / 100` is authoritative.
+- Older 25-step expectations/tests/product notes are stale and should not guide iOS implementation.
 
 ### iOS parity requirements
 
@@ -341,7 +342,7 @@ The Shell is Scyra's gamified reward/meta layer.
 - Pearls: used for growth, trade/quotes, and received on release.
 - Beyond Blue: trade/encounter flow can consume creatures/Pearls for Beyond Blue creatures.
 - Rendering: The Blue uses Compose procedural/drawn creature and scene files rather than static creature assets.
-- iOS parity target: SwiftUI/Canvas ocean scene, creature zones, level-aware creature display, details, growth, release, and Beyond Blue if in MVP.
+- iOS parity target: SwiftUI/Canvas ocean scene, creature zones, level-aware creature display, details, growth, release, and Beyond Blue in the relevant parity phase.
 
 ### Stillwater
 
@@ -349,7 +350,7 @@ The Shell is Scyra's gamified reward/meta layer.
 - Android files: `Stillwater.kt`, `StillwaterRoomScreen.kt`, `ShellRepository.kt`, `StillwaterLedgerEntity`, `StillwaterPreferenceEntity`.
 - Soft Flow relationship: `calculateDropsForSoftFlow(durationSeconds)` uses Soft Flow duration seconds as drops. Soft Flow does not award score, but it can gather Stillwater drops.
 - Draw/vessel behavior: `StillwaterVessel`, `StillwaterCatalog`, `validateStillwaterDraw`, and `roll` model vessels and Stillwater-exclusive creature draws.
-- iOS parity target: implement Stillwater only if Soft Flow rewards are in iOS MVP; preserve unscored calm tone.
+- iOS parity target: implement Stillwater only when Soft Flow reward parity is implemented on iOS; preserve unscored calm tone.
 
 ### Idea Grove
 
@@ -358,7 +359,7 @@ The Shell is Scyra's gamified reward/meta layer.
 - Statuses: `ALIVE`, `INSIGHT`, `COMPLETED`.
 - Behavior: sorting, expansion, mark as insight, mark completed, revive, delete Pulse, launch Flow from Pulse when no meaningful active Flow blocks it.
 - Product rule: Pulse/Idea Grove behavior should not directly award Score or Pearls.
-- iOS parity target: pulse idea garden with statuses and sorting if Shell MVP includes Idea Grove.
+- iOS parity target: pulse idea garden with statuses and sorting when Shell parity includes Idea Grove.
 
 ### The Lookout
 
@@ -368,7 +369,7 @@ The Shell is Scyra's gamified reward/meta layer.
 - Progress: calculated from Flow sessions by Journey/time window.
 - Rewards/claims: objective completions store base/final reward Pearls, streak multipliers, badge key/label, claim flags; claiming writes Pearl ledger and increments badges.
 - Streaks/skips: objective entities track current/max streak and skipped cycles.
-- iOS parity target: implement as Journey objectives with period windows, progress, claim, streak/skip semantics if included in MVP.
+- iOS parity target: implement as Journey objectives with period windows, progress, claim, streak/skip semantics when Lookout parity is implemented.
 
 ### Voyage Hall
 
@@ -476,8 +477,8 @@ The Shell is Scyra's gamified reward/meta layer.
 ## 19. Visual and Experience Principles
 
 - Scyra top app bar/title treatment should feel custom and calm, not generic utility UI.
-- Preserve Caveat-style title/accent font usage where Android uses or implies it; verify exact typography mapping in a future design-system spec.
-- Treat `0xFF2F4F6F` as Royal Manuscript Blue / Scyra primary blue regardless of stale Android comments.
+- Use regular/system iOS typography for Scyra; do not copy or depend on Android Caveat.
+- Treat teal as Scyra’s main iOS color. `0xFF2F4F6F` remains an Android/prior-reference value where source still uses it, not the iOS primary direction.
 - Material-card-inspired Android surfaces should become custom SwiftUI cards/surfaces while preserving hierarchy, softness, rounded shapes, and reward emphasis.
 - The Shell should feel mythic/oceanic: The Blue, creatures, Pearls, Stillwater, Shell rooms, and quiet reward arrival.
 - Reward reveal should feel satisfying and legible, with score/Pearl/creature/badge/Stillwater outcomes clearly separated.
@@ -501,17 +502,16 @@ The Shell is Scyra's gamified reward/meta layer.
 
 ## 21. Product Risks and Open Questions
 
-- Current Android movement ratio vs desired movement ratio.
-  - Why it matters: Android currently uses 100 steps per Movement Point, but product may want 1 point per 25 steps or another ratio.
-  - iOS impact: changing ratio silently would break parity and user expectations.
-  - Follow-up: product decision in `docs/06_REWARD_AND_ECONOMY_SPEC.md`.
+- Movement Points ratio is resolved.
+  - Final decision: 100 steps = 1 Movement Point.
+  - iOS impact: implement Android production parity and treat old 25-step notes/tests as stale.
 - Whether Aera should exist on iOS.
   - Why it matters: Android supports score-hidden Aera via flavor, but iOS should prioritize Scyra first.
   - iOS impact: multiple targets/settings add scope and QA burden.
   - Follow-up: explicit iOS target/flavor decision.
 - Whether legacy Shell economy concepts should be retained for data compatibility.
   - Why it matters: discoveries, trinkets, room objects, ShellFind naming, Coral/Plants may be legacy but may exist in persisted Android data.
-  - iOS impact: porting them bloats MVP; ignoring them may affect migration/import later.
+  - iOS impact: porting them adds non-current concepts to full parity work; ignoring them may affect migration/import later.
   - Follow-up: legacy/data compatibility audit.
 - Exact reward math needs a separate spec.
   - Why it matters: score, Surge, Arc, Movement Points, Pearls, badges, creatures, and Stillwater span multiple files.
@@ -525,10 +525,10 @@ The Shell is Scyra's gamified reward/meta layer.
   - Why it matters: Android routes, Shell internal destinations, sheets, and dialogs are distributed.
   - iOS impact: NavigationStack paths/sheets need a clean map.
   - Follow-up: navigation and screen map doc.
-- Whether all Shell rooms are MVP for iOS or phased.
-  - Why it matters: The Blue, Chest, Stillwater, Idea Grove, Lookout, Voyage Hall, and Focus Room vary in complexity.
-  - iOS impact: scope risk.
-  - Follow-up: iOS MVP/phasing decision.
+- Shell room implementation order.
+  - Why it matters: the target is full Android parity, but The Blue, Chest, Stillwater, Idea Grove, Lookout, Voyage Hall, and Focus Room vary in complexity.
+  - iOS impact: engineering order and dependency management.
+  - Follow-up: phase planning, not product-scope reduction.
 - Whether Focus Room voice/audio should use TTS, bundled audio, or another approach.
   - Why it matters: Android uses TTS and voice availability fallback.
   - iOS impact: AVSpeechSynthesizer/bundled audio have different UX and asset implications.
@@ -562,6 +562,6 @@ The Shell is Scyra's gamified reward/meta layer.
 - Docs and Android files/directories inspected: `docs/00_REPO_BOUNDARIES.md`, `docs/01_ANDROID_ARCHITECTURE.md`, Android navigation, Flow, Pulse, Story/Home, Paths/Arc, Shell root/rooms, reward/economy, persistence entity, resource/theme, and test files listed in Section 2.
 - Most important product concepts captured: Flow, Journey, Pulse, Story/Chronicle/Home/Horizon, Arc, Surge, Soft Flow, Scyra Score, Pearls, Movement Points, The Shell, Shell rooms, The Blue, Stillwater, Idea Grove, The Lookout, Voyage Hall, Focus Room, The Chest, Badges, and Creature Mastery.
 - Legacy concepts identified: Discovery Journal/discoveries, Trinkets, room objects, Shells/ShellFind naming, Coral, Plants, old Shell Chest naming, object placement, Beam naming, and any Pulse reward interpretation.
-- Product decisions/TODOs still open: movement ratio, Aera on iOS, legacy data compatibility, reward math, design-system parity, navigation map, Shell room phasing, Focus Room voice/audio, soundscape scope, and exact Creature Mastery badge award path.
+- Resolved decisions applied: full Android parity target, teal as main Scyra iOS color, 100 steps per Movement Point, system iOS typography instead of Caveat, owner-created turtle logo usable after iOS-local export, and Surge should match current Android behavior. Remaining gaps include Aera scope, legacy data compatibility, detailed reward parity tests, full Shell implementation order, Focus Room voice/audio details, soundscape scope, and exact Creature Mastery badge idempotency path.
 - Anything outside `docs/02_SCYRA_PRODUCT_SPEC.md` changed: no.
 - Repo boundary rules preserved: yes. The document is reference-only under `docs/`; no Android code/build files were modified and no iOS project/files were created.

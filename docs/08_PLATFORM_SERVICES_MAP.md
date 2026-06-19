@@ -41,7 +41,7 @@ This is documentation only. It does not modify Android source/resources, create 
 | Main activity | `MainActivity.kt` | Launcher/root Compose host | `@AndroidEntryPoint`; installs splash, enables edge-to-edge, reinstates Flow notification, mounts `SkillzTheme`, `NotificationPermissionGate`, and `SkillzNavHost`. | `AppRootView` in SwiftUI scene. | Recreate initial route and active Flow restoration natively. |
 | Splash screen | `themes.xml`, splash drawables/animator | Branded launch | Android SplashScreen API uses teal background, animated splash icon, 1400 ms duration. | iOS LaunchScreen plus optional post-launch animation. | iOS launch screens are mostly static. |
 | Hilt | `@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`, `data/di/*` | DI for DB, repositories, ViewModels, services | Singleton component provides Room, DAOs, DataStore, Health calculator/policy. | Lightweight dependency container + protocols/environment injection. | Do not mirror Hilt mechanically. |
-| Room | `SkillzDatabase.kt`, `DatabaseModule.kt` | Local persistence | Database `skillz_db`, version 31, `exportSchema = true`, migrations attached. | SwiftData or SQLite behind repositories. | Reward/economy transactions need Room-like guarantees. |
+| Room | `SkillzDatabase.kt`, `DatabaseModule.kt` | Local persistence | Database `skillz_db`, version 31, `exportSchema = true`, migrations attached. | SQLite behind repositories by default; SwiftData only if a future implementation spike proves it sufficient. | Reward/economy transactions need Room-like guarantees. |
 | DataStore | `DatabaseModule.kt`, `UserPrefs.kt`, `ArcPrefs.kt`, `NotepadRepository.kt`, `HealthSettingsRepository.kt` | Preferences/settings/runtime state | Uses `skillz_prefs` and `user_prefs` DataStores for settings, Arc, notepad, movement toggle. | UserDefaults/AppStorage wrapped by repositories. | Keep storage isolated from SwiftUI views. |
 | Foreground Flow service | `AliveFlowService.kt` | Keep active Flow visible and ticking | Foreground service starts notification, observes ongoing session, ticks every second, updates notification, handles Surge haptics/hourly reminders. | Timestamp-based service plus notifications; optional Live Activity later. | No exact iOS equivalent to persistent foreground service. |
 | Notification channels | `AliveFlowNotificationFactory.kt` | Active Flow and reminder notifications | Channels `flow_alive_channel` / `flow_hourly_reminder_channel`; low/default importance. | UserNotifications categories if needed. | iOS users manage notification settings differently. |
@@ -76,7 +76,7 @@ Future iOS should recreate this with an `@main App`, a root dependency container
 | `@AndroidEntryPoint` activity | `MainActivity.kt` | `AliveFlowRepository`, `AliveFlowServiceController`, `HealthRefreshUseCase` | Activity-injected | Root view model/container dependencies. |
 | `@AndroidEntryPoint` service | `AliveFlowService.kt` | `AliveFlowRepository`, `SurgeHapticsManager` | Service-injected | `FlowLifecycleService` / notification coordinator. |
 | `@HiltViewModel` | Multiple ViewModels | Feature repositories/use cases from Hilt | ViewModel-scoped | SwiftUI observable models with injected protocol dependencies. |
-| `DatabaseModule.provideDatabase` | `DatabaseModule.kt` | Room `SkillzDatabase` named `skillz_db` with migrations | Singleton | `PersistenceContainer` using SwiftData or SQLite. |
+| `DatabaseModule.provideDatabase` | `DatabaseModule.kt` | Room `SkillzDatabase` named `skillz_db` with migrations | Singleton | `PersistenceContainer` using SQLite behind repositories by default. |
 | DAO providers | `DatabaseModule.kt`, `ShellDatabaseModule.kt` | Core, health, and Shell DAOs | Database-backed | Repository internals; do not expose DAOs to UI. |
 | DataStore provider | `DatabaseModule.kt` | `DataStore<Preferences>` named `skillz_prefs` | Singleton | `SettingsStore` over UserDefaults or file-backed preferences. |
 | `UserPrefs` DataStore | `UserPrefs.kt` | Separate `user_prefs` DataStore for score/calm/language | Singleton repository | `UserSettingsRepository`. |
@@ -95,7 +95,7 @@ Android creates Room via `Room.databaseBuilder(context, SkillzDatabase::class.ja
 
 DataStore is used in two ways: `DatabaseModule` provides a `skillz_prefs` `DataStore<Preferences>` used by `ArcPrefs`, `NotepadRepository`, and `HealthSettingsRepository`; `UserPrefs` creates a separate `user_prefs` DataStore for `show_score_ui`, `calm_mode`, and `app_language_tag`. These values affect UI, Arc runtime, Health movement toggle, notepad HTML/font, and localization.
 
-Android backup is currently enabled at the manifest level, but backup/data extraction XML files are template-like. Future iOS must decide iCloud backup/exclusion for the database, ledgers, settings, and Health-derived snapshots. iOS should use SwiftData or SQLite behind repositories, define transaction boundaries from day one, use UserDefaults/AppStorage only behind settings repositories, version migrations from the first iOS release, and never depend on Android Room schema files at build/runtime.
+Android backup is currently enabled at the manifest level, but backup/data extraction XML files are template-like. Future iOS must decide iCloud backup/exclusion for the database, ledgers, settings, and Health-derived snapshots. iOS should use SQLite behind repositories by default; SwiftData only if a future implementation spike proves it sufficient, define transaction boundaries from day one, use UserDefaults/AppStorage only behind settings repositories, version migrations from the first iOS release, and never depend on Android Room schema files at build/runtime.
 
 ## 7. Notifications and Foreground Flow Service
 
@@ -105,7 +105,7 @@ Android backup is currently enabled at the manifest level, but backup/data extra
 
 `NotificationPermissionGate` requests `POST_NOTIFICATIONS` on Android 13+ at composition time and calls the provided callback when granted. `MainActivity` only starts/reinstates the service when active Flow exists and notification permission is granted where required.
 
-Android behavior that cannot be reproduced exactly on iOS: a persistent, non-dismissible foreground-service notification with a continuously ticking service process. iOS should instead persist active Flow timestamps/intervals, restore elapsed time on foreground/resume, optionally schedule local reminders, and consider Live Activities only as a later optional product decision. User-visible parity should preserve: users can return to an active Flow from a notification/deep link, elapsed time remains correct after background/relaunch, paused/running state is clear, and long Flow reminders remain gentle/idempotent.
+Android behavior that cannot be reproduced exactly on iOS: a persistent, non-dismissible foreground-service notification with a continuously ticking service process. iOS should instead use native best-practice patterns: persist active Flow timestamps/intervals, restore elapsed time on foreground/resume, optionally schedule local reminders, and consider Live Activities only as a later optional product decision. User-visible parity should preserve: users can return to an active Flow from a notification/deep link, elapsed time remains correct after background/relaunch, paused/running state is clear, and long Flow reminders remain gentle/idempotent.
 
 ## 8. Deep Links and Navigation Entry Points
 
@@ -119,14 +119,14 @@ Future iOS should support either a custom URL scheme or Universal Links later, h
 
 Android Health Connect integration is step-count-only in the inspected source. `HealthPermissionRepository.readStepsPermission` is `HealthPermission.getReadPermission(StepsRecord::class)`, the manifest declares `android.permission.health.READ_STEPS`, and `HealthConnectMovementDataSource` reads `StepsRecord.COUNT_TOTAL` with `HealthConnectClient.aggregate(AggregateRequest(... TimeRangeFilter.between(start, end)))`. It checks granted permissions before reading and returns `HealthConnectUnavailable`, `PermissionMissing`, `NoData`, `Error`, or `Success(steps)`.
 
-`HealthConnectClientProvider` maps SDK status to `AVAILABLE`, `PROVIDER_UPDATE_REQUIRED`, or `UNAVAILABLE`. `HealthSettingsRepository` stores `movement_bonus_enabled` in DataStore. `MovementStepAggregator` normalizes/merges active intervals and sums successful reads across intervals. `MovementBonusCalculator` currently converts steps to Movement Points with `steps / 100`. `HealthRefreshUseCase.refreshForeground()` runs on `MainActivity.onResume`, exits if the setting is disabled, expires old snapshots, checks Health Connect availability and read permission, then refreshes eligible snapshots. Successful delayed refresh transactionally updates health snapshot, reward breakdown, final session points, Arc bonus points, and Pearl delta using a stable movement Pearl reason.
+`HealthConnectClientProvider` maps SDK status to `AVAILABLE`, `PROVIDER_UPDATE_REQUIRED`, or `UNAVAILABLE`. `HealthSettingsRepository` stores `movement_bonus_enabled` in DataStore. `MovementStepAggregator` normalizes/merges active intervals and sums successful reads across intervals. `MovementBonusCalculator` converts steps to Movement Points with the final product/parity formula `steps / 100` (100 steps = 1 Movement Point). `HealthRefreshUseCase.refreshForeground()` runs on `MainActivity.onResume`, exits if the setting is disabled, expires old snapshots, checks Health Connect availability and read permission, then refreshes eligible snapshots. Successful delayed refresh transactionally updates health snapshot, reward breakdown, final session points, Arc bonus points, and Pearl delta using a stable movement Pearl reason.
 
 Explicit answers:
 
 - Required Health Connect permission: read permission for `StepsRecord`, exposed as `android.permission.health.READ_STEPS` and `HealthPermission.getReadPermission(StepsRecord::class)`.
 - Records read: `StepsRecord` only, aggregated as `StepsRecord.COUNT_TOTAL`.
 - Heart rate, distance, exercise sessions: not read in inspected Android source; treat as future-only.
-- iOS parity permission: HealthKit read authorization for step count (`HKQuantityTypeIdentifier.stepCount`). No heart-rate/distance/workout permissions should be requested for MVP unless product scope changes.
+- iOS parity permission: HealthKit read authorization for step count (`HKQuantityTypeIdentifier.stepCount`). No heart-rate/distance/workout permissions should be requested for parity unless product scope changes.
 - Future-only: Health metrics beyond steps, background delivery guarantees, and any exercise-session integration.
 
 ## 10. Background Work and Delayed Refresh
@@ -147,15 +147,15 @@ Future iOS must not assume continuous background execution. It should persist an
 
 ## 12. Permissions Map
 
-| Permission | Android source | Why needed | Runtime/install-time | User-facing flow | iOS equivalent permission/capability | iOS copy/UX differences | MVP priority | Notes/TODO |
+| Permission | Android source | Why needed | Runtime/install-time | User-facing flow | iOS equivalent permission/capability | iOS copy/UX differences | Phase priority | Notes/TODO |
 | ---------- | -------------- | ---------- | -------------------- | ---------------- | ------------------------------------ | ----------------------- | ------------ | ---------- |
-| `android.permission.FOREGROUND_SERVICE` | Manifest | Allows foreground service for active Flow notification. | Install-time/platform requirement. | No direct user runtime prompt. | No direct equivalent; iOS background modes/Live Activities only if scoped. | Explain active Flow reminders, not foreground service. | MVP concept | iOS cannot reproduce persistent service. |
+| `android.permission.FOREGROUND_SERVICE` | Manifest | Allows foreground service for active Flow notification. | Install-time/platform requirement. | No direct user runtime prompt. | No direct equivalent; iOS background modes/Live Activities only if scoped. | Explain active Flow reminders, not foreground service. | Parity concept | iOS cannot reproduce persistent service. |
 | `android.permission.FOREGROUND_SERVICE_DATA_SYNC` | Manifest | Service type for `AliveFlowService`. | Install-time/platform requirement. | No direct prompt. | No direct equivalent. | N/A | Android-only | Do not port. |
-| `android.permission.POST_NOTIFICATIONS` | Manifest, `NotificationPermissionGate.kt`, `MainActivity.kt` | Shows Flow/reminder notifications. | Runtime on Android 13+; earlier platform behavior differs. | Gate launches request and calls on granted. | UserNotifications authorization. | iOS should use education screen/timing before system prompt. | MVP if notifications enabled | Do not auto-prompt without UX decision. |
-| `android.permission.VIBRATE` | Manifest, Surge haptics service code | Surge haptic milestones/countdowns. | Install-time normal permission. | No runtime prompt. | Core Haptics / UIFeedbackGenerator; no equivalent permission. | Respect iOS haptic settings. | MVP if Surge haptics included | Verify iOS haptic fallback. |
-| `android.permission.health.READ_STEPS` | Manifest, Health permission repository | Reads Health Connect step counts for Movement Points. | Health Connect runtime permission. | Health settings card / permission launcher. | HealthKit step-count read authorization. | HealthKit privacy copy must be native. | MVP if Movement Points included | Steps only; do not request extra metrics. |
-| `android.permission.START_VIEW_PERMISSION_USAGE` | Manifest activity aliases | Allows Health Connect permission-rationale/usage entry points. | Permission on exported aliases. | Health Connect platform flows. | No direct equivalent; HealthKit Settings/privacy pages. | iOS flow differs. | MVP concept | Android-only alias behavior. |
-| `android.intent.action.TTS_SERVICE` query | Manifest `<queries>` | Discover/use installed TTS services. | Package visibility query, not permission. | No user prompt. | `AVSpeechSynthesizer` voices. | Voice availability differs. | Phase 2/MVP if Focus Room included | iOS does not need manifest query. |
+| `android.permission.POST_NOTIFICATIONS` | Manifest, `NotificationPermissionGate.kt`, `MainActivity.kt` | Shows Flow/reminder notifications. | Runtime on Android 13+; earlier platform behavior differs. | Gate launches request and calls on granted. | UserNotifications authorization. | iOS should use education screen/timing before system prompt. | Phase when notifications enabled | Do not auto-prompt without UX decision. |
+| `android.permission.VIBRATE` | Manifest, Surge haptics service code | Surge haptic milestones/countdowns. | Install-time normal permission. | No runtime prompt. | Core Haptics / UIFeedbackGenerator; no equivalent permission. | Respect iOS haptic settings. | Phase when Surge haptics included | Verify iOS haptic fallback. |
+| `android.permission.health.READ_STEPS` | Manifest, Health permission repository | Reads Health Connect step counts for Movement Points. | Health Connect runtime permission. | Health settings card / permission launcher. | HealthKit step-count read authorization. | HealthKit privacy copy must be native. | Phase when Movement Points included | Steps only; do not request extra metrics. |
+| `android.permission.START_VIEW_PERMISSION_USAGE` | Manifest activity aliases | Allows Health Connect permission-rationale/usage entry points. | Permission on exported aliases. | Health Connect platform flows. | No direct equivalent; HealthKit Settings/privacy pages. | iOS flow differs. | Parity concept | Android-only alias behavior. |
+| `android.intent.action.TTS_SERVICE` query | Manifest `<queries>` | Discover/use installed TTS services. | Package visibility query, not permission. | No user prompt. | `AVSpeechSynthesizer` voices. | Voice availability differs. | Phase 2/Phase when Focus Room included | iOS does not need manifest query. |
 | Internet/network | Manifest | Not present. | N/A | N/A | Not needed unless future features. | N/A | Later | Do not invent network dependency. |
 | Wake lock | Manifest | Not present. | N/A | N/A | N/A | N/A | Later | No wakelock behavior found. |
 | Exact alarm | Manifest | Not present. | N/A | N/A | N/A | N/A | Later | No alarm behavior found. |
@@ -208,7 +208,7 @@ Future iOS should respect safe areas, custom Scyra top bars, status/navigation b
 | ------------------ | ----------------- | ---------------- | ---------------------------------------- | ----------------------------- | ----- |
 | Health Connect client | `libs.androidx.health.connect.client` | Movement Points / steps | HealthKit | Yes, native HealthKit | Request only step count for parity. |
 | Hilt | Hilt plugin/deps/KSP | DI, ViewModels, services | Custom container/protocol injection | Yes initially | Swift does not need Hilt-like framework. |
-| Room | Room runtime/KTX/compiler | Local database | SwiftData or SQLite | Maybe | SQLite may be better for Room-like control. |
+| Room | Room runtime/KTX/compiler | Local database | SQLite behind repositories | Prefer native SQLite wrapper/repository control | Scyra needs Room-like control, migrations, ledgers, and transactions. |
 | DataStore Preferences | `androidx.datastore.preferences` | Settings/notepad/Arc/Health toggle | UserDefaults/AppStorage behind repositories | Yes | Wrap to keep testability. |
 | WorkManager | `androidx.work.runtime.ktx` | Dependency present; no worker found | BGTaskScheduler if needed | Yes until needed | Do not invent background jobs. |
 | Lifecycle service/runtime | `lifecycle-service`, runtime compose | Service/lifecycle/root Compose | SwiftUI scene phase, app lifecycle | Native | Active Flow restoration needs tests. |
@@ -227,7 +227,7 @@ Future iOS should respect safe areas, custom Scyra top bars, status/navigation b
 | Notification parity | Channels, pending intents, ongoing flags differ. | User return-to-Flow behavior can drift. | iOS notification UX/deep-link spec. |
 | Health Connect vs HealthKit differences | Permission and step query APIs differ. | Movement Points may mismatch. | HealthKit spike with interval aggregation tests. |
 | Delayed movement refresh reliability | Android refreshes opportunistically on resume. | iOS background timing may be less reliable. | Define refresh windows and idempotency tests. |
-| Movement ratio decision | Task 1.7 flags Android `steps / 100` vs possible product direction. | iOS may ship wrong formula if decision unresolved. | Product decision before implementation. |
+| Movement ratio resolved | Android production and final product direction use `steps / 100`. | iOS must implement 100 steps = 1 Movement Point. | Add tests and ignore stale 25-step notes. |
 | WorkManager/BGTask strategy | WorkManager dependency exists but no workers found. | iOS should not over-engineer BGTask usage. | Background refresh architecture decision. |
 | Active Flow restoration | Timers/rewards depend on accurate persisted intervals. | Incorrect elapsed time breaks trust/rewards. | Restoration test suite. |
 | TTS voice quality/locales | Android picks English voices and text-only fallback. | iOS voice availability differs by locale/device. | SpeechGuideService prototype. |
@@ -235,27 +235,27 @@ Future iOS should respect safe areas, custom Scyra top bars, status/navigation b
 | App language override | Android AppCompat locales are app-level. | iOS override is more constrained. | LocaleService feasibility/spec. |
 | Backup/iCloud decisions | Economy/Health/notepad data may be sensitive. | Privacy/backup behavior must be explicit. | Backup/privacy engineering task. |
 | Splash animation parity | Android has animated splash icon. | iOS launch constraints prevent exact match. | iOS launch/branding design task. |
-| Aera flavor support | Android has Scyra/Aera flavor values. | iOS target/scheme complexity. | Decide whether Aera is MVP. |
+| Aera flavor support | Android has Scyra/Aera flavor values. | iOS target/scheme complexity. | Defer unless explicitly scoped; Scyra full parity is the target. |
 | App Store permissions/privacy | HealthKit/notifications/TTS copy must satisfy platform expectations. | App review/privacy risk. | App Store privacy/permission checklist. |
 | Source-backed drawing performance | The Blue/Shell procedural visuals may be expensive. | SwiftUI Canvas performance risk. | Rendering prototype/performance test. |
 | Future cloud sync implications | Local persistence and backup choices affect sync. | Later migration conflict risk. | Cloud sync architecture decision later. |
 
 ## 21. iOS Platform Service Recommendations
 
-| Future iOS service/protocol | Purpose | Android source behavior it replaces | MVP or later | Testability recommendation |
+| Future iOS service/protocol | Purpose | Android source behavior it replaces | Phase 1 or later | Testability recommendation |
 | --------------------------- | ------- | ---------------------------------- | ------------ | -------------------------- |
-| `AppDependencyContainer` | Compose app services/repositories at launch. | Hilt app graph/modules. | MVP | Build with protocol dependencies and in-memory variants. |
-| `PersistenceContainer` | Own SwiftData/SQLite stack and migrations. | Room `SkillzDatabase`, `DatabaseModule`. | MVP | Use temporary/in-memory stores in tests. |
-| `SettingsRepository` | Store score/calm/language/movement/notepad settings. | DataStore wrappers (`UserPrefs`, `HealthSettingsRepository`, `NotepadRepository`). | MVP | Mock UserDefaults/store. |
-| `FlowLifecycleService` | Manage active Flow timestamps, pause/resume, restoration. | `AliveFlowRepository`, `OngoingSessionEntity`, `AliveFlowService`. | MVP | Unit-test elapsed reconstruction. |
-| `NotificationService` | Request permission, schedule local reminders, handle taps. | Notification gate/factory/channels/pending intents. | MVP if notifications included | Mock notification center. |
-| `DeepLinkRouter` | Convert URLs/notification responses into typed routes. | Manifest VIEW intent and NavHost deep link. | MVP | Pure route parsing tests. |
-| `HealthKitMovementService` | Read step count over active intervals. | Health Connect provider/data source. | MVP if Movement Points included | Abstract `HKHealthStore`; fake query results. |
-| `MovementRefreshService` | Refresh pending snapshots idempotently. | `HealthRefreshUseCase`. | MVP if Movement Points included | Transaction/idempotency tests. |
-| `SpeechGuideService` | Focus Room voice guide. | `FocusExerciseVoiceGuide`. | Phase 2/MVP if Focus Room included | Fake synthesizer states. |
+| `AppDependencyContainer` | Compose app services/repositories at launch. | Hilt app graph/modules. | Phase 1 | Build with protocol dependencies and in-memory variants. |
+| `PersistenceContainer` | Own SQLite-backed stack and migrations behind repositories; consider SwiftData only if future evidence proves sufficient. | Room `SkillzDatabase`, `DatabaseModule`. | Phase 1 | Use temporary/in-memory stores in tests. |
+| `SettingsRepository` | Store score/calm/language/movement/notepad settings. | DataStore wrappers (`UserPrefs`, `HealthSettingsRepository`, `NotepadRepository`). | Phase 1 | Mock UserDefaults/store. |
+| `FlowLifecycleService` | Manage active Flow timestamps, pause/resume, restoration. | `AliveFlowRepository`, `OngoingSessionEntity`, `AliveFlowService`. | Phase 1 | Unit-test elapsed reconstruction. |
+| `NotificationService` | Request permission, schedule local reminders, handle taps. | Notification gate/factory/channels/pending intents. | Phase when notifications included | Mock notification center. |
+| `DeepLinkRouter` | Convert URLs/notification responses into typed routes. | Manifest VIEW intent and NavHost deep link. | Phase 1 | Pure route parsing tests. |
+| `HealthKitMovementService` | Read step count over active intervals. | Health Connect provider/data source. | Phase when Movement Points included | Abstract `HKHealthStore`; fake query results. |
+| `MovementRefreshService` | Refresh pending snapshots idempotently. | `HealthRefreshUseCase`. | Phase when Movement Points included | Transaction/idempotency tests. |
+| `SpeechGuideService` | Focus Room voice guide. | `FocusExerciseVoiceGuide`. | Phase 2/Phase when Focus Room included | Fake synthesizer states. |
 | `LocaleService` | Apply/select app language if in-app override exists. | `AppLocaleManager`, `UserPrefs.KEY_APP_LANGUAGE_TAG`. | Later unless required | Snapshot tests per locale. |
-| `AppLaunchCoordinator` | Startup route restoration, permissions timing, health refresh. | `SkillzApplication`, `MainActivity`. | MVP | Launch scenario tests. |
-| `PermissionEducationCoordinator` | Product-approved permission education screens. | Notification/Health permission UI. | MVP for Health/notifications | State-machine tests. |
+| `AppLaunchCoordinator` | Startup route restoration, permissions timing, health refresh. | `SkillzApplication`, `MainActivity`. | Phase 1 | Launch scenario tests. |
+| `PermissionEducationCoordinator` | Product-approved permission education screens. | Notification/Health permission UI. | Phase 1 for Health/notifications | State-machine tests. |
 | `BackupPolicyNotes` | Engineering record for backup exclusions/inclusions. | Manifest backup XML. | Later before release | Checklist/review artifact. |
 
 These are recommendations only and do not create iOS code or folders.
@@ -264,18 +264,18 @@ These are recommendations only and do not create iOS code or folders.
 
 | Test group | Android source/test reference | Expected iOS behavior | Priority |
 | ---------- | ----------------------------- | --------------------- | -------- |
-| Active Flow restoration after background/relaunch | `OngoingSessionEntity`, `AliveFlowRepository`, `MainActivity`, `AliveFlowService` | Reconstruct elapsed time from persisted timestamps after relaunch. | MVP |
-| Pause/resume active intervals | Flow ViewModel and movement interval codec/calculator tests | Persist intervals accurately and exclude paused time. | MVP |
-| Notification tap route restoration | `AliveFlowNotificationFactory`, manifest, `SkillzNavHost` | Tapping notification opens/restores Flow route. | MVP if notifications included |
-| HealthKit authorization states | `HealthPermissionRepository`, `HealthSettingsViewModel` | Granted/denied/unavailable/update-required equivalents produce correct UI. | MVP if Movement Points included |
-| Step aggregation by interval | `MovementStepAggregator` tests | Sum normalized active intervals; handle no-data/errors. | MVP |
-| Delayed movement refresh idempotency | `HealthRefreshUseCase`, `FlowHealthRepository`, reward tests | Later refresh increases only when appropriate and does not duplicate Pearl deltas. | MVP if Movement Points included |
-| Settings persistence | `UserPrefs`, `HealthSettingsRepository`, `NotepadRepository`, `ArcPrefs` | Settings survive app restart and are isolated behind repositories. | MVP |
-| Language setting | `AppLocaleManager`, localized resources | App uses system/default locale or selected override consistently. | Phase 2 unless language override MVP |
-| TTS states | `FocusExerciseVoiceGuide` | Ready/error/unavailable/start/stop/retry states work with fake synthesizer. | Phase 2/MVP if Focus Room included |
-| Permission education | `NotificationPermissionGate`, Health settings UI | Education states precede native prompts and handle denial. | MVP for permissioned features |
-| Database transaction service tests | Room repositories and reward/economy specs | Reward/ledger/creature/health updates are atomic. | MVP |
-| Deep link routing | Manifest/NavHost deep link | URL and notification response map to typed routes with fallback restoration. | MVP |
+| Active Flow restoration after background/relaunch | `OngoingSessionEntity`, `AliveFlowRepository`, `MainActivity`, `AliveFlowService` | Reconstruct elapsed time from persisted timestamps after relaunch. | Phase 1 |
+| Pause/resume active intervals | Flow ViewModel and movement interval codec/calculator tests | Persist intervals accurately and exclude paused time. | Phase 1 |
+| Notification tap route restoration | `AliveFlowNotificationFactory`, manifest, `SkillzNavHost` | Tapping notification opens/restores Flow route. | Phase when notifications included |
+| HealthKit authorization states | `HealthPermissionRepository`, `HealthSettingsViewModel` | Granted/denied/unavailable/update-required equivalents produce correct UI. | Phase when Movement Points included |
+| Step aggregation by interval | `MovementStepAggregator` tests | Sum normalized active intervals; handle no-data/errors. | Phase 1 |
+| Delayed movement refresh idempotency | `HealthRefreshUseCase`, `FlowHealthRepository`, reward tests | Later refresh increases only when appropriate and does not duplicate Pearl deltas. | Phase when Movement Points included |
+| Settings persistence | `UserPrefs`, `HealthSettingsRepository`, `NotepadRepository`, `ArcPrefs` | Settings survive app restart and are isolated behind repositories. | Phase 1 |
+| Language setting | `AppLocaleManager`, localized resources | App uses system/default locale or selected override consistently. | Phase 2 unless language override Phase 1 |
+| TTS states | `FocusExerciseVoiceGuide` | Ready/error/unavailable/start/stop/retry states work with fake synthesizer. | Phase 2/Phase when Focus Room included |
+| Permission education | `NotificationPermissionGate`, Health settings UI | Education states precede native prompts and handle denial. | Phase 1 for permissioned features |
+| Database transaction service tests | Room repositories and reward/economy specs | Reward/ledger/creature/health updates are atomic. | Phase 1 |
+| Deep link routing | Manifest/NavHost deep link | URL and notification response map to typed routes with fallback restoration. | Phase 1 |
 
 ## 23. Acceptance Criteria for This Document
 
@@ -304,6 +304,6 @@ These are recommendations only and do not create iOS code or folders.
 - TTS/audio behavior discovered: Focus Room uses Android `TextToSpeech`, English voice selection/fallback, and no bundled raw/audio assets.
 - Backup/data extraction behavior discovered: manifest backup enabled with sample/template backup and data extraction XML.
 - iOS equivalents recommended: SwiftUI `@main App`, dependency container, persistence container, UserNotifications, HealthKit step queries, timestamp-based Flow lifecycle service, AVSpeechSynthesizer, String Catalogs, native launch assets, and iCloud backup policy decisions.
-- Highest-risk iOS gaps: Android foreground service parity, notification behavior, HealthKit delayed refresh reliability, active Flow restoration, Movement ratio decision, TTS/VoiceOver interaction, app language override, backup/privacy policy, splash animation parity, and procedural visual performance.
+- Highest-risk iOS gaps: Android foreground service parity, notification behavior, HealthKit delayed refresh reliability, active Flow restoration, 100-step Movement parity tests, TTS/VoiceOver interaction, app language override, backup/privacy policy, splash animation parity, and procedural visual performance.
 - Nothing outside `docs/08_PLATFORM_SERVICES_MAP.md` should be changed for this task.
 - Repo boundary rules remain preserved: docs reference Android source paths only for planning, and future iOS platform services/assets must live under `ios/` without Android build/runtime dependencies.

@@ -65,7 +65,7 @@ Bad examples:
 
 Good future examples, not created by this task:
 
-- `ios/Scyra/Resources/Fonts/caveatsb.ttf`
+- `ios/Scyra/Resources/Fonts/` only for future non-Caveat fonts if needed
 - `ios/Scyra/Assets.xcassets/scyra_turtle.imageset`
 - `ios/Scyra/Resources/Localizable.xcstrings`
 
@@ -77,7 +77,7 @@ Good future examples, not created by this task:
 | `android/app/src/main/res/values-es/` | Localized strings | `strings.xml` | Spanish copy | Portable as translation content if licensed/approved | iOS String Catalog Spanish locale | localize later | Key count matched base in inspection; translation quality still TODO. |
 | `android/app/src/main/res/values-hi/` | Localized strings | `strings.xml` | Hindi copy | Portable as translation content if approved | iOS String Catalog Hindi locale | localize later | Devanagari layout and brand font fallback risk. |
 | `android/app/src/main/res/values-mr/` | Localized strings | `strings.xml` | Marathi copy | Portable as translation content if approved | iOS String Catalog Marathi locale | localize later | Devanagari layout and long-string risk. |
-| `android/app/src/main/res/font/` | Font asset | `caveatsb.ttf` | Brand/title Caveat-style font | Portable only if license permits | `ios/Scyra/Resources/Fonts/` | copy later after license verification | Do not reference Android font path. |
+| `android/app/src/main/res/font/` | Android font asset | `caveatsb.ttf` | Android title font only | Not needed for iOS | None for Caveat | skip for iOS | iOS should use regular/system typography and not copy Caveat. |
 | `android/app/src/main/res/drawable/` | PNG/vector/XML drawables | `scyra_turtle.png`, `ic_scyra_splash_base.xml`, `ic_scyra_splash_animated.xml`, `ic_scyra_notification.xml`, launcher foreground/background XML | Brand turtle, splash, notification icon, launcher layers | Mixed | `Assets.xcassets`, native iOS launch assets, notification assets | copy/recreate/redraw/verify | Android vector/adaptive formats are not directly AppIcon-ready. |
 | `android/app/src/main/res/mipmap-*` | Launcher icons | `ic_launcher.png`, `ic_launcher_foreground.png`, `ic_launcher_round.png`, adaptive icon XML in anydpi | Android launcher icons | Concept portable; files not directly sufficient for iOS | `Assets.xcassets/AppIcon.appiconset` | recreate as iOS AppIcon | iOS has different sizes, masks, and transparency rules. |
 | `android/app/src/main/res/xml/` | Android platform XML | `backup_rules.xml`, `data_extraction_rules.xml` | Backup/data extraction policy placeholders | Concept portable; XML Android-only | iOS backup/privacy decisions | skip / recreate concept | Current files are template-like and need real policy review. |
@@ -96,7 +96,7 @@ The base string file is `android/app/src/main/res/values/strings.xml`; localized
 | Flow screen copy | `flow_screen_*`, `flow_card_*`, Flow form labels | `strings.xml`, Flow screen files | Flow creation/active/pause/complete UX | Localized | Feature-specific String Catalog groups | Medium | Soft Flow copy mentions Beam as excluded; Beam is legacy/TODO. |
 | Flow reward copy | `session_reward_*`, `reward_card_*`, `reward_chip_*`, Movement reward strings | `strings.xml`, `ui/screen/flow/reward/` | Reward reveal cards, chips, details | Localized | Reward feature strings | High in card deck | Beam reward strings remain; hidden/legacy cards should not be ported unless confirmed. |
 | Pulse copy | `pulse_*`, `pulse_card_*`, `story_fab_record_pulse` | `strings.xml`, Pulse UI files | Thought/idea capture and edit | Localized | Pulse feature strings | Medium | No copy should treat Pulse creation as a rewarded Flow; verify any “reward” language before iOS. |
-| Story / Chronicle copy | `story_*`, `journey_*`, `atlas_*`, `beam_card_*` | `strings.xml`, Story UI files | History, filters, details, older Atlas/Beam planning copy | Localized | Story/Chronicle strings | High due legacy volume | Beam/Atlas naming may be legacy or non-MVP; product decision needed. |
+| Story / Chronicle copy | `story_*`, `journey_*`, `atlas_*`, `beam_card_*` | `strings.xml`, Story UI files | History, filters, details, older Atlas/Beam planning copy | Localized | Story/Chronicle strings | High due legacy volume | Beam/Atlas naming may be legacy; product confirmation needed before iOS exposure. |
 | Paths / Arc copy | `paths_*`, `plan_arc_*`, `arc_*`, `suggested_route_*` | `strings.xml`, Paths/Arc UI | Plans, Arcs, suggested routes | Localized | Paths/Arc strings | Medium/high for cards | Distinguish Arc from Beam. |
 | Shell root copy | `shell_*`, Shell top bar labels | `strings.xml`, Shell source files | Shell hub, room previews, Pearls | Localized | Shell String Catalog group | Medium | `shell_kind_object` currently displays “Creature”; internal object naming remains legacy. |
 | The Blue copy | `the_blue_*`, `beyond_blue_*` | `strings.xml`, The Blue room files | Blue room scene, depth, release, Beyond Blue | Localized | The Blue feature strings | High for sheets/trays | “Discover” copy exists for Beyond Blue; do not imply Discovery Journal without confirmation. |
@@ -131,15 +131,15 @@ Android has an app language setting through preferences/app locale handling docu
 
 | Font | File path | Product purpose | Android usage | Glyph/language concerns | Licensing/source concern | iOS destination | Registration/fallback | Action |
 | ---- | --------- | --------------- | ------------- | ----------------------- | ------------------------ | --------------- | --------------------- | ------ |
-| Caveat SemiBold | `android/app/src/main/res/font/caveatsb.ttf` | Scyra title/brand treatment and custom wordmark-like text | `Type.kt` defines `CaveatSemiBold`; `SkillzTopAppBar.kt` applies it to the Scyra title. | Caveat-style Latin display font may not cover Devanagari or all localized glyphs; Hindi/Marathi should fall back gracefully. | TODO: verify license/provenance before bundling in iOS. | Future `ios/Scyra/Resources/Fonts/caveatsb.ttf` or equivalent licensed font. | Register with iOS app font metadata; fallback to system rounded/serif/display style if unavailable. | Copy later only after license verification; never reference Android font path. |
+| Caveat SemiBold | `android/app/src/main/res/font/caveatsb.ttf` | Android-only Scyra title/brand accent | `Type.kt` defines `CaveatSemiBold`; `SkillzTopAppBar.kt` applies it to the Android Scyra title. | Not an iOS dependency; use regular/system iOS typography and verify Hindi/Marathi layout with system fallback. | No iOS license blocker because iOS should not copy Caveat. | No iOS font destination for Caveat. | Not applicable for Caveat. | Skip for iOS; never reference Android font path. |
 
-Do not expose, embed, or copy the font binary in documentation or this task. Future iOS implementation must use its own local licensed copy.
+Do not expose, embed, or copy the font binary in documentation or this task. Future iOS implementation should use regular/system typography; no Caveat copy is needed.
 
 ## 8. Image and Drawable Audit
 
 | Asset | Android path | Type | Used by | Product meaning | iOS action | Notes/TODO |
 | ----- | ------------ | ---- | ------- | --------------- | ---------- | ---------- |
-| Scyra turtle | `android/app/src/main/res/drawable/scyra_turtle.png` | PNG | Top bar Shell icon, splash/brand surfaces where referenced | Shell turtle/logo identity | copy/re-export later after provenance check | Verify source/license and required iOS sizes. |
+| Scyra turtle | `android/app/src/main/res/drawable/scyra_turtle.png` | PNG | Top bar Shell icon, splash/brand surfaces where referenced | Shell turtle/logo identity | export/copy local iOS asset later | Product-owner-created and usable; still export proper iOS sizes and do not reference Android path. |
 | Splash base | `android/app/src/main/res/drawable/ic_scyra_splash_base.xml` | Vector/XML drawable | Splash animated drawable | Branded launch/splash turtle | recreate or redraw natively | Android vector XML not directly an iOS launch asset. |
 | Splash animated | `android/app/src/main/res/drawable/ic_scyra_splash_animated.xml` | Animated/vector XML | `Theme.Skillz.Splash` | Animated Scyra launch | recreate with iOS launch screen + optional post-launch animation | iOS launch screen is constrained; animation likely belongs after launch. |
 | Turtle drift animator | `android/app/src/main/res/animator/scyra_turtle_drift.xml` | Animator XML | Splash animation | Gentle turtle motion | recreate with SwiftUI/Core Animation if needed | Android animator cannot be copied. |
@@ -188,32 +188,32 @@ Focus Room behavior is source-backed and uses TTS/voice-guide logic rather than 
 | `colors.xml/teal_200` | `#FF03DAC5` | Template Material color | Legacy/template | Do not make Scyra token | Current Android Material may still use teal in places; verify drift. |
 | `colors.xml/teal_700` | `#FF018786` | Template Material color | Legacy/template | Do not make Scyra token | Verify if unused. |
 | `colors.xml/black`, `white` | `#FF000000`, `#FFFFFFFF` | System colors | Neutral | `ScyraColor.black/white` only if needed | Low. |
-| `Color.kt/RavenclawBlue` | `0xFF2F4F6F` | Flavor `PRIMARY_COLOR`; docs identify as product primary | Scyra primary blue / Royal Manuscript Blue | `ScyraColor.primaryBlue` | Name/comment is stale; use product name in iOS. |
-| `Color.kt/SlytherinButNiceTeal` | `0xFF3F8F8B` | Current Material primary and Aera primary | Calm teal / Aera primary / splash background | `ScyraColor.teal` or `AeraColor.primary` | Do not confuse with Scyra primary blue. |
+| `Color.kt/RavenclawBlue` | `0xFF2F4F6F` | Android source/flavor reference | Prior/secondary/reference blue | `ScyraColor.referenceBlue` only if needed | Not the iOS primary direction. |
+| `Color.kt/SlytherinButNiceTeal` | `0xFF3F8F8B` | Current Material primary, splash, and teal direction | Main Scyra iOS teal | `ScyraColor.primaryTeal` | Use as primary iOS visual direction despite stale Android name. |
 | `Color.kt/GryffindorOffWhite` | `0xFFF2EBDD` | Background/surface tone | Warm parchment/off-white | `ScyraColor.backgroundWarm` | Stale name; rename only in iOS tokens. |
 | `Color.kt/AntiqueGold`, `Bronze`, `RoyalAmethyst` | Hex values in source | Accents/rewards/badges | Reward/accent tones | `ScyraColor.rewardGold`, `badgeBronze`, `amethyst` | Verify exact values in source before coding tokens. |
-| `themes.xml/windowSplashScreenBackground` | `#3F8F8B` | Splash background | Calm teal launch field | `ScyraColor.launchBackground` | iOS launch may need Scyra blue instead if product decides. |
+| `themes.xml/windowSplashScreenBackground` | `#3F8F8B` | Splash background | Calm teal launch field | `ScyraColor.launchBackground` | Use teal launch direction for iOS unless future product direction changes. |
 | `ic_scyra_notification.xml` | Vector fill values in drawable | Android notification mark | Brand notification icon | iOS notification asset or system handling | iOS notification asset rules differ. |
-| Gradle `PRIMARY_COLOR` Scyra | `0xFF2F4F6F` | BuildConfig for Scyra/default | Scyra primary | `ScyraColor.primaryBlue` | Treat as canonical Scyra color. |
+| Gradle `PRIMARY_COLOR` Scyra | `0xFF2F4F6F` | BuildConfig for Scyra/default | Prior/reference Scyra blue | `ScyraColor.referenceBlue` if needed | Not the iOS primary direction; use teal. |
 | Gradle `PRIMARY_COLOR` Aera | `0xFF3F8F8B` | Aera flavor | Aera calm teal | `AeraColor.primary` only if Aera supported | Aera support is an open product decision. |
 
-Treat `0xFF2F4F6F` as Scyra primary blue / Royal Manuscript Blue. Do not carry stale Hogwarts-style Android source names into product-facing iOS token names.
+Treat teal (`0xFF3F8F8B` / Android teal direction) as Scyra’s main iOS color. Treat `0xFF2F4F6F` as a prior/secondary/reference blue where still present in Android source. Do not carry stale Hogwarts-style Android source names into product-facing iOS token names.
 
 ## 13. Source-Backed Visual Asset Audit
 
-| Android source | Visual produced | Data/catalog dependency | iOS strategy | Complexity/risk | MVP priority |
+| Android source | Visual produced | Data/catalog dependency | iOS strategy | Complexity/risk | Phase priority |
 | -------------- | --------------- | ----------------------- | ------------ | --------------- | ------------ |
-| `ui/screen/shell/icons/draw/ShellDrawings.kt` | Shell object/creature icon drawings | Shell catalog item kind/status | Redraw with SwiftUI Canvas or create vector assets | Medium/high | MVP for visible Shell icons. |
-| `ui/screen/shell/icons/draw/TurtleShellInteriorBackground.kt` | Shell room/interior background | Shell room state | SwiftUI Canvas/background component | Medium | MVP for Shell feel. |
-| `ui/screen/shell/icons/ShellPearlMiniIcon.kt` | Pearl mini icon | Pearl balance/reward rows | SwiftUI vector/Canvas icon | Low/medium | MVP. |
-| `ui/screen/shell/icons/ShellObjectIcon.kt` | Object/creature tile icon wrapper | Shell find/object catalog | Prefer creature-only tile wrapper for iOS | Medium | MVP for Chest/Blue. |
-| `ui/screen/shell/rooms/blue/draw/DrawTheBlue.kt` | Ocean scene/background and creature rendering | The Blue zone/depth and creature presence models | SwiftUI Canvas/custom drawing or exported art pipeline | High | MVP if The Blue included. |
-| `ui/screen/shell/rooms/blue/creatures/Life.kt` | Procedural creature life/drawing models | Creature definitions and levels | SwiftUI Canvas equivalents or asset sprites | High | MVP/Phase 2 depending scope. |
-| `ui/screen/shell/rooms/blue/TheBlueRenderedCreature.kt` | Rendered creature placement/interaction model | User creatures and depth/zone state | Native data-driven scene nodes | High | MVP for The Blue parity. |
-| Reward reveal files under `ui/screen/flow/reward/` | Reward deck/cards/chips/icons | Reward UI model, badges, creatures, movement | Custom SwiftUI reward card deck | Medium/high | MVP. |
-| Focus Room source files | Exercise player visuals, timers, voice state | Exercise model/TTS state | SwiftUI calm card/player components | Medium | Phase 2 unless Focus Room MVP. |
+| `ui/screen/shell/icons/draw/ShellDrawings.kt` | Shell object/creature icon drawings | Shell catalog item kind/status | Redraw with SwiftUI Canvas or create vector assets | Medium/high | Phase 3 for visible Shell icons. |
+| `ui/screen/shell/icons/draw/TurtleShellInteriorBackground.kt` | Shell room/interior background | Shell room state | SwiftUI Canvas/background component | Medium | Phase 3 for Shell feel. |
+| `ui/screen/shell/icons/ShellPearlMiniIcon.kt` | Pearl mini icon | Pearl balance/reward rows | SwiftUI vector/Canvas icon | Low/medium | Foundation/full parity. |
+| `ui/screen/shell/icons/ShellObjectIcon.kt` | Object/creature tile icon wrapper | Shell find/object catalog | Prefer creature-only tile wrapper for iOS | Medium | Phase 3 for Chest/Blue. |
+| `ui/screen/shell/rooms/blue/draw/DrawTheBlue.kt` | Ocean scene/background and creature rendering | The Blue zone/depth and creature presence models | SwiftUI Canvas/custom drawing or exported art pipeline | High | Phase 3 when The Blue is implemented. |
+| `ui/screen/shell/rooms/blue/creatures/Life.kt` | Procedural creature life/drawing models | Creature definitions and levels | SwiftUI Canvas equivalents or asset sprites | High | Phase 3/full parity depending drawing strategy. |
+| `ui/screen/shell/rooms/blue/TheBlueRenderedCreature.kt` | Rendered creature placement/interaction model | User creatures and depth/zone state | Native data-driven scene nodes | High | Phase 3 for The Blue parity. |
+| Reward reveal files under `ui/screen/flow/reward/` | Reward deck/cards/chips/icons | Reward UI model, badges, creatures, movement | Custom SwiftUI reward card deck | Medium/high | Foundation/full parity. |
+| Focus Room source files | Exercise player visuals, timers, voice state | Exercise model/TTS state | SwiftUI calm card/player components | Medium | Phase 2 unless Focus Room Foundation/full parity. |
 | Stillwater room/source files | Vessel/draw visuals | Stillwater ledger/catalog | SwiftUI room/vessel visuals | Medium/high | Phase 2. |
-| Lookout/Voyage/Idea Grove source files | Objective cards, stats cards, Pulse grove cards | Sessions/objectives/pulses | SwiftUI cards and charts/stat rows | Medium | Phase 2/MVP per scope. |
+| Lookout/Voyage/Idea Grove source files | Objective cards, stats cards, Pulse grove cards | Sessions/objectives/pulses | SwiftUI cards and charts/stat rows | Medium | Phase 4/full parity per room sequencing. |
 
 Procedural Compose visuals should not be referenced by iOS at build/runtime. Future iOS should redraw natively, create equivalent vector assets, or explicitly simplify after product approval.
 
@@ -230,7 +230,7 @@ Procedural Compose visuals should not be referenced by iOS at build/runtime. Fut
 | Stillwater open-water creatures | mahi, wahoo, bonito, barracuda, amberjack, grouper, marlin, sailfish | `StillwaterCatalog` | Procedural/catalog-driven | Catalog/copy | Redraw natively | Verify rarity/depth display. |
 | Stillwater deep creatures | fangtooth, viperfish, hatchetfish, gulper, grenadier, oarfish, blackdragon, coelacanth | `StillwaterCatalog` | Procedural/catalog-driven | Catalog/copy | Redraw natively | High visual complexity. |
 | Beyond Blue examples | dolphin, ocean sunfish, starfish examples from tests/catalog | `CreatureCatalog`, `ShellContentCatalog`, Beyond Blue source/tests | Procedural/catalog-driven | Beyond Blue copy | Redraw natively; verify list | TODO: audit full Beyond Blue catalog before implementation. |
-| Legacy non-creature catalog items | objects/trinkets/discoveries/Coral/Plants | Shell catalog/reward event code and strings | Procedural icons/copy | `shell_object_*`, `shell_category_*` | Skip iOS MVP unless product confirms | The Chest should remain creature-only. |
+| Legacy non-creature catalog items | objects/trinkets/discoveries/Coral/Plants | Shell catalog/reward event code and strings | Procedural icons/copy | `shell_object_*`, `shell_category_*` | Skip iOS Scyra parity unless product confirms | The Chest should remain creature-only. |
 
 Creature visuals appear source/procedural rather than image-backed. Creature Mastery copy should use “Mastery” such as “Minnow Mastery” even if Android source uses other tier labels; verify final badge catalog before iOS implementation.
 
@@ -308,14 +308,14 @@ Future iOS work should separately decide whether Room-equivalent data, settings,
 
 | Term/concept | Resource key/source | Current Android text or meaning | Why questionable | iOS decision | TODO |
 | ------------ | ------------------ | ------------------------------- | ---------------- | ------------ | ---- |
-| Beam | `story_fab_schedule_beam`, `schedule_beam_*`, `beam_*`, reward Beam strings | Scheduling/time-window bonus concept with copy and reward chips. | Current product docs emphasize Flow/Pulse/Arc/Surge; Beam may be legacy or separate. | Do not port into iOS MVP unless product confirms. | Decide Beam scope separately. |
+| Beam | `story_fab_schedule_beam`, `schedule_beam_*`, `beam_*`, reward Beam strings | Scheduling/time-window bonus concept with copy and reward chips. | Current product docs emphasize Flow/Pulse/Arc/Surge; Beam may be legacy or separate. | Do not port into iOS Scyra parity unless product confirms. | Decide Beam scope separately. |
 | ShellFind | Entity/catalog/internal source naming | Umbrella persistence/catalog term for creatures/finds. | Product direction wants creature-focused language. | Use `Creature` domain names in iOS where possible. | Preserve only for data import compatibility if needed. |
 | Shell Chest | Internal key prefix `shell_chest_*`; UI text generally “The Chest.” | Internal naming for inventory. | Product-facing name should be “The Chest.” | Use “The Chest” in iOS UI. | Avoid copying internal key names into UI. |
-| Discovery / Discoveries | Beyond Blue discover copy, discovery entities/events in source/docs | Discovery-like reward/journal concepts. | Discovery Journal should not be ported without confirmation. | Skip iOS MVP except copy like “discover life” if product approves. | Product decision needed. |
+| Discovery / Discoveries | Beyond Blue discover copy, discovery entities/events in source/docs | Discovery-like reward/journal concepts. | Discovery Journal should not be ported without confirmation. | Skip iOS Scyra parity except copy like “discover life” if product approves. | Product decision needed. |
 | Trinkets | Reward event/source references | Legacy reward category. | The Chest should be creature-only. | Do not port unless confirmed. | Audit catalog if data import is planned. |
-| Objects / room objects | `shell_object_*`, `shell_placed_object_a11y`, reward event object types | Room object/invite/placement copy. | Product direction says no trinkets/objects in iOS MVP; The Chest creature-only. | Skip or rename only after product confirmation. | Decide if Focus Room displayed creatures replace objects. |
-| Coral | `shell_category_coral`, `shell_slot_coral_bed`, Glow Coral strings | Coral/object category and item. | Non-creature inventory conflicts with creature-only Chest. | Skip MVP unless Shell room decoration returns. | Product confirmation needed. |
-| Plants | `shell_category_plants` | Room category. | Legacy/non-creature category. | Skip MVP. | Product confirmation needed. |
+| Objects / room objects | `shell_object_*`, `shell_placed_object_a11y`, reward event object types | Room object/invite/placement copy. | Product direction says no trinkets/objects in iOS Scyra parity; The Chest creature-only. | Skip or rename only after product confirmation. | Decide if Focus Room displayed creatures replace objects. |
+| Coral | `shell_category_coral`, `shell_slot_coral_bed`, Glow Coral strings | Coral/object category and item. | Non-creature inventory conflicts with creature-only Chest. | Skip unless Shell room decoration returns by product decision. | Product confirmation needed. |
+| Plants | `shell_category_plants` | Room category. | Legacy/non-creature category. | Skip Foundation/full parity. | Product confirmation needed. |
 | Pulse reward implication | `pulseBonusPoints` field in reward breakdown; no direct copy proof | Reward field exists in persistence; Pulse copy should remain idea/thought oriented. | Pulses are not rewarded sessions. | Do not add Pulse reward copy/cards. | Verify any future copy additions. |
 | Chest non-creatures | object/trinket/coral/plants copy and reward events | Old Shell objects may be invite/display items. | The Chest should contain creatures only. | Do not show non-creatures in iOS Chest. | Data compatibility decision later. |
 
@@ -342,13 +342,13 @@ ios/Scyra/
 
 | iOS category | What goes there | Android references | Copy/recreate/redraw/localize | Dependency/risk notes |
 | ------------ | --------------- | ------------------ | ----------------------------- | --------------------- |
-| AppIcon | iOS icon set | `mipmap-*`, launcher drawables, Play Store icon | recreate | Needs iOS sizes/source artwork/provenance. |
-| ScyraTurtle | Turtle logo/brand image | `drawable/scyra_turtle.png` | copy/re-export after license verification | Do not reference Android path. |
+| AppIcon | iOS icon set | `mipmap-*`, launcher drawables, Play Store icon | recreate | Needs iOS sizes/source artwork export. |
+| ScyraTurtle | Turtle logo/brand image | `drawable/scyra_turtle.png` | export/copy local iOS asset; owner-created | Do not reference Android path. |
 | NotificationBrand | Optional notification/brand mark | `ic_scyra_notification.xml` | recreate | iOS may not need a separate notification icon. |
 | RewardIcons | Pearls, badges, movement, reward card art | reward source/drawables/procedural icons | redraw/recreate | Reward reveal is custom UI, not alert. |
 | CreatureIcons | Creature sprites/vectors if not Canvas | Shell/Blue catalogs and procedural drawing | redraw or export later | The Blue procedural parity is high risk. |
 | ShellRooms | Room backgrounds/illustrations | Shell drawing/source files | redraw/recreate | Preserve hub/room feeling. |
-| Fonts | Brand display font | `font/caveatsb.ttf` | copy later only if licensed | Register with iOS app. |
+| Fonts | iOS system typography | Android `font/caveatsb.ttf` is not an iOS dependency | no Caveat copy | Use native/system font tokens. |
 | Audio | Future soundscapes/TTS assets | No `res/raw` present | verify/future licensed assets | No audio currently to migrate. |
 | Localizable.xcstrings | All base/localized copy | `values*/strings.xml`, source copy | localize | Translation review and terminology cleanup required. |
 | GeneratedAssetNames.swift | Optional type-safe names | Future iOS asset catalog | generate later | Not needed until iOS project exists. |
@@ -357,8 +357,8 @@ ios/Scyra/
 
 | Risk | Why it matters | iOS impact | Follow-up task |
 | ---- | -------------- | ---------- | -------------- |
-| Custom font licensing | `caveatsb.ttf` may have license constraints. | App Store distribution and embedding require rights. | Verify font license/provenance before copying to iOS. |
-| Turtle image provenance | `scyra_turtle.png` is core brand art. | Cannot ship unverified art in iOS. | Locate source file/license/owner and export iOS sizes. |
+| Android Caveat font | Android has `caveatsb.ttf`, but iOS should use system fonts. | No iOS font copy needed. | Define iOS system typography tokens. |
+| Turtle image export | `scyra_turtle.png` is product-owner-created brand art. | iOS can use it after local export. | Export proper iOS asset sizes into `ios/` later without referencing Android path. |
 | Launcher/store icon provenance | Mipmap icons and Play Store icon may be generated from unknown source. | iOS AppIcon and App Store assets need rights and correct formats. | Rebuild from verified master artwork. |
 | Procedural art ownership | Compose Canvas drawings are source-authored but may include design assumptions. | Redrawing in iOS must preserve product style without copying code as dependency. | Document drawing specs and approve native redraws. |
 | Third-party audio | No audio now, but soundscapes may be added later. | Audio licensing can block App Store release. | License any future soundscape assets before bundling. |
@@ -370,16 +370,16 @@ No unsupported licensing claims are made here; unknown sources are marked for ve
 
 ## 23. Asset and Resource Migration Priorities
 
-### MVP iOS assets/resources
+### Phase 1/Foundation iOS assets/resources
 
 - App name/copy and root navigation labels, because every iOS screen depends on them.
 - Base English strings and reviewed String Catalog structure.
-- Scyra primary colors/tokens, especially `0xFF2F4F6F` as Royal Manuscript Blue.
-- Caveat-style brand font only if licensed; otherwise a product-approved fallback.
-- Turtle logo only if provenance is verified.
+- Scyra teal primary color tokens, with `0xFF2F4F6F` only as prior/reference blue if needed.
+- Regular/system iOS typography; do not copy Caveat.
+- Owner-created turtle logo exported as local iOS asset.
 - Root top bar icon equivalents and VoiceOver labels.
 - Flow, Story, Pulse, reward reveal, and core Shell copy.
-- The Blue, The Chest, and Badges core creature/inventory copy if those features are MVP.
+- The Blue, The Chest, and Badges core creature/inventory copy if those features are Foundation/full parity.
 - Accessibility strings for icon-only controls and custom-drawn creatures.
 
 ### Phase 2
@@ -403,8 +403,8 @@ No unsupported licensing claims are made here; unknown sources are marked for ve
 
 | Risk/open question | Why it matters | iOS impact | Recommended follow-up task |
 | ------------------ | -------------- | ---------- | -------------------------- |
-| Font licensing | Brand typography depends on Caveat-style font. | Cannot bundle without rights; fallback may change brand feel. | Font provenance/license review. |
-| Turtle/logo provenance | Turtle is central brand/Shell icon. | Unverified asset blocks App Store use. | Locate source art and export iOS-ready assets. |
+| iOS system typography | iOS intentionally does not use Android Caveat. | Brand feel must be preserved through system font styling, spacing, and color. | Define and review system-font typography tokens. |
+| Turtle/logo export | Turtle is owner-created and usable. | Need correct iOS sizes/assets while preserving boundaries. | Export iOS-ready local assets under `ios/`. |
 | Android adaptive icon vs iOS icon | Formats and size rules differ. | Direct copy will not satisfy iOS icon requirements. | Create iOS AppIcon from master artwork. |
 | Android splash animation vs iOS launch constraints | iOS launch screens cannot mimic arbitrary Android animation. | Need static launch plus post-launch animation. | Design iOS launch/brand transition. |
 | The Blue procedural drawing parity | Many visuals are code-drawn and data-driven. | High effort to match with SwiftUI Canvas. | Produce a dedicated The Blue drawing spec/prototype. |
@@ -414,7 +414,7 @@ No unsupported licensing claims are made here; unknown sources are marked for ve
 | Legacy copy cleanup | Beam/object/coral/plants copy remains. | iOS could accidentally port deprecated concepts. | Product terminology cleanup decision. |
 | No confirmed soundscape assets | Product mentions soundscapes as future idea. | iOS cannot implement asset-backed soundscapes yet. | Separate soundscape scope/licensing task. |
 | Accessibility for custom visuals | Canvas-drawn creatures/icons lack automatic semantics. | VoiceOver gaps on core Shell/Blue UI. | Accessibility audit/prototype for custom drawing. |
-| Scyra blue vs current Android teal drift | Current Android Material primary may be teal while product primary is blue. | iOS might choose wrong primary token. | Product/design decision for iOS primary surface palette. |
+| Scyra teal adoption | Teal is now the main Scyra iOS color while Android still has older blue references. | iOS should not choose the prior blue as primary. | Implement teal primary token and document blue as reference/secondary only. |
 | App Store asset requirements | Play Store icon is not enough. | Need iOS icon, screenshots, privacy assets. | App Store readiness checklist. |
 | iOS notification differences | Android foreground service/channel copy does not map directly. | Active Flow notifications need native strategy. | iOS notification/deep-link design task. |
 | Future cloud sync/import copy | Migration/import may need user-facing copy. | Not covered by current resources. | Future sync/import UX spec. |
@@ -439,7 +439,7 @@ No unsupported licensing claims are made here; unknown sources are marked for ve
 - Audio/raw asset presence or absence is documented.
 - Source-backed procedural visuals are audited.
 - Creature/catalog visual and copy sources are audited.
-- Legacy copy/resource concepts are clearly separated from iOS MVP behavior.
+- Legacy copy/resource concepts are clearly separated from iOS Scyra parity behavior.
 - iOS asset destination recommendations preserve repo boundary rules.
 - Unclear behavior or provenance is marked `TODO: verify`.
 
@@ -449,14 +449,14 @@ No unsupported licensing claims are made here; unknown sources are marked for ve
 - Android resource/source files inspected: `res/values`, localized `values-*`, `res/font`, `res/drawable`, `res/mipmap-*`, `res/xml`, `res/animator`, `ic_launcher-playstore.png`, theme files, top bars, Shell drawing files, The Blue procedural files, reward reveal files, catalog/economy files, Focus Room and Health/notification copy sources.
 - Resource directories found: `animator`, `drawable`, `font`, `mipmap-anydpi-v26`, density `mipmap-*`, `values`, `values-es`, `values-hi`, `values-mr`, and `xml`.
 - Strings/localizations found: base English plus Spanish, Hindi, and Marathi string files; each inspected file had 1,820 string/plural names.
-- Fonts found: `caveatsb.ttf`; license/provenance and glyph coverage require verification before iOS bundling.
+- Fonts found: Android `caveatsb.ttf`; iOS should not bundle/copy Caveat and should use regular/system typography.
 - Drawables/images/icons found: Scyra turtle PNG, splash base/animated drawables, notification vector, launcher foreground/background resources, mipmap launcher PNGs, adaptive icon XML, and Play Store icon.
 - XML resources found: backup rules and data extraction rules; both are Android platform resources whose concepts must be reconsidered natively on iOS.
 - Audio/raw resources: `res/raw/` was not present; no bundled audio or soundscape assets were found.
 - Source-backed procedural visuals found: Shell icons/backgrounds/Pearl icon, The Blue ocean/creature scene, reward reveal card visuals, Stillwater/Lookout/Voyage/Focus Room visuals.
 - Creature/catalog visual sources found: regular Flow creatures from Shell content catalog, Stillwater catalog creatures, Beyond Blue catalog examples, and legacy non-creature Shell object/trinket/discovery concepts.
 - Legacy resource/copy concerns identified: Beam, internal ShellFind naming, object/trinket/discovery reward concepts, Coral, Plants, and non-creature Chest concepts.
-- Licensing/provenance concerns identified: Caveat font, turtle/logo art, launcher/store icons, procedural art ownership, translations, Material Icons equivalents, and any future audio.
-- Future iOS recommendations: create local iOS asset catalogs, String Catalogs, font resources only after license verification, SwiftUI/Canvas redraws for procedural visuals, native iOS notification/backup/launch behavior, and no runtime dependency on Android resources.
+- Asset concerns identified: Android Caveat is skipped for iOS, turtle/logo is owner-created but needs iOS-local export, launcher/store icons need proper iOS sizing, procedural art ownership/specs, translations, Material Icons equivalents, and any future audio.
+- Future iOS recommendations: create local iOS asset catalogs, String Catalogs, system typography, SwiftUI/Canvas redraws for procedural visuals, native iOS notification/backup/launch behavior, and no runtime dependency on Android resources.
 - Nothing outside `docs/07_ASSET_RESOURCE_COPY_AUDIT.md` should be changed for this task.
 - Repo boundary rules remain preserved: docs may reference Android resource paths, but iOS must later receive local copies or native equivalents under `ios/`.

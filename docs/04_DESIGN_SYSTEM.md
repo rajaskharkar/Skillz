@@ -42,9 +42,9 @@ Expected path notes:
 
 - Product name: **Scyra**.
 - Primary visual tone: focused, reflective, rewarding, mythic/oceanic.
-- Primary color direction: treat `0xFF2F4F6F` as **Scyra primary blue / Royal Manuscript Blue**, even though some Android comments use stale labels such as `GryffindorRed`.
-- Current Compose app theme uses `SlytherinButNiceTeal` (`0xFF3F8F8B`) as `color` in `Theme.kt`; this is a current Android implementation detail that conflicts with the Scyra flavor `PRIMARY_COLOR` value. TODO: decide whether app-wide theme primary should become Royal Manuscript Blue in a future Android/iOS design alignment task.
-- Caveat-style brand font: `caveatsb.ttf` and `CaveatSemiBold` support a handwritten/reflective brand accent; `SkillzTopAppBar` uses this font directly for “Scyra.”
+- Primary color direction: treat teal (`0xFF3F8F8B` / current Android teal theme direction) as the main Scyra iOS color; keep `0xFF2F4F6F` as a prior/secondary/reference blue where Android still exposes it.
+- Current Compose app theme uses `SlytherinButNiceTeal` (`0xFF3F8F8B`) as `color` in `Theme.kt`; this teal is the current Scyra visual direction and should be the iOS primary color unless future Android source changes.
+- Android-only Caveat brand accent: `caveatsb.ttf` and `CaveatSemiBold` are used by Android's top bar, but iOS should use regular/system typography and should not copy Caveat.
 - Shell turtle/logo: `scyra_turtle.png` is used as the central Shell top-bar action and contributes to Scyra's creature/oceanic identity.
 - Shell/The Blue language: oceanic, mythic, quiet, collection-oriented; The Blue uses zones/depth, creatures, ripples, and procedural drawing.
 - Focus Room tone: calm, guided, non-reward-chasing.
@@ -56,10 +56,10 @@ Expected path notes:
 
 | Android source/name | Value | Usage | Semantic role | iOS token recommendation | Notes |
 |---|---:|---|---|---|---|
-| `BuildConfig.PRIMARY_COLOR` default/scyra | `0xFF2F4F6F` | Notifications and Scyra flavor build config | Scyra primary blue / Royal Manuscript Blue | `ScyraColor.primaryBlue` | Comment says stale `GryffindorRed`; ignore product label. |
+| `BuildConfig.PRIMARY_COLOR` default/scyra | `0xFF2F4F6F` | Notifications and Scyra flavor build config | Prior/reference Scyra blue in Android build config | `ScyraColor.referenceBlue` if needed | Do not make this the iOS primary unless product/source direction changes. |
 | `BuildConfig.PRIMARY_COLOR` aera | `0xFF3F8F8B` | Aera flavor notification/branding | Aera calm teal | `ScyraColor.aeraTeal` if Aera is supported | Defer Aera on iOS. |
-| `SlytherinButNiceTeal` / `Theme.kt color` | `0xFF3F8F8B` | Current Material `primary` in `SkillzTheme` | Current Android app primary | `ScyraColor.currentAndroidPrimary` / normalize later | Conflicts with desired Scyra blue. TODO. |
-| `RavenclawBlue` | `0xFF2F4F6F` | Compose color constant; matches Scyra flavor primary | Royal Manuscript Blue | `ScyraColor.primaryBlue` | Name is theme/stale; product name should be Scyra primary blue. |
+| `SlytherinButNiceTeal` / `Theme.kt color` | `0xFF3F8F8B` | Current Material `primary` in `SkillzTheme` | Main Scyra teal | `ScyraColor.primaryTeal` | Final iOS direction: use teal as primary. |
+| `RavenclawBlue` | `0xFF2F4F6F` | Compose color constant; prior Scyra flavor primary/reference | Royal Manuscript Blue reference / secondary legacy blue | `ScyraColor.referenceBlue` only if needed | Do not use as iOS primary unless Android/product direction changes. |
 | `GryffindorOffWhite` | `0xFFF2EBDD` | Light theme background/on-primary text | Parchment background | `ScyraColor.parchment` | Good Scyra surface/background token. |
 | `Color(0xFFE4D8BB)` | `0xFFE4D8BB` | Light theme surface/surfaceVariant | Parchment card surface | `ScyraColor.surfaceParchment` | Normalize as card surface. |
 | `AntiqueGold` | `0xFFB8A56A` | Light secondary | Pearl/gold accent | `ScyraColor.pearlGold` | Used as secondary. |
@@ -71,7 +71,7 @@ Expected path notes:
 | Dark background | `0xFF1A1412` | Dark theme background | Warm dark background | `ScyraColor.darkBackground` | Current dark mode. |
 | Dark surface | `0xFF221C19` | Dark theme surface | Warm dark card | `ScyraColor.darkSurface` | Current dark mode. |
 | XML `purple_200/500/700`, `teal_200/700` | Various legacy Material template values | XML resources | Legacy/template colors | Do not promote unless used | TODO: verify if unused. |
-| Splash background | `#3F8F8B` | `Theme.Skillz.Splash` | Splash teal | `ScyraColor.splashBackground` | Current Android splash uses teal, not Scyra blue. TODO. |
+| Splash background | `#3F8F8B` | `Theme.Skillz.Splash` | Splash teal | `ScyraColor.launchBackground` | Aligns with teal primary direction. |
 | Reward deck selected indicator | Material secondary | `RewardRevealDeck.kt` | Reward page indicator | `ScyraColor.rewardIndicator` | Uses theme secondary. |
 | Reward icon backgrounds | primary/secondary alpha | `RewardRevealDeck.kt`, `RewardUX.kt`, `RewardChips.kt` | Reward soft glow | `ScyraColor.rewardGlow` variants | Use alpha tokens. |
 | Health cards | surfaceVariant/secondaryContainer alpha | `HealthComponents.kt` | Settings/info surfaces | `ScyraColor.infoSurface` | Should be normalized. |
@@ -82,7 +82,7 @@ Expected path notes:
 
 Color guidance:
 
-- Promote global Scyra tokens for primary blue, parchment background, parchment surface, pearl gold, bronze, amethyst, dark background, dark surface, text colors, reward glow, and Shell ocean/depth colors.
+- Promote global Scyra tokens for primary teal, parchment background, parchment surface, pearl gold, bronze, amethyst, dark background, dark surface, text colors, reward glow, and Shell ocean/depth colors.
 - Keep creature-specific hardcoded colors as procedural drawing palette values unless they become repeated design tokens.
 - Resolve stale naming/comments before iOS implementation: product names should not expose Hogwarts-style color names.
 
@@ -103,9 +103,9 @@ Color guidance:
 Localization considerations:
 
 - Localized folders exist for Spanish (`values-es`), Hindi (`values-hi`), and Marathi (`values-mr`).
-- Caveat-style font may not support Devanagari; iOS must verify glyph coverage and fall back for Hindi/Marathi.
+- System iOS typography should provide broad glyph coverage; still verify Hindi/Marathi layout, line-height, and fallback behavior.
 - Long localized labels in buttons/dialogs may require flexible layouts, wrapping, and larger hit targets.
-- iOS must eventually receive its own local copy of needed fonts under `ios/`; it must not reference Android font files.
+- iOS should use regular/system typography for Scyra; if future non-system fonts are deliberately chosen, they must be local under `ios/` and must not reference Android font files.
 
 ## 6. Spacing, Layout, and Shape System
 
@@ -175,9 +175,9 @@ Spacing guidance:
 | Score display | `ScoreDisplay.kt` | Score summary | Score label/value and period context | `ScoreDisplay` | Yes |
 | Journey filters | `TagFilterRow.kt` | Filter history | Chips/row | `JourneyFilterRow` | Yes |
 | Reward reveal cards | `RewardRevealDeck.kt`, `RewardChips.kt`, `RewardUX.kt` | Reward presentation | Custom deck, page indicator, glow, chips | `RewardRevealDeck/Card/Chip` | Yes |
-| Health rows/cards | `HealthComponents.kt` | Health settings | Info cards, status pills, disable dialog | `HealthStatusCard` | Phase 2/MVP if Movement Points included |
-| Notification inlay | `ShellNotificationsScreen.kt` | New rewards/badges | Elevated floating inlay/card | `ShellNotificationInlay` | Phase 2/MVP |
-| Shell room nodes/cards | `ShellRootScreen.kt` | Room navigation | Orbit nodes/room cards | `ShellRoomNode` | Yes for Shell MVP |
+| Health rows/cards | `HealthComponents.kt` | Health settings | Info cards, status pills, disable dialog | `HealthStatusCard` | Phase 2/full parity if Movement Points included |
+| Notification inlay | `ShellNotificationsScreen.kt` | New rewards/badges | Elevated floating inlay/card | `ShellNotificationInlay` | Phase 2/full parity |
+| Shell room nodes/cards | `ShellRootScreen.kt` | Room navigation | Orbit nodes/room cards | `ShellRoomNode` | Yes for Shell parity |
 | Pearl display | `ShellPearlMiniIcon.kt`, `ShellTopBar.kt` | Currency | Pearl icon + count | `PearlBalanceView` | Yes |
 | Creature tiles | `ShellObjectIcon.kt`, Chest/Blue files | Creatures | Circular/procedural icon, levels/counts | `CreatureTile` | Yes |
 | Badge rows | `BadgesScreen.kt` | Countable achievements | List rows, counts | `BadgeRow` | Yes |
@@ -386,7 +386,7 @@ Product rules:
 | Splash turtle drawables | `ic_scyra_splash_base.xml`, `ic_scyra_splash_animated.xml`, animator | Android splash | iOS launch screen/native animation | Recreate/adapt | iOS launch constraints differ. |
 | Notification icon | `ic_scyra_notification.xml` | Android notifications | iOS notification icon not equivalent | Recreate if needed | Platform-specific. |
 | Launcher foreground/background | drawable + mipmap XML | Android app icon | iOS AppIcon set | Recreate | App icon rules differ. |
-| Custom font | `res/font/caveatsb.ttf` | Brand title/accent | `ios/` bundled font later | Copy if license permits | Verify license/registration. |
+| Android Caveat font | `res/font/caveatsb.ttf` | Android title/accent only | Do not copy to iOS | Skip for iOS | iOS uses regular/system typography. |
 | Shell procedural icons | `ui/screen/shell/icons/`, `icons/draw/` | Shell objects/creatures/backgrounds | SwiftUI/Canvas drawing files | Redraw natively or asset-export | Prefer native drawing where feasible. |
 | The Blue creatures | `rooms/blue/creatures/`, `draw/DrawTheBlue.kt` | Procedural ocean creatures | SwiftUI Canvas or local assets | Redraw natively | High parity risk. |
 | Localized strings | `values-*` | Text layout/copy | String Catalog/Localizable.strings | Recreate translations | Requires layout QA. |
@@ -436,7 +436,8 @@ Recommended future names only; do not create iOS code.
 
 ### Colors
 
-- `ScyraColor.primaryBlue`
+- `ScyraColor.primaryTeal`
+- `ScyraColor.referenceBlue` (optional prior/secondary reference)
 - `ScyraColor.aeraTeal`
 - `ScyraColor.parchment`
 - `ScyraColor.surfaceParchment`
@@ -495,10 +496,10 @@ Recommended future names only; do not create iOS code.
 | Exact Android color token mapping | Theme constants, XML colors, flavor colors, and hardcoded colors are not fully normalized. | iOS could choose wrong primary/surface palette. | Color-token audit with screenshots. |
 | Stale color comments/names | Product names differ from Android names like Gryffindor/Ravenclaw. | Bad naming leaks into iOS design system. | Rename semantics in docs/tokens, not necessarily Android code yet. |
 | Material 3 vs Scyra-native SwiftUI | Android uses Material, but Scyra identity is custom. | Overly native/generic iOS UI may dilute identity. | SwiftUI component/design-system spec. |
-| Caveat font licensing/registration | iOS needs legal local font copy and Info.plist registration. | Cannot ship brand title font if licensing unclear. | Font licensing task before iOS implementation. |
+| Android Caveat font divergence | Android uses CaveatSB but iOS product direction uses regular/system typography. | Visual title treatment will differ intentionally. | Define system-font title style in iOS design tokens. |
 | Creature procedural drawing parity | The Blue creatures are custom Compose drawings. | Hard to match in SwiftUI/Canvas. | Creature drawing parity prototype/spec. |
 | The Blue scene complexity | Zones, tray, overlays, movement/presence accounting are visual-heavy. | High implementation risk. | Dedicated The Blue visual/interaction spec. |
-| Shell room visual phasing | Many rooms have distinct visuals. | MVP scope risk. | iOS visual MVP/phasing decision. |
+| Shell room visual phasing | Many rooms have distinct visuals. | phasing risk. | iOS visual phasing decision. |
 | Focus Room TTS/audio states | Android uses TTS with fallback cards. | iOS audio/TTS UI may differ. | Focus Room audio/UI decision. |
 | Soundscape picker scope | No confirmed implementation found. | Risk of inventing UI/assets. | Verify scope; if implemented, use popup/dialog. |
 | Animation parity | Splash, reward reveal, The Blue/Focus visuals use animation concepts. | Static iOS UI may feel flat. | Animation inventory/prototype. |
@@ -521,10 +522,10 @@ Recommended future names only; do not create iOS code.
 ## 26. Codex Summary
 
 - Docs and Android files/resources inspected: `docs/00_REPO_BOUNDARIES.md`, `docs/01_ANDROID_ARCHITECTURE.md`, `docs/02_SCYRA_PRODUCT_SPEC.md`, `docs/03_NAVIGATION_AND_SCREEN_MAP.md`, Android colors/themes/strings/localizations/font/drawable/mipmap resources, Compose theme files, app top bar, Flow/reward, Story, Paths/Arc, Shell, The Blue, The Chest/Badges, Focus Room, Health UI, and UI mapper tests.
-- Major color/typography/design findings: Scyra should treat `0xFF2F4F6F` as Royal Manuscript Blue / primary blue despite stale comments; current Android Material theme primary is teal `0xFF3F8F8B`; parchment surfaces and Pearl/gold accents are core; CaveatSB is used for the Scyra wordmark; Material typography is otherwise mostly default.
+- Major color/typography/design findings: teal (`0xFF3F8F8B` / Android teal direction) is the main Scyra iOS color; `0xFF2F4F6F` remains an Android/prior-reference blue where source still uses it; parchment surfaces and Pearl/gold accents are core; Android uses CaveatSB for the wordmark but iOS should use regular/system typography.
 - Major reusable components identified: Scyra top bar, Shell top bar, cards, buttons, icon buttons, chips/stat pills, score display, Journey filters, reward reveal deck/cards/chips, Health cards, Shell inlays, room nodes, Pearl display, creature tiles, badge rows, empty states, dialogs/sheets.
 - Major screen visual systems mapped: Home/Story/Paths/Notepad/Help, Flow, reward reveal, Pulse, Story/Chronicle, Paths/Arc, Shell root/Heart, The Blue, The Chest, Badges, Stillwater, Idea Grove, Lookout, Voyage Hall, Focus Room, Health settings.
-- Asset categories discovered: launcher/app icons, Play Store icon, turtle logo, splash drawables/animator, notification icon, custom Caveat font, Shell procedural icons/drawings, The Blue procedural creature drawing code, localized strings; no `res/raw` audio assets observed.
-- Highest-risk visual parity areas for iOS replication: color token normalization, stale color naming, SwiftUI-vs-Material component strategy, Caveat font licensing, The Blue procedural drawing/scene parity, Shell room phasing, Focus Room TTS/audio states, soundscape scope, animation parity, localization layout, accessibility, and Aera theme support.
+- Asset categories discovered: launcher/app icons, Play Store icon, owner-created turtle logo, splash drawables/animator, notification icon, Android-only Caveat font, Shell procedural icons/drawings, The Blue procedural creature drawing code, localized strings; no `res/raw` audio assets observed.
+- Highest-risk visual parity areas for iOS replication: teal token normalization, stale Android color naming, SwiftUI-vs-Material component strategy, intentional system-font title treatment, The Blue procedural drawing/scene parity, Shell room phasing, Focus Room TTS/audio states, soundscape scope, animation parity, localization layout, accessibility, and Aera theme support.
 - Anything outside `docs/04_DESIGN_SYSTEM.md` changed: no.
 - Repo boundary rules preserved: yes. The document is reference-only under `docs/`; no Android code/build files were modified, no assets were copied, and no iOS project/files were created.
