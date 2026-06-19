@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<resources xmlns:ns0="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">स्कायरा</string>
     <string name="story_fab_schedule_beam">बीम अनुसूचित करें</string>
     <string name="story_fab_record_pulse">पल्स रिकॉर्ड करें</string>
@@ -719,7 +719,7 @@
     <string name="pulse_title_field_placeholder">अपने विचार को नाम दें</string>
     <string name="pulse_title_field_a11y">पल्स के विचार का शीर्षक फ़ील्ड</string>
     <plurals name="flow_journey_label">
-        <item quantity="one" ns0:ignore="ImpliedQuantity">जर्नी</item>
+        <item quantity="one" tools:ignore="ImpliedQuantity">जर्नी</item>
         <item quantity="other">जर्नी</item>
     </plurals>
     <string name="flow_journey_section_a11y">%1$s</string>
@@ -1037,10 +1037,10 @@
     <string name="shell_creature_release_for_pearls">छोड़ें</string>
     <string name="shell_creature_release_confirm_title">%1$s को रिलीज़ करें?</string>
     <string name="shell_creature_release_single_body">इस %1$s को द ब्लू में वापस छोड़ें?</string>
-    <string name="shell_creature_release_level_aware_body">आपके पास %2$s की %1$d कॉपी हैं। चुनें कि किन्हें वापस द ब्लू में छोड़ना है।</string>
+    <string name="shell_creature_release_level_aware_body">आपके पास %1$d कॉपी %2$s की हैं। चुनें कि किन्हें वापस द ब्लू में छोड़ना है।</string>
     <string name="shell_creature_release_selected_total">चयनित: %1$d में से %2$d</string>
     <string name="shell_creature_release_reward_preview">आपको +%1$d पर्ल्स मिलेंगे।</string>
-    <string name="shell_chest_release_reward_preview_a11y">%4$d में से %1$d लेवल %2$d %3$s चुने गए. इन्हें छोड़ने पर %5$d पर्ल्स मिलेंगे.</string>
+    <string name="shell_chest_release_reward_preview_a11y">%1$d/%4$d लेवल %2$d %3$s चुने गए. इन्हें छोड़ने पर %5$d पर्ल्स मिलेंगे.</string>
     <string name="shell_chest_release_button_a11y">चुने गए जीव छोड़ें.</string>
     <string name="shell_creature_release_confirm_disabled">छोड़ें</string>
     <string name="shell_creature_release_quick_select">त्वरित चयन</string>
@@ -1121,7 +1121,7 @@
     <string name="shell_heart_center_a11y">द शेल का हृदय। हृदय विवरण खोलता है।</string>
     <string name="shell_heart_objects_displayed_resting">प्रदर्शित वस्तुएँ: %1$d। द चेस्ट में विश्रामरत: %2$d।</string>
     <string name="shell_all_nooks_holding">सभी कोने कुछ न कुछ थामे हुए हैं। बदलें, चमकाएँ, या द चेस्ट में और इकट्ठा करते रहें। द चेस्ट में विश्रामरत: %1$d।</string>
-    <string name="shell_empty_nook_choices">चुनें कि यह नओओक कैसे बदले.</string>
+    <string name="shell_empty_nook_choices">चुनें कि यह कोना कैसे बदले.</string>
     <string name="shell_leave_empty">खाली छोड़ें</string>
     <string name="shell_no_resting_finds_fit">द चेस्ट में विश्राम कर रही कोई चीज़ अभी इस कोने में फिट नहीं होती।</string>
     <string name="shell_status_displayed_focus">फोकस में प्रदर्शित</string>
@@ -1131,7 +1131,7 @@
     <string name="shell_choose_something_to_swap">बदलने के लिए कुछ चुनें।</string>
     <string name="shell_swap_with">%1$s से बदलें</string>
     <string name="shell_no_compatible_nooks">अभी कोई संगत कोना नहीं है। यह प्रति द चेस्ट में विश्राम कर सकती है।</string>
-    <string name="shell_place_in_focus">रखें इन फोकस</string>
+    <string name="shell_place_in_focus">फोकस में रखें</string>
     <string name="reward_card_page_count">%1$d में से %2$d</string>
     <string name="reward_card_page_announcement">इनाम %1$d में से %2$d</string>
     <string name="reward_card_scyra_points_template">%1$d स्कायरा पॉइंट्स</string>
@@ -1224,7 +1224,7 @@
     <string name="beyond_blue_encounter_cta">बियॉन्ड ब्लू में मिलें</string>
     <string name="beyond_blue_confirm_enters_zone">%1$s %2$s में प्रवेश करेगा।</string>
     <string name="beyond_blue_cancel">रद्द करें</string>
-    <string name="beyond_blue_discover_depth_copy">इस गहराई के पास नई लइफ़ए खोजें।</string>
+    <string name="beyond_blue_discover_depth_copy">इस गहराई के पास नया जीवन खोजें।</string>
     <string name="shell_badge_row_title">%1$s ×%2$d</string>
     <string name="shell_notifications_title">द शेल सूचनाएँ</string>
     <string name="shell_notifications_body">नई खोजें, टुकड़े, बैज और खोज-प्राप्तियाँ यहाँ तब तक इकट्ठी रहती हैं जब तक आप उन्हें देखते नहीं.</string>
@@ -1251,7 +1251,7 @@
     <string name="shell_find_glimmer_description">नियमित फ़्लो गतिविधि से मिला.</string>
     <string name="shell_form_base">बेस</string>
     <string name="shell_form_bright">ब्राइट</string>
-    <string name="shell_form_glimmer">गलइममएर</string>
+    <string name="shell_form_glimmer">ग्लिमर</string>
     <string name="shell_form_luminous">ल्यूमिनस</string>
     <string name="shell_form_crowned">क्राउन</string>
     <string name="shell_form_moonlit">मूनलिट</string>
@@ -1262,14 +1262,14 @@
     <string name="shell_form_oracle">ओरेकल</string>
     <string name="shell_form_polished">निखरा</string>
     <string name="shell_form_tidemarked">टाइडमार्क्ड</string>
-    <string name="shell_upgrade_minnow_base_description">मिन्नो हैá में उसका लेवल बेस.</string>
-    <string name="shell_upgrade_minnow_bright_description">मिन्नो पर्ल्स से चमका.</string>
-    <string name="shell_upgrade_minnow_glimmer_description">मिन्नो पर्ल्स से चमका.</string>
+    <string name="shell_upgrade_minnow_base_description">मिन्नो अपने आधार रूप में विश्राम कर रहा है.</string>
+    <string name="shell_upgrade_minnow_bright_description">मिन्नो पर्ल्स से चमक उठा.</string>
+    <string name="shell_upgrade_minnow_glimmer_description">मिन्नो पर्ल्स से चमक उठा.</string>
     <string name="shell_upgrade_minnow_luminous_description">मिन्नो ने चमकदार लेवल पाया.</string>
     <string name="shell_upgrade_seahorse_base_description">सीहॉर्स अपने आधार स्तर पर है।</string>
-    <string name="shell_upgrade_seahorse_bright_description">सीहॉर्स चमका के साथ पर्ल्स.</string>
-    <string name="shell_upgrade_seahorse_glimmer_description">सीहॉर्स ग्लिमर्स के साथ पर्ल्स.</string>
-    <string name="shell_upgrade_seahorse_crowned_description">सीहॉर्स जागा में अ क्राउन रूप.</string>
+    <string name="shell_upgrade_seahorse_bright_description">सीहॉर्स पर्ल्स से चमक उठा.</string>
+    <string name="shell_upgrade_seahorse_glimmer_description">सीहॉर्स पर्ल्स से झिलमिलाता है.</string>
+    <string name="shell_upgrade_seahorse_crowned_description">सीहॉर्स मुकुट वाले रूप में जाग उठा.</string>
     <string name="shell_upgrade_manta_base_description">मांटा अपने आधार रूप में विश्राम कर रहा है.</string>
     <string name="shell_upgrade_manta_bright_description">मांटा पर्ल्स से चमका.</string>
     <string name="shell_upgrade_manta_moonlit_description">मांटा मूनलिट रूप में जागा.</string>
@@ -1319,10 +1319,10 @@
     <string name="shell_object_pebbles_description">पर्ल्स से रीफ का टुकड़ा बनाने के लिए आमंत्रित करें.</string>
     <string name="shell_object_curtain_title">पर्दा</string>
     <string name="shell_object_curtain_description">पर्ल्स से कमरे की सीमा बनाने के लिए आमंत्रित करें.</string>
-    <string name="shell_object_bubbles_title">बउबबलएस</string>
-    <string name="shell_object_bubbles_description">आमंत्रित के साथ पर्ल्स के लिए एक कोनाóन के साथ धारा.</string>
+    <string name="shell_object_bubbles_title">बबल्स</string>
+    <string name="shell_object_bubbles_description">पर्ल्स से धारा वाला कोना बनाने के लिए आमंत्रित करें.</string>
     <string name="shell_slot_surge_current_nook">सर्ज करंट नुक</string>
-    <string name="shell_surge_current_reserved_body">सर्ज रिवॉर्ड्स यहाँ दिखाए जा सकते हैं। इस नओओक में करंट लाने के लिए सर्ज पूरा करें।</string>
+    <string name="shell_surge_current_reserved_body">सर्ज रिवॉर्ड्स यहाँ दिखाए जा सकते हैं। इस कोने में करंट लाने के लिए सर्ज पूरा करें।</string>
     <string name="shell_basin_soon_upgrade">%1$s · %2$s</string>
     <string name="shell_badge_notification_title">%1$s बैज</string>
     <string name="shell_badge_notification_body">संख्या: %1$d · %2$s</string>
@@ -1671,7 +1671,7 @@
     <string name="lookout_validation_target_time">कम से कम 1 मिनट दर्ज करें।</string>
     <string name="lookout_validation_minutes_range">मिनट 0 से 59 के बीच होने चाहिए।</string>
     <string name="lookout_validation_start_date">शुरू होने की तारीख आज या उसके बाद की होनी चाहिए।</string>
-    <string name="lookout_duplicate_objective">आपके पास %2$s के लिए पहले से एक %1$s लक्ष्य है।</string>
+    <string name="lookout_duplicate_objective">आपके पास पहले से एक %1$s लक्ष्य %2$s के लिए है।</string>
     <string name="lookout_objective_set">%1$s के लिए लक्ष्य सेट किया गया।</string>
     <string name="lookout_minutes_short">%1$d मिनट</string>
     <string name="lookout_minutes_compact">%1$dमि</string>
@@ -1681,7 +1681,7 @@
     <string name="lookout_days_hours_short">%1$dदि %2$dघं</string>
     <string name="shell_objective_badges_title">लक्ष्य बैज</string>
     <string name="shell_objective_badge_row_title">%1$s लक्ष्य ×%2$d</string>
-    <string name="shell_objective_badge_row_body">%2$s के लिए %1$s लक्ष्य पूरे किए।</string>
+    <string name="shell_objective_badge_row_body">%1$s लक्ष्य %2$s के लिए पूरे किए।</string>
     <string name="shell_objective_badge_unknown_journey">जर्नी %1$d</string>
     <string name="idea_grove_title">आइडिया ग्रोव</string>
     <string name="idea_grove_tab_alive">सक्रिय</string>
@@ -1820,12 +1820,12 @@
     <string name="shell_creature_level_up_confirm_cost">लागत: %1$d पर्ल्स</string>
     <string name="shell_creature_level_up_a11y">एक लेवल %1$d %2$s का लेवल बढ़ाएँ. लागत: %3$d पर्ल्स.</string>
     <string name="shell_creature_level_up_mastered_a11y">%1$s ने लेवल 99 पर महारत पा ली है.</string>
-    <string name="shell_creature_level_up_confirm_a11y">%3$d पर्ल्स में एक लेवल %1$d %2$s का लेवल बढ़ाना पुष्टि करें.</string>
+    <string name="shell_creature_level_up_confirm_a11y">एक लेवल %1$d %2$s का लेवल बढ़ाना %3$d पर्ल्स में पुष्टि करें.</string>
     <string name="shell_creature_release_action">छोड़ें</string>
     <string name="shell_creature_release_confirm_single_body">1 लेवल %1$d %2$s को द ब्लू में वापस छोड़ें?</string>
     <string name="shell_creature_release_confirm_bulk_body">%1$d लेवल %2$d %3$s को द ब्लू में वापस छोड़ें?</string>
     <string name="shell_creature_release_confirm_reward">आपको +%1$d पर्ल्स मिलेंगे.</string>
-    <string name="shell_creature_release_confirm_a11y">%4$d पर्ल्स के लिए %1$d लेवल %2$d %3$s छोड़ना पुष्टि करें.</string>
+    <string name="shell_creature_release_confirm_a11y">%1$d लेवल %2$d %3$s को %4$d पर्ल्स के लिए छोड़ना पुष्टि करें.</string>
     <string name="shell_notifications_mark_viewed">देखा गया</string>
     <string name="shell_notifications_inlay_empty_title">कोई नई सूचना नहीं</string>
     <string name="shell_notifications_inlay_empty_body">आपने सब देख लिया है.</string>
