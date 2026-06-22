@@ -8,11 +8,11 @@ struct ScyraTopBarButton: View {
     var body: some View {
         Button(action: action) {
             topBarImage(for: route.display)
-                .frame(width: 24, height: 24)
+                .frame(width: iconFrameSize, height: iconFrameSize)
                 .frame(width: ScyraSpacing.topBarTapTarget, height: ScyraSpacing.topBarTapTarget)
                 .background(
                     Circle()
-                        .fill(isSelected ? ScyraColor.topBarSelectedBackground : Color.clear)
+                        .fill(buttonBackgroundColor)
                 )
                 .overlay(
                     Circle()
@@ -26,16 +26,29 @@ struct ScyraTopBarButton: View {
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
+    private var iconFrameSize: CGFloat {
+        route.display.assetImageName == nil ? 24 : 34
+    }
+
+    private var buttonBackgroundColor: Color {
+        if route.display.assetImageName != nil {
+            return ScyraColor.primaryTeal
+        }
+
+        return isSelected ? ScyraColor.topBarSelectedBackground : Color.clear
+    }
+
     @ViewBuilder
     private func topBarImage(for display: AppRouteDisplay) -> some View {
         if let assetImageName = display.assetImageName {
             Image(assetImageName)
+                .renderingMode(.original)
                 .resizable()
                 .scaledToFit()
                 .accessibilityHidden(true)
         } else {
             Image(systemName: display.systemImage ?? "circle")
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(isSelected ? ScyraColor.primaryTeal : ScyraColor.textSecondary)
                 .accessibilityHidden(true)
         }
