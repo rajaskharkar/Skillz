@@ -13,3 +13,12 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Xcode user data
+*.xcuserstate
+xcuserdata/
+DerivedData/
+
+# Swift / Xcode build outputs
+.build/
+*.xcresult
