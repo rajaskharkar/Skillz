@@ -3,7 +3,18 @@ import SwiftUI
 struct RootNavigationShell<Content: View>: View {
     let selectedRoute: AppRoute
     let onSelectRoute: (AppRoute) -> Void
-    @ViewBuilder let content: Content
+
+    private let content: Content
+
+    init(
+        selectedRoute: AppRoute,
+        onSelectRoute: @escaping (AppRoute) -> Void,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.selectedRoute = selectedRoute
+        self.onSelectRoute = onSelectRoute
+        self.content = content()
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -20,7 +31,10 @@ struct RootNavigationShell<Content: View>: View {
 }
 
 #Preview {
-    RootNavigationShell(selectedRoute: .home) { _ in } content: {
+    RootNavigationShell(
+        selectedRoute: .home,
+        onSelectRoute: { _ in }
+    ) {
         HomePlaceholderView()
     }
 }
