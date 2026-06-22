@@ -1,19 +1,23 @@
-//
-//  ScyraTests.swift
-//  ScyraTests
-//
-//  Created by Rajas Kharkar on 6/20/26.
-//
-
 import Testing
 @testable import Scyra
 
-struct ScyraTests {
+struct AppFoundationTests {
+    @Test func initialRouteIsHome() {
+        let coordinator = AppLaunchCoordinator()
 
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
-        // Swift Testing Documentation
-        // https://developer.apple.com/documentation/testing
+        #expect(coordinator.initialRoute() == .home)
     }
 
+    @Test func appRouteSupportsEqualityAndHashing() {
+        #expect(AppRoute.flow == AppRoute.flow)
+        #expect(AppRoute.flow != AppRoute.story)
+        #expect(Set([AppRoute.home, AppRoute.home, AppRoute.help]).count == 2)
+    }
+
+    @Test func dependencyContainerExposesInjectedLaunchCoordinator() {
+        let coordinator = AppLaunchCoordinator()
+        let container = AppDependencyContainer(appLaunchCoordinator: coordinator)
+
+        #expect(container.appLaunchCoordinator.initialRoute() == .home)
+    }
 }
