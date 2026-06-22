@@ -12,16 +12,12 @@ struct HomePlaceholderView: View {
 
             VStack(spacing: ScyraSpacing.lg) {
                 VStack(spacing: ScyraSpacing.sm) {
-                    Text("Scyra")
-                        .font(ScyraTypography.wordmark)
-                        .foregroundStyle(ScyraColor.primaryTeal)
-
-                    Text("iOS foundation ready")
+                    Text("Home")
                         .font(ScyraTypography.screenTitle)
                         .foregroundStyle(ScyraColor.textPrimary)
                         .multilineTextAlignment(.center)
 
-                    Text("Full Android parity, built natively for iOS")
+                    Text("Scyra’s iOS shell is ready for future feature destinations.")
                         .font(ScyraTypography.body)
                         .foregroundStyle(ScyraColor.textSecondary)
                         .multilineTextAlignment(.center)

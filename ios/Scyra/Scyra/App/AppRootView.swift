@@ -10,7 +10,16 @@ struct AppRootView: View {
     }
 
     var body: some View {
-        // Future: replace placeholder routing with a typed NavigationStack when routes are implemented.
+        RootNavigationShell(
+            selectedRoute: selectedRoute,
+            onSelectRoute: { selectedRoute = $0 }
+        ) {
+            routeContent
+        }
+    }
+
+    @ViewBuilder
+    private var routeContent: some View {
         switch selectedRoute {
         case .home:
             HomePlaceholderView()
