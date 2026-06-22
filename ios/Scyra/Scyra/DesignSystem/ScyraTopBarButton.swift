@@ -7,9 +7,8 @@ struct ScyraTopBarButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: route.display.systemImage ?? "circle")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(isSelected ? ScyraColor.primaryTeal : ScyraColor.textSecondary)
+            topBarImage(for: route.display)
+                .frame(width: 24, height: 24)
                 .frame(width: ScyraSpacing.topBarTapTarget, height: ScyraSpacing.topBarTapTarget)
                 .background(
                     Circle()
@@ -25,6 +24,21 @@ struct ScyraTopBarButton: View {
         .accessibilityValue(isSelected ? "Selected" : "")
         .accessibilityHint(isSelected ? "Current section" : "Selects \(route.display.title)")
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+
+    @ViewBuilder
+    private func topBarImage(for display: AppRouteDisplay) -> some View {
+        if let assetImageName = display.assetImageName {
+            Image(assetImageName)
+                .resizable()
+                .scaledToFit()
+                .accessibilityHidden(true)
+        } else {
+            Image(systemName: display.systemImage ?? "circle")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(isSelected ? ScyraColor.primaryTeal : ScyraColor.textSecondary)
+                .accessibilityHidden(true)
+        }
     }
 }
 
