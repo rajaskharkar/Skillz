@@ -1,5 +1,14 @@
 import Foundation
 
+/// Lightweight dependency container for app-level coordinators and future services.
+///
+/// Keep dependencies explicit and injectable; do not use global singletons.
 struct AppDependencyContainer {
-    // Future services and repositories will be added here.
+    let appLaunchCoordinator: AppLaunchCoordinator
+
+    init(
+        appLaunchCoordinator: AppLaunchCoordinator = AppLaunchCoordinator()
+    ) {
+        self.appLaunchCoordinator = appLaunchCoordinator
+    }
 }
