@@ -7,4 +7,5 @@ enum ScyraSpacing {
     static let lg: CGFloat = 24
     static let xl: CGFloat = 32
     static let screenPadding: CGFloat = 24
+    static let topBarTapTarget: CGFloat = 44
 }

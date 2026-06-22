@@ -7,5 +7,8 @@ enum ScyraColor {
     static let textPrimary = Color(red: 0.102, green: 0.165, blue: 0.176)
     static let textSecondary = Color(red: 0.365, green: 0.463, blue: 0.475)
     static let cardBackground = Color.white.opacity(0.82)
+    static let topBarBackground = Color.white.opacity(0.90)
+    static let topBarSelectedBackground = primaryTeal.opacity(0.16)
+    static let topBarHairline = primaryTeal.opacity(0.14)
     static let pearlGold = Color(red: 0.878, green: 0.706, blue: 0.345)
 }

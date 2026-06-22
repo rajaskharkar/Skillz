@@ -13,7 +13,14 @@ struct PlaceholderRouteView: View {
             .ignoresSafeArea()
 
             VStack(spacing: ScyraSpacing.md) {
-                Text(route.title)
+                if let systemImage = route.display.systemImage {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 32, weight: .semibold))
+                        .foregroundStyle(ScyraColor.primaryTeal)
+                        .accessibilityHidden(true)
+                }
+
+                Text(route.display.title)
                     .font(ScyraTypography.screenTitle)
                     .foregroundStyle(ScyraColor.textPrimary)
 
@@ -27,20 +34,8 @@ struct PlaceholderRouteView: View {
             .background(ScyraColor.cardBackground)
             .clipShape(RoundedRectangle(cornerRadius: ScyraRadius.card))
             .padding(ScyraSpacing.screenPadding)
-        }
-    }
-}
-
-private extension AppRoute {
-    var title: String {
-        switch self {
-        case .home: "Home"
-        case .flow: "Flow"
-        case .story: "Story"
-        case .paths: "Paths"
-        case .shell: "Shell"
-        case .notepad: "Notepad"
-        case .help: "Help"
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(route.display.accessibilityLabel)
         }
     }
 }
