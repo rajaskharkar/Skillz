@@ -16,7 +16,7 @@ struct PlaceholderRouteView: View {
                 if let systemImage = route.display.systemImage {
                     Image(systemName: systemImage)
                         .font(.system(size: 32, weight: .semibold))
-                        .foregroundStyle(ScyraColors.primaryManuscriptBlue)
+                        .foregroundStyle(ScyraColors.primarySlytherinTeal)
                         .accessibilityHidden(true)
                 }
 

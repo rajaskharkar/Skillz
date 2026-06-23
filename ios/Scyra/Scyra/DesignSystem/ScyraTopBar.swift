@@ -11,7 +11,7 @@ struct ScyraTopBar: View {
             } label: {
                 Text("Scyra")
                     .font(ScyraTypography.topBarTitle)
-                    .foregroundStyle(ScyraColors.primaryManuscriptBlue)
+                    .foregroundStyle(ScyraColors.primarySlytherinTeal)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Open Home")

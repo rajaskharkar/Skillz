@@ -28,14 +28,14 @@ struct HomePlaceholderView: View {
                     .foregroundStyle(ScyraColors.textSecondary)
                     .padding(.horizontal, ScyraSpacing.md)
                     .padding(.vertical, ScyraSpacing.sm)
-                    .background(ScyraColors.primaryManuscriptBlue.opacity(0.10))
+                    .background(ScyraColors.primarySlytherinTeal.opacity(0.10))
                     .clipShape(RoundedRectangle(cornerRadius: ScyraRadius.capsule))
             }
             .padding(ScyraSpacing.xl)
             .frame(maxWidth: .infinity)
             .background(ScyraColors.elevatedSurface)
             .clipShape(RoundedRectangle(cornerRadius: ScyraRadius.largeCard))
-            .shadow(color: ScyraColors.primaryManuscriptBlue.opacity(0.18), radius: 24, x: 0, y: 12)
+            .shadow(color: ScyraColors.primarySlytherinTeal.opacity(0.18), radius: 24, x: 0, y: 12)
             .padding(ScyraSpacing.screenPadding)
         }
     }
