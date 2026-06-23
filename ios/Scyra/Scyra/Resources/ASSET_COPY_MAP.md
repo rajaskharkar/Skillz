@@ -10,7 +10,9 @@ This file documents Scyra visual assets prepared for local iOS use. iOS must use
 
 ## Fonts
 
-No font files were copied for this task. Android uses `caveatsb.ttf` for the Android top-bar title and some score-header accent text, but the current iOS direction in `docs/04_DESIGN_SYSTEM.md` and `docs/09_IOS_PARITY_BACKLOG.md` is system iOS typography and explicitly not copying Caveat for iOS at this stage.
+| iOS Name | Type | iOS Location | Android Source | Android Usage Evidence | Notes |
+|---|---|---|---|---|---|
+| caveatsb | Font | Manual iOS project font resource | Android Caveat semibold font resource | `SkillzTopAppBar.kt` uses `FontFamily(Font(R.font.caveatsb))` at `30.sp` for the Scyra title. | Binary font files are intentionally not committed in this PR. Drag and drop the Caveat semibold font into the iOS project manually before relying on the custom title font. The registered PostScript name is `Caveat-SemiBold`, exposed through `ScyraTypography.FontName.appTitle`, and `ScyraTypography.appTitleResolved` falls back to a rounded semibold system font if registration is unavailable. |
 
 ## Assets intentionally skipped
 

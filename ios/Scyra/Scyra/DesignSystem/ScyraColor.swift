@@ -1,14 +1,17 @@
 import SwiftUI
 
+/// Backwards-compatible shim for older call sites. New code should use `ScyraColors` or
+/// `ScyraTheme.standard` directly.
 enum ScyraColor {
-    static let primaryTeal = Color(red: 0.247, green: 0.561, blue: 0.545)
-    static let backgroundTop = Color(red: 0.957, green: 0.984, blue: 0.980)
-    static let backgroundBottom = Color(red: 0.858, green: 0.941, blue: 0.929)
-    static let textPrimary = Color(red: 0.102, green: 0.165, blue: 0.176)
-    static let textSecondary = Color(red: 0.365, green: 0.463, blue: 0.475)
-    static let cardBackground = Color.white.opacity(0.82)
-    static let topBarBackground = Color.white.opacity(0.90)
-    static let topBarSelectedBackground = primaryTeal.opacity(0.16)
-    static let topBarHairline = primaryTeal.opacity(0.14)
-    static let pearlGold = Color(red: 0.878, green: 0.706, blue: 0.345)
+    static let primaryTeal = ScyraColors.primaryManuscriptBlue
+    static let backgroundTop = ScyraColors.background
+    static let backgroundBottom = ScyraColors.backgroundBottom
+    static let textPrimary = ScyraColors.textPrimary
+    static let textSecondary = ScyraColors.textSecondary
+    static let textMuted = ScyraColors.textMuted
+    static let cardBackground = ScyraColors.elevatedSurface
+    static let topBarBackground = ScyraColors.elevatedSurface
+    static let topBarSelectedBackground = ScyraColors.primaryContainer
+    static let topBarHairline = ScyraColors.hairline
+    static let pearlGold = ScyraColors.rewardPearl
 }
