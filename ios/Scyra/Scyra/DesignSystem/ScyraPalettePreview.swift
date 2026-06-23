@@ -5,8 +5,9 @@ struct ScyraPalettePreview: View {
         PaletteSection(
             title: "Brand",
             items: [
-                PaletteItem(name: "primaryTeal", hex: "#3F8F8B", color: ScyraColors.primaryTeal),
-                PaletteItem(name: "primaryManuscriptBlue", hex: "#2F4F6F", color: ScyraColors.primaryManuscriptBlue),
+                PaletteItem(name: "slytherinButNiceTeal", hex: "#3F8F8B", color: ScyraColors.slytherinButNiceTeal),
+                PaletteItem(name: "primary / primaryTeal", hex: "#3F8F8B", color: ScyraColors.primary),
+                PaletteItem(name: "legacyRavenclawBlue", hex: "#2F4F6F legacy", color: ScyraColors.legacyRavenclawBlue),
                 PaletteItem(name: "secondaryGold", hex: "#B8A56A", color: ScyraColors.secondaryGold)
             ]
         ),
@@ -62,7 +63,7 @@ struct ScyraPalettePreview: View {
                     VStack(alignment: .leading, spacing: ScyraSpacing.sm) {
                         Text(section.title)
                             .font(ScyraTypography.cardTitle)
-                            .foregroundStyle(ScyraColors.primaryTeal)
+                            .foregroundStyle(ScyraColors.primary)
 
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: ScyraSpacing.md)], spacing: ScyraSpacing.md) {
                             ForEach(section.items) { item in

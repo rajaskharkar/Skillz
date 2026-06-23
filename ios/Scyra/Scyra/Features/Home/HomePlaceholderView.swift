@@ -3,44 +3,18 @@ import SwiftUI
 struct HomePlaceholderView: View {
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [ScyraColors.background, ScyraColors.backgroundBottom],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            LinearGradient(colors: [ScyraColors.background, ScyraColors.backgroundBottom], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
 
-            VStack(spacing: ScyraSpacing.lg) {
-                VStack(spacing: ScyraSpacing.sm) {
-                    Text("Home")
-                        .font(ScyraTypography.screenTitle)
-                        .foregroundStyle(ScyraColors.textPrimary)
-                        .multilineTextAlignment(.center)
-
-                    Text("Scyra’s iOS shell is ready for future feature destinations.")
-                        .font(ScyraTypography.body)
-                        .foregroundStyle(ScyraColors.textSecondary)
-                        .multilineTextAlignment(.center)
+            ScyraCard(style: .elevated, padding: ScyraSpacing.xl) {
+                VStack(alignment: .leading, spacing: ScyraSpacing.lg) {
+                    ScyraSectionHeader(title: "Home", subtitle: "Scyra’s iOS shell is ready for future feature destinations.")
+                    ScyraChip("Feature screens will arrive in safe, scoped phases.", systemImage: "sparkles", tint: .primary)
                 }
-
-                Text("Feature screens will arrive in safe, scoped phases.")
-                    .font(ScyraTypography.caption)
-                    .foregroundStyle(ScyraColors.textSecondary)
-                    .padding(.horizontal, ScyraSpacing.md)
-                    .padding(.vertical, ScyraSpacing.sm)
-                    .background(ScyraColors.primaryTeal.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: ScyraRadius.capsule))
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(ScyraSpacing.xl)
-            .frame(maxWidth: .infinity)
-            .background(ScyraColors.elevatedSurface)
-            .clipShape(RoundedRectangle(cornerRadius: ScyraRadius.largeCard))
-            .shadow(color: ScyraColors.primaryTeal.opacity(0.18), radius: 24, x: 0, y: 12)
             .padding(ScyraSpacing.screenPadding)
         }
     }
 }
 
-#Preview {
-    HomePlaceholderView()
-}
+#Preview { HomePlaceholderView() }
