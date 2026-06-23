@@ -26,7 +26,7 @@ struct RootNavigationShell<Content: View>: View {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .background(ScyraColor.backgroundBottom)
+        .background(ScyraColors.backgroundBottom)
     }
 }
 

@@ -6,7 +6,7 @@ struct PlaceholderRouteView: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: [ScyraColor.backgroundTop, ScyraColor.backgroundBottom],
+                colors: [ScyraColors.background, ScyraColors.backgroundBottom],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -16,22 +16,22 @@ struct PlaceholderRouteView: View {
                 if let systemImage = route.display.systemImage {
                     Image(systemName: systemImage)
                         .font(.system(size: 32, weight: .semibold))
-                        .foregroundStyle(ScyraColor.primaryTeal)
+                        .foregroundStyle(ScyraColors.primaryManuscriptBlue)
                         .accessibilityHidden(true)
                 }
 
                 Text(route.display.title)
                     .font(ScyraTypography.screenTitle)
-                    .foregroundStyle(ScyraColor.textPrimary)
+                    .foregroundStyle(ScyraColors.textPrimary)
 
                 Text("This screen is planned for future Scyra parity work.")
                     .font(ScyraTypography.body)
-                    .foregroundStyle(ScyraColor.textSecondary)
+                    .foregroundStyle(ScyraColors.textSecondary)
                     .multilineTextAlignment(.center)
             }
             .padding(ScyraSpacing.xl)
             .frame(maxWidth: .infinity)
-            .background(ScyraColor.cardBackground)
+            .background(ScyraColors.elevatedSurface)
             .clipShape(RoundedRectangle(cornerRadius: ScyraRadius.card))
             .padding(ScyraSpacing.screenPadding)
             .accessibilityElement(children: .combine)

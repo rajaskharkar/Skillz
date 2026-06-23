@@ -11,7 +11,7 @@ struct ScyraTopBar: View {
             } label: {
                 Text("Scyra")
                     .font(ScyraTypography.topBarTitle)
-                    .foregroundStyle(ScyraColor.primaryTeal)
+                    .foregroundStyle(ScyraColors.primaryManuscriptBlue)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Open Home")
@@ -30,10 +30,10 @@ struct ScyraTopBar: View {
         }
         .padding(.horizontal, ScyraSpacing.md)
         .padding(.vertical, ScyraSpacing.sm)
-        .background(ScyraColor.topBarBackground)
+        .background(ScyraColors.elevatedSurface)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(ScyraColor.topBarHairline)
+                .fill(ScyraColors.hairline)
                 .frame(height: 1)
         }
     }
