@@ -7,13 +7,12 @@ struct ScyraTopBarButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: route.display.systemImage ?? "circle")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(isSelected ? ScyraColor.primaryTeal : ScyraColor.textSecondary)
+            topBarImage(for: route.display)
+                .frame(width: iconFrameSize, height: iconFrameSize)
                 .frame(width: ScyraSpacing.topBarTapTarget, height: ScyraSpacing.topBarTapTarget)
                 .background(
                     Circle()
-                        .fill(isSelected ? ScyraColor.topBarSelectedBackground : Color.clear)
+                        .fill(buttonBackgroundColor)
                 )
                 .overlay(
                     Circle()
@@ -25,6 +24,34 @@ struct ScyraTopBarButton: View {
         .accessibilityValue(isSelected ? "Selected" : "")
         .accessibilityHint(isSelected ? "Current section" : "Selects \(route.display.title)")
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+
+    private var iconFrameSize: CGFloat {
+        route.display.assetImageName == nil ? 24 : 34
+    }
+
+    private var buttonBackgroundColor: Color {
+        if route.display.assetImageName != nil {
+            return ScyraColor.primaryTeal
+        }
+
+        return isSelected ? ScyraColor.topBarSelectedBackground : Color.clear
+    }
+
+    @ViewBuilder
+    private func topBarImage(for display: AppRouteDisplay) -> some View {
+        if let assetImageName = display.assetImageName {
+            Image(assetImageName)
+                .renderingMode(.original)
+                .resizable()
+                .scaledToFit()
+                .accessibilityHidden(true)
+        } else {
+            Image(systemName: display.systemImage ?? "circle")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(isSelected ? ScyraColor.primaryTeal : ScyraColor.textSecondary)
+                .accessibilityHidden(true)
+        }
     }
 }
 

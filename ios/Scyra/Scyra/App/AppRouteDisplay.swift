@@ -4,6 +4,7 @@ struct AppRouteDisplay: Equatable, Sendable {
     let title: String
     let accessibilityLabel: String
     let systemImage: String?
+    let assetImageName: String?
     let isRootTopBarAction: Bool
 }
 
@@ -15,6 +16,7 @@ extension AppRoute {
                 title: "Home",
                 accessibilityLabel: "Home",
                 systemImage: "house",
+                assetImageName: nil,
                 isRootTopBarAction: false
             )
         case .flow:
@@ -22,6 +24,7 @@ extension AppRoute {
                 title: "Flow",
                 accessibilityLabel: "Flow",
                 systemImage: "timer",
+                assetImageName: nil,
                 isRootTopBarAction: false
             )
         case .story:
@@ -29,6 +32,7 @@ extension AppRoute {
                 title: "Story",
                 accessibilityLabel: "Open Story",
                 systemImage: "book.closed",
+                assetImageName: nil,
                 isRootTopBarAction: true
             )
         case .paths:
@@ -36,13 +40,15 @@ extension AppRoute {
                 title: "Paths",
                 accessibilityLabel: "Open Paths",
                 systemImage: "safari",
+                assetImageName: nil,
                 isRootTopBarAction: true
             )
         case .shell:
             AppRouteDisplay(
                 title: "Shell",
                 accessibilityLabel: "Open The Shell",
-                systemImage: "tortoise",
+                systemImage: nil,
+                assetImageName: "scyraTurtle",
                 isRootTopBarAction: true
             )
         case .notepad:
@@ -50,6 +56,7 @@ extension AppRoute {
                 title: "Notepad",
                 accessibilityLabel: "Open Notepad",
                 systemImage: "square.and.pencil",
+                assetImageName: nil,
                 isRootTopBarAction: true
             )
         case .help:
@@ -57,6 +64,7 @@ extension AppRoute {
                 title: "Help",
                 accessibilityLabel: "Open Help",
                 systemImage: "questionmark.circle",
+                assetImageName: nil,
                 isRootTopBarAction: true
             )
         }
