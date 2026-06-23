@@ -43,7 +43,7 @@ struct ScyraIconButton: View {
         } else {
             Image(systemName: systemImage ?? "circle")
                 .font(ScyraTypography.navigationIcon)
-                .foregroundStyle(isSelected ? ScyraColors.primaryManuscriptBlue : ScyraColors.textSecondary)
+                .foregroundStyle(isSelected ? ScyraColors.primary : ScyraColors.textSecondary)
                 .accessibilityHidden(true)
         }
     }

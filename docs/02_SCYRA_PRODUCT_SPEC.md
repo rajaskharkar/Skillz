@@ -38,11 +38,30 @@ Android source areas inspected:
 
 ## 3. Product Identity
 
+## Scyra Primary Color
+
+The canonical Scyra primary color is SlytherinButNiceTeal `#3F8F8B`.
+
+This is the active primary for:
+- Android theme primary
+- iOS theme primary
+- top app bar title/accent
+- selected navigation accents
+- primary buttons
+- primary containers
+- borders/hairlines derived from primary
+- general Scyra brand UI accents
+
+RavenclawBlue / manuscript blue `#2F4F6F` is not the active Scyra primary and should not be used for new Scyra UI work.
+
+Legacy note: RavenclawBlue `#2F4F6F` appeared in older design notes but is not the current Scyra primary.
+
+
 - App/product name: **Scyra**. Base strings and the `scyra` product flavor use Scyra as the app name.
 - Aera relationship: Android has an `aera` flavor with `applicationIdSuffix = ".aera"`, app name `Aera`, and `SHOW_SCORE = false`. This makes Aera visible as a score-hidden/calm variant at build-flavor level.
 - Scyra relationship: Android has a `scyra` flavor with `applicationIdSuffix = ".scyra"`, app name `Scyra`, and `SHOW_SCORE = true`. Scyra is the score-enabled experience.
 - Primary Scyra visual identity: focused, reflective, rewarding, and mythic/oceanic, especially inside The Shell and The Blue.
-- Primary color: **teal is the main Scyra color for iOS and current product direction**. Android still contains/reference values such as `0xFF2F4F6F` (Royal Manuscript Blue / prior Scyra blue reference) and stale source comments, but iOS should follow the teal visual direction.
+- Primary color: **SlytherinButNiceTeal `#3F8F8B` is the canonical Scyra primary color for Android, iOS, and current product direction**. Android still contains/reference values such as `0xFF2F4F6F` (legacy RavenclawBlue / prior Scyra blue reference) and stale source comments, but those are not active Scyra primary guidance.
 - Typography: Android includes `android/app/src/main/res/font/caveatsb.ttf`, but **iOS should not use or copy Caveat**. iOS should use regular/system iOS typography for Scyra while preserving the calm brand tone with layout, color, and spacing.
 - Design tone: deliberate focus sessions, reflective story/history, reward reveal satisfaction, and an oceanic/mythic Shell meta-layer with creatures, Pearls, The Blue, Stillwater, and room progression.
 
@@ -478,7 +497,7 @@ The Shell is Scyra's gamified reward/meta layer.
 
 - Scyra top app bar/title treatment should feel custom and calm, not generic utility UI.
 - Use regular/system iOS typography for Scyra; do not copy or depend on Android Caveat.
-- Treat teal as Scyra’s main iOS color. `0xFF2F4F6F` remains an Android/prior-reference value where source still uses it, not the iOS primary direction.
+- Treat SlytherinButNiceTeal `#3F8F8B` as Scyra’s canonical primary color. `0xFF2F4F6F` remains a legacy/deprecated Android reference value where source still uses it, not primary-color guidance.
 - Material-card-inspired Android surfaces should become custom SwiftUI cards/surfaces while preserving hierarchy, softness, rounded shapes, and reward emphasis.
 - The Shell should feel mythic/oceanic: The Blue, creatures, Pearls, Stillwater, Shell rooms, and quiet reward arrival.
 - Reward reveal should feel satisfying and legible, with score/Pearl/creature/badge/Stillwater outcomes clearly separated.
@@ -562,6 +581,6 @@ The Shell is Scyra's gamified reward/meta layer.
 - Docs and Android files/directories inspected: `docs/00_REPO_BOUNDARIES.md`, `docs/01_ANDROID_ARCHITECTURE.md`, Android navigation, Flow, Pulse, Story/Home, Paths/Arc, Shell root/rooms, reward/economy, persistence entity, resource/theme, and test files listed in Section 2.
 - Most important product concepts captured: Flow, Journey, Pulse, Story/Chronicle/Home/Horizon, Arc, Surge, Soft Flow, Scyra Score, Pearls, Movement Points, The Shell, Shell rooms, The Blue, Stillwater, Idea Grove, The Lookout, Voyage Hall, Focus Room, The Chest, Badges, and Creature Mastery.
 - Legacy concepts identified: Discovery Journal/discoveries, Trinkets, room objects, Shells/ShellFind naming, Coral, Plants, old Shell Chest naming, object placement, Beam naming, and any Pulse reward interpretation.
-- Resolved decisions applied: full Android parity target, teal as main Scyra iOS color, 100 steps per Movement Point, system iOS typography instead of Caveat, owner-created turtle logo usable after iOS-local export, and Surge should match current Android behavior. Remaining gaps include Aera scope, legacy data compatibility, detailed reward parity tests, full Shell implementation order, Focus Room voice/audio details, soundscape scope, and exact Creature Mastery badge idempotency path.
+- Resolved decisions applied: full Android parity target, SlytherinButNiceTeal `#3F8F8B` as the canonical Scyra primary color, 100 steps per Movement Point, system iOS typography instead of Caveat, owner-created turtle logo usable after iOS-local export, and Surge should match current Android behavior. Remaining gaps include Aera scope, legacy data compatibility, detailed reward parity tests, full Shell implementation order, Focus Room voice/audio details, soundscape scope, and exact Creature Mastery badge idempotency path.
 - Anything outside `docs/02_SCYRA_PRODUCT_SPEC.md` changed: no.
 - Repo boundary rules preserved: yes. The document is reference-only under `docs/`; no Android code/build files were modified and no iOS project/files were created.

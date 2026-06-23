@@ -62,7 +62,7 @@ Product flavors use flavor dimension `mode`:
 - `versionNameSuffix`: `-aera`.
 - App name: `Aera` via `resValue("string", "app_name", "Aera")`.
 - `SHOW_SCORE`: `false`; score UI is hidden by flavor default.
-- Primary color: `0xFF3F8F8B` comment-labeled `RavenclawBlue`.
+- BuildConfig `PRIMARY_COLOR`: `0xFF3F8F8B` comment-labeled `RavenclawBlue`; despite the stale comment, `#3F8F8B` is SlytherinButNiceTeal and is the canonical Scyra primary color.
 - Other observed behavior: same source set and dependencies as Scyra; flavor differences observed in build config/resource value only.
 
 ### `scyra`
@@ -71,7 +71,7 @@ Product flavors use flavor dimension `mode`:
 - `versionNameSuffix`: `-scyra`.
 - App name: `Scyra` via `resValue("string", "app_name", "Scyra")`.
 - `SHOW_SCORE`: `true`; score UI is shown by flavor default.
-- Primary color: `0xFF2F4F6F` comment-labeled `GryffindorRed`.
+- BuildConfig `PRIMARY_COLOR`: `0xFF2F4F6F` comment-labeled `GryffindorRed`; this is a legacy/deprecated build-config reference and is not the canonical Scyra primary color.
 - Other observed behavior: same source set and dependencies as Aera; flavor differences observed in build config/resource value only.
 
 ## 4. Dependency Inventory

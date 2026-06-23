@@ -50,14 +50,14 @@ struct ScyraButton: View {
     private var foregroundColor: Color {
         switch variant {
         case .primary, .destructive: return .white
-        case .secondary: return ScyraColors.primaryManuscriptBlue
+        case .secondary: return ScyraColors.primary
         case .ghost: return ScyraColors.textPrimary
         }
     }
 
     private var backgroundColor: Color {
         switch variant {
-        case .primary: return ScyraColors.primaryManuscriptBlue
+        case .primary: return ScyraColors.primary
         case .secondary: return ScyraColors.primaryContainer
         case .ghost: return .clear
         case .destructive: return ScyraColors.error

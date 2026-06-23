@@ -8,11 +8,11 @@ struct ScyraRewardRow: View {
     let subtitle: String?
     let tint: Color
 
-    init(title: String, value: String, systemImage: String, subtitle: String? = nil, tint: Color = ScyraColors.primaryManuscriptBlue) {
+    init(title: String, value: String, systemImage: String, subtitle: String? = nil, tint: Color = ScyraColors.primary) {
         self.title = title; self.value = value; self.systemImage = systemImage; self.assetImageName = nil; self.subtitle = subtitle; self.tint = tint
     }
 
-    init(title: String, value: String, assetImageName: String, subtitle: String? = nil, tint: Color = ScyraColors.primaryManuscriptBlue) {
+    init(title: String, value: String, assetImageName: String, subtitle: String? = nil, tint: Color = ScyraColors.primary) {
         self.title = title; self.value = value; self.systemImage = nil; self.assetImageName = assetImageName; self.subtitle = subtitle; self.tint = tint
     }
 

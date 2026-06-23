@@ -178,6 +178,24 @@ Most Android XML platform resources should not be copied to iOS. Their policy co
 
 Focus Room behavior is source-backed and uses TTS/voice-guide logic rather than bundled audio files. Soundscapes are a product idea/open question in prior docs, but there is no current Android raw asset set to migrate. If future iOS implements soundscapes, audio files must be licensed, reviewed, and placed locally under `ios/`; this task intentionally introduces no audio assets.
 
+## Scyra Primary Color
+
+The canonical Scyra primary color is SlytherinButNiceTeal `#3F8F8B`.
+
+This is the active primary for:
+- Android theme primary
+- iOS theme primary
+- top app bar title/accent
+- selected navigation accents
+- primary buttons
+- primary containers
+- borders/hairlines derived from primary
+- general Scyra brand UI accents
+
+RavenclawBlue / manuscript blue `#2F4F6F` is not the active Scyra primary and should not be used for new Scyra UI work.
+
+Legacy note: RavenclawBlue `#2F4F6F` appeared in older design notes but is not the current Scyra primary.
+
 ## 12. Theme and Color Resource Audit
 
 | Resource/source | Value | Android usage | Product meaning | iOS token recommendation | Risk/TODO |
@@ -188,16 +206,16 @@ Focus Room behavior is source-backed and uses TTS/voice-guide logic rather than 
 | `colors.xml/teal_200` | `#FF03DAC5` | Template Material color | Legacy/template | Do not make Scyra token | Current Android Material may still use teal in places; verify drift. |
 | `colors.xml/teal_700` | `#FF018786` | Template Material color | Legacy/template | Do not make Scyra token | Verify if unused. |
 | `colors.xml/black`, `white` | `#FF000000`, `#FFFFFFFF` | System colors | Neutral | `ScyraColor.black/white` only if needed | Low. |
-| `Color.kt/RavenclawBlue` | `0xFF2F4F6F` | Android source/flavor reference | Prior/secondary/reference blue | `ScyraColor.referenceBlue` only if needed | Not the iOS primary direction. |
-| `Color.kt/SlytherinButNiceTeal` | `0xFF3F8F8B` | Current Material primary, splash, and teal direction | Main Scyra iOS teal | `ScyraColor.primaryTeal` | Use as primary iOS visual direction despite stale Android name. |
+| `Color.kt/RavenclawBlue` | `0xFF2F4F6F` | Android source/flavor reference | Legacy/deprecated blue reference | `ScyraColor.legacyRavenclawBlue` only for legacy context if needed | Not the Scyra primary. |
+| `Color.kt/SlytherinButNiceTeal` | `0xFF3F8F8B` | Current Material primary, splash, and teal direction | Canonical Scyra primary teal | `ScyraColor.primaryTeal` / `ScyraColors.primary` | Use as canonical Scyra primary despite stale Android name. |
 | `Color.kt/GryffindorOffWhite` | `0xFFF2EBDD` | Background/surface tone | Warm parchment/off-white | `ScyraColor.backgroundWarm` | Stale name; rename only in iOS tokens. |
 | `Color.kt/AntiqueGold`, `Bronze`, `RoyalAmethyst` | Hex values in source | Accents/rewards/badges | Reward/accent tones | `ScyraColor.rewardGold`, `badgeBronze`, `amethyst` | Verify exact values in source before coding tokens. |
-| `themes.xml/windowSplashScreenBackground` | `#3F8F8B` | Splash background | Calm teal launch field | `ScyraColor.launchBackground` | Use teal launch direction for iOS unless future product direction changes. |
+| `themes.xml/windowSplashScreenBackground` | `#3F8F8B` | Splash background | Calm teal launch field | `ScyraColor.launchBackground` | Use teal launch direction for iOS. |
 | `ic_scyra_notification.xml` | Vector fill values in drawable | Android notification mark | Brand notification icon | iOS notification asset or system handling | iOS notification asset rules differ. |
-| Gradle `PRIMARY_COLOR` Scyra | `0xFF2F4F6F` | BuildConfig for Scyra/default | Prior/reference Scyra blue | `ScyraColor.referenceBlue` if needed | Not the iOS primary direction; use teal. |
+| Gradle `PRIMARY_COLOR` Scyra | `0xFF2F4F6F` | BuildConfig for Scyra/default | Legacy/deprecated Scyra blue | `ScyraColor.legacyRavenclawBlue` only for legacy context if needed | Not the Scyra primary; use SlytherinButNiceTeal `#3F8F8B`. |
 | Gradle `PRIMARY_COLOR` Aera | `0xFF3F8F8B` | Aera flavor | Aera calm teal | `AeraColor.primary` only if Aera supported | Aera support is an open product decision. |
 
-Treat teal (`0xFF3F8F8B` / Android teal direction) as Scyra’s main iOS color. Treat `0xFF2F4F6F` as a prior/secondary/reference blue where still present in Android source. Do not carry stale Hogwarts-style Android source names into product-facing iOS token names.
+Treat SlytherinButNiceTeal (`0xFF3F8F8B`) as Scyra’s canonical primary color across Android and iOS. Treat `0xFF2F4F6F` as legacy/deprecated where still present in Android source. Do not carry stale Hogwarts-style Android source names into product-facing iOS token names.
 
 ## 13. Source-Backed Visual Asset Audit
 
@@ -374,7 +392,7 @@ No unsupported licensing claims are made here; unknown sources are marked for ve
 
 - App name/copy and root navigation labels, because every iOS screen depends on them.
 - Base English strings and reviewed String Catalog structure.
-- Scyra teal primary color tokens, with `0xFF2F4F6F` only as prior/reference blue if needed.
+- Scyra teal primary color tokens, with `0xFF2F4F6F` only as legacy/deprecated context if needed.
 - Regular/system iOS typography; do not copy Caveat.
 - Owner-created turtle logo exported as local iOS asset.
 - Root top bar icon equivalents and VoiceOver labels.
@@ -414,7 +432,7 @@ No unsupported licensing claims are made here; unknown sources are marked for ve
 | Legacy copy cleanup | Beam/object/coral/plants copy remains. | iOS could accidentally port deprecated concepts. | Product terminology cleanup decision. |
 | No confirmed soundscape assets | Product mentions soundscapes as future idea. | iOS cannot implement asset-backed soundscapes yet. | Separate soundscape scope/licensing task. |
 | Accessibility for custom visuals | Canvas-drawn creatures/icons lack automatic semantics. | VoiceOver gaps on core Shell/Blue UI. | Accessibility audit/prototype for custom drawing. |
-| Scyra teal adoption | Teal is now the main Scyra iOS color while Android still has older blue references. | iOS should not choose the prior blue as primary. | Implement teal primary token and document blue as reference/secondary only. |
+| Scyra teal adoption | SlytherinButNiceTeal `#3F8F8B` is the canonical Scyra primary while Android still has older blue references. | Do not choose the prior blue as Scyra primary. | Implement SlytherinButNiceTeal primary token and document blue as legacy/deprecated only. |
 | App Store asset requirements | Play Store icon is not enough. | Need iOS icon, screenshots, privacy assets. | App Store readiness checklist. |
 | iOS notification differences | Android foreground service/channel copy does not map directly. | Active Flow notifications need native strategy. | iOS notification/deep-link design task. |
 | Future cloud sync/import copy | Migration/import may need user-facing copy. | Not covered by current resources. | Future sync/import UX spec. |

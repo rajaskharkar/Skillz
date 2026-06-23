@@ -42,8 +42,8 @@ Expected path notes:
 
 - Product name: **Scyra**.
 - Primary visual tone: focused, reflective, rewarding, mythic/oceanic.
-- Primary color direction: treat teal (`0xFF3F8F8B` / current Android teal theme direction) as the main Scyra iOS color; keep `0xFF2F4F6F` as a prior/secondary/reference blue where Android still exposes it.
-- Current Compose app theme uses `SlytherinButNiceTeal` (`0xFF3F8F8B`) as `color` in `Theme.kt`; this teal is the current Scyra visual direction and should be the iOS primary color unless future Android source changes.
+- Primary color direction: SlytherinButNiceTeal (`0xFF3F8F8B`) is the canonical Scyra primary across Android and iOS; RavenclawBlue (`0xFF2F4F6F`) is legacy/deprecated only.
+- Current Compose app theme uses `SlytherinButNiceTeal` (`0xFF3F8F8B`) as `color` in `Theme.kt`; this teal is the current Scyra visual direction and the iOS primary color.
 - Android-only Caveat brand accent: `caveatsb.ttf` and `CaveatSemiBold` are used by Android's top bar, but iOS should use regular/system typography and should not copy Caveat.
 - Shell turtle/logo: `scyra_turtle.png` is used as the central Shell top-bar action and contributes to Scyra's creature/oceanic identity.
 - Shell/The Blue language: oceanic, mythic, quiet, collection-oriented; The Blue uses zones/depth, creatures, ripples, and procedural drawing.
@@ -52,14 +52,32 @@ Expected path notes:
 - Collection/inventory tone: The Chest should feel like a creature-only, RuneScape-bank-like inventory grid.
 - Scyra visual identity should be distinguished from Aera flavor behavior; iOS should prioritize Scyra first unless Aera is explicitly requested.
 
+## Scyra Primary Color
+
+The canonical Scyra primary color is SlytherinButNiceTeal `#3F8F8B`.
+
+This is the active primary for:
+- Android theme primary
+- iOS theme primary
+- top app bar title/accent
+- selected navigation accents
+- primary buttons
+- primary containers
+- borders/hairlines derived from primary
+- general Scyra brand UI accents
+
+RavenclawBlue / manuscript blue `#2F4F6F` is not the active Scyra primary and should not be used for new Scyra UI work.
+
+Legacy note: RavenclawBlue `#2F4F6F` appeared in older design notes but is not the current Scyra primary.
+
 ## 4. Color System
 
 | Android source/name | Value | Usage | Semantic role | iOS token recommendation | Notes |
 |---|---:|---|---|---|---|
-| `BuildConfig.PRIMARY_COLOR` default/scyra | `0xFF2F4F6F` | Notifications and Scyra flavor build config | Prior/reference Scyra blue in Android build config | `ScyraColor.referenceBlue` if needed | Do not make this the iOS primary unless product/source direction changes. |
+| `BuildConfig.PRIMARY_COLOR` default/scyra | `0xFF2F4F6F` | Notifications and Scyra flavor build config | Legacy/deprecated Scyra blue in Android build config | `ScyraColor.legacyRavenclawBlue` only for legacy context if needed | Do not make this the Scyra primary. |
 | `BuildConfig.PRIMARY_COLOR` aera | `0xFF3F8F8B` | Aera flavor notification/branding | Aera calm teal | `ScyraColor.aeraTeal` if Aera is supported | Defer Aera on iOS. |
-| `SlytherinButNiceTeal` / `Theme.kt color` | `0xFF3F8F8B` | Current Material `primary` in `SkillzTheme` | Main Scyra teal | `ScyraColor.primaryTeal` | Final iOS direction: use teal as primary. |
-| `RavenclawBlue` | `0xFF2F4F6F` | Compose color constant; prior Scyra flavor primary/reference | Royal Manuscript Blue reference / secondary legacy blue | `ScyraColor.referenceBlue` only if needed | Do not use as iOS primary unless Android/product direction changes. |
+| `SlytherinButNiceTeal` / `Theme.kt color` | `0xFF3F8F8B` | Current Material `primary` in `SkillzTheme` | Main Scyra teal | `ScyraColor.primaryTeal` / `ScyraColors.primary` | Canonical Scyra primary; use teal as primary. |
+| `RavenclawBlue` | `0xFF2F4F6F` | Compose color constant; prior Scyra flavor primary/reference | Legacy/deprecated blue reference | `ScyraColor.legacyRavenclawBlue` only for legacy context if needed | Do not use as Scyra primary. |
 | `GryffindorOffWhite` | `0xFFF2EBDD` | Light theme background/on-primary text | Parchment background | `ScyraColor.parchment` | Good Scyra surface/background token. |
 | `Color(0xFFE4D8BB)` | `0xFFE4D8BB` | Light theme surface/surfaceVariant | Parchment card surface | `ScyraColor.surfaceParchment` | Normalize as card surface. |
 | `AntiqueGold` | `0xFFB8A56A` | Light secondary | Pearl/gold accent | `ScyraColor.pearlGold` | Used as secondary. |
@@ -437,7 +455,7 @@ Recommended future names only; do not create iOS code.
 ### Colors
 
 - `ScyraColor.primaryTeal`
-- `ScyraColor.referenceBlue` (optional prior/secondary reference)
+- `ScyraColor.legacyRavenclawBlue` (optional legacy/deprecated context only)
 - `ScyraColor.aeraTeal`
 - `ScyraColor.parchment`
 - `ScyraColor.surfaceParchment`
@@ -522,7 +540,7 @@ Recommended future names only; do not create iOS code.
 ## 26. Codex Summary
 
 - Docs and Android files/resources inspected: `docs/00_REPO_BOUNDARIES.md`, `docs/01_ANDROID_ARCHITECTURE.md`, `docs/02_SCYRA_PRODUCT_SPEC.md`, `docs/03_NAVIGATION_AND_SCREEN_MAP.md`, Android colors/themes/strings/localizations/font/drawable/mipmap resources, Compose theme files, app top bar, Flow/reward, Story, Paths/Arc, Shell, The Blue, The Chest/Badges, Focus Room, Health UI, and UI mapper tests.
-- Major color/typography/design findings: teal (`0xFF3F8F8B` / Android teal direction) is the main Scyra iOS color; `0xFF2F4F6F` remains an Android/prior-reference blue where source still uses it; parchment surfaces and Pearl/gold accents are core; Android uses CaveatSB for the wordmark but iOS should use regular/system typography.
+- Major color/typography/design findings: SlytherinButNiceTeal (`0xFF3F8F8B`) is the canonical Scyra primary color; `0xFF2F4F6F` remains a legacy/deprecated Android reference where source still uses it; parchment surfaces and Pearl/gold accents are core; Android uses CaveatSB for the wordmark but iOS should use regular/system typography.
 - Major reusable components identified: Scyra top bar, Shell top bar, cards, buttons, icon buttons, chips/stat pills, score display, Journey filters, reward reveal deck/cards/chips, Health cards, Shell inlays, room nodes, Pearl display, creature tiles, badge rows, empty states, dialogs/sheets.
 - Major screen visual systems mapped: Home/Story/Paths/Notepad/Help, Flow, reward reveal, Pulse, Story/Chronicle, Paths/Arc, Shell root/Heart, The Blue, The Chest, Badges, Stillwater, Idea Grove, Lookout, Voyage Hall, Focus Room, Health settings.
 - Asset categories discovered: launcher/app icons, Play Store icon, owner-created turtle logo, splash drawables/animator, notification icon, Android-only Caveat font, Shell procedural icons/drawings, The Blue procedural creature drawing code, localized strings; no `res/raw` audio assets observed.

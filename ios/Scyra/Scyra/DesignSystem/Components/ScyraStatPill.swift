@@ -6,7 +6,7 @@ struct ScyraStatPill: View {
     let systemImage: String?
     let tint: Color
 
-    init(label: String, value: String, systemImage: String? = nil, tint: Color = ScyraColors.primaryManuscriptBlue) {
+    init(label: String, value: String, systemImage: String? = nil, tint: Color = ScyraColors.primary) {
         self.label = label; self.value = value; self.systemImage = systemImage; self.tint = tint
     }
 

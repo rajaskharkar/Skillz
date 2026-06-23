@@ -114,7 +114,7 @@ The iOS product goal is **full Android app parity for Scyra**. The phases below 
 
 ### Phase 1: Foundation
 
-- Scyra design system basics: teal primary color, regular/system iOS typography, card/button/chip styles, empty/loading/error states, custom Scyra top bar.
+- Scyra design system basics: SlytherinButNiceTeal primary color, regular/system iOS typography, card/button/chip styles, empty/loading/error states, custom Scyra top bar.
 - Root SwiftUI app shell, dependency container, typed navigation route model, settings repository, local persistence foundation, and repository/service protocols.
 - SQLite persistence direction behind repositories unless a future implementation spike proves another approach better.
 
@@ -147,6 +147,24 @@ The iOS product goal is **full Android app parity for Scyra**. The phases below 
 - Soundscapes/audio assets until assets/licensing and product scope exist.
 - Android-to-iOS data import, cloud sync, Watch app, widgets, Live Activities, full App Store marketing assets, and advanced Health metrics beyond steps.
 
+## Scyra Primary Color
+
+The canonical Scyra primary color is SlytherinButNiceTeal `#3F8F8B`.
+
+This is the active primary for:
+- Android theme primary
+- iOS theme primary
+- top app bar title/accent
+- selected navigation accents
+- primary buttons
+- primary containers
+- borders/hairlines derived from primary
+- general Scyra brand UI accents
+
+RavenclawBlue / manuscript blue `#2F4F6F` is not the active Scyra primary and should not be used for new Scyra UI work.
+
+Legacy note: RavenclawBlue `#2F4F6F` appeared in older design notes but is not the current Scyra primary.
+
 ## 6. Open Product / Engineering Decisions Before Implementation
 
 | Decision | Why it matters | Current Android evidence | Recommended owner/follow-up | Blocks |
@@ -158,7 +176,7 @@ The iOS product goal is **full Android app parity for Scyra**. The phases below 
 | Creature Mastery idempotency design | Prevents duplicate countable Mastery awards. | Android gap around per-instance Level 99 Mastery persistence. | Product + persistence/rewards owner. | Badges/Mastery, creature growth. |
 | iOS typography | Brand title treatment must match product direction. | Android has Caveat, but iOS should not use/copy it. | Use regular/system iOS font tokens. | Typography, brand title. |
 | Turtle/logo iOS export | Core app icon/top bar/Shell brand asset. | Turtle logo is owner-created and usable. | Export/copy proper local iOS assets later; never reference Android path. | AppIcon, Shell icon, launch branding. |
-| Scyra teal primary | iOS primary palette must be intentional. | Teal is final main Scyra iOS color; `0xFF2F4F6F` is prior/reference where still present. | Implement teal as primary token. | Design system foundation. |
+| Scyra teal primary | iOS primary palette must be intentional. | SlytherinButNiceTeal `#3F8F8B` is the canonical Scyra primary; `0xFF2F4F6F` is legacy/deprecated where still present. | Implement SlytherinButNiceTeal as primary token. | Design system foundation. |
 | Notification prompt timing | Bad timing hurts opt-in; Android auto-prompts in gate. | Android `NotificationPermissionGate` launches runtime prompt on composition. | Product/UX decision. | Notification permission PR. |
 | iCloud backup/exclusion policy | Economy/Health/notepad data sensitivity. | Android `allowBackup=true` with template XML. | Engineering + privacy/product. | Release readiness, persistence policy. |
 | In-app language override on iOS | iOS override differs from AppCompat locales. | Android stores `app_language_tag` and applies AppCompat locale. | Product/engineering decision. | LocaleService, localization UX. |
@@ -305,7 +323,7 @@ Some PRs require human/manual Xcode setup before Codex can safely work. Do not c
 | Feature | Depends on | Blocks | Notes |
 | ------- | ---------- | ------ | ----- |
 | Project scaffold | Human Xcode setup | Everything iOS | Must live under `ios/`. |
-| Design system | Scyra primary color decision, safe font fallback | All screens | Use system typography; no Caveat copy. |
+| Design system | Scyra canonical primary color decision, safe font fallback | All screens | Use system typography; no Caveat copy. |
 | Persistence | SQLite-backed implementation direction | Flow, Story, rewards, settings | Use repository/service layers and explicit migrations. |
 | Settings | Persistence/settings store | Score visibility, movement toggle, language | Keep behind service/repository. |
 | Flow | Design system, persistence, settings | Story, rewards, notifications, movement | Core Phase 1. |
@@ -342,7 +360,7 @@ Some PRs require human/manual Xcode setup before Codex can safely work. Do not c
 | Notification prompt timing | Medium | Doc 08 | Bad prompt timing reduces opt-in. | Permission education coordinator. | If notifications Phase 1 |
 | iCloud backup/privacy | Medium/high | Docs 05, 08 | Health/economy/notepad data backup must be intentional. | Backup/privacy engineering task. | Before release |
 | Legacy concept leakage | High | Docs 02, 06, 07 | iOS could port deprecated objects/trinkets/Beam. | Do-not-port table and PR checklist. | Yes |
-| Teal primary adoption | Medium | Docs 04, 07 | Visual identity can drift if iOS uses prior blue. | Use teal primary token; keep blue as reference/secondary only. | Yes |
+| SlytherinButNiceTeal primary adoption | Medium | Docs 04, 07 | Visual identity can drift if iOS uses prior blue. | Use SlytherinButNiceTeal `#3F8F8B` primary token; keep blue as legacy/deprecated only. | Yes |
 | Reward reveal historical drift | Medium/high | Doc 06 | Future formula changes can alter old history if not persisted. | Persist reward breakdowns and mapper state. | Yes |
 | App Store permission/privacy review | Medium/high | Docs 07, 08 | Health/notifications/TTS/App Privacy can block release. | Release checklist. | Before release |
 
@@ -395,7 +413,7 @@ Some PRs require human/manual Xcode setup before Codex can safely work. Do not c
 - Use regular/system iOS typography; do not copy Android Caveat into `ios/`.
 - Create iOS String Catalog (`Localizable.xcstrings`) and migrate base English copy locally.
 - Review Spanish/Hindi/Marathi translations and perform layout/screenshot checks before enabling full localized release.
-- Create Scyra color tokens with teal as the primary color; keep Royal Manuscript Blue `0xFF2F4F6F` only as a prior/secondary/reference token if needed.
+- Create Scyra color tokens with SlytherinButNiceTeal `#3F8F8B` as the primary color; keep RavenclawBlue `0xFF2F4F6F` only as legacy/deprecated context if needed.
 - Redraw/prototype The Blue creatures with SwiftUI Canvas or a product-approved asset pipeline.
 - Create Pearl, Badge, Creature, and reward icon strategy as native iOS assets/components.
 - Decide LaunchScreen static/animated-post-launch approach.

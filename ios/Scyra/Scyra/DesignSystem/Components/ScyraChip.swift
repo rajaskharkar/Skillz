@@ -37,7 +37,7 @@ struct ScyraChip: View {
             .overlay(RoundedRectangle(cornerRadius: ScyraRadius.capsule, style: .continuous).stroke(baseColor.opacity(0.25), lineWidth: 1))
     }
 
-    private var baseColor: Color { tint == .secondary ? ScyraColors.secondaryGold : (tint == .reward ? ScyraColors.rewardMovement : ScyraColors.primaryManuscriptBlue) }
+    private var baseColor: Color { tint == .secondary ? ScyraColors.secondaryGold : (tint == .reward ? ScyraColors.rewardMovement : ScyraColors.primary) }
     private var selectedForeground: Color { tint == .secondary ? ScyraColors.textPrimary : .white }
 }
 

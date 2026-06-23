@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// Backwards-compatible shim for older call sites. New code should use `ScyraColors` or
-/// `ScyraTheme.standard` directly.
+/// Backwards-compatible shim for older call sites. New code should use `ScyraColors`
+/// or `ScyraTheme.standard` directly.
 enum ScyraColor {
-    static let primaryManuscriptBlue = ScyraColors.primaryManuscriptBlue
-    static let androidPrimaryTeal = ScyraColors.androidPrimaryTeal
+    static let primaryTeal = ScyraColors.primary
+    static let legacyRavenclawBlue = ScyraColors.legacyRavenclawBlue
     static let backgroundTop = ScyraColors.background
     static let backgroundBottom = ScyraColors.backgroundBottom
     static let textPrimary = ScyraColors.textPrimary

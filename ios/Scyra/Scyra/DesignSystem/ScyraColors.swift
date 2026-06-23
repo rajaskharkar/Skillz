@@ -2,13 +2,17 @@ import SwiftUI
 
 /// Centralized SwiftUI color tokens for the Scyra design system.
 ///
-/// Active iOS primary is Scyra manuscript blue (`#2F4F6F`). Teal (`#3F8F8B`)
-/// remains available only as an Android-parity/supporting color and semantic reward tint.
+/// Scyra primary color: SlytherinButNiceTeal `#3F8F8B`.
+/// This teal is the canonical active primary for Android, iOS, navigation,
+/// primary controls, containers, borders, hairlines, and brand UI accents.
+/// Legacy RavenclawBlue/manuscript blue `#2F4F6F` is not the active Scyra primary.
 enum ScyraColors {
     // MARK: - Brand
 
-    static let primaryManuscriptBlue = Color(red: 47.0 / 255.0, green: 79.0 / 255.0, blue: 111.0 / 255.0) // Active iOS primary #2F4F6F.
-    static let androidPrimaryTeal = Color(red: 63.0 / 255.0, green: 143.0 / 255.0, blue: 139.0 / 255.0) // Android parity/supporting token #3F8F8B.
+    static let slytherinButNiceTeal = Color(red: 63.0 / 255.0, green: 143.0 / 255.0, blue: 139.0 / 255.0) // Canonical Scyra primary #3F8F8B.
+    static let primary = slytherinButNiceTeal
+    static let primaryTeal = slytherinButNiceTeal
+    static let legacyRavenclawBlue = Color(red: 47.0 / 255.0, green: 79.0 / 255.0, blue: 111.0 / 255.0) // Legacy/deprecated; not active Scyra primary.
     static let secondaryGold = Color(red: 184.0 / 255.0, green: 165.0 / 255.0, blue: 106.0 / 255.0) // Android AntiqueGold #B8A56A.
 
     // MARK: - Surfaces
@@ -20,7 +24,7 @@ enum ScyraColors {
 
     // MARK: - Containers
 
-    static let primaryContainer = primaryManuscriptBlue.opacity(0.16)
+    static let primaryContainer = primary.opacity(0.16)
     static let secondaryContainer = secondaryGold.opacity(0.18)
 
     // MARK: - Text
@@ -32,13 +36,13 @@ enum ScyraColors {
 
     // MARK: - Lines
 
-    static let border = primaryManuscriptBlue.opacity(0.20)
-    static let hairline = primaryManuscriptBlue.opacity(0.14)
+    static let border = primary.opacity(0.20)
+    static let hairline = primary.opacity(0.14)
 
     // MARK: - Rewards / Semantic
 
     static let rewardPearl = Color(red: 217.0 / 255.0, green: 192.0 / 255.0, blue: 138.0 / 255.0)
-    static let rewardMovement = androidPrimaryTeal
+    static let rewardMovement = primary
     static let rewardArc = Color(red: 140.0 / 255.0, green: 106.0 / 255.0, blue: 168.0 / 255.0)
     static let rewardSurge = Color(red: 209.0 / 255.0, green: 180.0 / 255.0, blue: 90.0 / 255.0)
     static let success = Color(red: 47.0 / 255.0, green: 143.0 / 255.0, blue: 134.0 / 255.0)

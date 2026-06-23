@@ -14,7 +14,7 @@ struct ScyraEmptyState: View {
     var body: some View {
         ScyraCard(style: .elevated, padding: ScyraSpacing.xl) {
             VStack(spacing: ScyraSpacing.md) {
-                if let systemImage { Image(systemName: systemImage).font(ScyraTypography.rewardNumber).foregroundStyle(ScyraColors.primaryManuscriptBlue).accessibilityHidden(true) }
+                if let systemImage { Image(systemName: systemImage).font(ScyraTypography.rewardNumber).foregroundStyle(ScyraColors.primary).accessibilityHidden(true) }
                 Text(title).font(ScyraTypography.screenTitle).foregroundStyle(ScyraColors.textPrimary).multilineTextAlignment(.center)
                 Text(message).font(ScyraTypography.body).foregroundStyle(ScyraColors.textSecondary).multilineTextAlignment(.center)
                 if let actionTitle, let action { ScyraButton(actionTitle, action: action).padding(.top, ScyraSpacing.sm) }

@@ -40,7 +40,7 @@ struct ScyraCard<Content: View>: View {
                     .stroke(ScyraColors.border, lineWidth: 1)
             )
             .shadow(
-                color: style == .elevated ? ScyraColors.primaryManuscriptBlue.opacity(0.12) : .clear,
+                color: style == .elevated ? ScyraColors.primary.opacity(0.12) : .clear,
                 radius: style == .elevated ? 18 : 0,
                 x: 0,
                 y: style == .elevated ? 8 : 0
