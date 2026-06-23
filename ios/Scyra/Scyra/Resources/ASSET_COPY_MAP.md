@@ -10,7 +10,11 @@ This file documents Scyra visual assets prepared for local iOS use. iOS must use
 
 ## Fonts
 
-No font files were copied for this task. Android uses `caveatsb.ttf` for the Android top-bar title and some score-header accent text, but the current iOS direction in `docs/04_DESIGN_SYSTEM.md` and `docs/09_IOS_PARITY_BACKLOG.md` is system iOS typography and explicitly not copying Caveat for iOS at this stage.
+The Caveat semibold font is intentionally not committed in this PR because Codex cannot safely update binary font files. Typography is fallback-safe: `ScyraTypography.appTitleResolved` uses the custom font only if a future manual step adds and registers it; until then, the app title uses `ScyraTypography.appTitleFallback`.
+
+| iOS Name | Type | Future iOS Location | Android Source | Android Usage Evidence | Notes |
+|---|---|---|---|---|---|
+| caveatsb | Font | `ios/Scyra/Scyra/Resources/Fonts/caveatsb.ttf` | `android/app/src/main/res/font/caveatsb.ttf` | `SkillzTopAppBar.kt` uses `FontFamily(Font(R.font.caveatsb))` at `30.sp` for the Scyra title. | Do not reference Android paths from iOS runtime/build code. A future manual/developer task can add this font to Xcode and register it with `UIAppFonts`; until that happens, the system fallback is expected. |
 
 ## Assets intentionally skipped
 

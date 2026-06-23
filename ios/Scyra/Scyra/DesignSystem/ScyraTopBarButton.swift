@@ -16,7 +16,7 @@ struct ScyraTopBarButton: View {
                 )
                 .overlay(
                     Circle()
-                        .stroke(isSelected ? ScyraColor.primaryTeal.opacity(0.20) : Color.clear, lineWidth: 1)
+                        .stroke(isSelected ? ScyraColors.primaryManuscriptBlue.opacity(0.20) : Color.clear, lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)
@@ -32,10 +32,10 @@ struct ScyraTopBarButton: View {
 
     private var buttonBackgroundColor: Color {
         if route.display.assetImageName != nil {
-            return ScyraColor.primaryTeal
+            return ScyraColors.primaryManuscriptBlue
         }
 
-        return isSelected ? ScyraColor.topBarSelectedBackground : Color.clear
+        return isSelected ? ScyraColors.primaryContainer : Color.clear
     }
 
     @ViewBuilder
@@ -48,8 +48,8 @@ struct ScyraTopBarButton: View {
                 .accessibilityHidden(true)
         } else {
             Image(systemName: display.systemImage ?? "circle")
-                .font(.system(size: 24, weight: .semibold))
-                .foregroundStyle(isSelected ? ScyraColor.primaryTeal : ScyraColor.textSecondary)
+                .font(ScyraTypography.navigationIcon)
+                .foregroundStyle(isSelected ? ScyraColors.primaryManuscriptBlue : ScyraColors.textSecondary)
                 .accessibilityHidden(true)
         }
     }
