@@ -16,7 +16,7 @@ struct ScyraTheme {
     let success: Color
 
     static let standard = ScyraTheme(
-        primary: ScyraColors.primaryTeal,
+        primary: ScyraColors.primaryManuscriptBlue,
         secondary: ScyraColors.secondaryGold,
         background: ScyraColors.background,
         surface: ScyraColors.surface,

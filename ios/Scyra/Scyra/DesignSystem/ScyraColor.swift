@@ -3,7 +3,8 @@ import SwiftUI
 /// Backwards-compatible shim for older call sites. New code should use `ScyraColors` or
 /// `ScyraTheme.standard` directly.
 enum ScyraColor {
-    static let primaryTeal = ScyraColors.primaryTeal
+    static let primaryManuscriptBlue = ScyraColors.primaryManuscriptBlue
+    static let androidPrimaryTeal = ScyraColors.androidPrimaryTeal
     static let backgroundTop = ScyraColors.background
     static let backgroundBottom = ScyraColors.backgroundBottom
     static let textPrimary = ScyraColors.textPrimary
