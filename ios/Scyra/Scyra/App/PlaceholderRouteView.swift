@@ -16,7 +16,7 @@ struct PlaceholderRouteView: View {
                 if let systemImage = route.display.systemImage {
                     Image(systemName: systemImage)
                         .font(ScyraTypography.rewardNumber)
-                        .foregroundStyle(ScyraColors.primaryManuscriptBlue)
+                        .foregroundStyle(ScyraColors.primaryTeal)
                         .accessibilityHidden(true)
                 }
 

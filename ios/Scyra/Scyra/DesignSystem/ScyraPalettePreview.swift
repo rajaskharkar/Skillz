@@ -5,7 +5,7 @@ struct ScyraPalettePreview: View {
         PaletteSection(
             title: "Brand",
             items: [
-                PaletteItem(name: "androidPrimaryTeal", hex: "#3F8F8B", color: ScyraColors.androidPrimaryTeal),
+                PaletteItem(name: "primaryTeal", hex: "#3F8F8B", color: ScyraColors.primaryTeal),
                 PaletteItem(name: "primaryManuscriptBlue", hex: "#2F4F6F", color: ScyraColors.primaryManuscriptBlue),
                 PaletteItem(name: "secondaryGold", hex: "#B8A56A", color: ScyraColors.secondaryGold)
             ]
@@ -31,10 +31,10 @@ struct ScyraPalettePreview: View {
         PaletteSection(
             title: "Containers",
             items: [
-                PaletteItem(name: "primaryContainer", hex: "#2F4F6F 16%", color: ScyraColors.primaryContainer),
+                PaletteItem(name: "primaryContainer", hex: "#3F8F8B 16%", color: ScyraColors.primaryContainer),
                 PaletteItem(name: "secondaryContainer", hex: "#B8A56A 18%", color: ScyraColors.secondaryContainer),
-                PaletteItem(name: "border", hex: "#2F4F6F 20%", color: ScyraColors.border),
-                PaletteItem(name: "hairline", hex: "#2F4F6F 14%", color: ScyraColors.hairline)
+                PaletteItem(name: "border", hex: "#3F8F8B 20%", color: ScyraColors.border),
+                PaletteItem(name: "hairline", hex: "#3F8F8B 14%", color: ScyraColors.hairline)
             ]
         ),
         PaletteSection(
@@ -62,7 +62,7 @@ struct ScyraPalettePreview: View {
                     VStack(alignment: .leading, spacing: ScyraSpacing.sm) {
                         Text(section.title)
                             .font(ScyraTypography.cardTitle)
-                            .foregroundStyle(ScyraColors.primaryManuscriptBlue)
+                            .foregroundStyle(ScyraColors.primaryTeal)
 
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: ScyraSpacing.md)], spacing: ScyraSpacing.md) {
                             ForEach(section.items) { item in
