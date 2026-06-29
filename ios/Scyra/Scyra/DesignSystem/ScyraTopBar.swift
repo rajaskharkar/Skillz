@@ -31,16 +31,12 @@ struct ScyraTopBar: View {
                 .accessibilityLabel("Back to Story")
             }
 
-            Button(action: onBackToRoot) {
-                Text("Scyra")
-                    .font(ScyraTypography.appTitleResolved)
-                    .foregroundStyle(ScyraColors.primary)
-                    .frame(minHeight: ScyraSpacing.topBarTapTarget)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Open Story")
-            .accessibilityValue(selectedRoute == .story ? "Selected" : "")
-            .accessibilityAddTraits(selectedRoute == .story ? [.isSelected] : [])
+            Text("Scyra")
+                .font(ScyraTypography.appTitleResolved)
+                .foregroundStyle(ScyraColors.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .accessibilityAddTraits(.isHeader)
 
             Spacer(minLength: ScyraSpacing.sm)
 

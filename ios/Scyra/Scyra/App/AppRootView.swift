@@ -31,13 +31,19 @@ struct AppRootView: View {
     private func content(for route: AppRoute) -> some View {
         switch route {
         case .story:
-            StoryPlaceholderView()
+            StoryPlaceholderView(onSelectRoute: selectRoute)
+        case .horizon:
+            HorizonPlaceholderView()
+        case .shell:
+            ShellPlaceholderView()
+        case .notepad:
+            NotepadPlaceholderView()
+        case .help:
+            HelpPlaceholderView()
         case .flow:
             FlowPlaceholderView()
         case .pulse:
             PulsePlaceholderView()
-        case .shell:
-            ShellPlaceholderView()
         }
     }
 }

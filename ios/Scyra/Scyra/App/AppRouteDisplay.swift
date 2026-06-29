@@ -17,6 +17,34 @@ extension AppRoute {
                 systemImage: "book.closed",
                 assetImageName: nil
             )
+        case .horizon:
+            AppRouteDisplay(
+                title: "Horizon",
+                accessibilityLabel: "Open Horizon",
+                systemImage: "sun.horizon",
+                assetImageName: nil
+            )
+        case .shell:
+            AppRouteDisplay(
+                title: "Shell",
+                accessibilityLabel: "Open Shell",
+                systemImage: nil,
+                assetImageName: "scyraTurtle"
+            )
+        case .notepad:
+            AppRouteDisplay(
+                title: "Notepad",
+                accessibilityLabel: "Open Notepad",
+                systemImage: "square.and.pencil",
+                assetImageName: nil
+            )
+        case .help:
+            AppRouteDisplay(
+                title: "Help",
+                accessibilityLabel: "Open Help",
+                systemImage: "questionmark.circle",
+                assetImageName: nil
+            )
         case .flow:
             AppRouteDisplay(
                 title: "Flow",
@@ -31,15 +59,14 @@ extension AppRoute {
                 systemImage: "waveform",
                 assetImageName: nil
             )
-        case .shell:
-            AppRouteDisplay(
-                title: "Shell",
-                accessibilityLabel: "Open Shell",
-                systemImage: nil,
-                assetImageName: "scyraTurtle"
-            )
         }
     }
 
-    static let rootTopBarActions: [AppRoute] = allCases
+    static let rootTopBarActions: [AppRoute] = [
+        .story,
+        .horizon,
+        .shell,
+        .notepad,
+        .help
+    ]
 }

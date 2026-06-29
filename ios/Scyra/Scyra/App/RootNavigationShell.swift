@@ -23,7 +23,7 @@ struct RootNavigationShell<Content: View>: View {
         VStack(spacing: 0) {
             ScyraTopBar(
                 selectedRoute: selectedRoute,
-                showsBackButton: !selectedRoute.isRoot,
+                showsBackButton: shouldShowBackButton(for: selectedRoute),
                 onSelectRoute: onSelectRoute,
                 onBackToRoot: onBackToRoot
             )
@@ -33,6 +33,10 @@ struct RootNavigationShell<Content: View>: View {
         }
         .background(ScyraColors.backgroundBottom.ignoresSafeArea())
     }
+
+    private func shouldShowBackButton(for route: AppRoute) -> Bool {
+        route == .flow || route == .pulse
+    }
 }
 
 #Preview("Story root") {
@@ -41,7 +45,7 @@ struct RootNavigationShell<Content: View>: View {
         onSelectRoute: { _ in },
         onBackToRoot: {}
     ) {
-        StoryPlaceholderView()
+        StoryPlaceholderView(onSelectRoute: { _ in })
     }
 }
 
