@@ -2,28 +2,48 @@ import SwiftUI
 
 struct ScyraTopBar: View {
     let selectedRoute: AppRoute
+    let showsBackButton: Bool
     let onSelectRoute: (AppRoute) -> Void
+    let onBackToRoot: () -> Void
+
+    init(
+        selectedRoute: AppRoute,
+        showsBackButton: Bool = false,
+        onSelectRoute: @escaping (AppRoute) -> Void,
+        onBackToRoot: @escaping () -> Void = {}
+    ) {
+        self.selectedRoute = selectedRoute
+        self.showsBackButton = showsBackButton
+        self.onSelectRoute = onSelectRoute
+        self.onBackToRoot = onBackToRoot
+    }
 
     var body: some View {
         HStack(spacing: ScyraSpacing.sm) {
-            Button {
-                onSelectRoute(.home)
-            } label: {
-                Text("Scyra")
-                    .font(ScyraTypography.appTitleResolved)
-                    .foregroundStyle(ScyraColors.primary)
+            if showsBackButton {
+                Button(action: onBackToRoot) {
+                    Image(systemName: "chevron.left")
+                        .font(ScyraTypography.navigationIcon)
+                        .foregroundStyle(ScyraColors.primary)
+                        .frame(width: ScyraSpacing.topBarTapTarget, height: ScyraSpacing.topBarTapTarget)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Back to Story")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Open Home")
-            .accessibilityValue(selectedRoute == .home ? "Selected" : "")
-            .accessibilityAddTraits(selectedRoute == .home ? [.isSelected] : [])
+
+            Text("Scyra")
+                .font(ScyraTypography.appTitleResolved)
+                .foregroundStyle(ScyraColors.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .accessibilityAddTraits(.isHeader)
 
             Spacer(minLength: ScyraSpacing.sm)
 
             ForEach(AppRoute.rootTopBarActions, id: \.self) { route in
                 ScyraTopBarButton(
                     route: route,
-                    isSelected: selectedRoute == route,
+                    isSelected: selectedRoute.matchesTopBarAction(route),
                     action: { onSelectRoute(route) }
                 )
             }
@@ -39,6 +59,10 @@ struct ScyraTopBar: View {
     }
 }
 
-#Preview {
-    ScyraTopBar(selectedRoute: .shell) { _ in }
+#Preview("Story") {
+    ScyraTopBar(selectedRoute: .story, onSelectRoute: { _ in }, onBackToRoot: {})
+}
+
+#Preview("Horizon") {
+    ScyraTopBar(selectedRoute: .horizon, onSelectRoute: { _ in }, onBackToRoot: {})
 }

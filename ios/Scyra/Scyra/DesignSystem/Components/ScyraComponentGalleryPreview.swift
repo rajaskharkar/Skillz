@@ -4,7 +4,7 @@ struct ScyraComponentGalleryPreview: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: ScyraSpacing.lg) {
-                ScyraTopBar(selectedRoute: .home) { _ in }
+                ScyraTopBar(selectedRoute: .story, onSelectRoute: { _ in }, onBackToRoot: {})
 
                 ScyraSectionHeader(title: "Reusable Scyra Components", subtitle: "Design-system-only preview coverage")
 

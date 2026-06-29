@@ -2,29 +2,76 @@ import SwiftUI
 
 struct AppRootView: View {
     let container: AppDependencyContainer
-    @State private var selectedRoute: AppRoute
+    @StateObject private var navigationModel: AppNavigationModel
 
     init(container: AppDependencyContainer) {
         self.container = container
-        _selectedRoute = State(initialValue: container.appLaunchCoordinator.initialRoute())
+        _navigationModel = StateObject(
+            wrappedValue: AppNavigationModel(
+                initialRoute: container.appLaunchCoordinator.initialRoute()
+            )
+        )
     }
 
     var body: some View {
         RootNavigationShell(
-            selectedRoute: selectedRoute,
-            onSelectRoute: { selectedRoute = $0 }
+            selectedRoute: navigationModel.selectedRoute,
+            onSelectRoute: navigationModel.selectTopLevel,
+            onBackToRoot: navigationModel.backToStoryRoot
         ) {
-            routeContent
+            content(for: navigationModel.selectedRoute)
         }
     }
 
     @ViewBuilder
-    private var routeContent: some View {
-        switch selectedRoute {
-        case .home:
-            HomePlaceholderView()
-        case .flow, .story, .paths, .shell, .notepad, .help:
-            PlaceholderRouteView(route: selectedRoute)
+    private func content(for route: AppRoute) -> some View {
+        switch route {
+        case .story:
+            StoryPlaceholderView(
+                onOpenPulse: navigationModel.openPulse,
+                onOpenFlow: navigationModel.openFlow
+            )
+        case .horizon:
+            HorizonPlaceholderView()
+        case .shell:
+            ShellPlaceholderView()
+        case .notepad:
+            NotepadPlaceholderView()
+        case .help:
+            HelpPlaceholderView()
+        case .flow:
+            FlowPlaceholderView(onBackToRoot: navigationModel.backToStoryRoot)
+        case .pulse:
+            PulsePlaceholderView(onBackToRoot: navigationModel.backToStoryRoot)
+        case .flowDetail(_):
+            ActionRoutePlaceholderView(
+                route: route,
+                message: "A completed Flow detail view will live here.",
+                onBackToRoot: navigationModel.backToStoryRoot
+            )
+        case .flowEdit(_):
+            ActionRoutePlaceholderView(
+                route: route,
+                message: "Flow editing will live here.",
+                onBackToRoot: navigationModel.backToStoryRoot
+            )
+        case .pulseDetail(_):
+            ActionRoutePlaceholderView(
+                route: route,
+                message: "A Pulse detail view will live here.",
+                onBackToRoot: navigationModel.backToStoryRoot
+            )
+        case .pulseEdit(_):
+            ActionRoutePlaceholderView(
+                route: route,
+                message: "Pulse editing will live here.",
+                onBackToRoot: navigationModel.backToStoryRoot
+            )
+        case .shellRoom(_):
+            PlaceholderRouteView(
+                route: route,
+                message: "This Shell room will be implemented in a future phase."
+            )
         }
     }
 }

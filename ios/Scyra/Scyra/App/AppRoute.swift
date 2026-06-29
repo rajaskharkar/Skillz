@@ -1,15 +1,168 @@
 import Foundation
 
-/// Typed app-level destinations for future Scyra parity work.
+/// Typed app-level and feature-level destinations for Scyra navigation.
 ///
-/// These cases are placeholders only. Feature implementations and real navigation
-/// destinations will be added in later phases when each product area is scoped.
+/// These routes are intentionally value-based so future feature screens can
+/// navigate without raw string route names or ad hoc state flags.
 enum AppRoute: Hashable, Sendable {
-    case home
-    case flow
     case story
-    case paths
+    case horizon
     case shell
+    // `.shell` is the top-level Shell entry used by the app top bar.
+    // `.shellRoom(.shellRoot)` is reserved for future in-Shell room navigation
+    // if the Shell root becomes part of the typed Shell room stack.
     case notepad
     case help
+
+    case flow
+    case pulse
+
+    case flowDetail(id: String)
+    case flowEdit(id: String)
+
+    case pulseDetail(id: String)
+    case pulseEdit(id: String)
+
+    case shellRoom(ShellRoomRoute)
+
+    // Top-level routes use ScyraTopBar.
+    // Flow/Pulse routes use action-screen headers and return to Story for now.
+    // Shell room routes are typed now, but full Shell room navigation is future work.
+    var isTopLevel: Bool {
+        switch self {
+        case .story, .horizon, .shell, .notepad, .help:
+            true
+        case .flow, .pulse, .flowDetail(_), .flowEdit(_), .pulseDetail(_), .pulseEdit(_), .shellRoom(_):
+            false
+        }
+    }
+
+    var isStoryRoot: Bool {
+        self == .story
+    }
+
+    var isStoryAction: Bool {
+        self == .flow || self == .pulse
+    }
+
+    var isFlowRoute: Bool {
+        switch self {
+        case .flow, .flowDetail(_), .flowEdit(_):
+            true
+        case .story, .horizon, .shell, .notepad, .help, .pulse, .pulseDetail(_), .pulseEdit(_), .shellRoom(_):
+            false
+        }
+    }
+
+    var isPulseRoute: Bool {
+        switch self {
+        case .pulse, .pulseDetail(_), .pulseEdit(_):
+            true
+        case .story, .horizon, .shell, .notepad, .help, .flow, .flowDetail(_), .flowEdit(_), .shellRoom(_):
+            false
+        }
+    }
+
+    var isShellRoute: Bool {
+        switch self {
+        case .shell, .shellRoom(_):
+            true
+        case .story, .horizon, .notepad, .help, .flow, .pulse, .flowDetail(_), .flowEdit(_), .pulseDetail(_), .pulseEdit(_):
+            false
+        }
+    }
+
+    var usesScyraTopBar: Bool {
+        switch self {
+        case .story, .horizon, .shell, .notepad, .help, .shellRoom(_):
+            true
+        case .flow, .pulse, .flowDetail(_), .flowEdit(_), .pulseDetail(_), .pulseEdit(_):
+            false
+        }
+    }
+
+    var usesActionScreenHeader: Bool {
+        isFlowRoute || isPulseRoute
+    }
+
+    var returnsToStoryOnBack: Bool {
+        usesActionScreenHeader
+    }
+
+    var usesRootBackAffordance: Bool {
+        returnsToStoryOnBack
+    }
+
+    func matchesTopBarAction(_ action: AppRoute) -> Bool {
+        switch (self, action) {
+        case (.shellRoom(_), .shell):
+            true
+        default:
+            self == action
+        }
+    }
+}
+
+enum ShellRoomRoute: Hashable, CaseIterable, Sendable {
+    case shellRoot
+    case theBlue
+    case stillwater
+    case ideaGrove
+    case lookout
+    case voyageHall
+    case focusRoom
+    case chest
+    case badges
+}
+
+extension ShellRoomRoute {
+    var title: String {
+        switch self {
+        case .shellRoot:
+            "Shell"
+        case .theBlue:
+            "The Blue"
+        case .stillwater:
+            "Stillwater"
+        case .ideaGrove:
+            "Idea Grove"
+        case .lookout:
+            "Lookout"
+        case .voyageHall:
+            "Voyage Hall"
+        case .focusRoom:
+            "Focus Room"
+        case .chest:
+            "Chest"
+        case .badges:
+            "Badges"
+        }
+    }
+
+    var accessibilityLabel: String {
+        "Open \(title)"
+    }
+
+    var systemImage: String? {
+        switch self {
+        case .shellRoot:
+            nil
+        case .theBlue:
+            "water.waves"
+        case .stillwater:
+            "drop"
+        case .ideaGrove:
+            "brain.head.profile"
+        case .lookout:
+            "binoculars"
+        case .voyageHall:
+            "map"
+        case .focusRoom:
+            "scope"
+        case .chest:
+            "shippingbox"
+        case .badges:
+            "rosette"
+        }
+    }
 }
