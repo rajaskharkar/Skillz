@@ -41,9 +41,9 @@ struct AppRootView: View {
         case .help:
             HelpPlaceholderView()
         case .flow:
-            FlowPlaceholderView()
+            FlowPlaceholderView(onBackToRoot: selectStoryRoot)
         case .pulse:
-            PulsePlaceholderView()
+            PulsePlaceholderView(onBackToRoot: selectStoryRoot)
         }
     }
 }

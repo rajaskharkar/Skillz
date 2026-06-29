@@ -63,6 +63,6 @@ struct ScyraTopBar: View {
     ScyraTopBar(selectedRoute: .story, onSelectRoute: { _ in }, onBackToRoot: {})
 }
 
-#Preview("Flow with back") {
-    ScyraTopBar(selectedRoute: .flow, showsBackButton: true, onSelectRoute: { _ in }, onBackToRoot: {})
+#Preview("Horizon") {
+    ScyraTopBar(selectedRoute: .horizon, onSelectRoute: { _ in }, onBackToRoot: {})
 }

@@ -21,12 +21,14 @@ struct RootNavigationShell<Content: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ScyraTopBar(
-                selectedRoute: selectedRoute,
-                showsBackButton: shouldShowBackButton(for: selectedRoute),
-                onSelectRoute: onSelectRoute,
-                onBackToRoot: onBackToRoot
-            )
+            if shouldShowTopBar(for: selectedRoute) {
+                ScyraTopBar(
+                    selectedRoute: selectedRoute,
+                    showsBackButton: false,
+                    onSelectRoute: onSelectRoute,
+                    onBackToRoot: onBackToRoot
+                )
+            }
 
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -34,8 +36,8 @@ struct RootNavigationShell<Content: View>: View {
         .background(ScyraColors.backgroundBottom.ignoresSafeArea())
     }
 
-    private func shouldShowBackButton(for route: AppRoute) -> Bool {
-        route == .flow || route == .pulse
+    private func shouldShowTopBar(for route: AppRoute) -> Bool {
+        !route.usesRootBackAffordance
     }
 }
 
@@ -49,12 +51,12 @@ struct RootNavigationShell<Content: View>: View {
     }
 }
 
-#Preview("Flow with root back") {
+#Preview("Flow action screen") {
     RootNavigationShell(
         selectedRoute: .flow,
         onSelectRoute: { _ in },
         onBackToRoot: {}
     ) {
-        FlowPlaceholderView()
+        FlowPlaceholderView(onBackToRoot: {})
     }
 }
