@@ -12,19 +12,32 @@ struct AppRootView: View {
     var body: some View {
         RootNavigationShell(
             selectedRoute: selectedRoute,
-            onSelectRoute: { selectedRoute = $0 }
+            onSelectRoute: selectRoute,
+            onBackToRoot: selectStoryRoot
         ) {
-            routeContent
+            content(for: selectedRoute)
         }
     }
 
+    private func selectRoute(_ route: AppRoute) {
+        selectedRoute = route
+    }
+
+    private func selectStoryRoot() {
+        selectedRoute = .story
+    }
+
     @ViewBuilder
-    private var routeContent: some View {
-        switch selectedRoute {
-        case .home:
-            HomePlaceholderView()
-        case .flow, .story, .paths, .shell, .notepad, .help:
-            PlaceholderRouteView(route: selectedRoute)
+    private func content(for route: AppRoute) -> some View {
+        switch route {
+        case .story:
+            StoryPlaceholderView()
+        case .flow:
+            FlowPlaceholderView()
+        case .pulse:
+            PulsePlaceholderView()
+        case .shell:
+            ShellPlaceholderView()
         }
     }
 }

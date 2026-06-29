@@ -1,15 +1,17 @@
 import Foundation
 
-/// Typed app-level destinations for future Scyra parity work.
+/// Typed app-level destinations for the Scyra top-level shell.
 ///
-/// These cases are placeholders only. Feature implementations and real navigation
-/// destinations will be added in later phases when each product area is scoped.
-enum AppRoute: Hashable, Sendable {
-    case home
-    case flow
+/// Story is the launch/root destination, matching Android's Story-root
+/// experience. Top-level route selections replace this state instead of pushing
+/// onto a navigation stack.
+enum AppRoute: Hashable, CaseIterable, Sendable {
     case story
-    case paths
+    case flow
+    case pulse
     case shell
-    case notepad
-    case help
+
+    var isRoot: Bool {
+        self == .story
+    }
 }
