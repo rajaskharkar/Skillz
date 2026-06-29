@@ -8,6 +8,9 @@ enum AppRoute: Hashable, Sendable {
     case story
     case horizon
     case shell
+    // `.shell` is the top-level Shell entry used by the app top bar.
+    // `.shellRoom(.shellRoot)` is reserved for future in-Shell room navigation
+    // if the Shell root becomes part of the typed Shell room stack.
     case notepad
     case help
 
@@ -22,6 +25,9 @@ enum AppRoute: Hashable, Sendable {
 
     case shellRoom(ShellRoomRoute)
 
+    // Top-level routes use ScyraTopBar.
+    // Flow/Pulse routes use action-screen headers and return to Story for now.
+    // Shell room routes are typed now, but full Shell room navigation is future work.
     var isTopLevel: Bool {
         switch self {
         case .story, .horizon, .shell, .notepad, .help:
@@ -85,6 +91,15 @@ enum AppRoute: Hashable, Sendable {
 
     var usesRootBackAffordance: Bool {
         returnsToStoryOnBack
+    }
+
+    func matchesTopBarAction(_ action: AppRoute) -> Bool {
+        switch (self, action) {
+        case (.shellRoom(_), .shell):
+            true
+        default:
+            self == action
+        }
     }
 }
 

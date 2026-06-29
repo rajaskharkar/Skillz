@@ -43,7 +43,7 @@ struct ScyraTopBar: View {
             ForEach(AppRoute.rootTopBarActions, id: \.self) { route in
                 ScyraTopBarButton(
                     route: route,
-                    isSelected: selectedRoute == route,
+                    isSelected: selectedRoute.matchesTopBarAction(route),
                     action: { onSelectRoute(route) }
                 )
             }
