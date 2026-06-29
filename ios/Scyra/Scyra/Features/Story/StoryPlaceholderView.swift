@@ -8,19 +8,19 @@ struct StoryPlaceholderView: View {
             route: .story,
             message: "Your Scyra Story will open here, matching the Android launch experience."
         )
-        .safeAreaInset(edge: .bottom, alignment: .leading, spacing: 0) {
+        .safeAreaInset(edge: .bottom, alignment: .trailing, spacing: 0) {
             ScyraFloatingActionDock {
-                ScyraButton("Flow", systemImage: "play.circle") {
-                    onSelectRoute(.flow)
-                }
-                .accessibilityLabel("Open Flow")
-
-                ScyraButton("Pulse", systemImage: "waveform", variant: .secondary) {
+                ScyraButton("Pulse", systemImage: "brain.head.profile", variant: .secondary) {
                     onSelectRoute(.pulse)
                 }
                 .accessibilityLabel("Open Pulse")
+
+                ScyraButton("Flow", systemImage: "sparkles") {
+                    onSelectRoute(.flow)
+                }
+                .accessibilityLabel("Open Flow")
             }
-            .padding(.leading, ScyraSpacing.screenPadding)
+            .padding(.trailing, ScyraSpacing.screenPadding)
             .padding(.bottom, ScyraSpacing.md)
         }
     }

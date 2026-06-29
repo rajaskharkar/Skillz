@@ -8,20 +8,23 @@ struct AppRouteDisplay: Equatable, Sendable {
 }
 
 extension AppRoute {
+    // SF Symbol choices mirror Android Material icons: AutoStories → books.vertical,
+    // Explore → safari, EditNote → square.and.pencil, HelpOutline → questionmark.circle,
+    // PsychologyAlt → brain.head.profile, AutoAwesome → sparkles.
     var display: AppRouteDisplay {
         switch self {
         case .story:
             AppRouteDisplay(
                 title: "Story",
                 accessibilityLabel: "Open Story",
-                systemImage: "book.closed",
+                systemImage: "books.vertical",
                 assetImageName: nil
             )
         case .horizon:
             AppRouteDisplay(
                 title: "Horizon",
                 accessibilityLabel: "Open Horizon",
-                systemImage: "sun.horizon",
+                systemImage: "safari",
                 assetImageName: nil
             )
         case .shell:
@@ -49,14 +52,14 @@ extension AppRoute {
             AppRouteDisplay(
                 title: "Flow",
                 accessibilityLabel: "Open Flow",
-                systemImage: "play.circle",
+                systemImage: "sparkles",
                 assetImageName: nil
             )
         case .pulse:
             AppRouteDisplay(
                 title: "Pulse",
                 accessibilityLabel: "Open Pulse",
-                systemImage: "waveform",
+                systemImage: "brain.head.profile",
                 assetImageName: nil
             )
         }

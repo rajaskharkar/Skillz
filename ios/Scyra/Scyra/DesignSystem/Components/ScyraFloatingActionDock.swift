@@ -27,8 +27,8 @@ struct ScyraFloatingActionDock<Content: View>: View {
     ZStack(alignment: .bottomLeading) {
         ScyraColors.background.ignoresSafeArea()
         ScyraFloatingActionDock {
-            ScyraButton("Flow", systemImage: "play.circle") {}
-            ScyraButton("Pulse", systemImage: "waveform", variant: .secondary) {}
+            ScyraButton("Pulse", systemImage: "brain.head.profile", variant: .secondary) {}
+            ScyraButton("Flow", systemImage: "sparkles") {}
         }
         .padding(ScyraSpacing.screenPadding)
     }
