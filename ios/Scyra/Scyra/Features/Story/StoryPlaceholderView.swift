@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct StoryPlaceholderView: View {
-    let onSelectRoute: (AppRoute) -> Void
+    let onOpenPulse: () -> Void
+    let onOpenFlow: () -> Void
 
     var body: some View {
         PlaceholderRouteView(
@@ -11,12 +12,12 @@ struct StoryPlaceholderView: View {
         .safeAreaInset(edge: .bottom, alignment: .trailing, spacing: 0) {
             ScyraFloatingActionDock {
                 ScyraButton("Pulse", systemImage: "brain.head.profile", variant: .secondary) {
-                    onSelectRoute(.pulse)
+                    onOpenPulse()
                 }
                 .accessibilityLabel("Open Pulse")
 
                 ScyraButton("Flow", systemImage: "sparkles") {
-                    onSelectRoute(.flow)
+                    onOpenFlow()
                 }
                 .accessibilityLabel("Open Flow")
             }
@@ -26,4 +27,4 @@ struct StoryPlaceholderView: View {
     }
 }
 
-#Preview { StoryPlaceholderView(onSelectRoute: { _ in }) }
+#Preview { StoryPlaceholderView(onOpenPulse: {}, onOpenFlow: {}) }

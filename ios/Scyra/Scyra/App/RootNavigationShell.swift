@@ -21,7 +21,7 @@ struct RootNavigationShell<Content: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if shouldShowTopBar(for: selectedRoute) {
+            if selectedRoute.usesScyraTopBar {
                 ScyraTopBar(
                     selectedRoute: selectedRoute,
                     showsBackButton: false,
@@ -35,10 +35,6 @@ struct RootNavigationShell<Content: View>: View {
         }
         .background(ScyraColors.backgroundBottom.ignoresSafeArea())
     }
-
-    private func shouldShowTopBar(for route: AppRoute) -> Bool {
-        !route.usesRootBackAffordance
-    }
 }
 
 #Preview("Story root") {
@@ -47,7 +43,7 @@ struct RootNavigationShell<Content: View>: View {
         onSelectRoute: { _ in },
         onBackToRoot: {}
     ) {
-        StoryPlaceholderView(onSelectRoute: { _ in })
+        StoryPlaceholderView(onOpenPulse: {}, onOpenFlow: {})
     }
 }
 
