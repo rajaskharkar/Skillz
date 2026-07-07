@@ -1,15 +1,16 @@
 package com.kingkharnivore.skillz.ui.screen.shell
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,9 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -41,7 +40,6 @@ fun ShellTopBar(
     pearlBasinHasIndicator: Boolean,
     notificationCount: Int,
     onBack: () -> Unit,
-    onPearls: () -> Unit,
     onNotifications: () -> Unit,
     onChest: () -> Unit
 ) {
@@ -83,28 +81,29 @@ fun ShellTopBar(
             }
         },
         actions = {
-            AssistChip(
-                onClick = onPearls,
-                label = {
-                    Text(stringResource(R.string.shell_pearl_balance, pearlBalance))
-                },
-                leadingIcon = {
-                    ShellPearlMiniIcon(Modifier.size(18.dp))
-                },
-                colors = AssistChipDefaults.assistChipColors(
-                    containerColor = scheme.surface,
-                    labelColor = scheme.onSurface,
-                    leadingIconContentColor = scheme.primary
-                ),
+            Surface(
+                shape = CircleShape,
+                color = scheme.surface,
                 border = BorderStroke(
                     width = 1.dp,
                     color = if (pearlBasinHasIndicator) shellIndicatorColor() else scheme.secondary.copy(alpha = 0.45f)
                 ),
                 modifier = Modifier.semantics {
                     contentDescription = pearlBalanceDescription
-                    role = Role.Button
                 }
-            )
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ShellPearlMiniIcon(Modifier.size(18.dp))
+                    Text(
+                        text = stringResource(R.string.shell_pearl_balance, pearlBalance),
+                        color = scheme.onSurface
+                    )
+                }
+            }
 
             IconButton(onClick = onNotifications) {
                 Box(contentAlignment = Alignment.TopEnd) {
