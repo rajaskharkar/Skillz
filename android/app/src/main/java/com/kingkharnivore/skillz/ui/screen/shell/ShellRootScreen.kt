@@ -33,18 +33,12 @@ import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.WaterDrop
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -146,7 +140,6 @@ fun ShellRootScreen(
     val scope = rememberCoroutineScope()
     val activeFlowMessage = stringResource(R.string.lookout_flow_already_active)
     var destination by remember { mutableStateOf<ShellDestination>(ShellDestination.Heart) }
-    var showPearlBasin by remember { mutableStateOf(false) }
     var showNotifications by remember { mutableStateOf(false) }
     val notificationCount = unseenNotificationCount(uiState)
 
@@ -174,10 +167,9 @@ fun ShellRootScreen(
         }
     }
 
-    BackHandler(enabled = showNotifications || showPearlBasin || destination != ShellDestination.Heart) {
+    BackHandler(enabled = showNotifications || destination != ShellDestination.Heart) {
         when {
             showNotifications -> showNotifications = false
-            showPearlBasin -> showPearlBasin = false
             else -> destination = ShellDestination.Heart
         }
     }
@@ -197,7 +189,6 @@ fun ShellRootScreen(
                         destination = ShellDestination.Heart
                     }
                 },
-                onPearls = { showPearlBasin = true },
                 onNotifications = { showNotifications = !showNotifications },
                 onChest = { destination = ShellDestination.ShellChest }
             )
@@ -213,8 +204,7 @@ fun ShellRootScreen(
             when (destination) {
                 ShellDestination.Heart -> HeartRoomScreen(
                     uiState = uiState,
-                    onNavigate = { destination = it },
-                    onOpenPearlBasin = { showPearlBasin = true }
+                    onNavigate = { destination = it }
                 )
 
                 ShellDestination.Focus -> FocusRoomScreen()
@@ -288,28 +278,13 @@ fun ShellRootScreen(
             )
         }
 
-        if (showPearlBasin) {
-            PearlBasinSheet(
-                uiState = uiState,
-                onDismiss = { showPearlBasin = false },
-                onOpenFocus = {
-                    showPearlBasin = false
-                    destination = ShellDestination.Focus
-                },
-                onOpenChest = {
-                    showPearlBasin = false
-                    destination = ShellDestination.ShellChest
-                }
-            )
-        }
     }
 }
 
 @Composable
 private fun HeartRoomScreen(
     uiState: ShellUiState,
-    onNavigate: (ShellDestination) -> Unit,
-    onOpenPearlBasin: () -> Unit
+    onNavigate: (ShellDestination) -> Unit
 ) {
     val chestHasIndicator = activeChestCreatures(uiState).any { it.isNew }
     val focusChanged = false
@@ -378,8 +353,7 @@ private fun HeartRoomScreen(
                     uiState = uiState,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .offset(y = maxHeight * 0.36f),
-                    onPearlClick = onOpenPearlBasin
+                        .offset(y = maxHeight * 0.36f)
                 )
 
                 RoomOrbitPair(
@@ -584,8 +558,7 @@ private fun RoomOrbitNode(
 @Composable
 private fun HeartCenter(
     uiState: ShellUiState,
-    modifier: Modifier = Modifier,
-    onPearlClick: () -> Unit
+    modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
     val pearlBalanceDescription = stringResource(R.string.shell_pearl_basin_chip_a11y, uiState.pearlBalance)
@@ -628,31 +601,30 @@ private fun HeartCenter(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            AssistChip(
-                onClick = onPearlClick,
-                label = {
-                    Text(
-                        text = stringResource(R.string.shell_pearl_balance, uiState.pearlBalance),
-                        textAlign = TextAlign.Center
-                    )
-                },
-                leadingIcon = {
-                    ShellPearlMiniIcon(Modifier.size(18.dp))
-                },
-                colors = AssistChipDefaults.assistChipColors(
-                    containerColor = scheme.background,
-                    labelColor = scheme.onBackground,
-                    leadingIconContentColor = scheme.primary
-                ),
+            Surface(
+                shape = CircleShape,
+                color = scheme.background,
                 border = BorderStroke(
                     width = 1.dp,
                     color = scheme.secondary.copy(alpha = 0.55f)
                 ),
                 modifier = Modifier.semantics {
                     contentDescription = pearlBalanceDescription
-                    role = Role.Button
                 }
-            )
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ShellPearlMiniIcon(Modifier.size(18.dp))
+                    Text(
+                        text = stringResource(R.string.shell_pearl_balance, uiState.pearlBalance),
+                        color = scheme.onBackground,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
         }
     }
 }
@@ -784,82 +756,6 @@ private fun HeartShortcut(
             color = scheme.onSurface,
             textAlign = TextAlign.Center
         )
-    }
-}
-
-@Composable
-private fun PearlBasinSheet(
-    uiState: ShellUiState,
-    onDismiss: () -> Unit,
-    onOpenFocus: () -> Unit,
-    onOpenChest: () -> Unit
-) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                ShellPearlBasinIcon(Modifier.size(52.dp))
-
-                Column {
-                    Text(
-                        text = stringResource(R.string.shell_pearl_basin_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        text = stringResource(R.string.shell_pearl_balance, uiState.pearlBalance),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-
-            Text(stringResource(R.string.shell_pearl_basin_copy))
-
-            Text(
-                text = stringResource(R.string.shell_no_available_shapes),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Button(
-                    onClick = onOpenFocus,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    ),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.shell_room_focus_title))
-                }
-
-                OutlinedButton(
-                    onClick = onOpenChest,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.shell_chest_title))
-                }
-            }
-        }
-    }
-
-}
-
-@Composable
-private fun ShellPearlBasinIcon(modifier: Modifier = Modifier) {
-    val scheme = MaterialTheme.colorScheme
-    Canvas(modifier) {
-        drawCircle(color = scheme.secondary, radius = size.minDimension * 0.42f, center = center)
-        drawCircle(color = scheme.onPrimary, radius = size.minDimension * 0.18f, center = center)
-        drawCircle(color = scheme.primary.copy(alpha = 0.45f), radius = size.minDimension * 0.08f, center = Offset(size.width * 0.57f, size.height * 0.43f))
     }
 }
 
