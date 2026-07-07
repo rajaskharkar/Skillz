@@ -99,7 +99,6 @@ import com.kingkharnivore.skillz.ui.screen.shell.rooms.stillwater.StillwaterRoom
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.voyage.VoyageHallScreen
 import com.kingkharnivore.skillz.ui.screen.shell.ux.activeChestCreatureCount
 import com.kingkharnivore.skillz.ui.screen.shell.ux.activeChestCreatures
-import com.kingkharnivore.skillz.ui.screen.shell.ux.activeDisplayedCreatureCount
 import com.kingkharnivore.skillz.ui.screen.shell.ux.shellChamberBrush
 import com.kingkharnivore.skillz.ui.screen.shell.ux.shellIndicatorColor
 import com.kingkharnivore.skillz.utils.shell.shellBackground
@@ -312,7 +311,6 @@ private fun HeartRoomScreen(
     onNavigate: (ShellDestination) -> Unit,
     onOpenPearlBasin: () -> Unit
 ) {
-    var showHeartDetail by remember { mutableStateOf(false) }
     val chestHasIndicator = activeChestCreatures(uiState).any { it.isNew }
     val focusChanged = false
 
@@ -381,7 +379,6 @@ private fun HeartRoomScreen(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .offset(y = maxHeight * 0.36f),
-                    onClick = { showHeartDetail = true },
                     onPearlClick = onOpenPearlBasin
                 )
 
@@ -450,24 +447,6 @@ private fun HeartRoomScreen(
         }
     }
 
-    if (showHeartDetail) {
-        HeartDetailSheet(
-            uiState = uiState,
-            onDismiss = { showHeartDetail = false },
-            onOpenPearlBasin = {
-                showHeartDetail = false
-                onOpenPearlBasin()
-            },
-            onOpenFocus = {
-                showHeartDetail = false
-                onNavigate(ShellDestination.Focus)
-            },
-            onOpenChest = {
-                showHeartDetail = false
-                onNavigate(ShellDestination.ShellChest)
-            }
-        )
-    }
 }
 
 @Composable
@@ -606,25 +585,17 @@ private fun RoomOrbitNode(
 private fun HeartCenter(
     uiState: ShellUiState,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit,
     onPearlClick: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
-    val heartDescription = stringResource(R.string.shell_heart_center_a11y)
     val pearlBalanceDescription = stringResource(R.string.shell_pearl_basin_chip_a11y, uiState.pearlBalance)
 
     ElevatedCard(
-        onClick = onClick,
         shape = RoundedCornerShape(34.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = scheme.surface
         ),
-        modifier = modifier
-            .width(214.dp)
-            .semantics {
-                contentDescription = heartDescription
-                role = Role.Button
-            }
+        modifier = modifier.width(214.dp)
     ) {
         Column(
             modifier = Modifier
@@ -813,76 +784,6 @@ private fun HeartShortcut(
             color = scheme.onSurface,
             textAlign = TextAlign.Center
         )
-    }
-}
-
-@Composable
-private fun HeartDetailSheet(
-    uiState: ShellUiState,
-    onDismiss: () -> Unit,
-    onOpenPearlBasin: () -> Unit,
-    onOpenFocus: () -> Unit,
-    onOpenChest: () -> Unit
-) {
-    val chestCreatureCount = activeChestCreatureCount(uiState)
-    val displayedCreatureCount = activeDisplayedCreatureCount(uiState)
-
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.shell_heart_detail_title),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text = stringResource(R.string.shell_heart_pearls_gathered, uiState.pearlBalance),
-                style = MaterialTheme.typography.bodyLarge
-            )
-
-            Text(
-                text = stringResource(R.string.shell_heart_finds_owned, chestCreatureCount),
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Text(
-                text = stringResource(R.string.shell_heart_objects_displayed_resting, displayedCreatureCount, chestCreatureCount),
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Button(
-                    onClick = onOpenPearlBasin,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    ),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.shell_pearl_basin_title))
-                }
-
-                OutlinedButton(
-                    onClick = onOpenFocus,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(stringResource(R.string.shell_room_focus_title))
-                }
-            }
-
-            OutlinedButton(
-                onClick = onOpenChest,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(R.string.shell_chest_title))
-            }
-        }
     }
 }
 
