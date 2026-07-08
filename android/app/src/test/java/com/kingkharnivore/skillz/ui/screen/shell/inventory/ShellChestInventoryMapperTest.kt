@@ -78,6 +78,9 @@ class ShellChestInventoryMapperTest {
         assertEquals(ChestSortOption.Level, ChestSortOption.fromKey(null))
         assertEquals(ChestSortOption.Level, ChestSortOption.fromKey("unknown"))
         assertEquals(ChestSortOption.NewestArrival, ChestSortOption.fromKey("newest_arrival"))
+        assertEquals(ChestSortOption.Alphabetical, ChestSortOption.fromKey("alphabetical"))
+        assertEquals(ChestSortOption.Value, ChestSortOption.fromKey("value"))
+        assertEquals(ChestSortOption.Count, ChestSortOption.fromKey("count"))
     }
 
     @Test
@@ -166,6 +169,138 @@ class ShellChestInventoryMapperTest {
         assertEquals(before, finds)
         assertEquals(listOf(ShellContentCatalog.FOCUS_MINNOW to 1, ShellContentCatalog.FOCUS_MINNOW to 3), stacks.map { it.creatureId to it.level })
         assertEquals(listOf(1, 2), stacks.map { it.count })
+    }
+
+    @Test
+    fun alphabeticalSortOrdersByCreatureNameThenLevelDescending() {
+        val stacks = buildChestInventoryStacks(
+            listOf(
+                creature("seahorse", ShellContentCatalog.FOCUS_SEAHORSE, level = 1),
+                creature("minnow-low", ShellContentCatalog.FOCUS_MINNOW, level = 2),
+                creature("manta", ShellContentCatalog.FOCUS_MANTA, level = 1),
+                creature("minnow-high", ShellContentCatalog.FOCUS_MINNOW, level = 5)
+            ),
+            ChestSortOption.Alphabetical
+        )
+
+        assertEquals(
+            listOf(
+                ShellContentCatalog.FOCUS_MANTA to 1,
+                ShellContentCatalog.FOCUS_MINNOW to 5,
+                ShellContentCatalog.FOCUS_MINNOW to 2,
+                ShellContentCatalog.FOCUS_SEAHORSE to 1
+            ),
+            stacks.map { it.creatureId to it.level }
+        )
+    }
+
+    @Test
+    fun countSortOrdersByCountDescendingThenName() {
+        val stacks = buildChestInventoryStacks(
+            listOf(
+                creature("seahorse-1", ShellContentCatalog.FOCUS_SEAHORSE, level = 1),
+                creature("seahorse-2", ShellContentCatalog.FOCUS_SEAHORSE, level = 1),
+                creature("seahorse-3", ShellContentCatalog.FOCUS_SEAHORSE, level = 1),
+                creature("seahorse-4", ShellContentCatalog.FOCUS_SEAHORSE, level = 1),
+                creature("manta-1", ShellContentCatalog.FOCUS_MANTA, level = 1),
+                creature("manta-2", ShellContentCatalog.FOCUS_MANTA, level = 1),
+                creature("manta-3", ShellContentCatalog.FOCUS_MANTA, level = 1),
+                creature("minnow-high-1", ShellContentCatalog.FOCUS_MINNOW, level = 5),
+                creature("minnow-high-2", ShellContentCatalog.FOCUS_MINNOW, level = 5),
+                creature("minnow-high-3", ShellContentCatalog.FOCUS_MINNOW, level = 5),
+                creature("minnow-low-1", ShellContentCatalog.FOCUS_MINNOW, level = 2),
+                creature("minnow-low-2", ShellContentCatalog.FOCUS_MINNOW, level = 2),
+                creature("minnow-low-3", ShellContentCatalog.FOCUS_MINNOW, level = 2)
+            ),
+            ChestSortOption.Count
+        )
+
+        assertEquals(
+            listOf(
+                ShellContentCatalog.FOCUS_SEAHORSE to 1,
+                ShellContentCatalog.FOCUS_MANTA to 1,
+                ShellContentCatalog.FOCUS_MINNOW to 5,
+                ShellContentCatalog.FOCUS_MINNOW to 2
+            ),
+            stacks.map { it.creatureId to it.level }
+        )
+        assertEquals(listOf(4, 3, 3, 3), stacks.map { it.count })
+    }
+
+    @Test
+    fun valueSortOrdersByTotalStackValueDescending() {
+        val stacks = sortChestInventoryStacks(
+            listOf(
+                ChestInventoryStackUiModel(
+                    creatureId = ShellContentCatalog.FOCUS_MINNOW,
+                    creatureName = "Minnow",
+                    level = 1,
+                    count = 10,
+                    iconKey = "minnow",
+                    totalValuePearls = 1_000
+                ),
+                ChestInventoryStackUiModel(
+                    creatureId = ShellContentCatalog.FOCUS_WHALE,
+                    creatureName = "Whale",
+                    level = 1,
+                    count = 1,
+                    iconKey = "whale",
+                    totalValuePearls = 900
+                ),
+                ChestInventoryStackUiModel(
+                    creatureId = ShellContentCatalog.FOCUS_MANTA,
+                    creatureName = "Manta",
+                    level = 1,
+                    count = 1,
+                    iconKey = "manta",
+                    totalValuePearls = 500
+                ),
+                ChestInventoryStackUiModel(
+                    creatureId = ShellContentCatalog.FOCUS_MINNOW,
+                    creatureName = "Minnow",
+                    level = 5,
+                    count = 1,
+                    iconKey = "minnow",
+                    totalValuePearls = 500
+                ),
+                ChestInventoryStackUiModel(
+                    creatureId = ShellContentCatalog.FOCUS_MINNOW,
+                    creatureName = "Minnow",
+                    level = 2,
+                    count = 1,
+                    iconKey = "minnow",
+                    totalValuePearls = 500
+                )
+            ),
+            ChestSortOption.Value
+        )
+
+        assertEquals(
+            listOf(
+                ShellContentCatalog.FOCUS_MINNOW to 1,
+                ShellContentCatalog.FOCUS_WHALE to 1,
+                ShellContentCatalog.FOCUS_MANTA to 1,
+                ShellContentCatalog.FOCUS_MINNOW to 5,
+                ShellContentCatalog.FOCUS_MINNOW to 2
+            ),
+            stacks.map { it.creatureId to it.level }
+        )
+    }
+
+    @Test
+    fun buildStacksComputesTotalStackValueFromReleaseValueAndCount() {
+        val stacks = buildChestInventoryStacks(
+            listOf(
+                creature("minnow-1", ShellContentCatalog.FOCUS_MINNOW, level = 3),
+                creature("minnow-2", ShellContentCatalog.FOCUS_MINNOW, level = 3)
+            ),
+            ChestSortOption.Value
+        )
+
+        assertEquals(
+            CreatureEconomy.releaseValuePearls(ShellContentCatalog.FOCUS_MINNOW, 3) * 2,
+            stacks.single().totalValuePearls
+        )
     }
 
     @Test

@@ -72,6 +72,7 @@ internal data class ChestInventoryStackUiModel(
     val count: Int,
     val iconKey: String,
     val isStillwaterExclusive: Boolean = false,
+    val totalValuePearls: Int = 0,
     val newestAcquiredAtMs: Long = 0L,
     val oldestAcquiredAtMs: Long = 0L,
     val recentActivityAtMs: Long = 0L
@@ -176,6 +177,7 @@ internal fun buildChestInventoryStacks(
                 count = creaturesAtLevel.size,
                 iconKey = definition.iconKey,
                 isStillwaterExclusive = creature?.sourceType == CreatureSourceType.STILLWATER,
+                totalValuePearls = CreatureEconomy.releaseValuePearls(key.first, key.second) * creaturesAtLevel.size,
                 newestAcquiredAtMs = creaturesAtLevel.maxOfOrNull { it.acquiredAt } ?: 0L,
                 oldestAcquiredAtMs = creaturesAtLevel.minOfOrNull { it.acquiredAt } ?: 0L,
                 // TODO: True inventory activity sorting needs a future persisted stack activity timestamp.
@@ -194,18 +196,26 @@ internal fun sortChestInventoryStacks(
 ): List<ChestInventoryStackUiModel> = stacks.sortedWith(chestStackComparator(sortOption))
 
 private fun chestStackComparator(sortOption: ChestSortOption): Comparator<ChestInventoryStackUiModel> {
-    val stableTieBreakers = compareByDescending<ChestInventoryStackUiModel> { it.level }
+    val levelNameTieBreakers = compareByDescending<ChestInventoryStackUiModel> { it.level }
         .thenBy { it.creatureName.lowercase(Locale.ROOT) }
+        .thenBy { it.stableStackKey }
+    val nameLevelTieBreakers = compareBy<ChestInventoryStackUiModel> { it.creatureName.lowercase(Locale.ROOT) }
+        .thenByDescending { it.level }
         .thenBy { it.stableStackKey }
 
     return when (sortOption) {
-        ChestSortOption.Level -> stableTieBreakers
+        ChestSortOption.Level -> levelNameTieBreakers
         ChestSortOption.Recent -> compareByDescending<ChestInventoryStackUiModel> { it.recentActivityAtMs }
-            .then(stableTieBreakers)
+            .then(levelNameTieBreakers)
         ChestSortOption.NewestArrival -> compareByDescending<ChestInventoryStackUiModel> { it.newestAcquiredAtMs }
-            .then(stableTieBreakers)
+            .then(levelNameTieBreakers)
         ChestSortOption.OldestArrival -> compareBy<ChestInventoryStackUiModel> { it.oldestAcquiredAtMs }
-            .then(stableTieBreakers)
+            .then(levelNameTieBreakers)
+        ChestSortOption.Alphabetical -> nameLevelTieBreakers
+        ChestSortOption.Value -> compareByDescending<ChestInventoryStackUiModel> { it.totalValuePearls }
+            .then(nameLevelTieBreakers)
+        ChestSortOption.Count -> compareByDescending<ChestInventoryStackUiModel> { it.count }
+            .then(nameLevelTieBreakers)
     }
 }
 
@@ -266,6 +276,9 @@ private val ChestSortOption.labelRes: Int
         ChestSortOption.Recent -> R.string.shell_chest_sort_recent
         ChestSortOption.NewestArrival -> R.string.shell_chest_sort_newest_arrival
         ChestSortOption.OldestArrival -> R.string.shell_chest_sort_oldest_arrival
+        ChestSortOption.Alphabetical -> R.string.shell_chest_sort_alphabetical
+        ChestSortOption.Value -> R.string.shell_chest_sort_value
+        ChestSortOption.Count -> R.string.shell_chest_sort_count
     }
 
 @Composable
