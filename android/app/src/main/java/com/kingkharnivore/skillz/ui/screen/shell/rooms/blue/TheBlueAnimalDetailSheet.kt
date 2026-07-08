@@ -180,7 +180,7 @@ fun TheBlueAnimalDetailSheet(
                     text = when {
                         isMastered -> stringResource(R.string.shell_creature_level_up_unavailable_max)
                         growthInstanceId == null -> stringResource(R.string.shell_creature_no_active_to_grow)
-                        else -> stringResource(R.string.shell_creature_need_more_pearls_to_grow, missing)
+                        else -> stringResource(R.string.shell_creature_need_more_pearls_to_grow, growthCost, missing)
                     },
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
                 )

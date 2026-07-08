@@ -265,16 +265,25 @@ private fun ChestStackDetailSheet(
     val releaseButtonDescription = stringResource(R.string.shell_chest_release_button_a11y)
     val levelUpCost = CreatureEconomy.growthCostPearls(stack.creatureId, stack.level)
     val isMaxLevel = stack.level >= CreatureEconomy.MAX_CREATURE_LEVEL
+    val levelUpShortfall = (levelUpCost - pearlBalance).coerceAtLeast(0)
     val canAffordLevelUp = pearlBalance >= levelUpCost
     val canLevelUp = !isMaxLevel && canAffordLevelUp
     val levelUpStatus = when {
         isMaxLevel -> stringResource(R.string.shell_creature_level_up_unavailable_max)
-        !canAffordLevelUp -> stringResource(R.string.shell_creature_level_up_unavailable_pearls)
+        !canAffordLevelUp -> stringResource(
+            R.string.shell_creature_level_up_unavailable_pearls,
+            levelUpCost,
+            levelUpShortfall
+        )
         else -> stringResource(R.string.shell_creature_level_up_cost, levelUpCost)
     }
     val levelUpButtonDescription = when {
         isMaxLevel -> stringResource(R.string.shell_creature_level_up_mastered_a11y, stack.creatureName)
-        !canAffordLevelUp -> stringResource(R.string.shell_creature_level_up_unavailable_pearls)
+        !canAffordLevelUp -> stringResource(
+            R.string.shell_creature_level_up_unavailable_pearls,
+            levelUpCost,
+            levelUpShortfall
+        )
         else -> stringResource(
             R.string.shell_creature_level_up_a11y,
             stack.level,
