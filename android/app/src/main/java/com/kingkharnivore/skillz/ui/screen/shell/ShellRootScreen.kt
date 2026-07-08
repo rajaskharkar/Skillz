@@ -220,7 +220,8 @@ fun ShellRootScreen(
                     uiState = uiState,
                     onReleaseCreaturesByLevel = viewModel::releaseCreaturesByLevel,
                     onLevelUpCreatureByLevel = viewModel::growCreatureByLevel,
-                    onOpenBlue = { destination = ShellDestination.TheBluePreview }
+                    onOpenBlue = { destination = ShellDestination.TheBluePreview },
+                    onSortOptionSelected = viewModel::setChestSortOption
                 )
 
                 ShellDestination.Badges -> BadgesScreen(uiState)
