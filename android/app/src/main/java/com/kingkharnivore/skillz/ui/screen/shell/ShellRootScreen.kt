@@ -189,8 +189,7 @@ fun ShellRootScreen(
                         destination = ShellDestination.Heart
                     }
                 },
-                onNotifications = { showNotifications = !showNotifications },
-                onChest = { destination = ShellDestination.ShellChest }
+                onNotifications = { showNotifications = !showNotifications }
             )
         },
         modifier = modifier
