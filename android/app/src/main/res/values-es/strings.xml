@@ -1074,7 +1074,7 @@ Piedritas — 60 Pearls</string>
     <string name="shell_status_placed">En exhibición</string>
     <string name="shell_status_unplaced">En reposo</string>
     <string name="shell_badges_title">Badges</string>
-    <string name="shell_badges_body">Las insignias registran lo que pasó. No son barreras.</string>
+    <string name="shell_badges_body">Las insignias registran lo que pasó.</string>
     <string name="shell_badge_a11y">Insignia %1$s. Cantidad: %2$d.</string>
     <string name="shell_journal_title">Badges</string>
     <string name="shell_action_brighten">Brighten</string>

@@ -1059,7 +1059,7 @@
     <string name="shell_status_placed">प्रदर्शित</string>
     <string name="shell_status_unplaced">विश्राम में</string>
     <string name="shell_badges_title">बैज</string>
-    <string name="shell_badges_body">बैज हुए अनुभवों का रिकॉर्ड हैं। ये कोई रोक नहीं हैं।</string>
+    <string name="shell_badges_body">बैज हुए अनुभवों का रिकॉर्ड हैं।</string>
     <string name="shell_badge_a11y">%1$s बैज । संख्या: %2$d।</string>
     <string name="shell_journal_title">बैज</string>
     <string name="shell_action_brighten">चमकाएँ</string>

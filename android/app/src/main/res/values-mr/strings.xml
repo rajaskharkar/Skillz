@@ -1059,7 +1059,7 @@
     <string name="shell_status_placed">दर्शवलेले</string>
     <string name="shell_status_unplaced">विश्रांतीत</string>
     <string name="shell_badges_title">बॅज</string>
-    <string name="shell_badges_body">बॅज म्हणजे घडलेल्या गोष्टींची नोंद. ते अडथळे नाहीत.</string>
+    <string name="shell_badges_body">बॅज म्हणजे घडलेल्या गोष्टींची नोंद.</string>
     <string name="shell_badge_a11y">%1$s बॅज. संख्या: %2$d.</string>
     <string name="shell_journal_title">बॅज</string>
     <string name="shell_action_brighten">उजळवा</string>
