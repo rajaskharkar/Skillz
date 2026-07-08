@@ -181,7 +181,9 @@ internal fun buildChestInventoryStacks(
                 // TODO: True inventory activity sorting needs a future persisted stack activity timestamp.
                 // viewedAt is only an existing UI-seen timestamp and is not updated by level-ups/releases;
                 // acquisition time remains the deterministic fallback until that future timestamp exists.
-                recentActivityAtMs = creaturesAtLevel.maxOfOrNull { it.viewedAt ?: it.acquiredAt } ?: 0L
+                recentActivityAtMs = creaturesAtLevel.maxOfOrNull { instance ->
+                    instance.viewedAt?.takeIf { viewedAt -> viewedAt > 0L } ?: instance.acquiredAt
+                } ?: 0L
             )
         }
         .let { stacks -> sortChestInventoryStacks(stacks, sortOption) }

@@ -102,6 +102,22 @@ class ShellChestInventoryMapperTest {
     }
 
     @Test
+    fun recentSortTreatsNonPositiveViewedAtAsMissing() {
+        val stacks = buildChestInventoryStacks(
+            listOf(
+                creature("minnow", ShellContentCatalog.FOCUS_MINNOW, level = 1, acquiredAt = 1000L, viewedAt = 0L),
+                creature("seahorse", ShellContentCatalog.FOCUS_SEAHORSE, level = 1, acquiredAt = 500L, viewedAt = null)
+            ),
+            ChestSortOption.Recent
+        )
+
+        assertEquals(
+            listOf(ShellContentCatalog.FOCUS_MINNOW to 1, ShellContentCatalog.FOCUS_SEAHORSE to 1),
+            stacks.map { it.creatureId to it.level }
+        )
+    }
+
+    @Test
     fun newestArrivalSortUsesNewestAcquiredCreatureWithinStack() {
         val stacks = buildChestInventoryStacks(
             listOf(
