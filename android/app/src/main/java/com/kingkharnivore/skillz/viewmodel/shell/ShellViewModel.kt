@@ -10,11 +10,13 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEn
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindStackEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.data.repository.shell.ShellRepository
+import com.kingkharnivore.skillz.utils.shell.ChestSortOption
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureDefinition
 import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
 import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
+import com.kingkharnivore.skillz.utils.user.UserPrefs
 import com.kingkharnivore.skillz.utils.shell.requiresStillwaterConfirmation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -39,7 +41,8 @@ data class ShellUiState(
     val focusPlacements: List<ShellPlacementEntity> = emptyList(),
     val badges: List<UserBadgeEntity> = emptyList(),
     val discoveries: List<UserDiscoveryEntity> = emptyList(),
-    val objectiveCompletions: List<ObjectiveCompletionEntity> = emptyList()
+    val objectiveCompletions: List<ObjectiveCompletionEntity> = emptyList(),
+    val chestSortOption: ChestSortOption = ChestSortOption.Level
 )
 
 private data class ShellEconomyState(
@@ -60,9 +63,15 @@ private data class ShellMemoryState(
     val objectiveCompletions: List<ObjectiveCompletionEntity>
 )
 
+private data class ShellMemoryAndPreferenceState(
+    val memory: ShellMemoryState,
+    val chestSortOption: ChestSortOption
+)
+
 @HiltViewModel
 class ShellViewModel @Inject constructor(
-    private val repository: ShellRepository
+    private val repository: ShellRepository,
+    private val userPrefs: UserPrefs
 ) : ViewModel() {
     private val _events = MutableSharedFlow<String>()
     val events: SharedFlow<String> = _events
@@ -88,13 +97,18 @@ class ShellViewModel @Inject constructor(
         repository.observeObjectiveCompletions()
     ) { badges, discoveries, objectiveCompletions -> ShellMemoryState(badges, discoveries, objectiveCompletions) }
 
+    private val memoryAndPreferences = combine(
+        memory,
+        userPrefs.chestSortOption
+    ) { memory, sortOption -> ShellMemoryAndPreferenceState(memory, sortOption) }
+
     val uiState: StateFlow<ShellUiState> = combine(
         economy,
         ownership,
-        memory,
+        memoryAndPreferences,
         stillwaterRevealCreature,
         pendingStillwaterDrawVessel
-    ) { economy, ownership, memory, revealCreature, pendingVessel ->
+    ) { economy, ownership, memoryAndPreferences, revealCreature, pendingVessel ->
         ShellUiState(
             pearlBalance = economy.pearlBalance,
             stillwaterClaimableDrops = economy.stillwaterClaimableDrops,
@@ -105,11 +119,19 @@ class ShellViewModel @Inject constructor(
             finds = ownership.finds,
             stacks = ownership.stacks,
             focusPlacements = ownership.focusPlacements,
-            badges = memory.badges,
-            discoveries = memory.discoveries,
-            objectiveCompletions = memory.objectiveCompletions
+            badges = memoryAndPreferences.memory.badges,
+            discoveries = memoryAndPreferences.memory.discoveries,
+            objectiveCompletions = memoryAndPreferences.memory.objectiveCompletions,
+            chestSortOption = memoryAndPreferences.chestSortOption
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ShellUiState())
+
+
+    fun setChestSortOption(option: ChestSortOption) = viewModelScope.launch {
+        if (uiState.value.chestSortOption != option) {
+            userPrefs.setChestSortOption(option)
+        }
+    }
 
     fun place(instanceId: String, slotId: String) = viewModelScope.launch {
         runCatching { repository.placeInstance(instanceId, ShellRoomId.FOCUS, slotId) }

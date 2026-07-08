@@ -13,6 +13,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
@@ -22,6 +26,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,6 +47,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
@@ -50,10 +57,12 @@ import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
 import com.kingkharnivore.skillz.utils.shell.CreatureMasteryTier
 import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
+import com.kingkharnivore.skillz.utils.shell.ChestSortOption
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 import com.kingkharnivore.skillz.ui.screen.shell.ux.RoomHeader
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
+import java.util.Locale
 import kotlin.math.roundToInt
 
 internal data class ChestInventoryStackUiModel(
@@ -62,7 +71,11 @@ internal data class ChestInventoryStackUiModel(
     val level: Int,
     val count: Int,
     val iconKey: String,
-    val isStillwaterExclusive: Boolean = false
+    val isStillwaterExclusive: Boolean = false,
+    val totalValuePearls: Int = 0,
+    val newestAcquiredAtMs: Long = 0L,
+    val oldestAcquiredAtMs: Long = 0L,
+    val recentActivityAtMs: Long = 0L
 )
 
 @Composable
@@ -70,10 +83,13 @@ fun ShellChestScreen(
     uiState: ShellUiState,
     onReleaseCreaturesByLevel: (String, Map<Int, Int>) -> Unit,
     onLevelUpCreatureByLevel: (String, Int) -> Unit,
-    onOpenBlue: () -> Unit
+    onOpenBlue: () -> Unit,
+    onSortOptionSelected: (ChestSortOption) -> Unit
 ) {
     var selectedStack by remember { mutableStateOf<ChestInventoryStackUiModel?>(null) }
-    val stacks = remember(uiState.finds) { buildChestInventoryStacks(uiState.finds) }
+    val stacks = remember(uiState.finds, uiState.chestSortOption) {
+        buildChestInventoryStacks(uiState.finds, uiState.chestSortOption)
+    }
     val totalCreatureCount = stacks.sumOf { it.count }
 
     Column(
@@ -82,11 +98,24 @@ fun ShellChestScreen(
     ) {
         RoomHeader(title = R.string.shell_chest_title, body = R.string.shell_chest_body)
         if (stacks.isNotEmpty()) {
-            Text(
-                text = stringResource(R.string.shell_chest_inventory_stats, totalCreatureCount, stacks.size),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.shell_chest_inventory_stats, totalCreatureCount, stacks.size),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                ChestSortControl(
+                    selected = uiState.chestSortOption,
+                    onSelected = onSortOptionSelected
+                )
+            }
         }
 
         if (stacks.isEmpty()) {
@@ -130,7 +159,10 @@ fun ShellChestScreen(
     }
 }
 
-internal fun buildChestInventoryStacks(finds: List<UserShellFindInstanceEntity>): List<ChestInventoryStackUiModel> =
+internal fun buildChestInventoryStacks(
+    finds: List<UserShellFindInstanceEntity>,
+    sortOption: ChestSortOption = ChestSortOption.Level
+): List<ChestInventoryStackUiModel> =
     finds
         .asSequence()
         .filter(::isActiveChestCreature)
@@ -144,19 +176,110 @@ internal fun buildChestInventoryStacks(finds: List<UserShellFindInstanceEntity>)
                 level = key.second,
                 count = creaturesAtLevel.size,
                 iconKey = definition.iconKey,
-                isStillwaterExclusive = creature?.sourceType == CreatureSourceType.STILLWATER
+                isStillwaterExclusive = creature?.sourceType == CreatureSourceType.STILLWATER,
+                totalValuePearls = CreatureEconomy.releaseValuePearls(key.first, key.second) * creaturesAtLevel.size,
+                newestAcquiredAtMs = creaturesAtLevel.maxOfOrNull { it.acquiredAt } ?: 0L,
+                oldestAcquiredAtMs = creaturesAtLevel.minOfOrNull { it.acquiredAt } ?: 0L,
+                // TODO: True inventory activity sorting needs a future persisted stack activity timestamp.
+                // viewedAt is only an existing UI-seen timestamp and is not updated by level-ups/releases;
+                // acquisition time remains the deterministic fallback until that future timestamp exists.
+                recentActivityAtMs = creaturesAtLevel.maxOfOrNull { instance ->
+                    instance.viewedAt?.takeIf { viewedAt -> viewedAt > 0L } ?: instance.acquiredAt
+                } ?: 0L
             )
         }
-        .sortedWith(
-            compareBy<ChestInventoryStackUiModel> { it.creatureName.lowercase() }
-                .thenByDescending { it.level }
-        )
+        .let { stacks -> sortChestInventoryStacks(stacks, sortOption) }
+
+internal fun sortChestInventoryStacks(
+    stacks: List<ChestInventoryStackUiModel>,
+    sortOption: ChestSortOption
+): List<ChestInventoryStackUiModel> = stacks.sortedWith(chestStackComparator(sortOption))
+
+private fun chestStackComparator(sortOption: ChestSortOption): Comparator<ChestInventoryStackUiModel> {
+    val levelNameTieBreakers = compareByDescending<ChestInventoryStackUiModel> { it.level }
+        .thenBy { it.creatureName.lowercase(Locale.ROOT) }
+        .thenBy { it.stableStackKey }
+    val nameLevelTieBreakers = compareBy<ChestInventoryStackUiModel> { it.creatureName.lowercase(Locale.ROOT) }
+        .thenByDescending { it.level }
+        .thenBy { it.stableStackKey }
+
+    return when (sortOption) {
+        ChestSortOption.Level -> levelNameTieBreakers
+        ChestSortOption.Recent -> compareByDescending<ChestInventoryStackUiModel> { it.recentActivityAtMs }
+            .then(levelNameTieBreakers)
+        ChestSortOption.NewestArrival -> compareByDescending<ChestInventoryStackUiModel> { it.newestAcquiredAtMs }
+            .then(levelNameTieBreakers)
+        ChestSortOption.OldestArrival -> compareBy<ChestInventoryStackUiModel> { it.oldestAcquiredAtMs }
+            .then(levelNameTieBreakers)
+        ChestSortOption.Alphabetical -> nameLevelTieBreakers
+        ChestSortOption.Value -> compareByDescending<ChestInventoryStackUiModel> { it.totalValuePearls }
+            .then(nameLevelTieBreakers)
+        ChestSortOption.Count -> compareByDescending<ChestInventoryStackUiModel> { it.count }
+            .then(nameLevelTieBreakers)
+    }
+}
+
+private val ChestInventoryStackUiModel.stableStackKey: String
+    get() = "$creatureId-$level"
 
 private fun definitionTitleFallback(definition: ShellFindDefinition): String = definition.findId
     .removePrefix("creature_")
     .removePrefix("focus_")
     .split('_')
     .joinToString(" ") { it.replaceFirstChar { char -> char.titlecase() } }
+
+
+@Composable
+private fun ChestSortControl(
+    selected: ChestSortOption,
+    onSelected: (ChestSortOption) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        FilterChip(
+            selected = true,
+            onClick = { expanded = true },
+            label = { Text(stringResource(R.string.shell_chest_sort_selected, stringResource(selected.labelRes))) },
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = MaterialTheme.colorScheme.secondary,
+                selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
+                selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondary
+            )
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            ChestSortOption.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(option.labelRes)) },
+                    leadingIcon = {
+                        if (option == selected) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null
+                            )
+                        }
+                    },
+                    onClick = {
+                        expanded = false
+                        if (option != selected) {
+                            onSelected(option)
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+private val ChestSortOption.labelRes: Int
+    get() = when (this) {
+        ChestSortOption.Level -> R.string.shell_chest_sort_level
+        ChestSortOption.Recent -> R.string.shell_chest_sort_recent
+        ChestSortOption.NewestArrival -> R.string.shell_chest_sort_newest_arrival
+        ChestSortOption.OldestArrival -> R.string.shell_chest_sort_oldest_arrival
+        ChestSortOption.Alphabetical -> R.string.shell_chest_sort_alphabetical
+        ChestSortOption.Value -> R.string.shell_chest_sort_value
+        ChestSortOption.Count -> R.string.shell_chest_sort_count
+    }
 
 @Composable
 private fun EmptyChestState(onOpenBlue: () -> Unit, modifier: Modifier = Modifier) {

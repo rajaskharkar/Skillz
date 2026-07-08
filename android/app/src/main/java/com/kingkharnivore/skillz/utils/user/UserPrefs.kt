@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.kingkharnivore.skillz.BuildConfig
+import com.kingkharnivore.skillz.utils.shell.ChestSortOption
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -22,6 +23,7 @@ class UserPrefs @Inject constructor(
         val KEY_SHOW_SCORE_UI = booleanPreferencesKey("show_score_ui")
         val KEY_CALM_MODE = booleanPreferencesKey("calm_mode")
         val KEY_APP_LANGUAGE_TAG = stringPreferencesKey("app_language_tag")
+        val KEY_CHEST_SORT_OPTION = stringPreferencesKey("chest_sort_option")
     }
 
     val showScoreUi: Flow<Boolean> =
@@ -37,6 +39,11 @@ class UserPrefs @Inject constructor(
     val appLanguageTag: Flow<String?> =
         context.userPrefsDataStore.data.map { prefs ->
             prefs[KEY_APP_LANGUAGE_TAG]
+        }
+
+    val chestSortOption: Flow<ChestSortOption> =
+        context.userPrefsDataStore.data.map { prefs ->
+            ChestSortOption.fromKey(prefs[KEY_CHEST_SORT_OPTION])
         }
 
     suspend fun setShowScoreUi(enabled: Boolean) {
@@ -58,6 +65,12 @@ class UserPrefs @Inject constructor(
             } else {
                 prefs[KEY_APP_LANGUAGE_TAG] = tag
             }
+        }
+    }
+
+    suspend fun setChestSortOption(option: ChestSortOption) {
+        context.userPrefsDataStore.edit { prefs ->
+            prefs[KEY_CHEST_SORT_OPTION] = option.key
         }
     }
 }

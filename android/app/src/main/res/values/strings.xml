@@ -1067,6 +1067,14 @@
     <string name="shell_chest_title">The Chest</string>
     <string name="shell_chest_body">Your creatures from The Blue.</string>
     <string name="shell_chest_inventory_stats">%1$d creatures owned · %2$d stacks</string>
+    <string name="shell_chest_sort_selected">Sort: %1$s</string>
+    <string name="shell_chest_sort_level">Level</string>
+    <string name="shell_chest_sort_recent">Recent</string>
+    <string name="shell_chest_sort_newest_arrival">Newest Arrival</string>
+    <string name="shell_chest_sort_oldest_arrival">Oldest Arrival</string>
+    <string name="shell_chest_sort_alphabetical">A-Z</string>
+    <string name="shell_chest_sort_value">Value</string>
+    <string name="shell_chest_sort_count">Count</string>
     <string name="shell_chest_empty_title">The Chest is empty.</string>
     <string name="shell_chest_empty_body">Dive into The Blue to find your first creature.</string>
     <string name="shell_chest_empty_action">Go to The Blue</string>
