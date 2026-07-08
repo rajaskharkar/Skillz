@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -226,7 +227,12 @@ private fun ChestSortControl(
         FilterChip(
             selected = true,
             onClick = { expanded = true },
-            label = { Text(stringResource(R.string.shell_chest_sort_selected, stringResource(selected.labelRes))) }
+            label = { Text(stringResource(R.string.shell_chest_sort_selected, stringResource(selected.labelRes))) },
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer
+            )
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             ChestSortOption.entries.forEach { option ->
