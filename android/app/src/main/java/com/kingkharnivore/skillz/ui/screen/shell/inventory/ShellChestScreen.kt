@@ -229,9 +229,9 @@ private fun ChestSortControl(
             onClick = { expanded = true },
             label = { Text(stringResource(R.string.shell_chest_sort_selected, stringResource(selected.labelRes))) },
             colors = FilterChipDefaults.filterChipColors(
-                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer
+                selectedContainerColor = MaterialTheme.colorScheme.secondary,
+                selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
+                selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondary
             )
         )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
