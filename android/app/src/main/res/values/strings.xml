@@ -1145,7 +1145,7 @@
     <string name="shell_status_placed">Displayed</string>
     <string name="shell_status_unplaced">Resting</string>
     <string name="shell_badges_title">Badges</string>
-    <string name="shell_badges_body">Badges are records of what happened. They are not gates.</string>
+    <string name="shell_badges_body">Badges are records of what happened.</string>
     <string name="shell_badge_a11y">%1$s badge. Count: %2$d.</string>
     <string name="shell_badge_row_title">%1$s ×%2$d</string>
     <string name="shell_journal_title">Badges</string>
