@@ -396,7 +396,8 @@ class ShellRepository @Inject constructor(
                 instance.findId,
                 currentLevel
             )
-            require(pearlLedgerDao.getBalance() >= cost) { "Insufficient Pearls." }
+            val balance = pearlLedgerDao.getBalance()
+            require(balance >= cost) { insufficientGrowthPearlsMessage(cost, balance) }
             pearlLedgerDao.insert(
                 PearlLedgerEntity(
                     UUID.randomUUID().toString(),
@@ -453,7 +454,8 @@ class ShellRepository @Inject constructor(
             "Mastered at Level 99."
         }
         val cost = CreatureEconomy.growthCostPearls(instance.findId, currentLevel)
-        require(pearlLedgerDao.getBalance() >= cost) { "Insufficient Pearls." }
+        val balance = pearlLedgerDao.getBalance()
+        require(balance >= cost) { insufficientGrowthPearlsMessage(cost, balance) }
         val now = System.currentTimeMillis()
         pearlLedgerDao.insert(
             PearlLedgerEntity(
@@ -483,7 +485,8 @@ class ShellRepository @Inject constructor(
         }
         val instance = activeAtLevel.first()
         val cost = CreatureEconomy.growthCostPearls(findId, currentLevel)
-        require(pearlLedgerDao.getBalance() >= cost) { "Insufficient Pearls." }
+        val balance = pearlLedgerDao.getBalance()
+        require(balance >= cost) { insufficientGrowthPearlsMessage(cost, balance) }
         val now = System.currentTimeMillis()
         pearlLedgerDao.insert(
             PearlLedgerEntity(
@@ -496,6 +499,11 @@ class ShellRepository @Inject constructor(
             )
         )
         findInstanceDao.updateAnimalLevel(instance.instanceId, currentLevel + 1)
+    }
+
+    private fun insufficientGrowthPearlsMessage(requiredPearls: Int, currentPearls: Int): String {
+        val shortfall = (requiredPearls - currentPearls).coerceAtLeast(0)
+        return "Level up requires $requiredPearls Pearls. You need $shortfall more."
     }
 
     suspend fun releaseCreature(instanceId: String): Int = db.withTransaction {

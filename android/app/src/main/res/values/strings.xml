@@ -1096,11 +1096,11 @@
     <string name="shell_creature_pearl_value_each">Pearl value each: %1$d Pearls</string>
     <string name="shell_creature_levels_heading">Levels</string>
     <string name="shell_creature_no_active_to_grow">No active creature available to grow.</string>
-    <string name="shell_creature_need_more_pearls_to_grow">Need %1$d more Pearls to grow.</string>
+    <string name="shell_creature_need_more_pearls_to_grow">Level up requires %1$d Pearls. You need %2$d more.</string>
     <string name="shell_creature_level_up">Level Up</string>
     <string name="shell_creature_level_up_cost">Level up cost: %1$d Pearls</string>
     <string name="shell_creature_level_up_unavailable_max">Mastered at Level 99</string>
-    <string name="shell_creature_level_up_unavailable_pearls">Not enough Pearls</string>
+    <string name="shell_creature_level_up_unavailable_pearls">Level up requires %1$d Pearls. You need %2$d more.</string>
     <string name="shell_creature_level_up_confirm_title">Level up %1$s?</string>
     <string name="shell_creature_level_up_confirm_body">This will level up one Level %1$d %2$s.</string>
     <string name="shell_creature_level_up_confirm_cost">Cost: %1$d Pearls</string>

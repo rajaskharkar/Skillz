@@ -1033,7 +1033,7 @@
     <string name="shell_creature_pearl_value_each">प्रत्येकी पर्ल्स मूल्य: %1$d पर्ल्स</string>
     <string name="shell_creature_levels_heading">पातळ्या</string>
     <string name="shell_creature_no_active_to_grow">वाढवण्यासाठी सक्रिय प्राणी उपलब्ध नाही.</string>
-    <string name="shell_creature_need_more_pearls_to_grow">वाढवण्यासाठी अजून %1$d पर्ल्स आवश्यक आहेत.</string>
+    <string name="shell_creature_need_more_pearls_to_grow">लेवल अपसाठी %1$d पर्ल्स आवश्यक आहेत. तुम्हाला अजून %2$d आवश्यक आहेत.</string>
     <string name="shell_creature_release_for_pearls">सोडा</string>
     <string name="shell_creature_release_confirm_title">%1$s मुक्त करायचे?</string>
     <string name="shell_creature_release_single_body">हा %1$s द ब्लूमध्ये परत सोडायचा?</string>
@@ -1814,7 +1814,7 @@
     <string name="shell_creature_level_up">लेवल वाढवा</string>
     <string name="shell_creature_level_up_cost">लेवल वाढवण्याची किंमत: %1$d पर्ल्स</string>
     <string name="shell_creature_level_up_unavailable_max">लेवल 99 वर प्रभुत्व</string>
-    <string name="shell_creature_level_up_unavailable_pearls">पुरेसे पर्ल्स नाहीत</string>
+    <string name="shell_creature_level_up_unavailable_pearls">लेवल अपसाठी %1$d पर्ल्स आवश्यक आहेत. तुम्हाला अजून %2$d आवश्यक आहेत.</string>
     <string name="shell_creature_level_up_confirm_title">%1$s चे लेवल वाढवायचे?</string>
     <string name="shell_creature_level_up_confirm_body">यामुळे एक लेवल %1$d %2$s चे लेवल वाढेल.</string>
     <string name="shell_creature_level_up_confirm_cost">किंमत: %1$d पर्ल्स</string>

@@ -1033,11 +1033,11 @@ Piedritas — 60 Pearls</string>
     <string name="shell_creature_pearl_value_each">Valor en Pearls de cada uno: %1$d Pearls</string>
     <string name="shell_creature_levels_heading">Niveles</string>
     <string name="shell_creature_no_active_to_grow">No hay criatura activa para crecer.</string>
-    <string name="shell_creature_need_more_pearls_to_grow">Necesitas %1$d Pearls más para crecer.</string>
+    <string name="shell_creature_need_more_pearls_to_grow">Subir nivel requiere %1$d Pearls. Necesitas %2$d más.</string>
     <string name="shell_creature_level_up">Subir nivel</string>
     <string name="shell_creature_level_up_cost">Costo de subir nivel: %1$d Pearls</string>
     <string name="shell_creature_level_up_unavailable_max">Dominado en nivel 99</string>
-    <string name="shell_creature_level_up_unavailable_pearls">No hay suficientes Pearls</string>
+    <string name="shell_creature_level_up_unavailable_pearls">Subir nivel requiere %1$d Pearls. Necesitas %2$d más.</string>
     <string name="shell_creature_level_up_confirm_title">¿Subir nivel de %1$s?</string>
     <string name="shell_creature_level_up_confirm_body">Esto subirá de nivel una criatura de nivel %1$d %2$s.</string>
     <string name="shell_creature_level_up_confirm_cost">Costo: %1$d Pearls</string>
