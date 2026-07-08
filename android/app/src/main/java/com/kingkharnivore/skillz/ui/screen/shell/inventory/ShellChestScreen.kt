@@ -13,6 +13,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.AlertDialog
@@ -44,6 +46,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
@@ -101,7 +104,10 @@ fun ShellChestScreen(
                 Text(
                     text = stringResource(R.string.shell_chest_inventory_stats, totalCreatureCount, stacks.size),
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
                 ChestSortControl(
                     selected = uiState.chestSortOption,
@@ -172,7 +178,8 @@ internal fun buildChestInventoryStacks(
                 newestAcquiredAtMs = creaturesAtLevel.maxOfOrNull { it.acquiredAt } ?: 0L,
                 oldestAcquiredAtMs = creaturesAtLevel.minOfOrNull { it.acquiredAt } ?: 0L,
                 // TODO: True inventory activity sorting needs a future persisted stack activity timestamp.
-                // For now, viewedAt is the best existing per-creature change signal, with acquisition as fallback.
+                // viewedAt is only an existing UI-seen timestamp and is not updated by level-ups/releases;
+                // acquisition time remains the deterministic fallback until that future timestamp exists.
                 recentActivityAtMs = creaturesAtLevel.maxOfOrNull { it.viewedAt ?: it.acquiredAt } ?: 0L
             )
         }
@@ -225,9 +232,19 @@ private fun ChestSortControl(
             ChestSortOption.entries.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(stringResource(option.labelRes)) },
+                    leadingIcon = {
+                        if (option == selected) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null
+                            )
+                        }
+                    },
                     onClick = {
                         expanded = false
-                        onSelected(option)
+                        if (option != selected) {
+                            onSelected(option)
+                        }
                     }
                 )
             }

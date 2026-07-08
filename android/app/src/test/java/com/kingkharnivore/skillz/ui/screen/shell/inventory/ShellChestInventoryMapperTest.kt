@@ -81,7 +81,7 @@ class ShellChestInventoryMapperTest {
     }
 
     @Test
-    fun recentSortUsesBestAvailableRecentTimestampDescending() {
+    fun recentSortUsesBestEffortExistingTimestampDescending() {
         val stacks = buildChestInventoryStacks(
             listOf(
                 creature("minnow-old", ShellContentCatalog.FOCUS_MINNOW, level = 1, acquiredAt = 10L, viewedAt = 500L),

@@ -9,7 +9,6 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserDiscoveryEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindStackEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
-import com.kingkharnivore.skillz.data.repository.shell.ChestSortPreferencesRepository
 import com.kingkharnivore.skillz.data.repository.shell.ShellRepository
 import com.kingkharnivore.skillz.utils.shell.ChestSortOption
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
@@ -17,6 +16,7 @@ import com.kingkharnivore.skillz.utils.shell.CreatureDefinition
 import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
 import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
+import com.kingkharnivore.skillz.utils.user.UserPrefs
 import com.kingkharnivore.skillz.utils.shell.requiresStillwaterConfirmation
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -71,7 +71,7 @@ private data class ShellMemoryAndPreferenceState(
 @HiltViewModel
 class ShellViewModel @Inject constructor(
     private val repository: ShellRepository,
-    private val chestSortPreferencesRepository: ChestSortPreferencesRepository
+    private val userPrefs: UserPrefs
 ) : ViewModel() {
     private val _events = MutableSharedFlow<String>()
     val events: SharedFlow<String> = _events
@@ -99,7 +99,7 @@ class ShellViewModel @Inject constructor(
 
     private val memoryAndPreferences = combine(
         memory,
-        chestSortPreferencesRepository.selectedSortOption
+        userPrefs.chestSortOption
     ) { memory, sortOption -> ShellMemoryAndPreferenceState(memory, sortOption) }
 
     val uiState: StateFlow<ShellUiState> = combine(
@@ -128,7 +128,9 @@ class ShellViewModel @Inject constructor(
 
 
     fun setChestSortOption(option: ChestSortOption) = viewModelScope.launch {
-        chestSortPreferencesRepository.setSelectedSortOption(option)
+        if (uiState.value.chestSortOption != option) {
+            userPrefs.setChestSortOption(option)
+        }
     }
 
     fun place(instanceId: String, slotId: String) = viewModelScope.launch {
