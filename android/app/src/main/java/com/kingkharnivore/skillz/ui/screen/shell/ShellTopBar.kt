@@ -40,8 +40,7 @@ fun ShellTopBar(
     pearlBasinHasIndicator: Boolean,
     notificationCount: Int,
     onBack: () -> Unit,
-    onNotifications: () -> Unit,
-    onChest: () -> Unit
+    onNotifications: () -> Unit
 ) {
     val scheme = MaterialTheme.colorScheme
 
@@ -128,13 +127,6 @@ fun ShellTopBar(
                         }
                     }
                 }
-            }
-
-            IconButton(onClick = onChest) {
-                Icon(
-                    imageVector = Icons.Outlined.Inventory2,
-                    contentDescription = stringResource(R.string.shell_chest_a11y)
-                )
             }
         }
     )
