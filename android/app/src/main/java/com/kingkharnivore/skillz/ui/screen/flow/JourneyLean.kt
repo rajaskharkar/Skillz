@@ -56,7 +56,6 @@ import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import java.util.Locale
 
 private const val MaxJourneyChips = 8
-private const val MaxJourneySuggestions = 7
 
 @Composable
 fun JourneyLean(
@@ -179,7 +178,7 @@ private fun JourneyAutocompleteField(
     var suggestionsExpanded by remember { mutableStateOf(false) }
     val trimmedInput = remember(tagName) { tagName.trim() }
     val suggestions = remember(options, tagName) {
-        filterJourneySuggestions(options, tagName, MaxJourneySuggestions)
+        filterJourneySuggestions(options, tagName)
     }
     val exactMatch = remember(options, tagName) { findExactJourneyMatch(options, tagName) }
     val canCreate = trimmedInput.isNotEmpty() && exactMatch == null
@@ -429,11 +428,10 @@ private fun buildJourneyOptions(tags: List<TagEntity>): List<JourneyOption> = ta
 
 private fun filterJourneySuggestions(
     options: List<JourneyOption>,
-    query: String,
-    limit: Int
+    query: String
 ): List<JourneyOption> {
     val normalizedQuery = normalizeJourneyName(query)
-    if (normalizedQuery.isEmpty()) return options.take(limit)
+    if (normalizedQuery.isEmpty()) return options
 
     val exactMatches = mutableListOf<JourneyOption>()
     val prefixMatches = mutableListOf<JourneyOption>()
@@ -442,29 +440,15 @@ private fun filterJourneySuggestions(
     options.forEach { option ->
         when {
             option.normalizedName == normalizedQuery -> exactMatches.add(option)
-            option.normalizedName.startsWith(normalizedQuery) -> {
-                if (prefixMatches.size < limit) prefixMatches.add(option)
-            }
-            option.normalizedName.contains(normalizedQuery) -> {
-                if (containsMatches.size < limit) containsMatches.add(option)
-            }
+            option.normalizedName.startsWith(normalizedQuery) -> prefixMatches.add(option)
+            option.normalizedName.contains(normalizedQuery) -> containsMatches.add(option)
         }
     }
 
-    return buildList(limit) {
-        appendJourneyMatches(exactMatches, limit)
-        appendJourneyMatches(prefixMatches, limit)
-        appendJourneyMatches(containsMatches, limit)
-    }
-}
-
-private fun MutableList<JourneyOption>.appendJourneyMatches(
-    matches: List<JourneyOption>,
-    limit: Int
-) {
-    for (match in matches) {
-        if (size >= limit) return
-        add(match)
+    return buildList {
+        addAll(exactMatches)
+        addAll(prefixMatches)
+        addAll(containsMatches)
     }
 }
 
