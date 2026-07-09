@@ -2,7 +2,6 @@ package com.kingkharnivore.skillz.ui.screen.flow
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -10,29 +9,34 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalTextToolbar
+import androidx.compose.ui.platform.TextToolbar
+import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -61,32 +65,35 @@ fun JourneyLean(
     onTagClicked: (TagEntity) -> Unit,
     onTagNameChange: (String) -> Unit
 ) {
-    val cleanTags = remember(tags) { cleanAndDeduplicateTags(tags) }
+    val journeyOptions = remember(tags) { buildJourneyOptions(tags) }
+    var chipSelectionVersion by remember { mutableStateOf(0) }
     val journeyLabel = pluralStringResource(
         id = R.plurals.flow_journey_label,
-        count = cleanTags.size.coerceAtLeast(1),
-        cleanTags.size.coerceAtLeast(1)
+        count = journeyOptions.size.coerceAtLeast(1),
+        journeyOptions.size.coerceAtLeast(1)
     )
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         JourneyLabel(journeyLabel = journeyLabel)
 
         MostUsedJourneyChips(
-            tags = cleanTags.take(MaxJourneyChips),
+            options = journeyOptions.take(MaxJourneyChips),
             selectedTagName = tagName,
-            onTagSelected = { tag ->
-                onTagClicked(tag)
-                if (tagName != tag.name) {
-                    onTagNameChange(tag.name)
+            onTagSelected = { option ->
+                onTagClicked(option.tag)
+                if (tagName != option.displayName) {
+                    onTagNameChange(option.displayName)
                 }
+                chipSelectionVersion += 1
             }
         )
 
         JourneyAutocompleteField(
-            tags = cleanTags,
+            options = journeyOptions,
             tagName = tagName,
             onTagClicked = onTagClicked,
-            onTagNameChange = onTagNameChange
+            onTagNameChange = onTagNameChange,
+            externalSelectionVersion = chipSelectionVersion
         )
     }
 }
@@ -111,13 +118,15 @@ private fun JourneyLabel(journeyLabel: String) {
 
 @Composable
 private fun MostUsedJourneyChips(
-    tags: List<TagEntity>,
+    options: List<JourneyOption>,
     selectedTagName: String,
-    onTagSelected: (TagEntity) -> Unit
+    onTagSelected: (JourneyOption) -> Unit
 ) {
-    if (tags.isEmpty()) return
+    if (options.isEmpty()) return
 
     val suggestionsA11y = stringResource(R.string.flow_journey_suggestions_a11y)
+    val selectedJourneyName = remember(selectedTagName) { normalizeJourneyName(selectedTagName) }
+
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
@@ -125,18 +134,18 @@ private fun MostUsedJourneyChips(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(horizontal = 6.dp)
     ) {
-        items(items = tags, key = { normalizeJourneyName(it.name) }) { tag ->
-            val selected = normalizeJourneyName(tag.name) == normalizeJourneyName(selectedTagName)
-            val chipA11y = stringResource(R.string.flow_journey_chip_a11y, tag.name)
+        items(items = options, key = { it.normalizedName }) { option ->
+            val selected = option.normalizedName == selectedJourneyName
+            val chipA11y = stringResource(R.string.flow_journey_chip_a11y, option.displayName)
             val selectedA11y = stringResource(R.string.segmented_tab_selected)
             val notSelectedA11y = stringResource(R.string.segmented_tab_not_selected)
 
             FilterChip(
                 selected = selected,
-                onClick = { onTagSelected(tag) },
+                onClick = { onTagSelected(option) },
                 label = {
                     Text(
-                        text = tag.name,
+                        text = option.displayName,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -159,69 +168,110 @@ private fun MostUsedJourneyChips(
 
 @Composable
 private fun JourneyAutocompleteField(
-    tags: List<TagEntity>,
+    options: List<JourneyOption>,
     tagName: String,
     onTagClicked: (TagEntity) -> Unit,
-    onTagNameChange: (String) -> Unit
+    onTagNameChange: (String) -> Unit,
+    externalSelectionVersion: Int
 ) {
     val focusManager = LocalFocusManager.current
-    var hasFocus by remember { mutableStateOf(false) }
-    var expanded by remember { mutableStateOf(false) }
-    val trimmedInput = tagName.trim()
-    val suggestions by remember(tags, tagName) {
-        derivedStateOf { filterJourneySuggestions(tags, tagName, MaxJourneySuggestions) }
+    var fieldFocused by remember { mutableStateOf(false) }
+    var suggestionsExpanded by remember { mutableStateOf(false) }
+    val trimmedInput = remember(tagName) { tagName.trim() }
+    val suggestions = remember(options, tagName) {
+        filterJourneySuggestions(options, tagName, MaxJourneySuggestions)
     }
-    val exactMatch = remember(tags, tagName) { findExactJourneyMatch(tags, tagName) }
+    val exactMatch = remember(options, tagName) { findExactJourneyMatch(options, tagName) }
     val canCreate = trimmedInput.isNotEmpty() && exactMatch == null
-    val shouldShowMenu = expanded && hasFocus && (suggestions.isNotEmpty() || canCreate)
+    val showSuggestions = fieldFocused && suggestionsExpanded && (suggestions.isNotEmpty() || canCreate)
 
-    fun closeMenu() {
-        expanded = false
-        focusManager.clearFocus()
+    LaunchedEffect(externalSelectionVersion) {
+        if (externalSelectionVersion > 0) {
+            suggestionsExpanded = false
+        }
     }
 
-    fun selectExisting(tag: TagEntity) {
-        onTagClicked(tag)
-        if (tagName != tag.name) {
-            onTagNameChange(tag.name)
+    fun collapseSuggestions() {
+        suggestionsExpanded = false
+    }
+
+    fun selectExisting(option: JourneyOption) {
+        onTagClicked(option.tag)
+        if (tagName != option.displayName) {
+            onTagNameChange(option.displayName)
         }
-        closeMenu()
+        collapseSuggestions()
     }
 
     fun useTypedJourney() {
         when {
-            trimmedInput.isEmpty() -> closeMenu()
-            exactMatch != null -> selectExisting(exactMatch)
+            trimmedInput.isEmpty() -> collapseSuggestions()
+            exactMatch != null -> {
+                onTagClicked(exactMatch.tag)
+                if (tagName != exactMatch.displayName) {
+                    onTagNameChange(exactMatch.displayName)
+                }
+                collapseSuggestions()
+            }
             else -> {
                 onTagNameChange(trimmedInput)
-                closeMenu()
+                collapseSuggestions()
             }
         }
+        focusManager.clearFocus()
     }
 
-    Box(modifier = Modifier.fillMaxWidth()) {
-        val colors = TextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.36f),
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent,
-            cursorColor = MaterialTheme.colorScheme.primary
+    Column(modifier = Modifier.fillMaxWidth()) {
+        JourneyTextField(
+            tagName = tagName,
+            onTagNameChange = {
+                onTagNameChange(it)
+                suggestionsExpanded = true
+            },
+            onDone = ::useTypedJourney,
+            onFocusChanged = { isFocused ->
+                fieldFocused = isFocused
+                suggestionsExpanded = isFocused
+            }
         )
-        val journeyNameA11y = stringResource(R.string.flow_journey_input_a11y)
 
+        JourneySuggestionsSurface(
+            visible = showSuggestions,
+            suggestions = suggestions,
+            createName = trimmedInput.takeIf { canCreate },
+            onTagSelected = ::selectExisting,
+            onCreateSelected = { name ->
+                onTagNameChange(name)
+                collapseSuggestions()
+            }
+        )
+    }
+}
+
+@Composable
+private fun JourneyTextField(
+    tagName: String,
+    onTagNameChange: (String) -> Unit,
+    onDone: () -> Unit,
+    onFocusChanged: (Boolean) -> Unit
+) {
+    val colors = TextFieldDefaults.colors(
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
+        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.36f),
+        focusedIndicatorColor = Color.Transparent,
+        unfocusedIndicatorColor = Color.Transparent,
+        disabledIndicatorColor = Color.Transparent,
+        cursorColor = MaterialTheme.colorScheme.primary
+    )
+    val journeyNameA11y = stringResource(R.string.flow_journey_input_a11y)
+
+    CompositionLocalProvider(LocalTextToolbar provides EmptyTextToolbar) {
         TextField(
             value = tagName,
-            onValueChange = {
-                onTagNameChange(it)
-                expanded = true
-            },
+            onValueChange = onTagNameChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .onFocusChanged { state ->
-                    hasFocus = state.isFocused
-                    expanded = state.isFocused
-                }
+                .onFocusChanged { state -> onFocusChanged(state.isFocused) }
                 .semantics { contentDescription = journeyNameA11y },
             placeholder = {
                 Text(
@@ -238,7 +288,7 @@ private fun JourneyAutocompleteField(
             shape = RoundedCornerShape(999.dp),
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { useTypedJourney() }),
+            keyboardActions = KeyboardActions(onDone = { onDone() }),
             textStyle = MaterialTheme.typography.headlineSmall.copy(
                 fontFamily = FontFamily.Default,
                 fontWeight = FontWeight.Normal,
@@ -247,74 +297,75 @@ private fun JourneyAutocompleteField(
             ),
             colors = colors
         )
-
-        JourneySuggestionsMenu(
-            expanded = shouldShowMenu,
-            suggestions = suggestions,
-            createName = trimmedInput.takeIf { canCreate },
-            onDismiss = { expanded = false },
-            onTagSelected = ::selectExisting,
-            onCreateSelected = {
-                onTagNameChange(it)
-                closeMenu()
-            }
-        )
     }
 }
 
 @Composable
-private fun JourneySuggestionsMenu(
-    expanded: Boolean,
-    suggestions: List<TagEntity>,
+private fun JourneySuggestionsSurface(
+    visible: Boolean,
+    suggestions: List<JourneyOption>,
     createName: String?,
-    onDismiss: () -> Unit,
-    onTagSelected: (TagEntity) -> Unit,
+    onTagSelected: (JourneyOption) -> Unit,
     onCreateSelected: (String) -> Unit
 ) {
+    if (!visible) return
+
     val suggestionsA11y = stringResource(R.string.flow_journey_suggestions_a11y)
 
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = onDismiss,
+    Surface(
         modifier = Modifier
-            .fillMaxWidth(0.92f)
-            .heightIn(max = 320.dp)
-            .semantics { contentDescription = suggestionsA11y }
+            .fillMaxWidth()
+            .padding(top = 6.dp)
+            .heightIn(max = 280.dp)
+            .semantics { contentDescription = suggestionsA11y },
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        shadowElevation = 1.dp
     ) {
-        suggestions.forEach { tag ->
-            JourneySuggestionRow(
-                tag = tag,
-                onClick = { onTagSelected(tag) }
-            )
-        }
-        createName?.let { name ->
-            CreateJourneyRow(
-                journeyName = name,
-                onClick = { onCreateSelected(name) }
-            )
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(vertical = 6.dp)
+        ) {
+            items(items = suggestions, key = { it.normalizedName }) { option ->
+                JourneySuggestionRow(
+                    option = option,
+                    onClick = { onTagSelected(option) }
+                )
+            }
+            createName?.let { name ->
+                item(key = "create-${normalizeJourneyName(name)}") {
+                    CreateJourneyRow(
+                        journeyName = name,
+                        onClick = { onCreateSelected(name) }
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun JourneySuggestionRow(tag: TagEntity, onClick: () -> Unit) {
-    val selectA11y = stringResource(R.string.flow_journey_select_a11y, tag.name)
-    DropdownMenuItem(
-        text = {
-            Text(
-                text = tag.name,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        },
-        onClick = onClick,
-        modifier = Modifier.semantics {
-            role = Role.Button
-            contentDescription = selectA11y
-        }
-    )
+private fun JourneySuggestionRow(option: JourneyOption, onClick: () -> Unit) {
+    val selectA11y = stringResource(R.string.flow_journey_select_a11y, option.displayName)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 12.dp)
+            .semantics {
+                role = Role.Button
+                contentDescription = selectA11y
+            }
+    ) {
+        Text(
+            text = option.displayName,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
 }
 
 @Composable
@@ -325,8 +376,11 @@ private fun CreateJourneyRow(journeyName: String, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp)
-            .semantics { contentDescription = createA11y }
+            .padding(horizontal = 18.dp, vertical = 12.dp)
+            .semantics {
+                role = Role.Button
+                contentDescription = createA11y
+            }
     ) {
         Text(
             text = createText,
@@ -338,38 +392,84 @@ private fun CreateJourneyRow(journeyName: String, onClick: () -> Unit) {
     }
 }
 
-private fun normalizeJourneyName(value: String): String = value.trim().lowercase(Locale.ROOT)
+private data class JourneyOption(
+    val tag: TagEntity,
+    val displayName: String,
+    val normalizedName: String
+)
 
-private fun cleanAndDeduplicateTags(tags: List<TagEntity>): List<TagEntity> = tags
-    .asSequence()
-    .filter { it.name.isNotBlank() }
-    .distinctBy { normalizeJourneyName(it.name) }
-    .toList()
+private object EmptyTextToolbar : TextToolbar {
+    override val status: TextToolbarStatus = TextToolbarStatus.Hidden
 
-private fun filterJourneySuggestions(tags: List<TagEntity>, query: String, limit: Int): List<TagEntity> {
-    val normalizedQuery = normalizeJourneyName(query)
-    if (normalizedQuery.isEmpty()) return tags.take(limit)
+    override fun showMenu(
+        rect: Rect,
+        onCopyRequested: (() -> Unit)?,
+        onPasteRequested: (() -> Unit)?,
+        onCutRequested: (() -> Unit)?,
+        onSelectAllRequested: (() -> Unit)?
+    ) = Unit
 
-    return tags
-        .asSequence()
-        .mapNotNull { tag ->
-            val normalizedName = normalizeJourneyName(tag.name)
-            val rank = when {
-                normalizedName == normalizedQuery -> 0
-                normalizedName.startsWith(normalizedQuery) -> 1
-                normalizedName.contains(normalizedQuery) -> 2
-                else -> null
-            }
-            rank?.let { it to tag }
-        }
-        .sortedBy { it.first }
-        .map { it.second }
-        .take(limit)
-        .toList()
+    override fun hide() = Unit
 }
 
-private fun findExactJourneyMatch(tags: List<TagEntity>, query: String): TagEntity? {
+private fun normalizeJourneyName(value: String): String = value.trim().lowercase(Locale.ROOT)
+
+private fun buildJourneyOptions(tags: List<TagEntity>): List<JourneyOption> = tags
+    .asSequence()
+    .filter { it.name.isNotBlank() }
+    .map { tag ->
+        JourneyOption(
+            tag = tag,
+            displayName = tag.name.trim(),
+            normalizedName = normalizeJourneyName(tag.name)
+        )
+    }
+    .distinctBy { it.normalizedName }
+    .toList()
+
+private fun filterJourneySuggestions(
+    options: List<JourneyOption>,
+    query: String,
+    limit: Int
+): List<JourneyOption> {
+    val normalizedQuery = normalizeJourneyName(query)
+    if (normalizedQuery.isEmpty()) return options.take(limit)
+
+    val exactMatches = mutableListOf<JourneyOption>()
+    val prefixMatches = mutableListOf<JourneyOption>()
+    val containsMatches = mutableListOf<JourneyOption>()
+
+    options.forEach { option ->
+        when {
+            option.normalizedName == normalizedQuery -> exactMatches.add(option)
+            option.normalizedName.startsWith(normalizedQuery) -> {
+                if (prefixMatches.size < limit) prefixMatches.add(option)
+            }
+            option.normalizedName.contains(normalizedQuery) -> {
+                if (containsMatches.size < limit) containsMatches.add(option)
+            }
+        }
+    }
+
+    return buildList(limit) {
+        appendJourneyMatches(exactMatches, limit)
+        appendJourneyMatches(prefixMatches, limit)
+        appendJourneyMatches(containsMatches, limit)
+    }
+}
+
+private fun MutableList<JourneyOption>.appendJourneyMatches(
+    matches: List<JourneyOption>,
+    limit: Int
+) {
+    for (match in matches) {
+        if (size >= limit) return
+        add(match)
+    }
+}
+
+private fun findExactJourneyMatch(options: List<JourneyOption>, query: String): JourneyOption? {
     val normalizedQuery = normalizeJourneyName(query)
     if (normalizedQuery.isEmpty()) return null
-    return tags.firstOrNull { normalizeJourneyName(it.name) == normalizedQuery }
+    return options.firstOrNull { it.normalizedName == normalizedQuery }
 }
