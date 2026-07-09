@@ -57,6 +57,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
 
@@ -207,8 +208,23 @@ class FlowViewModel @Inject constructor(
         tagRepository.getAllTags(),
         sessionRepository.getAllSessions()
     ) { tags, sessions ->
-        val usedTagIds: Set<Long> = sessions.mapTo(mutableSetOf()) { it.tagId }
-        tags.filter { it.id in usedTagIds }
+        val lastUsedByTagId: Map<Long, Long> = sessions
+            .groupBy { it.tagId }
+            .mapValues { (_, tagSessions) ->
+                tagSessions.maxOf { session ->
+                    maxOf(session.endTime, session.startTime, session.createdAt)
+                }
+            }
+
+        tags
+            .filter { tag -> tag.id in lastUsedByTagId }
+            .sortedWith(
+                compareByDescending<TagEntity> { tag ->
+                    lastUsedByTagId[tag.id] ?: Long.MIN_VALUE
+                }
+                    .thenByDescending { tag -> tag.createdAt }
+                    .thenBy { tag -> tag.name.lowercase(Locale.ROOT) }
+            )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
