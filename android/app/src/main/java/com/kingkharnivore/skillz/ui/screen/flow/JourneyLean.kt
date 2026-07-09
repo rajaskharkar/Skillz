@@ -64,19 +64,22 @@ fun JourneyLean(
     onTagClicked: (TagEntity) -> Unit,
     onTagNameChange: (String) -> Unit
 ) {
-    val journeyOptions = remember(tags) { buildJourneyOptions(tags) }
+    val recentlyUsedJourneyOptions = remember(tags) { buildJourneyOptions(tags) }
+    val alphabeticalJourneyOptions = remember(recentlyUsedJourneyOptions) {
+        recentlyUsedJourneyOptions.sortedBy { it.displayName.lowercase(Locale.ROOT) }
+    }
     var chipSelectionVersion by remember { mutableStateOf(0) }
     val journeyLabel = pluralStringResource(
         id = R.plurals.flow_journey_label,
-        count = journeyOptions.size.coerceAtLeast(1),
-        journeyOptions.size.coerceAtLeast(1)
+        count = recentlyUsedJourneyOptions.size.coerceAtLeast(1),
+        recentlyUsedJourneyOptions.size.coerceAtLeast(1)
     )
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         JourneyLabel(journeyLabel = journeyLabel)
 
-        MostUsedJourneyChips(
-            options = journeyOptions.take(MaxJourneyChips),
+        JourneyQuickChips(
+            options = recentlyUsedJourneyOptions.take(MaxJourneyChips),
             selectedTagName = tagName,
             onTagSelected = { option ->
                 onTagClicked(option.tag)
@@ -88,7 +91,7 @@ fun JourneyLean(
         )
 
         JourneyAutocompleteField(
-            options = journeyOptions,
+            options = alphabeticalJourneyOptions,
             tagName = tagName,
             onTagClicked = onTagClicked,
             onTagNameChange = onTagNameChange,
@@ -116,7 +119,7 @@ private fun JourneyLabel(journeyLabel: String) {
 }
 
 @Composable
-private fun MostUsedJourneyChips(
+private fun JourneyQuickChips(
     options: List<JourneyOption>,
     selectedTagName: String,
     onTagSelected: (JourneyOption) -> Unit
