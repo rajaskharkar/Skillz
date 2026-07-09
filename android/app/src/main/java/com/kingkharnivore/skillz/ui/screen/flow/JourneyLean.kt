@@ -15,8 +15,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,6 +39,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
@@ -177,24 +183,38 @@ private fun JourneyAutocompleteField(
     externalSelectionVersion: Int
 ) {
     val focusManager = LocalFocusManager.current
-    var fieldFocused by remember { mutableStateOf(false) }
+    val keyboardController = LocalSoftwareKeyboardController.current
     var suggestionsExpanded by remember { mutableStateOf(false) }
+    var browseAllOptions by remember { mutableStateOf(false) }
     val trimmedInput = remember(tagName) { tagName.trim() }
-    val suggestions = remember(options, tagName) {
-        filterJourneySuggestions(options, tagName)
+    val suggestionQuery = if (browseAllOptions) "" else tagName
+    val suggestions = remember(options, suggestionQuery) {
+        filterJourneySuggestions(options, suggestionQuery)
     }
     val exactMatch = remember(options, tagName) { findExactJourneyMatch(options, tagName) }
-    val canCreate = trimmedInput.isNotEmpty() && exactMatch == null
-    val showSuggestions = fieldFocused && suggestionsExpanded && (suggestions.isNotEmpty() || canCreate)
+    val canCreate = !browseAllOptions && trimmedInput.isNotEmpty() && exactMatch == null
+    val showSuggestions = suggestionsExpanded && (suggestions.isNotEmpty() || canCreate)
 
     LaunchedEffect(externalSelectionVersion) {
         if (externalSelectionVersion > 0) {
             suggestionsExpanded = false
+            browseAllOptions = false
         }
     }
 
     fun collapseSuggestions() {
         suggestionsExpanded = false
+        browseAllOptions = false
+    }
+
+    fun toggleBrowseDropdown() {
+        val shouldOpen = !suggestionsExpanded
+        suggestionsExpanded = shouldOpen
+        browseAllOptions = shouldOpen
+        if (shouldOpen) {
+            focusManager.clearFocus()
+            keyboardController?.hide()
+        }
     }
 
     fun selectExisting(option: JourneyOption) {
@@ -228,12 +248,17 @@ private fun JourneyAutocompleteField(
             tagName = tagName,
             onTagNameChange = {
                 onTagNameChange(it)
+                browseAllOptions = false
                 suggestionsExpanded = true
             },
             onDone = ::useTypedJourney,
+            suggestionsExpanded = suggestionsExpanded,
+            onDropdownToggle = ::toggleBrowseDropdown,
             onFocusChanged = { isFocused ->
-                fieldFocused = isFocused
-                suggestionsExpanded = isFocused
+                if (isFocused) {
+                    browseAllOptions = false
+                    suggestionsExpanded = true
+                }
             }
         )
 
@@ -255,6 +280,8 @@ private fun JourneyTextField(
     tagName: String,
     onTagNameChange: (String) -> Unit,
     onDone: () -> Unit,
+    suggestionsExpanded: Boolean,
+    onDropdownToggle: () -> Unit,
     onFocusChanged: (Boolean) -> Unit
 ) {
     val colors = TextFieldDefaults.colors(
@@ -266,6 +293,13 @@ private fun JourneyTextField(
         cursorColor = MaterialTheme.colorScheme.primary
     )
     val journeyNameA11y = stringResource(R.string.flow_journey_input_a11y)
+    val dropdownA11y = stringResource(
+        if (suggestionsExpanded) {
+            R.string.flow_journey_dropdown_hide_a11y
+        } else {
+            R.string.flow_journey_dropdown_show_a11y
+        }
+    )
 
     CompositionLocalProvider(LocalTextToolbar provides EmptyTextToolbar) {
         TextField(
@@ -291,6 +325,18 @@ private fun JourneyTextField(
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onDone() }),
+            trailingIcon = {
+                IconButton(onClick = onDropdownToggle) {
+                    Icon(
+                        imageVector = if (suggestionsExpanded) {
+                            Icons.Default.KeyboardArrowUp
+                        } else {
+                            Icons.Default.KeyboardArrowDown
+                        },
+                        contentDescription = dropdownA11y
+                    )
+                }
+            },
             textStyle = MaterialTheme.typography.headlineSmall.copy(
                 fontFamily = FontFamily.Default,
                 fontWeight = FontWeight.Normal,
