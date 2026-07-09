@@ -770,7 +770,12 @@
     <string name="flow_journey_suggestions_a11y">Journey suggestions</string>
     <string name="flow_journey_chip_a11y">Select journey %1$s</string>
     <string name="flow_journey_input_a11y">Journey name</string>
-    <string name="flow_journey_placeholder">Start a new journey…</string>
+    <string name="flow_journey_placeholder">Choose or type a Journey</string>
+    <string name="flow_journey_select_a11y">Select Journey %1$s</string>
+    <string name="flow_journey_create_row">+ Create “%1$s”</string>
+    <string name="flow_journey_create_a11y">Create Journey %1$s</string>
+    <string name="flow_journey_dropdown_show_a11y">Show Journey options</string>
+    <string name="flow_journey_dropdown_hide_a11y">Hide Journey options</string>
 
     <string name="stopwatch_title_calm">Calm</string>
     <string name="stopwatch_title_in_flow">In Flow</string>
