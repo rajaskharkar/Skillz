@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 31.
+     * Current database version is 32.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -143,6 +143,25 @@ object SkillzDatabaseMigrations {
     val MIGRATION_30_31 = object : Migration(30, 31) {
         override fun migrate(db: SupportSQLiteDatabase) {
             addNotificationViewedAtColumns(db)
+        }
+    }
+
+    val MIGRATION_31_32 = object : Migration(31, 32) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `creature_discovery` (`speciesId` TEXT NOT NULL, `firstDiscoveredAt` INTEGER NOT NULL, `acquisitionSource` TEXT, `firstCreatureId` TEXT, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`speciesId`))")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_creature_discovery_firstCreatureId` ON `creature_discovery` (`firstCreatureId`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `creature_mastery_event` (`eventId` TEXT NOT NULL, `creatureInstanceId` TEXT NOT NULL, `speciesId` TEXT NOT NULL, `achievedAt` INTEGER NOT NULL, `levelUpTransactionId` TEXT NOT NULL, PRIMARY KEY(`eventId`))")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_creature_mastery_event_creatureInstanceId` ON `creature_mastery_event` (`creatureInstanceId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_creature_mastery_event_speciesId` ON `creature_mastery_event` (`speciesId`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `collection_completion` (`completionId` TEXT NOT NULL, `collectionId` TEXT NOT NULL, `completionType` TEXT NOT NULL, `completedAt` INTEGER NOT NULL, `rosterVersion` INTEGER NOT NULL, `rosterHash` TEXT NOT NULL, `requiredSpeciesIds` TEXT NOT NULL, PRIMARY KEY(`completionId`))")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_collection_completion_collectionId_completionType_rosterHash` ON `collection_completion` (`collectionId`, `completionType`, `rosterHash`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `achievement_event` (`eventId` TEXT NOT NULL, `eventType` TEXT NOT NULL, `creatureInstanceId` TEXT, `speciesId` TEXT, `createdAt` INTEGER NOT NULL, `resultPayload` TEXT NOT NULL, PRIMARY KEY(`eventId`))")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_achievement_event_creatureInstanceId` ON `achievement_event` (`creatureInstanceId`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `achievement_backfill` (`version` INTEGER NOT NULL, `completedAt` INTEGER NOT NULL, `discoveredCount` INTEGER NOT NULL, `masteryCount` INTEGER NOT NULL, `completionCount` INTEGER NOT NULL, PRIMARY KEY(`version`))")
+            // Current inventory and released rows are reliable lifetime-discovery evidence.
+            db.execSQL("INSERT OR IGNORE INTO `creature_discovery` SELECT `findId`, `acquiredAt`, `sourceType`, `instanceId`, `acquiredAt` FROM `user_shell_find_instance` WHERE `findId` LIKE 'creature_%' OR `findId` LIKE 'stillwater_%' OR `findId` IN ('focus_minnow','focus_seahorse','focus_manta','focus_whale','focus_octopus') GROUP BY `findId`")
+            // A present level-99 instance is reliable mastery evidence. Lost historical copies cannot be fabricated.
+            db.execSQL("INSERT OR IGNORE INTO `creature_mastery_event` SELECT 'backfill_mastery_' || `instanceId`, `instanceId`, `findId`, `acquiredAt`, 'backfill_' || `instanceId` FROM `user_shell_find_instance` WHERE `animalLevel` >= 99")
         }
     }
 
@@ -298,6 +317,7 @@ object SkillzDatabaseMigrations {
                 MIGRATION_28_29 +
                 MIGRATION_29_30 +
                 MIGRATION_30_31
+                + MIGRATION_31_32
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(

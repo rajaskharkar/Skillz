@@ -37,6 +37,11 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserDiscoveryEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindStackEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellRoomStateEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.AchievementBackfillEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.AchievementEventEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.CollectionCompletionEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.CreatureDiscoveryEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.CreatureMasteryEventEntity
 
 @Database(
     entities = [
@@ -64,9 +69,14 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellRoomStateEntit
         ObjectiveCompletionEntity::class,
         ObjectiveSkippedCycleEntity::class,
         FlowHealthSnapshotEntity::class,
-        FlowRewardBreakdownEntity::class
+        FlowRewardBreakdownEntity::class,
+        CreatureDiscoveryEntity::class,
+        CreatureMasteryEventEntity::class,
+        CollectionCompletionEntity::class,
+        AchievementEventEntity::class,
+        AchievementBackfillEntity::class
     ],
-    version = 31,
+    version = 32,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {

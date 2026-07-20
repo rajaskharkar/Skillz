@@ -20,6 +20,21 @@ class SkillzMigrationTest {
     )
 
     @Test
+    fun migration31To32CreatesAchievementFoundationAndBackfillsReliableEvidence() {
+        helper.createDatabase(TEST_DB, 31).apply {
+            execSQL("CREATE TABLE IF NOT EXISTS `user_shell_find_instance` (`instanceId` TEXT NOT NULL, `findId` TEXT NOT NULL, `acquiredAt` INTEGER NOT NULL, `sourceType` TEXT NOT NULL, `sourceId` TEXT, `currentUpgradeStageId` TEXT, `customName` TEXT, `isNew` INTEGER NOT NULL, `isArchivedInChest` INTEGER NOT NULL, `viewedAt` INTEGER, `animalLevel` INTEGER NOT NULL DEFAULT 1, `creatureStatus` TEXT NOT NULL DEFAULT 'ACTIVE', `creatureSource` TEXT, `flowTimeValueMinutes` INTEGER, PRIMARY KEY(`instanceId`))")
+            execSQL("INSERT INTO user_shell_find_instance VALUES ('one','focus_minnow',10,'flow',NULL,NULL,NULL,0,1,NULL,99,'RELEASED','FLOW_EARNED',10)")
+            close()
+        }
+        val db = helper.runMigrationsAndValidate(TEST_DB, 32, true, SkillzDatabaseMigrations.MIGRATION_31_32)
+        assertTrue(db.tableExists("creature_discovery"))
+        assertTrue(db.tableExists("creature_mastery_event"))
+        assertEquals(1, db.countRows("creature_discovery", "speciesId = ?", arrayOf("focus_minnow")))
+        assertEquals(1, db.countRows("creature_mastery_event", "creatureInstanceId = ?", arrayOf("one")))
+        db.close()
+    }
+
+    @Test
     fun migration13To14CreatesShellTables() {
         helper.createDatabase(TEST_DB, 13).apply {
             createVersion13CoreTables()

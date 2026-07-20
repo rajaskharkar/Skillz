@@ -14,6 +14,12 @@ import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 import com.kingkharnivore.skillz.utils.shell.StillwaterCatalog
 import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
 import com.kingkharnivore.skillz.utils.shell.validateStillwaterDraw
+import com.kingkharnivore.skillz.domain.achievement.AchievementChange
+import com.kingkharnivore.skillz.domain.achievement.AchievementChangeType
+import com.kingkharnivore.skillz.domain.achievement.AchievementResult
+import com.kingkharnivore.skillz.domain.achievement.BadgeRequirement
+import com.kingkharnivore.skillz.domain.achievement.CollectionCatalog
+import com.kingkharnivore.skillz.domain.achievement.CollectionProgressCalculator
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -37,7 +43,8 @@ class ShellRepository @Inject constructor(
     private val stillwaterLedgerDao: StillwaterLedgerDao,
     private val stillwaterPreferenceDao: StillwaterPreferenceDao,
     private val roomStateDao: UserShellRoomStateDao,
-    private val objectiveCompletionDao: ObjectiveCompletionDao
+    private val objectiveCompletionDao: ObjectiveCompletionDao,
+    private val achievementDao: AchievementDao
 ) {
     fun observePearlBalance(): Flow<Int> = pearlLedgerDao.observeBalance()
     fun observeStillwaterTotal(): Flow<Long> = stillwaterLedgerDao.observeTotal()
@@ -150,7 +157,7 @@ class ShellRepository @Inject constructor(
 
     suspend fun grantFindCopy(
         findId: String, sourceType: String, sourceId: String?
-    ): UserShellFindInstanceEntity {
+    ): UserShellFindInstanceEntity = db.withTransaction {
         val now = System.currentTimeMillis()
         val firstStage = ShellContentCatalog.upgradesFor(findId).firstOrNull()?.upgradeStageId
         val entity = UserShellFindInstanceEntity(
@@ -170,7 +177,13 @@ class ShellRepository @Inject constructor(
                 ?: CreatureCatalog.get(findId)?.requirementMinutes
         )
         findInstanceDao.insert(entity)
-        return entity
+        CreatureCatalog.get(findId)?.let {
+            achievementDao.recordDiscovery(
+                CreatureDiscoveryEntity(findId, now, sourceType, entity.instanceId, now)
+            )
+            persistCurrentCollectionCompletions(now)
+        }
+        entity
     }
 
     suspend fun grantFindOnce(
@@ -385,31 +398,8 @@ class ShellRepository @Inject constructor(
         val find = ShellContentCatalog.find(instance.findId)
             ?: error("Shell reward definition missing")
         if (find.kind == ShellRewardKind.ANIMAL) {
-            require(instance.creatureStatus == CreatureStatus.ACTIVE) {
-                "Only active creatures can grow."
-            }
             val currentLevel = instance.animalLevel.coerceAtLeast(1)
-            require(currentLevel < CreatureEconomy.MAX_CREATURE_LEVEL) {
-                "Mastered at Level 99."
-            }
-            val cost = CreatureEconomy.growthCostPearls(
-                instance.findId,
-                currentLevel
-            )
-            val balance = pearlLedgerDao.getBalance()
-            require(balance >= cost) { insufficientGrowthPearlsMessage(cost, balance) }
-            pearlLedgerDao.insert(
-                PearlLedgerEntity(
-                    UUID.randomUUID().toString(),
-                    -cost,
-                    "grow_creature",
-                    "shell_reward",
-                    instanceId,
-                    System.currentTimeMillis(),
-                    null
-                )
-            )
-            findInstanceDao.updateAnimalLevel(instanceId, currentLevel + 1)
+            growCreature(instanceId, "level_up:$instanceId:${currentLevel + 1}")
             return@withTransaction
         }
         require(find.upgradeable) { "This object is resting in its current form." }
@@ -443,7 +433,14 @@ class ShellRepository @Inject constructor(
     }
 
 
-    suspend fun growCreature(instanceId: String) = db.withTransaction {
+    suspend fun growCreature(
+        instanceId: String,
+        transactionId: String
+    ): AchievementResult = db.withTransaction {
+        achievementDao.getEvent(transactionId)?.let { committed ->
+            val level = findInstanceDao.getById(instanceId)?.animalLevel
+            return@withTransaction AchievementResult(committed.eventId, false, emptyList(), resultingLevel = level)
+        }
         val instance = findInstanceDao.getById(instanceId) ?: error("Creature not found")
         require(ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL) { "Only animals can grow with Pearls." }
         require(instance.creatureStatus == CreatureStatus.ACTIVE) {
@@ -459,7 +456,7 @@ class ShellRepository @Inject constructor(
         val now = System.currentTimeMillis()
         pearlLedgerDao.insert(
             PearlLedgerEntity(
-                UUID.randomUUID().toString(),
+                "pearl:$transactionId",
                 -cost,
                 "grow_creature",
                 "shell_reward",
@@ -468,11 +465,89 @@ class ShellRepository @Inject constructor(
                 null
             )
         )
-        findInstanceDao.updateAnimalLevel(instanceId, currentLevel + 1)
+        val resultingLevel = currentLevel + 1
+        findInstanceDao.updateAnimalLevel(instanceId, resultingLevel)
+        achievementDao.recordDiscovery(CreatureDiscoveryEntity(instance.findId, instance.acquiredAt, instance.sourceType, instanceId, now))
+        val changes = mutableListOf<AchievementChange>()
+        if (resultingLevel == CreatureEconomy.MAX_CREATURE_LEVEL) {
+            val inserted = achievementDao.recordMastery(CreatureMasteryEventEntity(
+                eventId = "mastery:$instanceId", creatureInstanceId = instanceId,
+                speciesId = instance.findId, achievedAt = now, levelUpTransactionId = transactionId
+            )) != -1L
+            if (inserted) {
+                val masteries = achievementDao.getMasteries()
+                val speciesCount = masteries.count { it.speciesId == instance.findId }
+                setBadgeExact("mastery_species_${instance.findId}", speciesCount, now)
+                setBadgeExact("mastery_first", 1, now)
+                setBadgeExact("mastery_circle", masteries.size, now)
+                setBadgeExact("mastery_variety", masteries.map { it.speciesId }.distinct().size, now)
+                changes += AchievementChange(AchievementChangeType.SPECIES_MASTERY_RECORDED,
+                    badgeId = "mastery_species_${instance.findId}", speciesId = instance.findId, exactCount = speciesCount)
+            }
+            persistCurrentCollectionCompletions(now)
+        }
+        achievementDao.recordEvent(AchievementEventEntity(transactionId, "CREATURE_LEVEL_UP", instanceId, instance.findId, now, "$cost|$resultingLevel"))
+        AchievementResult(transactionId, true, changes, cost, resultingLevel)
+    }
+
+    private suspend fun setBadgeExact(id: String, count: Int, now: Long) {
+        val current = badgeDao.get(id)
+        if (current?.count == count) return
+        badgeDao.upsert(current?.copy(count = count, lastEarnedAt = now, isNew = true, viewedAt = null)
+            ?: UserBadgeEntity(id, count, now, now, true))
+    }
+
+    private suspend fun persistCurrentCollectionCompletions(now: Long): Int {
+        val discoveries = achievementDao.getDiscoveries().map { it.speciesId }.toSet()
+        val masteries = achievementDao.getMasteries().map { it.speciesId }.toSet()
+        val owned = findInstanceDao.getAll()
+            .filter { it.creatureStatus == CreatureStatus.ACTIVE }
+            .groupBy({ it.findId }, { it.animalLevel })
+        var inserted = 0
+        CollectionCatalog.collections.forEach { collection ->
+            val progress = CollectionProgressCalculator.calculate(collection, discoveries, owned, masteries)
+            listOf(
+                BadgeRequirement.COLLECTOR to progress.currentRosterCollectorComplete,
+                BadgeRequirement.CURATOR to progress.currentRosterCuratorComplete,
+                BadgeRequirement.COMPLETIONIST to progress.currentRosterCompletionistComplete
+            ).filter { it.second }.forEach { (type, _) ->
+                val entity = CollectionCompletionEntity(
+                    "${collection.collectionId}:${type.name}:${collection.rosterHash}", collection.collectionId,
+                    type.name, now, collection.rosterVersion, collection.rosterHash,
+                    collection.species.map { it.creatureId }.sorted().joinToString(",")
+                )
+                if (achievementDao.recordCompletion(entity) != -1L) inserted++
+                setBadgeExact("${collection.collectionId}_${type.name.lowercase()}", 1, now)
+            }
+        }
+        return inserted
+    }
+
+    data class BackfillResult(val version: Int, val discoveredCount: Int, val masteryCount: Int, val completionCount: Int, val alreadyCompleted: Boolean)
+
+    /** Safe to call from WorkManager or an IO coroutine; every evidence write is idempotent. */
+    suspend fun backfillAchievements(version: Int = 1): BackfillResult = db.withTransaction {
+        achievementDao.getBackfill(version)?.let {
+            return@withTransaction BackfillResult(version, it.discoveredCount, it.masteryCount, it.completionCount, true)
+        }
+        val now = System.currentTimeMillis()
+        findInstanceDao.getAll().filter { CreatureCatalog.get(it.findId) != null }.forEach { instance ->
+            achievementDao.recordDiscovery(CreatureDiscoveryEntity(instance.findId, instance.acquiredAt,
+                instance.sourceType, instance.instanceId, now))
+            if (instance.animalLevel >= CreatureEconomy.MAX_CREATURE_LEVEL) {
+                achievementDao.recordMastery(CreatureMasteryEventEntity("backfill_mastery_${instance.instanceId}",
+                    instance.instanceId, instance.findId, now, "backfill_${instance.instanceId}"))
+            }
+        }
+        val completionCount = persistCurrentCollectionCompletions(now)
+        val discoveryCount = achievementDao.getDiscoveries().size
+        val masteryCount = achievementDao.getMasteries().size
+        achievementDao.recordBackfill(AchievementBackfillEntity(version, now, discoveryCount, masteryCount, completionCount))
+        BackfillResult(version, discoveryCount, masteryCount, completionCount, false)
     }
 
 
-    suspend fun growCreatureByLevel(findId: String, level: Int) = db.withTransaction {
+    suspend fun growCreatureByLevel(findId: String, level: Int): AchievementResult = db.withTransaction {
         require(ShellContentCatalog.find(findId)?.kind == ShellRewardKind.ANIMAL) {
             "Only animals can grow with Pearls."
         }
@@ -484,21 +559,7 @@ class ShellRepository @Inject constructor(
             "No active Level $currentLevel creature to grow."
         }
         val instance = activeAtLevel.first()
-        val cost = CreatureEconomy.growthCostPearls(findId, currentLevel)
-        val balance = pearlLedgerDao.getBalance()
-        require(balance >= cost) { insufficientGrowthPearlsMessage(cost, balance) }
-        val now = System.currentTimeMillis()
-        pearlLedgerDao.insert(
-            PearlLedgerEntity(
-                UUID.randomUUID().toString(),
-                -cost, "grow_creature",
-                "shell_reward",
-                instance.instanceId,
-                now,
-                null
-            )
-        )
-        findInstanceDao.updateAnimalLevel(instance.instanceId, currentLevel + 1)
+        growCreature(instance.instanceId, "level_up:${instance.instanceId}:${currentLevel + 1}")
     }
 
     private fun insufficientGrowthPearlsMessage(requiredPearls: Int, currentPearls: Int): String {

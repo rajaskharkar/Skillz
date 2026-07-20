@@ -164,7 +164,9 @@ class ShellViewModel @Inject constructor(
     }
 
     fun growCreature(instanceId: String) = viewModelScope.launch {
-        runCatching { repository.growCreature(instanceId) }
+        val currentLevel = uiState.value.finds
+            .firstOrNull { it.instanceId == instanceId }?.animalLevel ?: 1
+        runCatching { repository.growCreature(instanceId, "level_up:$instanceId:${currentLevel + 1}") }
             .onSuccess { _events.emit("Your creature grew inside The Blue.") }
             .onFailure { _events.emit(it.message ?: "Could not grow that creature.") }
     }

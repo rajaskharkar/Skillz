@@ -37,6 +37,9 @@ interface ShellFindInstanceDao {
     @Query("SELECT * FROM user_shell_find_instance ORDER BY acquiredAt DESC")
     fun observeAll(): Flow<List<UserShellFindInstanceEntity>>
 
+    @Query("SELECT * FROM user_shell_find_instance ORDER BY acquiredAt DESC")
+    suspend fun getAll(): List<UserShellFindInstanceEntity>
+
     @Query("SELECT * FROM user_shell_find_instance WHERE instanceId = :instanceId LIMIT 1")
     suspend fun getById(instanceId: String): UserShellFindInstanceEntity?
 

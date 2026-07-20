@@ -15,4 +15,5 @@ interface ShellDaoProvider {
     fun objectiveDao(): ObjectiveDao
     fun objectiveCompletionDao(): ObjectiveCompletionDao
     fun objectiveSkippedCycleDao(): ObjectiveSkippedCycleDao
+    fun achievementDao(): AchievementDao
 }
