@@ -216,6 +216,8 @@ private fun chestStackComparator(sortOption: ChestSortOption): Comparator<ChestI
             .then(nameLevelTieBreakers)
         ChestSortOption.Count -> compareByDescending<ChestInventoryStackUiModel> { it.count }
             .then(nameLevelTieBreakers)
+        ChestSortOption.ClosestToMastery -> compareBy<ChestInventoryStackUiModel> { (99 - it.level).coerceAtLeast(0) }
+            .then(nameLevelTieBreakers)
     }
 }
 
@@ -279,6 +281,7 @@ private val ChestSortOption.labelRes: Int
         ChestSortOption.Alphabetical -> R.string.shell_chest_sort_alphabetical
         ChestSortOption.Value -> R.string.shell_chest_sort_value
         ChestSortOption.Count -> R.string.shell_chest_sort_count
+        ChestSortOption.ClosestToMastery -> R.string.shell_chest_sort_closest_mastery
     }
 
 @Composable
@@ -337,7 +340,13 @@ private fun ChestInventoryTile(stack: ChestInventoryStackUiModel, onClick: () ->
                 modifier = Modifier.size(54.dp).align(Alignment.Center)
             )
             ChestBadge(
-                text = stringResource(R.string.shell_creature_level_short, stack.level),
+                text = when {
+                    stack.level >= 99 -> "Mastered"
+                    stack.level == 98 -> "1 to Mastery"
+                    stack.level >= 95 -> "Near Mastery"
+                    stack.level >= 90 -> "${99 - stack.level} to Mastery"
+                    else -> stringResource(R.string.shell_creature_level_short, stack.level)
+                },
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }

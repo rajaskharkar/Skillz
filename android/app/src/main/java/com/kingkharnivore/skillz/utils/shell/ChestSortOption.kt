@@ -7,7 +7,8 @@ enum class ChestSortOption(val key: String) {
     OldestArrival("oldest_arrival"),
     Alphabetical("alphabetical"),
     Value("value"),
-    Count("count");
+    Count("count"),
+    ClosestToMastery("closest_to_mastery");
 
     companion object {
         fun fromKey(key: String?): ChestSortOption = entries.firstOrNull { it.key == key } ?: Level

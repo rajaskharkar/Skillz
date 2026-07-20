@@ -62,6 +62,7 @@ import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.draw.rectsOverlap
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.draw.stableFacingRight
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.draw.stableLane
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.draw.stablePhase
+import com.kingkharnivore.skillz.domain.achievement.CollectionProgress
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
@@ -76,7 +77,8 @@ fun TheBlueZonePage(
     entryNewAnimalFindIds: Set<String>,
     sceneTimeSeconds: Float,
     onZoneBeyondBlue: () -> Unit,
-    onAnimalClick: (TheBlueAnimalGroupUiModel) -> Unit
+    onAnimalClick: (TheBlueAnimalGroupUiModel) -> Unit,
+    collectionProgress: CollectionProgress? = null
 ) {
     val scheme = MaterialTheme.colorScheme
     val title = zoneTitle(zone.zoneId)
@@ -174,6 +176,16 @@ fun TheBlueZonePage(
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(Modifier.height(6.dp))
+                    }
+                    collectionProgress?.let { progress ->
+                        Text(
+                            text = "${progress.discoveredSpeciesCount} of ${progress.totalParticipatingSpecies} discovered · ${progress.masteredSpeciesCount} mastered",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = scheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        if (progress.completionistEarned) Text("Completionist achieved", style = MaterialTheme.typography.labelSmall)
+                        else if (progress.collectorEarned) Text("Collector achieved", style = MaterialTheme.typography.labelSmall)
                     }
                     Text(
                         text = title,

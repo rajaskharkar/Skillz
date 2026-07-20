@@ -18,6 +18,16 @@ import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
 import com.kingkharnivore.skillz.utils.user.UserPrefs
 import com.kingkharnivore.skillz.utils.shell.requiresStillwaterConfirmation
+import com.kingkharnivore.skillz.domain.achievement.BadgeDashboard
+import com.kingkharnivore.skillz.domain.achievement.BadgeDashboardCalculator
+import com.kingkharnivore.skillz.domain.achievement.BadgeSort
+import com.kingkharnivore.skillz.domain.achievement.BadgeUiCategory
+import com.kingkharnivore.skillz.data.model.entity.shell.BadgePinEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.BadgeTrackingEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.CreatureDiscoveryEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.CreatureMasteryEventEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.CollectionCompletionEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.AchievementBackfillEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -42,7 +52,11 @@ data class ShellUiState(
     val badges: List<UserBadgeEntity> = emptyList(),
     val discoveries: List<UserDiscoveryEntity> = emptyList(),
     val objectiveCompletions: List<ObjectiveCompletionEntity> = emptyList(),
-    val chestSortOption: ChestSortOption = ChestSortOption.Level
+    val chestSortOption: ChestSortOption = ChestSortOption.Level,
+    val badgeDashboard: BadgeDashboard? = null,
+    val badgeCategory: BadgeUiCategory = BadgeUiCategory.ALL,
+    val badgeSort: BadgeSort = BadgeSort.RECOMMENDED,
+    val backfillSummary: AchievementBackfillEntity? = null
 )
 
 private data class ShellEconomyState(
@@ -65,7 +79,18 @@ private data class ShellMemoryState(
 
 private data class ShellMemoryAndPreferenceState(
     val memory: ShellMemoryState,
-    val chestSortOption: ChestSortOption
+    val chestSortOption: ChestSortOption,
+    val badgeCategory: BadgeUiCategory,
+    val badgeSort: BadgeSort,
+    val acknowledgedBackfillVersion: Int,
+    val achievements: ShellAchievementState
+)
+
+private data class ShellAchievementState(
+    val pins: List<BadgePinEntity>, val tracking: List<BadgeTrackingEntity>,
+    val discoveries: List<CreatureDiscoveryEntity>, val masteries: List<CreatureMasteryEventEntity>,
+    val completions: List<CollectionCompletionEntity>,
+    val backfill: AchievementBackfillEntity?
 )
 
 @HiltViewModel
@@ -73,6 +98,7 @@ class ShellViewModel @Inject constructor(
     private val repository: ShellRepository,
     private val userPrefs: UserPrefs
 ) : ViewModel() {
+    init { viewModelScope.launch { runCatching { repository.backfillAchievements() } } }
     private val _events = MutableSharedFlow<String>()
     val events: SharedFlow<String> = _events
 
@@ -99,8 +125,13 @@ class ShellViewModel @Inject constructor(
 
     private val memoryAndPreferences = combine(
         memory,
-        userPrefs.chestSortOption
-    ) { memory, sortOption -> ShellMemoryAndPreferenceState(memory, sortOption) }
+        combine(userPrefs.chestSortOption, userPrefs.badgeCategory, userPrefs.badgeSort, userPrefs.acknowledgedBackfillVersion) { chest, category, sort, acknowledged -> listOf(chest, category, sort, acknowledged) },
+        combine(repository.observeBadgePins(), repository.observeBadgeTracking(),
+            repository.observeCreatureDiscoveries(), repository.observeCreatureMasteries(),
+            combine(repository.observeCollectionCompletions(), repository.observeLatestAchievementBackfill()) { completions, backfill -> completions to backfill }) { pins, tracking, discoveries, masteries, completionAndBackfill ->
+            ShellAchievementState(pins, tracking, discoveries, masteries, completionAndBackfill.first, completionAndBackfill.second)
+        }
+    ) { memory, preferences, achievements -> ShellMemoryAndPreferenceState(memory, preferences[0] as ChestSortOption, preferences[1] as BadgeUiCategory, preferences[2] as BadgeSort, preferences[3] as Int, achievements) }
 
     val uiState: StateFlow<ShellUiState> = combine(
         economy,
@@ -122,7 +153,16 @@ class ShellViewModel @Inject constructor(
             badges = memoryAndPreferences.memory.badges,
             discoveries = memoryAndPreferences.memory.discoveries,
             objectiveCompletions = memoryAndPreferences.memory.objectiveCompletions,
-            chestSortOption = memoryAndPreferences.chestSortOption
+            chestSortOption = memoryAndPreferences.chestSortOption,
+            badgeDashboard = BadgeDashboardCalculator.calculate(
+                memoryAndPreferences.memory.badges, ownership.finds,
+                memoryAndPreferences.achievements.discoveries, memoryAndPreferences.achievements.masteries,
+                memoryAndPreferences.achievements.completions,
+                memoryAndPreferences.achievements.pins, memoryAndPreferences.achievements.tracking
+            ),
+            badgeCategory = memoryAndPreferences.badgeCategory,
+            badgeSort = memoryAndPreferences.badgeSort,
+            backfillSummary = memoryAndPreferences.achievements.backfill?.takeIf { it.version > memoryAndPreferences.acknowledgedBackfillVersion && (it.discoveredCount > 0 || it.masteryCount > 0 || it.completionCount > 0) }
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ShellUiState())
 
@@ -132,6 +172,20 @@ class ShellViewModel @Inject constructor(
             userPrefs.setChestSortOption(option)
         }
     }
+    fun setBadgeCategory(value: BadgeUiCategory) = viewModelScope.launch { userPrefs.setBadgeCategory(value) }
+    fun setBadgeSort(value: BadgeSort) = viewModelScope.launch { userPrefs.setBadgeSort(value) }
+    fun acknowledgeBackfill(version: Int) = viewModelScope.launch { userPrefs.acknowledgeBackfill(version) }
+
+    fun pinBadge(badgeId: String, replaceBadgeId: String? = null) = viewModelScope.launch {
+        runCatching { repository.pinBadge(badgeId, replaceBadgeId) }
+            .onFailure { _events.emit(it.message ?: "Could not update Your Showcase.") }
+    }
+    fun unpinBadge(badgeId: String) = viewModelScope.launch { repository.unpinBadge(badgeId) }
+    fun movePinnedBadge(badgeId: String, direction: Int) = viewModelScope.launch { repository.movePinnedBadge(badgeId, direction) }
+    fun trackBadge(badgeId: String) = viewModelScope.launch {
+        runCatching { repository.trackBadge(badgeId) }.onFailure { _events.emit(it.message ?: "Could not track this badge.") }
+    }
+    fun untrackBadge(badgeId: String) = viewModelScope.launch { repository.untrackBadge(badgeId) }
 
     fun place(instanceId: String, slotId: String) = viewModelScope.launch {
         runCatching { repository.placeInstance(instanceId, ShellRoomId.FOCUS, slotId) }

@@ -19,6 +19,16 @@ class SkillzMigrationTest {
         SkillzDatabase::class.java
     )
 
+    @Test fun migration32To33PersistsPinningAndTrackingSchema() {
+        helper.createDatabase(TEST_DB, 32).close()
+        val db = helper.runMigrationsAndValidate(TEST_DB, 33, true, SkillzDatabaseMigrations.MIGRATION_32_33)
+        assertTrue(db.tableExists("badge_pin"))
+        assertTrue(db.tableExists("badge_tracking"))
+        db.execSQL("INSERT INTO badge_pin VALUES ('badge_flow_30_min', 0, 1)")
+        db.execSQL("INSERT INTO badge_tracking VALUES ('mastery_first', 1)")
+        db.close()
+    }
+
     @Test
     fun migration31To32CreatesAchievementFoundationAndBackfillsReliableEvidence() {
         helper.createDatabase(TEST_DB, 31).apply {

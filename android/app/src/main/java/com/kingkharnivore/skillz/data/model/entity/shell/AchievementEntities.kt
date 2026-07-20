@@ -61,3 +61,16 @@ data class AchievementBackfillEntity(
     val masteryCount: Int,
     val completionCount: Int
 )
+
+@Entity(tableName = "badge_pin", indices = [Index(value = ["pinOrder"], unique = true)])
+data class BadgePinEntity(
+    @PrimaryKey val badgeId: String,
+    val pinOrder: Int,
+    val pinnedAt: Long
+)
+
+@Entity(tableName = "badge_tracking")
+data class BadgeTrackingEntity(
+    @PrimaryKey val badgeId: String,
+    val trackedAt: Long
+)

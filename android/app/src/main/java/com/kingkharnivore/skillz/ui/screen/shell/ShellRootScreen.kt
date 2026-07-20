@@ -224,7 +224,18 @@ fun ShellRootScreen(
                     onSortOptionSelected = viewModel::setChestSortOption
                 )
 
-                ShellDestination.Badges -> BadgesScreen(uiState)
+                ShellDestination.Badges -> BadgesScreen(
+                    uiState = uiState,
+                    onPin = viewModel::pinBadge,
+                    onUnpin = viewModel::unpinBadge,
+                    onMovePin = viewModel::movePinnedBadge,
+                    onTrack = viewModel::trackBadge,
+                    onUntrack = viewModel::untrackBadge,
+                    onCategory = viewModel::setBadgeCategory,
+                    onSort = viewModel::setBadgeSort,
+                    onAcknowledgeBackfill = viewModel::acknowledgeBackfill,
+                    onNavigate = { destination = it }
+                )
 
                 ShellDestination.VoyagePreview -> VoyageHallScreen()
 

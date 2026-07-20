@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 32.
+     * Current database version is 33.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -164,6 +164,13 @@ object SkillzDatabaseMigrations {
             db.execSQL("INSERT OR IGNORE INTO `creature_mastery_event` SELECT 'backfill_mastery_' || `instanceId`, `instanceId`, `findId`, `acquiredAt`, 'backfill_' || `instanceId` FROM `user_shell_find_instance` WHERE `animalLevel` >= 99")
         }
     }
+    val MIGRATION_32_33 = object : Migration(32, 33) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `badge_pin` (`badgeId` TEXT NOT NULL, `pinOrder` INTEGER NOT NULL, `pinnedAt` INTEGER NOT NULL, PRIMARY KEY(`badgeId`))")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_badge_pin_pinOrder` ON `badge_pin` (`pinOrder`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `badge_tracking` (`badgeId` TEXT NOT NULL, `trackedAt` INTEGER NOT NULL, PRIMARY KEY(`badgeId`))")
+        }
+    }
 
     private fun normalizePostAnchorTestSchemaToTargetBranch(db: SupportSQLiteDatabase) {
         db.execSQL("PRAGMA foreign_keys=OFF")
@@ -317,7 +324,7 @@ object SkillzDatabaseMigrations {
                 MIGRATION_28_29 +
                 MIGRATION_29_30 +
                 MIGRATION_30_31
-                + MIGRATION_31_32
+                + MIGRATION_31_32 + MIGRATION_32_33
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(

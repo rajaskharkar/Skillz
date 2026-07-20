@@ -1080,6 +1080,7 @@
     <string name="shell_chest_sort_alphabetical">A-Z</string>
     <string name="shell_chest_sort_value">Value</string>
     <string name="shell_chest_sort_count">Count</string>
+    <string name="shell_chest_sort_closest_mastery">Closest to Mastery</string>
     <string name="shell_chest_empty_title">The Chest is empty.</string>
     <string name="shell_chest_empty_body">Dive into The Blue to find your first creature.</string>
     <string name="shell_chest_empty_action">Go to The Blue</string>
@@ -2001,4 +2002,5 @@ You can turn Health back on later.</string>
     <string name="shell_find_stillwater_blackdragon_title">Blackdragon</string>
     <string name="shell_find_stillwater_coelacanth_title">Coelacanth</string>
 
+    <string name="badges_hub_body">Celebrate progress, choose goals, and explore every collection.</string>
 </resources>

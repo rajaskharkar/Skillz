@@ -54,6 +54,12 @@ class ShellRepository @Inject constructor(
     fun observePlacements(roomId: ShellRoomId): Flow<List<ShellPlacementEntity>> =
         placementDao.observeByRoom(roomId.name)
     fun observeEarnedBadges(): Flow<List<UserBadgeEntity>> = badgeDao.observeEarned()
+    fun observeBadgePins(): Flow<List<BadgePinEntity>> = achievementDao.observePins()
+    fun observeBadgeTracking(): Flow<List<BadgeTrackingEntity>> = achievementDao.observeTracking()
+    fun observeCreatureDiscoveries(): Flow<List<CreatureDiscoveryEntity>> = achievementDao.observeDiscoveries()
+    fun observeCreatureMasteries(): Flow<List<CreatureMasteryEventEntity>> = achievementDao.observeMasteries()
+    fun observeCollectionCompletions(): Flow<List<CollectionCompletionEntity>> = achievementDao.observeCompletions()
+    fun observeLatestAchievementBackfill(): Flow<AchievementBackfillEntity?> = achievementDao.observeLatestBackfill()
     fun observeDiscoveries(): Flow<List<UserDiscoveryEntity>> = discoveryDao.observeAll()
     fun observeObjectiveCompletions(): Flow<List<ObjectiveCompletionEntity>> =
         objectiveCompletionDao.observeCompletions()
@@ -64,6 +70,60 @@ class ShellRepository @Inject constructor(
 
     suspend fun getPearlBalance(): Int = pearlLedgerDao.getBalance()
     suspend fun getStillwaterTotal(): Long = stillwaterLedgerDao.getTotal()
+
+    sealed interface PinResult {
+        data object Pinned : PinResult
+        data object AlreadyPinned : PinResult
+        data class ReplacementRequired(val currentBadgeIds: List<String>) : PinResult
+    }
+
+    suspend fun pinBadge(badgeId: String, replaceBadgeId: String? = null): PinResult = db.withTransaction {
+        require(badgeDao.get(badgeId)?.count?.let { it > 0 } == true) { "Only earned badges can be pinned." }
+        val current = achievementDao.getPins()
+        if (current.any { it.badgeId == badgeId }) return@withTransaction PinResult.AlreadyPinned
+        if (current.size >= 3 && replaceBadgeId == null) return@withTransaction PinResult.ReplacementRequired(current.map { it.badgeId })
+        val replacement = replaceBadgeId?.let { id -> current.firstOrNull { it.badgeId == id } }
+        if (current.size >= 3) require(replacement != null) { "Choose a pinned badge to replace." }
+        replacement?.let { achievementDao.deletePin(it.badgeId) }
+        val order = replacement?.pinOrder ?: ((current.maxOfOrNull { it.pinOrder } ?: -1) + 1)
+        achievementDao.insertPin(BadgePinEntity(badgeId, order, System.currentTimeMillis()))
+        normalizePinOrder()
+        PinResult.Pinned
+    }
+
+    suspend fun unpinBadge(badgeId: String) = db.withTransaction {
+        achievementDao.deletePin(badgeId)
+        normalizePinOrder()
+    }
+
+    suspend fun movePinnedBadge(badgeId: String, direction: Int) = db.withTransaction {
+        val pins = achievementDao.getPins()
+        val from = pins.indexOfFirst { it.badgeId == badgeId }
+        if (from < 0) return@withTransaction
+        val to = (from + direction.coerceIn(-1, 1)).coerceIn(0, pins.lastIndex)
+        if (from == to) return@withTransaction
+        achievementDao.updatePinOrder(pins[from].badgeId, -1)
+        achievementDao.updatePinOrder(pins[to].badgeId, from)
+        achievementDao.updatePinOrder(pins[from].badgeId, to)
+    }
+
+    private suspend fun normalizePinOrder() {
+        val ordered = achievementDao.getPins()
+        ordered.forEachIndexed { index, pin ->
+            if (pin.pinOrder != index) achievementDao.updatePinOrder(pin.badgeId, -(index + 10))
+        }
+        ordered.forEachIndexed { index, pin -> achievementDao.updatePinOrder(pin.badgeId, index) }
+    }
+
+    suspend fun trackBadge(badgeId: String): Boolean = db.withTransaction {
+        require(com.kingkharnivore.skillz.domain.achievement.AchievementBadgeCatalog.byId[badgeId]?.trackable == true) { "This badge cannot be tracked." }
+        val current = achievementDao.getTracking()
+        if (current.any { it.badgeId == badgeId }) return@withTransaction false
+        require(current.size < 3) { "You can track up to three badges." }
+        achievementDao.insertTracking(BadgeTrackingEntity(badgeId, System.currentTimeMillis())) != -1L
+    }
+
+    suspend fun untrackBadge(badgeId: String) { achievementDao.deleteTracking(badgeId) }
 
     suspend fun markRoomOpened(roomId: ShellRoomId) = db.withTransaction {
         val now = System.currentTimeMillis()

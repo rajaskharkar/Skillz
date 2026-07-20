@@ -97,7 +97,10 @@ fun TheBlueRoomScreen(
                         beyondBlueInitialZone = zone.zoneId
                         showBeyondBlue = true
                     },
-                    onAnimalClick = { selectedAnimal = it }
+                    onAnimalClick = { selectedAnimal = it },
+                    collectionProgress = uiState.badgeDashboard?.collections?.firstOrNull {
+                        it.collectionId == "blue_${zone.zoneId.name.lowercase()}"
+                    }
                 )
             }
         }
