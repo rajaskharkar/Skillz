@@ -20,6 +20,9 @@ import com.kingkharnivore.skillz.domain.achievement.AchievementResult
 import com.kingkharnivore.skillz.domain.achievement.BadgeRequirement
 import com.kingkharnivore.skillz.domain.achievement.CollectionCatalog
 import com.kingkharnivore.skillz.domain.achievement.CollectionProgressCalculator
+import com.kingkharnivore.skillz.domain.achievement.MilestoneEngine
+import com.kingkharnivore.skillz.domain.achievement.CelebrationLifecycle
+import com.kingkharnivore.skillz.domain.achievement.CelebrationStage
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -60,6 +63,7 @@ class ShellRepository @Inject constructor(
     fun observeCreatureMasteries(): Flow<List<CreatureMasteryEventEntity>> = achievementDao.observeMasteries()
     fun observeCollectionCompletions(): Flow<List<CollectionCompletionEntity>> = achievementDao.observeCompletions()
     fun observeLatestAchievementBackfill(): Flow<AchievementBackfillEntity?> = achievementDao.observeLatestBackfill()
+    fun observePendingMasteryCelebration(): Flow<MasteryCelebrationEventEntity?> = achievementDao.observePendingCelebration()
     fun observeDiscoveries(): Flow<List<UserDiscoveryEntity>> = discoveryDao.observeAll()
     fun observeObjectiveCompletions(): Flow<List<ObjectiveCompletionEntity>> =
         objectiveCompletionDao.observeCompletions()
@@ -495,7 +499,8 @@ class ShellRepository @Inject constructor(
 
     suspend fun growCreature(
         instanceId: String,
-        transactionId: String
+        transactionId: String,
+        originDestination: String = "CHEST"
     ): AchievementResult = db.withTransaction {
         achievementDao.getEvent(transactionId)?.let { committed ->
             val level = findInstanceDao.getById(instanceId)?.animalLevel
@@ -530,6 +535,10 @@ class ShellRepository @Inject constructor(
         achievementDao.recordDiscovery(CreatureDiscoveryEntity(instance.findId, instance.acquiredAt, instance.sourceType, instanceId, now))
         val changes = mutableListOf<AchievementChange>()
         if (resultingLevel == CreatureEconomy.MAX_CREATURE_LEVEL) {
+            val badgesBefore = listOf(
+                "mastery_species_${instance.findId}", "mastery_first", "mastery_circle", "mastery_variety"
+            ).associateWith { badgeDao.get(it)?.count ?: 0 }
+            val completionsBefore = achievementDao.getCompletions().map { it.completionId }.toSet()
             val inserted = achievementDao.recordMastery(CreatureMasteryEventEntity(
                 eventId = "mastery:$instanceId", creatureInstanceId = instanceId,
                 speciesId = instance.findId, achievedAt = now, levelUpTransactionId = transactionId
@@ -545,6 +554,53 @@ class ShellRepository @Inject constructor(
                     badgeId = "mastery_species_${instance.findId}", speciesId = instance.findId, exactCount = speciesCount)
             }
             persistCurrentCollectionCompletions(now)
+            if (inserted) {
+                val masteries = achievementDao.getMasteries()
+                val definition = CreatureCatalog.require(instance.findId)
+                val discoveries = achievementDao.getDiscoveries().map { it.speciesId }.toSet()
+                val owned = findInstanceDao.getAll().filter { it.creatureStatus == CreatureStatus.ACTIVE }
+                    .groupBy({ it.findId }, { it.animalLevel })
+                val mastered = masteries.map { it.speciesId }.toSet()
+                fun progress(id: String) = CollectionProgressCalculator.calculate(
+                    CollectionCatalog.byId.getValue(id), discoveries, owned, mastered
+                )
+                val region = progress(definition.collectionId)
+                val blue = progress("collection_the_blue")
+                val stillwater = progress("collection_stillwater")
+                val allWaters = progress("collection_all_waters")
+                val completionsAfter = achievementDao.getCompletions()
+                val newCompletionBadges = completionsAfter.filter { it.completionId !in completionsBefore }
+                    .map { "${it.collectionId}_${it.completionType.lowercase()}" }
+                val standardIds = badgesBefore.keys.toList()
+                val badgesAfter = standardIds.associateWith { badgeDao.get(it)?.count ?: 0 }
+                val newlyEarned = standardIds.filter { badgesBefore.getValue(it) == 0 && badgesAfter.getValue(it) > 0 } + newCompletionBadges
+                val advanced = standardIds.filter { badgesAfter.getValue(it) > badgesBefore.getValue(it) && it !in newlyEarned }
+                val milestones = standardIds.mapNotNull { id ->
+                    MilestoneEngine.evaluate(badgesAfter.getValue(id), badgesBefore.getValue(id)).newlyReachedThreshold?.let { "$id:$it" }
+                }
+                achievementDao.insertCelebration(
+                    MasteryCelebrationEventEntity(
+                        eventId = "celebration:$transactionId", transactionId = transactionId,
+                        creatureInstanceId = instanceId, speciesId = instance.findId,
+                        artworkKey = definition.staticIconKey, regionId = definition.collectionId,
+                        sourceId = definition.sourceType.name, previousLevel = currentLevel,
+                        newLevel = resultingLevel,
+                        speciesMasteryCount = masteries.count { it.speciesId == instance.findId },
+                        totalMasteries = masteries.size, uniqueMasteredSpecies = mastered.size,
+                        regionalDiscovered = region.discoveredSpeciesCount, regionalTotal = region.totalParticipatingSpecies,
+                        regionalMastered = region.masteredSpeciesCount, regionalCollectorEarned = region.collectorEarned,
+                        regionalCompletionistEarned = region.completionistEarned,
+                        blueMastered = blue.masteredSpeciesCount, blueTotal = blue.totalParticipatingSpecies,
+                        stillwaterMastered = stillwater.masteredSpeciesCount, stillwaterTotal = stillwater.totalParticipatingSpecies,
+                        allWatersMastered = allWaters.masteredSpeciesCount, allWatersTotal = allWaters.totalParticipatingSpecies,
+                        newlyEarnedBadgeIds = newlyEarned.distinct().joinToString(","),
+                        advancedBadgeIds = advanced.joinToString(","), milestonesReached = milestones.joinToString(","),
+                        originDestination = originDestination, createdAt = now,
+                        lifecycleState = CelebrationLifecycle.PENDING.name,
+                        presentationStage = CelebrationStage.LEVEL_TRANSITION.name
+                    )
+                )
+            }
         }
         achievementDao.recordEvent(AchievementEventEntity(transactionId, "CREATURE_LEVEL_UP", instanceId, instance.findId, now, "$cost|$resultingLevel"))
         AchievementResult(transactionId, true, changes, cost, resultingLevel)
@@ -607,7 +663,7 @@ class ShellRepository @Inject constructor(
     }
 
 
-    suspend fun growCreatureByLevel(findId: String, level: Int): AchievementResult = db.withTransaction {
+    suspend fun growCreatureByLevel(findId: String, level: Int, originDestination: String = "CHEST"): AchievementResult = db.withTransaction {
         require(ShellContentCatalog.find(findId)?.kind == ShellRewardKind.ANIMAL) {
             "Only animals can grow with Pearls."
         }
@@ -619,7 +675,14 @@ class ShellRepository @Inject constructor(
             "No active Level $currentLevel creature to grow."
         }
         val instance = activeAtLevel.first()
-        growCreature(instance.instanceId, "level_up:${instance.instanceId}:${currentLevel + 1}")
+        growCreature(instance.instanceId, "level_up:${instance.instanceId}:${currentLevel + 1}", originDestination)
+    }
+
+    suspend fun updateCelebration(eventId: String, transition: com.kingkharnivore.skillz.domain.achievement.CelebrationTransition) {
+        db.withTransaction {
+            achievementDao.updateCelebrationState(eventId, transition.lifecycle.name, transition.stage.name,
+                if (transition.lifecycle == CelebrationLifecycle.COMPLETED) System.currentTimeMillis() else null)
+        }
     }
 
     private fun insufficientGrowthPearlsMessage(requiredPearls: Int, currentPearls: Int): String {

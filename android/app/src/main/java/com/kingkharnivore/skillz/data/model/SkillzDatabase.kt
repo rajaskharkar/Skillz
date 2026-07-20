@@ -44,6 +44,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.CreatureDiscoveryEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.CreatureMasteryEventEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.BadgePinEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.BadgeTrackingEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.MasteryCelebrationEventEntity
 
 @Database(
     entities = [
@@ -78,9 +79,10 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeTrackingEntity
         AchievementEventEntity::class,
         AchievementBackfillEntity::class,
         BadgePinEntity::class,
-        BadgeTrackingEntity::class
+        BadgeTrackingEntity::class,
+        MasteryCelebrationEventEntity::class
     ],
-    version = 33,
+    version = 34,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {

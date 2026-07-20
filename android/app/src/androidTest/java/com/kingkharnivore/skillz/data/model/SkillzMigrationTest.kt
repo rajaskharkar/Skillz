@@ -19,6 +19,15 @@ class SkillzMigrationTest {
         SkillzDatabase::class.java
     )
 
+    @Test fun migration33To34CreatesDurableCelebrationLedger() {
+        helper.createDatabase(TEST_DB, 33).close()
+        val db = helper.runMigrationsAndValidate(TEST_DB, 34, true, SkillzDatabaseMigrations.MIGRATION_33_34)
+        assertTrue(db.tableExists("mastery_celebration_event"))
+        db.assertColumn("mastery_celebration_event", "transactionId", notNull = 1, defaultValue = null)
+        db.assertColumn("mastery_celebration_event", "completedAt", notNull = 0, defaultValue = null)
+        db.close()
+    }
+
     @Test fun migration32To33PersistsPinningAndTrackingSchema() {
         helper.createDatabase(TEST_DB, 32).close()
         val db = helper.runMigrationsAndValidate(TEST_DB, 33, true, SkillzDatabaseMigrations.MIGRATION_32_33)

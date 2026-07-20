@@ -74,3 +74,42 @@ data class BadgeTrackingEntity(
     @PrimaryKey val badgeId: String,
     val trackedAt: Long
 )
+
+/** Immutable rendering snapshot plus durable presentation lifecycle for Level 99. */
+@Entity(
+    tableName = "mastery_celebration_event",
+    indices = [Index(value = ["transactionId"], unique = true), Index("lifecycleState")]
+)
+data class MasteryCelebrationEventEntity(
+    @PrimaryKey val eventId: String,
+    val transactionId: String,
+    val creatureInstanceId: String,
+    val speciesId: String,
+    val artworkKey: String,
+    val regionId: String,
+    val sourceId: String,
+    val previousLevel: Int,
+    val newLevel: Int,
+    val speciesMasteryCount: Int,
+    val totalMasteries: Int,
+    val uniqueMasteredSpecies: Int,
+    val regionalDiscovered: Int,
+    val regionalTotal: Int,
+    val regionalMastered: Int,
+    val regionalCollectorEarned: Boolean,
+    val regionalCompletionistEarned: Boolean,
+    val blueMastered: Int,
+    val blueTotal: Int,
+    val stillwaterMastered: Int,
+    val stillwaterTotal: Int,
+    val allWatersMastered: Int,
+    val allWatersTotal: Int,
+    val newlyEarnedBadgeIds: String,
+    val advancedBadgeIds: String,
+    val milestonesReached: String,
+    val originDestination: String,
+    val createdAt: Long,
+    val lifecycleState: String,
+    val presentationStage: String,
+    val completedAt: Long? = null
+)

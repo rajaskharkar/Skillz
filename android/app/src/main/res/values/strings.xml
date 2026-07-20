@@ -2003,4 +2003,36 @@ You can turn Health back on later.</string>
     <string name="shell_find_stillwater_coelacanth_title">Coelacanth</string>
 
     <string name="badges_hub_body">Celebrate progress, choose goals, and explore every collection.</string>
+    <string name="mastery_unknown_creature">Creature</string>
+    <string name="mastery_skip">Skip to summary</string>
+    <string name="mastery_level_transition">98 → 99</string>
+    <string name="mastery_journey_complete">A creature’s journey is complete.</string>
+    <string name="mastery_achieved">Mastery Achieved</string>
+    <string name="mastery_reached_99">%1$s reached Level 99</string>
+    <string name="mastery_permanent_record">This Mastery is permanently recorded, even if the creature is released later.</string>
+    <string name="mastery_species_title">%1$s Mastery</string>
+    <plurals name="mastery_species_support"><item quantity="one">Your first %2$s has reached Mastery.</item><item quantity="other">%1$d %2$s creatures have completed their journey.</item></plurals>
+    <string name="mastery_collection_impact">Collection Impact</string>
+    <string name="mastery_collection_progress">%1$d of %2$d species mastered</string>
+    <string name="mastery_region_complete">Completionist achieved. Every creature in this collection has reached Level 99.</string>
+    <plurals name="mastery_species_remaining"><item quantity="one">One species remains.</item><item quantity="other">%1$d species remain.</item></plurals>
+    <string name="mastery_additional">Additional Achievements</string>
+    <string name="mastery_counts_advanced">Your lifetime Mastery counts advanced.</string>
+    <string name="mastery_final_title">Level 99 Mastery</string>
+    <string name="mastery_summary_species">Species Mastery count: %1$d</string>
+    <string name="mastery_summary_total">Total Masteries: %1$d · Unique species: %2$d</string>
+    <string name="mastery_blue_progress">The Blue: %1$d of %2$d mastered</string>
+    <string name="mastery_all_progress">All Waters: %1$d of %2$d mastered</string>
+    <string name="mastery_pin_badge">Pin badge</string>
+    <string name="mastery_continue">Continue</string>
+    <string name="mastery_return_chest">Return to The Chest</string>
+    <string name="mastery_return_blue">Return to The Blue</string>
+    <string name="mastery_return_stillwater">Return to Stillwater</string>
+    <string name="mastery_replace_pin_title">Replace a Showcase badge?</string>
+    <string name="mastery_calm_mode">Calm Mode: gentle presentation</string>
+    <string name="mastery_milestone_reached">%1$s reached milestone ×%2$s</string>
+    <string name="mastery_new_badges">New badges earned: %1$d</string>
+    <string name="mastery_new_milestones">Milestones reached: %1$d</string>
+    <string name="mastery_blue_complete">Every creature in The Blue has reached Level 99.</string>
+    <string name="mastery_all_waters_complete">Every creature across The Blue and Stillwater has reached Mastery.</string>
 </resources>

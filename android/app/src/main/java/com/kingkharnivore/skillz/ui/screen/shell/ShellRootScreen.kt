@@ -80,6 +80,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellPearlMiniIcon
 import com.kingkharnivore.skillz.ui.screen.shell.icons.draw.TurtleShellInteriorBackground
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgesScreen
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.MasteryCelebrationScreen
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellChestScreen
 import com.kingkharnivore.skillz.data.repository.shell.SHELL_BADGES_ROUTE
 import com.kingkharnivore.skillz.data.repository.shell.SHELL_CHEST_ROUTE
@@ -219,7 +220,7 @@ fun ShellRootScreen(
                 ShellDestination.ShellChest -> ShellChestScreen(
                     uiState = uiState,
                     onReleaseCreaturesByLevel = viewModel::releaseCreaturesByLevel,
-                    onLevelUpCreatureByLevel = viewModel::growCreatureByLevel,
+                    onLevelUpCreatureByLevel = { id, level -> viewModel.growCreatureByLevel(id, level, "CHEST") },
                     onOpenBlue = { destination = ShellDestination.TheBluePreview },
                     onSortOptionSelected = viewModel::setChestSortOption
                 )
@@ -242,7 +243,7 @@ fun ShellRootScreen(
                 ShellDestination.TheBluePreview -> TheBlueRoomScreen(
                     uiState = uiState,
                     onDisplayInFocus = viewModel::place,
-                    onGrowCreature = viewModel::growCreature,
+                    onGrowCreature = { id -> viewModel.growCreature(id, "BLUE") },
                     onReleaseCreaturesByLevel = viewModel::releaseCreaturesByLevel,
                     onEncounterBeyondBlue = viewModel::encounterBeyondBlue,
                     onOpenChest = { destination = ShellDestination.ShellChest }
@@ -286,6 +287,25 @@ fun ShellRootScreen(
                         else -> destination
                     }
                 }
+            )
+        }
+
+        uiState.masteryCelebration?.let { celebration ->
+            MasteryCelebrationScreen(
+                event = celebration,
+                uiState = uiState,
+                onBegin = { viewModel.beginCelebration() },
+                onAdvance = { reduced -> viewModel.advanceCelebration(reduced) },
+                onSkip = { viewModel.skipCelebration() },
+                onComplete = { origin ->
+                    viewModel.completeCelebration()
+                    destination = when (origin) {
+                        "BLUE" -> ShellDestination.TheBluePreview
+                        "STILLWATER" -> ShellDestination.Stillwater
+                        else -> ShellDestination.ShellChest
+                    }
+                },
+                onPin = { badgeId, replacementId -> viewModel.pinBadge(badgeId, replacementId) }
             )
         }
 

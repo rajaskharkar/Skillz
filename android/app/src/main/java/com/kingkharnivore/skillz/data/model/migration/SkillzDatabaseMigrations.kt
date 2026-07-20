@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 33.
+     * Current database version is 34.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -171,6 +171,31 @@ object SkillzDatabaseMigrations {
             db.execSQL("CREATE TABLE IF NOT EXISTS `badge_tracking` (`badgeId` TEXT NOT NULL, `trackedAt` INTEGER NOT NULL, PRIMARY KEY(`badgeId`))")
         }
     }
+    val MIGRATION_33_34 = object : Migration(33, 34) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS `mastery_celebration_event` (
+                    `eventId` TEXT NOT NULL, `transactionId` TEXT NOT NULL,
+                    `creatureInstanceId` TEXT NOT NULL, `speciesId` TEXT NOT NULL,
+                    `artworkKey` TEXT NOT NULL, `regionId` TEXT NOT NULL, `sourceId` TEXT NOT NULL,
+                    `previousLevel` INTEGER NOT NULL, `newLevel` INTEGER NOT NULL,
+                    `speciesMasteryCount` INTEGER NOT NULL, `totalMasteries` INTEGER NOT NULL,
+                    `uniqueMasteredSpecies` INTEGER NOT NULL, `regionalDiscovered` INTEGER NOT NULL,
+                    `regionalTotal` INTEGER NOT NULL, `regionalMastered` INTEGER NOT NULL,
+                    `regionalCollectorEarned` INTEGER NOT NULL, `regionalCompletionistEarned` INTEGER NOT NULL,
+                    `blueMastered` INTEGER NOT NULL, `blueTotal` INTEGER NOT NULL,
+                    `stillwaterMastered` INTEGER NOT NULL, `stillwaterTotal` INTEGER NOT NULL,
+                    `allWatersMastered` INTEGER NOT NULL, `allWatersTotal` INTEGER NOT NULL,
+                    `newlyEarnedBadgeIds` TEXT NOT NULL, `advancedBadgeIds` TEXT NOT NULL,
+                    `milestonesReached` TEXT NOT NULL, `originDestination` TEXT NOT NULL,
+                    `createdAt` INTEGER NOT NULL, `lifecycleState` TEXT NOT NULL,
+                    `presentationStage` TEXT NOT NULL, `completedAt` INTEGER,
+                    PRIMARY KEY(`eventId`))""".trimIndent()
+            )
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_mastery_celebration_event_transactionId` ON `mastery_celebration_event` (`transactionId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_mastery_celebration_event_lifecycleState` ON `mastery_celebration_event` (`lifecycleState`)")
+        }
+    }
 
     private fun normalizePostAnchorTestSchemaToTargetBranch(db: SupportSQLiteDatabase) {
         db.execSQL("PRAGMA foreign_keys=OFF")
@@ -324,7 +349,7 @@ object SkillzDatabaseMigrations {
                 MIGRATION_28_29 +
                 MIGRATION_29_30 +
                 MIGRATION_30_31
-                + MIGRATION_31_32 + MIGRATION_32_33
+                + MIGRATION_31_32 + MIGRATION_32_33 + MIGRATION_33_34
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(

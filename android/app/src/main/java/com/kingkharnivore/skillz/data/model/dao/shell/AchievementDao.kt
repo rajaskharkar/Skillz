@@ -33,4 +33,10 @@ interface AchievementDao {
     @Query("SELECT * FROM badge_tracking ORDER BY trackedAt") suspend fun getTracking(): List<BadgeTrackingEntity>
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertTracking(value: BadgeTrackingEntity): Long
     @Query("DELETE FROM badge_tracking WHERE badgeId = :badgeId") suspend fun deleteTracking(badgeId: String): Int
+    @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertCelebration(value: MasteryCelebrationEventEntity): Long
+    @Query("SELECT * FROM mastery_celebration_event WHERE lifecycleState != 'COMPLETED' ORDER BY createdAt ASC LIMIT 1")
+    fun observePendingCelebration(): Flow<MasteryCelebrationEventEntity?>
+    @Query("SELECT * FROM mastery_celebration_event WHERE eventId = :eventId") suspend fun getCelebration(eventId: String): MasteryCelebrationEventEntity?
+    @Query("UPDATE mastery_celebration_event SET lifecycleState = :lifecycle, presentationStage = :stage, completedAt = :completedAt WHERE eventId = :eventId AND lifecycleState != 'COMPLETED'")
+    suspend fun updateCelebrationState(eventId: String, lifecycle: String, stage: String, completedAt: Long?): Int
 }

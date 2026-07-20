@@ -28,6 +28,9 @@ import com.kingkharnivore.skillz.data.model.entity.shell.CreatureDiscoveryEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.CreatureMasteryEventEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.CollectionCompletionEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.AchievementBackfillEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.MasteryCelebrationEventEntity
+import com.kingkharnivore.skillz.domain.achievement.CelebrationStage
+import com.kingkharnivore.skillz.domain.achievement.MasteryCelebrationStateMachine
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,7 +59,9 @@ data class ShellUiState(
     val badgeDashboard: BadgeDashboard? = null,
     val badgeCategory: BadgeUiCategory = BadgeUiCategory.ALL,
     val badgeSort: BadgeSort = BadgeSort.RECOMMENDED,
-    val backfillSummary: AchievementBackfillEntity? = null
+    val backfillSummary: AchievementBackfillEntity? = null,
+    val masteryCelebration: MasteryCelebrationEventEntity? = null,
+    val calmMode: Boolean = false
 )
 
 private data class ShellEconomyState(
@@ -83,6 +88,7 @@ private data class ShellMemoryAndPreferenceState(
     val badgeCategory: BadgeUiCategory,
     val badgeSort: BadgeSort,
     val acknowledgedBackfillVersion: Int,
+    val calmMode: Boolean,
     val achievements: ShellAchievementState
 )
 
@@ -90,7 +96,16 @@ private data class ShellAchievementState(
     val pins: List<BadgePinEntity>, val tracking: List<BadgeTrackingEntity>,
     val discoveries: List<CreatureDiscoveryEntity>, val masteries: List<CreatureMasteryEventEntity>,
     val completions: List<CollectionCompletionEntity>,
-    val backfill: AchievementBackfillEntity?
+    val backfill: AchievementBackfillEntity?,
+    val celebration: MasteryCelebrationEventEntity?
+)
+
+private data class ShellPreferenceState(
+    val chestSort: ChestSortOption,
+    val badgeCategory: BadgeUiCategory,
+    val badgeSort: BadgeSort,
+    val acknowledgedBackfillVersion: Int,
+    val calmMode: Boolean
 )
 
 @HiltViewModel
@@ -125,13 +140,19 @@ class ShellViewModel @Inject constructor(
 
     private val memoryAndPreferences = combine(
         memory,
-        combine(userPrefs.chestSortOption, userPrefs.badgeCategory, userPrefs.badgeSort, userPrefs.acknowledgedBackfillVersion) { chest, category, sort, acknowledged -> listOf(chest, category, sort, acknowledged) },
+        combine(userPrefs.chestSortOption, userPrefs.badgeCategory, userPrefs.badgeSort,
+            userPrefs.acknowledgedBackfillVersion, userPrefs.calmMode) { chest, category, sort, acknowledged, calm ->
+            ShellPreferenceState(chest, category, sort, acknowledged, calm)
+        },
         combine(repository.observeBadgePins(), repository.observeBadgeTracking(),
             repository.observeCreatureDiscoveries(), repository.observeCreatureMasteries(),
-            combine(repository.observeCollectionCompletions(), repository.observeLatestAchievementBackfill()) { completions, backfill -> completions to backfill }) { pins, tracking, discoveries, masteries, completionAndBackfill ->
-            ShellAchievementState(pins, tracking, discoveries, masteries, completionAndBackfill.first, completionAndBackfill.second)
+            combine(repository.observeCollectionCompletions(), repository.observeLatestAchievementBackfill(), repository.observePendingMasteryCelebration()) { completions, backfill, celebration -> Triple(completions, backfill, celebration) }) { pins, tracking, discoveries, masteries, aggregate ->
+            ShellAchievementState(pins, tracking, discoveries, masteries, aggregate.first, aggregate.second, aggregate.third)
         }
-    ) { memory, preferences, achievements -> ShellMemoryAndPreferenceState(memory, preferences[0] as ChestSortOption, preferences[1] as BadgeUiCategory, preferences[2] as BadgeSort, preferences[3] as Int, achievements) }
+    ) { memory, preferences, achievements -> ShellMemoryAndPreferenceState(
+        memory, preferences.chestSort, preferences.badgeCategory, preferences.badgeSort,
+        preferences.acknowledgedBackfillVersion, preferences.calmMode, achievements
+    ) }
 
     val uiState: StateFlow<ShellUiState> = combine(
         economy,
@@ -162,7 +183,9 @@ class ShellViewModel @Inject constructor(
             ),
             badgeCategory = memoryAndPreferences.badgeCategory,
             badgeSort = memoryAndPreferences.badgeSort,
-            backfillSummary = memoryAndPreferences.achievements.backfill?.takeIf { it.version > memoryAndPreferences.acknowledgedBackfillVersion && (it.discoveredCount > 0 || it.masteryCount > 0 || it.completionCount > 0) }
+            backfillSummary = memoryAndPreferences.achievements.backfill?.takeIf { it.version > memoryAndPreferences.acknowledgedBackfillVersion && (it.discoveredCount > 0 || it.masteryCount > 0 || it.completionCount > 0) },
+            masteryCelebration = memoryAndPreferences.achievements.celebration,
+            calmMode = memoryAndPreferences.calmMode
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ShellUiState())
 
@@ -217,18 +240,34 @@ class ShellViewModel @Inject constructor(
             .onFailure { _events.emit(it.message ?: "Could not shape that reward.") }
     }
 
-    fun growCreature(instanceId: String) = viewModelScope.launch {
+    fun growCreature(instanceId: String, origin: String = "BLUE") = viewModelScope.launch {
         val currentLevel = uiState.value.finds
             .firstOrNull { it.instanceId == instanceId }?.animalLevel ?: 1
-        runCatching { repository.growCreature(instanceId, "level_up:$instanceId:${currentLevel + 1}") }
+        runCatching { repository.growCreature(instanceId, "level_up:$instanceId:${currentLevel + 1}", origin) }
             .onSuccess { _events.emit("Your creature grew inside The Blue.") }
             .onFailure { _events.emit(it.message ?: "Could not grow that creature.") }
     }
 
-    fun growCreatureByLevel(findId: String, level: Int) = viewModelScope.launch {
-        runCatching { repository.growCreatureByLevel(findId, level) }
+    fun growCreatureByLevel(findId: String, level: Int, origin: String = "CHEST") = viewModelScope.launch {
+        runCatching { repository.growCreatureByLevel(findId, level, origin) }
             .onSuccess { _events.emit("Your creature grew inside The Chest.") }
             .onFailure { _events.emit(it.message ?: "Could not grow that creature.") }
+    }
+
+    fun beginCelebration() = transitionCelebration { stage -> MasteryCelebrationStateMachine.begin(stage) }
+    fun advanceCelebration(reducedMotion: Boolean = false) = transitionCelebration { stage ->
+        MasteryCelebrationStateMachine.advance(stage, reducedMotion)
+    }
+    fun skipCelebration() = transitionCelebration { MasteryCelebrationStateMachine.skip() }
+    fun completeCelebration() = transitionCelebration { MasteryCelebrationStateMachine.complete() }
+
+    private fun transitionCelebration(
+        transition: (CelebrationStage) -> com.kingkharnivore.skillz.domain.achievement.CelebrationTransition
+    ) = viewModelScope.launch {
+        val event = uiState.value.masteryCelebration ?: return@launch
+        val stage = runCatching { CelebrationStage.valueOf(event.presentationStage) }
+            .getOrDefault(CelebrationStage.FINAL_SUMMARY)
+        repository.updateCelebration(event.eventId, transition(stage))
     }
 
     fun releaseCreature(instanceId: String) = viewModelScope.launch {
