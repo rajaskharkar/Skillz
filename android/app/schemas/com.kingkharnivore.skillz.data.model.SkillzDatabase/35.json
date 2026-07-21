@@ -2373,7 +2373,8 @@
             "columnNames": [
               "firstCreatureId"
             ],
-            "orders": []
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_creature_discovery_firstCreatureId` ON `${TABLE_NAME}` (`firstCreatureId`)"
           }
         ]
       },
@@ -2425,7 +2426,8 @@
             "columnNames": [
               "creatureInstanceId"
             ],
-            "orders": []
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_creature_mastery_event_creatureInstanceId` ON `${TABLE_NAME}` (`creatureInstanceId`)"
           },
           {
             "name": "index_creature_mastery_event_speciesId",
@@ -2433,7 +2435,8 @@
             "columnNames": [
               "speciesId"
             ],
-            "orders": []
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_creature_mastery_event_speciesId` ON `${TABLE_NAME}` (`speciesId`)"
           }
         ]
       },
@@ -2499,7 +2502,8 @@
               "completionType",
               "rosterHash"
             ],
-            "orders": []
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_collection_completion_collectionId_completionType_rosterHash` ON `${TABLE_NAME}` (`collectionId`, `completionType`, `rosterHash`)"
           }
         ]
       },
@@ -2555,7 +2559,8 @@
             "columnNames": [
               "creatureInstanceId"
             ],
-            "orders": []
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_achievement_event_creatureInstanceId` ON `${TABLE_NAME}` (`creatureInstanceId`)"
           }
         ]
       },
@@ -2637,7 +2642,8 @@
             "columnNames": [
               "pinOrder"
             ],
-            "orders": []
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_badge_pin_pinOrder` ON `${TABLE_NAME}` (`pinOrder`)"
           }
         ]
       },
@@ -2868,7 +2874,8 @@
             "columnNames": [
               "transactionId"
             ],
-            "orders": []
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_mastery_celebration_event_transactionId` ON `${TABLE_NAME}` (`transactionId`)"
           },
           {
             "name": "index_mastery_celebration_event_lifecycleState",
@@ -2876,7 +2883,8 @@
             "columnNames": [
               "lifecycleState"
             ],
-            "orders": []
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_mastery_celebration_event_lifecycleState` ON `${TABLE_NAME}` (`lifecycleState`)"
           }
         ]
       },
