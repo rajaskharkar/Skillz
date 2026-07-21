@@ -18,8 +18,8 @@ enum class ChestSortOption(val key: String) {
 
 enum class ChestFilterOption(val key: String) {
     All("all"), ClosestToMastery("closest"), Mastered("mastered"), NotMastered("not_mastered"),
-    TrackedCollector("tracked_collector"), TrackedCompletionist("tracked_completionist"),
+    TrackedMastery("tracked_mastery"), TrackedCompletionist("tracked_completionist"),
     SunlitReef("sunlit_reef"), DeeperReef("deeper_reef"), OpenBlue("open_blue"), GreatBlue("great_blue"),
     Fishbowl("fishbowl"), Aquarium("aquarium"), Pond("pond"), Lake("lake");
-    companion object { fun fromKey(key: String?) = entries.firstOrNull { it.key == key } ?: All }
+    companion object { fun fromKey(key: String?) = if (key == "tracked_collector") TrackedMastery else entries.firstOrNull { it.key == key } ?: All }
 }

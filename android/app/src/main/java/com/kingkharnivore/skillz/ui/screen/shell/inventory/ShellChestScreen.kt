@@ -92,7 +92,9 @@ fun ShellChestScreen(
     onLevelUpCreatureByLevel: (String, Int) -> Unit,
     onOpenBlue: () -> Unit,
     onSortOptionSelected: (ChestSortOption) -> Unit,
-    onFilterSelected: (ChestFilterOption) -> Unit
+    onFilterSelected: (ChestFilterOption) -> Unit,
+    focusSpeciesId: String? = null,
+    onFocusConsumed: () -> Unit = {}
 ) {
     var selectedStack by remember { mutableStateOf<ChestInventoryStackUiModel?>(null) }
     val masteryCounts = uiState.badgeDashboard?.badges?.mapNotNull { badge ->
@@ -101,17 +103,17 @@ fun ShellChestScreen(
     val allStacks = remember(uiState.finds, uiState.chestSortOption, masteryCounts) {
         buildChestInventoryStacks(uiState.finds, uiState.chestSortOption, masteryCounts)
     }
-    val trackedCollectorNeeded = uiState.badgeDashboard?.badges?.filter { it.tracked && it.badgeId.endsWith("_collector") }
-        ?.flatMap { it.collectionProgress?.missingCurrentlyOwnedSpeciesIds.orEmpty() }?.toSet().orEmpty()
+    val trackedMasterySpecies = uiState.badgeDashboard?.badges?.filter { it.tracked }
+        ?.mapNotNull { AchievementBadgeCatalog.byId[it.badgeId]?.speciesId }?.toSet().orEmpty()
     val trackedCompletionNeeded = uiState.badgeDashboard?.badges?.filter { it.tracked && it.badgeId.endsWith("_completionist") }
         ?.flatMap { it.collectionProgress?.missingMasteredSpeciesIds.orEmpty() }?.toSet().orEmpty()
-    val stacks = remember(allStacks, uiState.chestFilter, trackedCollectorNeeded, trackedCompletionNeeded) {
+    val stacks = remember(allStacks, uiState.chestFilter, trackedMasterySpecies, trackedCompletionNeeded) {
         allStacks.filter { stack -> when (uiState.chestFilter) {
             ChestFilterOption.All -> true
             ChestFilterOption.ClosestToMastery -> stack.level >= 90
             ChestFilterOption.Mastered -> stack.level >= 99
             ChestFilterOption.NotMastered -> stack.level < 99
-            ChestFilterOption.TrackedCollector -> stack.creatureId in trackedCollectorNeeded
+            ChestFilterOption.TrackedMastery -> stack.creatureId in trackedMasterySpecies
             ChestFilterOption.TrackedCompletionist -> stack.creatureId in trackedCompletionNeeded
             ChestFilterOption.SunlitReef -> CreatureCatalog.get(stack.creatureId)?.zone == CreatureZone.SUNLIT_REEF
             ChestFilterOption.DeeperReef -> CreatureCatalog.get(stack.creatureId)?.zone == CreatureZone.DEEPER_REEF
@@ -124,6 +126,10 @@ fun ShellChestScreen(
         } }
     }
     val totalCreatureCount = stacks.sumOf { it.count }
+    LaunchedEffect(focusSpeciesId, allStacks) {
+        focusSpeciesId?.let { id -> allStacks.firstOrNull { it.creatureId == id }?.let { selectedStack = it } }
+        if (focusSpeciesId != null) onFocusConsumed()
+    }
 
     Column(
         Modifier.fillMaxSize().padding(16.dp),
@@ -131,10 +137,9 @@ fun ShellChestScreen(
     ) {
         RoomHeader(title = R.string.shell_chest_title, body = R.string.shell_chest_body)
         if (allStacks.isNotEmpty()) {
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
                     text = stringResource(R.string.shell_chest_inventory_stats, totalCreatureCount, stacks.size),
@@ -142,18 +147,18 @@ fun ShellChestScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.fillMaxWidth()
                 )
-                ChestSortControl(
-                    selected = uiState.chestSortOption,
-                    onSelected = onSortOptionSelected
-                )
-                ChestFilterControl(uiState.chestFilter, onFilterSelected)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ChestSortControl(selected = uiState.chestSortOption, onSelected = onSortOptionSelected)
+                    ChestFilterControl(uiState.chestFilter, onFilterSelected)
+                }
             }
         }
 
         if (stacks.isEmpty()) {
-            EmptyChestState(onOpenBlue = onOpenBlue, modifier = Modifier.weight(1f))
+            if (allStacks.isEmpty()) EmptyChestState(onOpenBlue = onOpenBlue, modifier = Modifier.weight(1f))
+            else FilteredChestEmptyState({ onFilterSelected(ChestFilterOption.All) }, Modifier.weight(1f))
         } else {
             LazyVerticalGrid(
                 modifier = Modifier.weight(1f),
@@ -199,12 +204,20 @@ fun ShellChestScreen(
     Box { FilterChip(selected = selected != ChestFilterOption.All, onClick = { expanded = true }, label = { Text(stringResource(selected.labelRes)) }); DropdownMenu(expanded, { expanded = false }) { ChestFilterOption.entries.forEach { option -> DropdownMenuItem(text = { Text(stringResource(option.labelRes)) }, onClick = { expanded = false; onSelected(option) }) } } }
 }
 
+@Composable private fun FilteredChestEmptyState(onClear: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center) {
+        Text(stringResource(R.string.chest_filter_empty), style = MaterialTheme.typography.titleMedium)
+        TextButton(onClick = onClear) { Text(stringResource(R.string.chest_filter_clear)) }
+    }
+}
+
 private val ChestFilterOption.labelRes: Int get() = when(this) {
     ChestFilterOption.All -> R.string.chest_filter_all
     ChestFilterOption.ClosestToMastery -> R.string.chest_filter_closest
     ChestFilterOption.Mastered -> R.string.chest_filter_mastered
     ChestFilterOption.NotMastered -> R.string.chest_filter_not_mastered
-    ChestFilterOption.TrackedCollector -> R.string.chest_filter_tracked_collector
+    ChestFilterOption.TrackedMastery -> R.string.chest_filter_tracked_mastery
     ChestFilterOption.TrackedCompletionist -> R.string.chest_filter_tracked_completionist
     ChestFilterOption.SunlitReef -> R.string.collection_sunlit_reef
     ChestFilterOption.DeeperReef -> R.string.collection_deeper_reef
@@ -511,16 +524,16 @@ private fun ChestStackDetailSheet(
                 fontWeight = FontWeight.Bold
             )
             Text(levelUpStatus, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Button(
-                onClick = { showLevelUpConfirmation = true },
-                enabled = !isMaxLevel,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { contentDescription = levelUpButtonDescription }
-            ) {
-                Text(stringResource(R.string.shell_creature_level_up))
+            val levelButtonModifier = Modifier.fillMaxWidth().semantics { contentDescription = levelUpButtonDescription }
+            if (canAffordLevelUp) {
+                Button(onClick = { showLevelUpConfirmation = true }, enabled = !isMaxLevel, modifier = levelButtonModifier) {
+                    Text(stringResource(R.string.shell_creature_level_up))
+                }
+            } else {
+                OutlinedButton(onClick = { showLevelUpConfirmation = true }, enabled = !isMaxLevel, modifier = levelButtonModifier) {
+                    Text(stringResource(R.string.shell_creature_view_requirements))
+                }
             }
-
             Text(
                 text = stringResource(R.string.shell_creature_release_action),
                 style = MaterialTheme.typography.titleMedium,
@@ -632,9 +645,13 @@ private fun ChestLevelUpConfirmationDialog(
                     Text(stringResource(R.string.level99_preview_species_count, preview.resultingSpeciesMasteryCount))
                     if (preview.firstSpeciesMastery) Text(stringResource(R.string.level99_preview_first_species))
                     Text(stringResource(R.string.level99_preview_region, preview.regionalMasteredAfter, preview.regionalTotal))
+                    preview.stillwaterMasteredAfter?.let { mastered -> Text(stringResource(R.string.level99_preview_stillwater, mastered, preview.stillwaterTotal ?: 0)) }
                     if (preview.completesRegion) Text(stringResource(R.string.level99_preview_completes_region))
                     if (preview.completesBlue) Text(stringResource(R.string.level99_preview_completes_blue))
                     if (preview.completesAllWaters) Text(stringResource(R.string.level99_preview_completes_all))
+                    if (preview.restoresRegionRoster || preview.restoresBlueRoster || preview.restoresAllWatersRoster) {
+                        Text(stringResource(R.string.level99_preview_restores_roster))
+                    }
                     preview.milestones.firstOrNull()?.let { Text(stringResource(R.string.level99_preview_milestone, it)) }
                 }
             }

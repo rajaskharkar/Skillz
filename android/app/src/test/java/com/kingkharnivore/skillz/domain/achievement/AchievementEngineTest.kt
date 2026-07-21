@@ -1,10 +1,24 @@
 package com.kingkharnivore.skillz.domain.achievement
 
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
+import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
 import org.junit.Assert.*
 import org.junit.Test
 
 class AchievementEngineTest {
+    @Test fun legacyMasteryEvidenceCountsForLifetimeAndCollectionsWithoutFakeEvents() {
+        val species = CreatureCatalog.all.first()
+        val floor = BadgeCountFloorEntity("mastery_species_${species.creatureId}", species.creatureId, 2, 0, "legacy", 1L)
+        val evidence = MasteryEvidenceCalculator.bySpecies(emptyList(), listOf(floor))
+        assertEquals(2, evidence.getValue(species.creatureId).effectiveLifetimeCount)
+        assertTrue(evidence.getValue(species.creatureId).hasEverBeenMastered)
+        assertEquals(3, MasteryEvidenceCalculator.effectiveCount(1, floor))
+        val progress = CollectionProgressCalculator.calculate(
+            CollectionDefinition("test", 1, listOf(species)), setOf(species.creatureId), emptyMap(), evidence
+        )
+        assertTrue(progress.completionistEarned)
+        assertEquals(2, progress.speciesStates.single().lifetimeMasteryCount)
+    }
     @Test fun milestonesExposeExactCurrentNextAndNewlyReached() {
         val result = MilestoneEngine.evaluate(count = 11, previousCount = 9)
         assertEquals(11, result.exactCount)

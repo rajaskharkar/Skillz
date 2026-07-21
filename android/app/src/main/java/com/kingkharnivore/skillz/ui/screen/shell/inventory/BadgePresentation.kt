@@ -10,6 +10,7 @@ import com.kingkharnivore.skillz.domain.achievement.*
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 
 enum class BadgeArtworkKind { FLOW_DURATION, SPECIES_MASTERY, COLLECTOR, CURATOR, COMPLETIONIST, MASTERY, ACTIVITY, SPECIAL }
+enum class CollectionArtworkIdentity { SUNLIT_REEF, DEEPER_REEF, OPEN_BLUE, GREAT_BLUE, FISHBOWL, AQUARIUM, POND, LAKE, THE_BLUE, STILLWATER, ALL_WATERS }
 
 data class BadgePresentation(
     val badgeId: String,
@@ -17,7 +18,8 @@ data class BadgePresentation(
     val description: String,
     val artworkKind: BadgeArtworkKind,
     val centerLabel: String? = null,
-    val creatureIconKey: String? = null
+    val creatureIconKey: String? = null,
+    val collectionIdentity: CollectionArtworkIdentity? = null
 )
 
 @Composable
@@ -66,7 +68,21 @@ fun resolveBadgePresentation(badgeId: String): BadgePresentation {
             BadgeRequirement.COMPLETIONIST -> BadgeArtworkKind.COMPLETIONIST
             BadgeRequirement.EXACT_COUNT -> BadgeArtworkKind.MASTERY
         }
-        return BadgePresentation(badgeId, title, description, artwork)
+        val identity = when (collectionId) {
+            "blue_sunlit_reef" -> CollectionArtworkIdentity.SUNLIT_REEF
+            "blue_deeper_reef" -> CollectionArtworkIdentity.DEEPER_REEF
+            "blue_open_blue" -> CollectionArtworkIdentity.OPEN_BLUE
+            "blue_great_blue" -> CollectionArtworkIdentity.GREAT_BLUE
+            "stillwater_fishbowl" -> CollectionArtworkIdentity.FISHBOWL
+            "stillwater_aquarium" -> CollectionArtworkIdentity.AQUARIUM
+            "stillwater_pond" -> CollectionArtworkIdentity.POND
+            "stillwater_lake" -> CollectionArtworkIdentity.LAKE
+            "collection_the_blue" -> CollectionArtworkIdentity.THE_BLUE
+            "collection_stillwater" -> CollectionArtworkIdentity.STILLWATER
+            "collection_all_waters" -> CollectionArtworkIdentity.ALL_WATERS
+            else -> null
+        }
+        return BadgePresentation(badgeId, title, description, artwork, collectionIdentity = identity)
     }
     val known = when (badgeId) {
         "mastery_first" -> R.string.badge_first_mastery to R.string.badge_first_mastery_description

@@ -6,11 +6,60 @@ import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
 import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.utils.shell.StillwaterCatalog
 import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
+import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.CreatureMasteryEventEntity
 import java.security.MessageDigest
 
 enum class BadgeFamily { SPECIES_MASTERY, MASTERY, COLLECTION, FLOW, SOFT_FLOW, ARC, MOVEMENT, SURGE }
 enum class BadgeCountType { ONE_TIME, REPEATABLE }
 enum class BadgeRequirement { EXACT_COUNT, COLLECTOR, CURATOR, COMPLETIONIST }
+
+data class SpeciesMasteryEvidence(
+    val speciesId: String,
+    val verifiedIndividualCount: Int,
+    val legacyMinimumCount: Int,
+    val effectiveLifetimeCount: Int,
+    val hasEverBeenMastered: Boolean,
+    val currentLevel99Count: Int = 0,
+    val firstMasteryAt: Long? = null,
+    val latestMasteryAt: Long? = null
+)
+
+/** One count-floor rule shared by persistence, dashboards, previews, and celebrations. */
+object MasteryEvidenceCalculator {
+    fun effectiveCount(verifiedCount: Int, floor: BadgeCountFloorEntity?): Int = floor?.let {
+        maxOf(verifiedCount, it.minimumCount + (verifiedCount - it.verifiedCountAtReconciliation).coerceAtLeast(0))
+    } ?: verifiedCount
+
+    fun bySpecies(
+        events: List<CreatureMasteryEventEntity>,
+        floors: List<BadgeCountFloorEntity>,
+        ownedLevels: Map<String, List<Int>> = emptyMap()
+    ): Map<String, SpeciesMasteryEvidence> {
+        val eventsBySpecies = events.groupBy { it.speciesId }
+        val floorsBySpecies = floors.mapNotNull { floor ->
+            val speciesId = floor.speciesId ?: floor.badgeId.removePrefix("mastery_species_")
+                .takeIf { floor.badgeId.startsWith("mastery_species_") }
+            speciesId?.let { it to floor }
+        }.toMap()
+        return (CreatureCatalog.all.map { it.creatureId } + eventsBySpecies.keys + floorsBySpecies.keys)
+            .distinct().associateWith { speciesId ->
+                val speciesEvents = eventsBySpecies[speciesId].orEmpty()
+                val floor = floorsBySpecies[speciesId]
+                val effective = effectiveCount(speciesEvents.size, floor)
+                SpeciesMasteryEvidence(
+                    speciesId = speciesId,
+                    verifiedIndividualCount = speciesEvents.size,
+                    legacyMinimumCount = floor?.minimumCount ?: 0,
+                    effectiveLifetimeCount = effective,
+                    hasEverBeenMastered = effective > 0,
+                    currentLevel99Count = ownedLevels[speciesId].orEmpty().count { it >= 99 },
+                    firstMasteryAt = speciesEvents.minOfOrNull { it.achievedAt },
+                    latestMasteryAt = speciesEvents.maxOfOrNull { it.achievedAt }
+                )
+            }
+    }
+}
 
 data class AchievementBadgeDefinition(
     val badgeId: String,
@@ -43,7 +92,14 @@ object AchievementBadgeCatalog {
         add(AchievementBadgeDefinition("stillwater_mastery", BadgeFamily.MASTERY, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT, collectionId = "collection_stillwater"))
         CollectionCatalog.collections.forEach { collection ->
             listOf(BadgeRequirement.COLLECTOR, BadgeRequirement.CURATOR, BadgeRequirement.COMPLETIONIST).forEach { requirement ->
-                add(AchievementBadgeDefinition("${collection.collectionId}_${requirement.name.lowercase()}", BadgeFamily.COLLECTION, BadgeCountType.ONE_TIME, requirement, collectionId = collection.collectionId))
+                val importance = when {
+                    collection.collectionId == "collection_all_waters" && requirement == BadgeRequirement.COMPLETIONIST -> 100
+                    collection.collectionId in setOf("collection_the_blue", "collection_stillwater") && requirement == BadgeRequirement.COMPLETIONIST -> 80
+                    requirement == BadgeRequirement.COMPLETIONIST -> 60
+                    requirement == BadgeRequirement.CURATOR -> 40
+                    else -> 30
+                }
+                add(AchievementBadgeDefinition("${collection.collectionId}_${requirement.name.lowercase()}", BadgeFamily.COLLECTION, BadgeCountType.ONE_TIME, requirement, collectionId = collection.collectionId, importance = importance))
             }
         }
         listOf("across_the_depths", "one_from_every_water", "keeper_of_the_blue").forEach {
@@ -112,16 +168,30 @@ data class CollectionSpeciesProgress(
     val ownedCount: Int,
     val highestLevel: Int?,
     val mastered: Boolean,
-    val secret: Boolean
+    val secret: Boolean,
+    val currentLevel99Count: Int = 0,
+    val lifetimeMasteryCount: Int = 0,
+    val firstMasteryAt: Long? = null,
+    val latestMasteryAt: Long? = null,
+    val requiredByCollector: Boolean = false,
+    val requiredByCurator: Boolean = false,
+    val requiredByCompletionist: Boolean = false,
+    val sourceId: String? = null
 )
 
 object CollectionProgressCalculator {
-    fun calculate(definition: CollectionDefinition, discovered: Set<String>, ownedLevels: Map<String, List<Int>>, mastered: Set<String>, historicalTypes: Set<BadgeRequirement> = emptySet()): CollectionProgress {
+    fun calculate(definition: CollectionDefinition, discovered: Set<String>, ownedLevels: Map<String, List<Int>>, mastered: Set<String>, historicalTypes: Set<BadgeRequirement> = emptySet()): CollectionProgress =
+        calculate(definition, discovered, ownedLevels, mastered.associateWith {
+            SpeciesMasteryEvidence(it, 1, 0, 1, true)
+        }, historicalTypes)
+
+    fun calculate(definition: CollectionDefinition, discovered: Set<String>, ownedLevels: Map<String, List<Int>>, masteryEvidence: Map<String, SpeciesMasteryEvidence>, historicalTypes: Set<BadgeRequirement> = emptySet()): CollectionProgress {
         val collectorRoster = definition.eligibleRoster(BadgeRequirement.COLLECTOR).toSet()
         val masteryRoster = definition.eligibleRoster(BadgeRequirement.COMPLETIONIST).toSet()
         val owned = ownedLevels.filterValues { it.isNotEmpty() }.keys
         val missingDiscovered = collectorRoster - discovered
         val missingOwned = collectorRoster - owned
+        val mastered = masteryEvidence.filterValues { it.hasEverBeenMastered }.keys
         val missingMastered = masteryRoster - mastered
         val collectorComplete = (collectorRoster.isNotEmpty() || definition.allowEmptyCompletion) && missingDiscovered.isEmpty()
         val curatorComplete = (collectorRoster.isNotEmpty() || definition.allowEmptyCompletion) && missingOwned.isEmpty()
@@ -136,8 +206,16 @@ object CollectionProgressCalculator {
             ownedLevels.filterKeys { it in missingMastered }.maxByOrNull { it.value.maxOrNull() ?: 0 }?.key,
             definition.species.filter { it.isAvailable }.distinctBy { it.creatureId }.map { creature ->
                 val levels = ownedLevels[creature.creatureId].orEmpty()
+                val evidence = masteryEvidence[creature.creatureId]
                 CollectionSpeciesProgress(creature.creatureId, creature.creatureId in discovered,
-                    levels.size, levels.maxOrNull(), creature.creatureId in mastered, creature.secretUntilDiscovered)
+                    levels.size, levels.maxOrNull(), creature.creatureId in mastered, creature.secretUntilDiscovered,
+                    currentLevel99Count = evidence?.currentLevel99Count ?: levels.count { it >= 99 },
+                    lifetimeMasteryCount = evidence?.effectiveLifetimeCount ?: 0,
+                    firstMasteryAt = evidence?.firstMasteryAt, latestMasteryAt = evidence?.latestMasteryAt,
+                    requiredByCollector = creature.creatureId in collectorRoster,
+                    requiredByCurator = creature.creatureId in collectorRoster,
+                    requiredByCompletionist = creature.creatureId in masteryRoster,
+                    sourceId = creature.sourceType.name)
             })
     }
 }
@@ -153,6 +231,6 @@ object MilestoneEngine {
     }
 }
 
-enum class AchievementChangeType { BADGE_NEWLY_EARNED, COUNT_INCREASED, MILESTONE_REACHED, COLLECTION_PROGRESS_CHANGED, SPECIES_MASTERY_RECORDED, REGIONAL_COMPLETIONIST_COMPLETED, BLUE_COMPLETIONIST_COMPLETED, ALL_WATERS_COMPLETIONIST_COMPLETED }
+enum class AchievementChangeType { BADGE_NEWLY_EARNED, COUNT_INCREASED, MILESTONE_REACHED, COLLECTION_PROGRESS_CHANGED, CURRENT_ROSTER_COMPLETED, SPECIES_MASTERY_RECORDED, REGIONAL_COMPLETIONIST_COMPLETED, BLUE_COMPLETIONIST_COMPLETED, ALL_WATERS_COMPLETIONIST_COMPLETED }
 data class AchievementChange(val type: AchievementChangeType, val badgeId: String? = null, val speciesId: String? = null, val collectionId: String? = null, val previousCount: Int = 0, val exactCount: Int = 0, val milestone: Int? = null)
 data class AchievementResult(val eventId: String, val committed: Boolean, val changes: List<AchievementChange>, val pearlCost: Int = 0, val resultingLevel: Int? = null)

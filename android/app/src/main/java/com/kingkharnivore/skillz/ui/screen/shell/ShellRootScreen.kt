@@ -2,6 +2,8 @@
 
 package com.kingkharnivore.skillz.ui.screen.shell
 
+import com.kingkharnivore.skillz.domain.achievement.BadgeActionDestination
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -142,6 +144,9 @@ fun ShellRootScreen(
     val scope = rememberCoroutineScope()
     val activeFlowMessage = stringResource(R.string.lookout_flow_already_active)
     var destination by remember { mutableStateOf<ShellDestination>(ShellDestination.Heart) }
+    var chestFocusSpecies by remember { mutableStateOf<String?>(null) }
+    var blueFocusCollection by remember { mutableStateOf<String?>(null) }
+    var stillwaterFocusCollection by remember { mutableStateOf<String?>(null) }
     var showNotifications by remember { mutableStateOf(false) }
     val notificationCount = unseenNotificationCount(uiState)
 
@@ -215,7 +220,8 @@ fun ShellRootScreen(
                     onDrawFromStillwater = viewModel::onDrawFromStillwater,
                     onConfirmStillwaterDraw = viewModel::onConfirmStillwaterDraw,
                     onDismissStillwaterReveal = viewModel::onDismissStillwaterReveal,
-                    onDismissStillwaterDrawConfirmation = viewModel::onDismissStillwaterDrawConfirmation
+                    onDismissStillwaterDrawConfirmation = viewModel::onDismissStillwaterDrawConfirmation,
+                    focusedCollectionId = stillwaterFocusCollection
                 )
 
                 ShellDestination.ShellChest -> ShellChestScreen(
@@ -224,7 +230,9 @@ fun ShellRootScreen(
                     onLevelUpCreatureByLevel = { id, level -> viewModel.growCreatureByLevel(id, level, "CHEST") },
                     onOpenBlue = { destination = ShellDestination.TheBluePreview },
                     onSortOptionSelected = viewModel::setChestSortOption,
-                    onFilterSelected = viewModel::setChestFilter
+                    onFilterSelected = viewModel::setChestFilter,
+                    focusSpeciesId = chestFocusSpecies,
+                    onFocusConsumed = { chestFocusSpecies = null }
                 )
 
                 ShellDestination.Badges -> BadgesScreen(
@@ -238,7 +246,15 @@ fun ShellRootScreen(
                     onSort = viewModel::setBadgeSort,
                     onBadgeViewed = { viewModel.markBadgeViewed(it) },
                     onAcknowledgeBackfill = viewModel::acknowledgeBackfill,
-                    onNavigate = { destination = it },
+                    onNavigate = { request ->
+                        when (request) {
+                            is BadgeActionDestination.Chest -> { chestFocusSpecies = request.speciesId; destination = ShellDestination.ShellChest }
+                            is BadgeActionDestination.Blue -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
+                            is BadgeActionDestination.Stillwater -> { stillwaterFocusCollection = request.collectionId; destination = ShellDestination.Stillwater }
+                            BadgeActionDestination.MovementInfo, BadgeActionDestination.BadgeDetails,
+                            BadgeActionDestination.Flow, BadgeActionDestination.Arc -> Unit
+                        }
+                    },
                     onOpenFlow = { if (isFlowActive) onOpenActiveFlow() else onLaunchFlowForJourney("") },
                     onOpenArc = onPlanArc
                 )
@@ -251,7 +267,9 @@ fun ShellRootScreen(
                     onGrowCreature = { id -> viewModel.growCreature(id, "BLUE") },
                     onReleaseCreaturesByLevel = viewModel::releaseCreaturesByLevel,
                     onEncounterBeyondBlue = viewModel::encounterBeyondBlue,
-                    onOpenChest = { destination = ShellDestination.ShellChest }
+                    onOpenChest = { destination = ShellDestination.ShellChest },
+                    focusedCollectionId = blueFocusCollection,
+                    onFocusConsumed = { blueFocusCollection = null }
                 )
 
                 ShellDestination.IdeaGrovePreview -> IdeaGroveRoute(

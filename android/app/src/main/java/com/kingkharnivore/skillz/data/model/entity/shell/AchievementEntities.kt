@@ -42,7 +42,7 @@ data class CollectionCompletionEntity(
     val requiredSpeciesIds: String
 )
 
-/** Idempotency ledger for a level transition; resultPayload is forward compatible. */
+/** Idempotency ledger. New payloads are versioned JSON; legacy pipe-delimited rows remain readable. */
 @Entity(tableName = "achievement_event", indices = [Index("creatureInstanceId")])
 data class AchievementEventEntity(
     @PrimaryKey val eventId: String,

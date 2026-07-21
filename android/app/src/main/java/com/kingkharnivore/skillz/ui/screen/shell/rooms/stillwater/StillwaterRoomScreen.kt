@@ -96,7 +96,8 @@ fun StillwaterRoomScreen(
     onDrawFromStillwater: (StillwaterVessel) -> Unit,
     onConfirmStillwaterDraw: (StillwaterVessel) -> Unit,
     onDismissStillwaterReveal: () -> Unit,
-    onDismissStillwaterDrawConfirmation: () -> Unit
+    onDismissStillwaterDrawConfirmation: () -> Unit,
+    focusedCollectionId: String? = null
 ) {
     val dropsCard = buildStillwaterDropsCardUiModel(uiState)
     val drops = dropsCard.primaryDrops
@@ -122,7 +123,8 @@ fun StillwaterRoomScreen(
             fontWeight = FontWeight.SemiBold
         )
 
-        StillwaterVessel.entries.forEach { vessel ->
+        val focusedVessel = focusedCollectionId?.removePrefix("stillwater_")
+        StillwaterVessel.entries.sortedByDescending { it.name.lowercase() == focusedVessel }.forEach { vessel ->
             StillwaterVesselCard(
                 vessel = vessel,
                 claimableDrops = drops,

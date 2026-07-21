@@ -85,6 +85,13 @@ data class CreatureDefinition(
     } else {
         "blue_${zone.name.lowercase()}"
     }
+    val primaryProgressCollectionId: String get() = if (sourceType == CreatureSourceType.STILLWATER) {
+        StillwaterCatalog.byId[creatureId]?.vessel?.let { "stillwater_${it.name.lowercase()}" }
+            ?: "collection_stillwater"
+    } else collectionId
+    val collectionIds: Set<String> get() = if (sourceType == CreatureSourceType.STILLWATER) {
+        setOf(primaryProgressCollectionId, "collection_stillwater", "collection_all_waters")
+    } else setOf(collectionId, "collection_the_blue", "collection_all_waters")
     val titleRes: Int get() = ShellContentCatalog.find(creatureId)?.titleRes ?: 0
 }
 

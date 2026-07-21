@@ -42,10 +42,12 @@ object MasteryCelebrationStateMachine {
 fun significantAchievementOrder(badgeId: String): Int = when {
     badgeId == "collection_all_waters_completionist" -> 0
     badgeId == "collection_the_blue_completionist" -> 1
-    badgeId.startsWith("blue_") && badgeId.endsWith("_completionist") -> 2
-    badgeId == "mastery_first" -> 3
-    badgeId.startsWith("mastery_species_") -> 4
-    badgeId == "mastery_variety" -> 5
-    badgeId == "mastery_circle" -> 6
-    else -> 7
+    badgeId == "collection_stillwater_completionist" -> 2
+    badgeId.startsWith("stillwater_") && badgeId.endsWith("_completionist") -> 3
+    badgeId.startsWith("blue_") && badgeId.endsWith("_completionist") -> 4
+    badgeId == "mastery_first" -> 5
+    badgeId.startsWith("mastery_species_") -> 6
+    badgeId == "mastery_variety" -> 7
+    badgeId == "mastery_circle" -> 8
+    else -> 9
 }

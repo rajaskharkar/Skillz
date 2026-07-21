@@ -11,7 +11,7 @@ sealed interface BadgeActionDestination {
     data object Arc : BadgeActionDestination
     data class Chest(val speciesId: String?) : BadgeActionDestination
     data class Blue(val collectionId: String?) : BadgeActionDestination
-    data object Stillwater : BadgeActionDestination
+    data class Stillwater(val collectionId: String?) : BadgeActionDestination
     data object MovementInfo : BadgeActionDestination
     data object BadgeDetails : BadgeActionDestination
 }
@@ -33,7 +33,8 @@ data class BadgeProgressModel(
     val highestCreatureLevel: Int? = null,
     val action: BadgeActionDestination = BadgeActionDestination.BadgeDetails,
     val newlyEarned: Boolean = false,
-    val recentlyUpdated: Boolean = false
+    val recentlyUpdated: Boolean = false,
+    val importance: Int = 0
 )
 
 data class BadgeDashboard(
@@ -55,7 +56,12 @@ data class Level99AchievementPreview(
     val completesRegion: Boolean,
     val completesBlue: Boolean,
     val completesAllWaters: Boolean,
-    val milestones: List<Int>
+    val restoresRegionRoster: Boolean = false,
+    val restoresBlueRoster: Boolean = false,
+    val restoresAllWatersRoster: Boolean = false,
+    val milestones: List<Int>,
+    val stillwaterMasteredAfter: Int? = null,
+    val stillwaterTotal: Int? = null
 )
 
 object BadgeDashboardCalculator {
@@ -74,19 +80,20 @@ object BadgeDashboardCalculator {
         val tracked = tracking.map { it.badgeId }.toSet()
         val floors = countFloors.associateBy { it.badgeId }
         val discovered = discoveries.map { it.speciesId }.toSet()
-        val mastered = masteries.map { it.speciesId }.toSet()
         val activeLevels = instances.filter { it.creatureStatus == CreatureStatus.ACTIVE }
             .groupBy({ it.findId }, { it.animalLevel })
+        val masteryEvidence = MasteryEvidenceCalculator.bySpecies(masteries, countFloors, activeLevels)
+        val mastered = masteryEvidence.filterValues { it.hasEverBeenMastered }.keys
         val historical = completions.groupBy { it.collectionId }.mapValues { (_, rows) ->
             rows.mapNotNull { runCatching { BadgeRequirement.valueOf(it.completionType) }.getOrNull() }.toSet()
         }
         val collectionProgress = CollectionCatalog.collections.map {
-            CollectionProgressCalculator.calculate(it, discovered, activeLevels, mastered, historical[it.collectionId].orEmpty())
+            CollectionProgressCalculator.calculate(it, discovered, activeLevels, masteryEvidence, historical[it.collectionId].orEmpty())
         }
         val collectionById = collectionProgress.associateBy { it.collectionId }
         val definitions = (AchievementBadgeCatalog.definitions + earned.mapNotNull { row ->
             if (AchievementBadgeCatalog.byId.containsKey(row.badgeId)) null else legacyDefinition(row.badgeId)
-        }).distinctBy { it.badgeId }
+        }).distinctBy { it.badgeId }.filter { !it.hiddenUntilEarned || (earnedById[it.badgeId]?.count ?: 0) > 0 }
         val badges = definitions.map { definition ->
             val stored = earnedById[definition.badgeId]
             val collection = definition.collectionId?.let(collectionById::get)
@@ -96,22 +103,29 @@ object BadgeDashboardCalculator {
                 BadgeRequirement.CURATOR -> if (collection?.curatorEarned == true) 1 else 0
                 BadgeRequirement.COMPLETIONIST -> if (collection?.completionistEarned == true) 1 else 0
                 BadgeRequirement.EXACT_COUNT -> when (definition.badgeId) {
-                    "mastery_first" -> if (masteries.isEmpty()) 0 else 1
-                    "mastery_circle" -> masteries.size
+                    "mastery_first" -> if (mastered.isEmpty()) 0 else 1
+                    "mastery_circle" -> maxOf(
+                        masteryEvidence.values.sumOf { it.effectiveLifetimeCount },
+                        MasteryEvidenceCalculator.effectiveCount(masteries.size, floors["mastery_circle"])
+                    )
                     "mastery_variety" -> mastered.size
                     "variety_collector" -> discovered.size
                     "stillwater_first_catch" -> if (discovered.any { CreatureCatalog.get(it)?.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER }) 1 else 0
                     "stillwater_variety" -> discovered.count { CreatureCatalog.get(it)?.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER }
-                    "stillwater_mastery" -> masteries.count { CreatureCatalog.get(it.speciesId)?.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER }
+                    "stillwater_mastery" -> maxOf(
+                        masteryEvidence.values.filter { CreatureCatalog.get(it.speciesId)?.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER }.sumOf { it.effectiveLifetimeCount },
+                        MasteryEvidenceCalculator.effectiveCount(masteries.count { CreatureCatalog.get(it.speciesId)?.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER }, floors["stillwater_mastery"])
+                    )
                     "across_the_depths" -> if (CollectionCatalog.collections.filter { it.collectionId.startsWith("blue_") }.all { (collectionById[it.collectionId]?.discoveredSpeciesCount ?: 0) > 0 }) 1 else 0
-                    "one_from_every_water" -> if (CollectionCatalog.collections.filter { it.collectionId.startsWith("blue_") || it.collectionId.startsWith("stillwater_") }.all { (collectionById[it.collectionId]?.discoveredSpeciesCount ?: 0) > 0 }) 1 else 0
-                    "keeper_of_the_blue" -> if (collectionById["collection_the_blue"]?.curatorEarned == true) 1 else 0
-                    else -> definition.speciesId?.let { species -> masteries.count { it.speciesId == species } } ?: (stored?.count ?: 0)
+                    "one_from_every_water" -> if (CollectionCatalog.collections.filter { it.collectionId.startsWith("blue_") || it.collectionId.startsWith("stillwater_") }.all { collection ->
+                        collection.eligibleRoster(BadgeRequirement.COMPLETIONIST).any { masteryEvidence[it]?.hasEverBeenMastered == true }
+                    }) 1 else 0
+                    "keeper_of_the_blue" -> if (CollectionCatalog.collections.filter { it.collectionId.startsWith("blue_") }.all { collectionById[it.collectionId]?.collectorEarned == true }) 1 else 0
+                    else -> definition.speciesId?.let { masteryEvidence[it]?.effectiveLifetimeCount ?: 0 } ?: (stored?.count ?: 0)
                 }
             }
-            val computed = floors[definition.badgeId]?.let { floor ->
-                floor.minimumCount + (verified - floor.verifiedCountAtReconciliation).coerceAtLeast(0)
-            }?.coerceAtLeast(verified) ?: verified
+            val computed = if (definition.badgeId == "mastery_circle" || definition.speciesId != null || definition.badgeId == "stillwater_mastery") verified
+                else MasteryEvidenceCalculator.effectiveCount(verified, floors[definition.badgeId])
             val target = when (definition.requirement) {
                 BadgeRequirement.COLLECTOR -> collection?.totalParticipatingSpecies ?: 1
                 BadgeRequirement.CURATOR -> collection?.totalParticipatingSpecies ?: 1
@@ -124,29 +138,42 @@ object BadgeDashboardCalculator {
                 BadgeRequirement.COMPLETIONIST -> collection?.masteredSpeciesCount ?: 0
                 BadgeRequirement.EXACT_COUNT -> computed
             }
+            val currentRosterIncomplete = when (definition.requirement) {
+                BadgeRequirement.COLLECTOR -> collection?.currentRosterCollectorComplete == false
+                BadgeRequirement.CURATOR -> collection?.currentRosterCuratorComplete == false
+                BadgeRequirement.COMPLETIONIST -> collection?.currentRosterCompletionistComplete == false
+                BadgeRequirement.EXACT_COUNT -> false
+            }
             BadgeProgressModel(definition.badgeId, computed, computed > 0, category(definition), progress,
                 target, (target - progress).coerceAtLeast(0), MilestoneEngine.evaluate(computed, thresholds = definition.milestones),
                 stored?.firstEarnedAt, stored?.lastEarnedAt, pinOrder[definition.badgeId],
-                definition.badgeId in tracked && !(definition.countType == BadgeCountType.ONE_TIME && computed > 0),
+                definition.badgeId in tracked && !(definition.countType == BadgeCountType.ONE_TIME && computed > 0 && !currentRosterIncomplete),
                 collection, speciesLevels.maxOrNull(), action(definition),
                 stored?.viewedAt == null && stored != null && stored.firstEarnedAt == stored.lastEarnedAt,
-                stored?.viewedAt == null && stored != null && stored.lastEarnedAt > stored.firstEarnedAt)
+                stored?.viewedAt == null && stored != null && stored.lastEarnedAt > stored.firstEarnedAt,
+                definition.importance)
         }
         val previewBySpecies = CreatureCatalog.all.associate { creature ->
-            val region = collectionById.getValue(creature.collectionId)
+            val region = collectionById.getValue(creature.primaryProgressCollectionId)
             val blue = collectionById.getValue("collection_the_blue")
             val all = collectionById.getValue("collection_all_waters")
+            val stillwater = collectionById.getValue("collection_stillwater")
             val currentSpeciesCount = badges.firstOrNull { it.badgeId == "mastery_species_${creature.creatureId}" }?.count ?: 0
             val addsUnique = creature.creatureId !in mastered
             val afterCount = currentSpeciesCount + 1
             creature.creatureId to Level99AchievementPreview(creature.creatureId, afterCount,
-                currentSpeciesCount == 0, creature.collectionId,
+                currentSpeciesCount == 0, creature.primaryProgressCollectionId,
                 region.masteredSpeciesCount + if (addsUnique && creature.creatureId in region.missingMasteredSpeciesIds) 1 else 0,
                 region.totalCompletionistSpecies,
                 !region.completionistEarned && region.missingMasteredSpeciesIds == setOf(creature.creatureId),
                 !blue.completionistEarned && blue.missingMasteredSpeciesIds == setOf(creature.creatureId),
                 !all.completionistEarned && all.missingMasteredSpeciesIds == setOf(creature.creatureId),
-                AchievementBadgeDefinition.DEFAULT_MILESTONES.filter { it == afterCount })
+                region.completionistEarned && !region.currentRosterCompletionistComplete && region.missingMasteredSpeciesIds == setOf(creature.creatureId),
+                blue.completionistEarned && !blue.currentRosterCompletionistComplete && blue.missingMasteredSpeciesIds == setOf(creature.creatureId),
+                all.completionistEarned && !all.currentRosterCompletionistComplete && all.missingMasteredSpeciesIds == setOf(creature.creatureId),
+                AchievementBadgeDefinition.DEFAULT_MILESTONES.filter { it == afterCount },
+                if (creature.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER) stillwater.masteredSpeciesCount + if (addsUnique && creature.creatureId in stillwater.missingMasteredSpeciesIds) 1 else 0 else null,
+                if (creature.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER) stillwater.totalCompletionistSpecies else null)
         }
         return BadgeDashboard(badges, collectionProgress, badges.count { it.earned },
             badges.firstOrNull { it.badgeId == "mastery_circle" }?.count ?: masteries.size,
@@ -163,7 +190,7 @@ object BadgeDashboardCalculator {
 
     private fun category(def: AchievementBadgeDefinition) = when {
         def.speciesId != null -> BadgeUiCategory.MASTERY
-        def.collectionId == "collection_stillwater" -> BadgeUiCategory.STILLWATER
+        def.collectionId == "collection_stillwater" || def.collectionId?.startsWith("stillwater_") == true -> BadgeUiCategory.STILLWATER
         def.collectionId != null -> BadgeUiCategory.COLLECTIONS
         def.family == BadgeFamily.FLOW || def.family == BadgeFamily.SOFT_FLOW -> BadgeUiCategory.FLOW
         def.family == BadgeFamily.ARC -> BadgeUiCategory.ARC
@@ -174,7 +201,7 @@ object BadgeDashboardCalculator {
     }
     private fun action(def: AchievementBadgeDefinition): BadgeActionDestination = when {
         def.speciesId != null -> BadgeActionDestination.Chest(def.speciesId)
-        def.collectionId?.startsWith("stillwater_") == true || def.collectionId == "collection_stillwater" -> BadgeActionDestination.Stillwater
+        def.collectionId?.startsWith("stillwater_") == true || def.collectionId == "collection_stillwater" -> BadgeActionDestination.Stillwater(def.collectionId)
         def.collectionId != null -> BadgeActionDestination.Blue(def.collectionId)
         def.family == BadgeFamily.FLOW || def.family == BadgeFamily.SOFT_FLOW || def.family == BadgeFamily.SURGE -> BadgeActionDestination.Flow
         def.family == BadgeFamily.ARC -> BadgeActionDestination.Arc
@@ -190,7 +217,8 @@ object RecommendationEngine {
         val usedCategories = result.mapTo(mutableSetOf()) { it.category }
         eligible.filterNot { it.tracked }.sortedWith(compareBy<BadgeProgressModel> {
             it.remaining.toDouble() / it.target
-        }.thenByDescending { it.progress }.thenBy { it.badgeId }).forEach { candidate ->
+        }.thenByDescending { it.importance }.thenByDescending { it.highestCreatureLevel ?: 0 }
+            .thenByDescending { it.progress }.thenBy { it.badgeId }).forEach { candidate ->
             if (result.size >= limit) return@forEach
             if (candidate.category !in usedCategories || eligible.none { it.category !in usedCategories }) {
                 result += candidate

@@ -176,12 +176,11 @@ fun TheBlueAnimalDetailSheet(
             Text(animal.restingCount.toString())
 
             Text(stringResource(R.string.the_blue_actions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Button(
-                onClick = { showGrowthConfirmation = true },
-                enabled = growthInstanceId != null && !isMastered,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            if (canGrow) Button(onClick = { showGrowthConfirmation = true }, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.shell_creature_level_up))
+            } else OutlinedButton(onClick = { showGrowthConfirmation = true },
+                enabled = growthInstanceId != null && !isMastered, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.shell_creature_view_requirements))
             }
             if (!canGrow) {
                 val missing = (growthCost - pearlBalance).coerceAtLeast(0)
@@ -236,7 +235,7 @@ fun TheBlueAnimalDetailSheet(
     }
     if (showGrowthConfirmation) AlertDialog(onDismissRequest = { showGrowthConfirmation = false },
         title = { Text(stringResource(R.string.shell_creature_level_up_confirm_title, name)) },
-        text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { Text(stringResource(R.string.shell_creature_level_up_confirm_body, highestLevel, name)); Text(stringResource(R.string.level99_preview_balance, growthCost, pearlBalance, (growthCost - pearlBalance).coerceAtLeast(0))); if (highestLevel == 98 && level99Preview != null) { Text(stringResource(R.string.mastery_level_transition), style = MaterialTheme.typography.headlineMedium); Text(stringResource(R.string.level99_preview_species_count, level99Preview.resultingSpeciesMasteryCount)); Text(stringResource(R.string.level99_preview_region, level99Preview.regionalMasteredAfter, level99Preview.regionalTotal)); if(level99Preview.completesRegion) Text(stringResource(R.string.level99_preview_completes_region)); if(level99Preview.completesBlue) Text(stringResource(R.string.level99_preview_completes_blue)); if(level99Preview.completesAllWaters) Text(stringResource(R.string.level99_preview_completes_all)) } } },
+        text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { Text(stringResource(R.string.shell_creature_level_up_confirm_body, highestLevel, name)); Text(stringResource(R.string.level99_preview_balance, growthCost, pearlBalance, (growthCost - pearlBalance).coerceAtLeast(0))); if (highestLevel == 98 && level99Preview != null) { Text(stringResource(R.string.mastery_level_transition), style = MaterialTheme.typography.headlineMedium); Text(stringResource(R.string.level99_preview_species_count, level99Preview.resultingSpeciesMasteryCount)); Text(stringResource(R.string.level99_preview_region, level99Preview.regionalMasteredAfter, level99Preview.regionalTotal)); level99Preview.stillwaterMasteredAfter?.let { Text(stringResource(R.string.level99_preview_stillwater, it, level99Preview.stillwaterTotal ?: 0)) }; if(level99Preview.completesRegion) Text(stringResource(R.string.level99_preview_completes_region)); if(level99Preview.completesBlue) Text(stringResource(R.string.level99_preview_completes_blue)); if(level99Preview.completesAllWaters) Text(stringResource(R.string.level99_preview_completes_all)); if(level99Preview.restoresRegionRoster || level99Preview.restoresBlueRoster || level99Preview.restoresAllWatersRoster) Text(stringResource(R.string.level99_preview_restores_roster)) } } },
         confirmButton = { Button(enabled = canGrow, onClick = { showGrowthConfirmation = false; growthInstanceId?.let(onGrow) }) { Text(stringResource(R.string.shell_creature_level_up)) } },
         dismissButton = { TextButton({ showGrowthConfirmation = false }) { Text(stringResource(android.R.string.cancel)) } })
 }

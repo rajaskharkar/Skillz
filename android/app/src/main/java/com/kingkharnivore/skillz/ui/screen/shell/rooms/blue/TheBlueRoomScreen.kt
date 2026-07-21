@@ -40,7 +40,9 @@ fun TheBlueRoomScreen(
     onGrowCreature: (String) -> Unit,
     onReleaseCreaturesByLevel: (String, Map<Int, Int>) -> Unit,
     onEncounterBeyondBlue: (String, List<String>) -> Unit,
-    onOpenChest: () -> Unit
+    onOpenChest: () -> Unit,
+    focusedCollectionId: String? = null,
+    onFocusConsumed: () -> Unit = {}
 ) {
     val theBlueState = remember(uiState.finds, uiState.focusPlacements) {
         buildTheBlueUiState(uiState.finds, uiState.focusPlacements)
@@ -60,6 +62,12 @@ fun TheBlueRoomScreen(
     }
     val pageCount = if (theBlueState.isEmpty) 1 else theBlueState.zones.size
     val pagerState = rememberPagerState(pageCount = { pageCount })
+    LaunchedEffect(focusedCollectionId, theBlueState.zones) {
+        val zoneName = focusedCollectionId?.removePrefix("blue_")
+        val page = theBlueState.zones.indexOfFirst { it.zoneId.name.lowercase() == zoneName }
+        if (page >= 0) pagerState.scrollToPage(page)
+        if (focusedCollectionId != null) onFocusConsumed()
+    }
     val scope = rememberCoroutineScope()
     var sceneTimeSeconds by remember { mutableStateOf(0f) }
     LaunchedEffect(Unit) {
