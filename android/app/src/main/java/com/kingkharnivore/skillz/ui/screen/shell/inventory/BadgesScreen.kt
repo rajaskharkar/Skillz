@@ -204,7 +204,16 @@ enum class BadgeMedallionSize { Small, Medium, Large }
         mark?.let { Text(it, Modifier.align(Alignment.TopCenter), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Black) }
     }
 }
-internal fun compactCount(count: Int): String = if (count <= 999) count.toString() else NumberFormat.getCompactNumberInstance().format(count)
+internal fun compactCount(count: Int): String {
+    if (count <= 999) return count.toString()
+    val (divisor, suffix) = when {
+        count >= 1_000_000_000 -> 1_000_000_000.0 to "B"
+        count >= 1_000_000 -> 1_000_000.0 to "M"
+        else -> 1_000.0 to "K"
+    }
+    return NumberFormat.getNumberInstance().apply { maximumFractionDigits = 1 }
+        .format(count / divisor) + suffix
+}
 
 @Composable private fun BadgeGridRow(badge: BadgeProgressModel, open: () -> Unit, pin: () -> Unit) { ElevatedCard(Modifier.fillMaxWidth().clickable(onClick = open)) { Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) { BadgeMedallion(badge, BadgeMedallionSize.Small, open); Column(Modifier.weight(1f).padding(horizontal = 10.dp)) { Text(badgeTitle(badge), fontWeight = FontWeight.Bold); Text(stringResource(R.string.badge_exact_count, NumberFormat.getIntegerInstance().format(badge.count)), style = MaterialTheme.typography.bodySmall); if (badge.newlyEarned) Text(stringResource(R.string.badge_new), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold) else if (badge.recentlyUpdated) Text(stringResource(R.string.badge_updated), color = MaterialTheme.colorScheme.primary) }; IconButton(pin) { Icon(if (badge.pinnedOrder != null) Icons.Outlined.PushPin else Icons.Outlined.AddCircleOutline, if (badge.pinnedOrder != null) stringResource(R.string.badge_pinned_a11y) else stringResource(R.string.badge_pin)) } } } }
 @Composable private fun ProgressBadgeRow(badge: BadgeProgressModel, open: () -> Unit, track: () -> Unit, action: () -> Unit) { ElevatedCard(Modifier.fillMaxWidth()) { Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) { BadgeMedallion(badge, BadgeMedallionSize.Small, open); Column(Modifier.weight(1f).padding(horizontal = 10.dp)) { Text(badgeTitle(badge), fontWeight = FontWeight.Bold); Text(recommendationText(badge), style = MaterialTheme.typography.bodySmall); LinearProgressIndicator({ if (badge.target == 0) 0f else badge.progress.toFloat()/badge.target }, Modifier.fillMaxWidth().semantics { progressBarRangeInfo = ProgressBarRangeInfo(badge.progress.toFloat(), 0f..badge.target.toFloat()) }) }; IconButton(track) { Icon(if (badge.tracked) Icons.Outlined.TrackChanges else Icons.Outlined.AddTask, if (badge.tracked) stringResource(R.string.badge_untrack) else stringResource(R.string.badge_track)) }; IconButton(action) { Icon(Icons.Outlined.ArrowForward, stringResource(R.string.badge_open_action_a11y)) } } } }
