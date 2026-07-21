@@ -145,11 +145,6 @@ fun NotificationInlayOverlay(
                 .then(if (maxWidth < 600.dp) Modifier.fillMaxWidth() else Modifier.width(380.dp))
                 .heightIn(max = 420.dp)
                 .align(Alignment.TopEnd)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = {}
-                )
                 .semantics { contentDescription = inlayDescription }
         ) {
             Column {
@@ -262,7 +257,7 @@ private fun NotificationInlayRow(
 
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         modifier = Modifier
             .fillMaxWidth()

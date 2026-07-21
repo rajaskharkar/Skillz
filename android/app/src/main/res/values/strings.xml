@@ -2079,6 +2079,12 @@ You can turn Health back on later.</string>
     <string name="mastery_completion_restored">Current collection roster completed.</string>
     <string name="level99_preview_restores_roster">This restores completion for the current collection roster.</string>
     <string name="level99_preview_stillwater">Overall Stillwater: %1$d of %2$d species mastered</string>
+    <string name="stillwater_collection_progress_title">Collection progress</string>
+    <string name="mastery_date_exact">Mastered on %1$s</string>
+    <string name="mastery_date_estimated">Mastered before or around %1$s</string>
+    <string name="mastery_date_unknown">Mastered before achievement history was enabled</string>
+    <string name="level99_preview_completes_stillwater">This completes overall Stillwater Mastery.</string>
+    <string name="level99_preview_restores_stillwater">This restores overall Stillwater completion for the current roster.</string>
     <plurals name="badges_summary"><item quantity="one">%1$d earned · %2$d Masteries · %3$d Completionist collection</item><item quantity="other">%1$d earned · %2$d Masteries · %3$d Completionist collections</item></plurals>
     <string name="badges_search">Search badges</string><string name="badges_empty_slot">Empty slot</string><string name="badges_no_recommendations">Keep exploring—your next reachable goal will appear here.</string>
     <string name="badges_showcase_title">Your Showcase</string><string name="badges_showcase_body">Pin the achievements that mean the most to you.</string><string name="badges_within_reach_title">Within Reach</string><string name="badges_within_reach_body">Personalized next steps, with tracked goals first.</string>
@@ -2095,6 +2101,6 @@ You can turn Health back on later.</string>
     <string name="badge_new">New</string><string name="badge_updated">Updated</string>
     <string name="badge_next_mastery_step">Highest current level: %1$d. %2$d levels to Mastery.</string><string name="badge_next_discovery_step">Discover %1$d more participating species.</string><string name="badge_next_completionist_step">Master %1$d more participating species.</string><string name="badge_next_flow_step">Complete %1$d more qualifying Flows.</string>
     <string name="badge_count_plate">×%1$s</string>
-    <string name="badges_clear_search">Clear search</string><string name="badges_move_left">Move left</string><string name="badges_move_right">Move right</string><string name="badges_no_earned">Complete a Flow or explore The Blue to earn your first badge.</string><string name="badges_no_search_results">No badges match “%1$s”.</string>
+    <string name="badges_clear_search">Clear search</string><string name="badges_no_earned">Complete a Flow or explore The Blue to earn your first badge.</string><string name="badges_no_search_results">No badges match “%1$s”.</string>
     <string name="mastery_view_badge">View Badge</string><string name="mastery_view_collection">View Collection Progress</string>
 </resources>

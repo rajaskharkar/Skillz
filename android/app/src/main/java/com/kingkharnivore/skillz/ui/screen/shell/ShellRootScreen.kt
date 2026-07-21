@@ -137,6 +137,7 @@ fun ShellRootScreen(
     onLaunchFlowFromPulse: (Long, String, String?) -> Unit = { _, _, _ -> },
     onOpenActiveFlow: () -> Unit = {},
     onPlanArc: () -> Unit = {},
+    onMovementInfo: () -> Unit = {},
     viewModel: ShellViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -221,7 +222,8 @@ fun ShellRootScreen(
                     onConfirmStillwaterDraw = viewModel::onConfirmStillwaterDraw,
                     onDismissStillwaterReveal = viewModel::onDismissStillwaterReveal,
                     onDismissStillwaterDrawConfirmation = viewModel::onDismissStillwaterDrawConfirmation,
-                    focusedCollectionId = stillwaterFocusCollection
+                    focusedCollectionId = stillwaterFocusCollection,
+                    onFocusConsumed = { stillwaterFocusCollection = null }
                 )
 
                 ShellDestination.ShellChest -> ShellChestScreen(
@@ -239,7 +241,6 @@ fun ShellRootScreen(
                     uiState = uiState,
                     onPin = viewModel::pinBadge,
                     onUnpin = viewModel::unpinBadge,
-                    onMovePin = viewModel::movePinnedBadge,
                     onTrack = viewModel::trackBadge,
                     onUntrack = viewModel::untrackBadge,
                     onCategory = viewModel::setBadgeCategory,
@@ -251,8 +252,10 @@ fun ShellRootScreen(
                             is BadgeActionDestination.Chest -> { chestFocusSpecies = request.speciesId; destination = ShellDestination.ShellChest }
                             is BadgeActionDestination.Blue -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
                             is BadgeActionDestination.Stillwater -> { stillwaterFocusCollection = request.collectionId; destination = ShellDestination.Stillwater }
-                            BadgeActionDestination.MovementInfo, BadgeActionDestination.BadgeDetails,
-                            BadgeActionDestination.Flow, BadgeActionDestination.Arc -> Unit
+                            BadgeActionDestination.BlueCollection, BadgeActionDestination.StillwaterCollection,
+                            BadgeActionDestination.AllWatersCollection -> destination = ShellDestination.Badges
+                            BadgeActionDestination.MovementInfo -> onMovementInfo()
+                            BadgeActionDestination.BadgeDetails, BadgeActionDestination.Flow, BadgeActionDestination.Arc -> Unit
                         }
                     },
                     onOpenFlow = { if (isFlowActive) onOpenActiveFlow() else onLaunchFlowForJourney("") },
@@ -329,7 +332,23 @@ fun ShellRootScreen(
                         }
                     }
                 },
-                onPin = { badgeId, replacementId -> viewModel.pinBadge(badgeId, replacementId) }
+                onPin = { badgeId, replacementId -> viewModel.pinBadge(badgeId, replacementId) },
+                onUnpin = viewModel::unpinBadge,
+                onTrack = viewModel::trackBadge,
+                onUntrack = viewModel::untrackBadge,
+                onNavigate = { request ->
+                    when (request) {
+                        is BadgeActionDestination.Chest -> { chestFocusSpecies = request.speciesId; destination = ShellDestination.ShellChest }
+                        is BadgeActionDestination.Blue -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
+                        is BadgeActionDestination.Stillwater -> { stillwaterFocusCollection = request.collectionId; destination = ShellDestination.Stillwater }
+                        BadgeActionDestination.BlueCollection, BadgeActionDestination.StillwaterCollection,
+                        BadgeActionDestination.AllWatersCollection -> destination = ShellDestination.Badges
+                        BadgeActionDestination.Flow -> if (isFlowActive) onOpenActiveFlow() else onLaunchFlowForJourney("")
+                        BadgeActionDestination.Arc -> onPlanArc()
+                        BadgeActionDestination.MovementInfo -> onMovementInfo()
+                        BadgeActionDestination.BadgeDetails -> Unit
+                    }
+                }
             )
         }
 

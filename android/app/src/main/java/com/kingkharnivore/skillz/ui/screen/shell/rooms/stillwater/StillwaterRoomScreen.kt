@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
@@ -24,10 +26,16 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -46,6 +54,8 @@ import com.kingkharnivore.skillz.ui.screen.shell.ux.shellChamberBrush
 import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.isBlueZoneUnlocked
+import com.kingkharnivore.skillz.domain.achievement.CollectionProgress
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.CollectionDetailsSheet
 
 internal data class StillwaterDropsCardUiModel(
     @StringRes val primaryStringRes: Int,
@@ -97,44 +107,64 @@ fun StillwaterRoomScreen(
     onConfirmStillwaterDraw: (StillwaterVessel) -> Unit,
     onDismissStillwaterReveal: () -> Unit,
     onDismissStillwaterDrawConfirmation: () -> Unit,
-    focusedCollectionId: String? = null
+    focusedCollectionId: String? = null,
+    onFocusConsumed: () -> Unit = {}
 ) {
     val dropsCard = buildStillwaterDropsCardUiModel(uiState)
     val drops = dropsCard.primaryDrops
 
-    Column(
+    val listState = rememberLazyListState()
+    var collectionDetails by remember { mutableStateOf<CollectionProgress?>(null) }
+    LaunchedEffect(focusedCollectionId) {
+        focusedCollectionId ?: return@LaunchedEffect
+        val index = if (focusedCollectionId == "collection_stillwater") 2 else {
+            val vesselName = focusedCollectionId.removePrefix("stillwater_")
+            4 + StillwaterVessel.entries.indexOfFirst { it.name.lowercase() == vesselName }.coerceAtLeast(0)
+        }
+        listState.animateScrollToItem(index)
+        onFocusConsumed()
+    }
+    LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        RoomHeader(
+        item("header") { RoomHeader(
             title = R.string.shell_room_stillwater_title,
             body = R.string.shell_stillwater_body
-        )
+        ) }
 
-        StillwaterDropsCard(dropsCard = dropsCard)
+        item("drops") { StillwaterDropsCard(dropsCard = dropsCard) }
 
-        Text(
+        uiState.badgeDashboard?.collections?.firstOrNull { it.collectionId == "collection_stillwater" }?.let { progress ->
+            item("overall-progress") { StillwaterProgressCard(progress, focusedCollectionId == progress.collectionId) { collectionDetails = progress } }
+        }
+
+        item("prompt") { Text(
             text = stringResource(R.string.shell_stillwater_draw_prompt),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.SemiBold
-        )
+        ) }
 
-        val focusedVessel = focusedCollectionId?.removePrefix("stillwater_")
-        StillwaterVessel.entries.sortedByDescending { it.name.lowercase() == focusedVessel }.forEach { vessel ->
-            StillwaterVesselCard(
+        StillwaterVessel.entries.forEach { vessel ->
+            val collectionId = "stillwater_${vessel.name.lowercase()}"
+            item(collectionId) { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { StillwaterVesselCard(
                 vessel = vessel,
                 claimableDrops = drops,
                 isUnlocked = uiState.isBlueZoneUnlocked(vessel.zone),
                 onDraw = onDrawFromStillwater
-            )
+            ); uiState.badgeDashboard?.collections?.firstOrNull { it.collectionId == collectionId }?.let { progress ->
+                StillwaterProgressCard(progress, focusedCollectionId == collectionId) { collectionDetails = progress }
+            } } }
         }
 
-        StillwaterExplainerCard()
+        item("explainer") { StillwaterExplainerCard() }
     }
+
+    collectionDetails?.let { CollectionDetailsSheet(it) { collectionDetails = null } }
 
     uiState.stillwaterRevealCreature?.let { creature ->
         StillwaterCreatureRevealDialog(
@@ -149,6 +179,21 @@ fun StillwaterRoomScreen(
             onConfirm = { onConfirmStillwaterDraw(vessel) },
             onDismiss = onDismissStillwaterDrawConfirmation
         )
+    }
+}
+
+@Composable private fun StillwaterProgressCard(progress: CollectionProgress, focused: Boolean, onClick: () -> Unit) {
+    OutlinedCard(onClick = onClick, colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = if (focused) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.stillwater_collection_progress_title), fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.collection_discovered_progress, progress.discoveredSpeciesCount, progress.totalParticipatingSpecies))
+            Text(stringResource(R.string.collection_owned_progress, progress.currentlyOwnedSpeciesCount, progress.totalParticipatingSpecies))
+            Text(stringResource(R.string.collection_mastered_progress, progress.masteredSpeciesCount, progress.totalCompletionistSpecies))
+            Text("${stringResource(R.string.badge_state_collector)}: ${stringResource(if (progress.collectorEarned) R.string.badge_earned else R.string.badge_locked)}")
+            Text("${stringResource(R.string.badge_state_curator)}: ${stringResource(if (progress.curatorEarned) R.string.badge_earned else R.string.badge_locked)}")
+            Text("${stringResource(R.string.badge_state_completionist)}: ${stringResource(if (progress.completionistEarned) R.string.badge_earned else R.string.badge_locked)}")
+        }
     }
 }
 
@@ -382,6 +427,7 @@ private fun StillwaterDrawConfirmDialog(
     val vesselName = stringResource(titleFor(vessel))
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = { Text(stringResource(R.string.shell_stillwater_confirm_draw_title, vesselName)) },
         text = {
             Text(
@@ -407,11 +453,13 @@ private fun StillwaterCreatureRevealDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = { Text(stringResource(R.string.shell_stillwater_creature_found)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = creature.displayName,
+                    text = creature.titleRes.takeIf { it != 0 }?.let { stringResource(it) }
+                        ?: stringResource(R.string.badge_creature_fallback),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )

@@ -33,7 +33,11 @@ fun MasteryCelebrationScreen(
     onAdvance: (Boolean) -> Unit,
     onSkip: () -> Unit,
     onComplete: (String) -> Unit,
-    onPin: (String, String?) -> Unit
+    onPin: (String, String?) -> Unit,
+    onUnpin: (String) -> Unit,
+    onTrack: (String) -> Unit,
+    onUntrack: (String) -> Unit,
+    onNavigate: (BadgeActionDestination) -> Unit
 ) {
     val stage = runCatching { CelebrationStage.valueOf(event.presentationStage) }
         .getOrDefault(CelebrationStage.FINAL_SUMMARY)
@@ -48,6 +52,10 @@ fun MasteryCelebrationScreen(
     var viewingCollection by remember(event.eventId) { mutableStateOf(false) }
     val speciesBadge = uiState.badgeDashboard?.badges?.firstOrNull { it.badgeId == speciesBadgeId }
     val selectedBadge = uiState.badgeDashboard?.badges?.firstOrNull { it.badgeId == selectedPinBadgeId } ?: speciesBadge
+    val selectedDefinition = selectedBadge?.let { AchievementBadgeCatalog.byId[it.badgeId] }
+    val selectedCollectionId = selectedDefinition?.collectionId
+        ?: selectedDefinition?.speciesId?.let(CreatureCatalog::get)?.primaryProgressCollectionId
+        ?: if (selectedPinBadgeId == speciesBadgeId) species?.primaryProgressCollectionId else null
     val isSummary = stage == CelebrationStage.FINAL_SUMMARY
     val celebrationDescription = stringResource(R.string.mastery_celebration_a11y, creatureName)
     val context = LocalContext.current
@@ -91,7 +99,7 @@ fun MasteryCelebrationScreen(
             if (isSummary) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton({ viewingBadgeId = selectedPinBadgeId }) { Text(stringResource(R.string.mastery_view_badge)) }
-                    TextButton({ viewingCollection = true }) { Text(stringResource(R.string.mastery_view_collection)) }
+                    if (!selectedCollectionId.isNullOrBlank()) TextButton({ viewingCollection = true }) { Text(stringResource(R.string.mastery_view_collection)) }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(onClick = {
@@ -107,14 +115,22 @@ fun MasteryCelebrationScreen(
     }
     if (pinRequested) {
         val pins = uiState.badgeDashboard?.badges?.filter { it.pinnedOrder != null }?.sortedBy { it.pinnedOrder }.orEmpty()
-        AlertDialog(onDismissRequest = { pinRequested = false }, title = { Text(stringResource(R.string.mastery_replace_pin_title)) },
+        AlertDialog(onDismissRequest = { pinRequested = false }, containerColor = MaterialTheme.colorScheme.surface, title = { Text(stringResource(R.string.mastery_replace_pin_title)) },
             text = { Column { Text(stringResource(R.string.mastery_pin_selected, resolveBadgePresentation(selectedPinBadgeId).title)); pins.forEach { pin -> TextButton(onClick = { onPin(selectedPinBadgeId, pin.badgeId); pinRequested = false }) { Text(resolveBadgePresentation(pin.badgeId).title) } } } },
             confirmButton = {}, dismissButton = { TextButton(onClick = { pinRequested = false }) { Text(stringResource(android.R.string.cancel)) } })
     }
     viewingBadgeId?.let { id -> uiState.badgeDashboard?.badges?.firstOrNull { it.badgeId == id }?.let { badge ->
-        BadgeDetailsSheet(badge, { viewingBadgeId = null }, { onPin(id, null) }, {}, {})
+        BadgeDetailsSheet(badge, { viewingBadgeId = null }, {
+            if (badge.pinnedOrder != null) onUnpin(id) else onPin(id, null)
+        }, { if (badge.tracked) onUntrack(id) else onTrack(id) }, {
+            when (badge.action) {
+                BadgeActionDestination.BlueCollection, BadgeActionDestination.StillwaterCollection,
+                BadgeActionDestination.AllWatersCollection -> { viewingBadgeId = null; viewingCollection = true }
+                else -> onNavigate(badge.action)
+            }
+        })
     } }
-    if (viewingCollection) uiState.badgeDashboard?.collections?.firstOrNull { it.collectionId == event.regionId }?.let {
+    if (viewingCollection) uiState.badgeDashboard?.collections?.firstOrNull { it.collectionId == selectedCollectionId }?.let {
         CollectionDetailsSheet(it) { viewingCollection = false }
     }
 }
@@ -149,7 +165,7 @@ fun MasteryCelebrationScreen(
     val ids = event.newlyEarnedBadgeIds.split(',').filter { it.isNotBlank() }.sortedBy(::significantAchievementOrder)
     if (ids.isEmpty()) Text(stringResource(R.string.mastery_counts_advanced))
     ids.forEach { id ->
-        ElevatedCard(Modifier.fillMaxWidth()) {
+        ElevatedCard(Modifier.fillMaxWidth(), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp)) {
                 Text(resolveBadgePresentation(id).title, fontWeight = FontWeight.Bold)
                 when (id) {
@@ -161,7 +177,7 @@ fun MasteryCelebrationScreen(
         }
     }
     event.advancedBadgeIds.split(',').filter { it.endsWith("_completionist") }.distinct().forEach { id ->
-        OutlinedCard(Modifier.fillMaxWidth()) {
+        OutlinedCard(Modifier.fillMaxWidth(), colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(16.dp)) {
                 Text(resolveBadgePresentation(id).title, fontWeight = FontWeight.Bold)
                 Text(stringResource(R.string.mastery_completion_restored))
@@ -171,7 +187,7 @@ fun MasteryCelebrationScreen(
     event.milestonesReached.split(',').filter { it.isNotBlank() }.forEach { milestone ->
         val id = milestone.substringBefore(':')
         val threshold = milestone.substringAfter(':')
-        OutlinedCard(Modifier.fillMaxWidth()) {
+        OutlinedCard(Modifier.fillMaxWidth(), colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Text(stringResource(R.string.mastery_milestone_reached, resolveBadgePresentation(id).title, threshold), Modifier.padding(16.dp))
         }
     }

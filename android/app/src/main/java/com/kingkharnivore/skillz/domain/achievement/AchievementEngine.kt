@@ -13,6 +13,13 @@ import java.security.MessageDigest
 enum class BadgeFamily { SPECIES_MASTERY, MASTERY, COLLECTION, FLOW, SOFT_FLOW, ARC, MOVEMENT, SURGE }
 enum class BadgeCountType { ONE_TIME, REPEATABLE }
 enum class BadgeRequirement { EXACT_COUNT, COLLECTOR, CURATOR, COMPLETIONIST }
+enum class MasteryTimestampConfidence { EXACT, ESTIMATED_FROM_ACQUISITION, UNKNOWN }
+
+fun boundedMilestones(totalEligible: Int): List<Int> {
+    if (totalEligible <= 0) return emptyList()
+    return (AchievementBadgeDefinition.DEFAULT_MILESTONES.filter { it <= totalEligible } + totalEligible)
+        .distinct().sorted()
+}
 
 data class SpeciesMasteryEvidence(
     val speciesId: String,
@@ -22,7 +29,8 @@ data class SpeciesMasteryEvidence(
     val hasEverBeenMastered: Boolean,
     val currentLevel99Count: Int = 0,
     val firstMasteryAt: Long? = null,
-    val latestMasteryAt: Long? = null
+    val latestMasteryAt: Long? = null,
+    val timestampConfidence: MasteryTimestampConfidence = MasteryTimestampConfidence.UNKNOWN
 )
 
 /** One count-floor rule shared by persistence, dashboards, previews, and celebrations. */
@@ -47,6 +55,7 @@ object MasteryEvidenceCalculator {
                 val speciesEvents = eventsBySpecies[speciesId].orEmpty()
                 val floor = floorsBySpecies[speciesId]
                 val effective = effectiveCount(speciesEvents.size, floor)
+                val earliest = speciesEvents.minByOrNull { it.achievedAt }
                 SpeciesMasteryEvidence(
                     speciesId = speciesId,
                     verifiedIndividualCount = speciesEvents.size,
@@ -54,8 +63,13 @@ object MasteryEvidenceCalculator {
                     effectiveLifetimeCount = effective,
                     hasEverBeenMastered = effective > 0,
                     currentLevel99Count = ownedLevels[speciesId].orEmpty().count { it >= 99 },
-                    firstMasteryAt = speciesEvents.minOfOrNull { it.achievedAt },
-                    latestMasteryAt = speciesEvents.maxOfOrNull { it.achievedAt }
+                    firstMasteryAt = earliest?.achievedAt,
+                    latestMasteryAt = speciesEvents.maxOfOrNull { it.achievedAt },
+                    timestampConfidence = when {
+                        earliest == null -> MasteryTimestampConfidence.UNKNOWN
+                        earliest.levelUpTransactionId.startsWith("backfill_") -> MasteryTimestampConfidence.ESTIMATED_FROM_ACQUISITION
+                        else -> MasteryTimestampConfidence.EXACT
+                    }
                 )
             }
     }
@@ -66,7 +80,7 @@ data class AchievementBadgeDefinition(
     val family: BadgeFamily,
     val countType: BadgeCountType,
     val requirement: BadgeRequirement,
-    val milestones: List<Int> = DEFAULT_MILESTONES,
+    val milestones: List<Int> = if (countType == BadgeCountType.ONE_TIME) listOf(1) else DEFAULT_MILESTONES,
     val speciesId: String? = null,
     val collectionId: String? = null,
     val hiddenUntilEarned: Boolean = false,
@@ -85,10 +99,13 @@ object AchievementBadgeCatalog {
         }
         add(AchievementBadgeDefinition("mastery_first", BadgeFamily.MASTERY, BadgeCountType.ONE_TIME, BadgeRequirement.EXACT_COUNT))
         add(AchievementBadgeDefinition("mastery_circle", BadgeFamily.MASTERY, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT))
-        add(AchievementBadgeDefinition("mastery_variety", BadgeFamily.MASTERY, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT))
-        add(AchievementBadgeDefinition("variety_collector", BadgeFamily.COLLECTION, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT))
+        add(AchievementBadgeDefinition("mastery_variety", BadgeFamily.MASTERY, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT,
+            milestones = boundedMilestones(CreatureCatalog.all.count { it.isAvailable && it.participatesInCompletionist })))
+        add(AchievementBadgeDefinition("variety_collector", BadgeFamily.COLLECTION, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT,
+            milestones = boundedMilestones(CreatureCatalog.all.count { it.isAvailable && it.participatesInCollector })))
         add(AchievementBadgeDefinition("stillwater_first_catch", BadgeFamily.COLLECTION, BadgeCountType.ONE_TIME, BadgeRequirement.EXACT_COUNT, collectionId = "collection_stillwater"))
-        add(AchievementBadgeDefinition("stillwater_variety", BadgeFamily.COLLECTION, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT, collectionId = "collection_stillwater"))
+        add(AchievementBadgeDefinition("stillwater_variety", BadgeFamily.COLLECTION, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT,
+            milestones = boundedMilestones(CreatureCatalog.stillwater.count { it.isAvailable && it.participatesInCollector }), collectionId = "collection_stillwater"))
         add(AchievementBadgeDefinition("stillwater_mastery", BadgeFamily.MASTERY, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT, collectionId = "collection_stillwater"))
         CollectionCatalog.collections.forEach { collection ->
             listOf(BadgeRequirement.COLLECTOR, BadgeRequirement.CURATOR, BadgeRequirement.COMPLETIONIST).forEach { requirement ->
@@ -176,7 +193,8 @@ data class CollectionSpeciesProgress(
     val requiredByCollector: Boolean = false,
     val requiredByCurator: Boolean = false,
     val requiredByCompletionist: Boolean = false,
-    val sourceId: String? = null
+    val sourceId: String? = null,
+    val timestampConfidence: MasteryTimestampConfidence = MasteryTimestampConfidence.UNKNOWN
 )
 
 object CollectionProgressCalculator {
@@ -215,7 +233,7 @@ object CollectionProgressCalculator {
                     requiredByCollector = creature.creatureId in collectorRoster,
                     requiredByCurator = creature.creatureId in collectorRoster,
                     requiredByCompletionist = creature.creatureId in masteryRoster,
-                    sourceId = creature.sourceType.name)
+                    sourceId = creature.sourceType.name, timestampConfidence = evidence?.timestampConfidence ?: MasteryTimestampConfidence.UNKNOWN)
             })
     }
 }

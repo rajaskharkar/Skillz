@@ -24,7 +24,6 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -66,6 +65,7 @@ import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
 import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 import com.kingkharnivore.skillz.ui.screen.shell.ux.RoomHeader
+import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraParchmentSheet
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.domain.achievement.Level99AchievementPreview
@@ -129,8 +129,11 @@ fun ShellChestScreen(
     }
     val totalCreatureCount = stacks.sumOf { it.count }
     LaunchedEffect(focusSpeciesId, allStacks) {
-        focusSpeciesId?.let { id -> allStacks.firstOrNull { it.creatureId == id }?.let { selectedStack = it } }
-        if (focusSpeciesId != null) onFocusConsumed()
+        focusSpeciesId?.let { id ->
+            allStacks.filter { it.creatureId == id }.maxWithOrNull(
+                compareBy<ChestInventoryStackUiModel> { if (it.level < 99) 1 else 0 }.thenBy { it.level }
+            )?.let { selectedStack = it; onFocusConsumed() }
+        }
     }
 
     Column(
@@ -497,7 +500,7 @@ private fun ChestStackDetailSheet(
             levelUpCost
         )
     }
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ScyraParchmentSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -636,6 +639,7 @@ private fun ChestLevelUpConfirmationDialog(
     )
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = { Text(stringResource(R.string.shell_creature_level_up_confirm_title, stack.creatureName)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -648,6 +652,8 @@ private fun ChestLevelUpConfirmationDialog(
                     if (preview.firstSpeciesMastery) Text(stringResource(R.string.level99_preview_first_species))
                     Text(stringResource(R.string.level99_preview_region, preview.regionalMasteredAfter, preview.regionalTotal))
                     preview.stillwaterMasteredAfter?.let { mastered -> Text(stringResource(R.string.level99_preview_stillwater, mastered, preview.stillwaterTotal ?: 0)) }
+                    if (preview.completesStillwater) Text(stringResource(R.string.level99_preview_completes_stillwater))
+                    if (preview.restoresStillwaterRoster) Text(stringResource(R.string.level99_preview_restores_stillwater))
                     if (preview.completesRegion) Text(stringResource(R.string.level99_preview_completes_region))
                     if (preview.completesBlue) Text(stringResource(R.string.level99_preview_completes_blue))
                     if (preview.completesAllWaters) Text(stringResource(R.string.level99_preview_completes_all))
@@ -691,6 +697,7 @@ private fun ChestReleaseConfirmationDialog(
     )
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = { Text(stringResource(R.string.shell_creature_release_confirm_title, stack.creatureName)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

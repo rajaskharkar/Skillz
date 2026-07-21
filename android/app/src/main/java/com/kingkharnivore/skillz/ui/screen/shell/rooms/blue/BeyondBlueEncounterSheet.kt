@@ -1,5 +1,7 @@
 package com.kingkharnivore.skillz.ui.screen.shell.rooms.blue
 
+import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraParchmentSheet
+
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,12 +23,12 @@ import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -98,7 +100,7 @@ fun BeyondBlueEncounterSheet(
         }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ScyraParchmentSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -119,6 +121,8 @@ fun BeyondBlueEncounterSheet(
                 val selectedCreatureZone = selectedZone.toCreatureZone()
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                     CreatureCatalog.beyondBlue.filter { it.zone == selectedCreatureZone }.forEach { target ->
+                        val targetName = target.titleRes.takeIf { it != 0 }?.let { stringResource(it) }
+                            ?: stringResource(R.string.badge_creature_fallback)
                         val requirement = target.requirementMinutes ?: 0
                         val price = CreatureEconomy.pearlPriceForRequirement(requirement)
                         val canAfford = pearlBalance >= price
@@ -126,10 +130,10 @@ fun BeyondBlueEncounterSheet(
                             confirmTargetId = target.creatureId
                             selectedCounts = emptyMap()
                             tradeExpanded = false
-                        }) {
+                        }, colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 ShellObjectIcon(target.staticIconKey, Modifier.size(46.dp))
-                                Text(target.displayName, fontWeight = FontWeight.Bold)
+                                Text(targetName, fontWeight = FontWeight.Bold)
                                 Text(zoneTitle(theBlueZoneFor(target.zone)), style = MaterialTheme.typography.labelMedium)
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     ShellMetricPill(Icons.Outlined.Diamond, stringResource(R.string.beyond_blue_or_pearls, price))
@@ -142,6 +146,8 @@ fun BeyondBlueEncounterSheet(
                 }
             } else {
                 val target = confirmTarget
+                val targetName = target.titleRes.takeIf { it != 0 }?.let { stringResource(it) }
+                    ?: stringResource(R.string.badge_creature_fallback)
                 val requirement = target.requirementMinutes ?: 0
                 val pearlOnlyPrice = CreatureEconomy.pearlPriceForRequirement(requirement)
                 val selectedMinutes = tradeStacks.sumOf { (selectedCounts[it.key] ?: 0) * it.perMinutes }
@@ -149,10 +155,10 @@ fun BeyondBlueEncounterSheet(
                 val progress = if (requirement == 0) 1f else (selectedMinutes.toFloat() / requirement.toFloat()).coerceIn(0f, 1f)
                 var showConfirm by remember(target.creatureId, selectedCounts, quote) { mutableStateOf(false) }
 
-                ElevatedCard {
+                ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         ShellObjectIcon(target.staticIconKey, Modifier.size(56.dp))
-                        Text(target.displayName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(targetName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text(zoneTitle(theBlueZoneFor(target.zone)), color = MaterialTheme.colorScheme.primary)
                         Text(stringResource(R.string.beyond_blue_life_waiting_depth))
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -162,7 +168,7 @@ fun BeyondBlueEncounterSheet(
                     }
                 }
 
-                ElevatedCard {
+                ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(stringResource(R.string.beyond_blue_buy_with_pearls), fontWeight = FontWeight.SemiBold)
                         ShellMetricPill(Icons.Outlined.Diamond, stringResource(R.string.beyond_blue_use_pearls_only_amount, pearlOnlyPrice))
@@ -203,7 +209,7 @@ fun BeyondBlueEncounterSheet(
                     ) {
                         items(items = tradeStacks, key = { it.key }) { stack ->
                             val selected = selectedCounts[stack.key] ?: 0
-                            ElevatedCard {
+                            ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         ShellObjectIcon(CreatureCatalog.get(stack.findId)?.staticIconKey ?: "animal", Modifier.size(34.dp))
@@ -229,7 +235,7 @@ fun BeyondBlueEncounterSheet(
                 }
 
                 if (tradeExpanded || selectedInstanceIds.isNotEmpty()) {
-                    ElevatedCard {
+                    ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                         Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(stringResource(R.string.beyond_blue_adjusted_cost), fontWeight = FontWeight.Bold)
                             Text(stringResource(R.string.beyond_blue_life_selected, formatMinutesCompact(quote.selectedCreatureMinutes)))
@@ -247,7 +253,7 @@ fun BeyondBlueEncounterSheet(
                         }
                     }
 
-                    ElevatedCard {
+                    ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                         Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             if (selectedInstanceIds.isEmpty()) {
                                 Text(stringResource(R.string.beyond_blue_confirm_no_creatures_leave))
@@ -271,13 +277,14 @@ fun BeyondBlueEncounterSheet(
                 if (showConfirm) {
                     AlertDialog(
                         onDismissRequest = { showConfirm = false },
+                        containerColor = MaterialTheme.colorScheme.surface,
                         confirmButton = {
                             Button(onClick = { onEncounter(target.creatureId, selectedInstanceIds) }) {
                                 Text(stringResource(if (selectedInstanceIds.isEmpty()) R.string.beyond_blue_buy else R.string.beyond_blue_trade_and_buy))
                             }
                         },
                         dismissButton = { OutlinedButton(onClick = { showConfirm = false }) { Text(stringResource(R.string.beyond_blue_cancel)) } },
-                        title = { Text(stringResource(if (selectedInstanceIds.isEmpty()) R.string.beyond_blue_buy_with_pearls_title else R.string.beyond_blue_trade_and_buy_title, target.displayName)) },
+                        title = { Text(stringResource(if (selectedInstanceIds.isEmpty()) R.string.beyond_blue_buy_with_pearls_title else R.string.beyond_blue_trade_and_buy_title, targetName)) },
                         text = {
                             Column {
                                 if (selectedInstanceIds.isEmpty()) {
@@ -289,7 +296,7 @@ fun BeyondBlueEncounterSheet(
                                     if (quote.pearlReturnForOverpay > 0) Text(stringResource(R.string.beyond_blue_confirm_returned, quote.pearlReturnForOverpay))
                                     Text(stringResource(R.string.beyond_blue_lifetime_remains))
                                 }
-                                Text(stringResource(R.string.beyond_blue_confirm_enters_zone, target.displayName, zoneTitle(theBlueZoneFor(target.zone))))
+                                Text(stringResource(R.string.beyond_blue_confirm_enters_zone, targetName, zoneTitle(theBlueZoneFor(target.zone))))
                             }
                         }
                     )

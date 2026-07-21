@@ -6,7 +6,8 @@ import org.junit.Test
 class RecommendationEngineTest {
     private fun badge(id: String, category: BadgeUiCategory, remaining: Int, tracked: Boolean = false) =
         BadgeProgressModel(id, 0, false, category, 10 - remaining, 10, remaining,
-            MilestoneEngine.evaluate(0), tracked = tracked)
+            MilestoneEngine.evaluate(0), tracked = tracked,
+            action = BadgeActionDestination.Flow, canNavigate = true, canProgressNow = remaining > 0)
 
     @Test fun trackedGoalsComeFirstAndDuplicatesAreSuppressed() {
         val tracked = badge("tracked", BadgeUiCategory.COLLECTIONS, 9, true)

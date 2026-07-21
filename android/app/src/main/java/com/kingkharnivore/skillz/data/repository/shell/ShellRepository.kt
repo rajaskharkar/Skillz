@@ -822,9 +822,10 @@ class ShellRepository @Inject constructor(
         db.withTransaction {
             if (transition.lifecycle == CelebrationLifecycle.COMPLETED) {
                 achievementDao.getCelebration(eventId)?.let { event ->
-                    (event.newlyEarnedBadgeIds.split(',') + event.advancedBadgeIds.split(',') +
-                        event.milestonesReached.split(',').map { it.substringBefore(':') })
-                        .filter { it.isNotBlank() }.distinct().forEach { badgeDao.markViewed(it, System.currentTimeMillis()) }
+                    // The final summary always renders newly-earned badge chips. Advanced and
+                    // milestone rows may have been skipped, so they intentionally remain unseen.
+                    event.newlyEarnedBadgeIds.split(',').filter { it.isNotBlank() }.distinct()
+                        .forEach { badgeDao.markViewed(it, System.currentTimeMillis()) }
                 }
             }
             achievementDao.updateCelebrationState(eventId, transition.lifecycle.name, transition.stage.name,

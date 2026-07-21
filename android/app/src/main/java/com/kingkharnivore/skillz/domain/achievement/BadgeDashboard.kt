@@ -3,15 +3,21 @@ package com.kingkharnivore.skillz.domain.achievement
 import com.kingkharnivore.skillz.data.model.entity.shell.*
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureStatus
+import com.kingkharnivore.skillz.data.model.shell.BadgeCategory
+import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 
 enum class BadgeUiCategory { ALL, FLOW, ARC, CREATURES, MASTERY, COLLECTIONS, STILLWATER, MOVEMENT, SURGE, SPECIAL }
 enum class BadgeSort { RECOMMENDED, RECENTLY_EARNED, RECENTLY_ADVANCED, HIGHEST_COUNT, CLOSEST_MILESTONE, ALPHABETICAL }
+enum class BadgeDisabledReason { COMPLETE, NO_NEXT_MILESTONE, CREATURE_NOT_OWNED, EMPTY_ROSTER, UNSUPPORTED_DESTINATION }
 sealed interface BadgeActionDestination {
     data object Flow : BadgeActionDestination
     data object Arc : BadgeActionDestination
     data class Chest(val speciesId: String?) : BadgeActionDestination
     data class Blue(val collectionId: String?) : BadgeActionDestination
     data class Stillwater(val collectionId: String?) : BadgeActionDestination
+    data object BlueCollection : BadgeActionDestination
+    data object StillwaterCollection : BadgeActionDestination
+    data object AllWatersCollection : BadgeActionDestination
     data object MovementInfo : BadgeActionDestination
     data object BadgeDetails : BadgeActionDestination
 }
@@ -34,7 +40,12 @@ data class BadgeProgressModel(
     val action: BadgeActionDestination = BadgeActionDestination.BadgeDetails,
     val newlyEarned: Boolean = false,
     val recentlyUpdated: Boolean = false,
-    val importance: Int = 0
+    val importance: Int = 0,
+    val canTrack: Boolean = false,
+    val canNavigate: Boolean = false,
+    val canProgressNow: Boolean = false,
+    val disabledReason: BadgeDisabledReason? = null,
+    val acquisitionAction: BadgeActionDestination? = null
 )
 
 data class BadgeDashboard(
@@ -61,7 +72,9 @@ data class Level99AchievementPreview(
     val restoresAllWatersRoster: Boolean = false,
     val milestones: List<Int>,
     val stillwaterMasteredAfter: Int? = null,
-    val stillwaterTotal: Int? = null
+    val stillwaterTotal: Int? = null,
+    val completesStillwater: Boolean = false,
+    val restoresStillwaterRoster: Boolean = false
 )
 
 object BadgeDashboardCalculator {
@@ -144,6 +157,28 @@ object BadgeDashboardCalculator {
                 BadgeRequirement.COMPLETIONIST -> collection?.currentRosterCompletionistComplete == false
                 BadgeRequirement.EXACT_COUNT -> false
             }
+            val terminal = definition.countType == BadgeCountType.ONE_TIME && computed > 0 && !currentRosterIncomplete
+            val hasNextMilestone = definition.countType == BadgeCountType.REPEATABLE &&
+                definition.milestones.any { it > computed }
+            val nonEmptyRoster = collection == null || when (definition.requirement) {
+                BadgeRequirement.COMPLETIONIST -> collection.totalCompletionistSpecies > 0
+                BadgeRequirement.COLLECTOR, BadgeRequirement.CURATOR -> collection.totalParticipatingSpecies > 0
+                BadgeRequirement.EXACT_COUNT -> true
+            }
+            val ownsSpecies = definition.speciesId == null || speciesLevels.isNotEmpty()
+            val destination = action(definition)
+            val canNavigate = destination !is BadgeActionDestination.BadgeDetails
+            val canProgressNow = !terminal && nonEmptyRoster && ownsSpecies &&
+                (definition.countType == BadgeCountType.ONE_TIME || hasNextMilestone)
+            val canTrack = definition.trackable && canProgressNow
+            val disabledReason = when {
+                terminal -> BadgeDisabledReason.COMPLETE
+                !nonEmptyRoster -> BadgeDisabledReason.EMPTY_ROSTER
+                !ownsSpecies -> BadgeDisabledReason.CREATURE_NOT_OWNED
+                definition.countType == BadgeCountType.REPEATABLE && !hasNextMilestone -> BadgeDisabledReason.NO_NEXT_MILESTONE
+                !canNavigate -> BadgeDisabledReason.UNSUPPORTED_DESTINATION
+                else -> null
+            }
             BadgeProgressModel(definition.badgeId, computed, computed > 0, category(definition), progress,
                 target, (target - progress).coerceAtLeast(0), MilestoneEngine.evaluate(computed, thresholds = definition.milestones),
                 stored?.firstEarnedAt, stored?.lastEarnedAt, pinOrder[definition.badgeId],
@@ -151,7 +186,8 @@ object BadgeDashboardCalculator {
                 collection, speciesLevels.maxOrNull(), action(definition),
                 stored?.viewedAt == null && stored != null && stored.firstEarnedAt == stored.lastEarnedAt,
                 stored?.viewedAt == null && stored != null && stored.lastEarnedAt > stored.firstEarnedAt,
-                definition.importance)
+                definition.importance, canTrack, canNavigate, canProgressNow, disabledReason,
+                if (!ownsSpecies) acquisitionAction(definition) else null)
         }
         val previewBySpecies = CreatureCatalog.all.associate { creature ->
             val region = collectionById.getValue(creature.primaryProgressCollectionId)
@@ -173,7 +209,9 @@ object BadgeDashboardCalculator {
                 all.completionistEarned && !all.currentRosterCompletionistComplete && all.missingMasteredSpeciesIds == setOf(creature.creatureId),
                 AchievementBadgeDefinition.DEFAULT_MILESTONES.filter { it == afterCount },
                 if (creature.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER) stillwater.masteredSpeciesCount + if (addsUnique && creature.creatureId in stillwater.missingMasteredSpeciesIds) 1 else 0 else null,
-                if (creature.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER) stillwater.totalCompletionistSpecies else null)
+                if (creature.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER) stillwater.totalCompletionistSpecies else null,
+                creature.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER && !stillwater.completionistEarned && stillwater.missingMasteredSpeciesIds == setOf(creature.creatureId),
+                creature.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER && stillwater.completionistEarned && !stillwater.currentRosterCompletionistComplete && stillwater.missingMasteredSpeciesIds == setOf(creature.creatureId))
         }
         return BadgeDashboard(badges, collectionProgress, badges.count { it.earned },
             badges.firstOrNull { it.badgeId == "mastery_circle" }?.count ?: masteries.size,
@@ -181,12 +219,24 @@ object BadgeDashboardCalculator {
             RecommendationEngine.recommend(badges), previewBySpecies)
     }
 
-    private fun legacyDefinition(id: String) = AchievementBadgeDefinition(id, when {
-        "arc" in id -> BadgeFamily.ARC
-        "surge" in id -> BadgeFamily.SURGE
-        "movement" in id -> BadgeFamily.MOVEMENT
-        else -> BadgeFamily.FLOW
-    }, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT)
+    private fun legacyDefinition(id: String): AchievementBadgeDefinition {
+        val family = when (ShellContentCatalog.badge(id)?.category) {
+            BadgeCategory.FLOW -> BadgeFamily.FLOW
+            BadgeCategory.SOFT_FLOW -> BadgeFamily.SOFT_FLOW
+            BadgeCategory.ARC -> BadgeFamily.ARC
+            BadgeCategory.SURGE -> BadgeFamily.SURGE
+            BadgeCategory.DISCOVERY, BadgeCategory.PULSE, null -> when {
+                "arc" in id -> BadgeFamily.ARC
+                "surge" in id -> BadgeFamily.SURGE
+                "movement" in id -> BadgeFamily.MOVEMENT
+                "soft_flow" in id -> BadgeFamily.SOFT_FLOW
+                "flow" in id -> BadgeFamily.FLOW
+                else -> BadgeFamily.COLLECTION
+            }
+        }
+        return AchievementBadgeDefinition(id, family, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT,
+            trackable = family != BadgeFamily.COLLECTION)
+    }
 
     private fun category(def: AchievementBadgeDefinition) = when {
         def.speciesId != null -> BadgeUiCategory.MASTERY
@@ -201,6 +251,9 @@ object BadgeDashboardCalculator {
     }
     private fun action(def: AchievementBadgeDefinition): BadgeActionDestination = when {
         def.speciesId != null -> BadgeActionDestination.Chest(def.speciesId)
+        def.collectionId == "collection_all_waters" -> BadgeActionDestination.AllWatersCollection
+        def.collectionId == "collection_the_blue" -> BadgeActionDestination.BlueCollection
+        def.collectionId == "collection_stillwater" -> BadgeActionDestination.StillwaterCollection
         def.collectionId?.startsWith("stillwater_") == true || def.collectionId == "collection_stillwater" -> BadgeActionDestination.Stillwater(def.collectionId)
         def.collectionId != null -> BadgeActionDestination.Blue(def.collectionId)
         def.family == BadgeFamily.FLOW || def.family == BadgeFamily.SOFT_FLOW || def.family == BadgeFamily.SURGE -> BadgeActionDestination.Flow
@@ -208,11 +261,17 @@ object BadgeDashboardCalculator {
         def.family == BadgeFamily.MOVEMENT -> BadgeActionDestination.MovementInfo
         else -> BadgeActionDestination.BadgeDetails
     }
+    private fun acquisitionAction(def: AchievementBadgeDefinition): BadgeActionDestination? = def.speciesId
+        ?.let(CreatureCatalog::get)?.let { creature ->
+            if (creature.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER)
+                BadgeActionDestination.Stillwater(creature.primaryProgressCollectionId)
+            else BadgeActionDestination.Blue(creature.collectionId)
+        }
 }
 
 object RecommendationEngine {
     fun recommend(badges: List<BadgeProgressModel>, limit: Int = 3): List<BadgeProgressModel> {
-        val eligible = badges.filter { it.remaining > 0 && it.target > 0 && (it.collectionProgress?.totalParticipatingSpecies ?: 1) > 0 }
+        val eligible = badges.filter { it.canProgressNow && it.canNavigate && it.remaining > 0 && it.target > 0 && (it.collectionProgress?.totalParticipatingSpecies ?: 1) > 0 }
         val result = eligible.filter { it.tracked }.sortedWith(compareBy<BadgeProgressModel> { it.category }.thenBy { it.badgeId }).toMutableList()
         val usedCategories = result.mapTo(mutableSetOf()) { it.category }
         eligible.filterNot { it.tracked }.sortedWith(compareBy<BadgeProgressModel> {
