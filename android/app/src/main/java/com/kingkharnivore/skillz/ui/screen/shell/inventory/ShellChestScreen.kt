@@ -69,6 +69,7 @@ import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraParchmentSheet
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.domain.achievement.Level99AchievementPreview
+import com.kingkharnivore.skillz.domain.achievement.BadgeDefinitionResolver
 import java.util.Locale
 import kotlin.math.roundToInt
 

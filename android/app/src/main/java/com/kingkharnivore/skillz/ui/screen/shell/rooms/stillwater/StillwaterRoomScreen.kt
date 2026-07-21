@@ -193,7 +193,8 @@ fun StillwaterRoomScreen(
 
 @Composable private fun StillwaterProgressCard(progress: CollectionProgress, focused: Boolean, onClick: () -> Unit) {
     OutlinedCard(onClick = onClick, colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = if (focused) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null) {
+        border = if (focused) BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+            else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(stringResource(R.string.stillwater_named_collection_progress, collectionDisplayName(progress.collectionId)), fontWeight = FontWeight.Bold)
             Text(stringResource(R.string.collection_discovered_progress, progress.discoveredSpeciesCount, progress.totalParticipatingSpecies))

@@ -1,6 +1,7 @@
 package com.kingkharnivore.skillz.ui.screen.shell.inventory
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
