@@ -36,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -56,6 +57,9 @@ import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.isBlueZoneUnlocked
 import com.kingkharnivore.skillz.domain.achievement.CollectionProgress
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.CollectionDetailsSheet
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.collectionDisplayName
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.collectionSpeciesDestination
+import com.kingkharnivore.skillz.domain.achievement.BadgeActionDestination
 
 internal data class StillwaterDropsCardUiModel(
     @StringRes val primaryStringRes: Int,
@@ -107,6 +111,7 @@ fun StillwaterRoomScreen(
     onConfirmStillwaterDraw: (StillwaterVessel) -> Unit,
     onDismissStillwaterReveal: () -> Unit,
     onDismissStillwaterDrawConfirmation: () -> Unit,
+    onNavigate: (BadgeActionDestination) -> Unit,
     focusedCollectionId: String? = null,
     onFocusConsumed: () -> Unit = {}
 ) {
@@ -115,8 +120,10 @@ fun StillwaterRoomScreen(
 
     val listState = rememberLazyListState()
     var collectionDetails by remember { mutableStateOf<CollectionProgress?>(null) }
+    var highlightedCollectionId by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(focusedCollectionId) {
         focusedCollectionId ?: return@LaunchedEffect
+        highlightedCollectionId = focusedCollectionId
         val index = if (focusedCollectionId == "collection_stillwater") 2 else {
             val vesselName = focusedCollectionId.removePrefix("stillwater_")
             4 + StillwaterVessel.entries.indexOfFirst { it.name.lowercase() == vesselName }.coerceAtLeast(0)
@@ -139,7 +146,7 @@ fun StillwaterRoomScreen(
         item("drops") { StillwaterDropsCard(dropsCard = dropsCard) }
 
         uiState.badgeDashboard?.collections?.firstOrNull { it.collectionId == "collection_stillwater" }?.let { progress ->
-            item("overall-progress") { StillwaterProgressCard(progress, focusedCollectionId == progress.collectionId) { collectionDetails = progress } }
+            item("overall-progress") { StillwaterProgressCard(progress, highlightedCollectionId == progress.collectionId) { highlightedCollectionId = progress.collectionId; collectionDetails = progress } }
         }
 
         item("prompt") { Text(
@@ -157,14 +164,16 @@ fun StillwaterRoomScreen(
                 isUnlocked = uiState.isBlueZoneUnlocked(vessel.zone),
                 onDraw = onDrawFromStillwater
             ); uiState.badgeDashboard?.collections?.firstOrNull { it.collectionId == collectionId }?.let { progress ->
-                StillwaterProgressCard(progress, focusedCollectionId == collectionId) { collectionDetails = progress }
+                StillwaterProgressCard(progress, highlightedCollectionId == collectionId) { highlightedCollectionId = collectionId; collectionDetails = progress }
             } } }
         }
 
         item("explainer") { StillwaterExplainerCard() }
     }
 
-    collectionDetails?.let { CollectionDetailsSheet(it) { collectionDetails = null } }
+    collectionDetails?.let { progress -> CollectionDetailsSheet(progress, { collectionDetails = null }) { action ->
+        collectionSpeciesDestination(action)?.let(onNavigate)
+    } }
 
     uiState.stillwaterRevealCreature?.let { creature ->
         StillwaterCreatureRevealDialog(
@@ -186,7 +195,7 @@ fun StillwaterRoomScreen(
     OutlinedCard(onClick = onClick, colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = if (focused) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(stringResource(R.string.stillwater_collection_progress_title), fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.stillwater_named_collection_progress, collectionDisplayName(progress.collectionId)), fontWeight = FontWeight.Bold)
             Text(stringResource(R.string.collection_discovered_progress, progress.discoveredSpeciesCount, progress.totalParticipatingSpecies))
             Text(stringResource(R.string.collection_owned_progress, progress.currentlyOwnedSpeciesCount, progress.totalParticipatingSpecies))
             Text(stringResource(R.string.collection_mastered_progress, progress.masteredSpeciesCount, progress.totalCompletionistSpecies))

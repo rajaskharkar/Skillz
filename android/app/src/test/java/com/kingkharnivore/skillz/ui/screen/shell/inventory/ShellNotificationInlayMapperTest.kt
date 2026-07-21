@@ -5,13 +5,14 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserDiscoveryEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindStackEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
-import com.kingkharnivore.skillz.data.repository.shell.SHELL_BADGES_ROUTE
 import com.kingkharnivore.skillz.data.repository.shell.SHELL_CHEST_ROUTE
+import com.kingkharnivore.skillz.domain.achievement.BadgeActionDestination
 import com.kingkharnivore.skillz.data.repository.shell.ShellNotificationType
 import com.kingkharnivore.skillz.data.repository.shell.notificationId
 import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDateTime
@@ -64,7 +65,8 @@ class ShellNotificationInlayMapperTest {
         val notifications = unviewedShellNotifications(state)
 
         assertEquals(notificationId(ShellNotificationType.BADGE, "badge-new"), notifications[0].id)
-        assertEquals(SHELL_BADGES_ROUTE, notifications[0].deepLinkRoute)
+        assertNull(notifications[0].deepLinkRoute)
+        assertEquals(BadgeActionDestination.BadgeDetails, (notifications[0] as ShellNotificationInlayItem.Badge).destination)
         assertEquals(SHELL_CHEST_ROUTE, notifications[1].deepLinkRoute)
     }
 

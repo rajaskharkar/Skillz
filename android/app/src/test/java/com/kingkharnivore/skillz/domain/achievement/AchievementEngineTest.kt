@@ -6,6 +6,11 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AchievementEngineTest {
+    @Test fun persistedBadgeDefinitionsUseTheSharedSafeResolver() {
+        assertEquals(BadgeFamily.COLLECTION, BadgeDefinitionResolver.resolve("badge_discovery").family)
+        assertFalse(BadgeDefinitionResolver.resolve("unknown_persisted_badge").trackable)
+        assertSame(AchievementBadgeCatalog.byId.getValue("mastery_first"), BadgeDefinitionResolver.resolve("mastery_first"))
+    }
     @Test fun legacyMasteryEvidenceCountsForLifetimeAndCollectionsWithoutFakeEvents() {
         val species = CreatureCatalog.all.first()
         val floor = BadgeCountFloorEntity("mastery_species_${species.creatureId}", species.creatureId, 2, 0, "legacy", 1L)

@@ -8,6 +8,9 @@ import com.kingkharnivore.skillz.utils.shell.StillwaterCatalog
 import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
 import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.CreatureMasteryEventEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.UserBadgeEntity
+import com.kingkharnivore.skillz.data.model.shell.BadgeCategory
+import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import java.security.MessageDigest
 
 enum class BadgeFamily { SPECIES_MASTERY, MASTERY, COLLECTION, FLOW, SOFT_FLOW, ARC, MOVEMENT, SURGE }
@@ -120,7 +123,7 @@ object AchievementBadgeCatalog {
             }
         }
         listOf("across_the_depths", "one_from_every_water", "keeper_of_the_blue").forEach {
-            add(AchievementBadgeDefinition(it, BadgeFamily.COLLECTION, BadgeCountType.ONE_TIME, BadgeRequirement.EXACT_COUNT))
+            add(AchievementBadgeDefinition(it, BadgeFamily.COLLECTION, BadgeCountType.ONE_TIME, BadgeRequirement.EXACT_COUNT, trackable = false))
         }
         // Existing IDs remain canonical and are evaluated from their existing reliable ledgers.
         listOf("badge_flow_10_min", "badge_flow_30_min", "badge_flow_60_min", "badge_flow_120_min").forEach {
@@ -128,6 +131,33 @@ object AchievementBadgeCatalog {
         }
     }
     val byId = definitions.associateBy { it.badgeId }
+}
+
+/** The sole resolver for static, historical, and unknown persisted badge IDs. */
+object BadgeDefinitionResolver {
+    fun resolve(badgeId: String): AchievementBadgeDefinition {
+        AchievementBadgeCatalog.byId[badgeId]?.let { return it }
+        val legacy = ShellContentCatalog.badge(badgeId)
+        val family = when (legacy?.category) {
+            BadgeCategory.FLOW -> BadgeFamily.FLOW
+            BadgeCategory.SOFT_FLOW -> BadgeFamily.SOFT_FLOW
+            BadgeCategory.ARC -> BadgeFamily.ARC
+            BadgeCategory.SURGE -> BadgeFamily.SURGE
+            BadgeCategory.DISCOVERY, BadgeCategory.PULSE, null -> BadgeFamily.COLLECTION
+        }
+        // Historical-only definitions have reliable earned counts but no reconstructable next goal.
+        return AchievementBadgeDefinition(
+            badgeId = badgeId,
+            family = family,
+            countType = BadgeCountType.REPEATABLE,
+            requirement = BadgeRequirement.EXACT_COUNT,
+            trackable = false,
+            navigationDestination = "badge_details"
+        )
+    }
+
+    fun allDefinitions(earnedBadges: List<UserBadgeEntity> = emptyList()): List<AchievementBadgeDefinition> =
+        (AchievementBadgeCatalog.definitions + earnedBadges.map { resolve(it.badgeId) }).distinctBy { it.badgeId }
 }
 
 data class CollectionDefinition(val collectionId: String, val rosterVersion: Int, val species: List<CreatureDefinition>, val allowEmptyCompletion: Boolean = false) {
@@ -194,8 +224,17 @@ data class CollectionSpeciesProgress(
     val requiredByCurator: Boolean = false,
     val requiredByCompletionist: Boolean = false,
     val sourceId: String? = null,
-    val timestampConfidence: MasteryTimestampConfidence = MasteryTimestampConfidence.UNKNOWN
+    val timestampConfidence: MasteryTimestampConfidence = MasteryTimestampConfidence.UNKNOWN,
+    val action: CollectionSpeciesAction = CollectionSpeciesAction.None
 )
+
+sealed interface CollectionSpeciesAction {
+    data class ViewInChest(val speciesId: String) : CollectionSpeciesAction
+    data class OpenBlueRegion(val speciesId: String, val collectionId: String) : CollectionSpeciesAction
+    data class OpenStillwaterVessel(val speciesId: String, val collectionId: String) : CollectionSpeciesAction
+    data class OpenBeyondBlue(val speciesId: String, val collectionId: String) : CollectionSpeciesAction
+    data object None : CollectionSpeciesAction
+}
 
 object CollectionProgressCalculator {
     fun calculate(definition: CollectionDefinition, discovered: Set<String>, ownedLevels: Map<String, List<Int>>, mastered: Set<String>, historicalTypes: Set<BadgeRequirement> = emptySet()): CollectionProgress =
@@ -233,7 +272,15 @@ object CollectionProgressCalculator {
                     requiredByCollector = creature.creatureId in collectorRoster,
                     requiredByCurator = creature.creatureId in collectorRoster,
                     requiredByCompletionist = creature.creatureId in masteryRoster,
-                    sourceId = creature.sourceType.name, timestampConfidence = evidence?.timestampConfidence ?: MasteryTimestampConfidence.UNKNOWN)
+                    sourceId = creature.sourceType.name,
+                    timestampConfidence = evidence?.timestampConfidence ?: MasteryTimestampConfidence.UNKNOWN,
+                    action = when {
+                        creature.secretUntilDiscovered && creature.creatureId !in discovered -> CollectionSpeciesAction.None
+                        levels.isNotEmpty() -> CollectionSpeciesAction.ViewInChest(creature.creatureId)
+                        creature.sourceType == CreatureSourceType.STILLWATER -> CollectionSpeciesAction.OpenStillwaterVessel(creature.creatureId, creature.primaryProgressCollectionId)
+                        creature.sourceType == CreatureSourceType.BEYOND_BLUE -> CollectionSpeciesAction.OpenBeyondBlue(creature.creatureId, creature.collectionId)
+                        else -> CollectionSpeciesAction.OpenBlueRegion(creature.creatureId, creature.collectionId)
+                    })
             })
     }
 }

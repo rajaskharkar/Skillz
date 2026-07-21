@@ -52,6 +52,7 @@ import com.kingkharnivore.skillz.data.repository.shell.SHELL_BADGES_ROUTE
 import com.kingkharnivore.skillz.data.repository.shell.SHELL_CHEST_ROUTE
 import com.kingkharnivore.skillz.data.repository.shell.ShellNotificationType
 import com.kingkharnivore.skillz.data.repository.shell.notificationId
+import com.kingkharnivore.skillz.domain.achievement.BadgeActionDestination
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import java.time.Instant
@@ -78,7 +79,8 @@ sealed interface ShellNotificationInlayItem {
         val badgeId: String,
         val count: Int,
         override val createdAt: Long,
-        override val deepLinkRoute: String? = SHELL_BADGES_ROUTE
+        override val deepLinkRoute: String? = null,
+        val destination: BadgeActionDestination = BadgeActionDestination.BadgeDetails
     ) : ShellNotificationInlayItem
 }
 
@@ -104,7 +106,9 @@ fun unviewedShellNotifications(uiState: ShellUiState): List<ShellNotificationInl
                     id = notificationId(ShellNotificationType.BADGE, badge.badgeId),
                     badgeId = badge.badgeId,
                     count = badge.count,
-                    createdAt = badge.lastEarnedAt
+                    createdAt = badge.lastEarnedAt,
+                    destination = uiState.badgeDashboard?.badges?.firstOrNull { it.badgeId == badge.badgeId }?.action
+                        ?: BadgeActionDestination.BadgeDetails
                 )
             )
         }
@@ -117,6 +121,7 @@ fun NotificationInlayOverlay(
     onMarkNotificationViewed: (String) -> Unit,
     onMarkAllViewed: () -> Unit,
     onDeepLinkRoute: (String) -> Unit,
+    onBadgeDestination: (BadgeActionDestination) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val notifications = unviewedShellNotifications(uiState)
@@ -185,10 +190,17 @@ fun NotificationInlayOverlay(
                                 notification = notification,
                                 onMarkViewed = { onMarkNotificationViewed(notification.id) },
                                 onClick = {
-                                    notification.deepLinkRoute?.let { route ->
-                                        onMarkNotificationViewed(notification.id)
-                                        onDismiss()
-                                        onDeepLinkRoute(route)
+                                    when (notification) {
+                                        is ShellNotificationInlayItem.Badge -> {
+                                            onBadgeDestination(notification.destination)
+                                            onMarkNotificationViewed(notification.id)
+                                            onDismiss()
+                                        }
+                                        is ShellNotificationInlayItem.Find -> notification.deepLinkRoute?.let { route ->
+                                            onDeepLinkRoute(route)
+                                            onMarkNotificationViewed(notification.id)
+                                            onDismiss()
+                                        }
                                     }
                                 }
                             )
@@ -232,8 +244,8 @@ private fun NotificationInlayRow(
     when (notification) {
         is ShellNotificationInlayItem.Find -> {
             val def = ShellContentCatalog.find(notification.findId)
-            title = def?.let { notificationTitleFor(it) } ?: "New shell reward"
-            body = def?.let { notificationBodyFor(it) } ?: "A new reward is waiting in The Shell."
+            title = def?.let { notificationTitleFor(it) } ?: stringResource(R.string.shell_notification_fallback_title)
+            body = def?.let { notificationBodyFor(it) } ?: stringResource(R.string.shell_notification_fallback_body)
             icon = def?.let { iconFor(it.category) } ?: Icons.Outlined.Notifications
         }
         is ShellNotificationInlayItem.Badge -> {

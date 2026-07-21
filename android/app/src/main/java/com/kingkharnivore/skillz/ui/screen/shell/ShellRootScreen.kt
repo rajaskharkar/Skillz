@@ -56,6 +56,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -141,6 +142,7 @@ fun ShellRootScreen(
     viewModel: ShellViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val activeFlowMessage = stringResource(R.string.lookout_flow_already_active)
@@ -153,7 +155,10 @@ fun ShellRootScreen(
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { message ->
-            snackbarHostState.showSnackbar(message)
+            snackbarHostState.showSnackbar(when (message) {
+                is com.kingkharnivore.skillz.viewmodel.shell.UiText.Resource -> context.getString(message.resId, *message.args.toTypedArray())
+                is com.kingkharnivore.skillz.viewmodel.shell.UiText.Plain -> message.value
+            })
         }
     }
 
@@ -222,6 +227,14 @@ fun ShellRootScreen(
                     onConfirmStillwaterDraw = viewModel::onConfirmStillwaterDraw,
                     onDismissStillwaterReveal = viewModel::onDismissStillwaterReveal,
                     onDismissStillwaterDrawConfirmation = viewModel::onDismissStillwaterDrawConfirmation,
+                    onNavigate = { request ->
+                        when (request) {
+                            is BadgeActionDestination.Chest -> { chestFocusSpecies = request.speciesId; destination = ShellDestination.ShellChest }
+                            is BadgeActionDestination.Blue -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
+                            is BadgeActionDestination.Stillwater -> stillwaterFocusCollection = request.collectionId
+                            else -> Unit
+                        }
+                    },
                     focusedCollectionId = stillwaterFocusCollection,
                     onFocusConsumed = { stillwaterFocusCollection = null }
                 )
@@ -240,6 +253,7 @@ fun ShellRootScreen(
                 ShellDestination.Badges -> BadgesScreen(
                     uiState = uiState,
                     onPin = viewModel::pinBadge,
+                    onDismissPinReplacement = viewModel::dismissPinReplacement,
                     onUnpin = viewModel::unpinBadge,
                     onTrack = viewModel::trackBadge,
                     onUntrack = viewModel::untrackBadge,
@@ -312,6 +326,17 @@ fun ShellRootScreen(
                         SHELL_BADGES_ROUTE -> ShellDestination.Badges
                         else -> destination
                     }
+                },
+                onBadgeDestination = { request ->
+                    when (request) {
+                        is BadgeActionDestination.Chest -> { chestFocusSpecies = request.speciesId; destination = ShellDestination.ShellChest }
+                        is BadgeActionDestination.Blue -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
+                        is BadgeActionDestination.Stillwater -> { stillwaterFocusCollection = request.collectionId; destination = ShellDestination.Stillwater }
+                        BadgeActionDestination.Flow -> if (isFlowActive) onOpenActiveFlow() else onLaunchFlowForJourney("")
+                        BadgeActionDestination.Arc -> onPlanArc()
+                        BadgeActionDestination.MovementInfo -> onMovementInfo()
+                        else -> destination = ShellDestination.Badges
+                    }
                 }
             )
         }
@@ -333,6 +358,7 @@ fun ShellRootScreen(
                     }
                 },
                 onPin = { badgeId, replacementId -> viewModel.pinBadge(badgeId, replacementId) },
+                onDismissPinReplacement = viewModel::dismissPinReplacement,
                 onUnpin = viewModel::unpinBadge,
                 onTrack = viewModel::trackBadge,
                 onUntrack = viewModel::untrackBadge,

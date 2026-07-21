@@ -1124,7 +1124,7 @@
     <string name="shell_creature_level_up_confirm_a11y">Confirm level up of one Level %1$d %2$s for %3$d Pearls.</string>
     <string name="shell_creature_release_action">Release</string>
     <string name="shell_creature_release_confirm_single_body">Release 1 Level %1$d %2$s back into The Blue?</string>
-    <string name="shell_creature_release_confirm_bulk_body">Release %1$d Level %2$d %3$s back into The Blue?</string>
+    <string name="shell_creature_release_confirm_bulk_body">Release %1$d Level %2$d %3$s creatures back into The Blue?</string>
     <string name="shell_creature_release_confirm_reward">You will receive +%1$d Pearls.</string>
     <string name="shell_creature_release_confirm_a11y">Confirm release of %1$d Level %2$d %3$s for %4$d Pearls.</string>
     <string name="shell_creature_release_for_pearls">Release</string>
@@ -2080,6 +2080,7 @@ You can turn Health back on later.</string>
     <string name="level99_preview_restores_roster">This restores completion for the current collection roster.</string>
     <string name="level99_preview_stillwater">Overall Stillwater: %1$d of %2$d species mastered</string>
     <string name="stillwater_collection_progress_title">Collection progress</string>
+    <string name="stillwater_named_collection_progress">%1$s Progress</string>
     <string name="mastery_date_exact">Mastered on %1$s</string>
     <string name="mastery_date_estimated">Mastered before or around %1$s</string>
     <string name="mastery_date_unknown">Mastered before achievement history was enabled</string>
@@ -2103,4 +2104,19 @@ You can turn Health back on later.</string>
     <string name="badge_count_plate">×%1$s</string>
     <string name="badges_clear_search">Clear search</string><string name="badges_no_earned">Complete a Flow or explore The Blue to earn your first badge.</string><string name="badges_no_search_results">No badges match “%1$s”.</string>
     <string name="mastery_view_badge">View Badge</string><string name="mastery_view_collection">View Collection Progress</string>
+    <string name="badge_disabled_complete">This achievement is complete.</string>
+    <string name="badge_disabled_no_next">You have completed every currently available milestone.</string>
+    <string name="badge_disabled_not_owned">Acquire this creature to begin its Mastery goal.</string>
+    <string name="badge_disabled_region_locked">This Blue region has not been unlocked yet.</string>
+    <string name="badge_disabled_vessel_locked">This Stillwater vessel has not been unlocked yet.</string>
+    <string name="badge_disabled_empty_roster">No participating creatures are currently available.</string>
+    <string name="badge_disabled_historical">This historical badge has no repeatable current objective.</string>
+    <string name="badge_action_view_chest">View in Chest</string>
+    <string name="badge_action_open_blue">Open Blue region</string>
+    <string name="badge_action_open_stillwater">Visit Stillwater vessel</string>
+    <string name="collection_species_open_action">Open progression action</string>
+    <string name="shell_notification_fallback_title">New Shell reward</string>
+    <string name="shell_notification_fallback_body">A new reward is waiting in The Shell.</string>
+    <string name="shell_message_showcase_failed">Could not update Your Showcase.</string>
+    <string name="shell_message_track_failed">Could not track this badge.</string>
 </resources>

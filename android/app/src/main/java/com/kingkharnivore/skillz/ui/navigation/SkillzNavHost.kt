@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.kingkharnivore.skillz.ui.screen.HelpScreen
+import com.kingkharnivore.skillz.ui.screen.HelpSection
 import com.kingkharnivore.skillz.ui.screen.SkillzHomeScreen
 import com.kingkharnivore.skillz.ui.screen.flow.FlowScreen
 import com.kingkharnivore.skillz.ui.screen.paths.arc.ArcDetailScreen
@@ -238,7 +239,7 @@ fun SkillzNavHost(
                     navController.navigate(SkillzDestinations.addSkillRoute())
                 },
                 onPlanArc = { navController.navigate(SkillzDestinations.planArcRoute()) },
-                onMovementInfo = { navController.navigate("help") }
+                onMovementInfo = { navController.navigate("help?section=${HelpSection.MOVEMENT_BONUS.name}") }
             )
         }
 
@@ -251,7 +252,7 @@ fun SkillzNavHost(
             )
         }
 
-        composable("help") {
+        composable("help?section={section}") { entry ->
             val uiState by storyViewModel.uiState.collectAsState()
             val healthViewModel: HealthSettingsViewModel = hiltViewModel()
 
@@ -262,7 +263,10 @@ fun SkillzNavHost(
                 onToggleShowScoreUi = storyViewModel::setShowScoreUi,
                 onToggleCalmMode = storyViewModel::setCalmMode,
                 onSetAppLanguage = storyViewModel::setAppLanguage,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                initialSection = entry.arguments?.getString("section")
+                    ?.let { runCatching { HelpSection.valueOf(it) }.getOrNull() }
+                    ?: HelpSection.OVERVIEW
             )
         }
     }

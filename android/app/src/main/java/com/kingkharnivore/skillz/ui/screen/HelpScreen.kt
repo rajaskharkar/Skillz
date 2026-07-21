@@ -4,6 +4,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -38,6 +40,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -46,6 +49,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
@@ -72,6 +77,9 @@ import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsViewModel
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 
+enum class HelpSection { OVERVIEW, MOVEMENT_BONUS }
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HelpScreen(
     uiState: FlowListUiState,
@@ -80,7 +88,8 @@ fun HelpScreen(
     onToggleShowScoreUi: (Boolean) -> Unit,
     onToggleCalmMode: (Boolean) -> Unit,
     onSetAppLanguage: (String?) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initialSection: HelpSection = HelpSection.OVERVIEW
 ) {
     val pages = helpPages()
 
@@ -94,6 +103,7 @@ fun HelpScreen(
     val healthState by healthViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val movementRequester = remember { BringIntoViewRequester() }
     val healthPermissionLauncher = rememberLauncherForActivityResult(
         PermissionController.createRequestPermissionResultContract()
     ) { granted ->
@@ -101,6 +111,9 @@ fun HelpScreen(
     }
 
     LaunchedEffect(Unit) { healthViewModel.refreshState() }
+    LaunchedEffect(initialSection) {
+        if (initialSection == HelpSection.MOVEMENT_BONUS) movementRequester.bringIntoView()
+    }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -147,7 +160,11 @@ fun HelpScreen(
             onClick = { showLanguageDialog = true }
         )
 
-        HealthConnectSettingsCard(
+        Surface(
+            shape = RoundedCornerShape(18.dp),
+            border = if (initialSection == HelpSection.MOVEMENT_BONUS) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+            modifier = Modifier.bringIntoViewRequester(movementRequester)
+        ) { HealthConnectSettingsCard(
             state = healthState,
             onConnectHealth = {
                 try {
@@ -166,7 +183,7 @@ fun HelpScreen(
             onInstallOrUpdateHealthConnect = {
                 healthViewModel.openHealthConnectInstallOrUpdate(context)
             }
-        )
+        ) }
 
         HelpConceptCarousel(
             pages = pages,

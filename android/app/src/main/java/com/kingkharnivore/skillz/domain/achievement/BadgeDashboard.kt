@@ -3,12 +3,16 @@ package com.kingkharnivore.skillz.domain.achievement
 import com.kingkharnivore.skillz.data.model.entity.shell.*
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureStatus
-import com.kingkharnivore.skillz.data.model.shell.BadgeCategory
-import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
+import com.kingkharnivore.skillz.utils.shell.CreatureZone
+import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
 
 enum class BadgeUiCategory { ALL, FLOW, ARC, CREATURES, MASTERY, COLLECTIONS, STILLWATER, MOVEMENT, SURGE, SPECIAL }
 enum class BadgeSort { RECOMMENDED, RECENTLY_EARNED, RECENTLY_ADVANCED, HIGHEST_COUNT, CLOSEST_MILESTONE, ALPHABETICAL }
-enum class BadgeDisabledReason { COMPLETE, NO_NEXT_MILESTONE, CREATURE_NOT_OWNED, EMPTY_ROSTER, UNSUPPORTED_DESTINATION }
+enum class BadgeDisabledReason { COMPLETE, NO_NEXT_MILESTONE, CREATURE_NOT_OWNED, REGION_LOCKED, VESSEL_LOCKED, EMPTY_ROSTER, UNSUPPORTED_DESTINATION }
+data class AchievementAccessState(
+    val unlockedBlueZones: Set<CreatureZone> = CreatureZone.entries.toSet(),
+    val unlockedStillwaterVessels: Set<StillwaterVessel> = StillwaterVessel.entries.toSet()
+)
 sealed interface BadgeActionDestination {
     data object Flow : BadgeActionDestination
     data object Arc : BadgeActionDestination
@@ -45,7 +49,8 @@ data class BadgeProgressModel(
     val canNavigate: Boolean = false,
     val canProgressNow: Boolean = false,
     val disabledReason: BadgeDisabledReason? = null,
-    val acquisitionAction: BadgeActionDestination? = null
+    val acquisitionAction: BadgeActionDestination? = null,
+    val pinnable: Boolean = true
 )
 
 data class BadgeDashboard(
@@ -86,7 +91,8 @@ object BadgeDashboardCalculator {
         completions: List<CollectionCompletionEntity>,
         pins: List<BadgePinEntity>,
         tracking: List<BadgeTrackingEntity>,
-        countFloors: List<BadgeCountFloorEntity> = emptyList()
+        countFloors: List<BadgeCountFloorEntity> = emptyList(),
+        accessState: AchievementAccessState = AchievementAccessState()
     ): BadgeDashboard {
         val earnedById = earned.associateBy { it.badgeId }
         val pinOrder = pins.associate { it.badgeId to it.pinOrder }
@@ -97,6 +103,9 @@ object BadgeDashboardCalculator {
             .groupBy({ it.findId }, { it.animalLevel })
         val masteryEvidence = MasteryEvidenceCalculator.bySpecies(masteries, countFloors, activeLevels)
         val mastered = masteryEvidence.filterValues { it.hasEverBeenMastered }.keys
+        val eligibleMasterySpecies = CreatureCatalog.all.filter { it.isAvailable && it.participatesInCompletionist }.mapTo(mutableSetOf()) { it.creatureId }
+        val eligibleCollectorSpecies = CreatureCatalog.all.filter { it.isAvailable && it.participatesInCollector }.mapTo(mutableSetOf()) { it.creatureId }
+        val eligibleStillwaterSpecies = CreatureCatalog.stillwater.filter { it.isAvailable && it.participatesInCollector }.mapTo(mutableSetOf()) { it.creatureId }
         val historical = completions.groupBy { it.collectionId }.mapValues { (_, rows) ->
             rows.mapNotNull { runCatching { BadgeRequirement.valueOf(it.completionType) }.getOrNull() }.toSet()
         }
@@ -104,9 +113,8 @@ object BadgeDashboardCalculator {
             CollectionProgressCalculator.calculate(it, discovered, activeLevels, masteryEvidence, historical[it.collectionId].orEmpty())
         }
         val collectionById = collectionProgress.associateBy { it.collectionId }
-        val definitions = (AchievementBadgeCatalog.definitions + earned.mapNotNull { row ->
-            if (AchievementBadgeCatalog.byId.containsKey(row.badgeId)) null else legacyDefinition(row.badgeId)
-        }).distinctBy { it.badgeId }.filter { !it.hiddenUntilEarned || (earnedById[it.badgeId]?.count ?: 0) > 0 }
+        val definitions = BadgeDefinitionResolver.allDefinitions(earned)
+            .filter { !it.hiddenUntilEarned || (earnedById[it.badgeId]?.count ?: 0) > 0 }
         val badges = definitions.map { definition ->
             val stored = earnedById[definition.badgeId]
             val collection = definition.collectionId?.let(collectionById::get)
@@ -121,10 +129,10 @@ object BadgeDashboardCalculator {
                         masteryEvidence.values.sumOf { it.effectiveLifetimeCount },
                         MasteryEvidenceCalculator.effectiveCount(masteries.size, floors["mastery_circle"])
                     )
-                    "mastery_variety" -> mastered.size
-                    "variety_collector" -> discovered.size
+                    "mastery_variety" -> mastered.intersect(eligibleMasterySpecies).size
+                    "variety_collector" -> discovered.intersect(eligibleCollectorSpecies).size
                     "stillwater_first_catch" -> if (discovered.any { CreatureCatalog.get(it)?.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER }) 1 else 0
-                    "stillwater_variety" -> discovered.count { CreatureCatalog.get(it)?.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER }
+                    "stillwater_variety" -> discovered.intersect(eligibleStillwaterSpecies).size
                     "stillwater_mastery" -> maxOf(
                         masteryEvidence.values.filter { CreatureCatalog.get(it.speciesId)?.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER }.sumOf { it.effectiveLifetimeCount },
                         MasteryEvidenceCalculator.effectiveCount(masteries.count { CreatureCatalog.get(it.speciesId)?.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER }, floors["stillwater_mastery"])
@@ -167,14 +175,19 @@ object BadgeDashboardCalculator {
             }
             val ownsSpecies = definition.speciesId == null || speciesLevels.isNotEmpty()
             val destination = action(definition)
-            val canNavigate = destination !is BadgeActionDestination.BadgeDetails
-            val canProgressNow = !terminal && nonEmptyRoster && ownsSpecies &&
+            val acquisition = if (!ownsSpecies) acquisitionAction(definition) else null
+            val primaryAction = acquisition ?: destination
+            val lockedReason = accessDisabledReason(primaryAction, accessState)
+            val canNavigate = primaryAction !is BadgeActionDestination.BadgeDetails
+            val canProgressNow = !terminal && nonEmptyRoster && (ownsSpecies || acquisition != null) && lockedReason == null &&
                 (definition.countType == BadgeCountType.ONE_TIME || hasNextMilestone)
-            val canTrack = definition.trackable && canProgressNow
+            val canTrack = definition.trackable && canProgressNow && canNavigate &&
+                (definition.speciesId == null || ownsSpecies)
             val disabledReason = when {
                 terminal -> BadgeDisabledReason.COMPLETE
                 !nonEmptyRoster -> BadgeDisabledReason.EMPTY_ROSTER
-                !ownsSpecies -> BadgeDisabledReason.CREATURE_NOT_OWNED
+                lockedReason != null -> lockedReason
+                !ownsSpecies && acquisition == null -> BadgeDisabledReason.CREATURE_NOT_OWNED
                 definition.countType == BadgeCountType.REPEATABLE && !hasNextMilestone -> BadgeDisabledReason.NO_NEXT_MILESTONE
                 !canNavigate -> BadgeDisabledReason.UNSUPPORTED_DESTINATION
                 else -> null
@@ -183,11 +196,11 @@ object BadgeDashboardCalculator {
                 target, (target - progress).coerceAtLeast(0), MilestoneEngine.evaluate(computed, thresholds = definition.milestones),
                 stored?.firstEarnedAt, stored?.lastEarnedAt, pinOrder[definition.badgeId],
                 definition.badgeId in tracked && !(definition.countType == BadgeCountType.ONE_TIME && computed > 0 && !currentRosterIncomplete),
-                collection, speciesLevels.maxOrNull(), action(definition),
+                collection, speciesLevels.maxOrNull(), primaryAction,
                 stored?.viewedAt == null && stored != null && stored.firstEarnedAt == stored.lastEarnedAt,
                 stored?.viewedAt == null && stored != null && stored.lastEarnedAt > stored.firstEarnedAt,
                 definition.importance, canTrack, canNavigate, canProgressNow, disabledReason,
-                if (!ownsSpecies) acquisitionAction(definition) else null)
+                acquisition, definition.pinnable)
         }
         val previewBySpecies = CreatureCatalog.all.associate { creature ->
             val region = collectionById.getValue(creature.primaryProgressCollectionId)
@@ -219,25 +232,6 @@ object BadgeDashboardCalculator {
             RecommendationEngine.recommend(badges), previewBySpecies)
     }
 
-    private fun legacyDefinition(id: String): AchievementBadgeDefinition {
-        val family = when (ShellContentCatalog.badge(id)?.category) {
-            BadgeCategory.FLOW -> BadgeFamily.FLOW
-            BadgeCategory.SOFT_FLOW -> BadgeFamily.SOFT_FLOW
-            BadgeCategory.ARC -> BadgeFamily.ARC
-            BadgeCategory.SURGE -> BadgeFamily.SURGE
-            BadgeCategory.DISCOVERY, BadgeCategory.PULSE, null -> when {
-                "arc" in id -> BadgeFamily.ARC
-                "surge" in id -> BadgeFamily.SURGE
-                "movement" in id -> BadgeFamily.MOVEMENT
-                "soft_flow" in id -> BadgeFamily.SOFT_FLOW
-                "flow" in id -> BadgeFamily.FLOW
-                else -> BadgeFamily.COLLECTION
-            }
-        }
-        return AchievementBadgeDefinition(id, family, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT,
-            trackable = family != BadgeFamily.COLLECTION)
-    }
-
     private fun category(def: AchievementBadgeDefinition) = when {
         def.speciesId != null -> BadgeUiCategory.MASTERY
         def.collectionId == "collection_stillwater" || def.collectionId?.startsWith("stillwater_") == true -> BadgeUiCategory.STILLWATER
@@ -267,6 +261,15 @@ object BadgeDashboardCalculator {
                 BadgeActionDestination.Stillwater(creature.primaryProgressCollectionId)
             else BadgeActionDestination.Blue(creature.collectionId)
         }
+    private fun accessDisabledReason(action: BadgeActionDestination, access: AchievementAccessState): BadgeDisabledReason? = when (action) {
+        is BadgeActionDestination.Blue -> action.collectionId?.removePrefix("blue_")
+            ?.let { id -> CreatureZone.entries.firstOrNull { it.name.lowercase() == id } }
+            ?.takeUnless { it in access.unlockedBlueZones }?.let { BadgeDisabledReason.REGION_LOCKED }
+        is BadgeActionDestination.Stillwater -> action.collectionId?.removePrefix("stillwater_")
+            ?.let { id -> StillwaterVessel.entries.firstOrNull { it.name.lowercase() == id } }
+            ?.takeUnless { it in access.unlockedStillwaterVessels }?.let { BadgeDisabledReason.VESSEL_LOCKED }
+        else -> null
+    }
 }
 
 object RecommendationEngine {

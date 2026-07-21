@@ -1,6 +1,8 @@
 package com.kingkharnivore.skillz.viewmodel.shell
 
 import androidx.lifecycle.ViewModel
+import androidx.annotation.StringRes
+import com.kingkharnivore.skillz.R
 import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveCompletionEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellPlacementEntity
@@ -22,6 +24,7 @@ import com.kingkharnivore.skillz.utils.user.UserPrefs
 import com.kingkharnivore.skillz.utils.shell.requiresStillwaterConfirmation
 import com.kingkharnivore.skillz.domain.achievement.BadgeDashboard
 import com.kingkharnivore.skillz.domain.achievement.BadgeDashboardCalculator
+import com.kingkharnivore.skillz.domain.achievement.AchievementAccessState
 import com.kingkharnivore.skillz.domain.achievement.BadgeSort
 import com.kingkharnivore.skillz.domain.achievement.BadgeUiCategory
 import com.kingkharnivore.skillz.data.model.entity.shell.BadgePinEntity
@@ -65,8 +68,15 @@ data class ShellUiState(
     val backfillSummary: AchievementBackfillEntity? = null,
     val masteryCelebration: MasteryCelebrationEventEntity? = null,
     val calmMode: Boolean = false,
-    val chestFilter: ChestFilterOption = ChestFilterOption.All
+    val chestFilter: ChestFilterOption = ChestFilterOption.All,
+    val pinReplacement: PinReplacementUiState? = null
 )
+
+data class PinReplacementUiState(val requestedBadgeId: String, val pinnedBadgeIds: List<String>)
+sealed interface UiText {
+    data class Resource(@StringRes val resId: Int, val args: List<Any> = emptyList()) : UiText
+    data class Plain(val value: String) : UiText
+}
 
 private data class ShellEconomyState(
     val pearlBalance: Int,
@@ -129,11 +139,12 @@ class ShellViewModel @Inject constructor(
     private val userPrefs: UserPrefs
 ) : ViewModel() {
     init { viewModelScope.launch { runCatching { repository.backfillAchievements() } } }
-    private val _events = MutableSharedFlow<String>()
-    val events: SharedFlow<String> = _events
+    private val _events = MutableSharedFlow<UiText>()
+    val events: SharedFlow<UiText> = _events
 
     private val stillwaterRevealCreature = MutableStateFlow<CreatureDefinition?>(null)
     private val pendingStillwaterDrawVessel = MutableStateFlow<StillwaterVessel?>(null)
+    private val pinReplacement = MutableStateFlow<PinReplacementUiState?>(null)
 
     private val economy = combine(
         repository.observePearlBalance(),
@@ -178,19 +189,22 @@ class ShellViewModel @Inject constructor(
         preferences.acknowledgedBackfillVersion, preferences.calmMode, preferences.chestFilter, achievements
     ) }
 
+    private val transientState = combine(stillwaterRevealCreature, pendingStillwaterDrawVessel, pinReplacement) { reveal, vessel, replacement ->
+        Triple(reveal, vessel, replacement)
+    }
+
     val uiState: StateFlow<ShellUiState> = combine(
         economy,
         ownership,
         memoryAndPreferences,
-        stillwaterRevealCreature,
-        pendingStillwaterDrawVessel
-    ) { economy, ownership, memoryAndPreferences, revealCreature, pendingVessel ->
+        transientState
+    ) { economy, ownership, memoryAndPreferences, transient ->
         ShellUiState(
             pearlBalance = economy.pearlBalance,
             stillwaterClaimableDrops = economy.stillwaterClaimableDrops,
             stillwaterLifetimeDrops = economy.stillwaterLifetimeDrops,
-            stillwaterRevealCreature = revealCreature,
-            pendingStillwaterDrawVessel = pendingVessel,
+            stillwaterRevealCreature = transient.first,
+            pendingStillwaterDrawVessel = transient.second,
             unlockedBlueZones = deriveUnlockedBlueZonesFromHistoricalFinds(ownership.finds),
             finds = ownership.finds,
             stacks = ownership.stacks,
@@ -204,14 +218,21 @@ class ShellViewModel @Inject constructor(
                 memoryAndPreferences.achievements.discoveries, memoryAndPreferences.achievements.masteries,
                 memoryAndPreferences.achievements.completions,
                 memoryAndPreferences.achievements.pins, memoryAndPreferences.achievements.tracking,
-                memoryAndPreferences.achievements.countFloors
+                memoryAndPreferences.achievements.countFloors,
+                AchievementAccessState(
+                    unlockedBlueZones = deriveUnlockedBlueZonesFromHistoricalFinds(ownership.finds),
+                    unlockedStillwaterVessels = StillwaterVessel.entries.filterTo(mutableSetOf()) {
+                        it.zone in deriveUnlockedBlueZonesFromHistoricalFinds(ownership.finds)
+                    }
+                )
             ),
             badgeCategory = memoryAndPreferences.badgeCategory,
             badgeSort = memoryAndPreferences.badgeSort,
             backfillSummary = memoryAndPreferences.achievements.backfill?.takeIf { it.version > memoryAndPreferences.acknowledgedBackfillVersion && (it.discoveredCount > 0 || it.masteryCount > 0 || it.completionCount > 0) },
             masteryCelebration = memoryAndPreferences.achievements.celebration,
             calmMode = memoryAndPreferences.calmMode,
-            chestFilter = memoryAndPreferences.chestFilter
+            chestFilter = memoryAndPreferences.chestFilter,
+            pinReplacement = transient.third
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ShellUiState())
 
@@ -228,12 +249,18 @@ class ShellViewModel @Inject constructor(
 
     fun pinBadge(badgeId: String, replaceBadgeId: String? = null) = viewModelScope.launch {
         runCatching { repository.pinBadge(badgeId, replaceBadgeId) }
-            .onFailure { _events.emit(it.message ?: "Could not update Your Showcase.") }
+            .onSuccess { result ->
+                pinReplacement.value = when (result) {
+                    is ShellRepository.PinResult.ReplacementRequired -> PinReplacementUiState(badgeId, result.currentBadgeIds)
+                    ShellRepository.PinResult.Pinned, ShellRepository.PinResult.AlreadyPinned -> null
+                }
+            }
+            .onFailure { _events.emit(UiText.Resource(R.string.shell_message_showcase_failed)) }
     }
+    fun dismissPinReplacement() { pinReplacement.value = null }
     fun unpinBadge(badgeId: String) = viewModelScope.launch { repository.unpinBadge(badgeId) }
-    fun movePinnedBadge(badgeId: String, direction: Int) = viewModelScope.launch { repository.movePinnedBadge(badgeId, direction) }
     fun trackBadge(badgeId: String) = viewModelScope.launch {
-        runCatching { repository.trackBadge(badgeId) }.onFailure { _events.emit(it.message ?: "Could not track this badge.") }
+        runCatching { repository.trackBadge(badgeId) }.onFailure { _events.emit(UiText.Resource(R.string.shell_message_track_failed)) }
     }
     fun untrackBadge(badgeId: String) = viewModelScope.launch { repository.untrackBadge(badgeId) }
     fun markBadgeViewed(badgeId: String) = viewModelScope.launch {
@@ -242,46 +269,46 @@ class ShellViewModel @Inject constructor(
 
     fun place(instanceId: String, slotId: String) = viewModelScope.launch {
         runCatching { repository.placeInstance(instanceId, ShellRoomId.FOCUS, slotId) }
-            .onSuccess { _events.emit("Placed in the Focus Room.") }
-            .onFailure { _events.emit(it.message ?: "Could not display that reward.") }
+            .onSuccess { _events.emit(UiText.Plain("Placed in the Focus Room.") })
+            .onFailure { _events.emit(UiText.Plain(it.message ?: "Could not display that reward.") })
     }
 
     fun returnToChest(instanceId: String) = viewModelScope.launch {
         runCatching { repository.removePlacement(instanceId) }
-            .onSuccess { _events.emit("Returned to The Chest.") }
-            .onFailure { _events.emit(it.message ?: "Could not return that reward.") }
+            .onSuccess { _events.emit(UiText.Plain("Returned to The Chest.") })
+            .onFailure { _events.emit(UiText.Plain(it.message ?: "Could not return that reward.") })
     }
 
     fun invitePearlObject(findId: String, slotId: String) = viewModelScope.launch {
         runCatching { repository.invitePearlObject(findId, ShellRoomId.FOCUS, slotId) }
-            .onSuccess { _events.emit("Your Pearls shaped the Focus Room.") }
-            .onFailure { _events.emit(it.message ?: "Could not shape that space.") }
+            .onSuccess { _events.emit(UiText.Plain("Your Pearls shaped the Focus Room.") })
+            .onFailure { _events.emit(UiText.Plain(it.message ?: "Could not shape that space.") })
     }
 
     fun invitePearlObjectToChest(findId: String) = viewModelScope.launch {
         runCatching { repository.invitePearlObjectToChest(findId) }
-            .onSuccess { _events.emit("A creature is in The Chest.") }
-            .onFailure { _events.emit(it.message ?: "Could not invite that object.") }
+            .onSuccess { _events.emit(UiText.Plain("A creature is in The Chest.") })
+            .onFailure { _events.emit(UiText.Plain(it.message ?: "Could not invite that object.") })
     }
 
     fun upgrade(instanceId: String) = viewModelScope.launch {
         runCatching { repository.upgradeInstance(instanceId) }
-            .onSuccess { _events.emit("Your Pearls shaped growth in The Shell.") }
-            .onFailure { _events.emit(it.message ?: "Could not shape that reward.") }
+            .onSuccess { _events.emit(UiText.Plain("Your Pearls shaped growth in The Shell.") })
+            .onFailure { _events.emit(UiText.Plain(it.message ?: "Could not shape that reward.") })
     }
 
     fun growCreature(instanceId: String, origin: String = "BLUE") = viewModelScope.launch {
         val currentLevel = uiState.value.finds
             .firstOrNull { it.instanceId == instanceId }?.animalLevel ?: 1
         runCatching { repository.growCreature(instanceId, "level_up:$instanceId:${currentLevel + 1}", origin) }
-            .onSuccess { _events.emit("Your creature grew inside The Blue.") }
-            .onFailure { _events.emit(it.message ?: "Could not grow that creature.") }
+            .onSuccess { _events.emit(UiText.Plain("Your creature grew inside The Blue.") })
+            .onFailure { _events.emit(UiText.Plain(it.message ?: "Could not grow that creature.") })
     }
 
     fun growCreatureByLevel(findId: String, level: Int, origin: String = "CHEST") = viewModelScope.launch {
         runCatching { repository.growCreatureByLevel(findId, level, origin) }
-            .onSuccess { _events.emit("Your creature grew inside The Chest.") }
-            .onFailure { _events.emit(it.message ?: "Could not grow that creature.") }
+            .onSuccess { _events.emit(UiText.Plain("Your creature grew inside The Chest.") })
+            .onFailure { _events.emit(UiText.Plain(it.message ?: "Could not grow that creature.") })
     }
 
     fun beginCelebration() = transitionCelebration { stage -> MasteryCelebrationStateMachine.begin(stage) }
@@ -293,7 +320,7 @@ class ShellViewModel @Inject constructor(
         val event = uiState.value.masteryCelebration ?: return@launch
         runCatching { repository.updateCelebration(event.eventId, MasteryCelebrationStateMachine.complete()) }
             .onSuccess { onCompleted() }
-            .onFailure { _events.emit(it.message ?: "Could not close the Mastery summary.") }
+            .onFailure { _events.emit(UiText.Plain(it.message ?: "Could not close the Mastery summary.") })
     }
 
     private fun transitionCelebration(
@@ -307,14 +334,14 @@ class ShellViewModel @Inject constructor(
 
     fun releaseCreature(instanceId: String) = viewModelScope.launch {
         runCatching { repository.releaseCreature(instanceId) }
-            .onSuccess { pearls -> _events.emit("Released back into The Blue. $pearls Pearls returned. Your lifetime record remains.") }
-            .onFailure { _events.emit(it.message ?: "Could not release that creature.") }
+            .onSuccess { pearls -> _events.emit(UiText.Plain("Released back into The Blue. $pearls Pearls returned. Your lifetime record remains.") })
+            .onFailure { _events.emit(UiText.Plain(it.message ?: "Could not release that creature.") })
     }
 
     fun releaseCreaturesByLevel(findId: String, selectionsByLevel: Map<Int, Int>) = viewModelScope.launch {
         runCatching { repository.releaseCreaturesByLevel(findId, selectionsByLevel) }
-            .onSuccess { pearls -> _events.emit("Released back into The Blue. $pearls Pearls returned. Your lifetime record remains.") }
-            .onFailure { _events.emit(it.message ?: "Could not release those creatures.") }
+            .onSuccess { pearls -> _events.emit(UiText.Plain("Released back into The Blue. $pearls Pearls returned. Your lifetime record remains.") })
+            .onFailure { _events.emit(UiText.Plain(it.message ?: "Could not release those creatures.") })
     }
 
     fun encounterBeyondBlue(targetCreatureId: String, selectedInstanceIds: List<String>) = viewModelScope.launch {
@@ -323,19 +350,19 @@ class ShellViewModel @Inject constructor(
                 val definition = CreatureCatalog.get(creature.findId)
                 val name = definition?.displayName ?: "A new creature"
                 val zone = definition?.zone?.displayName ?: "The Blue"
-                _events.emit("$name entered the $zone.")
+                _events.emit(UiText.Plain("$name entered the $zone."))
             }
-            .onFailure { _events.emit(it.message ?: "Could not encounter that creature.") }
+            .onFailure { _events.emit(UiText.Plain(it.message ?: "Could not encounter that creature.") })
     }
 
     fun onDrawFromStillwater(vessel: StillwaterVessel) = viewModelScope.launch {
         val state = uiState.value
         if (vessel.zone !in state.unlockedBlueZones) {
-            _events.emit("Progress farther in The Blue to unlock this vessel.")
+            _events.emit(UiText.Plain("Progress farther in The Blue to unlock this vessel."))
             return@launch
         }
         if (state.stillwaterClaimableDrops < vessel.dropCost) {
-            _events.emit("Not enough Drops yet.")
+            _events.emit(UiText.Plain("Not enough Drops yet."))
             return@launch
         }
         if (requiresStillwaterConfirmation(vessel)) {
@@ -360,14 +387,14 @@ class ShellViewModel @Inject constructor(
 
     private suspend fun drawFromStillwater(vessel: StillwaterVessel) {
         if (vessel.zone !in deriveUnlockedBlueZonesFromHistoricalFinds(uiState.value.finds)) {
-            _events.emit("Progress farther in The Blue to unlock this vessel.")
+            _events.emit(UiText.Plain("Progress farther in The Blue to unlock this vessel."))
             return
         }
         runCatching { repository.drawFromStillwater(vessel, uiState.value.unlockedBlueZones) }
             .onSuccess { instance ->
                 stillwaterRevealCreature.value = CreatureCatalog.get(instance.findId)
             }
-            .onFailure { _events.emit(it.message ?: "Could not draw from Stillwater.") }
+            .onFailure { _events.emit(UiText.Plain(it.message ?: "Could not draw from Stillwater.") })
     }
 
     fun markNotificationViewed(notificationId: String) = viewModelScope.launch {

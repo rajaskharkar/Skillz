@@ -33,7 +33,7 @@ fun resolveBadgePresentation(badgeId: String): BadgePresentation {
         return BadgePresentation(badgeId, stringResource(legacy.titleRes), stringResource(legacy.descriptionRes),
             if (duration != null) BadgeArtworkKind.FLOW_DURATION else BadgeArtworkKind.ACTIVITY, duration)
     }
-    val definition = AchievementBadgeCatalog.byId[badgeId]
+    val definition = BadgeDefinitionResolver.resolve(badgeId)
     definition?.speciesId?.let { speciesId ->
         val creature = CreatureCatalog.get(speciesId)
         val name = creature?.titleRes?.takeIf { it != 0 }?.let { stringResource(it) }

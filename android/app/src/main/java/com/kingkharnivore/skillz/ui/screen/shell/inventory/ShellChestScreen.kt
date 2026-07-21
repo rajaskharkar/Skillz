@@ -69,7 +69,6 @@ import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraParchmentSheet
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.domain.achievement.Level99AchievementPreview
-import com.kingkharnivore.skillz.domain.achievement.AchievementBadgeCatalog
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -100,13 +99,13 @@ fun ShellChestScreen(
 ) {
     var selectedStack by remember { mutableStateOf<ChestInventoryStackUiModel?>(null) }
     val masteryCounts = uiState.badgeDashboard?.badges?.mapNotNull { badge ->
-        AchievementBadgeCatalog.byId[badge.badgeId]?.speciesId?.let { it to badge.count }
+        BadgeDefinitionResolver.resolve(badge.badgeId).speciesId?.let { it to badge.count }
     }?.toMap().orEmpty()
     val allStacks = remember(uiState.finds, uiState.chestSortOption, masteryCounts) {
         buildChestInventoryStacks(uiState.finds, uiState.chestSortOption, masteryCounts)
     }
     val trackedMasterySpecies = uiState.badgeDashboard?.badges?.filter { it.tracked }
-        ?.mapNotNull { AchievementBadgeCatalog.byId[it.badgeId]?.speciesId }?.toSet().orEmpty()
+        ?.mapNotNull { BadgeDefinitionResolver.resolve(it.badgeId).speciesId }?.toSet().orEmpty()
     val trackedCompletionNeeded = uiState.badgeDashboard?.badges?.filter { it.tracked && it.badgeId.endsWith("_completionist") }
         ?.flatMap { it.collectionProgress?.missingMasteredSpeciesIds.orEmpty() }?.toSet().orEmpty()
     val stacks = remember(allStacks, uiState.chestFilter, trackedMasterySpecies, trackedCompletionNeeded) {
@@ -682,7 +681,7 @@ private fun ChestReleaseConfirmationDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    val creatureName = pluralizedCreatureName(stack.creatureName, releaseCount)
+    val creatureName = stack.creatureName
     val body = if (releaseCount == 1) {
         stringResource(R.string.shell_creature_release_confirm_single_body, stack.level, stack.creatureName)
     } else {
@@ -724,13 +723,6 @@ private val CreatureMasteryTier.titleRes: Int
         CreatureMasteryTier.ASCENDANT -> R.string.shell_creature_mastery_ascendant
         CreatureMasteryTier.MASTERED -> R.string.shell_creature_mastery_mastered
     }
-
-private fun pluralizedCreatureName(name: String, count: Int): String = when {
-    count == 1 -> name
-    name.endsWith("s", ignoreCase = true) -> name
-    name.endsWith("y", ignoreCase = true) -> name.dropLast(1) + "ies"
-    else -> name + "s"
-}
 
 internal fun chestReleaseSelection(stack: ChestInventoryStackUiModel, requestedCount: Int): Map<Int, Int> =
     mapOf(stack.level to requestedCount.coerceIn(1, stack.count.coerceAtLeast(1)))

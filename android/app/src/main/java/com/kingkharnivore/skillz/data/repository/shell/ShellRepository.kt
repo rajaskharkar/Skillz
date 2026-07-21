@@ -25,8 +25,8 @@ import com.kingkharnivore.skillz.domain.achievement.MasteryEvidenceCalculator
 import com.kingkharnivore.skillz.domain.achievement.MilestoneEngine
 import com.kingkharnivore.skillz.domain.achievement.CelebrationLifecycle
 import com.kingkharnivore.skillz.domain.achievement.CelebrationStage
-import com.kingkharnivore.skillz.domain.achievement.AchievementBadgeCatalog
 import com.kingkharnivore.skillz.domain.achievement.BadgeCountType
+import com.kingkharnivore.skillz.domain.achievement.BadgeDefinitionResolver
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import org.json.JSONObject
@@ -89,7 +89,7 @@ class ShellRepository @Inject constructor(
 
     suspend fun pinBadge(badgeId: String, replaceBadgeId: String? = null): PinResult = db.withTransaction {
         reconcileAchievementLedger(System.currentTimeMillis())
-        require(AchievementBadgeCatalog.byId[badgeId]?.pinnable != false) { "This badge cannot be pinned." }
+        require(BadgeDefinitionResolver.resolve(badgeId).pinnable) { "This badge cannot be pinned." }
         require(badgeDao.get(badgeId)?.count?.let { it > 0 } == true) { "Only earned badges can be pinned." }
         val current = achievementDao.getPins()
         if (current.any { it.badgeId == badgeId }) return@withTransaction PinResult.AlreadyPinned
@@ -108,17 +108,6 @@ class ShellRepository @Inject constructor(
         normalizePinOrder()
     }
 
-    suspend fun movePinnedBadge(badgeId: String, direction: Int) = db.withTransaction {
-        val pins = achievementDao.getPins()
-        val from = pins.indexOfFirst { it.badgeId == badgeId }
-        if (from < 0) return@withTransaction
-        val to = (from + direction.coerceIn(-1, 1)).coerceIn(0, pins.lastIndex)
-        if (from == to) return@withTransaction
-        achievementDao.updatePinOrder(pins[from].badgeId, -1)
-        achievementDao.updatePinOrder(pins[to].badgeId, from)
-        achievementDao.updatePinOrder(pins[from].badgeId, to)
-    }
-
     private suspend fun normalizePinOrder() {
         val ordered = achievementDao.getPins()
         ordered.forEachIndexed { index, pin ->
@@ -130,8 +119,8 @@ class ShellRepository @Inject constructor(
     suspend fun trackBadge(badgeId: String): Boolean = db.withTransaction {
         reconcileAchievementLedger(System.currentTimeMillis())
         cleanupTracking()
-        val definition = AchievementBadgeCatalog.byId[badgeId]
-        require(definition?.trackable == true) { "This badge cannot be tracked." }
+        val definition = BadgeDefinitionResolver.resolve(badgeId)
+        require(definition.trackable) { "This badge cannot be tracked." }
         val currentProgress = definition.collectionId?.let { currentCollectionProgress(it) }
         val ownsRelevantSpecies = definition.speciesId?.let { speciesId ->
             findInstanceDao.getAll().any { it.findId == speciesId && it.creatureStatus == CreatureStatus.ACTIVE }
@@ -631,7 +620,7 @@ class ShellRepository @Inject constructor(
                 }
                 newEditionBadges.forEach { id ->
                     changes += AchievementChange(AchievementChangeType.CURRENT_ROSTER_COMPLETED,
-                        badgeId = id, collectionId = AchievementBadgeCatalog.byId[id]?.collectionId,
+                        badgeId = id, collectionId = BadgeDefinitionResolver.resolve(id).collectionId,
                         previousCount = badgesBefore[id] ?: 1, exactCount = badgesAfter[id] ?: 1)
                 }
                 achievementDao.insertCelebration(
@@ -728,17 +717,17 @@ class ShellRepository @Inject constructor(
     private suspend fun cleanupTracking() {
         val earned = badgeDao.getAll().associateBy { it.badgeId }
         achievementDao.getTracking().forEach { tracked ->
-            val definition = AchievementBadgeCatalog.byId[tracked.badgeId]
-            val invalid = definition == null
-            val collection = definition?.collectionId?.let { currentCollectionProgress(it) }
-            val currentRosterIncomplete = when (definition?.requirement) {
+            val definition = BadgeDefinitionResolver.resolve(tracked.badgeId)
+            val invalid = !definition.trackable
+            val collection = definition.collectionId?.let { currentCollectionProgress(it) }
+            val currentRosterIncomplete = when (definition.requirement) {
                 BadgeRequirement.COLLECTOR -> collection?.currentRosterCollectorComplete == false
                 BadgeRequirement.CURATOR -> collection?.currentRosterCuratorComplete == false
                 BadgeRequirement.COMPLETIONIST -> collection?.currentRosterCompletionistComplete == false
                 else -> false
             }
-            val completedOneTime = definition?.countType == BadgeCountType.ONE_TIME && (earned[tracked.badgeId]?.count ?: 0) > 0 && !currentRosterIncomplete
-            val exhaustedRepeatable = definition?.countType == BadgeCountType.REPEATABLE &&
+            val completedOneTime = definition.countType == BadgeCountType.ONE_TIME && (earned[tracked.badgeId]?.count ?: 0) > 0 && !currentRosterIncomplete
+            val exhaustedRepeatable = definition.countType == BadgeCountType.REPEATABLE &&
                 definition.milestones.none { it > (earned[tracked.badgeId]?.count ?: 0) }
             if (invalid || completedOneTime || exhaustedRepeatable) achievementDao.deleteTracking(tracked.badgeId)
         }
