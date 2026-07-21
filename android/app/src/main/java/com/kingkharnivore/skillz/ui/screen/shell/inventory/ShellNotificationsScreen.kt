@@ -121,6 +121,7 @@ fun NotificationInlayOverlay(
 ) {
     val notifications = unviewedShellNotifications(uiState)
     val backgroundInteraction = remember { MutableInteractionSource() }
+    val inlayDescription = stringResource(R.string.notifications_inlay_a11y)
 
     BackHandler(onBack = onDismiss)
 
@@ -149,7 +150,7 @@ fun NotificationInlayOverlay(
                     indication = null,
                     onClick = {}
                 )
-                .semantics { contentDescription = "Notifications inlay" }
+                .semantics { contentDescription = inlayDescription }
         ) {
             Column {
                 Row(
@@ -241,15 +242,21 @@ private fun NotificationInlayRow(
             icon = def?.let { iconFor(it.category) } ?: Icons.Outlined.Notifications
         }
         is ShellNotificationInlayItem.Badge -> {
-            val def = ShellContentCatalog.badge(notification.badgeId) ?: return
-            val badgeTitle = stringResource(def.titleRes)
+            val presentation = resolveBadgePresentation(notification.badgeId)
+            val badgeTitle = presentation.title
             title = stringResource(R.string.shell_badge_notification_title, badgeTitle)
             body = stringResource(
                 R.string.shell_badge_notification_body,
                 notification.count,
-                stringResource(def.descriptionRes)
+                presentation.description
             )
-            icon = Icons.Outlined.MilitaryTech
+            icon = when (presentation.artworkKind) {
+                BadgeArtworkKind.SPECIES_MASTERY -> Icons.Outlined.Pets
+                BadgeArtworkKind.COLLECTOR -> Icons.Outlined.FilterVintage
+                BadgeArtworkKind.CURATOR -> Icons.Outlined.CheckCircle
+                BadgeArtworkKind.COMPLETIONIST -> Icons.Outlined.EmojiEvents
+                else -> Icons.Outlined.MilitaryTech
+            }
         }
     }
 

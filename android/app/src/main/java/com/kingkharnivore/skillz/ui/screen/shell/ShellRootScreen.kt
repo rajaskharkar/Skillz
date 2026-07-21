@@ -134,6 +134,7 @@ fun ShellRootScreen(
     onLaunchFlowForJourney: (String) -> Unit = {},
     onLaunchFlowFromPulse: (Long, String, String?) -> Unit = { _, _, _ -> },
     onOpenActiveFlow: () -> Unit = {},
+    onPlanArc: () -> Unit = {},
     viewModel: ShellViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -222,7 +223,8 @@ fun ShellRootScreen(
                     onReleaseCreaturesByLevel = viewModel::releaseCreaturesByLevel,
                     onLevelUpCreatureByLevel = { id, level -> viewModel.growCreatureByLevel(id, level, "CHEST") },
                     onOpenBlue = { destination = ShellDestination.TheBluePreview },
-                    onSortOptionSelected = viewModel::setChestSortOption
+                    onSortOptionSelected = viewModel::setChestSortOption,
+                    onFilterSelected = viewModel::setChestFilter
                 )
 
                 ShellDestination.Badges -> BadgesScreen(
@@ -234,8 +236,11 @@ fun ShellRootScreen(
                     onUntrack = viewModel::untrackBadge,
                     onCategory = viewModel::setBadgeCategory,
                     onSort = viewModel::setBadgeSort,
+                    onBadgeViewed = { viewModel.markBadgeViewed(it) },
                     onAcknowledgeBackfill = viewModel::acknowledgeBackfill,
-                    onNavigate = { destination = it }
+                    onNavigate = { destination = it },
+                    onOpenFlow = { if (isFlowActive) onOpenActiveFlow() else onLaunchFlowForJourney("") },
+                    onOpenArc = onPlanArc
                 )
 
                 ShellDestination.VoyagePreview -> VoyageHallScreen()
@@ -298,11 +303,12 @@ fun ShellRootScreen(
                 onAdvance = { reduced -> viewModel.advanceCelebration(reduced) },
                 onSkip = { viewModel.skipCelebration() },
                 onComplete = { origin ->
-                    viewModel.completeCelebration()
-                    destination = when (origin) {
-                        "BLUE" -> ShellDestination.TheBluePreview
-                        "STILLWATER" -> ShellDestination.Stillwater
-                        else -> ShellDestination.ShellChest
+                    viewModel.completeCelebration {
+                        destination = when (origin) {
+                            "BLUE" -> ShellDestination.TheBluePreview
+                            "STILLWATER" -> ShellDestination.Stillwater
+                            else -> ShellDestination.ShellChest
+                        }
                     }
                 },
                 onPin = { badgeId, replacementId -> viewModel.pinBadge(badgeId, replacementId) }

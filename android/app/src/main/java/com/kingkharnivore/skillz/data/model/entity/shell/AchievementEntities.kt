@@ -113,3 +113,14 @@ data class MasteryCelebrationEventEntity(
     val presentationStage: String,
     val completedAt: Long? = null
 )
+
+/** Aggregate lower bound retained when reliable history cannot be represented by per-creature events. */
+@Entity(tableName = "badge_count_floor")
+data class BadgeCountFloorEntity(
+    @PrimaryKey val badgeId: String,
+    val speciesId: String?,
+    val minimumCount: Int,
+    val verifiedCountAtReconciliation: Int,
+    val source: String,
+    val reconciledAt: Long
+)

@@ -2,6 +2,8 @@ package com.kingkharnivore.skillz.ui.screen.shell.inventory
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -25,6 +29,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.domain.achievement.*
 import com.kingkharnivore.skillz.ui.screen.shell.ShellDestination
 import com.kingkharnivore.skillz.ui.screen.shell.ux.RoomHeader
+import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import java.text.NumberFormat
@@ -39,36 +44,54 @@ fun BadgesScreen(
     onUntrack: (String) -> Unit,
     onCategory: (BadgeUiCategory) -> Unit,
     onSort: (BadgeSort) -> Unit,
+    onBadgeViewed: (String) -> Unit,
     onAcknowledgeBackfill: (Int) -> Unit,
-    onNavigate: (ShellDestination) -> Unit
+    onNavigate: (ShellDestination) -> Unit,
+    onOpenFlow: () -> Unit,
+    onOpenArc: () -> Unit
 ) {
     val dashboard = uiState.badgeDashboard
     var query by rememberSaveable { mutableStateOf("") }
     val category = uiState.badgeCategory
     val sort = uiState.badgeSort
     var details by remember { mutableStateOf<BadgeProgressModel?>(null) }
+    var collectionDetails by remember { mutableStateOf<CollectionProgress?>(null) }
     var replacement by remember { mutableStateOf<BadgeProgressModel?>(null) }
+    fun openBadge(badge: BadgeProgressModel) { details = badge; onBadgeViewed(badge.badgeId) }
     if (dashboard == null) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }; return }
-    val visible = remember(dashboard.badges, query, category, sort) {
+    val presentations = dashboard.badges.associate { it.badgeId to resolveBadgePresentation(it.badgeId) }
+    val categoryLabels = mapOf(
+        BadgeUiCategory.ALL to stringResource(R.string.badge_category_all), BadgeUiCategory.FLOW to stringResource(R.string.badge_category_flow),
+        BadgeUiCategory.ARC to stringResource(R.string.badge_category_arc), BadgeUiCategory.CREATURES to stringResource(R.string.badge_category_creatures),
+        BadgeUiCategory.MASTERY to stringResource(R.string.badge_category_mastery), BadgeUiCategory.COLLECTIONS to stringResource(R.string.badge_category_collections),
+        BadgeUiCategory.STILLWATER to stringResource(R.string.badge_category_stillwater), BadgeUiCategory.MOVEMENT to stringResource(R.string.badge_category_movement),
+        BadgeUiCategory.SURGE to stringResource(R.string.badge_category_surge), BadgeUiCategory.SPECIAL to stringResource(R.string.badge_category_special)
+    )
+    val sortLabels = mapOf(
+        BadgeSort.RECOMMENDED to stringResource(R.string.badge_sort_recommended), BadgeSort.RECENTLY_EARNED to stringResource(R.string.badge_sort_recent_earned),
+        BadgeSort.RECENTLY_ADVANCED to stringResource(R.string.badge_sort_recent_advanced), BadgeSort.HIGHEST_COUNT to stringResource(R.string.badge_sort_highest_count),
+        BadgeSort.CLOSEST_MILESTONE to stringResource(R.string.badge_sort_closest), BadgeSort.ALPHABETICAL to stringResource(R.string.badge_sort_alphabetical)
+    )
+    val visible = remember(dashboard.badges, presentations, categoryLabels, query, category, sort) {
         dashboard.badges.filter { badge ->
             (category == BadgeUiCategory.ALL || badge.category == category) &&
-                (query.isBlank() || badgeSearchText(badge).contains(query.trim(), ignoreCase = true))
-        }.sortedWith(badgeComparator(sort))
+                (query.isBlank() || badgeSearchText(badge, presentations.getValue(badge.badgeId), categoryLabels.getValue(badge.category)).contains(query.trim(), ignoreCase = true))
+        }.sortedWith(badgeComparator(sort, presentations))
     }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item("header") {
             RoomHeader(R.string.shell_badges_title, R.string.badges_hub_body)
-            Text("${dashboard.uniqueEarned} earned · ${dashboard.totalMasteries} Masteries · ${dashboard.completedCollections} completed collections",
+            Text(pluralStringResource(R.plurals.badges_summary, dashboard.completedCollections, dashboard.uniqueEarned, dashboard.totalMasteries, dashboard.completedCollections),
                 style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), singleLine = true,
-                label = { Text("Search badges") }, leadingIcon = { Icon(Icons.Outlined.Search, null) },
-                trailingIcon = { if (query.isNotEmpty()) IconButton({ query = "" }) { Icon(Icons.Outlined.Clear, "Clear search") } })
+                label = { Text(stringResource(R.string.badges_search)) }, leadingIcon = { Icon(Icons.Outlined.Search, null) },
+                trailingIcon = { if (query.isNotEmpty()) IconButton({ query = "" }) { Icon(Icons.Outlined.Clear, stringResource(R.string.badges_clear_search)) } })
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                BadgeMenu("Category: ${category.name.lowercase().replace('_',' ')}", BadgeUiCategory.values().toList(), { it.name.lowercase().replace('_',' ') }, onCategory)
-                BadgeMenu("Sort: ${sort.name.lowercase().replace('_',' ')}", BadgeSort.values().toList(), { it.name.lowercase().replace('_',' ') }, onSort)
+                BadgeMenu(stringResource(R.string.badges_category_selected, categoryLabels.getValue(category)), BadgeUiCategory.values().toList(), { categoryLabels.getValue(it) }, onCategory)
+                BadgeMenu(stringResource(R.string.badges_sort_selected, sortLabels.getValue(sort)), BadgeSort.values().toList(), { sortLabels.getValue(it) }, onSort)
             }
         }
-        item("showcase-title") { SectionTitle("Your Showcase", "Pin the achievements that mean the most to you.") }
+        item("showcase-title") { SectionTitle(stringResource(R.string.badges_showcase_title), stringResource(R.string.badges_showcase_body)) }
         item("showcase") {
             val pins = dashboard.badges.filter { it.pinnedOrder != null }.sortedBy { it.pinnedOrder }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -76,49 +99,51 @@ fun BadgesScreen(
                     val badge = pins.getOrNull(index)
                     Surface(Modifier.weight(1f).heightIn(min = 156.dp), shape = RoundedCornerShape(18.dp), tonalElevation = 2.dp,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-                        if (badge == null) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Empty slot", style = MaterialTheme.typography.labelMedium) }
+                        if (badge == null) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.badges_empty_slot), style = MaterialTheme.typography.labelMedium) }
                         else Column(Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            BadgeMedallion(badge, BadgeMedallionSize.Large, onClick = { details = badge })
+                            BadgeMedallion(badge, BadgeMedallionSize.Large, onClick = { openBadge(badge) })
                             Text(badgeTitle(badge), maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelLarge)
-                            Row { IconButton({ onMovePin(badge.badgeId, -1) }, enabled = index > 0) { Icon(Icons.Outlined.ChevronLeft, "Move left") }; IconButton({ onMovePin(badge.badgeId, 1) }, enabled = index < pins.lastIndex) { Icon(Icons.Outlined.ChevronRight, "Move right") } }
+                            Row { IconButton({ onMovePin(badge.badgeId, -1) }, enabled = index > 0) { Icon(Icons.Outlined.ChevronLeft, stringResource(R.string.badges_move_left)) }; IconButton({ onMovePin(badge.badgeId, 1) }, enabled = index < pins.lastIndex) { Icon(Icons.Outlined.ChevronRight, stringResource(R.string.badges_move_right)) } }
                         }
                     }
                 }
             }
         }
-        item("reach-title") { SectionTitle("Within Reach", "Personalized next steps, with tracked goals first.") }
-        if (dashboard.recommendations.isEmpty()) item("no-reach") { EmptyCard("Keep exploring—your next reachable goal will appear here.") }
+        item("reach-title") { SectionTitle(stringResource(R.string.badges_within_reach_title), stringResource(R.string.badges_within_reach_body)) }
+        if (dashboard.recommendations.isEmpty()) item("no-reach") { EmptyCard(stringResource(R.string.badges_no_recommendations)) }
         items(dashboard.recommendations, key = { "reach:${it.badgeId}" }) { badge ->
-            ProgressBadgeRow(badge, { details = badge }, { if (badge.tracked) onUntrack(badge.badgeId) else onTrack(badge.badgeId) }, { navigateFor(badge, onNavigate) })
+            ProgressBadgeRow(badge, { openBadge(badge) }, { if (badge.tracked) onUntrack(badge.badgeId) else onTrack(badge.badgeId) }, { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc) { openBadge(badge) } })
         }
         val recent = dashboard.badges.filter { it.earned && it.lastAdvancedAt != null }.sortedByDescending { it.lastAdvancedAt }.take(5)
         if (recent.isNotEmpty()) {
-            item("recent-title") { SectionTitle("Recently Earned and Updated", "New and advanced achievements.") }
-            items(recent, key = { "recent:${it.badgeId}" }) { BadgeGridRow(it, { details = it }, { requestPin(it, dashboard, onPin) { replacement = it } }) }
+            item("recent-title") { SectionTitle(stringResource(R.string.badges_recent_title), stringResource(R.string.badges_recent_body)) }
+            items(recent, key = { "recent:${it.badgeId}" }) { BadgeGridRow(it, { openBadge(it) }, { requestPin(it, dashboard, onPin) { replacement = it } }) }
         }
-        item("earned-title") { SectionTitle("Your Badges", "${visible.count { it.earned }} unique badges shown") }
+        item("earned-title") { SectionTitle(stringResource(R.string.badges_yours_title), stringResource(R.string.badges_yours_count, visible.count { it.earned })) }
         val earned = visible.filter { it.earned }
-        if (earned.isEmpty()) item("empty-earned") { EmptyCard(if (query.isBlank()) "Complete a Flow or explore The Blue to earn your first badge." else "No badges match “$query”.") }
-        items(earned, key = { "earned:${it.badgeId}" }) { BadgeGridRow(it, { details = it }, { requestPin(it, dashboard, onPin) { replacement = it } }) }
-        item("collections-title") { SectionTitle("Collection Progress", "Lifetime discovery and Mastery survive release.") }
-        items(dashboard.collections, key = { it.collectionId }) { CollectionCard(it) }
-        item("book-title") { SectionTitle("Badge Book", "Earned and locked progression goals.") }
-        items(visible, key = { "book:${it.badgeId}" }) { badge -> ProgressBadgeRow(badge, { details = badge }, { if (badge.tracked) onUntrack(badge.badgeId) else onTrack(badge.badgeId) }, { navigateFor(badge, onNavigate) }) }
+        if (earned.isEmpty()) item("empty-earned") { EmptyCard(if (query.isBlank()) stringResource(R.string.badges_no_earned) else stringResource(R.string.badges_no_search_results, query)) }
+        items(earned, key = { "earned:${it.badgeId}" }) { BadgeGridRow(it, { openBadge(it) }, { requestPin(it, dashboard, onPin) { replacement = it } }) }
+        item("collections-title") { SectionTitle(stringResource(R.string.badges_collections_title), stringResource(R.string.badges_collections_body)) }
+        items(dashboard.collections, key = { it.collectionId }) { CollectionCard(it) { collectionDetails = it } }
+        item("book-title") { SectionTitle(stringResource(R.string.badges_book_title), stringResource(R.string.badges_book_body)) }
+        items(visible, key = { "book:${it.badgeId}" }) { badge -> ProgressBadgeRow(badge, { openBadge(badge) }, { if (badge.tracked) onUntrack(badge.badgeId) else onTrack(badge.badgeId) }, { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc) { openBadge(badge) } }) }
     }
-    details?.let { badge -> BadgeDetailsDialog(badge, { details = null }, {
+    details?.let { badge -> BadgeDetailsSheet(badge, { details = null }, {
         if (badge.pinnedOrder != null) onUnpin(badge.badgeId) else requestPin(badge, dashboard, onPin) { replacement = badge }
-    }, { if (badge.tracked) onUntrack(badge.badgeId) else onTrack(badge.badgeId) }) }
+    }, { if (badge.tracked) onUntrack(badge.badgeId) else onTrack(badge.badgeId) },
+        { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc) { } }) }
+    collectionDetails?.let { CollectionDetailsSheet(it, { collectionDetails = null }) }
     replacement?.let { requested ->
-        AlertDialog(onDismissRequest = { replacement = null }, title = { Text("Replace a showcase badge?") },
-            text = { Column { Text("Choose which pinned badge to replace."); dashboard.badges.filter { it.pinnedOrder != null }.sortedBy { it.pinnedOrder }.forEach { pin -> TextButton({ onPin(requested.badgeId, pin.badgeId); replacement = null }) { Text(badgeTitle(pin)) } } } },
-            confirmButton = {}, dismissButton = { TextButton({ replacement = null }) { Text("Cancel") } })
+        AlertDialog(onDismissRequest = { replacement = null }, title = { Text(stringResource(R.string.badges_replace_title)) },
+            text = { Column { Text(stringResource(R.string.badges_replace_body)); dashboard.badges.filter { it.pinnedOrder != null }.sortedBy { it.pinnedOrder }.forEach { pin -> TextButton({ onPin(requested.badgeId, pin.badgeId); replacement = null }) { Text(badgeTitle(pin)) } } } },
+            confirmButton = {}, dismissButton = { TextButton({ replacement = null }) { Text(stringResource(android.R.string.cancel)) } })
     }
     uiState.backfillSummary?.let { summary ->
         AlertDialog(onDismissRequest = { onAcknowledgeBackfill(summary.version) },
-            title = { Text("Your Badge Collection Has Grown") },
-            text = { Text("We recognized ${summary.discoveredCount} creature discoveries, ${summary.masteryCount} Creature Masteries, and ${summary.completionCount} collection completions from your existing progress.") },
-            confirmButton = { TextButton({ onAcknowledgeBackfill(summary.version) }) { Text("View New Badges") } },
-            dismissButton = { TextButton({ onAcknowledgeBackfill(summary.version) }) { Text("Continue") } })
+            title = { Text(stringResource(R.string.badges_backfill_title)) },
+            text = { Text(stringResource(R.string.badges_backfill_body, summary.discoveredCount, summary.masteryCount, summary.completionCount)) },
+            confirmButton = { TextButton({ onAcknowledgeBackfill(summary.version) }) { Text(stringResource(R.string.badges_view_new)) } },
+            dismissButton = { TextButton({ onAcknowledgeBackfill(summary.version) }) { Text(stringResource(R.string.mastery_continue)) } })
     }
 }
 
@@ -126,33 +151,45 @@ private fun requestPin(badge: BadgeProgressModel, dashboard: BadgeDashboard, onP
     if (badge.pinnedOrder != null) return
     if (dashboard.badges.count { it.pinnedOrder != null } >= 3) full() else onPin(badge.badgeId, null)
 }
-private fun badgeSearchText(b: BadgeProgressModel) = listOf(b.badgeId, b.category.name, b.collectionProgress?.collectionId, AchievementBadgeCatalog.byId[b.badgeId]?.speciesId?.let { CreatureCatalog.get(it)?.displayName }).joinToString(" ")
-private fun badgeComparator(sort: BadgeSort): Comparator<BadgeProgressModel> = when(sort) {
+private fun badgeSearchText(b: BadgeProgressModel, presentation: BadgePresentation, category: String) = listOf(presentation.title, presentation.description, category, AchievementBadgeCatalog.byId[b.badgeId]?.speciesId?.let { CreatureCatalog.get(it)?.displayName }).joinToString(" ")
+private fun badgeComparator(sort: BadgeSort, presentations: Map<String, BadgePresentation>): Comparator<BadgeProgressModel> = when(sort) {
     BadgeSort.RECOMMENDED -> compareBy<BadgeProgressModel> { it.pinnedOrder ?: 99 }.thenByDescending { it.earned }.thenBy { it.remaining }.thenBy { it.badgeId }
     BadgeSort.RECENTLY_EARNED -> compareByDescending<BadgeProgressModel> { it.firstEarnedAt ?: Long.MIN_VALUE }.thenBy { it.badgeId }
     BadgeSort.RECENTLY_ADVANCED -> compareByDescending<BadgeProgressModel> { it.lastAdvancedAt ?: Long.MIN_VALUE }.thenBy { it.badgeId }
     BadgeSort.HIGHEST_COUNT -> compareByDescending<BadgeProgressModel> { it.count }.thenBy { it.badgeId }
     BadgeSort.CLOSEST_MILESTONE -> compareBy<BadgeProgressModel> { it.remaining }.thenBy { it.badgeId }
-    BadgeSort.ALPHABETICAL -> compareBy { it.badgeId }
+    BadgeSort.ALPHABETICAL -> compareBy<BadgeProgressModel> { presentations[it.badgeId]?.title.orEmpty() }.thenBy { it.badgeId }
 }
 
 @Composable private fun badgeTitle(badge: BadgeProgressModel): String {
-    ShellContentCatalog.badge(badge.badgeId)?.let { return androidx.compose.ui.res.stringResource(it.titleRes) }
-    AchievementBadgeCatalog.byId[badge.badgeId]?.speciesId?.let { return "${CreatureCatalog.get(it)?.displayName ?: "Creature"} Mastery" }
-    val collection = badge.collectionProgress?.collectionId?.removePrefix("blue_")?.removePrefix("collection_")?.replace('_',' ')?.replaceFirstChar { it.titlecase() }
-    if (collection != null) return "$collection ${badge.badgeId.substringAfterLast('_').replaceFirstChar { it.titlecase() }}"
-    return badge.badgeId.replace('_',' ').replaceFirstChar { it.titlecase() }
+    return resolveBadgePresentation(badge.badgeId).title
 }
 
 enum class BadgeMedallionSize { Small, Medium, Large }
 @Composable fun BadgeMedallion(badge: BadgeProgressModel, size: BadgeMedallionSize = BadgeMedallionSize.Medium, onClick: () -> Unit = {}) {
     val diameter = when(size) { BadgeMedallionSize.Small -> 56.dp; BadgeMedallionSize.Medium -> 72.dp; BadgeMedallionSize.Large -> 88.dp }
-    val title = badgeTitle(badge); val exact = NumberFormat.getIntegerInstance().format(badge.count)
-    val semantics = "$title badge. ${if (badge.earned) "Earned" else "Locked"}. Completed $exact times. ${badge.remaining} remaining.${if (badge.pinnedOrder != null) " Pinned." else ""}${if (badge.tracked) " Tracked." else ""}"
+    val presentation = resolveBadgePresentation(badge.badgeId)
+    val title = presentation.title; val exact = NumberFormat.getIntegerInstance().format(badge.count)
+    val semantics = stringResource(R.string.badge_count_a11y, title,
+        if (badge.earned) stringResource(R.string.badge_earned) else stringResource(R.string.badge_locked), exact,
+        badge.remaining, if (badge.pinnedOrder != null) stringResource(R.string.badge_pinned_a11y) else "",
+        if (badge.tracked) stringResource(R.string.badge_tracked_a11y) else "")
     Box(Modifier.size(diameter + 18.dp).semantics(mergeDescendants = true) { contentDescription = semantics }.clickable(onClick = onClick), contentAlignment = Alignment.Center) {
         CircularProgressIndicator(progress = { if (badge.target == 0) 0f else badge.progress.toFloat()/badge.target }, Modifier.size(diameter + 8.dp), strokeWidth = 4.dp, strokeCap = StrokeCap.Round)
-        Surface(Modifier.size(diameter).clip(CircleShape), shape = CircleShape, color = if (badge.earned) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
-            Box(contentAlignment = Alignment.Center) { Icon(if (badge.earned) Icons.Outlined.MilitaryTech else Icons.Outlined.Lock, null, Modifier.size(diameter/2)); Surface(Modifier.align(Alignment.BottomCenter), shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.inverseSurface) { Text("×${compactCount(badge.count)}", Modifier.padding(horizontal = 7.dp, vertical = 2.dp), color = MaterialTheme.colorScheme.inverseOnSurface, style = MaterialTheme.typography.labelMedium, maxLines = 1) } }
+        Surface(Modifier.size(diameter).clip(CircleShape), shape = CircleShape, color = if (badge.earned) when (presentation.artworkKind) { BadgeArtworkKind.COMPLETIONIST -> MaterialTheme.colorScheme.tertiaryContainer; BadgeArtworkKind.CURATOR -> MaterialTheme.colorScheme.primaryContainer; else -> MaterialTheme.colorScheme.secondaryContainer } else MaterialTheme.colorScheme.surfaceVariant) {
+            Box(contentAlignment = Alignment.Center) {
+                if (!badge.earned) Icon(Icons.Outlined.Lock, null, Modifier.size(diameter/2)) else when (presentation.artworkKind) {
+                    BadgeArtworkKind.FLOW_DURATION -> Text(presentation.centerLabel.orEmpty(), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+                    BadgeArtworkKind.SPECIES_MASTERY -> Box(contentAlignment = Alignment.Center) { presentation.creatureIconKey?.let { ShellObjectIcon(it, Modifier.size(diameter * 0.62f)) }; Text("99", Modifier.align(Alignment.TopEnd).padding(5.dp), fontWeight = FontWeight.Black) }
+                    BadgeArtworkKind.COLLECTOR -> Icon(Icons.Outlined.TravelExplore, null, Modifier.size(diameter/2))
+                    BadgeArtworkKind.CURATOR -> Icon(Icons.Outlined.Inventory2, null, Modifier.size(diameter/2))
+                    BadgeArtworkKind.COMPLETIONIST -> Icon(Icons.Outlined.WorkspacePremium, null, Modifier.size(diameter/2))
+                    BadgeArtworkKind.MASTERY -> Icon(Icons.Outlined.AutoAwesome, null, Modifier.size(diameter/2))
+                    BadgeArtworkKind.ACTIVITY -> Icon(Icons.Outlined.Bolt, null, Modifier.size(diameter/2))
+                    BadgeArtworkKind.SPECIAL -> Icon(Icons.Outlined.Stars, null, Modifier.size(diameter/2))
+                }
+                Surface(Modifier.align(Alignment.BottomCenter), shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.inverseSurface) { Text(stringResource(R.string.badge_count_plate, compactCount(badge.count)), Modifier.padding(horizontal = 7.dp, vertical = 2.dp), color = MaterialTheme.colorScheme.inverseOnSurface, style = MaterialTheme.typography.labelMedium, maxLines = 1) }
+            }
         }
         if (badge.pinnedOrder != null) Icon(Icons.Outlined.PushPin, null, Modifier.align(Alignment.TopEnd).size(18.dp))
         if (badge.tracked) Icon(Icons.Outlined.TrackChanges, null, Modifier.align(Alignment.TopStart).size(18.dp))
@@ -160,11 +197,36 @@ enum class BadgeMedallionSize { Small, Medium, Large }
 }
 internal fun compactCount(count: Int): String = if (count <= 999) count.toString() else NumberFormat.getCompactNumberInstance().format(count)
 
-@Composable private fun BadgeGridRow(badge: BadgeProgressModel, open: () -> Unit, pin: () -> Unit) { ElevatedCard(Modifier.fillMaxWidth().clickable(onClick = open)) { Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) { BadgeMedallion(badge, BadgeMedallionSize.Small, open); Column(Modifier.weight(1f).padding(horizontal = 10.dp)) { Text(badgeTitle(badge), fontWeight = FontWeight.Bold); Text("Exact count: ${NumberFormat.getIntegerInstance().format(badge.count)}", style = MaterialTheme.typography.bodySmall) }; IconButton(pin) { Icon(if (badge.pinnedOrder != null) Icons.Outlined.PushPin else Icons.Outlined.AddCircleOutline, if (badge.pinnedOrder != null) "Pinned" else "Pin") } } } }
-@Composable private fun ProgressBadgeRow(badge: BadgeProgressModel, open: () -> Unit, track: () -> Unit, action: () -> Unit) { ElevatedCard(Modifier.fillMaxWidth()) { Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) { BadgeMedallion(badge, BadgeMedallionSize.Small, open); Column(Modifier.weight(1f).padding(horizontal = 10.dp)) { Text(badgeTitle(badge), fontWeight = FontWeight.Bold); Text("${badge.progress} of ${badge.target} · ${badge.remaining} remaining", style = MaterialTheme.typography.bodySmall); LinearProgressIndicator({ if (badge.target == 0) 0f else badge.progress.toFloat()/badge.target }, Modifier.fillMaxWidth().semantics { progressBarRangeInfo = ProgressBarRangeInfo(badge.progress.toFloat(), 0f..badge.target.toFloat()) }) }; IconButton(track) { Icon(if (badge.tracked) Icons.Outlined.TrackChanges else Icons.Outlined.AddTask, if (badge.tracked) "Stop tracking" else "Track") }; IconButton(action) { Icon(Icons.Outlined.ArrowForward, "Open progression action") } } } }
-@Composable private fun CollectionCard(p: CollectionProgress) { OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) { Text(p.collectionId.removePrefix("blue_").removePrefix("collection_").replace('_',' ').replaceFirstChar { it.titlecase() }, fontWeight = FontWeight.Bold); Text("${p.discoveredSpeciesCount} of ${p.totalParticipatingSpecies} discovered"); Text("${p.masteredSpeciesCount} of ${p.totalParticipatingSpecies} mastered"); Text(listOfNotNull(if(p.collectorEarned) "Collector achieved" else null, if(p.completionistEarned) "Completionist achieved" else null).joinToString(" · "), color = MaterialTheme.colorScheme.primary) } } }
-@Composable private fun BadgeDetailsDialog(b: BadgeProgressModel, dismiss: () -> Unit, pin: () -> Unit, track: () -> Unit) { AlertDialog(onDismissRequest = dismiss, icon = { BadgeMedallion(b, BadgeMedallionSize.Large) }, title = { Text(badgeTitle(b)) }, text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("Exact count: ${NumberFormat.getIntegerInstance().format(b.count)}"); Text(if(b.earned) "Earned" else "Locked"); Text("Progress: ${b.progress} of ${b.target}. ${b.remaining} remaining."); b.milestone.currentThreshold?.let { Text("Current milestone: $it") }; b.milestone.nextThreshold?.let { Text("Next milestone: $it") }; b.collectionProgress?.let { Text("Discovered ${it.discoveredSpeciesCount}; owned ${it.currentlyOwnedSpeciesCount}; mastered ${it.masteredSpeciesCount}.") } } }, confirmButton = { TextButton(pin) { Text(if(b.pinnedOrder != null) "Unpin" else "Pin") } }, dismissButton = { TextButton(track) { Text(if(b.tracked) "Stop tracking" else "Track") } }) }
+@Composable private fun BadgeGridRow(badge: BadgeProgressModel, open: () -> Unit, pin: () -> Unit) { ElevatedCard(Modifier.fillMaxWidth().clickable(onClick = open)) { Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) { BadgeMedallion(badge, BadgeMedallionSize.Small, open); Column(Modifier.weight(1f).padding(horizontal = 10.dp)) { Text(badgeTitle(badge), fontWeight = FontWeight.Bold); Text(stringResource(R.string.badge_exact_count, NumberFormat.getIntegerInstance().format(badge.count)), style = MaterialTheme.typography.bodySmall); if (badge.newlyEarned) Text(stringResource(R.string.badge_new), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold) else if (badge.recentlyUpdated) Text(stringResource(R.string.badge_updated), color = MaterialTheme.colorScheme.primary) }; IconButton(pin) { Icon(if (badge.pinnedOrder != null) Icons.Outlined.PushPin else Icons.Outlined.AddCircleOutline, if (badge.pinnedOrder != null) stringResource(R.string.badge_pinned_a11y) else stringResource(R.string.badge_pin)) } } } }
+@Composable private fun ProgressBadgeRow(badge: BadgeProgressModel, open: () -> Unit, track: () -> Unit, action: () -> Unit) { ElevatedCard(Modifier.fillMaxWidth()) { Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) { BadgeMedallion(badge, BadgeMedallionSize.Small, open); Column(Modifier.weight(1f).padding(horizontal = 10.dp)) { Text(badgeTitle(badge), fontWeight = FontWeight.Bold); Text(recommendationText(badge), style = MaterialTheme.typography.bodySmall); LinearProgressIndicator({ if (badge.target == 0) 0f else badge.progress.toFloat()/badge.target }, Modifier.fillMaxWidth().semantics { progressBarRangeInfo = ProgressBarRangeInfo(badge.progress.toFloat(), 0f..badge.target.toFloat()) }) }; IconButton(track) { Icon(if (badge.tracked) Icons.Outlined.TrackChanges else Icons.Outlined.AddTask, if (badge.tracked) stringResource(R.string.badge_untrack) else stringResource(R.string.badge_track)) }; IconButton(action) { Icon(Icons.Outlined.ArrowForward, stringResource(R.string.badge_open_action_a11y)) } } } }
+@Composable private fun CollectionCard(p: CollectionProgress, onClick: () -> Unit) { OutlinedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) { Text(collectionDisplayName(p.collectionId), fontWeight = FontWeight.Bold); Text(stringResource(R.string.collection_discovered_progress, p.discoveredSpeciesCount, p.totalParticipatingSpecies)); Text(stringResource(R.string.collection_owned_progress, p.currentlyOwnedSpeciesCount, p.totalParticipatingSpecies)); Text(stringResource(R.string.collection_mastered_progress, p.masteredSpeciesCount, p.totalCompletionistSpecies)); Text(listOfNotNull(if(p.collectorEarned) stringResource(R.string.badge_state_collector) else null, if(p.curatorEarned) stringResource(R.string.badge_state_curator) else null, if(p.completionistEarned) stringResource(R.string.badge_state_completionist) else null).joinToString(" · "), color = MaterialTheme.colorScheme.primary) } } }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable private fun BadgeDetailsSheet(b: BadgeProgressModel, dismiss: () -> Unit, pin: () -> Unit, track: () -> Unit, action: () -> Unit) { ModalBottomSheet(onDismissRequest = dismiss) { Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) { val presentation = resolveBadgePresentation(b.badgeId); BadgeMedallion(b, BadgeMedallionSize.Large); Text(presentation.title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold); Text(presentation.description); Text(stringResource(R.string.badge_exact_count, NumberFormat.getIntegerInstance().format(b.count))); Text(if(b.earned) stringResource(R.string.badge_earned) else stringResource(R.string.badge_locked)); Text(stringResource(R.string.badge_progress_remaining, b.progress, b.target, b.remaining)); b.milestone.currentThreshold?.let { Text(stringResource(R.string.badge_current_milestone, it)) }; b.milestone.nextThreshold?.let { Text(stringResource(R.string.badge_next_milestone, it)) }; b.firstEarnedAt?.let { Text(stringResource(R.string.badge_first_earned, formatBadgeDate(it))) }; b.lastAdvancedAt?.let { Text(stringResource(R.string.badge_last_advanced, formatBadgeDate(it))) }; b.collectionProgress?.let { CollectionSpeciesList(it) }; Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { if (b.earned) OutlinedButton(pin) { Text(if(b.pinnedOrder != null) stringResource(R.string.badge_unpin) else stringResource(R.string.badge_pin)) }; OutlinedButton(track) { Text(if(b.tracked) stringResource(R.string.badge_untrack) else stringResource(R.string.badge_track)) }; Button(action) { Text(stringResource(R.string.badge_open_action)) } }; Spacer(Modifier.height(24.dp)) } } }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable private fun CollectionDetailsSheet(p: CollectionProgress, dismiss: () -> Unit) { ModalBottomSheet(onDismissRequest = dismiss) { Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { Text(collectionDisplayName(p.collectionId), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold); Text(stringResource(R.string.collection_detail_summary, p.discoveredSpeciesCount, p.currentlyOwnedSpeciesCount, p.masteredSpeciesCount, p.totalParticipatingSpecies)); CollectionSpeciesList(p); Spacer(Modifier.height(24.dp)) } } }
+@Composable private fun CollectionSpeciesList(p: CollectionProgress) { p.speciesStates.forEach { state -> val creature = CreatureCatalog.get(state.speciesId); val hidden = state.secret && !state.discovered; ListItem(leadingContent = { ShellObjectIcon(if(hidden) "unknown_creature" else creature?.staticIconKey ?: "unknown_creature", Modifier.size(48.dp)) }, headlineContent = { Text(if(hidden) stringResource(R.string.collection_secret_species) else creature?.titleRes?.takeIf { it != 0 }?.let { stringResource(it) } ?: stringResource(R.string.badge_creature_fallback)) }, supportingContent = { Text(when { state.mastered -> stringResource(R.string.collection_species_mastered, state.ownedCount); state.ownedCount > 0 -> stringResource(R.string.collection_species_owned, state.ownedCount, state.highestLevel ?: 1, 99 - (state.highestLevel ?: 1)); state.discovered -> stringResource(R.string.collection_species_discovered_not_owned); else -> stringResource(R.string.collection_species_undiscovered) }) }) } }
+private fun formatBadgeDate(timestamp: Long): String = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(timestamp))
+@Composable private fun recommendationText(badge: BadgeProgressModel): String = when {
+    badge.highestCreatureLevel != null -> stringResource(R.string.badge_next_mastery_step, badge.highestCreatureLevel, (99 - badge.highestCreatureLevel).coerceAtLeast(0))
+    badge.badgeId.endsWith("_collector") -> stringResource(R.string.badge_next_discovery_step, badge.remaining)
+    badge.badgeId.endsWith("_completionist") -> stringResource(R.string.badge_next_completionist_step, badge.remaining)
+    badge.category == BadgeUiCategory.FLOW -> stringResource(R.string.badge_next_flow_step, badge.remaining)
+    else -> stringResource(R.string.badge_progress_remaining, badge.progress, badge.target, badge.remaining)
+}
 @Composable private fun SectionTitle(title: String, body: String) { Column { Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant) } }
 @Composable private fun EmptyCard(text: String) { OutlinedCard(Modifier.fillMaxWidth()) { Text(text, Modifier.padding(18.dp)) } }
 @Composable private fun <T> BadgeMenu(label: String, values: List<T>, text: (T)->String, selected: (T)->Unit) { var open by remember { mutableStateOf(false) }; Box { OutlinedButton({open=true}) { Text(label, maxLines=1, overflow=TextOverflow.Ellipsis) }; DropdownMenu(open, {open=false}) { values.forEach { DropdownMenuItem({Text(text(it))}, { selected(it); open=false }) } } } }
-private fun navigateFor(b: BadgeProgressModel, navigate: (ShellDestination)->Unit) { navigate(when(b.action) { "chest" -> ShellDestination.ShellChest; "stillwater" -> ShellDestination.Stillwater; else -> ShellDestination.TheBluePreview }) }
+private fun navigateFor(
+    badge: BadgeProgressModel,
+    navigate: (ShellDestination) -> Unit,
+    openFlow: () -> Unit,
+    openArc: () -> Unit,
+    showDetails: () -> Unit
+) = when (badge.action) {
+    BadgeActionDestination.Flow -> openFlow()
+    BadgeActionDestination.Arc -> openArc()
+    is BadgeActionDestination.Chest -> navigate(ShellDestination.ShellChest)
+    is BadgeActionDestination.Blue -> navigate(ShellDestination.TheBluePreview)
+    BadgeActionDestination.Stillwater -> navigate(ShellDestination.Stillwater)
+    BadgeActionDestination.MovementInfo, BadgeActionDestination.BadgeDetails -> showDetails()
+}

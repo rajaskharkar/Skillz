@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 34.
+     * Current database version is 35.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -159,7 +159,11 @@ object SkillzDatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_achievement_event_creatureInstanceId` ON `achievement_event` (`creatureInstanceId`)")
             db.execSQL("CREATE TABLE IF NOT EXISTS `achievement_backfill` (`version` INTEGER NOT NULL, `completedAt` INTEGER NOT NULL, `discoveredCount` INTEGER NOT NULL, `masteryCount` INTEGER NOT NULL, `completionCount` INTEGER NOT NULL, PRIMARY KEY(`version`))")
             // Current inventory and released rows are reliable lifetime-discovery evidence.
-            db.execSQL("INSERT OR IGNORE INTO `creature_discovery` SELECT `findId`, `acquiredAt`, `sourceType`, `instanceId`, `acquiredAt` FROM `user_shell_find_instance` WHERE `findId` LIKE 'creature_%' OR `findId` LIKE 'stillwater_%' OR `findId` IN ('focus_minnow','focus_seahorse','focus_manta','focus_whale','focus_octopus') GROUP BY `findId`")
+            db.execSQL("""INSERT OR IGNORE INTO `creature_discovery`
+                SELECT i.`findId`, i.`acquiredAt`, i.`sourceType`, i.`instanceId`, i.`acquiredAt`
+                FROM `user_shell_find_instance` i
+                WHERE (i.`findId` LIKE 'creature_%' OR i.`findId` LIKE 'stillwater_%' OR i.`findId` IN ('focus_minnow','focus_seahorse','focus_manta','focus_whale','focus_octopus'))
+                AND NOT EXISTS (SELECT 1 FROM `user_shell_find_instance` earlier WHERE earlier.`findId` = i.`findId` AND (earlier.`acquiredAt` < i.`acquiredAt` OR (earlier.`acquiredAt` = i.`acquiredAt` AND earlier.`instanceId` < i.`instanceId`)))""".trimIndent())
             // A present level-99 instance is reliable mastery evidence. Lost historical copies cannot be fabricated.
             db.execSQL("INSERT OR IGNORE INTO `creature_mastery_event` SELECT 'backfill_mastery_' || `instanceId`, `instanceId`, `findId`, `acquiredAt`, 'backfill_' || `instanceId` FROM `user_shell_find_instance` WHERE `animalLevel` >= 99")
         }
@@ -194,6 +198,30 @@ object SkillzDatabaseMigrations {
             )
             db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_mastery_celebration_event_transactionId` ON `mastery_celebration_event` (`transactionId`)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_mastery_celebration_event_lifecycleState` ON `mastery_celebration_event` (`lifecycleState`)")
+        }
+    }
+    val MIGRATION_34_35 = object : Migration(34, 35) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            addColumnIfMissing(db, "user_shell_find_instance", "lastActivityAt", "INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("UPDATE `user_shell_find_instance` SET `lastActivityAt` = `acquiredAt` WHERE `lastActivityAt` = 0")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `badge_count_floor` (`badgeId` TEXT NOT NULL, `speciesId` TEXT, `minimumCount` INTEGER NOT NULL, `verifiedCountAtReconciliation` INTEGER NOT NULL, `source` TEXT NOT NULL, `reconciledAt` INTEGER NOT NULL, PRIMARY KEY(`badgeId`))")
+            db.execSQL("""INSERT OR IGNORE INTO `badge_count_floor` (`badgeId`,`speciesId`,`minimumCount`,`verifiedCountAtReconciliation`,`source`,`reconciledAt`)
+                SELECT b.`badgeId`, CASE WHEN b.`badgeId` LIKE 'mastery_species_%' THEN substr(b.`badgeId`, 17) ELSE NULL END,
+                b.`count`, CASE
+                    WHEN b.`badgeId` LIKE 'mastery_species_%' THEN (SELECT COUNT(*) FROM `creature_mastery_event` m WHERE m.`speciesId` = substr(b.`badgeId`, 17))
+                    WHEN b.`badgeId` = 'mastery_circle' THEN (SELECT COUNT(*) FROM `creature_mastery_event`)
+                    WHEN b.`badgeId` = 'mastery_variety' THEN (SELECT COUNT(DISTINCT `speciesId`) FROM `creature_mastery_event`)
+                    WHEN b.`badgeId` = 'variety_collector' THEN (SELECT COUNT(*) FROM `creature_discovery`)
+                    ELSE b.`count` END,
+                'legacy_user_badge', b.`lastEarnedAt` FROM `user_badge` b WHERE b.`count` > 0""".trimIndent())
+            // Repair development installs migrated by v32's grouped SELECT. The correlated
+            // ordering makes timestamp, source, and creature identity describe one exact row.
+            db.execSQL("""UPDATE `creature_discovery` SET
+                `firstDiscoveredAt` = (SELECT i.`acquiredAt` FROM `user_shell_find_instance` i WHERE i.`findId` = `creature_discovery`.`speciesId` ORDER BY i.`acquiredAt`, i.`instanceId` LIMIT 1),
+                `acquisitionSource` = (SELECT i.`sourceType` FROM `user_shell_find_instance` i WHERE i.`findId` = `creature_discovery`.`speciesId` ORDER BY i.`acquiredAt`, i.`instanceId` LIMIT 1),
+                `firstCreatureId` = (SELECT i.`instanceId` FROM `user_shell_find_instance` i WHERE i.`findId` = `creature_discovery`.`speciesId` ORDER BY i.`acquiredAt`, i.`instanceId` LIMIT 1)
+                WHERE EXISTS (SELECT 1 FROM `user_shell_find_instance` i WHERE i.`findId` = `creature_discovery`.`speciesId`)
+                AND (SELECT MIN(i.`acquiredAt`) FROM `user_shell_find_instance` i WHERE i.`findId` = `creature_discovery`.`speciesId`) <= `firstDiscoveredAt`""".trimIndent())
         }
     }
 
@@ -349,7 +377,7 @@ object SkillzDatabaseMigrations {
                 MIGRATION_28_29 +
                 MIGRATION_29_30 +
                 MIGRATION_30_31
-                + MIGRATION_31_32 + MIGRATION_32_33 + MIGRATION_33_34
+                + MIGRATION_31_32 + MIGRATION_32_33 + MIGRATION_33_34 + MIGRATION_34_35
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(

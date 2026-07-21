@@ -155,7 +155,9 @@ fun TheBlueRoomScreen(
             },
             firstRestingInstanceId = remember(uiState.finds, uiState.focusPlacements, animal.findId) {
                 firstRestingInstanceId(animal.findId, uiState)
-            }
+            },
+            level99Preview = uiState.badgeDashboard?.level99Previews?.get(animal.findId)
+                ?.takeIf { animal.highestLevel == 98 }
         )
     }
 

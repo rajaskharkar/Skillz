@@ -51,7 +51,7 @@ class AchievementEngineTest {
         val species = CreatureCatalog.all.first().copy(participatesInCollector = false, participatesInCompletionist = false)
         val progress = CollectionProgressCalculator.calculate(CollectionDefinition("test", 1, listOf(species)), emptySet(), emptyMap(), emptySet())
         assertEquals(0, progress.totalParticipatingSpecies)
-        assertTrue(progress.currentRosterCollectorComplete)
-        assertTrue(progress.currentRosterCompletionistComplete)
+        assertFalse(progress.currentRosterCollectorComplete)
+        assertFalse(progress.currentRosterCompletionistComplete)
     }
 }

@@ -19,6 +19,21 @@ class SkillzMigrationTest {
         SkillzDatabase::class.java
     )
 
+    @Test fun migration34To35RepairsDiscoveryAndPreservesLegacyBadgeFloor() {
+        helper.createDatabase(TEST_DB, 34).apply {
+            execSQL("INSERT INTO user_shell_find_instance (instanceId,findId,acquiredAt,sourceType,sourceId,currentUpgradeStageId,customName,isNew,isArchivedInChest,viewedAt,animalLevel,creatureStatus,creatureSource,flowTimeValueMinutes) VALUES ('later','focus_minnow',20,'flow_later',NULL,NULL,NULL,0,1,NULL,1,'ACTIVE',NULL,10),('earlier','focus_minnow',10,'flow_earlier',NULL,NULL,NULL,0,1,NULL,1,'RELEASED',NULL,10)")
+            execSQL("INSERT INTO creature_discovery VALUES ('focus_minnow',20,'flow_later','later',20)")
+            execSQL("INSERT INTO user_badge VALUES ('mastery_species_focus_minnow',5,1,2,0,0)")
+            close()
+        }
+        val db = helper.runMigrationsAndValidate(TEST_DB, 35, true, SkillzDatabaseMigrations.MIGRATION_34_35)
+        db.query("SELECT firstDiscoveredAt,acquisitionSource,firstCreatureId FROM creature_discovery WHERE speciesId='focus_minnow'").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(10L, c.getLong(0)); assertEquals("flow_earlier", c.getString(1)); assertEquals("earlier", c.getString(2))
+        }
+        assertEquals(1, db.countRows("badge_count_floor", "badgeId = ? AND minimumCount = 5", arrayOf("mastery_species_focus_minnow")))
+        db.close()
+    }
+
     @Test fun migration33To34CreatesDurableCelebrationLedger() {
         helper.createDatabase(TEST_DB, 33).close()
         val db = helper.runMigrationsAndValidate(TEST_DB, 34, true, SkillzDatabaseMigrations.MIGRATION_33_34)

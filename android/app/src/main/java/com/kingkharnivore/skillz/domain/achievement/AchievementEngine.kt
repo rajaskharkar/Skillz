@@ -4,6 +4,8 @@ import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureDefinition
 import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
 import com.kingkharnivore.skillz.utils.shell.CreatureZone
+import com.kingkharnivore.skillz.utils.shell.StillwaterCatalog
+import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
 import java.security.MessageDigest
 
 enum class BadgeFamily { SPECIES_MASTERY, MASTERY, COLLECTION, FLOW, SOFT_FLOW, ARC, MOVEMENT, SURGE }
@@ -36,10 +38,16 @@ object AchievementBadgeCatalog {
         add(AchievementBadgeDefinition("mastery_circle", BadgeFamily.MASTERY, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT))
         add(AchievementBadgeDefinition("mastery_variety", BadgeFamily.MASTERY, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT))
         add(AchievementBadgeDefinition("variety_collector", BadgeFamily.COLLECTION, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT))
+        add(AchievementBadgeDefinition("stillwater_first_catch", BadgeFamily.COLLECTION, BadgeCountType.ONE_TIME, BadgeRequirement.EXACT_COUNT, collectionId = "collection_stillwater"))
+        add(AchievementBadgeDefinition("stillwater_variety", BadgeFamily.COLLECTION, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT, collectionId = "collection_stillwater"))
+        add(AchievementBadgeDefinition("stillwater_mastery", BadgeFamily.MASTERY, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT, collectionId = "collection_stillwater"))
         CollectionCatalog.collections.forEach { collection ->
             listOf(BadgeRequirement.COLLECTOR, BadgeRequirement.CURATOR, BadgeRequirement.COMPLETIONIST).forEach { requirement ->
                 add(AchievementBadgeDefinition("${collection.collectionId}_${requirement.name.lowercase()}", BadgeFamily.COLLECTION, BadgeCountType.ONE_TIME, requirement, collectionId = collection.collectionId))
             }
+        }
+        listOf("across_the_depths", "one_from_every_water", "keeper_of_the_blue").forEach {
+            add(AchievementBadgeDefinition(it, BadgeFamily.COLLECTION, BadgeCountType.ONE_TIME, BadgeRequirement.EXACT_COUNT))
         }
         // Existing IDs remain canonical and are evaluated from their existing reliable ledgers.
         listOf("badge_flow_10_min", "badge_flow_30_min", "badge_flow_60_min", "badge_flow_120_min").forEach {
@@ -49,9 +57,17 @@ object AchievementBadgeCatalog {
     val byId = definitions.associateBy { it.badgeId }
 }
 
-data class CollectionDefinition(val collectionId: String, val rosterVersion: Int, val species: List<CreatureDefinition>) {
-    val rosterHash: String = MessageDigest.getInstance("SHA-256")
-        .digest(species.map { it.creatureId }.sorted().joinToString("\n").toByteArray())
+data class CollectionDefinition(val collectionId: String, val rosterVersion: Int, val species: List<CreatureDefinition>, val allowEmptyCompletion: Boolean = false) {
+    fun eligibleRoster(requirement: BadgeRequirement): List<String> = species.asSequence()
+        .filter { it.isAvailable }
+        .filter { creature -> when (requirement) {
+            BadgeRequirement.COLLECTOR, BadgeRequirement.CURATOR -> creature.participatesInCollector
+            BadgeRequirement.COMPLETIONIST -> creature.participatesInCompletionist
+            BadgeRequirement.EXACT_COUNT -> false
+        } }
+        .map { it.creatureId }.distinct().sorted().toList()
+    fun rosterHash(requirement: BadgeRequirement): String = MessageDigest.getInstance("SHA-256")
+        .digest(eligibleRoster(requirement).joinToString("\n").toByteArray())
         .joinToString("") { "%02x".format(it) }
 }
 
@@ -59,7 +75,11 @@ object CollectionCatalog {
     private val blueRegions = CreatureZone.values().map { zone ->
         CollectionDefinition("blue_${zone.name.lowercase()}", 1, CreatureCatalog.all.filter { it.sourceType != CreatureSourceType.STILLWATER && it.zone == zone })
     }
-    val collections = blueRegions + listOf(
+    private val stillwaterVessels = StillwaterVessel.values().map { vessel ->
+        val ids = StillwaterCatalog.creaturesFor(vessel).map { it.creatureId }.toSet()
+        CollectionDefinition("stillwater_${vessel.name.lowercase()}", 1, CreatureCatalog.stillwater.filter { it.creatureId in ids })
+    }
+    val collections = blueRegions + stillwaterVessels + listOf(
         CollectionDefinition("collection_stillwater", 1, CreatureCatalog.stillwater),
         CollectionDefinition("collection_the_blue", 1, CreatureCatalog.all.filter { it.sourceType != CreatureSourceType.STILLWATER }),
         CollectionDefinition("collection_all_waters", 1, CreatureCatalog.all)
@@ -70,6 +90,7 @@ object CollectionCatalog {
 data class CollectionProgress(
     val collectionId: String,
     val totalParticipatingSpecies: Int,
+    val totalCompletionistSpecies: Int,
     val discoveredSpeciesCount: Int,
     val currentlyOwnedSpeciesCount: Int,
     val masteredSpeciesCount: Int,
@@ -82,25 +103,42 @@ data class CollectionProgress(
     val missingDiscoveredSpeciesIds: Set<String>,
     val missingCurrentlyOwnedSpeciesIds: Set<String>,
     val missingMasteredSpeciesIds: Set<String>,
-    val closestCurrentCreatureToMastery: String?
+    val closestCurrentCreatureToMastery: String?,
+    val speciesStates: List<CollectionSpeciesProgress> = emptyList()
+)
+data class CollectionSpeciesProgress(
+    val speciesId: String,
+    val discovered: Boolean,
+    val ownedCount: Int,
+    val highestLevel: Int?,
+    val mastered: Boolean,
+    val secret: Boolean
 )
 
 object CollectionProgressCalculator {
     fun calculate(definition: CollectionDefinition, discovered: Set<String>, ownedLevels: Map<String, List<Int>>, mastered: Set<String>, historicalTypes: Set<BadgeRequirement> = emptySet()): CollectionProgress {
-        val collectorRoster = definition.species.filter { it.participatesInCollector && it.isAvailable }.map { it.creatureId }.toSet()
-        val masteryRoster = definition.species.filter { it.participatesInCompletionist && it.isAvailable }.map { it.creatureId }.toSet()
+        val collectorRoster = definition.eligibleRoster(BadgeRequirement.COLLECTOR).toSet()
+        val masteryRoster = definition.eligibleRoster(BadgeRequirement.COMPLETIONIST).toSet()
         val owned = ownedLevels.filterValues { it.isNotEmpty() }.keys
         val missingDiscovered = collectorRoster - discovered
         val missingOwned = collectorRoster - owned
         val missingMastered = masteryRoster - mastered
-        return CollectionProgress(definition.collectionId, collectorRoster.size, (collectorRoster intersect discovered).size,
+        val collectorComplete = (collectorRoster.isNotEmpty() || definition.allowEmptyCompletion) && missingDiscovered.isEmpty()
+        val curatorComplete = (collectorRoster.isNotEmpty() || definition.allowEmptyCompletion) && missingOwned.isEmpty()
+        val masteryComplete = (masteryRoster.isNotEmpty() || definition.allowEmptyCompletion) && missingMastered.isEmpty()
+        return CollectionProgress(definition.collectionId, collectorRoster.size, masteryRoster.size, (collectorRoster intersect discovered).size,
             (collectorRoster intersect owned).size, (masteryRoster intersect mastered).size,
-            missingDiscovered.isEmpty() || BadgeRequirement.COLLECTOR in historicalTypes,
-            missingOwned.isEmpty() || BadgeRequirement.CURATOR in historicalTypes,
-            missingMastered.isEmpty() || BadgeRequirement.COMPLETIONIST in historicalTypes,
-            missingDiscovered.isEmpty(), missingOwned.isEmpty(), missingMastered.isEmpty(),
+            collectorComplete || (collectorRoster.isNotEmpty() && BadgeRequirement.COLLECTOR in historicalTypes),
+            curatorComplete || (collectorRoster.isNotEmpty() && BadgeRequirement.CURATOR in historicalTypes),
+            masteryComplete || (masteryRoster.isNotEmpty() && BadgeRequirement.COMPLETIONIST in historicalTypes),
+            collectorComplete, curatorComplete, masteryComplete,
             missingDiscovered, missingOwned, missingMastered,
-            ownedLevels.filterKeys { it in missingMastered }.maxByOrNull { it.value.maxOrNull() ?: 0 }?.key)
+            ownedLevels.filterKeys { it in missingMastered }.maxByOrNull { it.value.maxOrNull() ?: 0 }?.key,
+            definition.species.filter { it.isAvailable }.distinctBy { it.creatureId }.map { creature ->
+                val levels = ownedLevels[creature.creatureId].orEmpty()
+                CollectionSpeciesProgress(creature.creatureId, creature.creatureId in discovered,
+                    levels.size, levels.maxOrNull(), creature.creatureId in mastered, creature.secretUntilDiscovered)
+            })
     }
 }
 

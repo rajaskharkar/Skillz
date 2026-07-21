@@ -58,10 +58,16 @@ import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
 import com.kingkharnivore.skillz.utils.shell.CreatureMasteryTier
 import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
 import com.kingkharnivore.skillz.utils.shell.ChestSortOption
+import com.kingkharnivore.skillz.utils.shell.ChestFilterOption
+import com.kingkharnivore.skillz.utils.shell.StillwaterCatalog
+import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
+import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 import com.kingkharnivore.skillz.ui.screen.shell.ux.RoomHeader
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
+import com.kingkharnivore.skillz.domain.achievement.Level99AchievementPreview
+import com.kingkharnivore.skillz.domain.achievement.AchievementBadgeCatalog
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -75,7 +81,8 @@ internal data class ChestInventoryStackUiModel(
     val totalValuePearls: Int = 0,
     val newestAcquiredAtMs: Long = 0L,
     val oldestAcquiredAtMs: Long = 0L,
-    val recentActivityAtMs: Long = 0L
+    val recentActivityAtMs: Long = 0L,
+    val speciesMasteryCount: Int = 0
 )
 
 @Composable
@@ -84,11 +91,37 @@ fun ShellChestScreen(
     onReleaseCreaturesByLevel: (String, Map<Int, Int>) -> Unit,
     onLevelUpCreatureByLevel: (String, Int) -> Unit,
     onOpenBlue: () -> Unit,
-    onSortOptionSelected: (ChestSortOption) -> Unit
+    onSortOptionSelected: (ChestSortOption) -> Unit,
+    onFilterSelected: (ChestFilterOption) -> Unit
 ) {
     var selectedStack by remember { mutableStateOf<ChestInventoryStackUiModel?>(null) }
-    val stacks = remember(uiState.finds, uiState.chestSortOption) {
-        buildChestInventoryStacks(uiState.finds, uiState.chestSortOption)
+    val masteryCounts = uiState.badgeDashboard?.badges?.mapNotNull { badge ->
+        AchievementBadgeCatalog.byId[badge.badgeId]?.speciesId?.let { it to badge.count }
+    }?.toMap().orEmpty()
+    val allStacks = remember(uiState.finds, uiState.chestSortOption, masteryCounts) {
+        buildChestInventoryStacks(uiState.finds, uiState.chestSortOption, masteryCounts)
+    }
+    val trackedCollectorNeeded = uiState.badgeDashboard?.badges?.filter { it.tracked && it.badgeId.endsWith("_collector") }
+        ?.flatMap { it.collectionProgress?.missingCurrentlyOwnedSpeciesIds.orEmpty() }?.toSet().orEmpty()
+    val trackedCompletionNeeded = uiState.badgeDashboard?.badges?.filter { it.tracked && it.badgeId.endsWith("_completionist") }
+        ?.flatMap { it.collectionProgress?.missingMasteredSpeciesIds.orEmpty() }?.toSet().orEmpty()
+    val stacks = remember(allStacks, uiState.chestFilter, trackedCollectorNeeded, trackedCompletionNeeded) {
+        allStacks.filter { stack -> when (uiState.chestFilter) {
+            ChestFilterOption.All -> true
+            ChestFilterOption.ClosestToMastery -> stack.level >= 90
+            ChestFilterOption.Mastered -> stack.level >= 99
+            ChestFilterOption.NotMastered -> stack.level < 99
+            ChestFilterOption.TrackedCollector -> stack.creatureId in trackedCollectorNeeded
+            ChestFilterOption.TrackedCompletionist -> stack.creatureId in trackedCompletionNeeded
+            ChestFilterOption.SunlitReef -> CreatureCatalog.get(stack.creatureId)?.zone == CreatureZone.SUNLIT_REEF
+            ChestFilterOption.DeeperReef -> CreatureCatalog.get(stack.creatureId)?.zone == CreatureZone.DEEPER_REEF
+            ChestFilterOption.OpenBlue -> CreatureCatalog.get(stack.creatureId)?.zone == CreatureZone.OPEN_BLUE
+            ChestFilterOption.GreatBlue -> CreatureCatalog.get(stack.creatureId)?.zone == CreatureZone.GREAT_BLUE
+            ChestFilterOption.Fishbowl -> StillwaterCatalog.byId[stack.creatureId]?.vessel == StillwaterVessel.FISHBOWL
+            ChestFilterOption.Aquarium -> StillwaterCatalog.byId[stack.creatureId]?.vessel == StillwaterVessel.AQUARIUM
+            ChestFilterOption.Pond -> StillwaterCatalog.byId[stack.creatureId]?.vessel == StillwaterVessel.POND
+            ChestFilterOption.Lake -> StillwaterCatalog.byId[stack.creatureId]?.vessel == StillwaterVessel.LAKE
+        } }
     }
     val totalCreatureCount = stacks.sumOf { it.count }
 
@@ -97,7 +130,7 @@ fun ShellChestScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         RoomHeader(title = R.string.shell_chest_title, body = R.string.shell_chest_body)
-        if (stacks.isNotEmpty()) {
+        if (allStacks.isNotEmpty()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -115,6 +148,7 @@ fun ShellChestScreen(
                     selected = uiState.chestSortOption,
                     onSelected = onSortOptionSelected
                 )
+                ChestFilterControl(uiState.chestFilter, onFilterSelected)
             }
         }
 
@@ -146,6 +180,7 @@ fun ShellChestScreen(
             stack = stack,
             onDismiss = { selectedStack = null },
             pearlBalance = uiState.pearlBalance,
+            level99Preview = uiState.badgeDashboard?.level99Previews?.get(stack.creatureId)?.takeIf { stack.level == 98 },
             onLevelUp = {
                 onLevelUpCreatureByLevel(stack.creatureId, stack.level)
                 selectedStack = null
@@ -159,9 +194,32 @@ fun ShellChestScreen(
     }
 }
 
+@Composable private fun ChestFilterControl(selected: ChestFilterOption, onSelected: (ChestFilterOption) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box { FilterChip(selected = selected != ChestFilterOption.All, onClick = { expanded = true }, label = { Text(stringResource(selected.labelRes)) }); DropdownMenu(expanded, { expanded = false }) { ChestFilterOption.entries.forEach { option -> DropdownMenuItem(text = { Text(stringResource(option.labelRes)) }, onClick = { expanded = false; onSelected(option) }) } } }
+}
+
+private val ChestFilterOption.labelRes: Int get() = when(this) {
+    ChestFilterOption.All -> R.string.chest_filter_all
+    ChestFilterOption.ClosestToMastery -> R.string.chest_filter_closest
+    ChestFilterOption.Mastered -> R.string.chest_filter_mastered
+    ChestFilterOption.NotMastered -> R.string.chest_filter_not_mastered
+    ChestFilterOption.TrackedCollector -> R.string.chest_filter_tracked_collector
+    ChestFilterOption.TrackedCompletionist -> R.string.chest_filter_tracked_completionist
+    ChestFilterOption.SunlitReef -> R.string.collection_sunlit_reef
+    ChestFilterOption.DeeperReef -> R.string.collection_deeper_reef
+    ChestFilterOption.OpenBlue -> R.string.collection_open_blue
+    ChestFilterOption.GreatBlue -> R.string.collection_great_blue
+    ChestFilterOption.Fishbowl -> R.string.collection_fishbowl
+    ChestFilterOption.Aquarium -> R.string.collection_aquarium
+    ChestFilterOption.Pond -> R.string.collection_pond
+    ChestFilterOption.Lake -> R.string.collection_lake
+}
+
 internal fun buildChestInventoryStacks(
     finds: List<UserShellFindInstanceEntity>,
-    sortOption: ChestSortOption = ChestSortOption.Level
+    sortOption: ChestSortOption = ChestSortOption.Level,
+    masteryCounts: Map<String, Int> = emptyMap()
 ): List<ChestInventoryStackUiModel> =
     finds
         .asSequence()
@@ -180,12 +238,10 @@ internal fun buildChestInventoryStacks(
                 totalValuePearls = CreatureEconomy.releaseValuePearls(key.first, key.second) * creaturesAtLevel.size,
                 newestAcquiredAtMs = creaturesAtLevel.maxOfOrNull { it.acquiredAt } ?: 0L,
                 oldestAcquiredAtMs = creaturesAtLevel.minOfOrNull { it.acquiredAt } ?: 0L,
-                // TODO: True inventory activity sorting needs a future persisted stack activity timestamp.
-                // viewedAt is only an existing UI-seen timestamp and is not updated by level-ups/releases;
-                // acquisition time remains the deterministic fallback until that future timestamp exists.
                 recentActivityAtMs = creaturesAtLevel.maxOfOrNull { instance ->
-                    instance.viewedAt?.takeIf { viewedAt -> viewedAt > 0L } ?: instance.acquiredAt
-                } ?: 0L
+                    maxOf(instance.acquiredAt, instance.lastActivityAt)
+                } ?: 0L,
+                speciesMasteryCount = masteryCounts[key.first] ?: 0
             )
         }
         .let { stacks -> sortChestInventoryStacks(stacks, sortOption) }
@@ -218,6 +274,8 @@ private fun chestStackComparator(sortOption: ChestSortOption): Comparator<ChestI
             .then(nameLevelTieBreakers)
         ChestSortOption.ClosestToMastery -> compareBy<ChestInventoryStackUiModel> { (99 - it.level).coerceAtLeast(0) }
             .then(nameLevelTieBreakers)
+        ChestSortOption.SpeciesMasteryCount -> compareByDescending<ChestInventoryStackUiModel> { it.speciesMasteryCount }
+            .then(levelNameTieBreakers)
     }
 }
 
@@ -282,6 +340,7 @@ private val ChestSortOption.labelRes: Int
         ChestSortOption.Value -> R.string.shell_chest_sort_value
         ChestSortOption.Count -> R.string.shell_chest_sort_count
         ChestSortOption.ClosestToMastery -> R.string.shell_chest_sort_closest_mastery
+        ChestSortOption.SpeciesMasteryCount -> R.string.shell_chest_sort_species_mastery
     }
 
 @Composable
@@ -341,10 +400,10 @@ private fun ChestInventoryTile(stack: ChestInventoryStackUiModel, onClick: () ->
             )
             ChestBadge(
                 text = when {
-                    stack.level >= 99 -> "Mastered"
-                    stack.level == 98 -> "1 to Mastery"
-                    stack.level >= 95 -> "Near Mastery"
-                    stack.level >= 90 -> "${99 - stack.level} to Mastery"
+                    stack.level >= 99 -> stringResource(R.string.chest_mastered)
+                    stack.level == 98 -> stringResource(R.string.chest_one_to_mastery)
+                    stack.level >= 95 -> stringResource(R.string.chest_near_mastery)
+                    stack.level >= 90 -> stringResource(R.string.chest_levels_to_mastery, 99 - stack.level)
                     else -> stringResource(R.string.shell_creature_level_short, stack.level)
                 },
                 modifier = Modifier.align(Alignment.BottomCenter)
@@ -377,6 +436,7 @@ private fun ChestBadge(text: String, modifier: Modifier = Modifier) {
 private fun ChestStackDetailSheet(
     stack: ChestInventoryStackUiModel,
     pearlBalance: Int,
+    level99Preview: Level99AchievementPreview?,
     onDismiss: () -> Unit,
     onLevelUp: () -> Unit,
     onRelease: (Int) -> Unit
@@ -399,7 +459,6 @@ private fun ChestStackDetailSheet(
     val isMaxLevel = stack.level >= CreatureEconomy.MAX_CREATURE_LEVEL
     val levelUpShortfall = (levelUpCost - pearlBalance).coerceAtLeast(0)
     val canAffordLevelUp = pearlBalance >= levelUpCost
-    val canLevelUp = !isMaxLevel && canAffordLevelUp
     val levelUpStatus = when {
         isMaxLevel -> stringResource(R.string.shell_creature_level_up_unavailable_max)
         !canAffordLevelUp -> stringResource(
@@ -454,7 +513,7 @@ private fun ChestStackDetailSheet(
             Text(levelUpStatus, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Button(
                 onClick = { showLevelUpConfirmation = true },
-                enabled = canLevelUp,
+                enabled = !isMaxLevel,
                 modifier = Modifier
                     .fillMaxWidth()
                     .semantics { contentDescription = levelUpButtonDescription }
@@ -519,6 +578,9 @@ private fun ChestStackDetailSheet(
         ChestLevelUpConfirmationDialog(
             stack = stack,
             cost = levelUpCost,
+            pearlBalance = pearlBalance,
+            preview = level99Preview,
+            canAfford = canAffordLevelUp,
             onDismiss = { showLevelUpConfirmation = false },
             onConfirm = {
                 showLevelUpConfirmation = false
@@ -545,6 +607,9 @@ private fun ChestStackDetailSheet(
 private fun ChestLevelUpConfirmationDialog(
     stack: ChestInventoryStackUiModel,
     cost: Int,
+    pearlBalance: Int,
+    preview: Level99AchievementPreview?,
+    canAfford: Boolean,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -561,10 +626,21 @@ private fun ChestLevelUpConfirmationDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.shell_creature_level_up_confirm_body, stack.level, stack.creatureName))
                 Text(stringResource(R.string.shell_creature_level_up_confirm_cost, cost), fontWeight = FontWeight.SemiBold)
+                if (preview != null) {
+                    Text(stringResource(R.string.mastery_level_transition), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.level99_preview_balance, cost, pearlBalance, (cost - pearlBalance).coerceAtLeast(0)))
+                    Text(stringResource(R.string.level99_preview_species_count, preview.resultingSpeciesMasteryCount))
+                    if (preview.firstSpeciesMastery) Text(stringResource(R.string.level99_preview_first_species))
+                    Text(stringResource(R.string.level99_preview_region, preview.regionalMasteredAfter, preview.regionalTotal))
+                    if (preview.completesRegion) Text(stringResource(R.string.level99_preview_completes_region))
+                    if (preview.completesBlue) Text(stringResource(R.string.level99_preview_completes_blue))
+                    if (preview.completesAllWaters) Text(stringResource(R.string.level99_preview_completes_all))
+                    preview.milestones.firstOrNull()?.let { Text(stringResource(R.string.level99_preview_milestone, it)) }
+                }
             }
         },
         confirmButton = {
-            Button(onClick = onConfirm) { Text(stringResource(R.string.shell_creature_level_up)) }
+            Button(onClick = onConfirm, enabled = canAfford) { Text(stringResource(R.string.shell_creature_level_up)) }
         },
         dismissButton = {
             OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }

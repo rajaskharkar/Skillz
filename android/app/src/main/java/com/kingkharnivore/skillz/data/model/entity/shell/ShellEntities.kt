@@ -37,7 +37,8 @@ data class UserShellFindInstanceEntity(
     @ColumnInfo(defaultValue = "'ACTIVE'")
     val creatureStatus: String = "ACTIVE",
     val creatureSource: String? = null,
-    val flowTimeValueMinutes: Int? = null
+    val flowTimeValueMinutes: Int? = null,
+    @ColumnInfo(defaultValue = "0") val lastActivityAt: Long = 0
 )
 
 @Entity(tableName = "user_shell_find_stack")

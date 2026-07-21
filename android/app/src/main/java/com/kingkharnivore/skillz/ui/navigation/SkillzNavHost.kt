@@ -236,7 +236,8 @@ fun SkillzNavHost(
                 },
                 onOpenActiveFlow = {
                     navController.navigate(SkillzDestinations.addSkillRoute())
-                }
+                },
+                onPlanArc = { navController.navigate(SkillzDestinations.planArcRoute()) }
             )
         }
 

@@ -20,9 +20,9 @@ class MasteryCelebrationStateMachineTest {
         assertEquals(transition, MasteryCelebrationStateMachine.advance(transition.stage))
     }
 
-    @Test fun skipAndReducedMotionReachSummaryWithoutCompleting() {
+    @Test fun skipReachesSummaryWhileReducedMotionPreservesStages() {
         assertEquals(CelebrationLifecycle.SUMMARY_REACHED, MasteryCelebrationStateMachine.skip().lifecycle)
-        assertEquals(CelebrationStage.FINAL_SUMMARY,
+        assertEquals(CelebrationStage.MASTERY_REVEAL,
             MasteryCelebrationStateMachine.advance(CelebrationStage.LEVEL_TRANSITION, reducedMotion = true).stage)
     }
 

@@ -179,13 +179,13 @@ fun TheBlueZonePage(
                     }
                     collectionProgress?.let { progress ->
                         Text(
-                            text = "${progress.discoveredSpeciesCount} of ${progress.totalParticipatingSpecies} discovered · ${progress.masteredSpeciesCount} mastered",
+                            text = stringResource(R.string.the_blue_collection_progress, progress.discoveredSpeciesCount, progress.totalParticipatingSpecies, progress.masteredSpeciesCount),
                             style = MaterialTheme.typography.labelMedium,
                             color = scheme.primary,
                             fontWeight = FontWeight.SemiBold
                         )
-                        if (progress.completionistEarned) Text("Completionist achieved", style = MaterialTheme.typography.labelSmall)
-                        else if (progress.collectorEarned) Text("Collector achieved", style = MaterialTheme.typography.labelSmall)
+                        if (progress.completionistEarned) Text(stringResource(R.string.badge_state_completionist), style = MaterialTheme.typography.labelSmall)
+                        else if (progress.collectorEarned) Text(stringResource(R.string.badge_state_collector), style = MaterialTheme.typography.labelSmall)
                     }
                     Text(
                         text = title,

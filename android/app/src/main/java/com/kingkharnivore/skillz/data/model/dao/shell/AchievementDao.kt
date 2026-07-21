@@ -39,4 +39,7 @@ interface AchievementDao {
     @Query("SELECT * FROM mastery_celebration_event WHERE eventId = :eventId") suspend fun getCelebration(eventId: String): MasteryCelebrationEventEntity?
     @Query("UPDATE mastery_celebration_event SET lifecycleState = :lifecycle, presentationStage = :stage, completedAt = :completedAt WHERE eventId = :eventId AND lifecycleState != 'COMPLETED'")
     suspend fun updateCelebrationState(eventId: String, lifecycle: String, stage: String, completedAt: Long?): Int
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertCountFloor(value: BadgeCountFloorEntity)
+    @Query("SELECT * FROM badge_count_floor") fun observeCountFloors(): Flow<List<BadgeCountFloorEntity>>
+    @Query("SELECT * FROM badge_count_floor") suspend fun getCountFloors(): List<BadgeCountFloorEntity>
 }

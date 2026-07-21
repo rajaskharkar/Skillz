@@ -10,7 +10,9 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEn
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindStackEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.data.repository.shell.ShellRepository
+import com.kingkharnivore.skillz.data.repository.shell.ShellNotificationType
 import com.kingkharnivore.skillz.utils.shell.ChestSortOption
+import com.kingkharnivore.skillz.utils.shell.ChestFilterOption
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureDefinition
 import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
@@ -29,6 +31,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.CreatureMasteryEventEnt
 import com.kingkharnivore.skillz.data.model.entity.shell.CollectionCompletionEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.AchievementBackfillEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.MasteryCelebrationEventEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
 import com.kingkharnivore.skillz.domain.achievement.CelebrationStage
 import com.kingkharnivore.skillz.domain.achievement.MasteryCelebrationStateMachine
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -61,7 +64,8 @@ data class ShellUiState(
     val badgeSort: BadgeSort = BadgeSort.RECOMMENDED,
     val backfillSummary: AchievementBackfillEntity? = null,
     val masteryCelebration: MasteryCelebrationEventEntity? = null,
-    val calmMode: Boolean = false
+    val calmMode: Boolean = false,
+    val chestFilter: ChestFilterOption = ChestFilterOption.All
 )
 
 private data class ShellEconomyState(
@@ -89,6 +93,7 @@ private data class ShellMemoryAndPreferenceState(
     val badgeSort: BadgeSort,
     val acknowledgedBackfillVersion: Int,
     val calmMode: Boolean,
+    val chestFilter: ChestFilterOption,
     val achievements: ShellAchievementState
 )
 
@@ -97,7 +102,16 @@ private data class ShellAchievementState(
     val discoveries: List<CreatureDiscoveryEntity>, val masteries: List<CreatureMasteryEventEntity>,
     val completions: List<CollectionCompletionEntity>,
     val backfill: AchievementBackfillEntity?,
-    val celebration: MasteryCelebrationEventEntity?
+    val celebration: MasteryCelebrationEventEntity?,
+    val countFloors: List<BadgeCountFloorEntity>
+)
+private data class ShellAchievementCore(
+    val pins: List<BadgePinEntity>, val tracking: List<BadgeTrackingEntity>,
+    val discoveries: List<CreatureDiscoveryEntity>, val masteries: List<CreatureMasteryEventEntity>
+)
+private data class ShellAchievementPersistence(
+    val completions: List<CollectionCompletionEntity>, val backfill: AchievementBackfillEntity?,
+    val celebration: MasteryCelebrationEventEntity?, val floors: List<BadgeCountFloorEntity>
 )
 
 private data class ShellPreferenceState(
@@ -105,7 +119,8 @@ private data class ShellPreferenceState(
     val badgeCategory: BadgeUiCategory,
     val badgeSort: BadgeSort,
     val acknowledgedBackfillVersion: Int,
-    val calmMode: Boolean
+    val calmMode: Boolean,
+    val chestFilter: ChestFilterOption
 )
 
 @HiltViewModel
@@ -140,18 +155,27 @@ class ShellViewModel @Inject constructor(
 
     private val memoryAndPreferences = combine(
         memory,
-        combine(userPrefs.chestSortOption, userPrefs.badgeCategory, userPrefs.badgeSort,
-            userPrefs.acknowledgedBackfillVersion, userPrefs.calmMode) { chest, category, sort, acknowledged, calm ->
-            ShellPreferenceState(chest, category, sort, acknowledged, calm)
-        },
-        combine(repository.observeBadgePins(), repository.observeBadgeTracking(),
-            repository.observeCreatureDiscoveries(), repository.observeCreatureMasteries(),
-            combine(repository.observeCollectionCompletions(), repository.observeLatestAchievementBackfill(), repository.observePendingMasteryCelebration()) { completions, backfill, celebration -> Triple(completions, backfill, celebration) }) { pins, tracking, discoveries, masteries, aggregate ->
-            ShellAchievementState(pins, tracking, discoveries, masteries, aggregate.first, aggregate.second, aggregate.third)
-        }
+        combine(
+            combine(userPrefs.chestSortOption, userPrefs.badgeCategory, userPrefs.badgeSort,
+                userPrefs.acknowledgedBackfillVersion, userPrefs.calmMode) { chest, category, sort, acknowledged, calm ->
+                ShellPreferenceState(chest, category, sort, acknowledged, calm, ChestFilterOption.All)
+            }, userPrefs.chestFilter
+        ) { preferences, filter -> preferences.copy(chestFilter = filter) },
+        combine(
+            combine(repository.observeBadgePins(), repository.observeBadgeTracking(),
+                repository.observeCreatureDiscoveries(), repository.observeCreatureMasteries()) { pins, tracking, discoveries, masteries ->
+                ShellAchievementCore(pins, tracking, discoveries, masteries)
+            },
+            combine(
+                combine(repository.observeCollectionCompletions(), repository.observeLatestAchievementBackfill(),
+                    repository.observePendingMasteryCelebration()) { completions, backfill, celebration -> Triple(completions, backfill, celebration) },
+                repository.observeBadgeCountFloors()
+            ) { aggregate, floors -> ShellAchievementPersistence(aggregate.first, aggregate.second, aggregate.third, floors) }
+        ) { core, persistence -> ShellAchievementState(core.pins, core.tracking, core.discoveries, core.masteries,
+            persistence.completions, persistence.backfill, persistence.celebration, persistence.floors) }
     ) { memory, preferences, achievements -> ShellMemoryAndPreferenceState(
         memory, preferences.chestSort, preferences.badgeCategory, preferences.badgeSort,
-        preferences.acknowledgedBackfillVersion, preferences.calmMode, achievements
+        preferences.acknowledgedBackfillVersion, preferences.calmMode, preferences.chestFilter, achievements
     ) }
 
     val uiState: StateFlow<ShellUiState> = combine(
@@ -179,13 +203,15 @@ class ShellViewModel @Inject constructor(
                 memoryAndPreferences.memory.badges, ownership.finds,
                 memoryAndPreferences.achievements.discoveries, memoryAndPreferences.achievements.masteries,
                 memoryAndPreferences.achievements.completions,
-                memoryAndPreferences.achievements.pins, memoryAndPreferences.achievements.tracking
+                memoryAndPreferences.achievements.pins, memoryAndPreferences.achievements.tracking,
+                memoryAndPreferences.achievements.countFloors
             ),
             badgeCategory = memoryAndPreferences.badgeCategory,
             badgeSort = memoryAndPreferences.badgeSort,
             backfillSummary = memoryAndPreferences.achievements.backfill?.takeIf { it.version > memoryAndPreferences.acknowledgedBackfillVersion && (it.discoveredCount > 0 || it.masteryCount > 0 || it.completionCount > 0) },
             masteryCelebration = memoryAndPreferences.achievements.celebration,
-            calmMode = memoryAndPreferences.calmMode
+            calmMode = memoryAndPreferences.calmMode,
+            chestFilter = memoryAndPreferences.chestFilter
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ShellUiState())
 
@@ -195,6 +221,7 @@ class ShellViewModel @Inject constructor(
             userPrefs.setChestSortOption(option)
         }
     }
+    fun setChestFilter(option: ChestFilterOption) = viewModelScope.launch { userPrefs.setChestFilter(option) }
     fun setBadgeCategory(value: BadgeUiCategory) = viewModelScope.launch { userPrefs.setBadgeCategory(value) }
     fun setBadgeSort(value: BadgeSort) = viewModelScope.launch { userPrefs.setBadgeSort(value) }
     fun acknowledgeBackfill(version: Int) = viewModelScope.launch { userPrefs.acknowledgeBackfill(version) }
@@ -209,6 +236,9 @@ class ShellViewModel @Inject constructor(
         runCatching { repository.trackBadge(badgeId) }.onFailure { _events.emit(it.message ?: "Could not track this badge.") }
     }
     fun untrackBadge(badgeId: String) = viewModelScope.launch { repository.untrackBadge(badgeId) }
+    fun markBadgeViewed(badgeId: String) = viewModelScope.launch {
+        repository.markNotificationViewed("${ShellNotificationType.BADGE.name}:$badgeId")
+    }
 
     fun place(instanceId: String, slotId: String) = viewModelScope.launch {
         runCatching { repository.placeInstance(instanceId, ShellRoomId.FOCUS, slotId) }
@@ -259,7 +289,12 @@ class ShellViewModel @Inject constructor(
         MasteryCelebrationStateMachine.advance(stage, reducedMotion)
     }
     fun skipCelebration() = transitionCelebration { MasteryCelebrationStateMachine.skip() }
-    fun completeCelebration() = transitionCelebration { MasteryCelebrationStateMachine.complete() }
+    fun completeCelebration(onCompleted: () -> Unit = {}) = viewModelScope.launch {
+        val event = uiState.value.masteryCelebration ?: return@launch
+        runCatching { repository.updateCelebration(event.eventId, MasteryCelebrationStateMachine.complete()) }
+            .onSuccess { onCompleted() }
+            .onFailure { _events.emit(it.message ?: "Could not close the Mastery summary.") }
+    }
 
     private fun transitionCelebration(
         transition: (CelebrationStage) -> com.kingkharnivore.skillz.domain.achievement.CelebrationTransition

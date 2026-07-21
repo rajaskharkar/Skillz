@@ -19,7 +19,7 @@ object MasteryCelebrationStateMachine {
         } else CelebrationTransition(CelebrationLifecycle.PRESENTING, current)
 
     fun advance(current: CelebrationStage, reducedMotion: Boolean = false): CelebrationTransition {
-        if (reducedMotion) return skip()
+        // Reduced motion changes the renderer, never the content sequence.
         val next = when (current) {
             CelebrationStage.LEVEL_TRANSITION -> CelebrationStage.MASTERY_REVEAL
             CelebrationStage.MASTERY_REVEAL -> CelebrationStage.SPECIES_BADGE_REVEAL

@@ -1081,6 +1081,7 @@
     <string name="shell_chest_sort_value">Value</string>
     <string name="shell_chest_sort_count">Count</string>
     <string name="shell_chest_sort_closest_mastery">Closest to Mastery</string>
+    <string name="shell_chest_sort_species_mastery">Species Mastery count</string>
     <string name="shell_chest_empty_title">The Chest is empty.</string>
     <string name="shell_chest_empty_body">Dive into The Blue to find your first creature.</string>
     <string name="shell_chest_empty_action">Go to The Blue</string>
@@ -2035,4 +2036,57 @@ You can turn Health back on later.</string>
     <string name="mastery_new_milestones">Milestones reached: %1$d</string>
     <string name="mastery_blue_complete">Every creature in The Blue has reached Level 99.</string>
     <string name="mastery_all_waters_complete">Every creature across The Blue and Stillwater has reached Mastery.</string>
+    <string name="badge_creature_fallback">Creature</string>
+    <string name="badge_species_mastery_title">%1$s Mastery</string>
+    <string name="badge_species_mastery_description">Counts every %1$s that permanently reached Level 99.</string>
+    <string name="badge_collector_title">%1$s Collector</string>
+    <string name="badge_curator_title">%1$s Curator</string>
+    <string name="badge_completionist_title">%1$s Completionist</string>
+    <string name="badge_collector_description">Discover every participating species in %1$s.</string>
+    <string name="badge_curator_description">Own every participating species in %1$s at the same time.</string>
+    <string name="badge_completionist_description">Raise every participating species in %1$s to Level 99.</string>
+    <string name="badge_stillwater_first_catch">Stillwater First Catch</string>
+    <string name="badge_stillwater_variety">Stillwater Variety</string>
+    <string name="badge_stillwater_mastery">Stillwater Mastery</string>
+    <string name="badge_stillwater_progress_description">Records reliable Stillwater discovery and Mastery progress.</string>
+    <string name="badge_first_mastery">First Mastery</string><string name="badge_first_mastery_description">Reach Level 99 with any creature.</string>
+    <string name="badge_mastery_circle">Mastery Circle</string><string name="badge_mastery_circle_description">Total lifetime Creature Masteries.</string>
+    <string name="badge_mastery_variety">Mastery Variety</string><string name="badge_mastery_variety_description">Unique species that reached Mastery.</string>
+    <string name="badge_variety_collector">Variety Collector</string><string name="badge_variety_collector_description">Unique species discovered across all waters.</string>
+    <string name="badge_across_depths">Across the Depths</string><string name="badge_across_depths_description">Discover life throughout the depths of The Blue.</string>
+    <string name="badge_every_water">One from Every Water</string><string name="badge_every_water_description">Discover a creature from every current water collection.</string>
+    <string name="badge_keeper_blue">Keeper of The Blue</string><string name="badge_keeper_blue_description">Hold the participating creatures of The Blue together.</string>
+    <string name="badge_generic_title">Achievement</string><string name="badge_generic_description">A recorded Scyra achievement.</string>
+    <string name="collection_sunlit_reef">Sunlit Reef</string><string name="collection_deeper_reef">Deeper Reef</string><string name="collection_open_blue">Open Blue</string><string name="collection_great_blue">Great Blue</string>
+    <string name="collection_fishbowl">Stillwater Fishbowl</string><string name="collection_aquarium">Stillwater Aquarium</string><string name="collection_pond">Stillwater Pond</string><string name="collection_lake">Stillwater Lake</string>
+    <string name="collection_stillwater">Stillwater</string><string name="collection_the_blue">The Blue</string><string name="collection_all_waters">All Waters</string><string name="collection_unknown">Collection</string>
+    <string name="collection_discovered_progress">%1$d of %2$d discovered</string><string name="collection_owned_progress">%1$d of %2$d currently owned</string><string name="collection_mastered_progress">%1$d of %2$d mastered</string>
+    <string name="badge_state_collector">Collector achieved</string><string name="badge_state_curator">Curator achieved</string><string name="badge_state_completionist">Completionist achieved</string>
+    <string name="badge_exact_count">Exact count: %1$s</string><string name="badge_earned">Earned</string><string name="badge_locked">Locked</string>
+    <string name="badge_progress_remaining">%1$d of %2$d. %3$d remaining.</string><string name="badge_current_milestone">Current milestone: %1$d</string><string name="badge_next_milestone">Next milestone: %1$d</string>
+    <string name="badge_first_earned">First earned: %1$s</string><string name="badge_last_advanced">Last advanced: %1$s</string>
+    <string name="badge_pin">Pin</string><string name="badge_unpin">Unpin</string><string name="badge_track">Track</string><string name="badge_untrack">Stop tracking</string><string name="badge_open_action">Open next step</string>
+    <string name="collection_detail_summary">Discovered %1$d · Owned %2$d · Mastered %3$d of %4$d</string><string name="collection_secret_species">Secret species</string>
+    <string name="collection_species_mastered">Mastered · %1$d currently owned</string><string name="collection_species_owned">%1$d owned · Highest Level %2$d · %3$d levels remaining</string><string name="collection_species_discovered_not_owned">Previously discovered · Currently owned: 0</string><string name="collection_species_undiscovered">Undiscovered</string>
+    <string name="level99_preview_balance">Required Pearls: %1$d · Owned: %2$d · Missing: %3$d</string><string name="level99_preview_species_count">Resulting Species Mastery count: %1$d</string><string name="level99_preview_first_species">This will be the first Mastery for this species.</string><string name="level99_preview_region">Regional Mastery after upgrade: %1$d of %2$d</string><string name="level99_preview_completes_region">This will complete the regional Completionist goal.</string><string name="level99_preview_completes_blue">This will complete The Blue.</string><string name="level99_preview_completes_all">This will complete All Waters.</string><string name="level99_preview_milestone">Species Mastery milestone ×%1$d will be reached.</string>
+    <string name="mastery_region_remains_complete">This collection remains complete.</string><string name="mastery_pin_selected">Pin %1$s. Choose a Showcase badge to replace.</string>
+    <string name="chest_filter_all">All</string><string name="chest_filter_closest">Closest to Mastery</string><string name="chest_filter_mastered">Mastered</string><string name="chest_filter_not_mastered">Not yet mastered</string><string name="chest_filter_tracked_collector">Needed for tracked Collector</string><string name="chest_filter_tracked_completionist">Needed for tracked Completionist</string>
+    <plurals name="badges_summary"><item quantity="one">%1$d earned · %2$d Masteries · %3$d Completionist collection</item><item quantity="other">%1$d earned · %2$d Masteries · %3$d Completionist collections</item></plurals>
+    <string name="badges_search">Search badges</string><string name="badges_empty_slot">Empty slot</string><string name="badges_no_recommendations">Keep exploring—your next reachable goal will appear here.</string>
+    <string name="badges_showcase_title">Your Showcase</string><string name="badges_showcase_body">Pin the achievements that mean the most to you.</string><string name="badges_within_reach_title">Within Reach</string><string name="badges_within_reach_body">Personalized next steps, with tracked goals first.</string>
+    <string name="badges_recent_title">Recently Earned and Updated</string><string name="badges_recent_body">New and advanced achievements.</string><string name="badges_yours_title">Your Badges</string><string name="badges_yours_count">%1$d unique badges shown</string><string name="badges_collections_title">Collection Progress</string><string name="badges_collections_body">Lifetime discovery and Mastery survive release.</string><string name="badges_book_title">Badge Book</string><string name="badges_book_body">Earned and locked progression goals.</string>
+    <string name="badges_replace_title">Replace a Showcase badge?</string><string name="badges_replace_body">Choose which pinned badge to replace.</string><string name="badges_backfill_title">Your Badge Collection Has Grown</string><string name="badges_backfill_body">We recognized %1$d creature discoveries, %2$d Creature Masteries, and %3$d collection completions from your existing progress.</string><string name="badges_view_new">View New Badges</string>
+    <string name="badge_count_a11y">%1$s badge. %2$s. Completed %3$s times. %4$d remaining.%5$s%6$s</string><string name="badge_pinned_a11y"> Pinned.</string><string name="badge_tracked_a11y"> Tracked.</string><string name="badge_open_action_a11y">Open progression action</string>
+    <string name="notifications_inlay_a11y">Notifications inlay</string>
+    <string name="the_blue_collection_progress">%1$d of %2$d discovered · %3$d mastered</string>
+    <string name="chest_mastered">Mastered</string><string name="chest_one_to_mastery">One to Mastery</string><string name="chest_near_mastery">Near Mastery</string><string name="chest_levels_to_mastery">%1$d to Mastery</string>
+    <string name="mastery_celebration_a11y">%1$s reached Level 99. Mastery achieved.</string>
+    <string name="badges_category_selected">Category: %1$s</string><string name="badges_sort_selected">Sort: %1$s</string>
+    <string name="badge_category_all">All</string><string name="badge_category_flow">Flow</string><string name="badge_category_arc">Arc</string><string name="badge_category_creatures">Creatures</string><string name="badge_category_mastery">Mastery</string><string name="badge_category_collections">Collections</string><string name="badge_category_stillwater">Stillwater</string><string name="badge_category_movement">Movement</string><string name="badge_category_surge">Surge</string><string name="badge_category_special">Special</string>
+    <string name="badge_sort_recommended">Recommended</string><string name="badge_sort_recent_earned">Recently earned</string><string name="badge_sort_recent_advanced">Recently advanced</string><string name="badge_sort_highest_count">Highest count</string><string name="badge_sort_closest">Closest to next milestone</string><string name="badge_sort_alphabetical">Alphabetical</string>
+    <string name="badge_new">New</string><string name="badge_updated">Updated</string>
+    <string name="badge_next_mastery_step">Highest current level: %1$d. %2$d levels to Mastery.</string><string name="badge_next_discovery_step">Discover %1$d more participating species.</string><string name="badge_next_completionist_step">Master %1$d more participating species.</string><string name="badge_next_flow_step">Complete %1$d more qualifying Flows.</string>
+    <string name="badge_count_plate">×%1$s</string>
+    <string name="badges_clear_search">Clear search</string><string name="badges_move_left">Move left</string><string name="badges_move_right">Move right</string><string name="badges_no_earned">Complete a Flow or explore The Blue to earn your first badge.</string><string name="badges_no_search_results">No badges match “%1$s”.</string>
+    <string name="mastery_view_badge">View Badge</string><string name="mastery_view_collection">View Collection Progress</string>
 </resources>
