@@ -1,3 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
 <resources>
     <string name="app_name">Scyra</string>
     <string name="story_fab_schedule_beam">Schedule a Beam</string>
@@ -11,7 +12,6 @@
     <string name="story_flow_mode_cta">View Active Flow</string>
     <string name="story_tab_sagas">Sagas</string>
     <string name="story_tab_chronicles">Chronicles</string>
-
     <string name="flow_card_type_flow">Flow</string>
     <string name="flow_card_type_soft">Soft flow</string>
     <string name="flow_card_duration_value">Duration: %1$s</string>
@@ -19,7 +19,6 @@
     <string name="flow_card_scyra_score_value">Scyra Score: %1$d</string>
     <string name="flow_card_surge_points_value">Surge points: %1$d</string>
     <string name="flow_card_surge_points_compact">⚡ +%1$d</string>
-
     <plurals name="flow_card_moments_count">
         <item quantity="one">%1$d moment</item>
         <item quantity="other">%1$d moments</item>
@@ -31,7 +30,6 @@
     <string name="flow_card_open_details">Open flow details</string>
     <string name="flow_card_delete_dialog_title">Delete entry?</string>
     <string name="flow_card_delete_dialog_body">This will permanently delete this entry.</string>
-
     <string name="a11y_expanded">Expanded</string>
     <string name="a11y_collapsed">Collapsed</string>
     <string name="common_delete">Delete</string>
@@ -45,7 +43,6 @@
     <string name="common_done">Done</string>
     <string name="common_next">Next</string>
     <string name="common_ok">OK</string>
-
     <string name="pulse_card_type">Pulse</string>
     <string name="pulse_card_delete_entry">Delete entry</string>
     <string name="pulse_card_edit_entry">Edit entry</string>
@@ -56,10 +53,8 @@
     <string name="pulse_card_captured_during_without_tag">Captured during: %1$s</string>
     <string name="pulse_card_delete_dialog_title">Delete entry?</string>
     <string name="pulse_card_delete_dialog_body">This will permanently delete this entry.</string>
-
     <string name="beam_bonus_chip_points_compact">+%1$d</string>
     <string name="beam_bonus_chip_a11y">Beam bonus: %1$d points</string>
-
     <plurals name="arc_group_flow_count_label">
         <item quantity="one">Arc Length · %1$d flow</item>
         <item quantity="other">Arc Length · %1$d flows</item>
@@ -77,9 +72,7 @@
     <string name="arc_group_a11y_expand">Expand arc</string>
     <string name="arc_group_a11y_collapse">Collapse arc</string>
     <string name="arc_group_a11y_open_flow">Open flow</string>
-
     <string name="story_header_time_in_selected_journeys">Time in selected journeys</string>
-
     <string name="pulse_screen_title">Pulse</string>
     <string name="pulse_screen_attach_to_current_flow">Attach to current Flow</string>
     <string name="pulse_screen_attach_enabled">This Pulse will appear under the active Flow in Chronicles.</string>
@@ -94,7 +87,6 @@
     <string name="pulse_a11y_tag_suggestions">Journey suggestions</string>
     <string name="pulse_a11y_select_journey">Select journey %1$s</string>
     <string name="pulse_a11y_pulse_hero">Record a Pulse. Capture a moment, insight, realization, or feeling.</string>
-
     <string name="home_page_atlas">Atlas</string>
     <string name="home_page_story">Story</string>
     <string name="home_page_paths">Paths</string>
@@ -113,7 +105,6 @@
     <string name="home_nav_not_selected">Not selected</string>
     <string name="home_nav_tab_state">%1$s, %2$s</string>
     <string name="home_nav_bar">Home navigation</string>
-
     <string name="schedule_beam_pick_time">Pick time</string>
     <string name="schedule_beam_custom_duration">Custom duration</string>
     <string name="schedule_beam_when">When</string>
@@ -146,7 +137,6 @@
     <string name="schedule_beam_a11y_when_field">Select date and time</string>
     <string name="schedule_beam_a11y_custom_duration">Set custom duration</string>
     <string name="schedule_beam_a11y_duration_option">%1$d minutes</string>
-
     <string name="tag_filter_observe_journeys">Observe journeys:</string>
     <string name="tag_filter_observe_journeys_selected">Observe journeys (%1$d selected):</string>
     <string name="tag_filter_all">All</string>
@@ -155,19 +145,16 @@
     <string name="tag_filter_selected">Selected</string>
     <string name="tag_filter_not_selected">Not selected</string>
     <string name="tag_filter_chip_state">%1$s, %2$s</string>
-
     <string name="subtle_time_summary_label">Time in view</string>
     <string name="subtle_time_summary_a11y">%1$s: %2$s</string>
     <string name="total_time_highlight_title">TOTAL TIME</string>
     <string name="total_time_highlight_a11y">%1$s, %2$s</string>
-
     <string name="score_display_surge_bonus">+%1$d Surge</string>
     <string name="score_display_label_day">Scyra Score</string>
     <string name="score_display_label_week">This week</string>
     <string name="score_display_label_month">This month</string>
     <string name="score_display_a11y_with_surge">%1$d points, %2$s, %3$s</string>
     <string name="score_display_a11y_without_surge">%1$d points, %2$s</string>
-
     <string name="pulse_edit_sheet_title">Edit Pulse</string>
     <string name="pulse_edit_sheet_subtitle">Refine the moment, tag, or meaning.</string>
     <string name="pulse_edit_sheet_description_label">Description</string>
@@ -182,7 +169,6 @@
     <string name="pulse_edit_sheet_tag_suggestions">Journey suggestions</string>
     <string name="pulse_edit_sheet_select_journey">Select journey %1$s</string>
     <string name="pulse_edit_sheet_header_a11y">Edit Pulse. Refine the moment, tag, or meaning.</string>
-
     <string name="period_navigator_previous">Previous</string>
     <string name="period_navigator_next">Next</string>
     <string name="period_navigator_period_filters">Period filters</string>
@@ -195,7 +181,6 @@
     <string name="period_navigator_selected">Selected</string>
     <string name="period_navigator_not_selected">Not selected</string>
     <string name="period_navigator_current_period">%1$s, %2$s</string>
-
     <string name="flow_details_sheet_pane_title">Flow details</string>
     <string name="flow_details_type_flow">Flow</string>
     <string name="flow_details_type_soft_flow">Soft Flow</string>
@@ -216,12 +201,10 @@
     <string name="flow_details_flow_summary_with_tag_a11y">%1$s, %2$s, %3$s</string>
     <string name="flow_details_pulse_count_a11y">%1$d pulses</string>
     <string name="flow_details_toggle_pulse_composer_a11y">Toggle pulse composer</string>
-
     <string name="first_time_user_message">Your Story begins with the first Flow.</string>
     <string name="first_time_user_cta">Start your Story!</string>
     <string name="first_time_user_card_a11y">Your Story begins with the first Flow.</string>
     <string name="first_time_user_cta_a11y">Start your Story</string>
-
     <string name="empty_sagas_title">No Sagas in this view</string>
     <string name="empty_sagas_body">There isn’t enough recorded Flow data to build saga stats here yet.</string>
     <string name="empty_sagas_a11y">No Sagas in this view. There isn’t enough recorded Flow data to build saga stats here yet.</string>
@@ -235,11 +218,9 @@
     <string name="empty_chronicles_month_past">No Flows were recorded for this month.</string>
     <string name="empty_chronicles_go_to_today">Go to Today</string>
     <string name="empty_chronicles_a11y">%1$s. %2$s</string>
-
     <string name="segmented_tab_selected">Selected</string>
     <string name="segmented_tab_not_selected">Not selected</string>
     <string name="segmented_tab_state">%1$s, %2$s</string>
-
     <string name="saga_header_flows">Flows</string>
     <string name="saga_header_duration">Duration</string>
     <string name="saga_header_score">Score</string>
@@ -259,7 +240,6 @@
     <string name="saga_journey_row_score_a11y">Score: %1$d</string>
     <string name="saga_journey_row_open_details">Open journey details</string>
     <string name="saga_journey_row_a11y">%1$s. Rank %2$d. %3$s. Score: %4$d.</string>
-
     <string name="saga_pulse_section_title">Pulses</string>
     <string name="saga_pulse_section_subtitle">Moments captured in this chapter</string>
     <string name="saga_pulse_section_untagged">Untagged</string>
@@ -270,7 +250,6 @@
     <string name="saga_pulse_item_a11y_without_tag">%1$s. %2$s. Untagged.</string>
     <string name="saga_pulse_item_a11y_title_only_with_tag">%1$s. %2$s.</string>
     <string name="saga_pulse_item_a11y_title_only_without_tag">%1$s. Untagged.</string>
-
     <string name="sagas_card_title">Your Saga</string>
     <string name="sagas_card_expand">Expand</string>
     <string name="sagas_card_collapse">Collapse</string>
@@ -278,7 +257,6 @@
     <string name="sagas_card_toggle_state">%1$s, %2$s</string>
     <string name="sagas_card_expanded">Expanded</string>
     <string name="sagas_card_collapsed">Collapsed</string>
-
     <string name="journey_session_detail_no_description">No description yet.</string>
     <string name="journey_session_detail_duration">Duration</string>
     <string name="journey_session_detail_base_score">Base score</string>
@@ -296,7 +274,6 @@
     <string name="journey_session_row_scry_a11y">Scry this flow</string>
     <string name="journey_session_row_score_a11y">Score: %1$d</string>
     <string name="journey_session_row_a11y">%1$s. %2$s. Score: %3$d.</string>
-
     <plurals name="journey_view_summary_flows_count">
         <item quantity="one">%1$d flow</item>
         <item quantity="other">%1$d flows</item>
@@ -310,13 +287,11 @@
     <string name="journey_view_summary_score_value">🔥 %1$d</string>
     <string name="journey_view_summary_a11y_no_surge">%1$s, %2$s, base score %3$d, total Scyra score %4$d.</string>
     <string name="journey_view_summary_a11y_with_surge">%1$s, %2$s, base score %3$d, total Scyra score %4$d, surge bonus %5$d.</string>
-
     <string name="view_journeys_sheet_pane_title">Journey details</string>
     <string name="view_journeys_fallback_title">Journey</string>
     <string name="view_journeys_window_label">%1$s • %2$s</string>
     <string name="view_journeys_empty">No flows for this journey in this view.</string>
     <string name="view_journeys_header_a11y">%1$s. %2$s.</string>
-
     <string name="help_screen_title">Help</string>
     <string name="help_pref_keep_score_title">Keep Score Visible</string>
     <string name="help_pref_keep_score_description">Show score totals in Story, and score labels in cards.</string>
@@ -326,7 +301,6 @@
     <string name="help_carousel_a11y">Help topics</string>
     <string name="help_carousel_page_a11y">Help topic %1$d of %2$d</string>
     <string name="help_carousel_select_page">Go to help topic %1$d</string>
-
     <string name="help_page_flow_kicker">Flow</string>
     <string name="help_page_flow_title">A Flow is one focused session.</string>
     <string name="help_page_flow_subtitle">Start a Flow when you want to intentionally spend time on something that matters.</string>
@@ -354,11 +328,9 @@
     <string name="help_page_surge_tip">Use Surge when you want a clear mission, such as 20 minutes of reading, 45 minutes of coding, or 30 minutes of practice.</string>
     <string name="help_card_tip_a11y">Tip: %1$s</string>
     <string name="help_card_a11y">%1$s. %2$s. %3$s. %4$s. Tip: %5$s</string>
-
     <string name="pref_toggle_on">On</string>
     <string name="pref_toggle_off">Off</string>
     <string name="pref_toggle_a11y">%1$s. %2$s. %3$s.</string>
-
     <string name="notepad_action_search">Search</string>
     <string name="notepad_action_undo">Undo</string>
     <string name="notepad_action_redo">Redo</string>
@@ -386,7 +358,6 @@
     <string name="notepad_toolbar_actions">Editor actions</string>
     <string name="notepad_toolbar_formatting">Text formatting</string>
     <string name="notepad_editor_area">Notepad editor</string>
-
     <string name="help_language_title">App Language</string>
     <string name="help_language_description">Follow your device language, or choose one for this app.</string>
     <string name="help_language_system_default">System default</string>
@@ -398,7 +369,6 @@
     <string name="help_language_dialog_confirm">Done</string>
     <string name="help_language_current_value">%1$s</string>
     <string name="help_language_row_a11y">%1$s. %2$s. Current: %3$s.</string>
-
     <string name="paths_loading">Loading paths</string>
     <string name="paths_error_generic">Something went wrong</string>
     <string name="paths_title">Paths</string>
@@ -490,7 +460,6 @@
     <string name="paths_studio_arc_card_a11y">%1$s. Studio arc. %2$s.</string>
     <string name="paths_arc_library_card_a11y">%1$s. Planned arc. %2$s. %3$s.</string>
     <string name="paths_suggested_route_card_a11y">Suggested sequence. %1$s. %2$s. %3$s. %4$s.</string>
-
     <string name="paths_edit_arc">Edit</string>
     <string name="paths_suggested_sequences_helper_title">Need a starting point?</string>
     <string name="paths_suggested_sequences_helper_body">Use a Suggested Scene as a template, then adjust the steps inside Your Studio.</string>
@@ -506,7 +475,6 @@
         <item quantity="one">View all %1$d Flow</item>
         <item quantity="other">View all %1$d Flows</item>
     </plurals>
-
     <string name="plan_arc_route_studio">Your Studio</string>
     <string name="plan_arc_step_counter">%1$d of %2$d</string>
     <string name="plan_arc_stage_name_title">Name your arc</string>
@@ -626,9 +594,7 @@
     <string name="plan_arc_footer_saving">Saving...</string>
     <string name="plan_arc_progress_a11y">Step %1$d of %2$d</string>
     <string name="plan_arc_error_a11y">%1$s</string>
-
     <string name="suggested_route_save_as_arc">Save as Arc</string>
-
     <string name="arc_detail_back">Back</string>
     <string name="arc_detail_restart">Restart</string>
     <string name="arc_detail_resume_arc">Resume Arc</string>
@@ -684,7 +650,6 @@
     <string name="arc_detail_step_card_with_tag_a11y">%1$s. %2$s. %3$s. %4$s.</string>
     <string name="arc_detail_button_a11y">%1$s</string>
     <string name="arc_detail_error_a11y">%1$s</string>
-
     <string name="story_helpers_journey_duration">⏱ %1$s</string>
     <string name="story_helpers_journey_beam_bonus">★ +%1$d</string>
     <string name="story_helpers_journey_surge_bonus">Surge +%1$d</string>
@@ -698,17 +663,14 @@
     <string name="story_helpers_saga_subtitle_week_past">Record for the week</string>
     <string name="story_helpers_saga_subtitle_month_current">Record for this month</string>
     <string name="story_helpers_saga_subtitle_month_past">Record for the month</string>
-
     <string name="arc_pill_title">Arc</string>
     <string name="arc_pill_flow_label">Flow</string>
     <string name="arc_pill_pending">Pending</string>
     <string name="arc_pill_multiplier_value">×%1$s</string>
     <string name="arc_pill_next_flow_value">• Flow %1$d</string>
-
     <string name="chronicle_field_label">Write your story</string>
     <string name="chronicle_field_placeholder">Wins, friction, lessons, next moves…</string>
     <string name="chronicle_field_a11y">Story field. %1$s</string>
-
     <string name="flow_screen_title">Flow</string>
     <string name="flow_screen_planned_arc_step">Step %1$d of %2$d</string>
     <string name="flow_screen_exit_soft_flow">Exit Soft Flow</string>
@@ -754,14 +716,12 @@
     <string name="flow_screen_duration_label">Duration</string>
     <string name="flow_screen_minutes_value">%1$d min</string>
     <string name="flow_screen_soft_reward_footer">This session is part of your Story, but it does not affect score, Surge, Beam, or Arc progression.</string>
-
     <string name="flow_title_field_label">Focus</string>
     <string name="flow_title_field_placeholder">What are you flowing through?</string>
     <string name="flow_title_field_a11y">Flow title. %1$s</string>
     <string name="pulse_title_field_label">Idea</string>
     <string name="pulse_title_field_placeholder">Title your brainwave</string>
     <string name="pulse_title_field_a11y">Pulse idea title field</string>
-
     <plurals name="flow_journey_label">
         <item quantity="one">Journey</item>
         <item quantity="other">Journeys</item>
@@ -776,7 +736,6 @@
     <string name="flow_journey_create_a11y">Create Journey %1$s</string>
     <string name="flow_journey_dropdown_show_a11y">Show Journey options</string>
     <string name="flow_journey_dropdown_hide_a11y">Hide Journey options</string>
-
     <string name="stopwatch_title_calm">Calm</string>
     <string name="stopwatch_title_in_flow">In Flow</string>
     <string name="stopwatch_timer_a11y">Elapsed time: %1$s</string>
@@ -787,7 +746,6 @@
         <item quantity="one">You\'ve already focused for %1$d minute. Are you sure you want to reset and lose this progress?</item>
         <item quantity="other">You\'ve already focused for %1$d minutes. Are you sure you want to reset and lose this progress?</item>
     </plurals>
-
     <string name="arc_summary_completed">Arc completed.</string>
     <string name="arc_summary_totals_subtitle">Totals across this Arc.</string>
     <string name="arc_summary_card_title">Arc totals</string>
@@ -802,7 +760,6 @@
     <string name="arc_summary_points_value">+%1$d</string>
     <string name="arc_summary_duration_hours_minutes">%1$dh %2$dm</string>
     <string name="arc_summary_duration_minutes">%1$dm</string>
-
     <string name="reward_chip_time_minutes">⏱ %1$d min</string>
     <string name="reward_chip_score_points">🔥 +%1$d</string>
     <string name="reward_chip_beam_points">⭐ +%1$d</string>
@@ -810,7 +767,6 @@
     <string name="reward_total_value_points">+%1$d</string>
     <string name="reward_bonus_count_multiplier">×%1$d</string>
     <string name="reward_bonus_total_points">+%1$d</string>
-
     <string name="session_reward_title_surge_completed">Surge completed.</string>
     <string name="session_reward_title_flow_completed">Flow completed.</string>
     <string name="session_reward_subtitle_logged_story">Logged into your story.</string>
@@ -839,7 +795,6 @@
     <string name="session_reward_arc_multiplier_used">Arc multiplier used</string>
     <string name="session_reward_arc_points_gained">Arc points gained</string>
     <string name="session_reward_arc_level_up">Multiplier grew by +0.1</string>
-
     <string name="atlas_screen_title_fallback">Atlas</string>
     <string name="atlas_header_day_beam_count_one">1 beam</string>
     <string name="atlas_header_day_beam_count_other">%1$d beams</string>
@@ -848,7 +803,6 @@
     <string name="atlas_header_month_active_day_one">1 active day</string>
     <string name="atlas_header_month_active_day_other">%1$d active days</string>
     <string name="atlas_header_subtitle_separator"> • </string>
-
     <string name="beam_card_minutes_compact">%1$dm</string>
     <string name="beam_card_time_and_minutes">%1$s • %2$s</string>
     <string name="beam_card_continues_across_day">Continues across this day</string>
@@ -861,14 +815,12 @@
     <string name="beam_status_missed">MISSED</string>
     <string name="beam_card_a11y">%1$s. %2$s. %3$s. %4$s.</string>
     <string name="beam_card_a11y_no_note">%1$s. %2$s. %3$s.</string>
-
     <string name="beam_details_time_and_minutes">%1$s • %2$dm</string>
     <string name="beam_details_status_and_readiness">%1$s • %2$s</string>
     <string name="beam_details_clipped_top_note">Starts earlier (outside day).</string>
     <string name="beam_details_clipped_bottom_note">Ends later (outside day).</string>
     <string name="beam_details_close">Close</string>
     <string name="beam_details_sheet_a11y">%1$s. %2$s. %3$s.</string>
-
     <string name="countdown_headline_next_beam">NEXT BEAM</string>
     <string name="countdown_headline_beam_imminent">BEAM IMMINENT</string>
     <string name="countdown_starting_now">Starting now</string>
@@ -879,7 +831,6 @@
     <string name="countdown_minutes_seconds">%1$dm %2$ds</string>
     <string name="countdown_seconds">%1$ds</string>
     <string name="countdown_a11y">%1$s. %2$s.</string>
-
     <string name="now_zone_beam_active_title">⭐ BEAM ACTIVE</string>
     <string name="now_zone_minutes_left">%1$d min left</string>
     <string name="now_zone_percent_left">%1$d%%</string>
@@ -890,7 +841,6 @@
     <string name="now_zone_no_upcoming_beams">No upcoming Beams scheduled.\n\nCommit your time. Schedule a Beam.\n\nHonor it and unlock up to a 2× Scyra Score multiplier.</string>
     <string name="now_zone_schedule_beam">⭐ Schedule a Beam</string>
     <string name="now_zone_schedule_beam_a11y">Schedule a Beam</string>
-
     <string name="atlas_day_planner_beam_card_a11y">%1$s, %2$s</string>
     <string name="atlas_day_planner_loading_hour_label_minus">−</string>
     <string name="atlas_day_planner_loading_hour_label_plus">+</string>
@@ -898,7 +848,6 @@
     <string name="atlas_zoom_out_a11y">Zoom out</string>
     <string name="atlas_zoom_in_a11y">Zoom in</string>
     <string name="atlas_zoom_schedule_beam_a11y">Schedule a Beam</string>
-
     <string name="atlas_day_strip_day_format_pattern">EEE</string>
     <string name="atlas_day_strip_beam_count_one">1★</string>
     <string name="atlas_day_strip_beam_count_other">%1$d★</string>
@@ -908,7 +857,6 @@
     <string name="atlas_day_strip_today">Today</string>
     <string name="atlas_day_strip_unavailable">Unavailable</string>
     <string name="atlas_day_strip_select_day_a11y">Select %1$s</string>
-
     <string name="atlas_header_prev_day">Prev day</string>
     <string name="atlas_header_prev_week">Prev week</string>
     <string name="atlas_header_prev_month">Prev month</string>
@@ -927,7 +875,6 @@
     <string name="atlas_mode_tab_state_selected">Selected</string>
     <string name="atlas_mode_tab_state_not_selected">Not selected</string>
     <string name="atlas_mode_tab_a11y">Switch to %1$s view</string>
-
     <string name="atlas_month_dow_s">S</string>
     <string name="atlas_month_dow_m">M</string>
     <string name="atlas_month_dow_t">T</string>
@@ -939,7 +886,6 @@
     <string name="atlas_month_cell_state_today">Today</string>
     <string name="atlas_month_cell_state_selected">Selected</string>
     <string name="atlas_month_cell_state_outside_month">Outside current month</string>
-
     <string name="atlas_week_beam_count_one">1 beam</string>
     <string name="atlas_week_beam_count_other">%1$d beams</string>
     <string name="atlas_week_no_beams_planned">No beams planned</string>
@@ -953,14 +899,12 @@
     <string name="atlas_week_empty_panel_a11y_title">No beams planned</string>
     <string name="atlas_week_empty_panel_a11y">%1$s. %2$s</string>
     <string name="atlas_week_beam_row_a11y">%1$s. %2$s.</string>
-
     <string name="paths_journey_inline_placeholder">Optional journey tag</string>
     <string name="paths_minutes_field_placeholder">25</string>
     <string name="common_minutes_short">min</string>
     <string name="paths_flow_intent_prompt">What do you want to flow into?</string>
     <string name="paths_journey_label">Journey</string>
     <string name="paths_journey_optional_placeholder">Optional</string>
-
     <string name="shell_title">The Shell</string>
     <string name="shell_back_a11y">Return from The Shell</string>
     <string name="shell_icon_a11y">Open The Shell</string>
@@ -1248,8 +1192,6 @@
     <string name="shell_discovery_octopus_explanation">Encountered beyond The Blue and now hiding in the Deeper Reef.</string>
     <string name="shell_discovery_pebble_reveal">A Pebble found its way into The Shell.</string>
     <string name="shell_discovery_pebble_explanation">Found after you returned to regular Flow.</string>
-
-
     <string name="shell_category_creatures">Creatures</string>
     <string name="shell_category_shells">Shells</string>
     <string name="shell_category_coral">Coral</string>
@@ -1272,8 +1214,6 @@
     <string name="shell_feedback_return_success">Returned to The Chest.</string>
     <string name="shell_place_in_slot">Place in %1$s</string>
     <string name="shell_compatible_slots">Compatible Focus Room slots</string>
-
-
     <string name="shell_object_lamp_title">Glow Coral</string>
     <string name="shell_object_lamp_description">Creature · Light. Invited with Pearls to brighten a quiet nook.</string>
     <string name="shell_object_perch_title">Perch</string>
@@ -1307,23 +1247,15 @@
     <string name="shell_no_available_shapes">Nothing is ready this moment. A few more Pearls will wake a new shape.</string>
     <string name="shell_empty_slot_a11y">%1$s. Empty Focus Room space. Opens placement and Pearl shaping options.</string>
     <string name="shell_placed_object_a11y">%1$s. Displayed in Focus Room. Opens object details.</string>
-
-
     <string name="shell_whisper_new_discovery">A Shell discovery is ready to view.</string>
     <string name="shell_whisper_upgrade_ready">%1$s can brighten — you have enough Pearls.</string>
     <string name="shell_whisper_chest_waiting">%1$d creatures are in The Chest.</string>
     <string name="shell_whisper_empty_focus">Focus has empty nooks.</string>
-
-
     <string name="shell_heart_detail_title">Heart of The Shell</string>
     <string name="shell_heart_pearls_gathered">Pearls gathered: %1$d</string>
     <string name="shell_heart_finds_owned">Owned in The Shell: %1$d</string>
     <string name="shell_heart_discoveries_awakened">Badges awakened: %1$d</string>
     <string name="shell_heart_focus_objects_placed">Focus objects displayed: %1$d</string>
-
-
-
-
     <string name="shell_pearl_basin_chip_a11y">Pearl Basin. %1$d Pearls. Opens shaping suggestions.</string>
     <string name="shell_room_active_a11y">%1$s. Active room. Opens %1$s.</string>
     <string name="shell_room_preview_a11y">%1$s. Opens preview.</string>
@@ -1340,9 +1272,7 @@
     <string name="shell_choose_something_to_swap">Choose something to swap.</string>
     <string name="shell_swap_with">Swap with %1$s</string>
     <string name="shell_no_compatible_nooks">No compatible nooks yet. This creature can stay in The Chest.</string>
-
     <string name="shell_place_in_focus">Place in Focus</string>
-
     <string name="shell_badge_notification_title">%1$s badge</string>
     <string name="shell_badge_notification_body">Count: %1$d · %2$s</string>
     <string name="shell_source_invited_with_pearls">Invited with %1$d Pearls.</string>
@@ -1372,9 +1302,6 @@
     <string name="shell_upgrade_object_a11y">Shape this object with Pearls</string>
     <string name="shell_upgrade_reward_a11y">Shape this reward with Pearls</string>
     <string name="shell_cancel">Cancel</string>
-
-
-    <!-- Premium reward reveal deck -->
     <string name="reward_card_page_count">%1$d of %2$d</string>
     <string name="reward_card_page_announcement">Reward %1$d of %2$d</string>
     <string name="reward_card_scyra_points_template">%1$d Scyra Points</string>
@@ -1433,7 +1360,6 @@
     <string name="reward_card_records_updated_from_flow">Records updated from this Flow.</string>
     <string name="reward_card_flow_milestones_across_arc">From Flow milestones across this Arc.</string>
     <string name="reward_card_records_updated_across_arc">Records updated across this Arc.</string>
-
     <string name="shell_find_clownfish_title">Clownfish</string>
     <string name="shell_find_clownfish_description">Encountered Beyond the Blue.</string>
     <string name="shell_find_blue_tang_title">Blue Tang</string>
@@ -1610,7 +1536,6 @@
     <string name="beyond_blue_pearls_will_be_used">%1$d Pearls will be used.</string>
     <string name="beyond_blue_ready_to_buy">Ready to buy</string>
     <string name="beyond_blue_adjusted_cost">Adjusted Cost</string>
-
     <string name="voyage_hall_title">Voyage Hall</string>
     <string name="voyage_hall_subtitle">Your highest records from every Flow and Arc.</string>
     <string name="voyage_hall_shell_subtitle">The Shell remembers the effort you return to.</string>
@@ -1662,7 +1587,6 @@
     <string name="voyage_hall_chained_flows_detail">%1$d chained Flows</string>
     <string name="voyage_hall_multiplier_value">%1$.1fx</string>
     <string name="voyage_hall_count_value">%1$s %2$s</string>
-
     <string name="voyage_hall_not_active">Not active</string>
     <string name="voyage_hall_return_today">Return today to begin again.</string>
     <string name="voyage_hall_best_value">Best: %1$s</string>
@@ -1690,7 +1614,6 @@
     <string name="voyage_hall_part_of_arc">Part of Arc</string>
     <string name="voyage_hall_arc_number">Arc %1$d</string>
     <string name="voyage_hall_numbered_title">%1$d. %2$s</string>
-
     <plurals name="voyage_hall_days_count">
         <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>
@@ -1707,9 +1630,6 @@
         <item quantity="one">%1$d Arc</item>
         <item quantity="other">%1$d Arcs</item>
     </plurals>
-
-
-    <!-- The Lookout -->
     <string name="lookout_title">The Lookout</string>
     <string name="lookout_subtitle">Set Objectives for the Journeys you want to move forward.</string>
     <string name="lookout_set">Set</string>
@@ -1806,7 +1726,6 @@
     <string name="shell_objective_badge_row_title">%1$s Objective x%2$d</string>
     <string name="shell_objective_badge_row_body">Completed %1$s Objectives for %2$s.</string>
     <string name="shell_objective_badge_unknown_journey">Journey %1$d</string>
-
     <string name="idea_grove_title">Idea Grove</string>
     <string name="idea_grove_tab_alive">Alive</string>
     <string name="idea_grove_tab_completed">Completed</string>
@@ -1876,10 +1795,7 @@
     <string name="idea_grove_card_a11y">%1$s. %2$s %3$s %4$s. Double tap to %5$s.</string>
     <string name="idea_grove_expand_a11y">expand</string>
     <string name="idea_grove_collapse_a11y">collapse</string>
-
     <string name="privacy_health_connect_movement_bonus">If you enable Movement Bonus, Scyra may read step count data from Health Connect during eligible Flows. Scyra uses this only to calculate Movement Points, Scyra Points, Pearls, and related reward displays. Scyra does not sell this data or use it for advertising.</string>
-
-    <!-- Movement Bonus / Health Connect -->
     <string name="health_settings_title">Movement Bonus</string>
     <string name="health_connect_unavailable_headline">Health Connect is not available on this device.</string>
     <string name="health_connect_unavailable_body">Movement Bonus needs Health Connect to read steps during your Flows.</string>
@@ -1929,8 +1845,6 @@ You can turn Health back on later.</string>
         <item quantity="one">%1$d Movement Point</item>
         <item quantity="other">%1$d Movement Points</item>
     </plurals>
-
-
     <string name="shell_stillwater_drops_available">%1$d Drops available</string>
     <string name="shell_stillwater_lifetime_drops">%1$d Drops gathered all time</string>
     <string name="shell_stillwater_ready_to_draw">Ready to draw</string>
@@ -2002,7 +1916,6 @@ You can turn Health back on later.</string>
     <string name="shell_find_stillwater_oarfish_title">Oarfish</string>
     <string name="shell_find_stillwater_blackdragon_title">Blackdragon</string>
     <string name="shell_find_stillwater_coelacanth_title">Coelacanth</string>
-
     <string name="badges_hub_body">Celebrate progress, choose goals, and explore every collection.</string>
     <string name="mastery_unknown_creature">Creature</string>
     <string name="mastery_skip">Skip to summary</string>
@@ -2012,11 +1925,17 @@ You can turn Health back on later.</string>
     <string name="mastery_reached_99">%1$s reached Level 99</string>
     <string name="mastery_permanent_record">This Mastery is permanently recorded, even if the creature is released later.</string>
     <string name="mastery_species_title">%1$s Mastery</string>
-    <plurals name="mastery_species_support"><item quantity="one">Your first %2$s has reached Mastery.</item><item quantity="other">%1$d %2$s creatures have completed their journey.</item></plurals>
+    <plurals name="mastery_species_support">
+        <item quantity="one">Your first %2$s has reached Mastery.</item>
+        <item quantity="other">%1$d %2$s creatures have completed their journey.</item>
+    </plurals>
     <string name="mastery_collection_impact">Collection Impact</string>
     <string name="mastery_collection_progress">%1$d of %2$d species mastered</string>
     <string name="mastery_region_complete">Completionist achieved. Every creature in this collection has reached Level 99.</string>
-    <plurals name="mastery_species_remaining"><item quantity="one">One species remains.</item><item quantity="other">%1$d species remain.</item></plurals>
+    <plurals name="mastery_species_remaining">
+        <item quantity="one">One species remains.</item>
+        <item quantity="other">%1$d species remain.</item>
+    </plurals>
     <string name="mastery_additional">Additional Achievements</string>
     <string name="mastery_counts_advanced">Your lifetime Mastery counts advanced.</string>
     <string name="mastery_final_title">Level 99 Mastery</string>
@@ -2049,30 +1968,76 @@ You can turn Health back on later.</string>
     <string name="badge_stillwater_variety">Stillwater Variety</string>
     <string name="badge_stillwater_mastery">Stillwater Mastery</string>
     <string name="badge_stillwater_progress_description">Records reliable Stillwater discovery and Mastery progress.</string>
-    <string name="badge_first_mastery">First Mastery</string><string name="badge_first_mastery_description">Reach Level 99 with any creature.</string>
-    <string name="badge_mastery_circle">Mastery Circle</string><string name="badge_mastery_circle_description">Total lifetime Creature Masteries.</string>
-    <string name="badge_mastery_variety">Mastery Variety</string><string name="badge_mastery_variety_description">Unique species that reached Mastery.</string>
-    <string name="badge_variety_collector">Variety Collector</string><string name="badge_variety_collector_description">Unique species discovered across all waters.</string>
-    <string name="badge_across_depths">Across the Depths</string><string name="badge_across_depths_description">Discover life throughout the depths of The Blue.</string>
-    <string name="badge_every_water">One from Every Water</string><string name="badge_every_water_description">Master at least one participating creature from every Blue region and every Stillwater vessel.</string>
-    <string name="badge_keeper_blue">Keeper of The Blue</string><string name="badge_keeper_blue_description">Complete the Collector roster in every region of The Blue.</string>
+    <string name="badge_first_mastery">First Mastery</string>
+    <string name="badge_first_mastery_description">Reach Level 99 with any creature.</string>
+    <string name="badge_mastery_circle">Mastery Circle</string>
+    <string name="badge_mastery_circle_description">Total lifetime Creature Masteries.</string>
+    <string name="badge_mastery_variety">Mastery Variety</string>
+    <string name="badge_mastery_variety_description">Unique species that reached Mastery.</string>
+    <string name="badge_variety_collector">Variety Collector</string>
+    <string name="badge_variety_collector_description">Unique species discovered across all waters.</string>
+    <string name="badge_across_depths">Across the Depths</string>
+    <string name="badge_across_depths_description">Discover life throughout the depths of The Blue.</string>
+    <string name="badge_every_water">One from Every Water</string>
+    <string name="badge_every_water_description">Master at least one participating creature from every Blue region and every Stillwater vessel.</string>
+    <string name="badge_keeper_blue">Keeper of The Blue</string>
+    <string name="badge_keeper_blue_description">Complete the Collector roster in every region of The Blue.</string>
     <string name="badge_collection_progress_title">Collection Progress</string>
-    <string name="badge_unavailable_record_title">Unavailable record</string><string name="badge_unavailable_record_description">This preserved record is not part of the current Badge Book.</string>
-    <string name="collection_sunlit_reef">Sunlit Reef</string><string name="collection_deeper_reef">Deeper Reef</string><string name="collection_open_blue">Open Blue</string><string name="collection_great_blue">Great Blue</string>
-    <string name="collection_fishbowl">Stillwater Fishbowl</string><string name="collection_aquarium">Stillwater Aquarium</string><string name="collection_pond">Stillwater Pond</string><string name="collection_lake">Stillwater Lake</string>
-    <string name="collection_stillwater">Stillwater</string><string name="collection_the_blue">The Blue</string><string name="collection_all_waters">All Waters</string><string name="collection_unknown">Collection</string>
-    <string name="collection_discovered_progress">%1$d of %2$d discovered</string><string name="collection_owned_progress">%1$d of %2$d currently owned</string><string name="collection_mastered_progress">%1$d of %2$d mastered</string>
-    <string name="badge_state_collector">Collector achieved</string><string name="badge_state_curator">Curator achieved</string><string name="badge_state_completionist">Completionist achieved</string>
-    <string name="badge_exact_count">Exact count: %1$s</string><string name="badge_earned">Earned</string><string name="badge_locked">Locked</string>
-    <string name="badge_progress_remaining">%1$d of %2$d. %3$d remaining.</string><string name="badge_current_milestone">Current milestone: %1$d</string><string name="badge_next_milestone">Next milestone: %1$d</string>
-    <string name="badge_first_earned">First earned: %1$s</string><string name="badge_last_advanced">Last advanced: %1$s</string>
-    <string name="badge_pin">Pin</string><string name="badge_unpin">Unpin</string><string name="badge_track">Track</string><string name="badge_untrack">Untrack</string><string name="badge_open_action">Open next step</string>
+    <string name="badge_unavailable_record_title">Unavailable record</string>
+    <string name="badge_unavailable_record_description">This preserved record is not part of the current Badge Book.</string>
+    <string name="collection_sunlit_reef">Sunlit Reef</string>
+    <string name="collection_deeper_reef">Deeper Reef</string>
+    <string name="collection_open_blue">Open Blue</string>
+    <string name="collection_great_blue">Great Blue</string>
+    <string name="collection_fishbowl">Stillwater Fishbowl</string>
+    <string name="collection_aquarium">Stillwater Aquarium</string>
+    <string name="collection_pond">Stillwater Pond</string>
+    <string name="collection_lake">Stillwater Lake</string>
+    <string name="collection_stillwater">Stillwater</string>
+    <string name="collection_the_blue">The Blue</string>
+    <string name="collection_all_waters">All Waters</string>
+    <string name="collection_unknown">Collection</string>
+    <string name="collection_discovered_progress">%1$d of %2$d discovered</string>
+    <string name="collection_owned_progress">%1$d of %2$d currently owned</string>
+    <string name="collection_mastered_progress">%1$d of %2$d mastered</string>
+    <string name="badge_state_collector">Collector achieved</string>
+    <string name="badge_state_curator">Curator achieved</string>
+    <string name="badge_state_completionist">Completionist achieved</string>
+    <string name="badge_exact_count">Exact count: %1$s</string>
+    <string name="badge_earned">Earned</string>
+    <string name="badge_locked">Locked</string>
+    <string name="badge_progress_remaining">%1$d of %2$d. %3$d remaining.</string>
+    <string name="badge_current_milestone">Current milestone: %1$d</string>
+    <string name="badge_next_milestone">Next milestone: %1$d</string>
+    <string name="badge_first_earned">First earned: %1$s</string>
+    <string name="badge_last_advanced">Last advanced: %1$s</string>
+    <string name="badge_pin">Pin</string>
+    <string name="badge_unpin">Unpin</string>
+    <string name="badge_track">Track</string>
+    <string name="badge_untrack">Untrack</string>
+    <string name="badge_open_action">Open next step</string>
     <string name="badge_tracking_explanation">Badge progress is recorded automatically. Tracking keeps this badge in your Tracked Badges section.</string>
-    <string name="collection_detail_summary">Discovered %1$d · Owned %2$d · Mastered %3$d of %4$d</string><string name="collection_secret_species">Secret species</string>
-    <string name="collection_species_mastered">Mastered · %1$d currently owned</string><string name="collection_species_owned">%1$d owned · Highest Level %2$d · %3$d levels remaining</string><string name="collection_species_discovered_not_owned">Previously discovered · Currently owned: 0</string><string name="collection_species_undiscovered">Undiscovered</string>
-    <string name="level99_preview_balance">Required Pearls: %1$d · Owned: %2$d · Missing: %3$d</string><string name="level99_preview_species_count">Resulting Species Mastery count: %1$d</string><string name="level99_preview_first_species">This will be the first Mastery for this species.</string><string name="level99_preview_region">Regional Mastery after upgrade: %1$d of %2$d</string><string name="level99_preview_completes_region">This will complete the regional Completionist goal.</string><string name="level99_preview_completes_blue">This will complete The Blue.</string><string name="level99_preview_completes_all">This will complete All Waters.</string><string name="level99_preview_milestone">Species Mastery milestone ×%1$d will be reached.</string>
-    <string name="mastery_region_remains_complete">This collection remains complete.</string><string name="mastery_pin_selected">Pin %1$s. Choose a Showcase badge to replace.</string>
-    <string name="chest_filter_all">All</string><string name="chest_filter_closest">Closest to Mastery</string><string name="chest_filter_mastered">Mastered</string><string name="chest_filter_not_mastered">Not yet mastered</string><string name="chest_filter_needed_tracked">Needed for Tracked Badges</string>
+    <string name="collection_detail_summary">Discovered %1$d · Owned %2$d · Mastered %3$d of %4$d</string>
+    <string name="collection_secret_species">Secret species</string>
+    <string name="collection_species_mastered">Mastered · %1$d currently owned</string>
+    <string name="collection_species_owned">%1$d owned · Highest Level %2$d · %3$d levels remaining</string>
+    <string name="collection_species_discovered_not_owned">Previously discovered · Currently owned: 0</string>
+    <string name="collection_species_undiscovered">Undiscovered</string>
+    <string name="level99_preview_balance">Required Pearls: %1$d · Owned: %2$d · Missing: %3$d</string>
+    <string name="level99_preview_species_count">Resulting Species Mastery count: %1$d</string>
+    <string name="level99_preview_first_species">This will be the first Mastery for this species.</string>
+    <string name="level99_preview_region">Regional Mastery after upgrade: %1$d of %2$d</string>
+    <string name="level99_preview_completes_region">This will complete the regional Completionist goal.</string>
+    <string name="level99_preview_completes_blue">This will complete The Blue.</string>
+    <string name="level99_preview_completes_all">This will complete All Waters.</string>
+    <string name="level99_preview_milestone">Species Mastery milestone ×%1$d will be reached.</string>
+    <string name="mastery_region_remains_complete">This collection remains complete.</string>
+    <string name="mastery_pin_selected">Pin %1$s. Choose a Showcase badge to replace.</string>
+    <string name="chest_filter_all">All</string>
+    <string name="chest_filter_closest">Closest to Mastery</string>
+    <string name="chest_filter_mastered">Mastered</string>
+    <string name="chest_filter_not_mastered">Not yet mastered</string>
+    <string name="chest_filter_needed_tracked">Needed for Tracked Badges</string>
     <string name="chest_filter_tracked_empty">None of your tracked badges currently require creatures from The Chest.</string>
     <string name="chest_filter_empty">No creatures match this filter.</string>
     <string name="chest_filter_clear">Clear filter</string>
@@ -2089,27 +2054,75 @@ You can turn Health back on later.</string>
     <string name="mastery_date_unknown">Mastered before achievement history was enabled</string>
     <string name="level99_preview_completes_stillwater">This completes overall Stillwater Mastery.</string>
     <string name="level99_preview_restores_stillwater">This restores overall Stillwater completion for the current roster.</string>
-    <plurals name="badges_summary"><item quantity="one">%1$d earned · %2$d Masteries · %3$d Completionist collection</item><item quantity="other">%1$d earned · %2$d Masteries · %3$d Completionist collections</item></plurals>
-    <string name="badges_search">Search badges</string><string name="badges_empty_slot">Empty slot</string><string name="badges_no_recommendations">Keep exploring—your next reachable goal will appear here.</string>
-    <string name="badges_showcase_title">Your Showcase</string><string name="badges_showcase_body">Pin the achievements that mean the most to you.</string>
-    <string name="badges_tracked_title">Tracked Badges</string><string name="badges_tracked_body">Badges you have chosen to follow. Scyra records all badge progress automatically.</string>
-    <string name="badges_no_tracked_title">No tracked badges</string><string name="badges_no_tracked_body">Track a badge to keep its progress and next step here.</string>
-    <string name="badges_within_reach_title">Within Reach</string><string name="badges_within_reach_body">Up to three untracked goals Scyra recommends as useful next steps.</string>
-    <string name="badges_recent_title">Recently Earned and Updated</string><string name="badges_recent_body">New and advanced achievements.</string><string name="badges_yours_title">Your Badges</string><string name="badges_yours_count">%1$d unique badges shown</string><string name="badges_collections_title">Collection Progress</string><string name="badges_collections_body">Lifetime discovery and Mastery survive release.</string><string name="badges_book_title">Badge Book</string><string name="badges_book_body">Earned and locked progression goals.</string>
-    <string name="badges_replace_title">Replace a Showcase badge?</string><string name="badges_replace_body">Choose which pinned badge to replace.</string><string name="badges_backfill_title">Your Badge Collection Has Grown</string><string name="badges_backfill_body">We recognized %1$d creature discoveries, %2$d Creature Masteries, and %3$d collection completions from your existing progress.</string><string name="badges_view_new">View New Badges</string>
-    <string name="badge_count_a11y">%1$s badge. %2$s. Completed %3$s times. %4$d remaining.%5$s%6$s</string><string name="badge_pinned_a11y"> Pinned.</string><string name="badge_tracked_a11y"> Tracked.</string><string name="badge_open_action_a11y">Open progression action</string>
+    <plurals name="badges_summary">
+        <item quantity="one">%1$d earned · %2$d Masteries · %3$d Completionist collection</item>
+        <item quantity="other">%1$d earned · %2$d Masteries · %3$d Completionist collections</item>
+    </plurals>
+    <string name="badges_search">Search badges</string>
+    <string name="badges_empty_slot">Empty slot</string>
+    <string name="badges_no_recommendations">Keep exploring—your next reachable goal will appear here.</string>
+    <string name="badges_showcase_title">Your Showcase</string>
+    <string name="badges_showcase_body">Pin the achievements that mean the most to you.</string>
+    <string name="badges_tracked_title">Tracked Badges</string>
+    <string name="badges_tracked_body">Badges you have chosen to follow. Scyra records all badge progress automatically.</string>
+    <string name="badges_no_tracked_title">No tracked badges</string>
+    <string name="badges_no_tracked_body">Track a badge to keep its progress and next step here.</string>
+    <string name="badges_within_reach_title">Within Reach</string>
+    <string name="badges_within_reach_body">Up to three untracked goals Scyra recommends as useful next steps.</string>
+    <string name="badges_recent_title">Recently Earned and Updated</string>
+    <string name="badges_recent_body">New and advanced achievements.</string>
+    <string name="badges_yours_title">Your Badges</string>
+    <string name="badges_yours_count">%1$d unique badges shown</string>
+    <string name="badges_collections_title">Collection Progress</string>
+    <string name="badges_collections_body">Lifetime discovery and Mastery survive release.</string>
+    <string name="badges_book_title">Badge Book</string>
+    <string name="badges_book_body">Earned and locked progression goals.</string>
+    <string name="badges_replace_title">Replace a Showcase badge?</string>
+    <string name="badges_replace_body">Choose which pinned badge to replace.</string>
+    <string name="badges_backfill_title">Your Badge Collection Has Grown</string>
+    <string name="badges_backfill_body">We recognized %1$d creature discoveries, %2$d Creature Masteries, and %3$d collection completions from your existing progress.</string>
+    <string name="badges_view_new">View New Badges</string>
+    <string name="badge_count_a11y">%1$s badge. %2$s. Completed %3$s times. %4$d remaining.%5$s%6$s</string>
+    <string name="badge_pinned_a11y"> Pinned.</string>
+    <string name="badge_tracked_a11y"> Tracked.</string>
+    <string name="badge_open_action_a11y">Open progression action</string>
     <string name="notifications_inlay_a11y">Notifications inlay</string>
     <string name="the_blue_collection_progress">%1$d of %2$d discovered · %3$d mastered</string>
-    <string name="chest_mastered">Mastered</string><string name="chest_one_to_mastery">One to Mastery</string><string name="chest_near_mastery">Near Mastery</string><string name="chest_levels_to_mastery">%1$d to Mastery</string>
+    <string name="chest_mastered">Mastered</string>
+    <string name="chest_one_to_mastery">One to Mastery</string>
+    <string name="chest_near_mastery">Near Mastery</string>
+    <string name="chest_levels_to_mastery">%1$d to Mastery</string>
     <string name="mastery_celebration_a11y">%1$s reached Level 99. Mastery achieved.</string>
-    <string name="badges_category_selected">Category: %1$s</string><string name="badges_sort_selected">Sort: %1$s</string>
-    <string name="badge_category_all">All</string><string name="badge_category_flow">Flow</string><string name="badge_category_arc">Arc</string><string name="badge_category_creatures">Creatures</string><string name="badge_category_mastery">Mastery</string><string name="badge_category_collections">Collections</string><string name="badge_category_stillwater">Stillwater</string><string name="badge_category_movement">Movement</string><string name="badge_category_surge">Surge</string><string name="badge_category_special">Special</string>
-    <string name="badge_sort_recommended">Recommended</string><string name="badge_sort_recent_earned">Recently earned</string><string name="badge_sort_recent_advanced">Recently advanced</string><string name="badge_sort_highest_count">Highest count</string><string name="badge_sort_closest">Closest to next milestone</string><string name="badge_sort_alphabetical">Alphabetical</string>
-    <string name="badge_new">New</string><string name="badge_updated">Updated</string>
-    <string name="badge_next_mastery_step">Highest current level: %1$d. %2$d levels to Mastery.</string><string name="badge_next_discovery_step">Discover %1$d more participating species.</string><string name="badge_next_completionist_step">Master %1$d more participating species.</string><string name="badge_next_flow_step">Complete %1$d more qualifying Flows.</string>
+    <string name="badges_category_selected">Category: %1$s</string>
+    <string name="badges_sort_selected">Sort: %1$s</string>
+    <string name="badge_category_all">All</string>
+    <string name="badge_category_flow">Flow</string>
+    <string name="badge_category_arc">Arc</string>
+    <string name="badge_category_creatures">Creatures</string>
+    <string name="badge_category_mastery">Mastery</string>
+    <string name="badge_category_collections">Collections</string>
+    <string name="badge_category_stillwater">Stillwater</string>
+    <string name="badge_category_movement">Movement</string>
+    <string name="badge_category_surge">Surge</string>
+    <string name="badge_category_special">Special</string>
+    <string name="badge_sort_recommended">Recommended</string>
+    <string name="badge_sort_recent_earned">Recently earned</string>
+    <string name="badge_sort_recent_advanced">Recently advanced</string>
+    <string name="badge_sort_highest_count">Highest count</string>
+    <string name="badge_sort_closest">Closest to next milestone</string>
+    <string name="badge_sort_alphabetical">Alphabetical</string>
+    <string name="badge_new">New</string>
+    <string name="badge_updated">Updated</string>
+    <string name="badge_next_mastery_step">Highest current level: %1$d. %2$d levels to Mastery.</string>
+    <string name="badge_next_discovery_step">Discover %1$d more participating species.</string>
+    <string name="badge_next_completionist_step">Master %1$d more participating species.</string>
+    <string name="badge_next_flow_step">Complete %1$d more qualifying Flows.</string>
     <string name="badge_count_plate">×%1$s</string>
-    <string name="badges_clear_search">Clear search</string><string name="badges_no_earned">Complete a Flow or explore The Blue to earn your first badge.</string><string name="badges_no_search_results">No badges match “%1$s”.</string>
-    <string name="mastery_view_badge">View Badge</string><string name="mastery_view_collection">View Collection Progress</string>
+    <string name="badges_clear_search">Clear search</string>
+    <string name="badges_no_earned">Complete a Flow or explore The Blue to earn your first badge.</string>
+    <string name="badges_no_search_results">No badges match “%1$s”.</string>
+    <string name="mastery_view_badge">View Badge</string>
+    <string name="mastery_view_collection">View Collection Progress</string>
     <string name="badge_disabled_complete">This achievement is complete.</string>
     <string name="badge_disabled_no_next">You have completed every currently available milestone.</string>
     <string name="badge_disabled_not_owned">Acquire this creature to begin its Mastery goal.</string>
@@ -2125,4 +2138,25 @@ You can turn Health back on later.</string>
     <string name="shell_notification_fallback_body">A new reward is waiting in The Shell.</string>
     <string name="shell_message_showcase_failed">Could not update Your Showcase.</string>
     <string name="shell_message_track_failed">Could not track this badge.</string>
+    <string name="shell_message_placed">Placed in the Focus Room.</string>
+    <string name="shell_message_display_failed">Could not display that reward.</string>
+    <string name="shell_message_returned">Returned to The Chest.</string>
+    <string name="shell_message_return_failed">Could not return that reward.</string>
+    <string name="shell_message_focus_shaped">Your Pearls shaped the Focus Room.</string>
+    <string name="shell_message_shape_failed">Could not shape that space.</string>
+    <string name="shell_message_creature_chest">A creature is in The Chest.</string>
+    <string name="shell_message_invite_failed">Could not invite that object.</string>
+    <string name="shell_message_growth_shaped">Your Pearls shaped growth in The Shell.</string>
+    <string name="shell_message_shape_reward_failed">Could not shape that reward.</string>
+    <string name="shell_message_grew_blue">Your creature grew inside The Blue.</string>
+    <string name="shell_message_grew_chest">Your creature grew inside The Chest.</string>
+    <string name="shell_message_grow_failed">Could not grow that creature.</string>
+    <string name="shell_message_celebration_failed">Could not close the Mastery summary.</string>
+    <string name="shell_message_released">Released back into The Blue. %1$d Pearls returned. Your lifetime record remains.</string>
+    <string name="shell_message_release_failed">Could not release those creatures.</string>
+    <string name="shell_message_encountered">%1$s entered %2$s.</string>
+    <string name="shell_message_encounter_failed">Could not encounter that creature.</string>
+    <string name="shell_message_vessel_locked">Progress farther in The Blue to unlock this vessel.</string>
+    <string name="shell_message_drops_insufficient">Not enough Drops yet.</string>
+    <string name="shell_message_stillwater_failed">Could not draw from Stillwater.</string>
 </resources>

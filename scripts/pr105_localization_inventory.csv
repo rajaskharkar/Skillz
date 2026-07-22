@@ -1,0 +1,238 @@
+name,type,english,placeholders,spanish,hindi,marathi
+badge_across_depths,string,Across the Depths,,present,present,present
+badge_across_depths_description,string,Discover life throughout the depths of The Blue.,,present,present,present
+badge_action_open_blue,string,Open Blue region,,present,present,present
+badge_action_open_stillwater,string,Visit Stillwater vessel,,present,present,present
+badge_action_view_chest,string,View in Chest,,present,present,present
+badge_category_all,string,All,,present,present,present
+badge_category_arc,string,Arc,,present,present,present
+badge_category_collections,string,Collections,,present,present,present
+badge_category_creatures,string,Creatures,,present,present,present
+badge_category_flow,string,Flow,,present,present,present
+badge_category_mastery,string,Mastery,,present,present,present
+badge_category_movement,string,Movement,,present,present,present
+badge_category_special,string,Special,,present,present,present
+badge_category_stillwater,string,Stillwater,,present,present,present
+badge_category_surge,string,Surge,,present,present,present
+badge_collection_progress_title,string,Collection Progress,,present,present,present
+badge_collector_description,string,Discover every participating species in %1$s.,%1$s,present,present,present
+badge_collector_title,string,%1$s Collector,%1$s,present,present,present
+badge_completionist_description,string,Raise every participating species in %1$s to Level 99.,%1$s,present,present,present
+badge_completionist_title,string,%1$s Completionist,%1$s,present,present,present
+badge_count_a11y,string,%1$s badge. %2$s. Completed %3$s times. %4$d remaining.%5$s%6$s,%1$s %2$s %3$s %4$d %5$s %6$s,present,present,present
+badge_count_plate,string,×%1$s,%1$s,present,present,present
+badge_creature_fallback,string,Creature,,present,present,present
+badge_curator_description,string,Own every participating species in %1$s at the same time.,%1$s,present,present,present
+badge_curator_title,string,%1$s Curator,%1$s,present,present,present
+badge_current_milestone,string,Current milestone: %1$d,%1$d,present,present,present
+badge_disabled_complete,string,This achievement is complete.,,present,present,present
+badge_disabled_empty_roster,string,No participating creatures are currently available.,,present,present,present
+badge_disabled_historical,string,This historical badge has no repeatable current objective.,,present,present,present
+badge_disabled_no_next,string,You have completed every currently available milestone.,,present,present,present
+badge_disabled_not_owned,string,Acquire this creature to begin its Mastery goal.,,present,present,present
+badge_disabled_region_locked,string,This Blue region has not been unlocked yet.,,present,present,present
+badge_disabled_vessel_locked,string,This Stillwater vessel has not been unlocked yet.,,present,present,present
+badge_earned,string,Earned,,present,present,present
+badge_every_water,string,One from Every Water,,present,present,present
+badge_every_water_description,string,Master at least one participating creature from every Blue region and every Stillwater vessel.,,present,present,present
+badge_exact_count,string,Exact count: %1$s,%1$s,present,present,present
+badge_first_earned,string,First earned: %1$s,%1$s,present,present,present
+badge_first_mastery,string,First Mastery,,present,present,present
+badge_first_mastery_description,string,Reach Level 99 with any creature.,,present,present,present
+badge_keeper_blue,string,Keeper of The Blue,,present,present,present
+badge_keeper_blue_description,string,Complete the Collector roster in every region of The Blue.,,present,present,present
+badge_last_advanced,string,Last advanced: %1$s,%1$s,present,present,present
+badge_locked,string,Locked,,present,present,present
+badge_mastery_circle,string,Mastery Circle,,present,present,present
+badge_mastery_circle_description,string,Total lifetime Creature Masteries.,,present,present,present
+badge_mastery_variety,string,Mastery Variety,,present,present,present
+badge_mastery_variety_description,string,Unique species that reached Mastery.,,present,present,present
+badge_new,string,New,,present,present,present
+badge_next_completionist_step,string,Master %1$d more participating species.,%1$d,present,present,present
+badge_next_discovery_step,string,Discover %1$d more participating species.,%1$d,present,present,present
+badge_next_flow_step,string,Complete %1$d more qualifying Flows.,%1$d,present,present,present
+badge_next_mastery_step,string,Highest current level: %1$d. %2$d levels to Mastery.,%1$d %2$d,present,present,present
+badge_next_milestone,string,Next milestone: %1$d,%1$d,present,present,present
+badge_open_action,string,Open next step,,present,present,present
+badge_open_action_a11y,string,Open progression action,,present,present,present
+badge_pin,string,Pin,,present,present,present
+badge_pinned_a11y,string, Pinned.,,present,present,present
+badge_progress_remaining,string,%1$d of %2$d. %3$d remaining.,%1$d %2$d %3$d,present,present,present
+badge_sort_alphabetical,string,Alphabetical,,present,present,present
+badge_sort_closest,string,Closest to next milestone,,present,present,present
+badge_sort_highest_count,string,Highest count,,present,present,present
+badge_sort_recent_advanced,string,Recently advanced,,present,present,present
+badge_sort_recent_earned,string,Recently earned,,present,present,present
+badge_sort_recommended,string,Recommended,,present,present,present
+badge_species_mastery_description,string,Counts every %1$s that permanently reached Level 99.,%1$s,present,present,present
+badge_species_mastery_title,string,%1$s Mastery,%1$s,present,present,present
+badge_state_collector,string,Collector achieved,,present,present,present
+badge_state_completionist,string,Completionist achieved,,present,present,present
+badge_state_curator,string,Curator achieved,,present,present,present
+badge_stillwater_first_catch,string,Stillwater First Catch,,present,present,present
+badge_stillwater_mastery,string,Stillwater Mastery,,present,present,present
+badge_stillwater_progress_description,string,Records reliable Stillwater discovery and Mastery progress.,,present,present,present
+badge_stillwater_variety,string,Stillwater Variety,,present,present,present
+badge_track,string,Track,,present,present,present
+badge_tracked_a11y,string, Tracked.,,present,present,present
+badge_tracking_explanation,string,Badge progress is recorded automatically. Tracking keeps this badge in your Tracked Badges section.,,present,present,present
+badge_unavailable_record_description,string,This preserved record is not part of the current Badge Book.,,present,present,present
+badge_unavailable_record_title,string,Unavailable record,,present,present,present
+badge_unpin,string,Unpin,,present,present,present
+badge_untrack,string,Untrack,,present,present,present
+badge_updated,string,Updated,,present,present,present
+badge_variety_collector,string,Variety Collector,,present,present,present
+badge_variety_collector_description,string,Unique species discovered across all waters.,,present,present,present
+badges_backfill_body,string,"We recognized %1$d creature discoveries, %2$d Creature Masteries, and %3$d collection completions from your existing progress.",%1$d %2$d %3$d,present,present,present
+badges_backfill_title,string,Your Badge Collection Has Grown,,present,present,present
+badges_book_body,string,Earned and locked progression goals.,,present,present,present
+badges_book_title,string,Badge Book,,present,present,present
+badges_category_selected,string,Category: %1$s,%1$s,present,present,present
+badges_clear_search,string,Clear search,,present,present,present
+badges_collections_body,string,Lifetime discovery and Mastery survive release.,,present,present,present
+badges_collections_title,string,Collection Progress,,present,present,present
+badges_empty_slot,string,Empty slot,,present,present,present
+badges_hub_body,string,"Celebrate progress, choose goals, and explore every collection.",,present,present,present
+badges_no_earned,string,Complete a Flow or explore The Blue to earn your first badge.,,present,present,present
+badges_no_recommendations,string,Keep exploring—your next reachable goal will appear here.,,present,present,present
+badges_no_search_results,string,No badges match “%1$s”.,%1$s,present,present,present
+badges_no_tracked_body,string,Track a badge to keep its progress and next step here.,,present,present,present
+badges_no_tracked_title,string,No tracked badges,,present,present,present
+badges_recent_body,string,New and advanced achievements.,,present,present,present
+badges_recent_title,string,Recently Earned and Updated,,present,present,present
+badges_replace_body,string,Choose which pinned badge to replace.,,present,present,present
+badges_replace_title,string,Replace a Showcase badge?,,present,present,present
+badges_search,string,Search badges,,present,present,present
+badges_showcase_body,string,Pin the achievements that mean the most to you.,,present,present,present
+badges_showcase_title,string,Your Showcase,,present,present,present
+badges_sort_selected,string,Sort: %1$s,%1$s,present,present,present
+badges_summary,plurals,%1$d earned · %2$d Masteries · %3$d Completionist collection | %1$d earned · %2$d Masteries · %3$d Completionist collections,%1$d %2$d %3$d %1$d %2$d %3$d,present,present,present
+badges_tracked_body,string,Badges you have chosen to follow. Scyra records all badge progress automatically.,,present,present,present
+badges_tracked_title,string,Tracked Badges,,present,present,present
+badges_view_new,string,View New Badges,,present,present,present
+badges_within_reach_body,string,Up to three untracked goals Scyra recommends as useful next steps.,,present,present,present
+badges_within_reach_title,string,Within Reach,,present,present,present
+badges_yours_count,string,%1$d unique badges shown,%1$d,present,present,present
+badges_yours_title,string,Your Badges,,present,present,present
+chest_filter_all,string,All,,present,present,present
+chest_filter_clear,string,Clear filter,,present,present,present
+chest_filter_closest,string,Closest to Mastery,,present,present,present
+chest_filter_empty,string,No creatures match this filter.,,present,present,present
+chest_filter_mastered,string,Mastered,,present,present,present
+chest_filter_needed_tracked,string,Needed for Tracked Badges,,present,present,present
+chest_filter_not_mastered,string,Not yet mastered,,present,present,present
+chest_filter_tracked_empty,string,None of your tracked badges currently require creatures from The Chest.,,present,present,present
+chest_levels_to_mastery,string,%1$d to Mastery,%1$d,present,present,present
+chest_mastered,string,Mastered,,present,present,present
+chest_near_mastery,string,Near Mastery,,present,present,present
+chest_one_to_mastery,string,One to Mastery,,present,present,present
+collection_all_waters,string,All Waters,,present,present,present
+collection_aquarium,string,Stillwater Aquarium,,present,present,present
+collection_deeper_reef,string,Deeper Reef,,present,present,present
+collection_detail_summary,string,Discovered %1$d · Owned %2$d · Mastered %3$d of %4$d,%1$d %2$d %3$d %4$d,present,present,present
+collection_discovered_progress,string,%1$d of %2$d discovered,%1$d %2$d,present,present,present
+collection_fishbowl,string,Stillwater Fishbowl,,present,present,present
+collection_great_blue,string,Great Blue,,present,present,present
+collection_lake,string,Stillwater Lake,,present,present,present
+collection_mastered_progress,string,%1$d of %2$d mastered,%1$d %2$d,present,present,present
+collection_open_blue,string,Open Blue,,present,present,present
+collection_owned_progress,string,%1$d of %2$d currently owned,%1$d %2$d,present,present,present
+collection_pond,string,Stillwater Pond,,present,present,present
+collection_secret_species,string,Secret species,,present,present,present
+collection_species_discovered_not_owned,string,Previously discovered · Currently owned: 0,,present,present,present
+collection_species_mastered,string,Mastered · %1$d currently owned,%1$d,present,present,present
+collection_species_mastered_count,string,Mastered %1$d times · %2$d Level 99 copies currently owned,%1$d %2$d,present,present,present
+collection_species_open_action,string,Open progression action,,present,present,present
+collection_species_owned,string,%1$d owned · Highest Level %2$d · %3$d levels remaining,%1$d %2$d %3$d,present,present,present
+collection_species_undiscovered,string,Undiscovered,,present,present,present
+collection_stillwater,string,Stillwater,,present,present,present
+collection_sunlit_reef,string,Sunlit Reef,,present,present,present
+collection_the_blue,string,The Blue,,present,present,present
+collection_unknown,string,Collection,,present,present,present
+level99_preview_balance,string,Required Pearls: %1$d · Owned: %2$d · Missing: %3$d,%1$d %2$d %3$d,present,present,present
+level99_preview_completes_all,string,This will complete All Waters.,,present,present,present
+level99_preview_completes_blue,string,This will complete The Blue.,,present,present,present
+level99_preview_completes_region,string,This will complete the regional Completionist goal.,,present,present,present
+level99_preview_completes_stillwater,string,This completes overall Stillwater Mastery.,,present,present,present
+level99_preview_first_species,string,This will be the first Mastery for this species.,,present,present,present
+level99_preview_milestone,string,Species Mastery milestone ×%1$d will be reached.,%1$d,present,present,present
+level99_preview_region,string,Regional Mastery after upgrade: %1$d of %2$d,%1$d %2$d,present,present,present
+level99_preview_restores_roster,string,This restores completion for the current collection roster.,,present,present,present
+level99_preview_restores_stillwater,string,This restores overall Stillwater completion for the current roster.,,present,present,present
+level99_preview_species_count,string,Resulting Species Mastery count: %1$d,%1$d,present,present,present
+level99_preview_stillwater,string,Overall Stillwater: %1$d of %2$d species mastered,%1$d %2$d,present,present,present
+mastery_achieved,string,Mastery Achieved,,present,present,present
+mastery_additional,string,Additional Achievements,,present,present,present
+mastery_all_progress,string,All Waters: %1$d of %2$d mastered,%1$d %2$d,present,present,present
+mastery_all_waters_complete,string,Every creature across The Blue and Stillwater has reached Mastery.,,present,present,present
+mastery_blue_complete,string,Every creature in The Blue has reached Level 99.,,present,present,present
+mastery_blue_progress,string,The Blue: %1$d of %2$d mastered,%1$d %2$d,present,present,present
+mastery_calm_mode,string,Calm Mode: gentle presentation,,present,present,present
+mastery_celebration_a11y,string,%1$s reached Level 99. Mastery achieved.,%1$s,present,present,present
+mastery_collection_impact,string,Collection Impact,,present,present,present
+mastery_collection_progress,string,%1$d of %2$d species mastered,%1$d %2$d,present,present,present
+mastery_completion_restored,string,Current collection roster completed.,,present,present,present
+mastery_continue,string,Continue,,present,present,present
+mastery_counts_advanced,string,Your lifetime Mastery counts advanced.,,present,present,present
+mastery_date_estimated,string,Mastered before or around %1$s,%1$s,present,present,present
+mastery_date_exact,string,Mastered on %1$s,%1$s,present,present,present
+mastery_date_unknown,string,Mastered before achievement history was enabled,,present,present,present
+mastery_final_title,string,Level 99 Mastery,,present,present,present
+mastery_journey_complete,string,A creature’s journey is complete.,,present,present,present
+mastery_level_transition,string,98 → 99,,present,present,present
+mastery_milestone_reached,string,%1$s reached milestone ×%2$s,%1$s %2$s,present,present,present
+mastery_new_badges,string,New badges earned: %1$d,%1$d,present,present,present
+mastery_new_milestones,string,Milestones reached: %1$d,%1$d,present,present,present
+mastery_permanent_record,string,"This Mastery is permanently recorded, even if the creature is released later.",,present,present,present
+mastery_pin_badge,string,Pin badge,,present,present,present
+mastery_pin_selected,string,Pin %1$s. Choose a Showcase badge to replace.,%1$s,present,present,present
+mastery_reached_99,string,%1$s reached Level 99,%1$s,present,present,present
+mastery_region_complete,string,Completionist achieved. Every creature in this collection has reached Level 99.,,present,present,present
+mastery_region_remains_complete,string,This collection remains complete.,,present,present,present
+mastery_replace_pin_title,string,Replace a Showcase badge?,,present,present,present
+mastery_return_blue,string,Return to The Blue,,present,present,present
+mastery_return_chest,string,Return to The Chest,,present,present,present
+mastery_return_stillwater,string,Return to Stillwater,,present,present,present
+mastery_skip,string,Skip to summary,,present,present,present
+mastery_species_remaining,plurals,One species remains. | %1$d species remain.,%1$d,present,present,present
+mastery_species_support,plurals,Your first %2$s has reached Mastery. | %1$d %2$s creatures have completed their journey.,%2$s %1$d %2$s,present,present,present
+mastery_species_title,string,%1$s Mastery,%1$s,present,present,present
+mastery_stillwater_progress,string,Stillwater: %1$d of %2$d species mastered,%1$d %2$d,present,present,present
+mastery_summary_species,string,Species Mastery count: %1$d,%1$d,present,present,present
+mastery_summary_total,string,Total Masteries: %1$d · Unique species: %2$d,%1$d %2$d,present,present,present
+mastery_unknown_creature,string,Creature,,present,present,present
+mastery_view_badge,string,View Badge,,present,present,present
+mastery_view_collection,string,View Collection Progress,,present,present,present
+notifications_inlay_a11y,string,Notifications inlay,,present,present,present
+shell_chest_sort_closest_mastery,string,Closest to Mastery,,present,present,present
+shell_chest_sort_species_mastery,string,Species Mastery count,,present,present,present
+shell_creature_release_confirm_bulk_body,string,Release %1$d Level %2$d %3$s creatures back into The Blue?,%1$d %2$d %3$s,present,present,present
+shell_creature_view_requirements,string,View requirements,,present,present,present
+shell_message_celebration_failed,string,Could not close the Mastery summary.,,present,present,present
+shell_message_creature_chest,string,A creature is in The Chest.,,present,present,present
+shell_message_display_failed,string,Could not display that reward.,,present,present,present
+shell_message_drops_insufficient,string,Not enough Drops yet.,,present,present,present
+shell_message_encounter_failed,string,Could not encounter that creature.,,present,present,present
+shell_message_encountered,string,%1$s entered %2$s.,%1$s %2$s,present,present,present
+shell_message_focus_shaped,string,Your Pearls shaped the Focus Room.,,present,present,present
+shell_message_grew_blue,string,Your creature grew inside The Blue.,,present,present,present
+shell_message_grew_chest,string,Your creature grew inside The Chest.,,present,present,present
+shell_message_grow_failed,string,Could not grow that creature.,,present,present,present
+shell_message_growth_shaped,string,Your Pearls shaped growth in The Shell.,,present,present,present
+shell_message_invite_failed,string,Could not invite that object.,,present,present,present
+shell_message_placed,string,Placed in the Focus Room.,,present,present,present
+shell_message_release_failed,string,Could not release those creatures.,,present,present,present
+shell_message_released,string,Released back into The Blue. %1$d Pearls returned. Your lifetime record remains.,%1$d,present,present,present
+shell_message_return_failed,string,Could not return that reward.,,present,present,present
+shell_message_returned,string,Returned to The Chest.,,present,present,present
+shell_message_shape_failed,string,Could not shape that space.,,present,present,present
+shell_message_shape_reward_failed,string,Could not shape that reward.,,present,present,present
+shell_message_showcase_failed,string,Could not update Your Showcase.,,present,present,present
+shell_message_stillwater_failed,string,Could not draw from Stillwater.,,present,present,present
+shell_message_track_failed,string,Could not track this badge.,,present,present,present
+shell_message_vessel_locked,string,Progress farther in The Blue to unlock this vessel.,,present,present,present
+shell_notification_fallback_body,string,A new reward is waiting in The Shell.,,present,present,present
+shell_notification_fallback_title,string,New Shell reward,,present,present,present
+stillwater_collection_progress_title,string,Collection progress,,present,present,present
+stillwater_named_collection_progress,string,%1$s Progress,%1$s,present,present,present
+the_blue_collection_progress,string,%1$d of %2$d discovered · %3$d mastered,%1$d %2$d %3$d,present,present,present

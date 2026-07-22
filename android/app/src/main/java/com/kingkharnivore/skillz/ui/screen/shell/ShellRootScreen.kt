@@ -157,7 +157,6 @@ fun ShellRootScreen(
         viewModel.events.collect { message ->
             snackbarHostState.showSnackbar(when (message) {
                 is com.kingkharnivore.skillz.viewmodel.shell.UiText.Resource -> context.getString(message.resId, *message.args.toTypedArray())
-                is com.kingkharnivore.skillz.viewmodel.shell.UiText.Plain -> message.value
             })
         }
     }

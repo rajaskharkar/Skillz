@@ -276,9 +276,9 @@ internal fun sortChestInventoryStacks(
 
 private fun chestStackComparator(sortOption: ChestSortOption): Comparator<ChestInventoryStackUiModel> {
     val levelNameTieBreakers = compareByDescending<ChestInventoryStackUiModel> { it.level }
-        .thenBy { it.creatureName.lowercase(Locale.ROOT) }
+        .thenBy { it.creatureName.lowercase(Locale.getDefault()) }
         .thenBy { it.stableStackKey }
-    val nameLevelTieBreakers = compareBy<ChestInventoryStackUiModel> { it.creatureName.lowercase(Locale.ROOT) }
+    val nameLevelTieBreakers = compareBy<ChestInventoryStackUiModel> { it.creatureName.lowercase(Locale.getDefault()) }
         .thenByDescending { it.level }
         .thenBy { it.stableStackKey }
 
