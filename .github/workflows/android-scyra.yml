@@ -1,0 +1,33 @@
+name: Android Scyra
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Verify localization parity
+        working-directory: .
+        run: python3 scripts/verify_localization_parity.py
+      - name: Compile Scyra
+        run: ./gradlew :app:compileScyraDebugKotlin
+      - name: Assemble Scyra
+        run: ./gradlew :app:assembleScyraDebug
+      - name: Test Scyra
+        run: ./gradlew :app:testScyraDebugUnitTest
+      - name: Lint Scyra
+        run: ./gradlew :app:lintScyraDebug

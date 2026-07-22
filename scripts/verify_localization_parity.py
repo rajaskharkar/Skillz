@@ -1,15 +1,42 @@
 #!/usr/bin/env python3
 """Verify resource parity for the user-facing resources introduced by PR #105."""
 from __future__ import annotations
-import re, sys
+import re, subprocess, sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1] / "android/app/src/main/res"
-KEYS = [k for k in (Path(__file__).with_name("pr105_localization_resources.txt")).read_text().splitlines() if k]
+EXPLICIT_KEYS = {k for k in (Path(__file__).with_name("pr105_localization_resources.txt")).read_text().splitlines() if k}
 LOCALES = {"es": "values-es", "hi": "values-hi", "mr": "values-mr"}
 PLACEHOLDER = re.compile(r"%(?:([1-9]\d*)\$)?(?:[-#+ 0,(<]*)?(?:\d+)?(?:\.\d+)?([a-zA-Z%])")
 VALID_QUANTITIES = {"zero", "one", "two", "few", "many", "other"}
+RESOURCE_NAME = re.compile(r'<(?:string|plurals|string-array|array)\s+[^>]*name="([^"]+)"')
+
+def changed_english_keys():
+    """Derive feature scope from the branch diff so inventory omissions cannot hide new resources."""
+    repo = ROOT.parents[4]
+    candidates = ["origin/main", "main", "111ea11"]
+    base = None
+    for candidate in candidates:
+        result = subprocess.run(
+            ["git", "merge-base", "HEAD", candidate], cwd=repo,
+            text=True, capture_output=True, check=False,
+        )
+        if result.returncode == 0:
+            base = result.stdout.strip()
+            break
+    if not base:
+        return set()
+    result = subprocess.run(
+        ["git", "diff", "--unified=0", base, "--", "android/app/src/main/res/values/strings.xml"],
+        cwd=repo, text=True, capture_output=True, check=True,
+    )
+    return {
+        match.group(1)
+        for line in result.stdout.splitlines()
+        if line.startswith("+") and not line.startswith("+++")
+        for match in [RESOURCE_NAME.search(line)] if match
+    }
 
 def parse(directory: str):
     path = ROOT / directory / "strings.xml"
@@ -29,13 +56,14 @@ def signature(node):
 def main():
     errors=[]
     base, dup = parse("values")
+    keys = sorted(EXPLICIT_KEYS | changed_english_keys())
     if dup: errors.append(f"values duplicate resources: {', '.join(dup)}")
-    for key in KEYS:
+    for key in keys:
         if key not in base: errors.append(f"inventory key absent from English: {key}")
     for code,directory in LOCALES.items():
         values, duplicates=parse(directory)
         if duplicates: errors.append(f"{directory} duplicate resources: {', '.join(duplicates)}")
-        for key in KEYS:
+        for key in keys:
             if key not in values:
                 errors.append(f"{directory} missing resource: {key}"); continue
             en, tr=base[key],values[key]
@@ -57,6 +85,6 @@ def main():
     if errors:
         print("Localization parity failed:")
         print("\n".join(f"- {e}" for e in errors)); return 1
-    print(f"Localization parity passed: {len(KEYS)} resources across English, Spanish, Hindi, and Marathi.")
+    print(f"Localization parity passed: {len(keys)} diff-derived and approved resources across English, Spanish, Hindi, and Marathi.")
     return 0
 if __name__ == "__main__": sys.exit(main())

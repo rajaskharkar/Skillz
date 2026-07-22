@@ -67,10 +67,16 @@ fun BadgesScreen(
     var query by rememberSaveable { mutableStateOf("") }
     val category = uiState.badgeCategory
     val sort = uiState.badgeSort
-    var details by remember { mutableStateOf<BadgeProgressModel?>(null) }
-    var collectionDetails by remember { mutableStateOf<CollectionProgress?>(null) }
-    fun openBadge(badge: BadgeProgressModel) { details = badge; onBadgeViewed(badge.badgeId) }
+    var detailsBadgeId by rememberSaveable { mutableStateOf<String?>(null) }
+    var collectionDetailsId by rememberSaveable { mutableStateOf<String?>(null) }
+    fun openBadge(badge: BadgeProgressModel) { detailsBadgeId = badge.badgeId; onBadgeViewed(badge.badgeId) }
     if (dashboard == null) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }; return }
+    val details = detailsBadgeId?.let { id -> dashboard.badges.firstOrNull { it.badgeId == id } }
+    val collectionDetails = collectionDetailsId?.let { id -> dashboard.collections.firstOrNull { it.collectionId == id } }
+    LaunchedEffect(detailsBadgeId, details) { if (detailsBadgeId != null && details == null) detailsBadgeId = null }
+    LaunchedEffect(collectionDetailsId, collectionDetails) {
+        if (collectionDetailsId != null && collectionDetails == null) collectionDetailsId = null
+    }
     val presentations = dashboard.badges.associate { it.badgeId to resolveBadgePresentation(it.badgeId) }
     val localizedCreatureNames = dashboard.badges.associate { badge ->
         val creature = BadgeDefinitionResolver.resolve(badge.badgeId).speciesId?.let(CreatureCatalog::get)
@@ -163,7 +169,7 @@ fun BadgesScreen(
                 }
                 items(trackedBadges, key = { "tracked:${it.badgeId}" }) { badge ->
                     ProgressBadgeRow(badge, { openBadge(badge) }, { onUntrack(badge.badgeId) },
-                        { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc, { openBadge(badge) }) { id -> collectionDetails = dashboard.collections.firstOrNull { it.collectionId == id } } })
+                        { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc, { openBadge(badge) }) { id -> collectionDetailsId = id } })
                 }
             }
             BadgesTab.BADGE_BOOK -> {
@@ -192,13 +198,13 @@ fun BadgesScreen(
                         }
                     }
                 }
-                items(visible, key = { "book:${it.badgeId}" }) { badge -> ProgressBadgeRow(badge, { openBadge(badge) }, { if (badge.tracked) onUntrack(badge.badgeId) else onTrack(badge.badgeId) }, { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc, { openBadge(badge) }) { id -> collectionDetails = dashboard.collections.firstOrNull { it.collectionId == id } } }) }
+                items(visible, key = { "book:${it.badgeId}" }) { badge -> ProgressBadgeRow(badge, { openBadge(badge) }, { if (badge.tracked) onUntrack(badge.badgeId) else onTrack(badge.badgeId) }, { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc, { openBadge(badge) }) { id -> collectionDetailsId = id } }) }
             }
             BadgesTab.WITHIN_REACH -> {
                 item("reach-title") { SectionTitle(stringResource(R.string.badges_within_reach_title), stringResource(R.string.badges_within_reach_body)) }
                 if (dashboard.recommendations.isEmpty()) item("no-reach") { EmptyCard(stringResource(R.string.badges_no_recommendations)) }
                 items(dashboard.recommendations.take(3), key = { "reach:${it.badgeId}" }) { badge ->
-                    ProgressBadgeRow(badge, { openBadge(badge) }, { onTrack(badge.badgeId) }, { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc, { openBadge(badge) }) { id -> collectionDetails = dashboard.collections.firstOrNull { it.collectionId == id } } })
+                    ProgressBadgeRow(badge, { openBadge(badge) }, { onTrack(badge.badgeId) }, { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc, { openBadge(badge) }) { id -> collectionDetailsId = id } })
                 }
             }
             BadgesTab.PROGRESS -> {
@@ -209,17 +215,20 @@ fun BadgesScreen(
                     item("progress-divider") { HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant) }
                 }
                 item("collections-title") { SectionTitle(stringResource(R.string.badges_collections_title), stringResource(R.string.badges_collections_body)) }
-                items(dashboard.collections, key = { it.collectionId }) { CollectionCard(it) { collectionDetails = it } }
+                items(dashboard.collections, key = { it.collectionId }) { CollectionCard(it) { collectionDetailsId = it.collectionId } }
             }
         }
     }
     }
     }
-    details?.let { badge -> BadgeDetailsSheet(badge, { details = null }, {
+    details?.let { badge -> BadgeDetailsSheet(badge, { detailsBadgeId = null }, {
         if (badge.pinnedOrder != null) onUnpin(badge.badgeId) else onPin(badge.badgeId, null)
     }, { if (badge.tracked) onUntrack(badge.badgeId) else onTrack(badge.badgeId) },
-        { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc, { details = null }) { id -> collectionDetails = dashboard.collections.firstOrNull { it.collectionId == id }; details = null } }) }
-    collectionDetails?.let { CollectionDetailsSheet(it, { collectionDetails = null }) { action ->
+        { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc, { detailsBadgeId = null }) { id ->
+            collectionDetailsId = id
+            detailsBadgeId = null
+        } }) }
+    collectionDetails?.let { CollectionDetailsSheet(it, { collectionDetailsId = null }) { action ->
         collectionSpeciesDestination(action)?.let(onNavigate)
     } }
     PinReplacementDialog(uiState, onPin, onDismissPinReplacement)

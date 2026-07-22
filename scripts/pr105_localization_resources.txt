@@ -222,6 +222,7 @@ shell_message_display_failed
 shell_message_drops_insufficient
 shell_message_encounter_failed
 shell_message_encountered
+shell_message_encounter_succeeded
 shell_message_focus_shaped
 shell_message_grew_blue
 shell_message_grew_chest

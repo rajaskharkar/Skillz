@@ -328,7 +328,6 @@ class ShellRepository @Inject constructor(
             true
         )
         discoveryDao.insert(entity)
-        incrementBadge("badge_discovery")
         entity
     }
 

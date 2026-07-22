@@ -2144,6 +2144,7 @@
     <string name="shell_message_released">The Blue में वापस छोड़ा गया। %1$d Pearls लौटे। आपका स्थायी रिकॉर्ड सुरक्षित है।</string>
     <string name="shell_message_release_failed">उन जीवों को छोड़ा नहीं जा सका।</string>
     <string name="shell_message_encountered">%1$s ने %2$s में प्रवेश किया।</string>
+    <string name="shell_message_encounter_succeeded">आपका Beyond the Blue सामना सफल रहा।</string>
     <string name="shell_message_encounter_failed">उस जीव से सामना नहीं हो सका।</string>
     <string name="shell_message_vessel_locked">इस पात्र को अनलॉक करने के लिए The Blue में आगे बढ़ें।</string>
     <string name="shell_message_drops_insufficient">अभी पर्याप्त Drops नहीं हैं।</string>

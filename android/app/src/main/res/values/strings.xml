@@ -2155,6 +2155,7 @@ You can turn Health back on later.</string>
     <string name="shell_message_released">Released back into The Blue. %1$d Pearls returned. Your lifetime record remains.</string>
     <string name="shell_message_release_failed">Could not release those creatures.</string>
     <string name="shell_message_encountered">%1$s entered %2$s.</string>
+    <string name="shell_message_encounter_succeeded">Your Beyond the Blue encounter succeeded.</string>
     <string name="shell_message_encounter_failed">Could not encounter that creature.</string>
     <string name="shell_message_vessel_locked">Progress farther in The Blue to unlock this vessel.</string>
     <string name="shell_message_drops_insufficient">Not enough Drops yet.</string>

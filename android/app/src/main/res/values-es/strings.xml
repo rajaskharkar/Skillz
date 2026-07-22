@@ -2147,6 +2147,7 @@ Puedes volver a activar Health más tarde.</string>
     <string name="shell_message_released">Liberada de nuevo en The Blue. Se devolvieron %1$d Pearls. Tu registro permanente se conserva.</string>
     <string name="shell_message_release_failed">No se pudieron liberar esas criaturas.</string>
     <string name="shell_message_encountered">%1$s entró en %2$s.</string>
+    <string name="shell_message_encounter_succeeded">Tu encuentro de Beyond the Blue se completó correctamente.</string>
     <string name="shell_message_encounter_failed">No se pudo encontrar esa criatura.</string>
     <string name="shell_message_vessel_locked">Avanza más en The Blue para desbloquear este recipiente.</string>
     <string name="shell_message_drops_insufficient">Aún no hay suficientes Drops.</string>

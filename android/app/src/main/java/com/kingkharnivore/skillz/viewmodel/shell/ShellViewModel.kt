@@ -345,12 +345,7 @@ class ShellViewModel @Inject constructor(
 
     fun encounterBeyondBlue(targetCreatureId: String, selectedInstanceIds: List<String>) = viewModelScope.launch {
         runCatching { repository.encounterBeyondBlue(targetCreatureId, selectedInstanceIds) }
-            .onSuccess { creature ->
-                val definition = CreatureCatalog.get(creature.findId)
-                val name = definition?.displayName ?: "A new creature"
-                val zone = definition?.zone?.displayName ?: "The Blue"
-                _events.emit(UiText.Resource(R.string.shell_message_encountered, listOf(name, zone)))
-            }
+            .onSuccess { _events.emit(UiText.Resource(R.string.shell_message_encounter_succeeded)) }
             .onFailure { _events.emit(UiText.Resource(R.string.shell_message_encounter_failed)) }
     }
 

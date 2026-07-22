@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -64,6 +65,7 @@ fun ScyraRoomTabRow(
                     modifier = tabModifier.clickable { onSelected(index) }.semantics {
                         contentDescription = tabAccessibilityLabel
                         role = Role.Tab
+                        this.selected = selected
                     }
                 ) {
                     Box(Modifier.padding(vertical = 10.dp, horizontal = 14.dp), contentAlignment = Alignment.Center) {
