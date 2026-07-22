@@ -71,7 +71,7 @@ import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.domain.achievement.Level99AchievementPreview
 import com.kingkharnivore.skillz.domain.achievement.BadgeDefinitionResolver
 import com.kingkharnivore.skillz.domain.achievement.BadgeRequirement
-import java.util.Locale
+import java.text.Collator
 import kotlin.math.roundToInt
 
 internal data class ChestInventoryStackUiModel(
@@ -275,10 +275,13 @@ internal fun sortChestInventoryStacks(
 ): List<ChestInventoryStackUiModel> = stacks.sortedWith(chestStackComparator(sortOption))
 
 private fun chestStackComparator(sortOption: ChestSortOption): Comparator<ChestInventoryStackUiModel> {
+    val localizedName = Comparator<ChestInventoryStackUiModel> { left, right ->
+        Collator.getInstance().compare(left.creatureName, right.creatureName)
+    }
     val levelNameTieBreakers = compareByDescending<ChestInventoryStackUiModel> { it.level }
-        .thenBy { it.creatureName.lowercase(Locale.getDefault()) }
+        .then(localizedName)
         .thenBy { it.stableStackKey }
-    val nameLevelTieBreakers = compareBy<ChestInventoryStackUiModel> { it.creatureName.lowercase(Locale.getDefault()) }
+    val nameLevelTieBreakers = localizedName
         .thenByDescending { it.level }
         .thenBy { it.stableStackKey }
 

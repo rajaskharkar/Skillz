@@ -16,14 +16,13 @@ data class AchievementAccessState(
 sealed interface BadgeActionDestination {
     data object Flow : BadgeActionDestination
     data object Arc : BadgeActionDestination
-    data class Chest(val speciesId: String?) : BadgeActionDestination
-    data class Blue(val collectionId: String?) : BadgeActionDestination
-    data class Stillwater(val collectionId: String?) : BadgeActionDestination
-    data object BlueCollection : BadgeActionDestination
-    data object StillwaterCollection : BadgeActionDestination
-    data object AllWatersCollection : BadgeActionDestination
     data object MovementInfo : BadgeActionDestination
-    data object BadgeDetails : BadgeActionDestination
+    data class BadgeDetails(val badgeId: String) : BadgeActionDestination
+    data class CollectionDetails(val collectionId: String) : BadgeActionDestination
+    data class ChestSpecies(val speciesId: String) : BadgeActionDestination
+    data class BlueRegion(val collectionId: String, val speciesId: String? = null) : BadgeActionDestination
+    data class StillwaterVessel(val collectionId: String, val speciesId: String? = null) : BadgeActionDestination
+    data class BeyondBlue(val collectionId: String, val speciesId: String) : BadgeActionDestination
 }
 
 data class BadgeProgressModel(
@@ -41,7 +40,7 @@ data class BadgeProgressModel(
     val tracked: Boolean = false,
     val collectionProgress: CollectionProgress? = null,
     val highestCreatureLevel: Int? = null,
-    val action: BadgeActionDestination = BadgeActionDestination.BadgeDetails,
+    val action: BadgeActionDestination = BadgeActionDestination.BadgeDetails(badgeId),
     val newlyEarned: Boolean = false,
     val recentlyUpdated: Boolean = false,
     val importance: Int = 0,
@@ -147,7 +146,8 @@ object BadgeDashboardCalculator {
                     else -> definition.speciesId?.let { masteryEvidence[it]?.effectiveLifetimeCount ?: 0 } ?: (stored?.count ?: 0)
                 }
             }
-            val computed = if (definition.badgeId == "mastery_circle" || definition.speciesId != null || definition.badgeId == "stillwater_mastery") verified
+            val boundedRosterBadge = definition.badgeId in setOf("mastery_variety", "variety_collector", "stillwater_variety")
+            val computed = if (boundedRosterBadge || definition.badgeId == "mastery_circle" || definition.speciesId != null || definition.badgeId == "stillwater_mastery") verified
                 else MasteryEvidenceCalculator.effectiveCount(verified, floors[definition.badgeId])
             val target = when (definition.requirement) {
                 BadgeRequirement.COLLECTOR -> collection?.totalParticipatingSpecies ?: 1
@@ -246,28 +246,33 @@ object BadgeDashboardCalculator {
         else -> BadgeUiCategory.SPECIAL
     }
     private fun action(def: AchievementBadgeDefinition): BadgeActionDestination = when {
-        def.speciesId != null -> BadgeActionDestination.Chest(def.speciesId)
-        def.collectionId == "collection_all_waters" -> BadgeActionDestination.AllWatersCollection
-        def.collectionId == "collection_the_blue" -> BadgeActionDestination.BlueCollection
-        def.collectionId == "collection_stillwater" -> BadgeActionDestination.StillwaterCollection
-        def.collectionId?.startsWith("stillwater_") == true || def.collectionId == "collection_stillwater" -> BadgeActionDestination.Stillwater(def.collectionId)
-        def.collectionId != null -> BadgeActionDestination.Blue(def.collectionId)
+        def.speciesId != null -> BadgeActionDestination.ChestSpecies(def.speciesId)
+        def.collectionId != null -> BadgeActionDestination.CollectionDetails(def.collectionId)
+        def.badgeId in setOf("across_the_depths", "keeper_of_the_blue") -> BadgeActionDestination.CollectionDetails("collection_the_blue")
+        def.badgeId == "one_from_every_water" -> BadgeActionDestination.CollectionDetails("collection_all_waters")
         def.family == BadgeFamily.FLOW || def.family == BadgeFamily.SOFT_FLOW || def.family == BadgeFamily.SURGE -> BadgeActionDestination.Flow
         def.family == BadgeFamily.ARC -> BadgeActionDestination.Arc
         def.family == BadgeFamily.MOVEMENT -> BadgeActionDestination.MovementInfo
-        else -> BadgeActionDestination.BadgeDetails
+        else -> BadgeActionDestination.BadgeDetails(def.badgeId)
     }
     private fun acquisitionAction(def: AchievementBadgeDefinition): BadgeActionDestination? = def.speciesId
         ?.let(CreatureCatalog::get)?.let { creature ->
-            if (creature.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER)
-                BadgeActionDestination.Stillwater(creature.primaryProgressCollectionId)
-            else BadgeActionDestination.Blue(creature.collectionId)
+            when (creature.sourceType) {
+                com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER ->
+                    BadgeActionDestination.StillwaterVessel(creature.primaryProgressCollectionId, creature.creatureId)
+                com.kingkharnivore.skillz.utils.shell.CreatureSourceType.BEYOND_BLUE ->
+                    BadgeActionDestination.BeyondBlue(creature.collectionId, creature.creatureId)
+                else -> BadgeActionDestination.BlueRegion(creature.collectionId, creature.creatureId)
+            }
         }
     private fun accessDisabledReason(action: BadgeActionDestination, access: AchievementAccessState): BadgeDisabledReason? = when (action) {
-        is BadgeActionDestination.Blue -> action.collectionId?.removePrefix("blue_")
+        is BadgeActionDestination.BlueRegion -> action.collectionId.removePrefix("blue_")
+            .let { id -> CreatureZone.entries.firstOrNull { it.name.lowercase() == id } }
+            ?.takeUnless { it in access.unlockedBlueZones }?.let { BadgeDisabledReason.REGION_LOCKED }
+        is BadgeActionDestination.BeyondBlue -> action.collectionId.removePrefix("blue_")
             ?.let { id -> CreatureZone.entries.firstOrNull { it.name.lowercase() == id } }
             ?.takeUnless { it in access.unlockedBlueZones }?.let { BadgeDisabledReason.REGION_LOCKED }
-        is BadgeActionDestination.Stillwater -> action.collectionId?.removePrefix("stillwater_")
+        is BadgeActionDestination.StillwaterVessel -> action.collectionId.removePrefix("stillwater_")
             ?.let { id -> StillwaterVessel.entries.firstOrNull { it.name.lowercase() == id } }
             ?.takeUnless { it in access.unlockedStillwaterVessels }?.let { BadgeDisabledReason.VESSEL_LOCKED }
         else -> null

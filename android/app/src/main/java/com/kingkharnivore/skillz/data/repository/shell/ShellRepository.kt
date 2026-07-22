@@ -699,7 +699,9 @@ class ShellRepository @Inject constructor(
             )
         )
         exactCounts.forEach { (id, verified) ->
-            val effective = if (id in setOf("mastery_circle", "stillwater_mastery")) verified else MasteryEvidenceCalculator.effectiveCount(verified, floors[id])
+            val currentRosterBounded = id in setOf("mastery_variety", "variety_collector", "stillwater_variety")
+            val effective = if (currentRosterBounded || id in setOf("mastery_circle", "stillwater_mastery")) verified
+                else MasteryEvidenceCalculator.effectiveCount(verified, floors[id])
             effective.takeIf { it > 0 }?.let { materializeBadge(id, it, now) }
         }
         val owned = findInstanceDao.getAll().filter { it.creatureStatus == CreatureStatus.ACTIVE }.groupBy({ it.findId }, { it.animalLevel })
@@ -801,7 +803,7 @@ class ShellRepository @Inject constructor(
                 instance.sourceType, instance.instanceId, now))
             if (instance.animalLevel >= CreatureEconomy.MAX_CREATURE_LEVEL) {
                 achievementDao.recordMastery(CreatureMasteryEventEntity("backfill_mastery_${instance.instanceId}",
-                    instance.instanceId, instance.findId, now, "backfill_${instance.instanceId}"))
+                    instance.instanceId, instance.findId, instance.acquiredAt, "backfill_${instance.instanceId}"))
             }
         }
         val completionCount = persistCurrentCollectionCompletions(now)

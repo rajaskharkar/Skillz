@@ -16,7 +16,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -25,7 +27,10 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.filter
 
 /** Shared room tab treatment used by Idea Grove and achievement surfaces. */
 @Composable
@@ -38,13 +43,22 @@ fun ScyraRoomTabRow(
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
+    val scrollState = rememberScrollState()
+    val density = LocalDensity.current
+    LaunchedEffect(selectedIndex, evenlyDistributed, tabs.size) {
+        if (!evenlyDistributed && tabs.isNotEmpty()) {
+            val target = with(density) { (selectedIndex.coerceIn(tabs.indices) * 118.dp).roundToPx() }
+            snapshotFlow { scrollState.maxValue }.filter { it > 0 || target == 0 }.first()
+            scrollState.animateScrollTo(target.coerceAtMost(scrollState.maxValue))
+        }
+    }
     Surface(
         shape = RoundedCornerShape(999.dp),
         color = scheme.primary.copy(alpha = 0.10f),
         border = BorderStroke(1.dp, scheme.primary.copy(alpha = 0.12f)),
         modifier = modifier.fillMaxWidth()
     ) {
-        val rowModifier = if (evenlyDistributed) Modifier.fillMaxWidth() else Modifier.horizontalScroll(rememberScrollState())
+        val rowModifier = if (evenlyDistributed) Modifier.fillMaxWidth() else Modifier.horizontalScroll(scrollState)
         Row(rowModifier.padding(5.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             tabs.forEachIndexed { index, title ->
                 val selected = selectedIndex == index

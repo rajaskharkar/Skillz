@@ -53,6 +53,7 @@ import com.kingkharnivore.skillz.data.repository.shell.SHELL_CHEST_ROUTE
 import com.kingkharnivore.skillz.data.repository.shell.ShellNotificationType
 import com.kingkharnivore.skillz.data.repository.shell.notificationId
 import com.kingkharnivore.skillz.domain.achievement.BadgeActionDestination
+import com.kingkharnivore.skillz.domain.achievement.BadgeDefinitionResolver
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import java.time.Instant
@@ -80,7 +81,7 @@ sealed interface ShellNotificationInlayItem {
         val count: Int,
         override val createdAt: Long,
         override val deepLinkRoute: String? = null,
-        val destination: BadgeActionDestination = BadgeActionDestination.BadgeDetails
+        val destination: BadgeActionDestination = BadgeActionDestination.BadgeDetails(badgeId)
     ) : ShellNotificationInlayItem
 }
 
@@ -99,7 +100,7 @@ fun unviewedShellNotifications(uiState: ShellUiState): List<ShellNotificationInl
         }
 
     uiState.badges
-        .filter { it.viewedAt == null }
+        .filter { it.viewedAt == null && BadgeDefinitionResolver.isUserVisible(it.badgeId) }
         .forEach { badge ->
             add(
                 ShellNotificationInlayItem.Badge(
@@ -108,7 +109,7 @@ fun unviewedShellNotifications(uiState: ShellUiState): List<ShellNotificationInl
                     count = badge.count,
                     createdAt = badge.lastEarnedAt,
                     destination = uiState.badgeDashboard?.badges?.firstOrNull { it.badgeId == badge.badgeId }?.action
-                        ?: BadgeActionDestination.BadgeDetails
+                        ?: BadgeActionDestination.BadgeDetails(badge.badgeId)
                 )
             )
         }
@@ -120,8 +121,8 @@ fun NotificationInlayOverlay(
     onDismiss: () -> Unit,
     onMarkNotificationViewed: (String) -> Unit,
     onMarkAllViewed: () -> Unit,
-    onDeepLinkRoute: (String) -> Unit,
-    onBadgeDestination: (BadgeActionDestination) -> Unit,
+    onDeepLinkRoute: (String) -> Boolean,
+    onBadgeDestination: (BadgeActionDestination) -> Boolean,
     modifier: Modifier = Modifier
 ) {
     val notifications = unviewedShellNotifications(uiState)
@@ -192,14 +193,16 @@ fun NotificationInlayOverlay(
                                 onClick = {
                                     when (notification) {
                                         is ShellNotificationInlayItem.Badge -> {
-                                            onBadgeDestination(notification.destination)
-                                            onMarkNotificationViewed(notification.id)
-                                            onDismiss()
+                                            if (onBadgeDestination(notification.destination)) {
+                                                onMarkNotificationViewed(notification.id)
+                                                onDismiss()
+                                            }
                                         }
                                         is ShellNotificationInlayItem.Find -> notification.deepLinkRoute?.let { route ->
-                                            onDeepLinkRoute(route)
-                                            onMarkNotificationViewed(notification.id)
-                                            onDismiss()
+                                            if (onDeepLinkRoute(route)) {
+                                                onMarkNotificationViewed(notification.id)
+                                                onDismiss()
+                                            }
                                         }
                                     }
                                 }

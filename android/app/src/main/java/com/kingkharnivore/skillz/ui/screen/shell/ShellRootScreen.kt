@@ -228,9 +228,10 @@ fun ShellRootScreen(
                     onDismissStillwaterDrawConfirmation = viewModel::onDismissStillwaterDrawConfirmation,
                     onNavigate = { request ->
                         when (request) {
-                            is BadgeActionDestination.Chest -> { chestFocusSpecies = request.speciesId; destination = ShellDestination.ShellChest }
-                            is BadgeActionDestination.Blue -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
-                            is BadgeActionDestination.Stillwater -> stillwaterFocusCollection = request.collectionId
+                            is BadgeActionDestination.ChestSpecies -> { chestFocusSpecies = request.speciesId; destination = ShellDestination.ShellChest }
+                            is BadgeActionDestination.BlueRegion -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
+                            is BadgeActionDestination.BeyondBlue -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
+                            is BadgeActionDestination.StillwaterVessel -> stillwaterFocusCollection = request.collectionId
                             else -> Unit
                         }
                     },
@@ -262,13 +263,13 @@ fun ShellRootScreen(
                     onAcknowledgeBackfill = viewModel::acknowledgeBackfill,
                     onNavigate = { request ->
                         when (request) {
-                            is BadgeActionDestination.Chest -> { chestFocusSpecies = request.speciesId; destination = ShellDestination.ShellChest }
-                            is BadgeActionDestination.Blue -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
-                            is BadgeActionDestination.Stillwater -> { stillwaterFocusCollection = request.collectionId; destination = ShellDestination.Stillwater }
-                            BadgeActionDestination.BlueCollection, BadgeActionDestination.StillwaterCollection,
-                            BadgeActionDestination.AllWatersCollection -> destination = ShellDestination.Badges
+                            is BadgeActionDestination.ChestSpecies -> { chestFocusSpecies = request.speciesId; destination = ShellDestination.ShellChest }
+                            is BadgeActionDestination.BlueRegion -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
+                            is BadgeActionDestination.BeyondBlue -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
+                            is BadgeActionDestination.StillwaterVessel -> { stillwaterFocusCollection = request.collectionId; destination = ShellDestination.Stillwater }
+                            is BadgeActionDestination.CollectionDetails -> destination = ShellDestination.Badges
                             BadgeActionDestination.MovementInfo -> onMovementInfo()
-                            BadgeActionDestination.BadgeDetails, BadgeActionDestination.Flow, BadgeActionDestination.Arc -> Unit
+                            is BadgeActionDestination.BadgeDetails, BadgeActionDestination.Flow, BadgeActionDestination.Arc -> Unit
                         }
                     },
                     onOpenFlow = { if (isFlowActive) onOpenActiveFlow() else onLaunchFlowForJourney("") },
@@ -320,22 +321,24 @@ fun ShellRootScreen(
                 onMarkNotificationViewed = viewModel::markNotificationViewed,
                 onMarkAllViewed = viewModel::markAllNotificationsViewed,
                 onDeepLinkRoute = { route ->
-                    destination = when (route) {
-                        SHELL_CHEST_ROUTE -> ShellDestination.ShellChest
-                        SHELL_BADGES_ROUTE -> ShellDestination.Badges
-                        else -> destination
+                    when (route) {
+                        SHELL_CHEST_ROUTE -> { destination = ShellDestination.ShellChest; true }
+                        SHELL_BADGES_ROUTE -> { destination = ShellDestination.Badges; true }
+                        else -> false
                     }
                 },
                 onBadgeDestination = { request ->
                     when (request) {
-                        is BadgeActionDestination.Chest -> { chestFocusSpecies = request.speciesId; destination = ShellDestination.ShellChest }
-                        is BadgeActionDestination.Blue -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
-                        is BadgeActionDestination.Stillwater -> { stillwaterFocusCollection = request.collectionId; destination = ShellDestination.Stillwater }
+                        is BadgeActionDestination.ChestSpecies -> { chestFocusSpecies = request.speciesId; destination = ShellDestination.ShellChest }
+                        is BadgeActionDestination.BlueRegion -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
+                        is BadgeActionDestination.BeyondBlue -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
+                        is BadgeActionDestination.StillwaterVessel -> { stillwaterFocusCollection = request.collectionId; destination = ShellDestination.Stillwater }
                         BadgeActionDestination.Flow -> if (isFlowActive) onOpenActiveFlow() else onLaunchFlowForJourney("")
                         BadgeActionDestination.Arc -> onPlanArc()
                         BadgeActionDestination.MovementInfo -> onMovementInfo()
                         else -> destination = ShellDestination.Badges
                     }
+                    true
                 }
             )
         }
@@ -363,15 +366,15 @@ fun ShellRootScreen(
                 onUntrack = viewModel::untrackBadge,
                 onNavigate = { request ->
                     when (request) {
-                        is BadgeActionDestination.Chest -> { chestFocusSpecies = request.speciesId; destination = ShellDestination.ShellChest }
-                        is BadgeActionDestination.Blue -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
-                        is BadgeActionDestination.Stillwater -> { stillwaterFocusCollection = request.collectionId; destination = ShellDestination.Stillwater }
-                        BadgeActionDestination.BlueCollection, BadgeActionDestination.StillwaterCollection,
-                        BadgeActionDestination.AllWatersCollection -> destination = ShellDestination.Badges
+                        is BadgeActionDestination.ChestSpecies -> { chestFocusSpecies = request.speciesId; destination = ShellDestination.ShellChest }
+                        is BadgeActionDestination.BlueRegion -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
+                        is BadgeActionDestination.BeyondBlue -> { blueFocusCollection = request.collectionId; destination = ShellDestination.TheBluePreview }
+                        is BadgeActionDestination.StillwaterVessel -> { stillwaterFocusCollection = request.collectionId; destination = ShellDestination.Stillwater }
+                        is BadgeActionDestination.CollectionDetails -> destination = ShellDestination.Badges
                         BadgeActionDestination.Flow -> if (isFlowActive) onOpenActiveFlow() else onLaunchFlowForJourney("")
                         BadgeActionDestination.Arc -> onPlanArc()
                         BadgeActionDestination.MovementInfo -> onMovementInfo()
-                        BadgeActionDestination.BadgeDetails -> Unit
+                        is BadgeActionDestination.BadgeDetails -> Unit
                     }
                 }
             )

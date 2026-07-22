@@ -11,20 +11,22 @@ LOCALES = {"es": "values-es", "hi": "values-hi", "mr": "values-mr"}
 PLACEHOLDER = re.compile(r"%(?:([1-9]\d*)\$)?(?:[-#+ 0,(<]*)?(?:\d+)?(?:\.\d+)?([a-zA-Z%])")
 VALID_QUANTITIES = {"zero", "one", "two", "few", "many", "other"}
 RESOURCE_NAME = re.compile(r'<(?:string|plurals|string-array|array)\s+[^>]*name="([^"]+)"')
+RESOURCE_REFERENCE = re.compile(r'(?<![\w.])R\.(?:string|plurals|array)\.([A-Za-z0-9_]+)')
 
-def changed_english_keys():
-    """Derive feature scope from the branch diff so inventory omissions cannot hide new resources."""
-    repo = ROOT.parents[4]
-    candidates = ["origin/main", "main", "111ea11"]
-    base = None
-    for candidate in candidates:
+def merge_base(repo: Path):
+    for candidate in ("origin/main", "main", "111ea11"):
         result = subprocess.run(
             ["git", "merge-base", "HEAD", candidate], cwd=repo,
             text=True, capture_output=True, check=False,
         )
         if result.returncode == 0:
-            base = result.stdout.strip()
-            break
+            return result.stdout.strip()
+    return None
+
+def changed_english_keys():
+    """Derive feature scope from the branch diff so inventory omissions cannot hide new resources."""
+    repo = ROOT.parents[4]
+    base = merge_base(repo)
     if not base:
         return set()
     result = subprocess.run(
@@ -37,6 +39,23 @@ def changed_english_keys():
         if line.startswith("+") and not line.startswith("+++")
         for match in [RESOURCE_NAME.search(line)] if match
     }
+
+def referenced_feature_keys():
+    """Include resources referenced by Kotlin/XML files changed on this branch."""
+    repo = ROOT.parents[4]
+    base = merge_base(repo)
+    if not base:
+        return set()
+    result = subprocess.run(
+        ["git", "diff", "--name-only", base, "--", "android/app/src/main/**/*.kt", "android/app/src/main/**/*.xml"],
+        cwd=repo, text=True, capture_output=True, check=True,
+    )
+    keys = set()
+    for relative in result.stdout.splitlines():
+        path = repo / relative
+        if path.is_file():
+            keys.update(RESOURCE_REFERENCE.findall(path.read_text(encoding="utf-8")))
+    return keys
 
 def parse(directory: str):
     path = ROOT / directory / "strings.xml"
@@ -56,7 +75,7 @@ def signature(node):
 def main():
     errors=[]
     base, dup = parse("values")
-    keys = sorted(EXPLICIT_KEYS | changed_english_keys())
+    keys = sorted(EXPLICIT_KEYS | changed_english_keys() | referenced_feature_keys())
     if dup: errors.append(f"values duplicate resources: {', '.join(dup)}")
     for key in keys:
         if key not in base: errors.append(f"inventory key absent from English: {key}")

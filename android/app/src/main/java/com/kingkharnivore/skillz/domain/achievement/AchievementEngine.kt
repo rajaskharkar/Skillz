@@ -130,7 +130,7 @@ object AchievementBadgeCatalog {
             }
         }
         listOf("across_the_depths", "one_from_every_water", "keeper_of_the_blue").forEach {
-            add(AchievementBadgeDefinition(it, BadgeFamily.COLLECTION, BadgeCountType.ONE_TIME, BadgeRequirement.EXACT_COUNT, trackable = false))
+            add(AchievementBadgeDefinition(it, BadgeFamily.COLLECTION, BadgeCountType.ONE_TIME, BadgeRequirement.EXACT_COUNT))
         }
         // Existing IDs remain canonical and are evaluated from their existing reliable ledgers.
         listOf("badge_flow_10_min", "badge_flow_30_min", "badge_flow_60_min", "badge_flow_120_min").forEach {

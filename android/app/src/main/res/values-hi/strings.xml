@@ -2158,4 +2158,12 @@
     <string name="badges_book_empty">अभी कोई बैज उपलब्ध नहीं है।</string>
     <string name="badges_category_empty">इस श्रेणी में कोई बैज उपलब्ध नहीं है।</string>
     <string name="badges_reset_filters">फ़िल्टर रीसेट करें</string>
+    <string name="shell_chest_sort_selected">क्रम: %1$s</string>
+    <string name="shell_chest_sort_level">लेवल</string>
+    <string name="shell_chest_sort_recent">हाल का</string>
+    <string name="shell_chest_sort_newest_arrival">सबसे नया आगमन</string>
+    <string name="shell_chest_sort_oldest_arrival">सबसे पुराना आगमन</string>
+    <string name="shell_chest_sort_alphabetical">अ-ह</string>
+    <string name="shell_chest_sort_value">मूल्य</string>
+    <string name="shell_chest_sort_count">संख्या</string>
 </resources>

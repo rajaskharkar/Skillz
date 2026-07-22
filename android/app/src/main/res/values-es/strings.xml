@@ -2161,4 +2161,12 @@ Puedes volver a activar Health más tarde.</string>
     <string name="badges_book_empty">Todavía no hay insignias disponibles.</string>
     <string name="badges_category_empty">No hay insignias disponibles en esta categoría.</string>
     <string name="badges_reset_filters">Restablecer filtros</string>
+    <string name="shell_chest_sort_selected">Ordenar: %1$s</string>
+    <string name="shell_chest_sort_level">Nivel</string>
+    <string name="shell_chest_sort_recent">Reciente</string>
+    <string name="shell_chest_sort_newest_arrival">Llegada más reciente</string>
+    <string name="shell_chest_sort_oldest_arrival">Llegada más antigua</string>
+    <string name="shell_chest_sort_alphabetical">A-Z</string>
+    <string name="shell_chest_sort_value">Valor</string>
+    <string name="shell_chest_sort_count">Cantidad</string>
 </resources>

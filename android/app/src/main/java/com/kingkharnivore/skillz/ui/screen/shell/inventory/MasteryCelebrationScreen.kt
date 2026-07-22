@@ -122,8 +122,7 @@ fun MasteryCelebrationScreen(
             if (badge.pinnedOrder != null) onUnpin(id) else onPin(id, null)
         }, { if (badge.tracked) onUntrack(id) else onTrack(id) }, {
             when (badge.action) {
-                BadgeActionDestination.BlueCollection, BadgeActionDestination.StillwaterCollection,
-                BadgeActionDestination.AllWatersCollection -> { viewingBadgeId = null; viewingCollection = true }
+                is BadgeActionDestination.CollectionDetails -> { viewingBadgeId = null; viewingCollection = true }
                 else -> onNavigate(badge.action)
             }
         })
