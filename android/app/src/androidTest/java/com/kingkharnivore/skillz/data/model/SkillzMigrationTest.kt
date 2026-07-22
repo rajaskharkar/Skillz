@@ -19,6 +19,11 @@ class SkillzMigrationTest {
         SkillzDatabase::class.java
     )
 
+    @Test fun migration31To35CompletesWithoutDestructiveFallback() = assertAchievementMigrationChain(31)
+    @Test fun migration32To35CompletesWithoutDestructiveFallback() = assertAchievementMigrationChain(32)
+    @Test fun migration33To35CompletesWithoutDestructiveFallback() = assertAchievementMigrationChain(33)
+    @Test fun migration34To35CompletesWithoutDestructiveFallback() = assertAchievementMigrationChain(34)
+
     @Test fun migration34To35RepairsDiscoveryAndPreservesLegacyBadgeFloor() {
         helper.createDatabase(TEST_DB, 34).apply {
             execSQL("INSERT INTO user_shell_find_instance (instanceId,findId,acquiredAt,sourceType,sourceId,currentUpgradeStageId,customName,isNew,isArchivedInChest,viewedAt,animalLevel,creatureStatus,creatureSource,flowTimeValueMinutes) VALUES ('later','focus_minnow',20,'flow_later',NULL,NULL,NULL,0,1,NULL,1,'ACTIVE',NULL,10),('earlier','focus_minnow',10,'flow_earlier',NULL,NULL,NULL,0,1,NULL,1,'RELEASED',NULL,10)")
@@ -233,6 +238,27 @@ class SkillzMigrationTest {
             "Expected direct legacy migrations plus current step migrations",
             SkillzDatabaseMigrations.ALL_MIGRATIONS.isNotEmpty()
         )
+    }
+
+    private fun assertAchievementMigrationChain(startVersion: Int) {
+        helper.createDatabase("$TEST_DB-$startVersion", startVersion).close()
+        val db = helper.runMigrationsAndValidate(
+            "$TEST_DB-$startVersion",
+            35,
+            true,
+            *SkillzDatabaseMigrations.ALL_MIGRATIONS
+        )
+        listOf(
+            "creature_discovery",
+            "creature_mastery_event",
+            "collection_completion",
+            "achievement_backfill",
+            "badge_pin",
+            "badge_tracking",
+            "mastery_celebration_event",
+            "badge_count_floor"
+        ).forEach { assertTrue("Expected $it after $startVersion→35", db.tableExists(it)) }
+        db.close()
     }
 
     private fun SupportSQLiteDatabase.createVersion13CoreTables() {

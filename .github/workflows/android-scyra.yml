@@ -31,12 +31,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17', cache: gradle }
-      - run: ./gradlew :app:testScyraDebugUnitTest --stacktrace
-      - uses: actions/upload-artifact@v4
+      - name: Run Scyra unit tests
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew :app:testScyraDebugUnitTest --stacktrace --info 2>&1 | tee unit-tests.log
+      - name: Upload unit-test results
+        uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: scyra-unit-test-reports
-          path: android/app/build/reports/tests/testScyraDebugUnitTest
+          name: scyra-unit-test-results
+          if-no-files-found: warn
+          path: |
+            android/unit-tests.log
+            android/app/build/test-results/testScyraDebugUnitTest/**
+            android/app/build/reports/tests/testScyraDebugUnitTest/**
 
   lint:
     runs-on: ubuntu-latest
@@ -45,4 +54,34 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17', cache: gradle }
-      - run: ./gradlew :app:lintScyraDebug
+      - name: Run Scyra lint
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew :app:lintScyraDebug --stacktrace 2>&1 | tee lint.log
+      - name: Upload lint results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scyra-lint-results
+          if-no-files-found: warn
+          path: |
+            android/lint.log
+            android/app/build/reports/lint-results-scyraDebug.html
+            android/app/build/reports/lint-results-scyraDebug.xml
+            android/app/build/reports/lint-results-scyraDebug.sarif
+
+  migration-tests:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17', cache: gradle }
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          working-directory: android
+          script: ./gradlew :app:connectedScyraDebugAndroidTest

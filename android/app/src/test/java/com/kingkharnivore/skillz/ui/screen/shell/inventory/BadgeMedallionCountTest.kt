@@ -8,17 +8,18 @@ import com.kingkharnivore.skillz.domain.achievement.CollectionSpeciesAction
 import com.kingkharnivore.skillz.domain.achievement.MilestoneEngine
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.util.Locale
 
 class BadgeMedallionCountTest {
     @Test fun exactCountsRemainExactThrough999() {
-        assertEquals("1", compactCount(1))
-        assertEquals("2", compactCount(2))
-        assertEquals("91", compactCount(91))
-        assertEquals("999", compactCount(999))
+        assertEquals("1", compactCount(1, Locale.US))
+        assertEquals("2", compactCount(2, Locale.US))
+        assertEquals("91", compactCount(91, Locale.US))
+        assertEquals("999", compactCount(999, Locale.US))
     }
 
     @Test fun largeCountsUseCompactPresentation() {
-        val result = compactCount(1_200)
+        val result = compactCount(1_200, Locale.US)
         assert(result.isNotBlank())
         assert(result != "1200")
     }

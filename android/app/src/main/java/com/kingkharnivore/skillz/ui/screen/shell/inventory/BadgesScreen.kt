@@ -346,14 +346,14 @@ internal fun badgeMedallionState(badge: BadgeProgressModel): BadgeMedallionState
         }
     }
 }
-internal fun compactCount(count: Int): String {
-    if (count <= 999) return count.toString()
+internal fun compactCount(count: Int, locale: java.util.Locale = java.util.Locale.getDefault()): String {
+    if (count <= 999) return NumberFormat.getIntegerInstance(locale).format(count)
     val (divisor, suffix) = when {
         count >= 1_000_000_000 -> 1_000_000_000.0 to "B"
         count >= 1_000_000 -> 1_000_000.0 to "M"
         else -> 1_000.0 to "K"
     }
-    return NumberFormat.getNumberInstance().apply { maximumFractionDigits = 1 }
+    return NumberFormat.getNumberInstance(locale).apply { maximumFractionDigits = 1 }
         .format(count / divisor) + suffix
 }
 
