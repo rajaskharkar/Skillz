@@ -47,7 +47,8 @@ fun ScyraRoomTabRow(
     val density = LocalDensity.current
     LaunchedEffect(selectedIndex, evenlyDistributed, tabs.size) {
         if (!evenlyDistributed && tabs.isNotEmpty()) {
-            val target = with(density) { (selectedIndex.coerceIn(tabs.indices) * 118.dp).roundToPx() }
+            val selectedOffset = selectedIndex.coerceIn(tabs.indices) * 118
+            val target = with(density) { selectedOffset.dp.roundToPx() }
             snapshotFlow { scrollState.maxValue }.filter { it > 0 || target == 0 }.first()
             scrollState.animateScrollTo(target.coerceAtMost(scrollState.maxValue))
         }
