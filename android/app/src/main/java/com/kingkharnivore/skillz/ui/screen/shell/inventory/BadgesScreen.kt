@@ -176,6 +176,18 @@ private fun badgeComparator(sort: BadgeSort, presentations: Map<String, BadgePre
 }
 
 enum class BadgeMedallionSize { Small, Medium, Large }
+sealed interface BadgeMedallionState {
+    data object Earned : BadgeMedallionState
+    data class LockedWithProgress(val progress: Int, val target: Int) : BadgeMedallionState
+    data object Locked : BadgeMedallionState
+}
+
+internal fun badgeMedallionState(badge: BadgeProgressModel): BadgeMedallionState = when {
+    badge.earned -> BadgeMedallionState.Earned
+    badge.target > 0 && badge.progress > 0 -> BadgeMedallionState.LockedWithProgress(badge.progress, badge.target)
+    else -> BadgeMedallionState.Locked
+}
+
 @Composable fun BadgeMedallion(badge: BadgeProgressModel, size: BadgeMedallionSize = BadgeMedallionSize.Medium, onClick: (() -> Unit)? = null) {
     val diameter = when(size) { BadgeMedallionSize.Small -> 56.dp; BadgeMedallionSize.Medium -> 72.dp; BadgeMedallionSize.Large -> 88.dp }
     val presentation = resolveBadgePresentation(badge.badgeId)
@@ -185,9 +197,18 @@ enum class BadgeMedallionSize { Small, Medium, Large }
         badge.remaining, if (badge.pinnedOrder != null) stringResource(R.string.badge_pinned_a11y) else "",
         if (badge.tracked) stringResource(R.string.badge_tracked_a11y) else "")
     val interactionModifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+    val medallionState = badgeMedallionState(badge)
+    val ringProgress = when (medallionState) {
+        BadgeMedallionState.Earned -> 1f
+        is BadgeMedallionState.LockedWithProgress -> (medallionState.progress.toFloat() / medallionState.target).coerceIn(0f, 1f)
+        BadgeMedallionState.Locked -> 0f
+    }
     Box(Modifier.size(diameter + 18.dp).semantics(mergeDescendants = true) { contentDescription = semantics }.then(interactionModifier), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(progress = { if (badge.target == 0) 0f else badge.progress.toFloat()/badge.target }, Modifier.size(diameter + 8.dp), strokeWidth = 4.dp, strokeCap = StrokeCap.Round)
-        Surface(Modifier.size(diameter).clip(CircleShape), shape = CircleShape, color = if (badge.earned) when (presentation.artworkKind) { BadgeArtworkKind.COMPLETIONIST -> MaterialTheme.colorScheme.tertiaryContainer; BadgeArtworkKind.CURATOR -> MaterialTheme.colorScheme.primaryContainer; else -> MaterialTheme.colorScheme.secondaryContainer } else MaterialTheme.colorScheme.surfaceVariant) {
+        CircularProgressIndicator(progress = { ringProgress }, Modifier.size(diameter + 8.dp), strokeWidth = 4.dp, strokeCap = StrokeCap.Round)
+        Surface(Modifier.size(diameter).clip(CircleShape), shape = CircleShape,
+            color = if (badge.earned) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant,
+            border = if (badge.earned) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+            shadowElevation = if (badge.earned) 2.dp else 0.dp) {
             Box(contentAlignment = Alignment.Center) {
                 if (!badge.earned) Icon(Icons.Outlined.Lock, null, Modifier.size(diameter/2)) else when (presentation.artworkKind) {
                     BadgeArtworkKind.FLOW_DURATION -> Text(presentation.centerLabel.orEmpty(), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
@@ -199,7 +220,9 @@ enum class BadgeMedallionSize { Small, Medium, Large }
                     BadgeArtworkKind.ACTIVITY -> Icon(Icons.Outlined.Bolt, null, Modifier.size(diameter/2))
                     BadgeArtworkKind.SPECIAL -> Icon(Icons.Outlined.Stars, null, Modifier.size(diameter/2))
                 }
-                Surface(Modifier.align(Alignment.BottomCenter), shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.inverseSurface) { Text(stringResource(R.string.badge_count_plate, compactCount(badge.count)), Modifier.padding(horizontal = 7.dp, vertical = 2.dp), color = MaterialTheme.colorScheme.inverseOnSurface, style = MaterialTheme.typography.labelMedium, maxLines = 1) }
+                if (badge.count > 0 && !(badge.goalType == com.kingkharnivore.skillz.domain.achievement.BadgeGoalType.ONE_TIME && badge.count == 1)) {
+                    Surface(Modifier.align(Alignment.BottomCenter), shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.inverseSurface) { Text(stringResource(R.string.badge_count_plate, compactCount(badge.count)), Modifier.padding(horizontal = 7.dp, vertical = 2.dp), color = MaterialTheme.colorScheme.inverseOnSurface, style = MaterialTheme.typography.labelMedium, maxLines = 1) }
+                }
             }
         }
         if (badge.pinnedOrder != null) Icon(Icons.Outlined.PushPin, null, Modifier.align(Alignment.TopEnd).size(18.dp))

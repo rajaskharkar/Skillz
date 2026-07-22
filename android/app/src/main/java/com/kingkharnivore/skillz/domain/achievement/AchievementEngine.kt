@@ -15,6 +15,7 @@ import java.security.MessageDigest
 
 enum class BadgeFamily { SPECIES_MASTERY, MASTERY, COLLECTION, FLOW, SOFT_FLOW, ARC, MOVEMENT, SURGE }
 enum class BadgeCountType { ONE_TIME, REPEATABLE }
+enum class BadgeGoalType { ONE_TIME, REPEATABLE_MILESTONE, COLLECTION, SPECIES_MASTERY, HISTORICAL_COUNT_ONLY }
 enum class BadgeRequirement { EXACT_COUNT, COLLECTOR, CURATOR, COMPLETIONIST }
 enum class MasteryTimestampConfidence { EXACT, ESTIMATED_FROM_ACQUISITION, UNKNOWN }
 
@@ -90,7 +91,13 @@ data class AchievementBadgeDefinition(
     val pinnable: Boolean = true,
     val trackable: Boolean = true,
     val importance: Int = 0,
-    val navigationDestination: String? = null
+    val navigationDestination: String? = null,
+    val goalType: BadgeGoalType = when {
+        speciesId != null -> BadgeGoalType.SPECIES_MASTERY
+        requirement in setOf(BadgeRequirement.COLLECTOR, BadgeRequirement.CURATOR, BadgeRequirement.COMPLETIONIST) -> BadgeGoalType.COLLECTION
+        countType == BadgeCountType.ONE_TIME -> BadgeGoalType.ONE_TIME
+        else -> BadgeGoalType.REPEATABLE_MILESTONE
+    }
 ) {
     companion object { val DEFAULT_MILESTONES = listOf(1, 5, 10, 25, 50, 100, 250, 500, 1_000) }
 }
@@ -151,8 +158,10 @@ object BadgeDefinitionResolver {
             family = family,
             countType = BadgeCountType.REPEATABLE,
             requirement = BadgeRequirement.EXACT_COUNT,
+            milestones = emptyList(),
             trackable = false,
-            navigationDestination = "badge_details"
+            navigationDestination = "badge_details",
+            goalType = BadgeGoalType.HISTORICAL_COUNT_ONLY
         )
     }
 

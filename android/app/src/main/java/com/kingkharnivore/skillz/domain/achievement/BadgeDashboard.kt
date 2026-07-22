@@ -50,7 +50,8 @@ data class BadgeProgressModel(
     val canProgressNow: Boolean = false,
     val disabledReason: BadgeDisabledReason? = null,
     val acquisitionAction: BadgeActionDestination? = null,
-    val pinnable: Boolean = true
+    val pinnable: Boolean = true,
+    val goalType: BadgeGoalType = BadgeGoalType.REPEATABLE_MILESTONE
 )
 
 data class BadgeDashboard(
@@ -151,7 +152,8 @@ object BadgeDashboardCalculator {
                 BadgeRequirement.COLLECTOR -> collection?.totalParticipatingSpecies ?: 1
                 BadgeRequirement.CURATOR -> collection?.totalParticipatingSpecies ?: 1
                 BadgeRequirement.COMPLETIONIST -> collection?.totalCompletionistSpecies ?: 1
-                BadgeRequirement.EXACT_COUNT -> MilestoneEngine.evaluate(computed, thresholds = definition.milestones).nextThreshold ?: computed.coerceAtLeast(1)
+                BadgeRequirement.EXACT_COUNT -> if (definition.goalType == BadgeGoalType.HISTORICAL_COUNT_ONLY) 0
+                    else MilestoneEngine.evaluate(computed, thresholds = definition.milestones).nextThreshold ?: computed.coerceAtLeast(1)
             }
             val progress = when (definition.requirement) {
                 BadgeRequirement.COLLECTOR -> collection?.discoveredSpeciesCount ?: 0
@@ -200,7 +202,7 @@ object BadgeDashboardCalculator {
                 stored?.viewedAt == null && stored != null && stored.firstEarnedAt == stored.lastEarnedAt,
                 stored?.viewedAt == null && stored != null && stored.lastEarnedAt > stored.firstEarnedAt,
                 definition.importance, canTrack, canNavigate, canProgressNow, disabledReason,
-                acquisition, definition.pinnable)
+                acquisition, definition.pinnable, definition.goalType)
         }
         val previewBySpecies = CreatureCatalog.all.associate { creature ->
             val region = collectionById.getValue(creature.primaryProgressCollectionId)

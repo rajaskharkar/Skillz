@@ -6,6 +6,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AchievementEngineTest {
+    @Test fun unknownBadgesAreHistoricalAndHaveNoFabricatedMilestones() {
+        val definition = BadgeDefinitionResolver.resolve("legacy_unknown_badge")
+
+        assertEquals(BadgeGoalType.HISTORICAL_COUNT_ONLY, definition.goalType)
+        assertTrue(definition.milestones.isEmpty())
+        assertFalse(definition.trackable)
+    }
     @Test fun persistedBadgeDefinitionsUseTheSharedSafeResolver() {
         assertEquals(BadgeFamily.COLLECTION, BadgeDefinitionResolver.resolve("badge_discovery").family)
         assertFalse(BadgeDefinitionResolver.resolve("unknown_persisted_badge").trackable)
