@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.ui.screen.shell.inventory
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -9,6 +10,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,16 +35,18 @@ import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.domain.achievement.*
 import com.kingkharnivore.skillz.ui.screen.shell.ux.RoomHeader
 import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraParchmentSheet
+import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraRoomTabRow
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import java.text.NumberFormat
+import kotlinx.coroutines.launch
 
 enum class BadgesTab { SHOWCASE, BADGE_BOOK, WITHIN_REACH, PROGRESS;
     val showsBadgeBookControls: Boolean get() = this == BADGE_BOOK
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun BadgesScreen(
     uiState: ShellUiState,
@@ -93,31 +99,40 @@ fun BadgesScreen(
     }
     var selectedTab by rememberSaveable { mutableStateOf(BadgesTab.SHOWCASE) }
     val tabs = BadgesTab.entries
+    val pagerState = rememberPagerState(initialPage = selectedTab.ordinal, pageCount = { tabs.size })
+    val tabScope = rememberCoroutineScope()
+    LaunchedEffect(pagerState.currentPage) { selectedTab = tabs[pagerState.currentPage] }
     val tabLabels = mapOf(
         BadgesTab.SHOWCASE to stringResource(R.string.badges_tab_showcase),
         BadgesTab.BADGE_BOOK to stringResource(R.string.badges_tab_book),
         BadgesTab.WITHIN_REACH to stringResource(R.string.badges_tab_reach),
         BadgesTab.PROGRESS to stringResource(R.string.badges_tab_progress)
     )
-    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item("header") {
+    val showcaseListState = rememberLazyListState()
+    val bookListState = rememberLazyListState()
+    val reachListState = rememberLazyListState()
+    val progressListState = rememberLazyListState()
+    val tabListStates = listOf(showcaseListState, bookListState, reachListState, progressListState)
+    Column(Modifier.fillMaxSize()) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             RoomHeader(R.string.shell_badges_title, R.string.badges_hub_body)
             Text(pluralStringResource(R.plurals.badges_summary, dashboard.completedCollections, dashboard.uniqueEarned, dashboard.totalMasteries, dashboard.completedCollections),
                 style = MaterialTheme.typography.titleMedium)
         }
-        item("tabs") {
-            ScrollableTabRow(selectedTabIndex = tabs.indexOf(selectedTab), edgePadding = 0.dp,
-                containerColor = MaterialTheme.colorScheme.surface) {
-                tabs.forEachIndexed { index, tab ->
-                    val accessibilityLabel = stringResource(R.string.badges_tab_a11y, tabLabels.getValue(tab),
-                        if (selectedTab == tab) stringResource(R.string.badges_tab_selected) else "", index + 1, tabs.size)
-                    Tab(selected = selectedTab == tab, onClick = { selectedTab = tab },
-                        text = { Text(tabLabels.getValue(tab)) },
-                        modifier = Modifier.semantics { contentDescription = accessibilityLabel })
+        Box(Modifier.padding(horizontal = 16.dp)) {
+            ScyraRoomTabRow(
+                tabs = tabs.map(tabLabels::getValue), selectedIndex = pagerState.currentPage,
+                onSelected = { page -> tabScope.launch { pagerState.animateScrollToPage(page) } }, evenlyDistributed = false,
+                accessibilityLabel = { index, title, selected ->
+                    stringResource(R.string.badges_tab_a11y, title,
+                        if (selected) stringResource(R.string.badges_tab_selected) else "", index + 1, tabs.size)
                 }
-            }
+            )
         }
-        when (selectedTab) {
+        Spacer(Modifier.height(12.dp))
+        HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
+        LazyColumn(state = tabListStates[page], contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        when (tabs[page]) {
             BadgesTab.SHOWCASE -> {
                 item("showcase-title") { SectionTitle(stringResource(R.string.badges_showcase_title), stringResource(R.string.badges_showcase_body)) }
                 item("showcase") {
@@ -197,6 +212,8 @@ fun BadgesScreen(
                 items(dashboard.collections, key = { it.collectionId }) { CollectionCard(it) { collectionDetails = it } }
             }
         }
+    }
+    }
     }
     details?.let { badge -> BadgeDetailsSheet(badge, { details = null }, {
         if (badge.pinnedOrder != null) onUnpin(badge.badgeId) else onPin(badge.badgeId, null)
