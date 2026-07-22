@@ -13,6 +13,10 @@ class AchievementEngineTest {
         assertTrue(definition.milestones.isEmpty())
         assertFalse(definition.trackable)
     }
+    @Test fun obsoleteDiscoveryBadgeIsPreservedButNotUserVisible() {
+        assertNotNull(BadgeDefinitionResolver.resolve("badge_discovery"))
+        assertFalse(BadgeDefinitionResolver.isUserVisible("badge_discovery"))
+    }
     @Test fun persistedBadgeDefinitionsUseTheSharedSafeResolver() {
         assertEquals(BadgeFamily.COLLECTION, BadgeDefinitionResolver.resolve("badge_discovery").family)
         assertFalse(BadgeDefinitionResolver.resolve("unknown_persisted_badge").trackable)

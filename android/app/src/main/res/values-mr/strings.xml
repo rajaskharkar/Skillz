@@ -1903,4 +1903,18 @@
     <string name="shell_find_stillwater_oarfish_title">ओअरफ़िश</string>
     <string name="shell_find_stillwater_blackdragon_title">ब्लैकड्रैगन</string>
     <string name="shell_find_stillwater_coelacanth_title">सीलाकैंथ</string>
+    <string name="badge_track">ट्रॅक करा</string>
+    <string name="badge_untrack">ट्रॅक करणे थांबवा</string>
+    <string name="badge_collection_progress_title">संग्रहाची प्रगती</string>
+    <string name="badge_unavailable_record_title">अनुपलब्ध नोंद</string>
+    <string name="badge_unavailable_record_description">ही जतन केलेली नोंद सध्याच्या बॅज बुकचा भाग नाही.</string>
+    <string name="badge_tracking_explanation">बॅजची प्रगती आपोआप नोंदवली जाते. ट्रॅक केल्याने हा बॅज ट्रॅक केलेले बॅज विभागात राहतो.</string>
+    <string name="chest_filter_needed_tracked">ट्रॅक केलेल्या बॅजसाठी आवश्यक</string>
+    <string name="chest_filter_tracked_empty">तुमच्या कोणत्याही ट्रॅक केलेल्या बॅजला सध्या The Chest मधील प्राण्यांची गरज नाही.</string>
+    <string name="badges_tracked_title">ट्रॅक केलेले बॅज</string>
+    <string name="badges_tracked_body">तुम्ही अनुसरण्यासाठी निवडलेले बॅज. Scyra सर्व बॅजची प्रगती आपोआप नोंदवते.</string>
+    <string name="badges_no_tracked_title">ट्रॅक केलेले बॅज नाहीत</string>
+    <string name="badges_no_tracked_body">बॅजची प्रगती आणि पुढील पाऊल येथे ठेवण्यासाठी तो ट्रॅक करा.</string>
+    <string name="badges_within_reach_title">आवाक्यात</string>
+    <string name="badges_within_reach_body">Scyra उपयुक्त पुढील पावले म्हणून सुचवते अशी जास्तीत जास्त तीन ट्रॅक न केलेली ध्येये.</string>
 </resources>

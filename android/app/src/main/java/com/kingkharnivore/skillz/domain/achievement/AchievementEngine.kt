@@ -142,6 +142,12 @@ object AchievementBadgeCatalog {
 
 /** The sole resolver for static, historical, and unknown persisted badge IDs. */
 object BadgeDefinitionResolver {
+    /** Persisted for migration safety, but belongs to the retired discovery-journal system. */
+    private val obsoleteBadgeIds = setOf("badge_discovery")
+
+    fun isUserVisible(badgeId: String): Boolean = badgeId !in obsoleteBadgeIds &&
+        resolve(badgeId).goalType != BadgeGoalType.HISTORICAL_COUNT_ONLY
+
     fun resolve(badgeId: String): AchievementBadgeDefinition {
         AchievementBadgeCatalog.byId[badgeId]?.let { return it }
         val legacy = ShellContentCatalog.badge(badgeId)

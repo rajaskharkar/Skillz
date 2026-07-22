@@ -89,6 +89,7 @@ class ShellRepository @Inject constructor(
 
     suspend fun pinBadge(badgeId: String, replaceBadgeId: String? = null): PinResult = db.withTransaction {
         reconcileAchievementLedger(System.currentTimeMillis())
+        require(BadgeDefinitionResolver.isUserVisible(badgeId)) { "This badge is not available in the current Badge Book." }
         require(BadgeDefinitionResolver.resolve(badgeId).pinnable) { "This badge cannot be pinned." }
         require(badgeDao.get(badgeId)?.count?.let { it > 0 } == true) { "Only earned badges can be pinned." }
         val current = achievementDao.getPins()
@@ -120,12 +121,16 @@ class ShellRepository @Inject constructor(
         reconcileAchievementLedger(System.currentTimeMillis())
         cleanupTracking()
         val definition = BadgeDefinitionResolver.resolve(badgeId)
+        require(BadgeDefinitionResolver.isUserVisible(badgeId)) { "This badge is not available in the current Badge Book." }
         require(definition.trackable) { "This badge cannot be tracked." }
         val currentProgress = definition.collectionId?.let { currentCollectionProgress(it) }
         val ownsRelevantSpecies = definition.speciesId?.let { speciesId ->
             findInstanceDao.getAll().any { it.findId == speciesId && it.creatureStatus == CreatureStatus.ACTIVE }
         } ?: true
-        val hasAcquisitionPath = definition.speciesId?.let { CreatureCatalog.get(it) != null } ?: false
+        val discoveredSpecies = achievementDao.getDiscoveries().mapTo(mutableSetOf()) { it.speciesId }
+        val hasAcquisitionPath = definition.speciesId?.let(CreatureCatalog::get)?.let { creature ->
+            creature.isAvailable && (!creature.secretUntilDiscovered || creature.creatureId in discoveredSpecies)
+        } ?: false
         val actionable = when (definition.requirement) {
             BadgeRequirement.COLLECTOR -> currentProgress?.currentRosterCollectorComplete == false && currentProgress.totalParticipatingSpecies > 0
             BadgeRequirement.CURATOR -> currentProgress?.currentRosterCuratorComplete == false && currentProgress.totalParticipatingSpecies > 0
@@ -376,12 +381,16 @@ class ShellRepository @Inject constructor(
             ShellNotificationType.FIND.name -> findInstanceDao.markViewed(notificationId.substringAfter(':'), now)
             ShellNotificationType.BADGE.name -> badgeDao.markViewed(notificationId.substringAfter(':'), now)
         }
+        cleanupTracking()
+        reconcilePins()
     }
 
     suspend fun markAllNotificationsViewed() = db.withTransaction {
         val now = System.currentTimeMillis()
         findInstanceDao.markFindIdsViewed(ShellContentCatalog.allAnimalFindIds.toList(), now)
         badgeDao.markAllViewed(now)
+        cleanupTracking()
+        reconcilePins()
     }
 
     suspend fun markTheBlueAnimalsSeen() = db.withTransaction {
@@ -706,6 +715,7 @@ class ShellRepository @Inject constructor(
             materializeBadge("${completion.collectionId}_${completion.completionType.lowercase()}", 1, completion.completedAt)
         }
         cleanupTracking()
+        reconcilePins()
     }
 
     private suspend fun materializeBadge(id: String, count: Int, timestamp: Long) {
@@ -718,7 +728,7 @@ class ShellRepository @Inject constructor(
         val earned = badgeDao.getAll().associateBy { it.badgeId }
         achievementDao.getTracking().forEach { tracked ->
             val definition = BadgeDefinitionResolver.resolve(tracked.badgeId)
-            val invalid = !definition.trackable
+            val invalid = !BadgeDefinitionResolver.isUserVisible(tracked.badgeId) || !definition.trackable
             val collection = definition.collectionId?.let { currentCollectionProgress(it) }
             val currentRosterIncomplete = when (definition.requirement) {
                 BadgeRequirement.COLLECTOR -> collection?.currentRosterCollectorComplete == false
@@ -734,6 +744,17 @@ class ShellRepository @Inject constructor(
                 definition.milestones.none { it > (earnedBadge?.count ?: 0) } && achievementAcknowledged
             if (invalid || completedOneTime || exhaustedRepeatable) achievementDao.deleteTracking(tracked.badgeId)
         }
+    }
+
+    private suspend fun reconcilePins() {
+        val earned = badgeDao.getAll().associateBy { it.badgeId }
+        achievementDao.getPins().forEach { pin ->
+            val definition = BadgeDefinitionResolver.resolve(pin.badgeId)
+            val valid = BadgeDefinitionResolver.isUserVisible(pin.badgeId) && definition.pinnable &&
+                (earned[pin.badgeId]?.count ?: 0) > 0
+            if (!valid) achievementDao.deletePin(pin.badgeId)
+        }
+        normalizePinOrder()
     }
 
     private suspend fun persistCurrentCollectionCompletions(now: Long): Int {
@@ -819,6 +840,8 @@ class ShellRepository @Inject constructor(
                     event.newlyEarnedBadgeIds.split(',').filter { it.isNotBlank() }.distinct()
                         .forEach { badgeDao.markViewed(it, System.currentTimeMillis()) }
                 }
+                cleanupTracking()
+                reconcilePins()
             }
             achievementDao.updateCelebrationState(eventId, transition.lifecycle.name, transition.stage.name,
                 if (transition.lifecycle == CelebrationLifecycle.COMPLETED) System.currentTimeMillis() else null)

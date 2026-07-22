@@ -115,7 +115,7 @@ object BadgeDashboardCalculator {
         }
         val collectionById = collectionProgress.associateBy { it.collectionId }
         val definitions = BadgeDefinitionResolver.allDefinitions(earned)
-            .filterNot { it.goalType == BadgeGoalType.HISTORICAL_COUNT_ONLY }
+            .filter { BadgeDefinitionResolver.isUserVisible(it.badgeId) }
             .filter { !it.hiddenUntilEarned || (earnedById[it.badgeId]?.count ?: 0) > 0 }
         val badges = definitions.map { definition ->
             val stored = earnedById[definition.badgeId]

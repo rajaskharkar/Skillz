@@ -1903,4 +1903,18 @@ Puedes volver a activar Health más tarde.</string>
     <string name="shell_find_stillwater_viperfish_title">Viperfish</string>
     <string name="shell_find_stillwater_wahoo_title">Wahoo</string>
     <string name="shell_find_stillwater_wrasse_title">Wrasse</string>
+    <string name="badge_track">Seguir</string>
+    <string name="badge_untrack">Dejar de seguir</string>
+    <string name="badge_collection_progress_title">Progreso de la colección</string>
+    <string name="badge_unavailable_record_title">Registro no disponible</string>
+    <string name="badge_unavailable_record_description">Este registro conservado no forma parte del Libro de insignias actual.</string>
+    <string name="badge_tracking_explanation">El progreso de las insignias se registra automáticamente. Seguir una insignia la mantiene en la sección Insignias seguidas.</string>
+    <string name="chest_filter_needed_tracked">Necesario para insignias seguidas</string>
+    <string name="chest_filter_tracked_empty">Ninguna de tus insignias seguidas necesita actualmente criaturas de The Chest.</string>
+    <string name="badges_tracked_title">Insignias seguidas</string>
+    <string name="badges_tracked_body">Insignias que has elegido seguir. Scyra registra automáticamente todo el progreso.</string>
+    <string name="badges_no_tracked_title">No hay insignias seguidas</string>
+    <string name="badges_no_tracked_body">Sigue una insignia para mantener aquí su progreso y el siguiente paso.</string>
+    <string name="badges_within_reach_title">Al alcance</string>
+    <string name="badges_within_reach_body">Hasta tres objetivos no seguidos que Scyra recomienda como próximos pasos útiles.</string>
 </resources>

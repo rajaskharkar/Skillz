@@ -2054,8 +2054,8 @@ You can turn Health back on later.</string>
     <string name="badge_mastery_variety">Mastery Variety</string><string name="badge_mastery_variety_description">Unique species that reached Mastery.</string>
     <string name="badge_variety_collector">Variety Collector</string><string name="badge_variety_collector_description">Unique species discovered across all waters.</string>
     <string name="badge_across_depths">Across the Depths</string><string name="badge_across_depths_description">Discover life throughout the depths of The Blue.</string>
-    <string name="badge_every_water">One from Every Water</string><string name="badge_every_water_description">Discover a creature from every current water collection.</string>
-    <string name="badge_keeper_blue">Keeper of The Blue</string><string name="badge_keeper_blue_description">Hold the participating creatures of The Blue together.</string>
+    <string name="badge_every_water">One from Every Water</string><string name="badge_every_water_description">Master at least one participating creature from every Blue region and every Stillwater vessel.</string>
+    <string name="badge_keeper_blue">Keeper of The Blue</string><string name="badge_keeper_blue_description">Complete the Collector roster in every region of The Blue.</string>
     <string name="badge_collection_progress_title">Collection Progress</string>
     <string name="badge_unavailable_record_title">Unavailable record</string><string name="badge_unavailable_record_description">This preserved record is not part of the current Badge Book.</string>
     <string name="collection_sunlit_reef">Sunlit Reef</string><string name="collection_deeper_reef">Deeper Reef</string><string name="collection_open_blue">Open Blue</string><string name="collection_great_blue">Great Blue</string>
