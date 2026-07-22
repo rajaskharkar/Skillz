@@ -36,6 +36,10 @@ import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import java.text.NumberFormat
 
+enum class BadgesTab { SHOWCASE, BADGE_BOOK, WITHIN_REACH, PROGRESS;
+    val showsBadgeBookControls: Boolean get() = this == BADGE_BOOK
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BadgesScreen(
@@ -87,67 +91,112 @@ fun BadgesScreen(
                 (query.isBlank() || badgeSearchText(presentations.getValue(badge.badgeId), categoryLabels.getValue(badge.category), localizedCreatureNames[badge.badgeId].orEmpty()).contains(query.trim(), ignoreCase = true))
         }.sortedWith(badgeComparator(sort, presentations))
     }
+    var selectedTab by rememberSaveable { mutableStateOf(BadgesTab.SHOWCASE) }
+    val tabs = BadgesTab.entries
+    val tabLabels = mapOf(
+        BadgesTab.SHOWCASE to stringResource(R.string.badges_tab_showcase),
+        BadgesTab.BADGE_BOOK to stringResource(R.string.badges_tab_book),
+        BadgesTab.WITHIN_REACH to stringResource(R.string.badges_tab_reach),
+        BadgesTab.PROGRESS to stringResource(R.string.badges_tab_progress)
+    )
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item("header") {
             RoomHeader(R.string.shell_badges_title, R.string.badges_hub_body)
             Text(pluralStringResource(R.plurals.badges_summary, dashboard.completedCollections, dashboard.uniqueEarned, dashboard.totalMasteries, dashboard.completedCollections),
                 style = MaterialTheme.typography.titleMedium)
-            OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), singleLine = true,
-                label = { Text(stringResource(R.string.badges_search)) }, leadingIcon = { Icon(Icons.Outlined.Search, null) },
-                trailingIcon = { if (query.isNotEmpty()) IconButton({ query = "" }) { Icon(Icons.Outlined.Clear, stringResource(R.string.badges_clear_search)) } })
-            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                BadgeMenu(stringResource(R.string.badges_category_selected, categoryLabels.getValue(category)), availableCategories, { categoryLabels.getValue(it) }, onCategory)
-                BadgeMenu(stringResource(R.string.badges_sort_selected, sortLabels.getValue(sort)), BadgeSort.values().toList(), { sortLabels.getValue(it) }, onSort)
+        }
+        item("tabs") {
+            ScrollableTabRow(selectedTabIndex = tabs.indexOf(selectedTab), edgePadding = 0.dp,
+                containerColor = MaterialTheme.colorScheme.surface) {
+                tabs.forEachIndexed { index, tab ->
+                    val accessibilityLabel = stringResource(R.string.badges_tab_a11y, tabLabels.getValue(tab),
+                        if (selectedTab == tab) stringResource(R.string.badges_tab_selected) else "", index + 1, tabs.size)
+                    Tab(selected = selectedTab == tab, onClick = { selectedTab = tab },
+                        text = { Text(tabLabels.getValue(tab)) },
+                        modifier = Modifier.semantics { contentDescription = accessibilityLabel })
+                }
             }
         }
-        item("showcase-title") { SectionTitle(stringResource(R.string.badges_showcase_title), stringResource(R.string.badges_showcase_body)) }
-        item("showcase") {
-            val pins = dashboard.badges.filter { it.pinnedOrder != null }.sortedBy { it.pinnedOrder }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                repeat(3) { index ->
-                    val badge = pins.getOrNull(index)
-                    Surface(Modifier.weight(1f).heightIn(min = 132.dp), shape = RoundedCornerShape(18.dp), tonalElevation = 2.dp,
-                        color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-                        if (badge == null) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.badges_empty_slot), style = MaterialTheme.typography.labelMedium) }
-                        else Column(Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            BadgeMedallion(badge, BadgeMedallionSize.Large, onClick = { openBadge(badge) })
-                            Text(badgeTitle(badge), maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelLarge)
+        when (selectedTab) {
+            BadgesTab.SHOWCASE -> {
+                item("showcase-title") { SectionTitle(stringResource(R.string.badges_showcase_title), stringResource(R.string.badges_showcase_body)) }
+                item("showcase") {
+                    val pins = dashboard.badges.filter { it.pinnedOrder != null }.sortedBy { it.pinnedOrder }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        repeat(3) { index ->
+                            val badge = pins.getOrNull(index)
+                            Surface(Modifier.weight(1f).heightIn(min = 120.dp), shape = RoundedCornerShape(18.dp), tonalElevation = 2.dp,
+                                color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                                if (badge == null) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.badges_empty_slot), style = MaterialTheme.typography.labelMedium) }
+                                else Column(Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    BadgeMedallion(badge, BadgeMedallionSize.Large, onClick = { openBadge(badge) })
+                                    Text(badgeTitle(badge), maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelLarge)
+                                }
+                            }
                         }
                     }
                 }
-            }
-        }
-        item("tracked-title") { SectionTitle(stringResource(R.string.badges_tracked_title), stringResource(R.string.badges_tracked_body)) }
-        val trackedBadges = dashboard.badges.filter { it.tracked }
-        if (trackedBadges.isEmpty()) item("no-tracked") {
-            OutlinedCard(Modifier.fillMaxWidth(), colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(stringResource(R.string.badges_no_tracked_title), fontWeight = FontWeight.Bold)
-                    Text(stringResource(R.string.badges_no_tracked_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                item("tracked-title") { SectionTitle(stringResource(R.string.badges_tracked_title), stringResource(R.string.badges_tracked_body)) }
+                val trackedBadges = dashboard.badges.filter { it.tracked }
+                if (trackedBadges.isEmpty()) item("no-tracked") {
+                    OutlinedCard(Modifier.fillMaxWidth(), colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(stringResource(R.string.badges_no_tracked_title), fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.badges_no_tracked_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+                items(trackedBadges, key = { "tracked:${it.badgeId}" }) { badge ->
+                    ProgressBadgeRow(badge, { openBadge(badge) }, { onUntrack(badge.badgeId) },
+                        { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc, { openBadge(badge) }) { id -> collectionDetails = dashboard.collections.firstOrNull { it.collectionId == id } } })
                 }
             }
+            BadgesTab.BADGE_BOOK -> {
+                item("book-title") { SectionTitle(stringResource(R.string.badges_book_title), stringResource(R.string.badges_book_body)) }
+                item("book-controls") {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), singleLine = true,
+                            label = { Text(stringResource(R.string.badges_search)) }, leadingIcon = { Icon(Icons.Outlined.Search, null) },
+                            trailingIcon = { if (query.isNotEmpty()) IconButton({ query = "" }) { Icon(Icons.Outlined.Clear, stringResource(R.string.badges_clear_search)) } })
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            BadgeMenu(stringResource(R.string.badges_category_selected, categoryLabels.getValue(category)), availableCategories, { categoryLabels.getValue(it) }, onCategory)
+                            BadgeMenu(stringResource(R.string.badges_sort_selected, sortLabels.getValue(sort)), BadgeSort.entries, { sortLabels.getValue(it) }, onSort)
+                        }
+                    }
+                }
+                if (visible.isEmpty()) item("book-empty") {
+                    val message = when {
+                        dashboard.badges.isEmpty() -> stringResource(R.string.badges_book_empty)
+                        query.isNotBlank() -> stringResource(R.string.badges_no_search_results, query)
+                        else -> stringResource(R.string.badges_category_empty)
+                    }
+                    OutlinedCard(Modifier.fillMaxWidth(), colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(message)
+                            if (query.isNotBlank() || category != BadgeUiCategory.ALL) TextButton({ query = ""; onCategory(BadgeUiCategory.ALL) }) { Text(stringResource(R.string.badges_reset_filters)) }
+                        }
+                    }
+                }
+                items(visible, key = { "book:${it.badgeId}" }) { badge -> ProgressBadgeRow(badge, { openBadge(badge) }, { if (badge.tracked) onUntrack(badge.badgeId) else onTrack(badge.badgeId) }, { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc, { openBadge(badge) }) { id -> collectionDetails = dashboard.collections.firstOrNull { it.collectionId == id } } }) }
+            }
+            BadgesTab.WITHIN_REACH -> {
+                item("reach-title") { SectionTitle(stringResource(R.string.badges_within_reach_title), stringResource(R.string.badges_within_reach_body)) }
+                if (dashboard.recommendations.isEmpty()) item("no-reach") { EmptyCard(stringResource(R.string.badges_no_recommendations)) }
+                items(dashboard.recommendations.take(3), key = { "reach:${it.badgeId}" }) { badge ->
+                    ProgressBadgeRow(badge, { openBadge(badge) }, { onTrack(badge.badgeId) }, { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc, { openBadge(badge) }) { id -> collectionDetails = dashboard.collections.firstOrNull { it.collectionId == id } } })
+                }
+            }
+            BadgesTab.PROGRESS -> {
+                val recent = dashboard.badges.filter { it.earned && it.lastAdvancedAt != null }.sortedByDescending { it.lastAdvancedAt }.take(5)
+                if (recent.isNotEmpty()) {
+                    item("recent-title") { SectionTitle(stringResource(R.string.badges_recent_title), stringResource(R.string.badges_recent_body)) }
+                    items(recent, key = { "recent:${it.badgeId}" }) { badge -> BadgeGridRow(badge, { openBadge(badge) }, { if (badge.pinnedOrder != null) onUnpin(badge.badgeId) else onPin(badge.badgeId, null) }) }
+                    item("progress-divider") { HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant) }
+                }
+                item("collections-title") { SectionTitle(stringResource(R.string.badges_collections_title), stringResource(R.string.badges_collections_body)) }
+                items(dashboard.collections, key = { it.collectionId }) { CollectionCard(it) { collectionDetails = it } }
+            }
         }
-        items(trackedBadges, key = { "tracked:${it.badgeId}" }) { badge ->
-            ProgressBadgeRow(badge, { openBadge(badge) }, { onUntrack(badge.badgeId) },
-                { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc, { openBadge(badge) }) { id -> collectionDetails = dashboard.collections.firstOrNull { it.collectionId == id } } })
-        }
-        item("reach-title") { SectionTitle(stringResource(R.string.badges_within_reach_title), stringResource(R.string.badges_within_reach_body)) }
-        if (dashboard.recommendations.isEmpty()) item("no-reach") { EmptyCard(stringResource(R.string.badges_no_recommendations)) }
-        items(dashboard.recommendations, key = { "reach:${it.badgeId}" }) { badge ->
-            ProgressBadgeRow(badge, { openBadge(badge) }, { if (badge.tracked) onUntrack(badge.badgeId) else onTrack(badge.badgeId) }, { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc, { openBadge(badge) }) { id -> collectionDetails = dashboard.collections.firstOrNull { it.collectionId == id } } })
-        }
-        val recent = dashboard.badges.filter { it.earned && it.lastAdvancedAt != null }.sortedByDescending { it.lastAdvancedAt }.take(5)
-        if (recent.isNotEmpty()) {
-            item("recent-title") { SectionTitle(stringResource(R.string.badges_recent_title), stringResource(R.string.badges_recent_body)) }
-            items(recent, key = { "recent:${it.badgeId}" }) { badge -> BadgeGridRow(badge, { openBadge(badge) }, {
-                if (badge.pinnedOrder != null) onUnpin(badge.badgeId) else onPin(badge.badgeId, null)
-            }) }
-        }
-        item("collections-title") { SectionTitle(stringResource(R.string.badges_collections_title), stringResource(R.string.badges_collections_body)) }
-        items(dashboard.collections, key = { it.collectionId }) { CollectionCard(it) { collectionDetails = it } }
-        item("book-title") { SectionTitle(stringResource(R.string.badges_book_title), stringResource(R.string.badges_book_body)) }
-        items(visible, key = { "book:${it.badgeId}" }) { badge -> ProgressBadgeRow(badge, { openBadge(badge) }, { if (badge.tracked) onUntrack(badge.badgeId) else onTrack(badge.badgeId) }, { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc, { openBadge(badge) }) { id -> collectionDetails = dashboard.collections.firstOrNull { it.collectionId == id } } }) }
     }
     details?.let { badge -> BadgeDetailsSheet(badge, { details = null }, {
         if (badge.pinnedOrder != null) onUnpin(badge.badgeId) else onPin(badge.badgeId, null)

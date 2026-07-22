@@ -86,7 +86,9 @@ badge_variety_collector_description,string,Unique species discovered across all 
 badges_backfill_body,string,"We recognized %1$d creature discoveries, %2$d Creature Masteries, and %3$d collection completions from your existing progress.",%1$d %2$d %3$d,present,present,present
 badges_backfill_title,string,Your Badge Collection Has Grown,,present,present,present
 badges_book_body,string,Earned and locked progression goals.,,present,present,present
+badges_book_empty,string,No badges are available yet.,,present,present,present
 badges_book_title,string,Badge Book,,present,present,present
+badges_category_empty,string,No badges are available in this category.,,present,present,present
 badges_category_selected,string,Category: %1$s,%1$s,present,present,present
 badges_clear_search,string,Clear search,,present,present,present
 badges_collections_body,string,Lifetime discovery and Mastery survive release.,,present,present,present
@@ -102,11 +104,18 @@ badges_recent_body,string,New and advanced achievements.,,present,present,presen
 badges_recent_title,string,Recently Earned and Updated,,present,present,present
 badges_replace_body,string,Choose which pinned badge to replace.,,present,present,present
 badges_replace_title,string,Replace a Showcase badge?,,present,present,present
+badges_reset_filters,string,Reset filters,,present,present,present
 badges_search,string,Search badges,,present,present,present
 badges_showcase_body,string,Pin the achievements that mean the most to you.,,present,present,present
 badges_showcase_title,string,Your Showcase,,present,present,present
 badges_sort_selected,string,Sort: %1$s,%1$s,present,present,present
 badges_summary,plurals,%1$d earned · %2$d Masteries · %3$d Completionist collection | %1$d earned · %2$d Masteries · %3$d Completionist collections,%1$d %2$d %3$d %1$d %2$d %3$d,present,present,present
+badges_tab_a11y,string,"%1$s tab, %2$s %3$d of %4$d",%1$s %2$s %3$d %4$d,present,present,present
+badges_tab_book,string,Badge Book,,present,present,present
+badges_tab_progress,string,Progress,,present,present,present
+badges_tab_reach,string,Within Reach,,present,present,present
+badges_tab_selected,string,selected,,present,present,present
+badges_tab_showcase,string,Showcase,,present,present,present
 badges_tracked_body,string,Badges you have chosen to follow. Scyra records all badge progress automatically.,,present,present,present
 badges_tracked_title,string,Tracked Badges,,present,present,present
 badges_view_new,string,View New Badges,,present,present,present

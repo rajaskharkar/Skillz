@@ -2148,4 +2148,13 @@
     <string name="shell_message_vessel_locked">हे पात्र अनलॉक करण्यासाठी The Blue मध्ये पुढे जा.</string>
     <string name="shell_message_drops_insufficient">अजून पुरेसे Drops नाहीत.</string>
     <string name="shell_message_stillwater_failed">Stillwater मधून काढता आले नाही.</string>
+    <string name="badges_tab_showcase">शोकेस</string>
+    <string name="badges_tab_book">बॅज बुक</string>
+    <string name="badges_tab_reach">आवाक्यात</string>
+    <string name="badges_tab_progress">प्रगती</string>
+    <string name="badges_tab_selected">निवडलेले</string>
+    <string name="badges_tab_a11y">%1$s टॅब, %2$s %4$d पैकी %3$d</string>
+    <string name="badges_book_empty">अजून कोणतेही बॅज उपलब्ध नाहीत.</string>
+    <string name="badges_category_empty">या श्रेणीत कोणतेही बॅज उपलब्ध नाहीत.</string>
+    <string name="badges_reset_filters">फिल्टर रीसेट करा</string>
 </resources>

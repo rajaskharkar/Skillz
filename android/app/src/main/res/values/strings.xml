@@ -2159,4 +2159,13 @@ You can turn Health back on later.</string>
     <string name="shell_message_vessel_locked">Progress farther in The Blue to unlock this vessel.</string>
     <string name="shell_message_drops_insufficient">Not enough Drops yet.</string>
     <string name="shell_message_stillwater_failed">Could not draw from Stillwater.</string>
+    <string name="badges_tab_showcase">Showcase</string>
+    <string name="badges_tab_book">Badge Book</string>
+    <string name="badges_tab_reach">Within Reach</string>
+    <string name="badges_tab_progress">Progress</string>
+    <string name="badges_tab_selected">selected</string>
+    <string name="badges_tab_a11y">%1$s tab, %2$s %3$d of %4$d</string>
+    <string name="badges_book_empty">No badges are available yet.</string>
+    <string name="badges_category_empty">No badges are available in this category.</string>
+    <string name="badges_reset_filters">Reset filters</string>
 </resources>

@@ -2151,4 +2151,13 @@ Puedes volver a activar Health más tarde.</string>
     <string name="shell_message_vessel_locked">Avanza más en The Blue para desbloquear este recipiente.</string>
     <string name="shell_message_drops_insufficient">Aún no hay suficientes Drops.</string>
     <string name="shell_message_stillwater_failed">No se pudo extraer de Stillwater.</string>
+    <string name="badges_tab_showcase">Expositor</string>
+    <string name="badges_tab_book">Libro de insignias</string>
+    <string name="badges_tab_reach">Al alcance</string>
+    <string name="badges_tab_progress">Progreso</string>
+    <string name="badges_tab_selected">seleccionada</string>
+    <string name="badges_tab_a11y">Pestaña %1$s, %2$s %3$d de %4$d</string>
+    <string name="badges_book_empty">Todavía no hay insignias disponibles.</string>
+    <string name="badges_category_empty">No hay insignias disponibles en esta categoría.</string>
+    <string name="badges_reset_filters">Restablecer filtros</string>
 </resources>
