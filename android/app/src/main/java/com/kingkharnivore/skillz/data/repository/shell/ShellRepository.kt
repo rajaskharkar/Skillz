@@ -125,18 +125,18 @@ class ShellRepository @Inject constructor(
         val ownsRelevantSpecies = definition.speciesId?.let { speciesId ->
             findInstanceDao.getAll().any { it.findId == speciesId && it.creatureStatus == CreatureStatus.ACTIVE }
         } ?: true
+        val hasAcquisitionPath = definition.speciesId?.let { CreatureCatalog.get(it) != null } ?: false
         val actionable = when (definition.requirement) {
             BadgeRequirement.COLLECTOR -> currentProgress?.currentRosterCollectorComplete == false && currentProgress.totalParticipatingSpecies > 0
             BadgeRequirement.CURATOR -> currentProgress?.currentRosterCuratorComplete == false && currentProgress.totalParticipatingSpecies > 0
             BadgeRequirement.COMPLETIONIST -> currentProgress?.currentRosterCompletionistComplete == false && currentProgress.totalCompletionistSpecies > 0
-            BadgeRequirement.EXACT_COUNT -> ownsRelevantSpecies && if (definition.countType == BadgeCountType.ONE_TIME) {
+            BadgeRequirement.EXACT_COUNT -> (ownsRelevantSpecies || hasAcquisitionPath) && if (definition.countType == BadgeCountType.ONE_TIME) {
                 (badgeDao.get(badgeId)?.count ?: 0) == 0
             } else definition.milestones.any { it > (badgeDao.get(badgeId)?.count ?: 0) }
         }
         require(actionable) { "This achievement has no current objective to track." }
         val current = achievementDao.getTracking()
         if (current.any { it.badgeId == badgeId }) return@withTransaction false
-        require(current.size < 3) { "You can track up to three badges." }
         achievementDao.insertTracking(BadgeTrackingEntity(badgeId, System.currentTimeMillis())) != -1L
     }
 
@@ -726,9 +726,12 @@ class ShellRepository @Inject constructor(
                 BadgeRequirement.COMPLETIONIST -> collection?.currentRosterCompletionistComplete == false
                 else -> false
             }
-            val completedOneTime = definition.countType == BadgeCountType.ONE_TIME && (earned[tracked.badgeId]?.count ?: 0) > 0 && !currentRosterIncomplete
+            val earnedBadge = earned[tracked.badgeId]
+            val achievementAcknowledged = earnedBadge?.viewedAt != null
+            val completedOneTime = definition.countType == BadgeCountType.ONE_TIME && (earnedBadge?.count ?: 0) > 0 &&
+                !currentRosterIncomplete && achievementAcknowledged
             val exhaustedRepeatable = definition.countType == BadgeCountType.REPEATABLE &&
-                definition.milestones.none { it > (earned[tracked.badgeId]?.count ?: 0) }
+                definition.milestones.none { it > (earnedBadge?.count ?: 0) } && achievementAcknowledged
             if (invalid || completedOneTime || exhaustedRepeatable) achievementDao.deleteTracking(tracked.badgeId)
         }
     }

@@ -115,6 +115,7 @@ object BadgeDashboardCalculator {
         }
         val collectionById = collectionProgress.associateBy { it.collectionId }
         val definitions = BadgeDefinitionResolver.allDefinitions(earned)
+            .filterNot { it.goalType == BadgeGoalType.HISTORICAL_COUNT_ONLY }
             .filter { !it.hiddenUntilEarned || (earnedById[it.badgeId]?.count ?: 0) > 0 }
         val badges = definitions.map { definition ->
             val stored = earnedById[definition.badgeId]
@@ -183,8 +184,7 @@ object BadgeDashboardCalculator {
             val canNavigate = primaryAction !is BadgeActionDestination.BadgeDetails
             val canProgressNow = !terminal && nonEmptyRoster && (ownsSpecies || acquisition != null) && lockedReason == null &&
                 (definition.countType == BadgeCountType.ONE_TIME || hasNextMilestone)
-            val canTrack = definition.trackable && canProgressNow && canNavigate &&
-                (definition.speciesId == null || ownsSpecies)
+            val canTrack = definition.trackable && canProgressNow && canNavigate
             val disabledReason = when {
                 terminal -> BadgeDisabledReason.COMPLETE
                 !nonEmptyRoster -> BadgeDisabledReason.EMPTY_ROSTER
@@ -197,7 +197,7 @@ object BadgeDashboardCalculator {
             BadgeProgressModel(definition.badgeId, computed, computed > 0, category(definition), progress,
                 target, (target - progress).coerceAtLeast(0), MilestoneEngine.evaluate(computed, thresholds = definition.milestones),
                 stored?.firstEarnedAt, stored?.lastEarnedAt, pinOrder[definition.badgeId],
-                definition.badgeId in tracked && !(definition.countType == BadgeCountType.ONE_TIME && computed > 0 && !currentRosterIncomplete),
+                definition.badgeId in tracked,
                 collection, speciesLevels.maxOrNull(), primaryAction,
                 stored?.viewedAt == null && stored != null && stored.firstEarnedAt == stored.lastEarnedAt,
                 stored?.viewedAt == null && stored != null && stored.lastEarnedAt > stored.firstEarnedAt,
@@ -276,10 +276,12 @@ object BadgeDashboardCalculator {
 
 object RecommendationEngine {
     fun recommend(badges: List<BadgeProgressModel>, limit: Int = 3): List<BadgeProgressModel> {
-        val eligible = badges.filter { it.canProgressNow && it.canNavigate && it.remaining > 0 && it.target > 0 && (it.collectionProgress?.totalParticipatingSpecies ?: 1) > 0 }
-        val result = eligible.filter { it.tracked }.sortedWith(compareBy<BadgeProgressModel> { it.category }.thenBy { it.badgeId }).toMutableList()
-        val usedCategories = result.mapTo(mutableSetOf()) { it.category }
-        eligible.filterNot { it.tracked }.sortedWith(compareBy<BadgeProgressModel> {
+        val eligible = badges.filter { !it.tracked && it.goalType != BadgeGoalType.HISTORICAL_COUNT_ONLY &&
+            it.canProgressNow && it.canNavigate && it.remaining > 0 && it.target > 0 &&
+            (it.collectionProgress?.totalParticipatingSpecies ?: 1) > 0 }
+        val result = mutableListOf<BadgeProgressModel>()
+        val usedCategories = mutableSetOf<BadgeUiCategory>()
+        eligible.sortedWith(compareBy<BadgeProgressModel> {
             it.remaining.toDouble() / it.target
         }.thenByDescending { it.importance }.thenByDescending { it.highestCreatureLevel ?: 0 }
             .thenByDescending { it.progress }.thenBy { it.badgeId }).forEach { candidate ->

@@ -9,14 +9,20 @@ class RecommendationEngineTest {
             MilestoneEngine.evaluate(0), tracked = tracked,
             action = BadgeActionDestination.Flow, canNavigate = true, canProgressNow = remaining > 0)
 
-    @Test fun trackedGoalsComeFirstAndDuplicatesAreSuppressed() {
+    @Test fun trackedGoalsAreExcludedFromWithinReach() {
         val tracked = badge("tracked", BadgeUiCategory.COLLECTIONS, 9, true)
         val result = RecommendationEngine.recommend(listOf(
             badge("flow-near", BadgeUiCategory.FLOW, 1), tracked, tracked,
             badge("mastery-near", BadgeUiCategory.MASTERY, 2)
         ))
-        assertEquals("tracked", result.first().badgeId)
+        assertFalse(result.any { it.badgeId == "tracked" })
         assertEquals(result.size, result.map { it.badgeId }.distinct().size)
+    }
+
+    @Test fun withinReachIsCappedAtThreeAndMayReturnFewer() {
+        val many = (1..8).map { badge("badge-$it", BadgeUiCategory.FLOW, it) }
+        assertEquals(3, RecommendationEngine.recommend(many).size)
+        assertEquals(1, RecommendationEngine.recommend(listOf(badge("only", BadgeUiCategory.FLOW, 1))).size)
     }
 
     @Test fun recommendationsPreferProximityAndCategoryDiversityDeterministically() {

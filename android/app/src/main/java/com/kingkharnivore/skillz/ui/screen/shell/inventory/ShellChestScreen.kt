@@ -70,6 +70,7 @@ import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.domain.achievement.Level99AchievementPreview
 import com.kingkharnivore.skillz.domain.achievement.BadgeDefinitionResolver
+import com.kingkharnivore.skillz.domain.achievement.BadgeRequirement
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -105,18 +106,22 @@ fun ShellChestScreen(
     val allStacks = remember(uiState.finds, uiState.chestSortOption, masteryCounts) {
         buildChestInventoryStacks(uiState.finds, uiState.chestSortOption, masteryCounts)
     }
-    val trackedMasterySpecies = uiState.badgeDashboard?.badges?.filter { it.tracked }
-        ?.mapNotNull { BadgeDefinitionResolver.resolve(it.badgeId).speciesId }?.toSet().orEmpty()
-    val trackedCompletionNeeded = uiState.badgeDashboard?.badges?.filter { it.tracked && it.badgeId.endsWith("_completionist") }
-        ?.flatMap { it.collectionProgress?.missingMasteredSpeciesIds.orEmpty() }?.toSet().orEmpty()
-    val stacks = remember(allStacks, uiState.chestFilter, trackedMasterySpecies, trackedCompletionNeeded) {
+    val neededForTrackedBadges = uiState.badgeDashboard?.badges?.filter { it.tracked }
+        ?.flatMap { badge ->
+            val definition = BadgeDefinitionResolver.resolve(badge.badgeId)
+            definition.speciesId?.let { listOf(it) } ?: when (definition.requirement) {
+                BadgeRequirement.COMPLETIONIST -> badge.collectionProgress?.missingMasteredSpeciesIds.orEmpty().toList()
+                BadgeRequirement.CURATOR -> badge.collectionProgress?.speciesStates.orEmpty().filter { it.ownedCount == 0 }.map { it.speciesId }
+                BadgeRequirement.COLLECTOR, BadgeRequirement.EXACT_COUNT -> emptyList()
+            }
+        }?.toSet().orEmpty()
+    val stacks = remember(allStacks, uiState.chestFilter, neededForTrackedBadges) {
         allStacks.filter { stack -> when (uiState.chestFilter) {
             ChestFilterOption.All -> true
             ChestFilterOption.ClosestToMastery -> stack.level >= 90
             ChestFilterOption.Mastered -> stack.level >= 99
             ChestFilterOption.NotMastered -> stack.level < 99
-            ChestFilterOption.TrackedMastery -> stack.creatureId in trackedMasterySpecies
-            ChestFilterOption.TrackedCompletionist -> stack.creatureId in trackedCompletionNeeded
+            ChestFilterOption.NeededForTrackedBadges -> stack.creatureId in neededForTrackedBadges
             ChestFilterOption.SunlitReef -> CreatureCatalog.get(stack.creatureId)?.zone == CreatureZone.SUNLIT_REEF
             ChestFilterOption.DeeperReef -> CreatureCatalog.get(stack.creatureId)?.zone == CreatureZone.DEEPER_REEF
             ChestFilterOption.OpenBlue -> CreatureCatalog.get(stack.creatureId)?.zone == CreatureZone.OPEN_BLUE
@@ -163,7 +168,8 @@ fun ShellChestScreen(
 
         if (stacks.isEmpty()) {
             if (allStacks.isEmpty()) EmptyChestState(onOpenBlue = onOpenBlue, modifier = Modifier.weight(1f))
-            else FilteredChestEmptyState({ onFilterSelected(ChestFilterOption.All) }, Modifier.weight(1f))
+            else FilteredChestEmptyState({ onFilterSelected(ChestFilterOption.All) }, Modifier.weight(1f),
+                uiState.chestFilter == ChestFilterOption.NeededForTrackedBadges)
         } else {
             LazyVerticalGrid(
                 modifier = Modifier.weight(1f),
@@ -209,10 +215,10 @@ fun ShellChestScreen(
     Box { FilterChip(selected = selected != ChestFilterOption.All, onClick = { expanded = true }, label = { Text(stringResource(selected.labelRes)) }); DropdownMenu(expanded, { expanded = false }) { ChestFilterOption.entries.forEach { option -> DropdownMenuItem(text = { Text(stringResource(option.labelRes)) }, onClick = { expanded = false; onSelected(option) }) } } }
 }
 
-@Composable private fun FilteredChestEmptyState(onClear: () -> Unit, modifier: Modifier = Modifier) {
+@Composable private fun FilteredChestEmptyState(onClear: () -> Unit, modifier: Modifier = Modifier, tracked: Boolean = false) {
     Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center) {
-        Text(stringResource(R.string.chest_filter_empty), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(if (tracked) R.string.chest_filter_tracked_empty else R.string.chest_filter_empty), style = MaterialTheme.typography.titleMedium)
         TextButton(onClick = onClear) { Text(stringResource(R.string.chest_filter_clear)) }
     }
 }
@@ -222,8 +228,7 @@ private val ChestFilterOption.labelRes: Int get() = when(this) {
     ChestFilterOption.ClosestToMastery -> R.string.chest_filter_closest
     ChestFilterOption.Mastered -> R.string.chest_filter_mastered
     ChestFilterOption.NotMastered -> R.string.chest_filter_not_mastered
-    ChestFilterOption.TrackedMastery -> R.string.chest_filter_tracked_mastery
-    ChestFilterOption.TrackedCompletionist -> R.string.chest_filter_tracked_completionist
+    ChestFilterOption.NeededForTrackedBadges -> R.string.chest_filter_needed_tracked
     ChestFilterOption.SunlitReef -> R.string.collection_sunlit_reef
     ChestFilterOption.DeeperReef -> R.string.collection_deeper_reef
     ChestFilterOption.OpenBlue -> R.string.collection_open_blue

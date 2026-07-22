@@ -53,7 +53,7 @@ fun resolveBadgePresentation(badgeId: String): BadgePresentation {
                 "stillwater_first_catch" -> stringResource(R.string.badge_stillwater_first_catch)
                 "stillwater_variety" -> stringResource(R.string.badge_stillwater_variety)
                 "stillwater_mastery" -> stringResource(R.string.badge_stillwater_mastery)
-                else -> stringResource(R.string.badge_generic_title)
+                else -> stringResource(R.string.badge_collection_progress_title)
             }
         }
         val description = when (requirement) {
@@ -96,8 +96,8 @@ fun resolveBadgePresentation(badgeId: String): BadgePresentation {
     }
     if (known != null) return BadgePresentation(badgeId, stringResource(known.first), stringResource(known.second), BadgeArtworkKind.SPECIAL)
     Log.w("BadgePresentation", "Unresolved persisted badge id: $badgeId")
-    return BadgePresentation(badgeId, stringResource(R.string.badge_generic_title),
-        stringResource(R.string.badge_generic_description), BadgeArtworkKind.SPECIAL)
+    return BadgePresentation(badgeId, stringResource(R.string.badge_unavailable_record_title),
+        stringResource(R.string.badge_unavailable_record_description), BadgeArtworkKind.SPECIAL)
 }
 
 @Composable
