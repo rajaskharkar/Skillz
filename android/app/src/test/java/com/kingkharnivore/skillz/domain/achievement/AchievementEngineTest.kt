@@ -6,6 +6,37 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AchievementEngineTest {
+    @Test fun speciesDiscoveryVisibilityDoesNotExposeBadgeBeforeEvidence() {
+        val definition = AchievementBadgeDefinition(
+            badgeId = "secret_species_badge",
+            family = BadgeFamily.SPECIES_MASTERY,
+            countType = BadgeCountType.REPEATABLE,
+            requirement = BadgeRequirement.EXACT_COUNT,
+            speciesId = "future_secret_species",
+            visibility = BadgeVisibility.AFTER_SPECIES_DISCOVERY
+        )
+        val hidden = BadgeVisibilityContext(emptySet(), emptySet(), emptySet())
+        val discovered = hidden.copy(discoveredSpeciesIds = setOf("future_secret_species"))
+
+        assertFalse(BadgeVisibilityEvaluator.isVisible(definition, hidden))
+        assertTrue(BadgeVisibilityEvaluator.isVisible(definition, discovered))
+    }
+
+    @Test fun afterEarnedVisibilityRequiresHistoricalEvidence() {
+        val definition = AchievementBadgeDefinition(
+            badgeId = "unavailable_species_badge",
+            family = BadgeFamily.SPECIES_MASTERY,
+            countType = BadgeCountType.REPEATABLE,
+            requirement = BadgeRequirement.EXACT_COUNT,
+            visibility = BadgeVisibility.AFTER_EARNED
+        )
+        val hidden = BadgeVisibilityContext(emptySet(), emptySet(), emptySet())
+
+        assertFalse(BadgeVisibilityEvaluator.isVisible(definition, hidden))
+        assertTrue(BadgeVisibilityEvaluator.isVisible(
+            definition, hidden.copy(earnedBadgeIds = setOf(definition.badgeId))
+        ))
+    }
     @Test fun unknownBadgesAreHistoricalAndHaveNoFabricatedMilestones() {
         val definition = BadgeDefinitionResolver.resolve("legacy_unknown_badge")
 

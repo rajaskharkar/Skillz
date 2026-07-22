@@ -17,7 +17,30 @@ enum class BadgeFamily { SPECIES_MASTERY, MASTERY, COLLECTION, FLOW, SOFT_FLOW, 
 enum class BadgeCountType { ONE_TIME, REPEATABLE }
 enum class BadgeGoalType { ONE_TIME, REPEATABLE_MILESTONE, COLLECTION, SPECIES_MASTERY, HISTORICAL_COUNT_ONLY }
 enum class BadgeRequirement { EXACT_COUNT, COLLECTOR, CURATOR, COMPLETIONIST }
+enum class BadgeVisibility { ALWAYS, AFTER_SPECIES_DISCOVERY, AFTER_EARNED }
 enum class MasteryTimestampConfidence { EXACT, ESTIMATED_FROM_ACQUISITION, UNKNOWN }
+
+data class BadgeVisibilityContext(
+    val discoveredSpeciesIds: Set<String>,
+    val earnedBadgeIds: Set<String>,
+    val historicallyMasteredSpeciesIds: Set<String>
+)
+
+object BadgeVisibilityEvaluator {
+    fun isVisible(definition: AchievementBadgeDefinition, context: BadgeVisibilityContext): Boolean {
+        if (BadgeDefinitionResolver.isObsolete(definition.badgeId)) return false
+        val species = definition.speciesId?.let(CreatureCatalog::get)
+        val hasHistoricalEvidence = definition.badgeId in context.earnedBadgeIds ||
+            definition.speciesId in context.historicallyMasteredSpeciesIds ||
+            definition.speciesId in context.discoveredSpeciesIds
+        if (species?.isAvailable == false) return hasHistoricalEvidence
+        return when (definition.visibility) {
+            BadgeVisibility.ALWAYS -> true
+            BadgeVisibility.AFTER_SPECIES_DISCOVERY -> definition.speciesId in context.discoveredSpeciesIds || hasHistoricalEvidence
+            BadgeVisibility.AFTER_EARNED -> hasHistoricalEvidence
+        }
+    }
+}
 
 fun boundedMilestones(totalEligible: Int): List<Int> {
     if (totalEligible <= 0) return emptyList()
@@ -87,7 +110,7 @@ data class AchievementBadgeDefinition(
     val milestones: List<Int> = if (countType == BadgeCountType.ONE_TIME) listOf(1) else DEFAULT_MILESTONES,
     val speciesId: String? = null,
     val collectionId: String? = null,
-    val hiddenUntilEarned: Boolean = false,
+    val visibility: BadgeVisibility = BadgeVisibility.ALWAYS,
     val pinnable: Boolean = true,
     val trackable: Boolean = true,
     val importance: Int = 0,
@@ -105,7 +128,16 @@ data class AchievementBadgeDefinition(
 object AchievementBadgeCatalog {
     val definitions: List<AchievementBadgeDefinition> = buildList {
         CreatureCatalog.all.forEach { creature ->
-            add(AchievementBadgeDefinition("mastery_species_${creature.creatureId}", BadgeFamily.SPECIES_MASTERY, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT, speciesId = creature.creatureId))
+            add(AchievementBadgeDefinition(
+                "mastery_species_${creature.creatureId}", BadgeFamily.SPECIES_MASTERY,
+                BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT,
+                speciesId = creature.creatureId,
+                visibility = when {
+                    !creature.isAvailable -> BadgeVisibility.AFTER_EARNED
+                    creature.secretUntilDiscovered -> BadgeVisibility.AFTER_SPECIES_DISCOVERY
+                    else -> BadgeVisibility.ALWAYS
+                }
+            ))
         }
         add(AchievementBadgeDefinition("mastery_first", BadgeFamily.MASTERY, BadgeCountType.ONE_TIME, BadgeRequirement.EXACT_COUNT))
         add(AchievementBadgeDefinition("mastery_circle", BadgeFamily.MASTERY, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT))
@@ -145,7 +177,9 @@ object BadgeDefinitionResolver {
     /** Persisted for migration safety, but belongs to the retired discovery-journal system. */
     private val obsoleteBadgeIds = setOf("badge_discovery")
 
-    fun isUserVisible(badgeId: String): Boolean = badgeId !in obsoleteBadgeIds &&
+    fun isObsolete(badgeId: String): Boolean = badgeId in obsoleteBadgeIds
+
+    fun isUserVisible(badgeId: String): Boolean = !isObsolete(badgeId) &&
         resolve(badgeId).goalType != BadgeGoalType.HISTORICAL_COUNT_ONLY
 
     fun resolve(badgeId: String): AchievementBadgeDefinition {
@@ -242,6 +276,14 @@ data class CollectionSpeciesProgress(
     val timestampConfidence: MasteryTimestampConfidence = MasteryTimestampConfidence.UNKNOWN,
     val action: CollectionSpeciesAction = CollectionSpeciesAction.None
 )
+
+data class SpecialBadgeRequirement(val collectionId: String, val complete: Boolean)
+sealed interface SpecialBadgeProgress {
+    val requirements: List<SpecialBadgeRequirement>
+    data class AcrossTheDepths(override val requirements: List<SpecialBadgeRequirement>) : SpecialBadgeProgress
+    data class OneFromEveryWater(override val requirements: List<SpecialBadgeRequirement>) : SpecialBadgeProgress
+    data class KeeperOfTheBlue(override val requirements: List<SpecialBadgeRequirement>) : SpecialBadgeProgress
+}
 
 sealed interface CollectionSpeciesAction {
     data class ViewInChest(val speciesId: String) : CollectionSpeciesAction

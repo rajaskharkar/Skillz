@@ -132,14 +132,42 @@ private data class ShellPreferenceState(
     val chestFilter: ChestFilterOption
 )
 
+sealed interface AchievementInitializationState {
+    data object NotStarted : AchievementInitializationState
+    data object Running : AchievementInitializationState
+    data object Complete : AchievementInitializationState
+    data class Failed(val retryable: Boolean, val errorCategory: String) : AchievementInitializationState
+}
+
 @HiltViewModel
 class ShellViewModel @Inject constructor(
     private val repository: ShellRepository,
     private val userPrefs: UserPrefs
 ) : ViewModel() {
-    init { viewModelScope.launch { runCatching { repository.backfillAchievements() } } }
     private val _events = MutableSharedFlow<UiText>()
     val events: SharedFlow<UiText> = _events
+    private val _achievementInitialization = MutableStateFlow<AchievementInitializationState>(AchievementInitializationState.NotStarted)
+    val achievementInitialization: StateFlow<AchievementInitializationState> = _achievementInitialization
+
+    init { initializeAchievements() }
+
+    fun initializeAchievements() {
+        if (_achievementInitialization.value in setOf(
+                AchievementInitializationState.Running,
+                AchievementInitializationState.Complete
+            )) return
+        viewModelScope.launch {
+            _achievementInitialization.value = AchievementInitializationState.Running
+            runCatching { repository.backfillAchievements() }
+                .onSuccess { _achievementInitialization.value = AchievementInitializationState.Complete }
+                .onFailure { failure ->
+                    _achievementInitialization.value = AchievementInitializationState.Failed(
+                        retryable = true,
+                        errorCategory = failure::class.simpleName ?: "AchievementInitializationFailure"
+                    )
+                }
+        }
+    }
 
     private val stillwaterRevealCreature = MutableStateFlow<CreatureDefinition?>(null)
     private val pendingStillwaterDrawVessel = MutableStateFlow<StillwaterVessel?>(null)
@@ -259,7 +287,16 @@ class ShellViewModel @Inject constructor(
     fun dismissPinReplacement() { pinReplacement.value = null }
     fun unpinBadge(badgeId: String) = viewModelScope.launch { repository.unpinBadge(badgeId) }
     fun trackBadge(badgeId: String) = viewModelScope.launch {
-        runCatching { repository.trackBadge(badgeId) }.onFailure { _events.emit(UiText.Resource(R.string.shell_message_track_failed)) }
+        val unlockedZones = deriveUnlockedBlueZonesFromHistoricalFinds(uiState.value.finds)
+        runCatching {
+            repository.trackBadge(
+                badgeId,
+                AchievementAccessState(
+                    unlockedBlueZones = unlockedZones,
+                    unlockedStillwaterVessels = StillwaterVessel.entries.filterTo(mutableSetOf()) { it.zone in unlockedZones }
+                )
+            )
+        }.onFailure { _events.emit(UiText.Resource(R.string.shell_message_track_failed)) }
     }
     fun untrackBadge(badgeId: String) = viewModelScope.launch { repository.untrackBadge(badgeId) }
     fun markBadgeViewed(badgeId: String) = viewModelScope.launch {

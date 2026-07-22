@@ -3,6 +3,7 @@ package com.kingkharnivore.skillz.ui.screen.shell.inventory
 import com.kingkharnivore.skillz.domain.achievement.BadgeProgressModel
 import com.kingkharnivore.skillz.domain.achievement.BadgeGoalType
 import com.kingkharnivore.skillz.domain.achievement.BadgeActionDestination
+import com.kingkharnivore.skillz.domain.achievement.BadgeCountType
 import com.kingkharnivore.skillz.domain.achievement.BadgeUiCategory
 import com.kingkharnivore.skillz.domain.achievement.CollectionSpeciesAction
 import com.kingkharnivore.skillz.domain.achievement.MilestoneEngine
@@ -18,10 +19,9 @@ class BadgeMedallionCountTest {
         assertEquals("999", compactCount(999, Locale.US))
     }
 
-    @Test fun largeCountsUseCompactPresentation() {
-        val result = compactCount(1_200, Locale.US)
-        assert(result.isNotBlank())
-        assert(result != "1200")
+    @Test fun largeCountsUseLocaleAwareGroupingWithoutEnglishSuffixes() {
+        assertEquals("1,200", compactCount(1_200, Locale.US))
+        assertEquals("1.200", compactCount(1_200, Locale.forLanguageTag("es")))
     }
 
     @Test fun earnedRepeatableBadgeAlwaysUsesCompleteUnlockRing() {
@@ -40,7 +40,8 @@ class BadgeMedallionCountTest {
     @Test fun earnedOneTimeBadgeDoesNotShowMilestoneProgress() {
         val badge = BadgeProgressModel("mastery_first", 1, true, BadgeUiCategory.MASTERY,
             progress = 1, target = 1, remaining = 0, milestone = MilestoneEngine.evaluate(1),
-            goalType = BadgeGoalType.ONE_TIME)
+            goalType = BadgeGoalType.ONE_TIME, countType = BadgeCountType.ONE_TIME,
+            terminal = true, nextTarget = null)
 
         assertEquals(false, showsMilestoneProgress(badge))
     }
