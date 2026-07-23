@@ -12,6 +12,10 @@ interface AchievementDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun recordDiscovery(value: CreatureDiscoveryEntity): Long
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun recordMastery(value: CreatureMasteryEventEntity): Long
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun recordCompletion(value: CollectionCompletionEntity): Long
+    @Query("SELECT * FROM collection_completion WHERE completionId = :id")
+    suspend fun getCompletion(id: String): CollectionCompletionEntity?
+    @Query("UPDATE collection_completion SET completedAt = :completedAt, timestampConfidence = :confidence WHERE completionId = :id")
+    suspend fun updateCompletionEvidence(id: String, completedAt: Long, confidence: String): Int
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun recordEvent(value: AchievementEventEntity): Long
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun recordBackfill(value: AchievementBackfillEntity)
 

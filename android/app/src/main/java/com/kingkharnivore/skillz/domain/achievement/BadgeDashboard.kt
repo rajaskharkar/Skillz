@@ -36,6 +36,7 @@ data class BadgeProgressModel(
     val milestone: MilestoneProgress,
     val firstEarnedAt: Long? = null,
     val lastAdvancedAt: Long? = null,
+    val timestampConfidence: AchievementTimestampConfidence = AchievementTimestampConfidence.UNKNOWN,
     val pinnedOrder: Int? = null,
     val tracked: Boolean = false,
     val collectionProgress: CollectionProgress? = null,
@@ -123,8 +124,17 @@ object BadgeDashboardCalculator {
         val historical = completions.groupBy { it.collectionId }.mapValues { (_, rows) ->
             rows.mapNotNull { runCatching { BadgeRequirement.valueOf(it.completionType) }.getOrNull() }.toSet()
         }
-        val collectionProgress = CollectionCatalog.collections.map {
-            CollectionProgressCalculator.calculate(it, discovered, activeLevels, masteryEvidence, historical[it.collectionId].orEmpty())
+        val collectionProgress = CollectionCatalog.collections.map { definition ->
+            val history = completions.filter { it.collectionId == definition.collectionId }
+                .mapNotNull { row -> runCatching { BadgeRequirement.valueOf(row.completionType) }.getOrNull()?.let { it to row } }
+                .groupBy({ it.first }, { it.second })
+                .mapValues { (_, rows) ->
+                    val best = rows.minWithOrNull(compareBy<CollectionCompletionEntity> { it.completedAt == null }.thenBy { it.completedAt })!!
+                    CollectionCompletionEvidence(best.completedAt, best.timestampConfidence)
+                }
+            CollectionProgressCalculator.calculate(
+                definition, discovered, activeLevels, masteryEvidence, historical[definition.collectionId].orEmpty()
+            ).copy(historicalCompletions = history)
         }
         val collectionById = collectionProgress.associateBy { it.collectionId }
         val visibilityContext = BadgeVisibilityContext(
@@ -137,6 +147,10 @@ object BadgeDashboardCalculator {
         val badges = definitions.map { definition ->
             val stored = earnedById[definition.badgeId]
             val collection = definition.collectionId?.let(collectionById::get)
+            val historicalCompletion = definition.collectionId?.let { collectionId ->
+                completions.filter { it.collectionId == collectionId && it.completionType == definition.requirement.name }
+                    .minWithOrNull(compareBy<CollectionCompletionEntity> { it.completedAt == null }.thenBy { it.completedAt })
+            }
             val speciesLevels = definition.speciesId?.let { activeLevels[it].orEmpty() }.orEmpty()
             val currentVerified = when (definition.requirement) {
                 BadgeRequirement.COLLECTOR -> if (collection?.collectorEarned == true) 1 else 0
@@ -204,7 +218,7 @@ object BadgeDashboardCalculator {
                 BadgeRequirement.COMPLETIONIST -> collection?.currentRosterCompletionistComplete == true
                 BadgeRequirement.EXACT_COUNT -> currentVerified > 0
             }
-            val everEarned = (stored?.count ?: 0) > 0 || evidenceProvesCurrentCompletion
+            val everEarned = (stored?.count ?: 0) > 0 || historicalCompletion != null || evidenceProvesCurrentCompletion
             val terminal = definition.countType == BadgeCountType.ONE_TIME && everEarned && !currentRosterIncomplete
             val milestoneCount = if (boundedRosterBadge) currentVerified else lifetimeCount
             val hasNextMilestone = definition.countType == BadgeCountType.REPEATABLE &&
@@ -234,7 +248,10 @@ object BadgeDashboardCalculator {
             }
             BadgeProgressModel(definition.badgeId, lifetimeCount, everEarned, category(definition), progress,
                 target, (target - progress).coerceAtLeast(0), MilestoneEngine.evaluate(milestoneCount, thresholds = definition.milestones),
-                stored?.firstEarnedAt, stored?.lastEarnedAt, pinOrder[definition.badgeId],
+                stored?.firstEarnedAt ?: historicalCompletion?.completedAt,
+                stored?.lastEarnedAt ?: historicalCompletion?.completedAt,
+                historicalCompletion?.timestampConfidence ?: stored?.timestampConfidence ?: AchievementTimestampConfidence.UNKNOWN,
+                pinOrder[definition.badgeId],
                 definition.badgeId in tracked,
                 collection, speciesLevels.maxOrNull(), primaryAction,
                 stored?.viewedAt == null && stored != null && stored.firstEarnedAt == stored.lastEarnedAt,

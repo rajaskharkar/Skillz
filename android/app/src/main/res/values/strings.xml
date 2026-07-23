@@ -2015,6 +2015,8 @@ You can turn Health back on later.</string>
     <string name="badge_current_milestone">Current milestone: %1$d</string>
     <string name="badge_next_milestone">Next milestone: %1$d</string>
     <string name="badge_first_earned">First earned: %1$s</string>
+    <string name="badge_earned_date_estimated">Estimated earned date: %1$s</string>
+    <string name="badge_earned_date_unavailable">Earned — date unavailable</string>
     <string name="badge_last_advanced">Last advanced: %1$s</string>
     <string name="badge_pin">Pin</string>
     <string name="badge_unpin">Unpin</string>

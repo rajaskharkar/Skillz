@@ -3,6 +3,7 @@ package com.kingkharnivore.skillz.data.model.entity.shell
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.kingkharnivore.skillz.domain.achievement.AchievementTimestampConfidence
 
 /** Permanent, sync-friendly evidence that a species has been owned. */
 @Entity(tableName = "creature_discovery", indices = [Index("firstCreatureId")])
@@ -36,7 +37,8 @@ data class CollectionCompletionEntity(
     @PrimaryKey val completionId: String,
     val collectionId: String,
     val completionType: String,
-    val completedAt: Long,
+    val completedAt: Long?,
+    val timestampConfidence: AchievementTimestampConfidence,
     val rosterVersion: Int,
     val rosterHash: String,
     val requiredSpeciesIds: String

@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 35.
+     * Current database version is 36.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -225,6 +225,39 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    /** Preserves proven historical collection achievements whose original date is unavailable. */
+    val MIGRATION_35_36 = object : Migration(35, 36) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `user_badge` ADD COLUMN `timestampConfidence` TEXT NOT NULL DEFAULT 'EXACT'")
+            db.execSQL(
+                """CREATE TABLE `collection_completion_new` (
+                    `completionId` TEXT NOT NULL,
+                    `collectionId` TEXT NOT NULL,
+                    `completionType` TEXT NOT NULL,
+                    `completedAt` INTEGER,
+                    `timestampConfidence` TEXT NOT NULL,
+                    `rosterVersion` INTEGER NOT NULL,
+                    `rosterHash` TEXT NOT NULL,
+                    `requiredSpeciesIds` TEXT NOT NULL,
+                    PRIMARY KEY(`completionId`)
+                )""".trimIndent()
+            )
+            db.execSQL(
+                """INSERT INTO `collection_completion_new`
+                    (`completionId`, `collectionId`, `completionType`, `completedAt`,
+                     `timestampConfidence`, `rosterVersion`, `rosterHash`, `requiredSpeciesIds`)
+                    SELECT `completionId`, `collectionId`, `completionType`,
+                           CASE WHEN `completedAt` > 0 THEN `completedAt` ELSE NULL END,
+                           CASE WHEN `completedAt` > 0 THEN 'EXACT' ELSE 'UNKNOWN' END,
+                           `rosterVersion`, `rosterHash`, `requiredSpeciesIds`
+                    FROM `collection_completion`""".trimIndent()
+            )
+            db.execSQL("DROP TABLE `collection_completion`")
+            db.execSQL("ALTER TABLE `collection_completion_new` RENAME TO `collection_completion`")
+            db.execSQL("CREATE UNIQUE INDEX `index_collection_completion_collectionId_completionType_rosterHash` ON `collection_completion` (`collectionId`, `completionType`, `rosterHash`)")
+        }
+    }
+
     private fun normalizePostAnchorTestSchemaToTargetBranch(db: SupportSQLiteDatabase) {
         db.execSQL("PRAGMA foreign_keys=OFF")
 
@@ -380,7 +413,8 @@ object SkillzDatabaseMigrations {
                 MIGRATION_31_32 +
                 MIGRATION_32_33 +
                 MIGRATION_33_34 +
-                MIGRATION_34_35
+                MIGRATION_34_35 +
+                MIGRATION_35_36
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(

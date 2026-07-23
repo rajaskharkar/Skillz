@@ -126,7 +126,7 @@ class AchievementEngineTest {
         } + CreatureMasteryEventEntity("late", "late", "unrelated", 9_999L, "live-late")
 
         assertEquals(100L, AchievementTimestampCalculator.firstMasteryTimestamp(events)?.timestamp)
-        assertEquals(MasteryTimestampConfidence.ESTIMATED_FROM_ACQUISITION,
+        assertEquals(AchievementTimestampConfidence.ESTIMATED_FROM_ACQUISITION,
             AchievementTimestampCalculator.firstMasteryTimestamp(events)?.confidence)
         assertEquals(500L, AchievementTimestampCalculator.masteryThresholdTimestamp(events, 5)?.timestamp)
         assertEquals(300L, AchievementTimestampCalculator.masteryVarietyThresholdTimestamp(events, 3)?.timestamp)
@@ -137,8 +137,47 @@ class AchievementEngineTest {
 
         assertNull(AchievementTimestampCalculator.firstMasteryTimestamp(listOf(unknown)))
         assertNull(AchievementTimestampCalculator.masteryThresholdTimestamp(listOf(unknown), 1))
-        assertEquals(MasteryTimestampConfidence.UNKNOWN,
+        assertEquals(AchievementTimestampConfidence.UNKNOWN,
             MasteryEvidenceCalculator.bySpecies(listOf(unknown), emptyList()).getValue("species").timestampConfidence)
+    }
+
+    @Test fun aggregateConfidenceIsConservative() {
+        val exact = EvidenceTimestamp(100L, AchievementTimestampConfidence.EXACT)
+        val estimated = EvidenceTimestamp(200L, AchievementTimestampConfidence.ESTIMATED_FROM_ACQUISITION)
+        assertEquals(AchievementTimestampConfidence.EXACT,
+            AchievementTimestampCalculator.combineConfidence(listOf(exact)))
+        assertEquals(AchievementTimestampConfidence.ESTIMATED_FROM_ACQUISITION,
+            AchievementTimestampCalculator.combineConfidence(listOf(exact, estimated)))
+        assertEquals(AchievementTimestampConfidence.UNKNOWN,
+            AchievementTimestampCalculator.combineConfidence(listOf(exact, null)))
+        assertNull(AchievementTimestampCalculator.completionTimestamp(listOf(exact, null)))
+        assertEquals(AchievementTimestampConfidence.ESTIMATED_FROM_ACQUISITION,
+            AchievementTimestampCalculator.strongestConfidence(
+                AchievementTimestampConfidence.UNKNOWN, AchievementTimestampConfidence.ESTIMATED_FROM_ACQUISITION
+            ))
+        assertEquals(AchievementTimestampConfidence.EXACT,
+            AchievementTimestampCalculator.strongestConfidence(
+                AchievementTimestampConfidence.EXACT, AchievementTimestampConfidence.UNKNOWN
+            ))
+    }
+
+    @Test fun undatedHistoricalCollectionCompletionRemainsEarned() {
+        val collection = CollectionCatalog.collections.first()
+        val requirement = BadgeRequirement.COMPLETIONIST
+        val completion = CollectionCompletionEntity(
+            CollectionCompletionIdentity.forRoster(collection.collectionId, requirement, "legacy"),
+            collection.collectionId, requirement.name, null, AchievementTimestampConfidence.UNKNOWN,
+            collection.rosterVersion, "legacy", collection.eligibleRoster(requirement).joinToString(",")
+        )
+        val badge = BadgeDashboardCalculator.calculate(
+            earned = emptyList(), instances = emptyList(), discoveries = emptyList(), masteries = emptyList(),
+            completions = listOf(completion), pins = emptyList(), tracking = emptyList()
+        ).badges.first { it.badgeId == "${collection.collectionId}_completionist" }
+
+        assertTrue(badge.everEarned)
+        assertFalse(badge.currentRosterComplete ?: true)
+        assertNull(badge.firstEarnedAt)
+        assertEquals(AchievementTimestampConfidence.UNKNOWN, badge.timestampConfidence)
     }
 
     @Test fun discoveryVarietyTimestampIgnoresUnrelatedLaterEvidence() {
@@ -187,9 +226,9 @@ class AchievementEngineTest {
         )
         val completions = collections.mapIndexed { index, collection ->
             CollectionCompletionEntity("c$index", collection.collectionId, BadgeRequirement.COLLECTOR.name,
-                500L + index * 100, 1, "hash-$index", species[index].creatureId)
+                500L + index * 100, AchievementTimestampConfidence.EXACT, 1, "hash-$index", species[index].creatureId)
         } + CollectionCompletionEntity("late", "unrelated", BadgeRequirement.COLLECTOR.name,
-            9_999L, 1, "late", "unrelated")
+            9_999L, AchievementTimestampConfidence.EXACT, 1, "late", "unrelated")
 
         assertEquals(300L, AchievementTimestampCalculator.acrossTheDepthsTimestamp(discoveries, collections)?.timestamp)
         assertEquals(400L, AchievementTimestampCalculator.oneFromEveryWaterTimestamp(masteries, collections)?.timestamp)

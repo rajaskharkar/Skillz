@@ -20,11 +20,11 @@ enum class BadgeCountType { ONE_TIME, REPEATABLE }
 enum class BadgeGoalType { ONE_TIME, REPEATABLE_MILESTONE, COLLECTION, SPECIES_MASTERY, HISTORICAL_COUNT_ONLY }
 enum class BadgeRequirement { EXACT_COUNT, COLLECTOR, CURATOR, COMPLETIONIST }
 enum class BadgeVisibility { ALWAYS, AFTER_SPECIES_DISCOVERY, AFTER_EARNED }
-enum class MasteryTimestampConfidence { EXACT, ESTIMATED_FROM_ACQUISITION, UNKNOWN }
+enum class AchievementTimestampConfidence { EXACT, ESTIMATED_FROM_ACQUISITION, UNKNOWN }
 
 data class EvidenceTimestamp(
     val timestamp: Long,
-    val confidence: MasteryTimestampConfidence
+    val confidence: AchievementTimestampConfidence
 )
 
 data class ScopedAchievementEvidence(
@@ -54,13 +54,37 @@ object CollectionCompletionIdentity {
 
 /** Pure reconstruction rules for historical dates. A missing event never becomes "now". */
 object AchievementTimestampCalculator {
+    fun strongestConfidence(
+        current: AchievementTimestampConfidence,
+        candidate: AchievementTimestampConfidence
+    ): AchievementTimestampConfidence {
+        fun rank(value: AchievementTimestampConfidence) = when (value) {
+            AchievementTimestampConfidence.UNKNOWN -> 0
+            AchievementTimestampConfidence.ESTIMATED_FROM_ACQUISITION -> 1
+            AchievementTimestampConfidence.EXACT -> 2
+        }
+        return if (rank(candidate) > rank(current)) candidate else current
+    }
+    fun combineConfidence(evidence: List<EvidenceTimestamp?>): AchievementTimestampConfidence = when {
+        evidence.any { it == null } -> AchievementTimestampConfidence.UNKNOWN
+        evidence.any { it?.confidence == AchievementTimestampConfidence.UNKNOWN } -> AchievementTimestampConfidence.UNKNOWN
+        evidence.any { it?.confidence == AchievementTimestampConfidence.ESTIMATED_FROM_ACQUISITION } ->
+            AchievementTimestampConfidence.ESTIMATED_FROM_ACQUISITION
+        else -> AchievementTimestampConfidence.EXACT
+    }
+
+    fun completionTimestamp(evidence: List<EvidenceTimestamp?>): EvidenceTimestamp? {
+        val timestamp = evidence.mapNotNull { it }.maxOfOrNull { it.timestamp } ?: return null
+        val confidence = combineConfidence(evidence)
+        return if (confidence == AchievementTimestampConfidence.UNKNOWN) null else EvidenceTimestamp(timestamp, confidence)
+    }
     private fun CreatureMasteryEventEntity.evidenceTimestamp(): EvidenceTimestamp? =
         achievedAt.takeIf { it > 0 }?.let { timestamp ->
             EvidenceTimestamp(
                 timestamp,
                 if (levelUpTransactionId.startsWith("backfill_"))
-                    MasteryTimestampConfidence.ESTIMATED_FROM_ACQUISITION
-                else MasteryTimestampConfidence.EXACT
+                    AchievementTimestampConfidence.ESTIMATED_FROM_ACQUISITION
+                else AchievementTimestampConfidence.EXACT
             )
         }
 
@@ -93,7 +117,7 @@ object AchievementTimestampCalculator {
     ): EvidenceTimestamp? = discoveries
         .filter { it.firstDiscoveredAt > 0 && (participatingSpecies == null || it.speciesId in participatingSpecies) }
         .distinctBy { it.speciesId }.sortedBy { it.firstDiscoveredAt }.getOrNull(threshold - 1)
-        ?.let { EvidenceTimestamp(it.firstDiscoveredAt, MasteryTimestampConfidence.EXACT) }
+        ?.let { EvidenceTimestamp(it.firstDiscoveredAt, AchievementTimestampConfidence.EXACT) }
 
     fun acrossTheDepthsTimestamp(
         discoveries: List<CreatureDiscoveryEntity>,
@@ -102,7 +126,7 @@ object AchievementTimestampCalculator {
         val roster = collection.eligibleRoster(BadgeRequirement.COLLECTOR)
         discoveries.filter { it.speciesId in roster && it.firstDiscoveredAt > 0 }.minOfOrNull { it.firstDiscoveredAt }
             ?: return null
-    }.maxOrNull()?.let { EvidenceTimestamp(it, MasteryTimestampConfidence.EXACT) }
+    }.maxOrNull()?.let { EvidenceTimestamp(it, AchievementTimestampConfidence.EXACT) }
 
     fun oneFromEveryWaterTimestamp(
         masteries: List<CreatureMasteryEventEntity>,
@@ -113,8 +137,8 @@ object AchievementTimestampCalculator {
             firstMasteryTimestamp(masteries.filter { it.speciesId in roster }) ?: return null
         }
         return requirements.maxByOrNull { it.timestamp }?.let { latest ->
-            latest.copy(confidence = if (requirements.any { it.confidence == MasteryTimestampConfidence.UNKNOWN })
-                MasteryTimestampConfidence.UNKNOWN else latest.confidence)
+            latest.copy(confidence = if (requirements.any { it.confidence == AchievementTimestampConfidence.UNKNOWN })
+                AchievementTimestampConfidence.UNKNOWN else latest.confidence)
         }
     }
 
@@ -125,11 +149,12 @@ object AchievementTimestampCalculator {
         val required = requiredCollectionIds.map { id ->
             completions.filter {
                 it.collectionId == id && it.completionType == BadgeRequirement.COLLECTOR.name &&
-                    it.completedAt > 0
-            }.minByOrNull { it.completedAt } ?: return null
+                    it.completedAt != null && it.completedAt > 0
+            }.minByOrNull { it.completedAt ?: Long.MAX_VALUE } ?: return null
         }
-        return required.maxOfOrNull { it.completedAt }
-            ?.let { EvidenceTimestamp(it, MasteryTimestampConfidence.EXACT) }
+        return completionTimestamp(required.map {
+            it.completedAt?.let { timestamp -> EvidenceTimestamp(timestamp, it.timestampConfidence) }
+        })
     }
 }
 
@@ -170,7 +195,7 @@ data class SpeciesMasteryEvidence(
     val currentLevel99Count: Int = 0,
     val firstMasteryAt: Long? = null,
     val latestMasteryAt: Long? = null,
-    val timestampConfidence: MasteryTimestampConfidence = MasteryTimestampConfidence.UNKNOWN
+    val timestampConfidence: AchievementTimestampConfidence = AchievementTimestampConfidence.UNKNOWN
 )
 
 /** One count-floor rule shared by persistence, dashboards, previews, and celebrations. */
@@ -206,9 +231,9 @@ object MasteryEvidenceCalculator {
                     firstMasteryAt = earliest?.achievedAt,
                     latestMasteryAt = speciesEvents.filter { it.achievedAt > 0 }.maxOfOrNull { it.achievedAt },
                     timestampConfidence = when {
-                        earliest == null -> MasteryTimestampConfidence.UNKNOWN
-                        earliest.levelUpTransactionId.startsWith("backfill_") -> MasteryTimestampConfidence.ESTIMATED_FROM_ACQUISITION
-                        else -> MasteryTimestampConfidence.EXACT
+                        earliest == null -> AchievementTimestampConfidence.UNKNOWN
+                        earliest.levelUpTransactionId.startsWith("backfill_") -> AchievementTimestampConfidence.ESTIMATED_FROM_ACQUISITION
+                        else -> AchievementTimestampConfidence.EXACT
                     }
                 )
             }
@@ -369,7 +394,12 @@ data class CollectionProgress(
     val missingCurrentlyOwnedSpeciesIds: Set<String>,
     val missingMasteredSpeciesIds: Set<String>,
     val closestCurrentCreatureToMastery: String?,
-    val speciesStates: List<CollectionSpeciesProgress> = emptyList()
+    val speciesStates: List<CollectionSpeciesProgress> = emptyList(),
+    val historicalCompletions: Map<BadgeRequirement, CollectionCompletionEvidence> = emptyMap()
+)
+data class CollectionCompletionEvidence(
+    val completedAt: Long?,
+    val timestampConfidence: AchievementTimestampConfidence
 )
 data class CollectionSpeciesProgress(
     val speciesId: String,
@@ -386,7 +416,7 @@ data class CollectionSpeciesProgress(
     val requiredByCurator: Boolean = false,
     val requiredByCompletionist: Boolean = false,
     val sourceId: String? = null,
-    val timestampConfidence: MasteryTimestampConfidence = MasteryTimestampConfidence.UNKNOWN,
+    val timestampConfidence: AchievementTimestampConfidence = AchievementTimestampConfidence.UNKNOWN,
     val action: CollectionSpeciesAction = CollectionSpeciesAction.None
 )
 
@@ -443,7 +473,7 @@ object CollectionProgressCalculator {
                     requiredByCurator = creature.creatureId in collectorRoster,
                     requiredByCompletionist = creature.creatureId in masteryRoster,
                     sourceId = creature.sourceType.name,
-                    timestampConfidence = evidence?.timestampConfidence ?: MasteryTimestampConfidence.UNKNOWN,
+                    timestampConfidence = evidence?.timestampConfidence ?: AchievementTimestampConfidence.UNKNOWN,
                     action = when {
                         creature.secretUntilDiscovered && creature.creatureId !in discovered -> CollectionSpeciesAction.None
                         levels.isNotEmpty() -> CollectionSpeciesAction.ViewInChest(creature.creatureId)

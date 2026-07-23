@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.kingkharnivore.skillz.domain.achievement.AchievementTimestampConfidence
 
 @Entity(tableName = "pearl_ledger")
 data class PearlLedgerEntity(
@@ -87,7 +88,9 @@ data class UserBadgeEntity(
     val lastEarnedAt: Long,
     val isNew: Boolean,
     @ColumnInfo(defaultValue = "NULL")
-    val viewedAt: Long? = null
+    val viewedAt: Long? = null,
+    @ColumnInfo(defaultValue = "'EXACT'")
+    val timestampConfidence: AchievementTimestampConfidence = AchievementTimestampConfidence.EXACT
 )
 
 @Entity(

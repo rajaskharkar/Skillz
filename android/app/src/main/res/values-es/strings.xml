@@ -1954,6 +1954,8 @@ Puedes volver a activar Health más tarde.</string>
     <string name="badge_every_water_description">Master at least one participating creature from every Blue region and every Stillwater vessel.</string>
     <string name="badge_exact_count">Exact count: %1$s</string>
     <string name="badge_first_earned">First earned: %1$s</string>
+    <string name="badge_earned_date_estimated">Fecha estimada de obtención: %1$s</string>
+    <string name="badge_earned_date_unavailable">Conseguido — fecha no disponible</string>
     <string name="badge_first_mastery">First Mastery</string>
     <string name="badge_first_mastery_description">Reach Level 99 with any creature.</string>
     <string name="badge_keeper_blue">Keeper of The Blue</string>

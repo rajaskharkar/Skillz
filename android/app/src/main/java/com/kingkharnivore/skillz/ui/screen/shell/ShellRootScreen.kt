@@ -155,10 +155,10 @@ fun ShellRootScreen(
 
     fun handleNavigationResult(requestId: String, result: NavigationConsumptionResult) {
         if (pendingNavigation?.requestId != requestId) return
-        if (!handledNavigationRequestIds.add(requestId)) return
         when (result) {
-            NavigationConsumptionResult.Pending -> Unit
+            NavigationConsumptionResult.Pending -> return
             NavigationConsumptionResult.Consumed -> {
+                if (!handledNavigationRequestIds.add(requestId)) return
                 if (NotificationAcknowledgementPolicy.shouldMarkViewed(result)) {
                     pendingNavigation?.notificationId?.let(viewModel::markNotificationViewed)
                 }
@@ -166,6 +166,7 @@ fun ShellRootScreen(
                 showNotifications = false
             }
             is NavigationConsumptionResult.Failed -> {
+                if (!handledNavigationRequestIds.add(requestId)) return
                 Log.w("ShellNavigation", "request_failed reason=${result.reason} request=${pendingNavigation?.javaClass?.simpleName}")
                 pendingNavigation = null
             }

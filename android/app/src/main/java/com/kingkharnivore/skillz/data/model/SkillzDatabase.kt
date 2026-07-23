@@ -84,7 +84,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
         MasteryCelebrationEventEntity::class,
         BadgeCountFloorEntity::class
     ],
-    version = 35,
+    version = 36,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
