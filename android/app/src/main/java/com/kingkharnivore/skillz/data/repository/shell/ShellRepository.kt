@@ -897,78 +897,216 @@ class ShellRepository @Inject constructor(
             historicallyMasteredSpeciesIds = achievementDao.getMasteries().mapTo(mutableSetOf()) { it.speciesId }
         )
 
-    private suspend fun persistCurrentCollectionCompletions(occurredAt: Long, historicalBackfill: Boolean = false): Int {
-        val discoveries = achievementDao.getDiscoveries().map { it.speciesId }.toSet()
-        val owned = findInstanceDao.getAll()
+    private suspend fun persistCurrentCollectionCompletions(
+        occurredAt: Long,
+        historicalBackfill: Boolean = false
+    ): Int {
+        val discoveryRows = achievementDao.getDiscoveries()
+        val discoveries = discoveryRows.mapTo(mutableSetOf()) { it.speciesId }
+
+        val allInstances = findInstanceDao.getAll()
+        val owned = allInstances
             .filter { it.creatureStatus == CreatureStatus.ACTIVE }
-            .groupBy({ it.findId }, { it.animalLevel })
+            .groupBy(
+                keySelector = { it.findId },
+                valueTransform = { it.animalLevel }
+            )
+
         val evidence = masteryEvidence(owned)
         var inserted = 0
+
         CollectionCatalog.collections.forEach { collection ->
-            val progress = CollectionProgressCalculator.calculate(collection, discoveries, owned, evidence)
-            listOf(
+            val progress = CollectionProgressCalculator.calculate(
+                definition = collection,
+                discovered = discoveries,
+                ownedLevels = owned,
+                masteryEvidence = evidence
+            )
+
+            val completedRequirements = listOf(
                 BadgeRequirement.COLLECTOR to progress.currentRosterCollectorComplete,
                 BadgeRequirement.CURATOR to progress.currentRosterCuratorComplete,
                 BadgeRequirement.COMPLETIONIST to progress.currentRosterCompletionistComplete
-            ).filter { it.second }.forEach { (type, _) ->
+            ).filter { (_, complete) -> complete }
+
+            completedRequirements.forEach { (type, _) ->
                 val eligibleRoster = collection.eligibleRoster(type)
                 val rosterHash = collection.rosterHash(type)
-                val evidenceTimestamp = if (!historicalBackfill) {
-                    EvidenceTimestamp(occurredAt, AchievementTimestampConfidence.EXACT)
-                } else when (type) {
-                    BadgeRequirement.COLLECTOR -> {
-                        val rows = achievementDao.getDiscoveries().groupBy { it.speciesId }
-                        AchievementTimestampCalculator.completionTimestamp(eligibleRoster.map { speciesId ->
-                            rows[speciesId]?.minOfOrNull { it.firstDiscoveredAt }?.takeIf { it > 0 }
-                                ?.let { EvidenceTimestamp(it, AchievementTimestampConfidence.EXACT) }
-                        })
-                    }
-                    BadgeRequirement.CURATOR -> {
-                        val rows = findInstanceDao.getAll()
-                        // Active ownership proves the current Curator edition. Released rows do
-                        // not prove that the full roster was owned simultaneously; only an
-                        // existing immutable completion row preserves that historical claim.
-                        .filter { it.creatureStatus == CreatureStatus.ACTIVE && it.findId in eligibleRoster && it.acquiredAt > 0 }
-                        .groupBy { it.findId }
-                        AchievementTimestampCalculator.completionTimestamp(eligibleRoster.map { speciesId ->
-                            rows[speciesId]?.minOfOrNull { it.acquiredAt }
-                                ?.let { EvidenceTimestamp(it, AchievementTimestampConfidence.ESTIMATED_FROM_ACQUISITION) }
-                        })
-                    }
-                    BadgeRequirement.COMPLETIONIST -> AchievementTimestampCalculator.completionTimestamp(
-                        eligibleRoster.map { speciesId -> evidence[speciesId]?.let { speciesEvidence ->
-                            speciesEvidence.firstMasteryAt?.let { EvidenceTimestamp(it, speciesEvidence.timestampConfidence) }
-                        } }
-                    )
-                    BadgeRequirement.EXACT_COUNT -> null
-                }
-                val entity = CollectionCompletionEntity(
-                    CollectionCompletionIdentity.forRoster(collection.collectionId, type, rosterHash), collection.collectionId,
-                    type.name, evidenceTimestamp?.timestamp,
-                    evidenceTimestamp?.confidence ?: AchievementTimestampConfidence.UNKNOWN,
-                    collection.rosterVersion, rosterHash,
-                    eligibleRoster.joinToString(",")
+                val completionId = CollectionCompletionIdentity.forRoster(
+                    collectionId = collection.collectionId,
+                    requirement = type,
+                    rosterHash = rosterHash
                 )
-                val existingCompletion = achievementDao.getCompletion(entity.completionId)
-                if (existingCompletion == null) {
-                    if (achievementDao.recordCompletion(entity) != -1L) inserted++
-                } else if (evidenceTimestamp != null && (
-                        existingCompletion.completedAt == null ||
-                        AchievementTimestampCalculator.strongestConfidence(
-                            existingCompletion.timestampConfidence, evidenceTimestamp.confidence
-                        ) != existingCompletion.timestampConfidence
-                    )) {
-                    achievementDao.updateCompletionEvidence(
-                        entity.completionId, evidenceTimestamp.timestamp, evidenceTimestamp.confidence.name
+
+                val historicalEvidenceTimestamp = if (!historicalBackfill) {
+                    null
+                } else {
+                    when (type) {
+                        BadgeRequirement.COLLECTOR -> {
+                            val rowsBySpecies = discoveryRows.groupBy { it.speciesId }
+
+                            AchievementTimestampCalculator.completionTimestamp(
+                                eligibleRoster.map { speciesId ->
+                                    rowsBySpecies[speciesId]
+                                        ?.minOfOrNull { it.firstDiscoveredAt }
+                                        ?.takeIf { it > 0 }
+                                        ?.let { timestamp ->
+                                            EvidenceTimestamp(
+                                                timestamp = timestamp,
+                                                confidence = AchievementTimestampConfidence.EXACT
+                                            )
+                                        }
+                                }
+                            )
+                        }
+
+                        BadgeRequirement.CURATOR -> {
+                            /*
+                             * Active ownership proves the current Curator edition.
+                             * Released creatures do not prove that the entire roster
+                             * was owned simultaneously.
+                             */
+                            val activeInstancesBySpecies = allInstances
+                                .filter {
+                                    it.creatureStatus == CreatureStatus.ACTIVE &&
+                                            it.findId in eligibleRoster &&
+                                            it.acquiredAt > 0
+                                }
+                                .groupBy { it.findId }
+
+                            AchievementTimestampCalculator.completionTimestamp(
+                                eligibleRoster.map { speciesId ->
+                                    activeInstancesBySpecies[speciesId]
+                                        ?.minOfOrNull { it.acquiredAt }
+                                        ?.let { timestamp ->
+                                            EvidenceTimestamp(
+                                                timestamp = timestamp,
+                                                confidence =
+                                                    AchievementTimestampConfidence
+                                                        .ESTIMATED_FROM_ACQUISITION
+                                            )
+                                        }
+                                }
+                            )
+                        }
+
+                        BadgeRequirement.COMPLETIONIST -> {
+                            AchievementTimestampCalculator.completionTimestamp(
+                                eligibleRoster.map { speciesId ->
+                                    evidence[speciesId]?.let { speciesEvidence ->
+                                        speciesEvidence.firstMasteryAt?.let { timestamp ->
+                                            EvidenceTimestamp(
+                                                timestamp = timestamp,
+                                                confidence =
+                                                    speciesEvidence.timestampConfidence
+                                            )
+                                        }
+                                    }
+                                }
+                            )
+                        }
+
+                        BadgeRequirement.EXACT_COUNT -> null
+                    }
+                }
+
+                /*
+                 * A real runtime completion receives the current action timestamp.
+                 * Historical reconciliation uses only reconstructed historical evidence.
+                 */
+                val candidateEvidence = if (historicalBackfill) {
+                    historicalEvidenceTimestamp
+                } else {
+                    EvidenceTimestamp(
+                        timestamp = occurredAt,
+                        confidence = AchievementTimestampConfidence.EXACT
                     )
                 }
+
+                val candidateEntity = CollectionCompletionEntity(
+                    completionId = completionId,
+                    collectionId = collection.collectionId,
+                    completionType = type.name,
+                    completedAt = candidateEvidence?.timestamp,
+                    timestampConfidence = candidateEvidence?.confidence
+                        ?: AchievementTimestampConfidence.UNKNOWN,
+                    rosterVersion = collection.rosterVersion,
+                    rosterHash = rosterHash,
+                    requiredSpeciesIds = eligibleRoster.joinToString(",")
+                )
+
+                val existingCompletion = achievementDao.getCompletion(completionId)
+
+                var persistedCompletion = existingCompletion
+                var insertedNow = false
+
+                if (existingCompletion == null) {
+                    insertedNow =
+                        achievementDao.recordCompletion(candidateEntity) != -1L
+
+                    if (insertedNow) {
+                        inserted++
+                        persistedCompletion = candidateEntity
+                    } else {
+                        /*
+                         * Defensive fallback in case another transaction inserted
+                         * the same roster completion first.
+                         */
+                        persistedCompletion =
+                            achievementDao.getCompletion(completionId)
+                    }
+                } else if (
+                    historicalBackfill &&
+                    historicalEvidenceTimestamp != null &&
+                    (
+                            existingCompletion.completedAt == null ||
+                                    AchievementTimestampCalculator.strongestConfidence(
+                                        current = existingCompletion.timestampConfidence,
+                                        candidate = historicalEvidenceTimestamp.confidence
+                                    ) != existingCompletion.timestampConfidence
+                            )
+                ) {
+                    /*
+                     * Only historical reconciliation may improve an existing
+                     * historical record. Runtime activity must never turn an old
+                     * completion into "completed now."
+                     */
+                    achievementDao.updateCompletionEvidence(
+                        id = completionId,
+                        completedAt = historicalEvidenceTimestamp.timestamp,
+                        confidence = historicalEvidenceTimestamp.confidence.name
+                    )
+
+                    persistedCompletion = existingCompletion.copy(
+                        completedAt = historicalEvidenceTimestamp.timestamp,
+                        timestampConfidence = historicalEvidenceTimestamp.confidence
+                    )
+                }
+
+                val persistedEvidence = persistedCompletion
+                    ?.completedAt
+                    ?.takeIf { it > 0 }
+                    ?.let { completedAt ->
+                        EvidenceTimestamp(
+                            timestamp = completedAt,
+                            confidence = persistedCompletion.timestampConfidence
+                        )
+                    }
+
                 materializeBadge(
-                    "${collection.collectionId}_${type.name.lowercase()}", 1,
-                    evidenceTimestamp, evidenceTimestamp,
-                    if (historicalBackfill) AchievementReconciliationMode.HISTORICAL_IMPORT else AchievementReconciliationMode.RUNTIME
+                    id = "${collection.collectionId}_${type.name.lowercase()}",
+                    count = 1,
+                    firstEarnedEvidence = persistedEvidence,
+                    latestAdvancedEvidence = persistedEvidence,
+                    mode = if (insertedNow && !historicalBackfill) {
+                        AchievementReconciliationMode.RUNTIME
+                    } else {
+                        AchievementReconciliationMode.HISTORICAL_IMPORT
+                    }
                 )
             }
         }
+
         return inserted
     }
 
