@@ -2,10 +2,6 @@ package com.kingkharnivore.skillz.viewmodel.shell
 
 import android.content.Context
 import android.util.Log
-import androidx.work.WorkInfo
-import androidx.work.WorkManager
-import androidx.work.getWorkInfosForUniqueWorkFlow
-
 import androidx.lifecycle.ViewModel
 import androidx.annotation.StringRes
 import com.kingkharnivore.skillz.R
@@ -176,15 +172,6 @@ class ShellViewModel @Inject constructor(
                     _achievementInitialization.value = AchievementInitializationState.Complete
                 }
             }
-        }
-        viewModelScope.launch {
-            WorkManager.getInstance(applicationContext)
-                .getWorkInfosForUniqueWorkFlow(AchievementBackfillWorker.UNIQUE_WORK_NAME)
-                .collect { work ->
-                    if (work.lastOrNull()?.state == WorkInfo.State.SUCCEEDED) {
-                        _achievementInitialization.value = AchievementInitializationState.Complete
-                    }
-                }
         }
         initializeAchievements()
     }

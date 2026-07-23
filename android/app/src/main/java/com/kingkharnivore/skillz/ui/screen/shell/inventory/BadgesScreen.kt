@@ -297,9 +297,13 @@ fun BadgesScreen(
             collectionDetailsId = id
             detailsBadgeId = null
         } }) }
-    collectionDetails?.let { CollectionDetailsSheet(it, { collectionDetailsId = null }) { action ->
-        collectionSpeciesDestination(action)?.let(onNavigate)
-    } }
+    collectionDetails?.let {
+        CollectionDetailsSheet(
+            p = it,
+            dismiss = { collectionDetailsId = null },
+            onSpeciesAction = { action -> collectionSpeciesDestination(action)?.let(onNavigate) }
+        )
+    }
     PinReplacementDialog(uiState, onPin, onDismissPinReplacement)
     uiState.backfillSummary?.let { summary ->
         AlertDialog(onDismissRequest = { onAcknowledgeBackfill(summary.version) }, containerColor = MaterialTheme.colorScheme.surface,

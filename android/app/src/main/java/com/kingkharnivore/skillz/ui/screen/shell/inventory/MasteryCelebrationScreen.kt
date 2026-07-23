@@ -128,9 +128,11 @@ fun MasteryCelebrationScreen(
         })
     } }
     if (viewingCollection) uiState.badgeDashboard?.collections?.firstOrNull { it.collectionId == selectedCollectionId }?.let {
-        CollectionDetailsSheet(it, { viewingCollection = false }) { action ->
-            collectionSpeciesDestination(action)?.let(onNavigate)
-        }
+        CollectionDetailsSheet(
+            p = it,
+            dismiss = { viewingCollection = false },
+            onSpeciesAction = { action -> collectionSpeciesDestination(action)?.let(onNavigate) }
+        )
     }
 }
 
