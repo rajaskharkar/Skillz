@@ -149,10 +149,13 @@ fun ShellRootScreen(
     val activeFlowMessage = stringResource(R.string.lookout_flow_already_active)
     var destination by remember { mutableStateOf<ShellDestination>(ShellDestination.Heart) }
     var pendingNavigation by remember { mutableStateOf<PendingShellNavigation?>(null) }
+    val handledNavigationRequestIds = remember { mutableSetOf<String>() }
     var showNotifications by remember { mutableStateOf(false) }
     val notificationCount = unseenNotificationCount(uiState)
 
-    fun handleNavigationResult(result: NavigationConsumptionResult) {
+    fun handleNavigationResult(requestId: String, result: NavigationConsumptionResult) {
+        if (pendingNavigation?.requestId != requestId) return
+        if (!handledNavigationRequestIds.add(requestId)) return
         when (result) {
             NavigationConsumptionResult.Pending -> Unit
             NavigationConsumptionResult.Consumed -> {
@@ -276,6 +279,7 @@ fun ShellRootScreen(
                     onSortOptionSelected = viewModel::setChestSortOption,
                     onFilterSelected = viewModel::setChestFilter,
                     focusSpeciesId = (pendingNavigation as? PendingShellNavigation.OpenChestSpecies)?.speciesId,
+                    focusRequestId = (pendingNavigation as? PendingShellNavigation.OpenChestSpecies)?.requestId,
                     onFocusResult = ::handleNavigationResult
                 )
 

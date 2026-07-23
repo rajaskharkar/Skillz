@@ -2,6 +2,9 @@ package com.kingkharnivore.skillz.viewmodel.shell
 
 import android.content.Context
 import android.util.Log
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import androidx.work.getWorkInfosForUniqueWorkFlow
 
 import androidx.lifecycle.ViewModel
 import androidx.annotation.StringRes
@@ -52,6 +55,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.kingkharnivore.skillz.data.repository.shell.AchievementBackfillWorker
+import com.kingkharnivore.skillz.data.repository.shell.AchievementBackfillFailureClassifier
 import kotlinx.coroutines.delay
 
 data class ShellUiState(
@@ -165,7 +169,25 @@ class ShellViewModel @Inject constructor(
     val achievementInitialization: StateFlow<AchievementInitializationState> = _achievementInitialization
     private var automaticBackfillRetries = 0
 
-    init { initializeAchievements() }
+    init {
+        viewModelScope.launch {
+            repository.observeLatestAchievementBackfill().collect { backfill ->
+                if (backfill?.version == AchievementBackfillWorker.BACKFILL_VERSION) {
+                    _achievementInitialization.value = AchievementInitializationState.Complete
+                }
+            }
+        }
+        viewModelScope.launch {
+            WorkManager.getInstance(applicationContext)
+                .getWorkInfosForUniqueWorkFlow(AchievementBackfillWorker.UNIQUE_WORK_NAME)
+                .collect { work ->
+                    if (work.lastOrNull()?.state == WorkInfo.State.SUCCEEDED) {
+                        _achievementInitialization.value = AchievementInitializationState.Complete
+                    }
+                }
+        }
+        initializeAchievements()
+    }
 
     fun initializeAchievements() {
         if (_achievementInitialization.value in setOf(
@@ -177,20 +199,21 @@ class ShellViewModel @Inject constructor(
             runCatching { repository.backfillAchievements() }
                 .onSuccess { _achievementInitialization.value = AchievementInitializationState.Complete }
                 .onFailure { failure ->
-                    val category = failure::class.simpleName ?: "AchievementInitializationFailure"
-                    val retryScheduled = runCatching {
+                    val failureType = AchievementBackfillFailureClassifier.classify(failure)
+                    val category = failureType.name
+                    val retryScheduled = failureType.retryable && runCatching {
                         AchievementBackfillWorker.enqueue(applicationContext)
                     }.isSuccess
                     Log.w(
                         "AchievementBackfill",
                         "version=${AchievementBackfillWorker.BACKFILL_VERSION} category=$category " +
-                            "transient=true retryScheduled=$retryScheduled timestamp=${System.currentTimeMillis()}"
+                            "transient=${failureType.retryable} retryScheduled=$retryScheduled timestamp=${System.currentTimeMillis()}"
                     )
                     _achievementInitialization.value = AchievementInitializationState.Failed(
-                        retryable = true,
+                        retryable = failureType.retryable,
                         errorCategory = category
                     )
-                    if (automaticBackfillRetries < 2) {
+                    if (failureType.retryable && automaticBackfillRetries < 2) {
                         val delayMillis = 1_000L shl automaticBackfillRetries
                         automaticBackfillRetries++
                         delay(delayMillis)

@@ -33,6 +33,8 @@ import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.ui.screen.shell.NavigationConsumptionResult
 import com.kingkharnivore.skillz.ui.screen.shell.NavigationFailureReason
 import com.kingkharnivore.skillz.ui.screen.shell.PendingShellNavigation
+import com.kingkharnivore.skillz.ui.screen.shell.validateBlueSpeciesFocus
+import com.kingkharnivore.skillz.ui.screen.shell.validateBeyondBlueFocus
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -46,7 +48,7 @@ fun TheBlueRoomScreen(
     onEncounterBeyondBlue: (String, List<String>) -> Unit,
     onOpenChest: () -> Unit,
     focusRequest: PendingShellNavigation? = null,
-    onFocusResult: (NavigationConsumptionResult) -> Unit = {}
+    onFocusResult: (String, NavigationConsumptionResult) -> Unit = { _, _ -> }
 ) {
     val theBlueState = remember(uiState.finds, uiState.focusPlacements) {
         buildTheBlueUiState(uiState.finds, uiState.focusPlacements)
@@ -80,20 +82,21 @@ fun TheBlueRoomScreen(
             else -> null
         }
         val species = speciesId?.let(CreatureCatalog::get)
-        if (speciesId != null && species == null) {
-            onFocusResult(NavigationConsumptionResult.Failed(NavigationFailureReason.SPECIES_NOT_FOUND))
-            return@LaunchedEffect
-        }
-        if (species != null && request is PendingShellNavigation.OpenBeyondBlue &&
-            (species !in CreatureCatalog.beyondBlue || species.collectionId != collectionId)
-        ) {
-            onFocusResult(NavigationConsumptionResult.Failed(NavigationFailureReason.DESTINATION_UNAVAILABLE))
-            return@LaunchedEffect
+        if (request is PendingShellNavigation.OpenBeyondBlue) {
+            val validation = validateBeyondBlueFocus(
+                speciesExists = species != null,
+                isBeyondBlueSpecies = species != null && species in CreatureCatalog.beyondBlue,
+                belongsToCollection = species?.collectionId == collectionId
+            )
+            if (validation is NavigationConsumptionResult.Failed) {
+                onFocusResult(request.requestId, validation)
+                return@LaunchedEffect
+            }
         }
         val zoneName = collectionId.removePrefix("blue_")
         val page = theBlueState.zones.indexOfFirst { it.zoneId.name.lowercase() == zoneName }
         if (page < 0) {
-            onFocusResult(NavigationConsumptionResult.Failed(NavigationFailureReason.DESTINATION_UNAVAILABLE))
+            onFocusResult(request.requestId, NavigationConsumptionResult.Failed(NavigationFailureReason.DESTINATION_UNAVAILABLE))
             return@LaunchedEffect
         }
         pagerState.scrollToPage(page)
@@ -101,10 +104,26 @@ fun TheBlueRoomScreen(
             beyondBlueInitialZone = theBlueState.zones[page].zoneId
             beyondBlueTargetSpeciesId = request.speciesId
             showBeyondBlue = true
-        } else if (speciesId != null) {
-            selectedAnimal = theBlueState.zones[page].animals.firstOrNull { it.findId == speciesId }
+            withFrameNanos { }
+            onFocusResult(request.requestId, NavigationConsumptionResult.Consumed)
+        } else if (speciesId == null) {
+            withFrameNanos { }
+            onFocusResult(request.requestId, NavigationConsumptionResult.Consumed)
+        } else {
+            val targetAnimal = theBlueState.zones[page].animals.firstOrNull { it.findId == speciesId }
+            val validation = validateBlueSpeciesFocus(
+                speciesId,
+                catalogSpeciesExists = species != null,
+                renderedSpeciesIds = theBlueState.zones[page].animals.mapTo(mutableSetOf()) { it.findId }
+            )
+            if (validation is NavigationConsumptionResult.Failed) {
+                onFocusResult(request.requestId, validation)
+                return@LaunchedEffect
+            }
+            selectedAnimal = targetAnimal ?: return@LaunchedEffect
+            withFrameNanos { }
+            onFocusResult(request.requestId, NavigationConsumptionResult.Consumed)
         }
-        onFocusResult(NavigationConsumptionResult.Consumed)
     }
     val scope = rememberCoroutineScope()
     var sceneTimeSeconds by remember { mutableStateOf(0f) }

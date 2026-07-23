@@ -219,4 +219,35 @@ class AchievementEngineTest {
         assertTrue(badge.currentProgress <= badge.objectiveTarget)
         assertTrue(badge.everEarned)
     }
+
+    @Test fun stillwaterTimestampScopeIgnoresEarlierAndLaterBlueEvidence() {
+        val stillwaterId = CreatureCatalog.stillwater.first().creatureId
+        val blueId = CreatureCatalog.all.first { it.creatureId !in CreatureCatalog.stillwater.map { creature -> creature.creatureId } }.creatureId
+        val discoveries = listOf(
+            CreatureDiscoveryEntity(blueId, 10L, null, null, 10L),
+            CreatureDiscoveryEntity(stillwaterId, 100L, null, null, 100L),
+            CreatureDiscoveryEntity(blueId + "-later", 9_999L, null, null, 9_999L)
+        )
+        val masteries = listOf(
+            CreatureMasteryEventEntity("blue", "blue", blueId, 20L, "live-blue"),
+            CreatureMasteryEventEntity("still", "still", stillwaterId, 200L, "live-still"),
+            CreatureMasteryEventEntity("blue-late", "blue-late", blueId, 9_999L, "live-blue-late")
+        )
+
+        val scoped = AchievementEvidenceScope.stillwater(discoveries, masteries)
+        assertEquals(listOf(100L), scoped.discoveries.map { it.firstDiscoveredAt })
+        assertEquals(listOf(200L), scoped.masteries.map { it.achievedAt })
+        assertEquals(100L, AchievementTimestampCalculator.discoveryVarietyThresholdTimestamp(
+            scoped.discoveries, 1, scoped.speciesIds
+        )?.timestamp)
+        assertEquals(200L, AchievementTimestampCalculator.masteryThresholdTimestamp(scoped.masteries, 1)?.timestamp)
+        assertNull(AchievementTimestampCalculator.masteryThresholdTimestamp(scoped.masteries, 2))
+    }
+
+    @Test fun collectionCompletionIdentityIsStablePerRosterEdition() {
+        val first = CollectionCompletionIdentity.forRoster("blue_open_blue", BadgeRequirement.COLLECTOR, "hash-a")
+        assertEquals(first, CollectionCompletionIdentity.forRoster("blue_open_blue", BadgeRequirement.COLLECTOR, "hash-a"))
+        assertTrue(first != CollectionCompletionIdentity.forRoster("blue_open_blue", BadgeRequirement.COLLECTOR, "hash-b"))
+        assertTrue(first != CollectionCompletionIdentity.forRoster("blue_open_blue", BadgeRequirement.CURATOR, "hash-a"))
+    }
 }

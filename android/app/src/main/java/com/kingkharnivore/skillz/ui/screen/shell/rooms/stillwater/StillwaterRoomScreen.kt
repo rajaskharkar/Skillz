@@ -36,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +64,7 @@ import com.kingkharnivore.skillz.domain.achievement.BadgeActionDestination
 import com.kingkharnivore.skillz.ui.screen.shell.NavigationConsumptionResult
 import com.kingkharnivore.skillz.ui.screen.shell.NavigationFailureReason
 import com.kingkharnivore.skillz.ui.screen.shell.PendingShellNavigation
+import com.kingkharnivore.skillz.ui.screen.shell.validateCollectionSpeciesFocus
 
 internal data class StillwaterDropsCardUiModel(
     @StringRes val primaryStringRes: Int,
@@ -116,7 +118,7 @@ fun StillwaterRoomScreen(
     onDismissStillwaterDrawConfirmation: () -> Unit,
     onNavigate: (BadgeActionDestination) -> Unit,
     focusRequest: PendingShellNavigation.OpenStillwaterSpecies? = null,
-    onFocusResult: (NavigationConsumptionResult) -> Unit = {}
+    onFocusResult: (String, NavigationConsumptionResult) -> Unit = { _, _ -> }
 ) {
     val dropsCard = buildStillwaterDropsCardUiModel(uiState)
     val drops = dropsCard.primaryDrops
@@ -124,25 +126,33 @@ fun StillwaterRoomScreen(
     val listState = rememberLazyListState()
     var collectionDetails by remember { mutableStateOf<CollectionProgress?>(null) }
     var highlightedCollectionId by rememberSaveable { mutableStateOf<String?>(null) }
+    var focusedSpeciesId by rememberSaveable { mutableStateOf<String?>(null) }
+    var focusedRequestId by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(focusRequest) {
-        val focusedCollectionId = focusRequest?.collectionId ?: return@LaunchedEffect
+        val request = focusRequest ?: return@LaunchedEffect
+        val focusedCollectionId = request.collectionId
         val collection = uiState.badgeDashboard?.collections?.firstOrNull { it.collectionId == focusedCollectionId }
-        if (collection == null) {
-            onFocusResult(NavigationConsumptionResult.Failed(NavigationFailureReason.COLLECTION_NOT_FOUND))
+        val speciesId = request.speciesId
+        val validation = validateCollectionSpeciesFocus(collection, speciesId)
+        if (validation is NavigationConsumptionResult.Failed) {
+            onFocusResult(request.requestId, validation)
             return@LaunchedEffect
         }
-        val speciesId = focusRequest.speciesId
-        if (speciesId != null && collection.speciesStates.none { it.speciesId == speciesId }) {
-            onFocusResult(NavigationConsumptionResult.Failed(NavigationFailureReason.SPECIES_NOT_FOUND))
-            return@LaunchedEffect
-        }
+        collection ?: return@LaunchedEffect
         highlightedCollectionId = focusedCollectionId
+        focusedSpeciesId = speciesId
+        focusedRequestId = request.requestId
         val index = if (focusedCollectionId == "collection_stillwater") 2 else {
             val vesselName = focusedCollectionId.removePrefix("stillwater_")
             4 + StillwaterVessel.entries.indexOfFirst { it.name.lowercase() == vesselName }.coerceAtLeast(0)
         }
         listState.animateScrollToItem(index)
-        onFocusResult(NavigationConsumptionResult.Consumed)
+        if (speciesId == null) {
+            withFrameNanos { }
+            onFocusResult(request.requestId, NavigationConsumptionResult.Consumed)
+        } else {
+            collectionDetails = collection
+        }
     }
     LazyColumn(
         state = listState,
@@ -159,7 +169,7 @@ fun StillwaterRoomScreen(
         item("drops") { StillwaterDropsCard(dropsCard = dropsCard) }
 
         uiState.badgeDashboard?.collections?.firstOrNull { it.collectionId == "collection_stillwater" }?.let { progress ->
-            item("overall-progress") { StillwaterProgressCard(progress, highlightedCollectionId == progress.collectionId) { highlightedCollectionId = progress.collectionId; collectionDetails = progress } }
+            item("overall-progress") { StillwaterProgressCard(progress, highlightedCollectionId == progress.collectionId) { highlightedCollectionId = progress.collectionId; focusedSpeciesId = null; focusedRequestId = null; collectionDetails = progress } }
         }
 
         item("prompt") { Text(
@@ -177,16 +187,21 @@ fun StillwaterRoomScreen(
                 isUnlocked = uiState.isBlueZoneUnlocked(vessel.zone),
                 onDraw = onDrawFromStillwater
             ); uiState.badgeDashboard?.collections?.firstOrNull { it.collectionId == collectionId }?.let { progress ->
-                StillwaterProgressCard(progress, highlightedCollectionId == collectionId) { highlightedCollectionId = collectionId; collectionDetails = progress }
+                StillwaterProgressCard(progress, highlightedCollectionId == collectionId) { highlightedCollectionId = collectionId; focusedSpeciesId = null; focusedRequestId = null; collectionDetails = progress }
             } } }
         }
 
         item("explainer") { StillwaterExplainerCard() }
     }
 
-    collectionDetails?.let { progress -> CollectionDetailsSheet(progress, { collectionDetails = null }) { action ->
-        collectionSpeciesDestination(action)?.let(onNavigate)
-    } }
+    collectionDetails?.let { progress -> CollectionDetailsSheet(
+        p = progress,
+        dismiss = { collectionDetails = null },
+        onSpeciesAction = { action -> collectionSpeciesDestination(action)?.let(onNavigate) },
+        initialFocusSpeciesId = focusedSpeciesId,
+        initialFocusRequestId = focusedRequestId,
+        onFocusResult = { result -> focusedRequestId?.let { onFocusResult(it, result) } }
+    ) }
 
     uiState.stillwaterRevealCreature?.let { creature ->
         StillwaterCreatureRevealDialog(

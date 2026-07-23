@@ -32,6 +32,8 @@ import com.kingkharnivore.skillz.domain.achievement.BadgeVisibilityContext
 import com.kingkharnivore.skillz.domain.achievement.BadgeVisibilityEvaluator
 import com.kingkharnivore.skillz.domain.achievement.AchievementAccessState
 import com.kingkharnivore.skillz.domain.achievement.AchievementTimestampCalculator
+import com.kingkharnivore.skillz.domain.achievement.AchievementEvidenceScope
+import com.kingkharnivore.skillz.domain.achievement.CollectionCompletionIdentity
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import org.json.JSONObject
@@ -699,6 +701,10 @@ class ShellRepository @Inject constructor(
         }
         val uniqueMastered = evidence.values.count { it.hasEverBeenMastered }
         val discoveryRows = achievementDao.getDiscoveries()
+        val stillwaterEvidence = AchievementEvidenceScope.stillwater(discoveryRows, masteries)
+        val stillwaterSpeciesIds = stillwaterEvidence.speciesIds
+        val stillwaterMasteries = stillwaterEvidence.masteries
+        val stillwaterDiscoveries = stillwaterEvidence.discoveries
         val exactCounts = mapOf(
             "mastery_first" to if (uniqueMastered == 0) 0 else 1,
             "mastery_circle" to maxOf(evidence.values.sumOf { it.effectiveLifetimeCount }, MasteryEvidenceCalculator.effectiveCount(masteries.size, floors["mastery_circle"])),
@@ -716,25 +722,34 @@ class ShellRepository @Inject constructor(
             val effective = if (currentRosterBounded || id in setOf("mastery_circle", "stillwater_mastery")) verified
                 else MasteryEvidenceCalculator.effectiveCount(verified, floors[id])
             val firstEvidence = when (id) {
-                "mastery_first", "mastery_circle", "mastery_variety", "stillwater_mastery" ->
+                "mastery_first", "mastery_circle", "mastery_variety" ->
                     AchievementTimestampCalculator.firstMasteryTimestamp(masteries)
-                "variety_collector", "stillwater_first_catch", "stillwater_variety" ->
+                "variety_collector" ->
                     AchievementTimestampCalculator.discoveryVarietyThresholdTimestamp(discoveryRows, 1)
+                "stillwater_first_catch", "stillwater_variety" ->
+                    AchievementTimestampCalculator.discoveryVarietyThresholdTimestamp(
+                        stillwaterDiscoveries, 1, stillwaterSpeciesIds
+                    )
+                "stillwater_mastery" -> AchievementTimestampCalculator.firstMasteryTimestamp(stillwaterMasteries)
                 else -> null
             }
             val latestEvidence = when (id) {
                 "mastery_first" -> firstEvidence
-                "mastery_circle", "stillwater_mastery" ->
-                    AchievementTimestampCalculator.masteryThresholdTimestamp(masteries, effective.coerceAtMost(masteries.size))
+                "mastery_circle" ->
+                    AchievementTimestampCalculator.masteryThresholdTimestamp(masteries, effective)
+                "stillwater_mastery" ->
+                    AchievementTimestampCalculator.masteryThresholdTimestamp(stillwaterMasteries, effective)
                 "mastery_variety" ->
                     AchievementTimestampCalculator.masteryVarietyThresholdTimestamp(masteries, effective.coerceAtMost(masteries.map { it.speciesId }.distinct().size))
                 "variety_collector" ->
                     AchievementTimestampCalculator.discoveryVarietyThresholdTimestamp(discoveryRows, effective.coerceAtMost(discoveryRows.size))
                 "stillwater_first_catch", "stillwater_variety" -> {
-                    val stillwaterIds = CreatureCatalog.stillwater.mapTo(mutableSetOf()) { it.creatureId }
-                    AchievementTimestampCalculator.discoveryVarietyThresholdTimestamp(
-                        discoveryRows, effective.coerceAtMost(discoveryRows.count { it.speciesId in stillwaterIds }), stillwaterIds
-                    )
+                    if (id == "stillwater_first_catch") firstEvidence else
+                        AchievementTimestampCalculator.discoveryVarietyThresholdTimestamp(
+                            stillwaterDiscoveries,
+                            effective.coerceAtMost(stillwaterDiscoveries.map { it.speciesId }.distinct().size),
+                            stillwaterSpeciesIds
+                        )
                 }
                 else -> null
             }
@@ -864,6 +879,9 @@ class ShellRepository @Inject constructor(
                         .groupBy { it.speciesId }.takeIf { it.keys.containsAll(eligibleRoster) }
                         ?.values?.maxOfOrNull { rows -> rows.minOf { it.firstDiscoveredAt } }
                     BadgeRequirement.CURATOR -> findInstanceDao.getAll()
+                        // Active ownership proves the current Curator edition. Released rows do
+                        // not prove that the full roster was owned simultaneously; only an
+                        // existing immutable completion row preserves that historical claim.
                         .filter { it.creatureStatus == CreatureStatus.ACTIVE && it.findId in eligibleRoster && it.acquiredAt > 0 }
                         .groupBy { it.findId }.takeIf { it.keys.containsAll(eligibleRoster) }
                         ?.values?.maxOfOrNull { rows -> rows.minOf { it.acquiredAt } }
@@ -877,7 +895,7 @@ class ShellRepository @Inject constructor(
                 // rather than recording the migration day as an achievement date.
                 if (evidenceAt == null) return@forEach
                 val entity = CollectionCompletionEntity(
-                    "${collection.collectionId}:${type.name}:$rosterHash", collection.collectionId,
+                    CollectionCompletionIdentity.forRoster(collection.collectionId, type, rosterHash), collection.collectionId,
                     type.name, evidenceAt, collection.rosterVersion, rosterHash,
                     eligibleRoster.joinToString(",")
                 )
@@ -891,10 +909,15 @@ class ShellRepository @Inject constructor(
     data class BackfillResult(val version: Int, val discoveredCount: Int, val masteryCount: Int, val completionCount: Int, val alreadyCompleted: Boolean)
 
     /** Safe to call from WorkManager or an IO coroutine; every evidence write is idempotent. */
-    suspend fun backfillAchievements(version: Int = 2): BackfillResult = db.withTransaction {
+    suspend fun backfillAchievements(version: Int = AchievementBackfillWorker.BACKFILL_VERSION): BackfillResult = db.withTransaction {
         achievementDao.getBackfill(version)?.let {
-            reconcileAchievementLedger(System.currentTimeMillis())
-            return@withTransaction BackfillResult(version, 0, 0, 0, true)
+            val now = System.currentTimeMillis()
+            val newlyRecognizedCompletions = persistCurrentCollectionCompletions(
+                occurredAt = now,
+                historicalBackfill = true
+            )
+            reconcileAchievementLedger(now)
+            return@withTransaction BackfillResult(version, 0, 0, newlyRecognizedCompletions, true)
         }
         val now = System.currentTimeMillis()
         val discoveriesBefore = achievementDao.getDiscoveries().size

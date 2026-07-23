@@ -69,7 +69,7 @@ fun BadgesScreen(
     onOpenArc: () -> Unit,
     onRetryInitialization: () -> Unit = {},
     pendingNavigation: PendingShellNavigation? = null,
-    onNavigationResult: (NavigationConsumptionResult) -> Unit = {}
+    onNavigationResult: (String, NavigationConsumptionResult) -> Unit = { _, _ -> }
 ) {
     val dashboard = uiState.badgeDashboard
     var query by rememberSaveable { mutableStateOf("") }
@@ -145,7 +145,7 @@ fun BadgesScreen(
                 if (requested == null) {
                     if (uiState.achievementInitializationState !is AchievementInitializationState.Running &&
                         uiState.achievementInitializationState !is AchievementInitializationState.NotStarted
-                    ) onNavigationResult(NavigationConsumptionResult.Failed(NavigationFailureReason.BADGE_NOT_FOUND))
+                    ) onNavigationResult(request.requestId, NavigationConsumptionResult.Failed(NavigationFailureReason.BADGE_NOT_FOUND))
                 } else {
                     val targetTab = when {
                         requested.everEarned || requested.recentlyUpdated -> BadgesTab.PROGRESS
@@ -157,7 +157,7 @@ fun BadgesScreen(
                     detailsBadgeId = requested.badgeId
                     withFrameNanos { }
                     onBadgeViewed(requested.badgeId)
-                    onNavigationResult(NavigationConsumptionResult.Consumed)
+                    onNavigationResult(request.requestId, NavigationConsumptionResult.Consumed)
                 }
             }
             is PendingShellNavigation.OpenCollection -> {
@@ -165,13 +165,13 @@ fun BadgesScreen(
                 if (requested == null) {
                     if (uiState.achievementInitializationState !is AchievementInitializationState.Running &&
                         uiState.achievementInitializationState !is AchievementInitializationState.NotStarted
-                    ) onNavigationResult(NavigationConsumptionResult.Failed(NavigationFailureReason.COLLECTION_NOT_FOUND))
+                    ) onNavigationResult(request.requestId, NavigationConsumptionResult.Failed(NavigationFailureReason.COLLECTION_NOT_FOUND))
                 } else {
                     selectedTab = BadgesTab.PROGRESS
                     pagerState.scrollToPage(BadgesTab.PROGRESS.ordinal)
                     collectionDetailsId = requested.collectionId
                     withFrameNanos { }
-                    onNavigationResult(NavigationConsumptionResult.Consumed)
+                    onNavigationResult(request.requestId, NavigationConsumptionResult.Consumed)
                 }
             }
             else -> Unit
@@ -460,9 +460,54 @@ internal fun badgeProgressPresentationState(badge: BadgeProgressModel): BadgePro
     }
 }
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable internal fun CollectionDetailsSheet(p: CollectionProgress, dismiss: () -> Unit, onSpeciesAction: ((CollectionSpeciesAction) -> Unit)? = null) { ScyraParchmentSheet(onDismissRequest = dismiss) { LazyColumn(Modifier.fillMaxWidth().padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { item { Text(collectionDisplayName(p.collectionId), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }; item { Text(stringResource(R.string.collection_detail_summary, p.discoveredSpeciesCount, p.currentlyOwnedSpeciesCount, p.masteredSpeciesCount, p.totalParticipatingSpecies)) }; items(p.speciesStates, key = { it.speciesId }) { CollectionSpeciesRow(it, onSpeciesAction) }; item { Spacer(Modifier.height(24.dp)) } } } }
+@Composable internal fun CollectionDetailsSheet(
+    p: CollectionProgress,
+    dismiss: () -> Unit,
+    onSpeciesAction: ((CollectionSpeciesAction) -> Unit)? = null,
+    initialFocusSpeciesId: String? = null,
+    initialFocusRequestId: String? = null,
+    onFocusResult: ((NavigationConsumptionResult) -> Unit)? = null
+) {
+    val listState = rememberLazyListState()
+    var handledFocusRequestId by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(initialFocusSpeciesId, initialFocusRequestId, p.speciesStates) {
+        val requestedId = initialFocusSpeciesId ?: return@LaunchedEffect
+        val requestKey = initialFocusRequestId ?: requestedId
+        if (handledFocusRequestId == requestKey) return@LaunchedEffect
+        val index = p.speciesStates.indexOfFirst { it.speciesId == requestedId }
+        if (index < 0) {
+            handledFocusRequestId = requestKey
+            onFocusResult?.invoke(NavigationConsumptionResult.Failed(NavigationFailureReason.SPECIES_NOT_FOUND))
+            return@LaunchedEffect
+        }
+        val state = p.speciesStates[index]
+        if (state.secret && !state.discovered) {
+            handledFocusRequestId = requestKey
+            onFocusResult?.invoke(NavigationConsumptionResult.Failed(NavigationFailureReason.DESTINATION_UNAVAILABLE))
+            return@LaunchedEffect
+        }
+        listState.scrollToItem(index + 2)
+        withFrameNanos { }
+        handledFocusRequestId = requestKey
+        onFocusResult?.invoke(NavigationConsumptionResult.Consumed)
+    }
+    ScyraParchmentSheet(onDismissRequest = dismiss) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            item("title") { Text(collectionDisplayName(p.collectionId), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }
+            item("summary") { Text(stringResource(R.string.collection_detail_summary, p.discoveredSpeciesCount, p.currentlyOwnedSpeciesCount, p.masteredSpeciesCount, p.totalParticipatingSpecies)) }
+            items(p.speciesStates, key = { it.speciesId }) { state ->
+                CollectionSpeciesRow(state, onSpeciesAction, focused = state.speciesId == initialFocusSpeciesId)
+            }
+            item("spacer") { Spacer(Modifier.height(24.dp)) }
+        }
+    }
+}
 @Composable private fun CollectionSpeciesList(p: CollectionProgress) { p.speciesStates.forEach { CollectionSpeciesRow(it, null) } }
-@Composable private fun CollectionSpeciesRow(state: CollectionSpeciesProgress, onAction: ((CollectionSpeciesAction) -> Unit)?) { val creature = CreatureCatalog.get(state.speciesId); val hidden = state.secret && !state.discovered; val actionable = state.action !is CollectionSpeciesAction.None && onAction != null; val rowModifier = if (actionable) Modifier.clickable { onAction?.invoke(state.action) } else Modifier; ListItem(modifier = rowModifier, colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface), leadingContent = { ShellObjectIcon(if(hidden) "unknown_creature" else creature?.staticIconKey ?: "unknown_creature", Modifier.size(48.dp)) }, headlineContent = { Text(if(hidden) stringResource(R.string.collection_secret_species) else creature?.titleRes?.takeIf { it != 0 }?.let { stringResource(it) } ?: stringResource(R.string.badge_creature_fallback)) }, trailingContent = { if (actionable) Icon(Icons.Outlined.ArrowForward, stringResource(R.string.collection_species_open_action)) }, supportingContent = { Column { Text(when { state.mastered -> stringResource(R.string.collection_species_mastered_count, state.lifetimeMasteryCount, state.currentLevel99Count); state.ownedCount > 0 -> stringResource(R.string.collection_species_owned, state.ownedCount, state.highestLevel ?: 1, 99 - (state.highestLevel ?: 1)); state.discovered -> stringResource(R.string.collection_species_discovered_not_owned); else -> stringResource(R.string.collection_species_undiscovered) }); if (state.mastered) Text(when (state.timestampConfidence) { MasteryTimestampConfidence.EXACT -> state.firstMasteryAt?.let { stringResource(R.string.mastery_date_exact, formatBadgeDate(it)) } ?: stringResource(R.string.mastery_date_unknown); MasteryTimestampConfidence.ESTIMATED_FROM_ACQUISITION -> state.firstMasteryAt?.let { stringResource(R.string.mastery_date_estimated, formatBadgeDate(it)) } ?: stringResource(R.string.mastery_date_unknown); MasteryTimestampConfidence.UNKNOWN -> stringResource(R.string.mastery_date_unknown) }, style = MaterialTheme.typography.bodySmall) } }) }
+@Composable private fun CollectionSpeciesRow(state: CollectionSpeciesProgress, onAction: ((CollectionSpeciesAction) -> Unit)?, focused: Boolean = false) { val creature = CreatureCatalog.get(state.speciesId); val hidden = state.secret && !state.discovered; val actionable = state.action !is CollectionSpeciesAction.None && onAction != null; val rowModifier = if (actionable) Modifier.clickable { onAction?.invoke(state.action) } else Modifier; ListItem(modifier = rowModifier, colors = ListItemDefaults.colors(containerColor = if (focused) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface), leadingContent = { ShellObjectIcon(if(hidden) "unknown_creature" else creature?.staticIconKey ?: "unknown_creature", Modifier.size(48.dp)) }, headlineContent = { Text(if(hidden) stringResource(R.string.collection_secret_species) else creature?.titleRes?.takeIf { it != 0 }?.let { stringResource(it) } ?: stringResource(R.string.badge_creature_fallback)) }, trailingContent = { if (actionable) Icon(Icons.Outlined.ArrowForward, stringResource(R.string.collection_species_open_action)) }, supportingContent = { Column { Text(when { state.mastered -> stringResource(R.string.collection_species_mastered_count, state.lifetimeMasteryCount, state.currentLevel99Count); state.ownedCount > 0 -> stringResource(R.string.collection_species_owned, state.ownedCount, state.highestLevel ?: 1, 99 - (state.highestLevel ?: 1)); state.discovered -> stringResource(R.string.collection_species_discovered_not_owned); else -> stringResource(R.string.collection_species_undiscovered) }); if (state.mastered) Text(when (state.timestampConfidence) { MasteryTimestampConfidence.EXACT -> state.firstMasteryAt?.let { stringResource(R.string.mastery_date_exact, formatBadgeDate(it)) } ?: stringResource(R.string.mastery_date_unknown); MasteryTimestampConfidence.ESTIMATED_FROM_ACQUISITION -> state.firstMasteryAt?.let { stringResource(R.string.mastery_date_estimated, formatBadgeDate(it)) } ?: stringResource(R.string.mastery_date_unknown); MasteryTimestampConfidence.UNKNOWN -> stringResource(R.string.mastery_date_unknown) }, style = MaterialTheme.typography.bodySmall) } }) }
 internal fun collectionSpeciesDestination(action: CollectionSpeciesAction): BadgeActionDestination? = when (action) {
     is CollectionSpeciesAction.ViewInChest -> BadgeActionDestination.ChestSpecies(action.speciesId)
     is CollectionSpeciesAction.OpenBlueRegion -> BadgeActionDestination.BlueRegion(action.collectionId, action.speciesId)

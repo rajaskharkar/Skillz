@@ -27,6 +27,31 @@ data class EvidenceTimestamp(
     val confidence: MasteryTimestampConfidence
 )
 
+data class ScopedAchievementEvidence(
+    val speciesIds: Set<String>,
+    val discoveries: List<CreatureDiscoveryEntity>,
+    val masteries: List<CreatureMasteryEventEntity>
+)
+
+object AchievementEvidenceScope {
+    fun stillwater(
+        discoveries: List<CreatureDiscoveryEntity>,
+        masteries: List<CreatureMasteryEventEntity>
+    ): ScopedAchievementEvidence {
+        val ids = CreatureCatalog.stillwater.mapTo(mutableSetOf()) { it.creatureId }
+        return ScopedAchievementEvidence(
+            ids,
+            discoveries.filter { it.speciesId in ids },
+            masteries.filter { it.speciesId in ids }
+        )
+    }
+}
+
+object CollectionCompletionIdentity {
+    fun forRoster(collectionId: String, requirement: BadgeRequirement, rosterHash: String): String =
+        "$collectionId:${requirement.name}:$rosterHash"
+}
+
 /** Pure reconstruction rules for historical dates. A missing event never becomes "now". */
 object AchievementTimestampCalculator {
     private fun CreatureMasteryEventEntity.evidenceTimestamp(): EvidenceTimestamp? =

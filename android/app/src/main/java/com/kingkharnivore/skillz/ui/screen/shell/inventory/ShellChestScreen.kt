@@ -99,7 +99,8 @@ fun ShellChestScreen(
     onSortOptionSelected: (ChestSortOption) -> Unit,
     onFilterSelected: (ChestFilterOption) -> Unit,
     focusSpeciesId: String? = null,
-    onFocusResult: (NavigationConsumptionResult) -> Unit = {}
+    focusRequestId: String? = null,
+    onFocusResult: (String, NavigationConsumptionResult) -> Unit = { _, _ -> }
 ) {
     var selectedStack by remember { mutableStateOf<ChestInventoryStackUiModel?>(null) }
     val masteryCounts = uiState.badgeDashboard?.badges?.mapNotNull { badge ->
@@ -139,8 +140,8 @@ fun ShellChestScreen(
         focusSpeciesId?.let { id ->
             allStacks.filter { it.creatureId == id }.maxWithOrNull(
                 compareBy<ChestInventoryStackUiModel> { if (it.level < 99) 1 else 0 }.thenBy { it.level }
-            )?.let { selectedStack = it; onFocusResult(NavigationConsumptionResult.Consumed) }
-                ?: onFocusResult(NavigationConsumptionResult.Failed(NavigationFailureReason.SPECIES_NOT_FOUND))
+            )?.let { selectedStack = it; focusRequestId?.let { requestId -> onFocusResult(requestId, NavigationConsumptionResult.Consumed) } }
+                ?: focusRequestId?.let { requestId -> onFocusResult(requestId, NavigationConsumptionResult.Failed(NavigationFailureReason.SPECIES_NOT_FOUND)) }
         }
     }
 
