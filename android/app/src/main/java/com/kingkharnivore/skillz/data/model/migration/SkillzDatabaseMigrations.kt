@@ -229,6 +229,9 @@ object SkillzDatabaseMigrations {
     val MIGRATION_35_36 = object : Migration(35, 36) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE `user_badge` ADD COLUMN `timestampConfidence` TEXT NOT NULL DEFAULT 'EXACT'")
+            // v35 stored dates without provenance. Preserve the value, but do not
+            // claim precision until reconciliation can verify supporting evidence.
+            db.execSQL("UPDATE `user_badge` SET `timestampConfidence` = 'UNKNOWN'")
             db.execSQL(
                 """CREATE TABLE `collection_completion_new` (
                     `completionId` TEXT NOT NULL,
@@ -248,7 +251,7 @@ object SkillzDatabaseMigrations {
                      `timestampConfidence`, `rosterVersion`, `rosterHash`, `requiredSpeciesIds`)
                     SELECT `completionId`, `collectionId`, `completionType`,
                            CASE WHEN `completedAt` > 0 THEN `completedAt` ELSE NULL END,
-                           CASE WHEN `completedAt` > 0 THEN 'EXACT' ELSE 'UNKNOWN' END,
+                           'UNKNOWN',
                            `rosterVersion`, `rosterHash`, `requiredSpeciesIds`
                     FROM `collection_completion`""".trimIndent()
             )

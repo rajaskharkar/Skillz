@@ -45,6 +45,14 @@ import javax.inject.Singleton
 
 enum class ShellNotificationType { FIND, BADGE }
 
+enum class AchievementReconciliationMode { RUNTIME, HISTORICAL_IMPORT }
+
+internal object AchievementReconciliationPolicy {
+    fun isNew(mode: AchievementReconciliationMode): Boolean = mode == AchievementReconciliationMode.RUNTIME
+    fun initialViewedAt(mode: AchievementReconciliationMode, earnedAt: Long): Long? =
+        earnedAt.takeIf { mode == AchievementReconciliationMode.HISTORICAL_IMPORT }
+}
+
 
 @Singleton
 class ShellRepository @Inject constructor(
@@ -97,7 +105,7 @@ class ShellRepository @Inject constructor(
     }
 
     suspend fun pinBadge(badgeId: String, replaceBadgeId: String? = null): PinResult = db.withTransaction {
-        reconcileAchievementLedger(System.currentTimeMillis())
+        reconcileAchievementLedger(System.currentTimeMillis(), AchievementReconciliationMode.HISTORICAL_IMPORT)
         require(BadgeDefinitionResolver.isUserVisible(badgeId)) { "This badge is not available in the current Badge Book." }
         require(BadgeDefinitionResolver.resolve(badgeId).pinnable) { "This badge cannot be pinned." }
         val dashboardBadge = currentDashboard().badges.firstOrNull { it.badgeId == badgeId }
@@ -131,7 +139,7 @@ class ShellRepository @Inject constructor(
         badgeId: String,
         accessState: AchievementAccessState = AchievementAccessState()
     ): Boolean = db.withTransaction {
-        reconcileAchievementLedger(System.currentTimeMillis())
+        reconcileAchievementLedger(System.currentTimeMillis(), AchievementReconciliationMode.HISTORICAL_IMPORT)
         cleanupTracking()
         val dashboardBadge = BadgeDashboardCalculator.calculate(
             earned = badgeDao.getAll(),
@@ -287,7 +295,7 @@ class ShellRepository @Inject constructor(
                 CreatureDiscoveryEntity(findId, now, sourceType, entity.instanceId, now)
             )
             persistCurrentCollectionCompletions(now)
-            reconcileAchievementLedger(now)
+            reconcileAchievementLedger(now, AchievementReconciliationMode.RUNTIME)
         }
         entity
     }
@@ -590,7 +598,7 @@ class ShellRepository @Inject constructor(
         achievementDao.recordDiscovery(CreatureDiscoveryEntity(instance.findId, instance.acquiredAt, instance.sourceType, instanceId, now))
         val changes = mutableListOf<AchievementChange>()
         if (resultingLevel == CreatureEconomy.MAX_CREATURE_LEVEL) {
-            reconcileAchievementLedger(now)
+            reconcileAchievementLedger(now, AchievementReconciliationMode.HISTORICAL_IMPORT)
             val badgesBefore = badgeDao.getAll().associate { it.badgeId to it.count }
             val completionsBefore = achievementDao.getCompletions().map { it.completionId }.toSet()
             val inserted = achievementDao.recordMastery(CreatureMasteryEventEntity(
@@ -604,7 +612,7 @@ class ShellRepository @Inject constructor(
                     badgeId = "mastery_species_${instance.findId}", speciesId = instance.findId, exactCount = speciesCount)
             }
             persistCurrentCollectionCompletions(now)
-            reconcileAchievementLedger(now)
+            reconcileAchievementLedger(now, AchievementReconciliationMode.RUNTIME)
             if (inserted) {
                 val definition = CreatureCatalog.require(instance.findId)
                 val discoveries = achievementDao.getDiscoveries().map { it.speciesId }.toSet()
@@ -695,7 +703,7 @@ class ShellRepository @Inject constructor(
     }
 
     /** Reconciles the persistent earned ledger without reducing reliable legacy totals. */
-    private suspend fun reconcileAchievementLedger(now: Long) {
+    private suspend fun reconcileAchievementLedger(now: Long, mode: AchievementReconciliationMode) {
         val discoveries = achievementDao.getDiscoveries().map { it.speciesId }.toSet()
         val masteries = achievementDao.getMasteries()
         val floorsList = achievementDao.getCountFloors()
@@ -709,7 +717,7 @@ class ShellRepository @Inject constructor(
                 id, count,
                 speciesEvidence.firstMasteryAt?.let { EvidenceTimestamp(it, speciesEvidence.timestampConfidence) },
                 speciesEvidence.latestMasteryAt?.let { EvidenceTimestamp(it, speciesEvidence.timestampConfidence) },
-                historicalImport = true
+                mode = mode
             )
         }
         val uniqueMastered = evidence.values.count { it.hasEverBeenMastered }
@@ -767,7 +775,7 @@ class ShellRepository @Inject constructor(
                 else -> null
             }
             effective.takeIf { it > 0 }?.let {
-                materializeBadge(id, it, firstEvidence, latestEvidence, historicalImport = true)
+                materializeBadge(id, it, firstEvidence, latestEvidence, mode)
             }
         }
         val owned = findInstanceDao.getAll().filter { it.creatureStatus == CreatureStatus.ACTIVE }.groupBy({ it.findId }, { it.animalLevel })
@@ -776,7 +784,7 @@ class ShellRepository @Inject constructor(
         if (CollectionCatalog.collections.filter { it.collectionId.startsWith("blue_") }.all { progress.getValue(it.collectionId).discoveredSpeciesCount > 0 }) {
             val required = CollectionCatalog.collections.filter { it.collectionId.startsWith("blue_") }
             val timestamp = AchievementTimestampCalculator.acrossTheDepthsTimestamp(discoveryRows, required)
-            materializeBadge("across_the_depths", 1, timestamp, timestamp, historicalImport = true)
+            materializeBadge("across_the_depths", 1, timestamp, timestamp, mode)
         }
         if (CollectionCatalog.collections.filter { it.collectionId.startsWith("blue_") || it.collectionId.startsWith("stillwater_") }.all { collection ->
                 collection.eligibleRoster(BadgeRequirement.COMPLETIONIST).any { evidence[it]?.hasEverBeenMastered == true }
@@ -785,7 +793,7 @@ class ShellRepository @Inject constructor(
                 it.collectionId.startsWith("blue_") || it.collectionId.startsWith("stillwater_")
             }
             val timestamp = AchievementTimestampCalculator.oneFromEveryWaterTimestamp(masteries, required)
-            materializeBadge("one_from_every_water", 1, timestamp, timestamp, historicalImport = true)
+            materializeBadge("one_from_every_water", 1, timestamp, timestamp, mode)
         }
         if (CollectionCatalog.collections.filter { it.collectionId.startsWith("blue_") }.all { progress[it.collectionId]?.collectorEarned == true }) {
             val timestamp = AchievementTimestampCalculator.keeperOfTheBlueTimestamp(
@@ -793,14 +801,14 @@ class ShellRepository @Inject constructor(
                 CollectionCatalog.collections.filter { it.collectionId.startsWith("blue_") }
                     .mapTo(mutableSetOf()) { it.collectionId }
             )
-            materializeBadge("keeper_of_the_blue", 1, timestamp, timestamp, historicalImport = true)
+            materializeBadge("keeper_of_the_blue", 1, timestamp, timestamp, mode)
         }
         achievementDao.getCompletions().forEach { completion ->
             materializeBadge(
                 "${completion.collectionId}_${completion.completionType.lowercase()}",
                 1,
                 completion.completedAt?.takeIf { it > 0 }?.let { EvidenceTimestamp(it, completion.timestampConfidence) },
-                historicalImport = true
+                mode = mode
             )
         }
         cleanupTracking()
@@ -812,15 +820,16 @@ class ShellRepository @Inject constructor(
         count: Int,
         firstEarnedEvidence: EvidenceTimestamp?,
         latestAdvancedEvidence: EvidenceTimestamp? = firstEarnedEvidence,
-        historicalImport: Boolean = false
+        mode: AchievementReconciliationMode
     ) {
         val current = badgeDao.get(id)
         val candidateConfidence = firstEarnedEvidence?.confidence ?: AchievementTimestampConfidence.UNKNOWN
         if (current == null) {
             val first = firstEarnedEvidence?.timestamp ?: return
             badgeDao.upsert(UserBadgeEntity(
-                id, count, first, latestAdvancedEvidence?.timestamp ?: first, !historicalImport,
-                viewedAt = if (historicalImport) first else null,
+                id, count, first, latestAdvancedEvidence?.timestamp ?: first,
+                AchievementReconciliationPolicy.isNew(mode),
+                viewedAt = AchievementReconciliationPolicy.initialViewedAt(mode, first),
                 timestampConfidence = firstEarnedEvidence.confidence
             ))
         } else if (
@@ -829,7 +838,8 @@ class ShellRepository @Inject constructor(
             AchievementTimestampCalculator.strongestConfidence(current.timestampConfidence, candidateConfidence) != current.timestampConfidence
         ) {
             val latestEvidenceAt = latestAdvancedEvidence?.timestamp
-            val hasRealNewAdvance = !historicalImport && count > current.count && latestEvidenceAt != null &&
+            val hasRealNewAdvance = mode == AchievementReconciliationMode.RUNTIME &&
+                count > current.count && latestEvidenceAt != null &&
                 latestEvidenceAt > current.lastEarnedAt
             badgeDao.upsert(current.copy(
                 count = maxOf(count, current.count),
@@ -954,7 +964,8 @@ class ShellRepository @Inject constructor(
                 }
                 materializeBadge(
                     "${collection.collectionId}_${type.name.lowercase()}", 1,
-                    evidenceTimestamp, evidenceTimestamp, historicalImport = historicalBackfill
+                    evidenceTimestamp, evidenceTimestamp,
+                    if (historicalBackfill) AchievementReconciliationMode.HISTORICAL_IMPORT else AchievementReconciliationMode.RUNTIME
                 )
             }
         }
@@ -971,7 +982,7 @@ class ShellRepository @Inject constructor(
                 occurredAt = now,
                 historicalBackfill = true
             )
-            reconcileAchievementLedger(now)
+            reconcileAchievementLedger(now, AchievementReconciliationMode.HISTORICAL_IMPORT)
             return@withTransaction BackfillResult(version, 0, 0, newlyRecognizedCompletions, true)
         }
         val now = System.currentTimeMillis()
@@ -986,7 +997,7 @@ class ShellRepository @Inject constructor(
             }
         }
         val completionCount = persistCurrentCollectionCompletions(now, historicalBackfill = true)
-        reconcileAchievementLedger(now)
+        reconcileAchievementLedger(now, AchievementReconciliationMode.HISTORICAL_IMPORT)
         val discoveryCount = achievementDao.getDiscoveries().size
         val masteryCount = achievementDao.getMasteries().size
         val recognizedDiscoveries = (discoveryCount - discoveriesBefore).coerceAtLeast(0)

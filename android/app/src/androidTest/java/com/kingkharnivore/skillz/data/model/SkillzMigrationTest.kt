@@ -27,6 +27,7 @@ class SkillzMigrationTest {
         helper.createDatabase(TEST_DB, 35).apply {
             execSQL("INSERT INTO collection_completion VALUES ('c','blue_sunlit_reef','COLLECTOR',123,1,'hash','a,b')")
             execSQL("INSERT INTO collection_completion VALUES ('undated','blue_sunlit_reef','COMPLETIONIST',0,1,'legacy','a,b')")
+            execSQL("INSERT INTO user_badge VALUES ('mastery_first',1,100,100,0,100)")
             execSQL("INSERT INTO badge_pin VALUES ('blue_sunlit_reef_collector',0,1)")
             execSQL("INSERT INTO badge_tracking VALUES ('blue_sunlit_reef_completionist',1)")
             close()
@@ -36,11 +37,15 @@ class SkillzMigrationTest {
         db.assertColumn("collection_completion", "timestampConfidence", notNull = 1, defaultValue = null)
         db.assertColumn("user_badge", "timestampConfidence", notNull = 1, defaultValue = "'EXACT'")
         db.query("SELECT completedAt,timestampConfidence,rosterHash,requiredSpeciesIds FROM collection_completion WHERE completionId='c'").use { c ->
-            assertTrue(c.moveToFirst()); assertEquals(123L, c.getLong(0)); assertEquals("EXACT", c.getString(1));
+            assertTrue(c.moveToFirst()); assertEquals(123L, c.getLong(0)); assertEquals("UNKNOWN", c.getString(1));
             assertEquals("hash", c.getString(2)); assertEquals("a,b", c.getString(3))
         }
         db.query("SELECT completedAt,timestampConfidence FROM collection_completion WHERE completionId='undated'").use { c ->
             assertTrue(c.moveToFirst()); assertTrue(c.isNull(0)); assertEquals("UNKNOWN", c.getString(1))
+        }
+        db.query("SELECT firstEarnedAt,lastEarnedAt,timestampConfidence FROM user_badge WHERE badgeId='mastery_first'").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(100L, c.getLong(0)); assertEquals(100L, c.getLong(1));
+            assertEquals("UNKNOWN", c.getString(2))
         }
         assertEquals(1, db.countRows("badge_pin", "badgeId = ?", arrayOf("blue_sunlit_reef_collector")))
         assertEquals(1, db.countRows("badge_tracking", "badgeId = ?", arrayOf("blue_sunlit_reef_completionist")))
