@@ -37,6 +37,9 @@ interface ShellFindInstanceDao {
     @Query("SELECT * FROM user_shell_find_instance ORDER BY acquiredAt DESC")
     fun observeAll(): Flow<List<UserShellFindInstanceEntity>>
 
+    @Query("SELECT * FROM user_shell_find_instance ORDER BY acquiredAt DESC")
+    suspend fun getAll(): List<UserShellFindInstanceEntity>
+
     @Query("SELECT * FROM user_shell_find_instance WHERE instanceId = :instanceId LIMIT 1")
     suspend fun getById(instanceId: String): UserShellFindInstanceEntity?
 
@@ -72,6 +75,12 @@ interface ShellFindInstanceDao {
 
     @Query("UPDATE user_shell_find_instance SET animalLevel = :level WHERE instanceId = :instanceId")
     suspend fun updateAnimalLevel(instanceId: String, level: Int)
+
+    @Query("UPDATE user_shell_find_instance SET lastActivityAt = :timestamp WHERE instanceId = :instanceId")
+    suspend fun updateActivity(instanceId: String, timestamp: Long)
+
+    @Query("UPDATE user_shell_find_instance SET lastActivityAt = :timestamp WHERE findId = :findId")
+    suspend fun updateSpeciesActivity(findId: String, timestamp: Long)
 
     @Query("UPDATE user_shell_find_instance SET creatureStatus = :status, isArchivedInChest = 1 WHERE instanceId = :instanceId")
     suspend fun updateCreatureStatus(instanceId: String, status: String)
@@ -147,6 +156,8 @@ interface UserBadgeDao {
 
     @Query("SELECT * FROM user_badge ORDER BY firstEarnedAt DESC")
     fun observeEarned(): Flow<List<UserBadgeEntity>>
+
+    @Query("SELECT * FROM user_badge") suspend fun getAll(): List<UserBadgeEntity>
 
     @Query("UPDATE user_badge SET isNew = 0")
     suspend fun markAllSeen()

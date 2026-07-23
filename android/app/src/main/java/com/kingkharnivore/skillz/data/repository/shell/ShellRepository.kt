@@ -14,13 +14,44 @@ import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 import com.kingkharnivore.skillz.utils.shell.StillwaterCatalog
 import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
 import com.kingkharnivore.skillz.utils.shell.validateStillwaterDraw
+import com.kingkharnivore.skillz.domain.achievement.AchievementChange
+import com.kingkharnivore.skillz.domain.achievement.AchievementChangeType
+import com.kingkharnivore.skillz.domain.achievement.AchievementResult
+import com.kingkharnivore.skillz.domain.achievement.BadgeRequirement
+import com.kingkharnivore.skillz.domain.achievement.CollectionCatalog
+import com.kingkharnivore.skillz.domain.achievement.CollectionProgressCalculator
+import com.kingkharnivore.skillz.domain.achievement.CollectionProgress
+import com.kingkharnivore.skillz.domain.achievement.MasteryEvidenceCalculator
+import com.kingkharnivore.skillz.domain.achievement.MilestoneEngine
+import com.kingkharnivore.skillz.domain.achievement.CelebrationLifecycle
+import com.kingkharnivore.skillz.domain.achievement.CelebrationStage
+import com.kingkharnivore.skillz.domain.achievement.BadgeCountType
+import com.kingkharnivore.skillz.domain.achievement.BadgeDefinitionResolver
+import com.kingkharnivore.skillz.domain.achievement.BadgeDashboardCalculator
+import com.kingkharnivore.skillz.domain.achievement.BadgeVisibilityContext
+import com.kingkharnivore.skillz.domain.achievement.BadgeVisibilityEvaluator
+import com.kingkharnivore.skillz.domain.achievement.AchievementAccessState
+import com.kingkharnivore.skillz.domain.achievement.AchievementTimestampCalculator
+import com.kingkharnivore.skillz.domain.achievement.AchievementEvidenceScope
+import com.kingkharnivore.skillz.domain.achievement.CollectionCompletionIdentity
+import com.kingkharnivore.skillz.domain.achievement.AchievementTimestampConfidence
+import com.kingkharnivore.skillz.domain.achievement.EvidenceTimestamp
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
+import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
 
 enum class ShellNotificationType { FIND, BADGE }
+
+enum class AchievementReconciliationMode { RUNTIME, HISTORICAL_IMPORT }
+
+internal object AchievementReconciliationPolicy {
+    fun isNew(mode: AchievementReconciliationMode): Boolean = mode == AchievementReconciliationMode.RUNTIME
+    fun initialViewedAt(mode: AchievementReconciliationMode, earnedAt: Long): Long? =
+        earnedAt.takeIf { mode == AchievementReconciliationMode.HISTORICAL_IMPORT }
+}
 
 
 @Singleton
@@ -37,7 +68,8 @@ class ShellRepository @Inject constructor(
     private val stillwaterLedgerDao: StillwaterLedgerDao,
     private val stillwaterPreferenceDao: StillwaterPreferenceDao,
     private val roomStateDao: UserShellRoomStateDao,
-    private val objectiveCompletionDao: ObjectiveCompletionDao
+    private val objectiveCompletionDao: ObjectiveCompletionDao,
+    private val achievementDao: AchievementDao
 ) {
     fun observePearlBalance(): Flow<Int> = pearlLedgerDao.observeBalance()
     fun observeStillwaterTotal(): Flow<Long> = stillwaterLedgerDao.observeTotal()
@@ -47,6 +79,14 @@ class ShellRepository @Inject constructor(
     fun observePlacements(roomId: ShellRoomId): Flow<List<ShellPlacementEntity>> =
         placementDao.observeByRoom(roomId.name)
     fun observeEarnedBadges(): Flow<List<UserBadgeEntity>> = badgeDao.observeEarned()
+    fun observeBadgePins(): Flow<List<BadgePinEntity>> = achievementDao.observePins()
+    fun observeBadgeTracking(): Flow<List<BadgeTrackingEntity>> = achievementDao.observeTracking()
+    fun observeCreatureDiscoveries(): Flow<List<CreatureDiscoveryEntity>> = achievementDao.observeDiscoveries()
+    fun observeCreatureMasteries(): Flow<List<CreatureMasteryEventEntity>> = achievementDao.observeMasteries()
+    fun observeCollectionCompletions(): Flow<List<CollectionCompletionEntity>> = achievementDao.observeCompletions()
+    fun observeLatestAchievementBackfill(): Flow<AchievementBackfillEntity?> = achievementDao.observeLatestBackfill()
+    fun observePendingMasteryCelebration(): Flow<MasteryCelebrationEventEntity?> = achievementDao.observePendingCelebration()
+    fun observeBadgeCountFloors(): Flow<List<BadgeCountFloorEntity>> = achievementDao.observeCountFloors()
     fun observeDiscoveries(): Flow<List<UserDiscoveryEntity>> = discoveryDao.observeAll()
     fun observeObjectiveCompletions(): Flow<List<ObjectiveCompletionEntity>> =
         objectiveCompletionDao.observeCompletions()
@@ -57,6 +97,86 @@ class ShellRepository @Inject constructor(
 
     suspend fun getPearlBalance(): Int = pearlLedgerDao.getBalance()
     suspend fun getStillwaterTotal(): Long = stillwaterLedgerDao.getTotal()
+
+    sealed interface PinResult {
+        data object Pinned : PinResult
+        data object AlreadyPinned : PinResult
+        data class ReplacementRequired(val currentBadgeIds: List<String>) : PinResult
+    }
+
+    suspend fun pinBadge(badgeId: String, replaceBadgeId: String? = null): PinResult = db.withTransaction {
+        reconcileAchievementLedger(System.currentTimeMillis(), AchievementReconciliationMode.HISTORICAL_IMPORT)
+        require(BadgeDefinitionResolver.isUserVisible(badgeId)) { "This badge is not available in the current Badge Book." }
+        require(BadgeDefinitionResolver.resolve(badgeId).pinnable) { "This badge cannot be pinned." }
+        val dashboardBadge = currentDashboard().badges.firstOrNull { it.badgeId == badgeId }
+        require(dashboardBadge?.everEarned == true) { "Only earned badges can be pinned." }
+        val current = achievementDao.getPins()
+        if (current.any { it.badgeId == badgeId }) return@withTransaction PinResult.AlreadyPinned
+        if (current.size >= 3 && replaceBadgeId == null) return@withTransaction PinResult.ReplacementRequired(current.map { it.badgeId })
+        val replacement = replaceBadgeId?.let { id -> current.firstOrNull { it.badgeId == id } }
+        if (current.size >= 3) require(replacement != null) { "Choose a pinned badge to replace." }
+        replacement?.let { achievementDao.deletePin(it.badgeId) }
+        val order = replacement?.pinOrder ?: ((current.maxOfOrNull { it.pinOrder } ?: -1) + 1)
+        achievementDao.insertPin(BadgePinEntity(badgeId, order, System.currentTimeMillis()))
+        normalizePinOrder()
+        PinResult.Pinned
+    }
+
+    suspend fun unpinBadge(badgeId: String) = db.withTransaction {
+        achievementDao.deletePin(badgeId)
+        normalizePinOrder()
+    }
+
+    private suspend fun normalizePinOrder() {
+        val ordered = achievementDao.getPins()
+        ordered.forEachIndexed { index, pin ->
+            if (pin.pinOrder != index) achievementDao.updatePinOrder(pin.badgeId, -(index + 10))
+        }
+        ordered.forEachIndexed { index, pin -> achievementDao.updatePinOrder(pin.badgeId, index) }
+    }
+
+    suspend fun trackBadge(
+        badgeId: String,
+        accessState: AchievementAccessState = AchievementAccessState()
+    ): Boolean = db.withTransaction {
+        reconcileAchievementLedger(System.currentTimeMillis(), AchievementReconciliationMode.HISTORICAL_IMPORT)
+        cleanupTracking()
+        val dashboardBadge = BadgeDashboardCalculator.calculate(
+            earned = badgeDao.getAll(),
+            instances = findInstanceDao.getAll(),
+            discoveries = achievementDao.getDiscoveries(),
+            masteries = achievementDao.getMasteries(),
+            completions = achievementDao.getCompletions(),
+            pins = achievementDao.getPins(),
+            tracking = achievementDao.getTracking(),
+            countFloors = achievementDao.getCountFloors(),
+            accessState = accessState
+        ).badges.firstOrNull { it.badgeId == badgeId }
+        require(dashboardBadge?.canTrack == true) { "This achievement has no current objective to track." }
+        val current = achievementDao.getTracking()
+        if (current.any { it.badgeId == badgeId }) return@withTransaction false
+        achievementDao.insertTracking(BadgeTrackingEntity(badgeId, System.currentTimeMillis())) != -1L
+    }
+
+    suspend fun untrackBadge(badgeId: String) { achievementDao.deleteTracking(badgeId) }
+
+    private suspend fun masteryEvidence(owned: Map<String, List<Int>> = emptyMap()) =
+        MasteryEvidenceCalculator.bySpecies(achievementDao.getMasteries(), achievementDao.getCountFloors(), owned)
+
+    private suspend fun currentDashboard() = BadgeDashboardCalculator.calculate(
+        earned = badgeDao.getAll(), instances = findInstanceDao.getAll(),
+        discoveries = achievementDao.getDiscoveries(), masteries = achievementDao.getMasteries(),
+        completions = achievementDao.getCompletions(), pins = achievementDao.getPins(),
+        tracking = achievementDao.getTracking(), countFloors = achievementDao.getCountFloors()
+    )
+
+    private suspend fun currentCollectionProgress(collectionId: String): CollectionProgress? {
+        val definition = CollectionCatalog.byId[collectionId] ?: return null
+        val owned = findInstanceDao.getAll().filter { it.creatureStatus == CreatureStatus.ACTIVE }
+            .groupBy({ it.findId }, { it.animalLevel })
+        return CollectionProgressCalculator.calculate(definition,
+            achievementDao.getDiscoveries().map { it.speciesId }.toSet(), owned, masteryEvidence(owned))
+    }
 
     suspend fun markRoomOpened(roomId: ShellRoomId) = db.withTransaction {
         val now = System.currentTimeMillis()
@@ -150,7 +270,7 @@ class ShellRepository @Inject constructor(
 
     suspend fun grantFindCopy(
         findId: String, sourceType: String, sourceId: String?
-    ): UserShellFindInstanceEntity {
+    ): UserShellFindInstanceEntity = db.withTransaction {
         val now = System.currentTimeMillis()
         val firstStage = ShellContentCatalog.upgradesFor(findId).firstOrNull()?.upgradeStageId
         val entity = UserShellFindInstanceEntity(
@@ -170,7 +290,14 @@ class ShellRepository @Inject constructor(
                 ?: CreatureCatalog.get(findId)?.requirementMinutes
         )
         findInstanceDao.insert(entity)
-        return entity
+        CreatureCatalog.get(findId)?.let {
+            achievementDao.recordDiscovery(
+                CreatureDiscoveryEntity(findId, now, sourceType, entity.instanceId, now)
+            )
+            persistCurrentCollectionCompletions(now)
+            reconcileAchievementLedger(now, AchievementReconciliationMode.RUNTIME)
+        }
+        entity
     }
 
     suspend fun grantFindOnce(
@@ -221,7 +348,6 @@ class ShellRepository @Inject constructor(
             true
         )
         discoveryDao.insert(entity)
-        incrementBadge("badge_discovery")
         entity
     }
 
@@ -242,19 +368,22 @@ class ShellRepository @Inject constructor(
         ) { "Invalid nook for this reward." }
         val currentInSlot = placementDao.getBySlot(roomId.name, slotId)
         if (currentInSlot?.instanceId == instanceId) return@withTransaction
+        val now = System.currentTimeMillis()
         currentInSlot?.let {
             placementDao.removeByInstance(it.instanceId)
             findInstanceDao.updateArchivedState(it.instanceId, true)
+            findInstanceDao.updateActivity(it.instanceId, now)
         }
         placementDao.removeByInstance(instanceId)
         findInstanceDao.updateArchivedState(instanceId, false)
+        findInstanceDao.updateActivity(instanceId, now)
         placementDao.insert(
             ShellPlacementEntity(
                 UUID.randomUUID().toString(),
                 roomId.name,
                 slotId,
                 instanceId,
-                System.currentTimeMillis()
+                now
             )
         )
     }
@@ -262,6 +391,7 @@ class ShellRepository @Inject constructor(
     suspend fun removePlacement(instanceId: String) = db.withTransaction {
         placementDao.removeByInstance(instanceId)
         findInstanceDao.updateArchivedState(instanceId, true)
+        findInstanceDao.updateActivity(instanceId, System.currentTimeMillis())
     }
 
     suspend fun markNotificationViewed(notificationId: String) = db.withTransaction {
@@ -270,12 +400,16 @@ class ShellRepository @Inject constructor(
             ShellNotificationType.FIND.name -> findInstanceDao.markViewed(notificationId.substringAfter(':'), now)
             ShellNotificationType.BADGE.name -> badgeDao.markViewed(notificationId.substringAfter(':'), now)
         }
+        cleanupTracking()
+        reconcilePins()
     }
 
     suspend fun markAllNotificationsViewed() = db.withTransaction {
         val now = System.currentTimeMillis()
         findInstanceDao.markFindIdsViewed(ShellContentCatalog.allAnimalFindIds.toList(), now)
         badgeDao.markAllViewed(now)
+        cleanupTracking()
+        reconcilePins()
     }
 
     suspend fun markTheBlueAnimalsSeen() = db.withTransaction {
@@ -385,31 +519,8 @@ class ShellRepository @Inject constructor(
         val find = ShellContentCatalog.find(instance.findId)
             ?: error("Shell reward definition missing")
         if (find.kind == ShellRewardKind.ANIMAL) {
-            require(instance.creatureStatus == CreatureStatus.ACTIVE) {
-                "Only active creatures can grow."
-            }
             val currentLevel = instance.animalLevel.coerceAtLeast(1)
-            require(currentLevel < CreatureEconomy.MAX_CREATURE_LEVEL) {
-                "Mastered at Level 99."
-            }
-            val cost = CreatureEconomy.growthCostPearls(
-                instance.findId,
-                currentLevel
-            )
-            val balance = pearlLedgerDao.getBalance()
-            require(balance >= cost) { insufficientGrowthPearlsMessage(cost, balance) }
-            pearlLedgerDao.insert(
-                PearlLedgerEntity(
-                    UUID.randomUUID().toString(),
-                    -cost,
-                    "grow_creature",
-                    "shell_reward",
-                    instanceId,
-                    System.currentTimeMillis(),
-                    null
-                )
-            )
-            findInstanceDao.updateAnimalLevel(instanceId, currentLevel + 1)
+            growCreature(instanceId, "level_up:$instanceId:${currentLevel + 1}")
             return@withTransaction
         }
         require(find.upgradeable) { "This object is resting in its current form." }
@@ -443,7 +554,20 @@ class ShellRepository @Inject constructor(
     }
 
 
-    suspend fun growCreature(instanceId: String) = db.withTransaction {
+    suspend fun growCreature(
+        instanceId: String,
+        transactionId: String,
+        originDestination: String = "CHEST"
+    ): AchievementResult = db.withTransaction {
+        achievementDao.getEvent(transactionId)?.let { committed ->
+            val level = findInstanceDao.getById(instanceId)?.animalLevel
+            val payload = runCatching { JSONObject(committed.resultPayload) }.getOrNull()
+            val legacy = committed.resultPayload.split('|')
+            return@withTransaction AchievementResult(committed.eventId, false, emptyList(),
+                pearlCost = payload?.optInt("pearlCost") ?: legacy.getOrNull(0)?.toIntOrNull() ?: 0,
+                resultingLevel = payload?.optInt("resultingLevel")?.takeIf { it > 0 }
+                    ?: legacy.getOrNull(1)?.toIntOrNull() ?: level)
+        }
         val instance = findInstanceDao.getById(instanceId) ?: error("Creature not found")
         require(ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL) { "Only animals can grow with Pearls." }
         require(instance.creatureStatus == CreatureStatus.ACTIVE) {
@@ -459,7 +583,7 @@ class ShellRepository @Inject constructor(
         val now = System.currentTimeMillis()
         pearlLedgerDao.insert(
             PearlLedgerEntity(
-                UUID.randomUUID().toString(),
+                "pearl:$transactionId",
                 -cost,
                 "grow_creature",
                 "shell_reward",
@@ -468,11 +592,560 @@ class ShellRepository @Inject constructor(
                 null
             )
         )
-        findInstanceDao.updateAnimalLevel(instanceId, currentLevel + 1)
+        val resultingLevel = currentLevel + 1
+        findInstanceDao.updateAnimalLevel(instanceId, resultingLevel)
+        findInstanceDao.updateActivity(instanceId, now)
+        achievementDao.recordDiscovery(CreatureDiscoveryEntity(instance.findId, instance.acquiredAt, instance.sourceType, instanceId, now))
+        val changes = mutableListOf<AchievementChange>()
+        if (resultingLevel == CreatureEconomy.MAX_CREATURE_LEVEL) {
+            reconcileAchievementLedger(now, AchievementReconciliationMode.HISTORICAL_IMPORT)
+            val badgesBefore = badgeDao.getAll().associate { it.badgeId to it.count }
+            val completionsBefore = achievementDao.getCompletions().map { it.completionId }.toSet()
+            val inserted = achievementDao.recordMastery(CreatureMasteryEventEntity(
+                eventId = "mastery:$instanceId", creatureInstanceId = instanceId,
+                speciesId = instance.findId, achievedAt = now, levelUpTransactionId = transactionId
+            )) != -1L
+            if (inserted) {
+                val evidence = masteryEvidence()
+                val speciesCount = evidence.getValue(instance.findId).effectiveLifetimeCount
+                changes += AchievementChange(AchievementChangeType.SPECIES_MASTERY_RECORDED,
+                    badgeId = "mastery_species_${instance.findId}", speciesId = instance.findId, exactCount = speciesCount)
+            }
+            persistCurrentCollectionCompletions(now)
+            reconcileAchievementLedger(now, AchievementReconciliationMode.RUNTIME)
+            if (inserted) {
+                val definition = CreatureCatalog.require(instance.findId)
+                val discoveries = achievementDao.getDiscoveries().map { it.speciesId }.toSet()
+                val owned = findInstanceDao.getAll().filter { it.creatureStatus == CreatureStatus.ACTIVE }
+                    .groupBy({ it.findId }, { it.animalLevel })
+                val evidence = masteryEvidence(owned)
+                fun progress(id: String) = CollectionProgressCalculator.calculate(
+                    CollectionCatalog.byId.getValue(id), discoveries, owned, evidence
+                )
+                val region = progress(definition.primaryProgressCollectionId)
+                val blue = progress("collection_the_blue")
+                val stillwater = progress("collection_stillwater")
+                val allWaters = progress("collection_all_waters")
+                val completionsAfter = achievementDao.getCompletions()
+                val badgesAfter = badgeDao.getAll().associate { it.badgeId to it.count }
+                val affectedIds = (badgesBefore.keys + badgesAfter.keys).filter {
+                    (badgesBefore[it] ?: 0) != (badgesAfter[it] ?: 0)
+                }
+                val newlyEarned = affectedIds.filter { (badgesBefore[it] ?: 0) == 0 && (badgesAfter[it] ?: 0) > 0 }
+                val newEditionBadges = completionsAfter.filter { it.completionId !in completionsBefore }
+                    .map { "${it.collectionId}_${it.completionType.lowercase()}" }.filter { it !in newlyEarned }
+                val advanced = affectedIds.filter { it !in newlyEarned } + newEditionBadges
+                val milestones = affectedIds.mapNotNull { id ->
+                    val badgeDefinition = BadgeDefinitionResolver.resolve(id)
+                    if (badgeDefinition.countType == BadgeCountType.ONE_TIME) null else
+                        MilestoneEngine.evaluate(
+                            badgesAfter[id] ?: 0,
+                            badgesBefore[id] ?: 0,
+                            badgeDefinition.milestones
+                        ).newlyReachedThreshold?.let { "$id:$it" }
+                }
+                affectedIds.forEach { id ->
+                    val before = badgesBefore[id] ?: 0; val after = badgesAfter[id] ?: 0
+                    changes += AchievementChange(if (before == 0) AchievementChangeType.BADGE_NEWLY_EARNED else AchievementChangeType.COUNT_INCREASED,
+                        badgeId = id, previousCount = before, exactCount = after)
+                    val badgeDefinition = BadgeDefinitionResolver.resolve(id)
+                    if (badgeDefinition.countType != BadgeCountType.ONE_TIME) {
+                        MilestoneEngine.evaluate(after, before, badgeDefinition.milestones).newlyReachedThreshold?.let { milestone ->
+                            changes += AchievementChange(AchievementChangeType.MILESTONE_REACHED, id, previousCount = before, exactCount = after, milestone = milestone)
+                        }
+                    }
+                }
+                newEditionBadges.forEach { id ->
+                    changes += AchievementChange(AchievementChangeType.CURRENT_ROSTER_COMPLETED,
+                        badgeId = id, collectionId = BadgeDefinitionResolver.resolve(id).collectionId,
+                        previousCount = badgesBefore[id] ?: 1, exactCount = badgesAfter[id] ?: 1)
+                }
+                achievementDao.insertCelebration(
+                    MasteryCelebrationEventEntity(
+                        eventId = "celebration:$transactionId", transactionId = transactionId,
+                        creatureInstanceId = instanceId, speciesId = instance.findId,
+                        artworkKey = definition.staticIconKey, regionId = definition.primaryProgressCollectionId,
+                        sourceId = definition.sourceType.name, previousLevel = currentLevel,
+                        newLevel = resultingLevel,
+                        speciesMasteryCount = evidence.getValue(instance.findId).effectiveLifetimeCount,
+                        totalMasteries = evidence.values.sumOf { it.effectiveLifetimeCount },
+                        uniqueMasteredSpecies = evidence.values.count { it.hasEverBeenMastered },
+                        regionalDiscovered = region.discoveredSpeciesCount, regionalTotal = region.totalCompletionistSpecies,
+                        regionalMastered = region.masteredSpeciesCount, regionalCollectorEarned = region.collectorEarned,
+                        regionalCompletionistEarned = region.completionistEarned,
+                        blueMastered = blue.masteredSpeciesCount, blueTotal = blue.totalCompletionistSpecies,
+                        stillwaterMastered = stillwater.masteredSpeciesCount, stillwaterTotal = stillwater.totalCompletionistSpecies,
+                        allWatersMastered = allWaters.masteredSpeciesCount, allWatersTotal = allWaters.totalCompletionistSpecies,
+                        newlyEarnedBadgeIds = newlyEarned.distinct().joinToString(","),
+                        advancedBadgeIds = advanced.joinToString(","), milestonesReached = milestones.joinToString(","),
+                        originDestination = originDestination, createdAt = now,
+                        lifecycleState = CelebrationLifecycle.PENDING.name,
+                        presentationStage = CelebrationStage.LEVEL_TRANSITION.name
+                    )
+                )
+            }
+        }
+        val payload = JSONObject().put("schemaVersion", 1).put("pearlCost", cost)
+            .put("previousLevel", currentLevel).put("resultingLevel", resultingLevel)
+            .put("speciesId", instance.findId).toString()
+        achievementDao.recordEvent(AchievementEventEntity(transactionId, "CREATURE_LEVEL_UP", instanceId, instance.findId, now, payload))
+        AchievementResult(transactionId, true, changes, cost, resultingLevel)
+    }
+
+    private suspend fun setBadgeExact(id: String, count: Int, now: Long) {
+        val current = badgeDao.get(id)
+        val floor = achievementDao.getCountFloors().firstOrNull { it.badgeId == id }
+        val reconciled = MasteryEvidenceCalculator.effectiveCount(count, floor)
+        val next = maxOf(current?.count ?: 0, reconciled)
+        if (current?.count == next || next <= 0) return
+        badgeDao.upsert(current?.copy(count = next, lastEarnedAt = now, isNew = true, viewedAt = null)
+            ?: UserBadgeEntity(id, next, now, now, true))
+    }
+
+    /** Reconciles the persistent earned ledger without reducing reliable legacy totals. */
+    private suspend fun reconcileAchievementLedger(now: Long, mode: AchievementReconciliationMode) {
+        val discoveries = achievementDao.getDiscoveries().map { it.speciesId }.toSet()
+        val masteries = achievementDao.getMasteries()
+        val floorsList = achievementDao.getCountFloors()
+        val floors = floorsList.associateBy { it.badgeId }
+        val evidence = MasteryEvidenceCalculator.bySpecies(masteries, floorsList)
+        CreatureCatalog.all.forEach { species ->
+            val id = "mastery_species_${species.creatureId}"
+            val speciesEvidence = evidence.getValue(species.creatureId)
+            val count = speciesEvidence.effectiveLifetimeCount
+            if (count > 0) materializeBadge(
+                id, count,
+                speciesEvidence.firstMasteryAt?.let { EvidenceTimestamp(it, speciesEvidence.timestampConfidence) },
+                speciesEvidence.latestMasteryAt?.let { EvidenceTimestamp(it, speciesEvidence.timestampConfidence) },
+                mode = mode
+            )
+        }
+        val uniqueMastered = evidence.values.count { it.hasEverBeenMastered }
+        val discoveryRows = achievementDao.getDiscoveries()
+        val stillwaterEvidence = AchievementEvidenceScope.stillwater(discoveryRows, masteries)
+        val stillwaterSpeciesIds = stillwaterEvidence.speciesIds
+        val stillwaterMasteries = stillwaterEvidence.masteries
+        val stillwaterDiscoveries = stillwaterEvidence.discoveries
+        val exactCounts = mapOf(
+            "mastery_first" to if (uniqueMastered == 0) 0 else 1,
+            "mastery_circle" to maxOf(evidence.values.sumOf { it.effectiveLifetimeCount }, MasteryEvidenceCalculator.effectiveCount(masteries.size, floors["mastery_circle"])),
+            "mastery_variety" to uniqueMastered,
+            "variety_collector" to discoveries.size,
+            "stillwater_first_catch" to if (discoveries.any { CreatureCatalog.get(it)?.sourceType == CreatureSourceType.STILLWATER }) 1 else 0,
+            "stillwater_variety" to discoveries.count { CreatureCatalog.get(it)?.sourceType == CreatureSourceType.STILLWATER },
+            "stillwater_mastery" to maxOf(
+                evidence.values.filter { CreatureCatalog.get(it.speciesId)?.sourceType == CreatureSourceType.STILLWATER }.sumOf { it.effectiveLifetimeCount },
+                MasteryEvidenceCalculator.effectiveCount(masteries.count { CreatureCatalog.get(it.speciesId)?.sourceType == CreatureSourceType.STILLWATER }, floors["stillwater_mastery"])
+            )
+        )
+        exactCounts.forEach { (id, verified) ->
+            val currentRosterBounded = id in setOf("mastery_variety", "variety_collector", "stillwater_variety")
+            val effective = if (currentRosterBounded || id in setOf("mastery_circle", "stillwater_mastery")) verified
+                else MasteryEvidenceCalculator.effectiveCount(verified, floors[id])
+            val firstEvidence = when (id) {
+                "mastery_first", "mastery_circle", "mastery_variety" ->
+                    AchievementTimestampCalculator.firstMasteryTimestamp(masteries)
+                "variety_collector" ->
+                    AchievementTimestampCalculator.discoveryVarietyThresholdTimestamp(discoveryRows, 1)
+                "stillwater_first_catch", "stillwater_variety" ->
+                    AchievementTimestampCalculator.discoveryVarietyThresholdTimestamp(
+                        stillwaterDiscoveries, 1, stillwaterSpeciesIds
+                    )
+                "stillwater_mastery" -> AchievementTimestampCalculator.firstMasteryTimestamp(stillwaterMasteries)
+                else -> null
+            }
+            val latestEvidence = when (id) {
+                "mastery_first" -> firstEvidence
+                "mastery_circle" ->
+                    AchievementTimestampCalculator.masteryThresholdTimestamp(masteries, effective)
+                "stillwater_mastery" ->
+                    AchievementTimestampCalculator.masteryThresholdTimestamp(stillwaterMasteries, effective)
+                "mastery_variety" ->
+                    AchievementTimestampCalculator.masteryVarietyThresholdTimestamp(masteries, effective.coerceAtMost(masteries.map { it.speciesId }.distinct().size))
+                "variety_collector" ->
+                    AchievementTimestampCalculator.discoveryVarietyThresholdTimestamp(discoveryRows, effective.coerceAtMost(discoveryRows.size))
+                "stillwater_first_catch", "stillwater_variety" -> {
+                    if (id == "stillwater_first_catch") firstEvidence else
+                        AchievementTimestampCalculator.discoveryVarietyThresholdTimestamp(
+                            stillwaterDiscoveries,
+                            effective.coerceAtMost(stillwaterDiscoveries.map { it.speciesId }.distinct().size),
+                            stillwaterSpeciesIds
+                        )
+                }
+                else -> null
+            }
+            effective.takeIf { it > 0 }?.let {
+                materializeBadge(id, it, firstEvidence, latestEvidence, mode)
+            }
+        }
+        val owned = findInstanceDao.getAll().filter { it.creatureStatus == CreatureStatus.ACTIVE }.groupBy({ it.findId }, { it.animalLevel })
+        val progress = CollectionCatalog.collections.associate { collection -> collection.collectionId to
+            CollectionProgressCalculator.calculate(collection, discoveries, owned, evidence) }
+        if (CollectionCatalog.collections.filter { it.collectionId.startsWith("blue_") }.all { progress.getValue(it.collectionId).discoveredSpeciesCount > 0 }) {
+            val required = CollectionCatalog.collections.filter { it.collectionId.startsWith("blue_") }
+            val timestamp = AchievementTimestampCalculator.acrossTheDepthsTimestamp(discoveryRows, required)
+            materializeBadge("across_the_depths", 1, timestamp, timestamp, mode)
+        }
+        if (CollectionCatalog.collections.filter { it.collectionId.startsWith("blue_") || it.collectionId.startsWith("stillwater_") }.all { collection ->
+                collection.eligibleRoster(BadgeRequirement.COMPLETIONIST).any { evidence[it]?.hasEverBeenMastered == true }
+            }) {
+            val required = CollectionCatalog.collections.filter {
+                it.collectionId.startsWith("blue_") || it.collectionId.startsWith("stillwater_")
+            }
+            val timestamp = AchievementTimestampCalculator.oneFromEveryWaterTimestamp(masteries, required)
+            materializeBadge("one_from_every_water", 1, timestamp, timestamp, mode)
+        }
+        if (CollectionCatalog.collections.filter { it.collectionId.startsWith("blue_") }.all { progress[it.collectionId]?.collectorEarned == true }) {
+            val timestamp = AchievementTimestampCalculator.keeperOfTheBlueTimestamp(
+                achievementDao.getCompletions(),
+                CollectionCatalog.collections.filter { it.collectionId.startsWith("blue_") }
+                    .mapTo(mutableSetOf()) { it.collectionId }
+            )
+            materializeBadge("keeper_of_the_blue", 1, timestamp, timestamp, mode)
+        }
+        achievementDao.getCompletions().forEach { completion ->
+            materializeBadge(
+                "${completion.collectionId}_${completion.completionType.lowercase()}",
+                1,
+                completion.completedAt?.takeIf { it > 0 }?.let { EvidenceTimestamp(it, completion.timestampConfidence) },
+                mode = mode
+            )
+        }
+        cleanupTracking()
+        reconcilePins()
+    }
+
+    private suspend fun materializeBadge(
+        id: String,
+        count: Int,
+        firstEarnedEvidence: EvidenceTimestamp?,
+        latestAdvancedEvidence: EvidenceTimestamp? = firstEarnedEvidence,
+        mode: AchievementReconciliationMode
+    ) {
+        val current = badgeDao.get(id)
+        val candidateConfidence = firstEarnedEvidence?.confidence ?: AchievementTimestampConfidence.UNKNOWN
+        if (current == null) {
+            val first = firstEarnedEvidence?.timestamp ?: return
+            badgeDao.upsert(UserBadgeEntity(
+                id, count, first, latestAdvancedEvidence?.timestamp ?: first,
+                AchievementReconciliationPolicy.isNew(mode),
+                viewedAt = AchievementReconciliationPolicy.initialViewedAt(mode, first),
+                timestampConfidence = firstEarnedEvidence.confidence
+            ))
+        } else if (
+            count > current.count ||
+            (firstEarnedEvidence != null && firstEarnedEvidence.timestamp < current.firstEarnedAt) ||
+            AchievementTimestampCalculator.strongestConfidence(current.timestampConfidence, candidateConfidence) != current.timestampConfidence
+        ) {
+            val latestEvidenceAt = latestAdvancedEvidence?.timestamp
+            val hasRealNewAdvance = mode == AchievementReconciliationMode.RUNTIME &&
+                count > current.count && latestEvidenceAt != null &&
+                latestEvidenceAt > current.lastEarnedAt
+            badgeDao.upsert(current.copy(
+                count = maxOf(count, current.count),
+                firstEarnedAt = firstEarnedEvidence?.timestamp?.let { minOf(it, current.firstEarnedAt) } ?: current.firstEarnedAt,
+                lastEarnedAt = latestEvidenceAt?.let { maxOf(it, current.lastEarnedAt) } ?: current.lastEarnedAt,
+                isNew = if (hasRealNewAdvance) true else current.isNew,
+                viewedAt = if (hasRealNewAdvance) null else current.viewedAt,
+                timestampConfidence = AchievementTimestampCalculator.strongestConfidence(
+                    current.timestampConfidence,
+                    candidateConfidence
+                )
+            ))
+        }
+    }
+
+    private suspend fun cleanupTracking() {
+        val earned = badgeDao.getAll().associateBy { it.badgeId }
+        val dashboard = BadgeDashboardCalculator.calculate(
+            earned = earned.values.toList(),
+            instances = findInstanceDao.getAll(),
+            discoveries = achievementDao.getDiscoveries(),
+            masteries = achievementDao.getMasteries(),
+            completions = achievementDao.getCompletions(),
+            pins = achievementDao.getPins(),
+            tracking = achievementDao.getTracking(),
+            countFloors = achievementDao.getCountFloors()
+        ).badges.associateBy { it.badgeId }
+        achievementDao.getTracking().forEach { tracked ->
+            val earnedBadge = earned[tracked.badgeId]
+            val model = dashboard[tracked.badgeId]
+            val preserveUntilAcknowledged = model?.everEarned == true && earnedBadge?.viewedAt == null
+            if (model == null || (!model.canTrack && !preserveUntilAcknowledged)) {
+                achievementDao.deleteTracking(tracked.badgeId)
+            }
+        }
+    }
+
+    private suspend fun reconcilePins() {
+        val earned = badgeDao.getAll().associateBy { it.badgeId }
+        val dashboard = currentDashboard().badges.associateBy { it.badgeId }
+        val visibilityContext = currentBadgeVisibilityContext(earned.keys + dashboard.filterValues { it.everEarned }.keys)
+        achievementDao.getPins().forEach { pin ->
+            val definition = BadgeDefinitionResolver.resolve(pin.badgeId)
+            val valid = BadgeVisibilityEvaluator.isVisible(definition, visibilityContext) && definition.pinnable &&
+                dashboard[pin.badgeId]?.everEarned == true
+            if (!valid) achievementDao.deletePin(pin.badgeId)
+        }
+        normalizePinOrder()
+    }
+
+    private suspend fun currentBadgeVisibilityContext(earnedBadgeIds: Set<String>): BadgeVisibilityContext =
+        BadgeVisibilityContext(
+            discoveredSpeciesIds = achievementDao.getDiscoveries().mapTo(mutableSetOf()) { it.speciesId },
+            earnedBadgeIds = earnedBadgeIds,
+            historicallyMasteredSpeciesIds = achievementDao.getMasteries().mapTo(mutableSetOf()) { it.speciesId }
+        )
+
+    private suspend fun persistCurrentCollectionCompletions(
+        occurredAt: Long,
+        historicalBackfill: Boolean = false
+    ): Int {
+        val discoveryRows = achievementDao.getDiscoveries()
+        val discoveries = discoveryRows.mapTo(mutableSetOf()) { it.speciesId }
+
+        val allInstances = findInstanceDao.getAll()
+        val owned = allInstances
+            .filter { it.creatureStatus == CreatureStatus.ACTIVE }
+            .groupBy(
+                keySelector = { it.findId },
+                valueTransform = { it.animalLevel }
+            )
+
+        val evidence = masteryEvidence(owned)
+        var inserted = 0
+
+        CollectionCatalog.collections.forEach { collection ->
+            val progress = CollectionProgressCalculator.calculate(
+                definition = collection,
+                discovered = discoveries,
+                ownedLevels = owned,
+                masteryEvidence = evidence
+            )
+
+            val completedRequirements = listOf(
+                BadgeRequirement.COLLECTOR to progress.currentRosterCollectorComplete,
+                BadgeRequirement.CURATOR to progress.currentRosterCuratorComplete,
+                BadgeRequirement.COMPLETIONIST to progress.currentRosterCompletionistComplete
+            ).filter { (_, complete) -> complete }
+
+            completedRequirements.forEach { (type, _) ->
+                val eligibleRoster = collection.eligibleRoster(type)
+                val rosterHash = collection.rosterHash(type)
+                val completionId = CollectionCompletionIdentity.forRoster(
+                    collectionId = collection.collectionId,
+                    requirement = type,
+                    rosterHash = rosterHash
+                )
+
+                val historicalEvidenceTimestamp = if (!historicalBackfill) {
+                    null
+                } else {
+                    when (type) {
+                        BadgeRequirement.COLLECTOR -> {
+                            val rowsBySpecies = discoveryRows.groupBy { it.speciesId }
+
+                            AchievementTimestampCalculator.completionTimestamp(
+                                eligibleRoster.map { speciesId ->
+                                    rowsBySpecies[speciesId]
+                                        ?.minOfOrNull { it.firstDiscoveredAt }
+                                        ?.takeIf { it > 0 }
+                                        ?.let { timestamp ->
+                                            EvidenceTimestamp(
+                                                timestamp = timestamp,
+                                                confidence = AchievementTimestampConfidence.EXACT
+                                            )
+                                        }
+                                }
+                            )
+                        }
+
+                        BadgeRequirement.CURATOR -> {
+                            /*
+                             * Active ownership proves the current Curator edition.
+                             * Released creatures do not prove that the entire roster
+                             * was owned simultaneously.
+                             */
+                            val activeInstancesBySpecies = allInstances
+                                .filter {
+                                    it.creatureStatus == CreatureStatus.ACTIVE &&
+                                            it.findId in eligibleRoster &&
+                                            it.acquiredAt > 0
+                                }
+                                .groupBy { it.findId }
+
+                            AchievementTimestampCalculator.completionTimestamp(
+                                eligibleRoster.map { speciesId ->
+                                    activeInstancesBySpecies[speciesId]
+                                        ?.minOfOrNull { it.acquiredAt }
+                                        ?.let { timestamp ->
+                                            EvidenceTimestamp(
+                                                timestamp = timestamp,
+                                                confidence =
+                                                    AchievementTimestampConfidence
+                                                        .ESTIMATED_FROM_ACQUISITION
+                                            )
+                                        }
+                                }
+                            )
+                        }
+
+                        BadgeRequirement.COMPLETIONIST -> {
+                            AchievementTimestampCalculator.completionTimestamp(
+                                eligibleRoster.map { speciesId ->
+                                    evidence[speciesId]?.let { speciesEvidence ->
+                                        speciesEvidence.firstMasteryAt?.let { timestamp ->
+                                            EvidenceTimestamp(
+                                                timestamp = timestamp,
+                                                confidence =
+                                                    speciesEvidence.timestampConfidence
+                                            )
+                                        }
+                                    }
+                                }
+                            )
+                        }
+
+                        BadgeRequirement.EXACT_COUNT -> null
+                    }
+                }
+
+                /*
+                 * A real runtime completion receives the current action timestamp.
+                 * Historical reconciliation uses only reconstructed historical evidence.
+                 */
+                val candidateEvidence = if (historicalBackfill) {
+                    historicalEvidenceTimestamp
+                } else {
+                    EvidenceTimestamp(
+                        timestamp = occurredAt,
+                        confidence = AchievementTimestampConfidence.EXACT
+                    )
+                }
+
+                val candidateEntity = CollectionCompletionEntity(
+                    completionId = completionId,
+                    collectionId = collection.collectionId,
+                    completionType = type.name,
+                    completedAt = candidateEvidence?.timestamp,
+                    timestampConfidence = candidateEvidence?.confidence
+                        ?: AchievementTimestampConfidence.UNKNOWN,
+                    rosterVersion = collection.rosterVersion,
+                    rosterHash = rosterHash,
+                    requiredSpeciesIds = eligibleRoster.joinToString(",")
+                )
+
+                val existingCompletion = achievementDao.getCompletion(completionId)
+
+                var persistedCompletion = existingCompletion
+                var insertedNow = false
+
+                if (existingCompletion == null) {
+                    insertedNow =
+                        achievementDao.recordCompletion(candidateEntity) != -1L
+
+                    if (insertedNow) {
+                        inserted++
+                        persistedCompletion = candidateEntity
+                    } else {
+                        /*
+                         * Defensive fallback in case another transaction inserted
+                         * the same roster completion first.
+                         */
+                        persistedCompletion =
+                            achievementDao.getCompletion(completionId)
+                    }
+                } else if (
+                    historicalBackfill &&
+                    historicalEvidenceTimestamp != null &&
+                    (
+                            existingCompletion.completedAt == null ||
+                                    AchievementTimestampCalculator.strongestConfidence(
+                                        current = existingCompletion.timestampConfidence,
+                                        candidate = historicalEvidenceTimestamp.confidence
+                                    ) != existingCompletion.timestampConfidence
+                            )
+                ) {
+                    /*
+                     * Only historical reconciliation may improve an existing
+                     * historical record. Runtime activity must never turn an old
+                     * completion into "completed now."
+                     */
+                    achievementDao.updateCompletionEvidence(
+                        id = completionId,
+                        completedAt = historicalEvidenceTimestamp.timestamp,
+                        confidence = historicalEvidenceTimestamp.confidence.name
+                    )
+
+                    persistedCompletion = existingCompletion.copy(
+                        completedAt = historicalEvidenceTimestamp.timestamp,
+                        timestampConfidence = historicalEvidenceTimestamp.confidence
+                    )
+                }
+
+                val persistedEvidence = persistedCompletion
+                    ?.completedAt
+                    ?.takeIf { it > 0 }
+                    ?.let { completedAt ->
+                        EvidenceTimestamp(
+                            timestamp = completedAt,
+                            confidence = persistedCompletion.timestampConfidence
+                        )
+                    }
+
+                materializeBadge(
+                    id = "${collection.collectionId}_${type.name.lowercase()}",
+                    count = 1,
+                    firstEarnedEvidence = persistedEvidence,
+                    latestAdvancedEvidence = persistedEvidence,
+                    mode = if (insertedNow && !historicalBackfill) {
+                        AchievementReconciliationMode.RUNTIME
+                    } else {
+                        AchievementReconciliationMode.HISTORICAL_IMPORT
+                    }
+                )
+            }
+        }
+
+        return inserted
+    }
+
+    data class BackfillResult(val version: Int, val discoveredCount: Int, val masteryCount: Int, val completionCount: Int, val alreadyCompleted: Boolean)
+
+    /** Safe to call from WorkManager or an IO coroutine; every evidence write is idempotent. */
+    suspend fun backfillAchievements(version: Int = AchievementBackfillWorker.BACKFILL_VERSION): BackfillResult = db.withTransaction {
+        achievementDao.getBackfill(version)?.let {
+            val now = System.currentTimeMillis()
+            val newlyRecognizedCompletions = persistCurrentCollectionCompletions(
+                occurredAt = now,
+                historicalBackfill = true
+            )
+            reconcileAchievementLedger(now, AchievementReconciliationMode.HISTORICAL_IMPORT)
+            return@withTransaction BackfillResult(version, 0, 0, newlyRecognizedCompletions, true)
+        }
+        val now = System.currentTimeMillis()
+        val discoveriesBefore = achievementDao.getDiscoveries().size
+        val masteriesBefore = achievementDao.getMasteries().size
+        findInstanceDao.getAll().filter { CreatureCatalog.get(it.findId) != null }.forEach { instance ->
+            achievementDao.recordDiscovery(CreatureDiscoveryEntity(instance.findId, instance.acquiredAt,
+                instance.sourceType, instance.instanceId, now))
+            if (instance.animalLevel >= CreatureEconomy.MAX_CREATURE_LEVEL) {
+                achievementDao.recordMastery(CreatureMasteryEventEntity("backfill_mastery_${instance.instanceId}",
+                    instance.instanceId, instance.findId, instance.acquiredAt, "backfill_${instance.instanceId}"))
+            }
+        }
+        val completionCount = persistCurrentCollectionCompletions(now, historicalBackfill = true)
+        reconcileAchievementLedger(now, AchievementReconciliationMode.HISTORICAL_IMPORT)
+        val discoveryCount = achievementDao.getDiscoveries().size
+        val masteryCount = achievementDao.getMasteries().size
+        val recognizedDiscoveries = (discoveryCount - discoveriesBefore).coerceAtLeast(0)
+        val recognizedMasteries = (masteryCount - masteriesBefore).coerceAtLeast(0)
+        achievementDao.recordBackfill(AchievementBackfillEntity(version, now, recognizedDiscoveries, recognizedMasteries, completionCount))
+        BackfillResult(version, recognizedDiscoveries, recognizedMasteries, completionCount, false)
     }
 
 
-    suspend fun growCreatureByLevel(findId: String, level: Int) = db.withTransaction {
+    suspend fun growCreatureByLevel(findId: String, level: Int, originDestination: String = "CHEST"): AchievementResult = db.withTransaction {
         require(ShellContentCatalog.find(findId)?.kind == ShellRewardKind.ANIMAL) {
             "Only animals can grow with Pearls."
         }
@@ -484,21 +1157,24 @@ class ShellRepository @Inject constructor(
             "No active Level $currentLevel creature to grow."
         }
         val instance = activeAtLevel.first()
-        val cost = CreatureEconomy.growthCostPearls(findId, currentLevel)
-        val balance = pearlLedgerDao.getBalance()
-        require(balance >= cost) { insufficientGrowthPearlsMessage(cost, balance) }
-        val now = System.currentTimeMillis()
-        pearlLedgerDao.insert(
-            PearlLedgerEntity(
-                UUID.randomUUID().toString(),
-                -cost, "grow_creature",
-                "shell_reward",
-                instance.instanceId,
-                now,
-                null
-            )
-        )
-        findInstanceDao.updateAnimalLevel(instance.instanceId, currentLevel + 1)
+        growCreature(instance.instanceId, "level_up:${instance.instanceId}:${currentLevel + 1}", originDestination)
+    }
+
+    suspend fun updateCelebration(eventId: String, transition: com.kingkharnivore.skillz.domain.achievement.CelebrationTransition) {
+        db.withTransaction {
+            if (transition.lifecycle == CelebrationLifecycle.COMPLETED) {
+                achievementDao.getCelebration(eventId)?.let { event ->
+                    // The final summary always renders newly-earned badge chips. Advanced and
+                    // milestone rows may have been skipped, so they intentionally remain unseen.
+                    event.newlyEarnedBadgeIds.split(',').filter { it.isNotBlank() }.distinct()
+                        .forEach { badgeDao.markViewed(it, System.currentTimeMillis()) }
+                }
+                cleanupTracking()
+                reconcilePins()
+            }
+            achievementDao.updateCelebrationState(eventId, transition.lifecycle.name, transition.stage.name,
+                if (transition.lifecycle == CelebrationLifecycle.COMPLETED) System.currentTimeMillis() else null)
+        }
     }
 
     private fun insufficientGrowthPearlsMessage(requiredPearls: Int, currentPearls: Int): String {
@@ -573,6 +1249,8 @@ class ShellRepository @Inject constructor(
                 instance.instanceId,
                 CreatureStatus.RELEASED
             )
+            findInstanceDao.updateActivity(instance.instanceId, now)
+            findInstanceDao.updateSpeciesActivity(instance.findId, now)
             pearlLedgerDao.insert(
                 PearlLedgerEntity(
                     UUID.randomUUID().toString(),
@@ -649,6 +1327,7 @@ class ShellRepository @Inject constructor(
             findInstanceDao.updateCreatureStatus(
                 creature.instanceId, CreatureStatus.USED_BEYOND_BLUE
             )
+            findInstanceDao.updateActivity(creature.instanceId, now)
         }
         val encountered = grantFindCopy(
             targetCreatureId, "beyond_blue", targetCreatureId

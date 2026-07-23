@@ -7,9 +7,22 @@ enum class ChestSortOption(val key: String) {
     OldestArrival("oldest_arrival"),
     Alphabetical("alphabetical"),
     Value("value"),
-    Count("count");
+    Count("count"),
+    ClosestToMastery("closest_to_mastery"),
+    SpeciesMasteryCount("species_mastery_count");
 
     companion object {
         fun fromKey(key: String?): ChestSortOption = entries.firstOrNull { it.key == key } ?: Level
     }
+}
+
+enum class ChestFilterOption(val key: String) {
+    All("all"), ClosestToMastery("closest"), Mastered("mastered"), NotMastered("not_mastered"),
+    NeededForTrackedBadges("needed_for_tracked_badges"),
+    SunlitReef("sunlit_reef"), DeeperReef("deeper_reef"), OpenBlue("open_blue"), GreatBlue("great_blue"),
+    Fishbowl("fishbowl"), Aquarium("aquarium"), Pond("pond"), Lake("lake");
+    companion object { fun fromKey(key: String?) = when (key) {
+        "tracked_collector", "tracked_mastery", "tracked_completionist" -> NeededForTrackedBadges
+        else -> entries.firstOrNull { it.key == key } ?: All
+    } }
 }

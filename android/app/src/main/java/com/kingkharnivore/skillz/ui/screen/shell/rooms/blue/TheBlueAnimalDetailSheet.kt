@@ -25,10 +25,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -46,6 +51,8 @@ import com.kingkharnivore.skillz.ui.screen.shell.TheBlueDisplayDisabledReason
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellMetricPill
 import com.kingkharnivore.skillz.ui.screen.shell.theBlueDisplayDisabledReason
+import com.kingkharnivore.skillz.domain.achievement.Level99AchievementPreview
+import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraParchmentSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,8 +66,10 @@ fun TheBlueAnimalDetailSheet(
     onRelease: () -> Unit,
     onBeyondBlue: () -> Unit,
     onDisplayInFocus: (String, String) -> Unit,
-    onOpenChest: () -> Unit
+    onOpenChest: () -> Unit,
+    level99Preview: Level99AchievementPreview? = null
 ) {
+    var showGrowthConfirmation by remember { mutableStateOf(false) }
     val name = findName(animal.findId)
     val zone = zoneTitle(animal.zoneId)
     val title = stringResource(R.string.the_blue_animal_count, name, animal.totalCount)
@@ -72,7 +81,7 @@ fun TheBlueAnimalDetailSheet(
     val growthCost = CreatureEconomy.growthCostPearls(animal.findId, highestLevel)
     val isMastered = highestLevel >= CreatureEconomy.MAX_CREATURE_LEVEL
     val canGrow = growthInstanceId != null && !isMastered && pearlBalance >= growthCost
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ScyraParchmentSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -167,12 +176,11 @@ fun TheBlueAnimalDetailSheet(
             Text(animal.restingCount.toString())
 
             Text(stringResource(R.string.the_blue_actions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Button(
-                onClick = { growthInstanceId?.let(onGrow) },
-                enabled = canGrow,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            if (canGrow) Button(onClick = { showGrowthConfirmation = true }, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.shell_creature_level_up))
+            } else OutlinedButton(onClick = { showGrowthConfirmation = true },
+                enabled = growthInstanceId != null && !isMastered, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.shell_creature_view_requirements))
             }
             if (!canGrow) {
                 val missing = (growthCost - pearlBalance).coerceAtLeast(0)
@@ -225,6 +233,11 @@ fun TheBlueAnimalDetailSheet(
             Spacer(Modifier.height(18.dp))
         }
     }
+    if (showGrowthConfirmation) AlertDialog(onDismissRequest = { showGrowthConfirmation = false }, containerColor = MaterialTheme.colorScheme.surface,
+        title = { Text(stringResource(R.string.shell_creature_level_up_confirm_title, name)) },
+        text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { Text(stringResource(R.string.shell_creature_level_up_confirm_body, highestLevel, name)); Text(stringResource(R.string.level99_preview_balance, growthCost, pearlBalance, (growthCost - pearlBalance).coerceAtLeast(0))); if (highestLevel == 98 && level99Preview != null) { Text(stringResource(R.string.mastery_level_transition), style = MaterialTheme.typography.headlineMedium); Text(stringResource(R.string.level99_preview_species_count, level99Preview.resultingSpeciesMasteryCount)); Text(stringResource(R.string.level99_preview_region, level99Preview.regionalMasteredAfter, level99Preview.regionalTotal)); level99Preview.stillwaterMasteredAfter?.let { Text(stringResource(R.string.level99_preview_stillwater, it, level99Preview.stillwaterTotal ?: 0)) }; if(level99Preview.completesStillwater) Text(stringResource(R.string.level99_preview_completes_stillwater)); if(level99Preview.restoresStillwaterRoster) Text(stringResource(R.string.level99_preview_restores_stillwater)); if(level99Preview.completesRegion) Text(stringResource(R.string.level99_preview_completes_region)); if(level99Preview.completesBlue) Text(stringResource(R.string.level99_preview_completes_blue)); if(level99Preview.completesAllWaters) Text(stringResource(R.string.level99_preview_completes_all)); if(level99Preview.restoresRegionRoster || level99Preview.restoresBlueRoster || level99Preview.restoresAllWatersRoster) Text(stringResource(R.string.level99_preview_restores_roster)) } } },
+        confirmButton = { Button(enabled = canGrow, onClick = { showGrowthConfirmation = false; growthInstanceId?.let(onGrow) }) { Text(stringResource(R.string.shell_creature_level_up)) } },
+        dismissButton = { TextButton({ showGrowthConfirmation = false }) { Text(stringResource(android.R.string.cancel)) } })
 }
 
 @Composable

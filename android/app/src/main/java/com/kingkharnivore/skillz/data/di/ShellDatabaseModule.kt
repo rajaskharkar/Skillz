@@ -15,6 +15,7 @@ import com.kingkharnivore.skillz.data.model.dao.shell.StillwaterPreferenceDao
 import com.kingkharnivore.skillz.data.model.dao.shell.UserBadgeDao
 import com.kingkharnivore.skillz.data.model.dao.shell.UserDiscoveryDao
 import com.kingkharnivore.skillz.data.model.dao.shell.UserShellRoomStateDao
+import com.kingkharnivore.skillz.data.model.dao.shell.AchievementDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,6 +24,7 @@ import dagger.hilt.components.SingletonComponent
 @Module
 @InstallIn(SingletonComponent::class)
 object ShellDatabaseModule {
+    @Provides fun provideAchievementDao(db: SkillzDatabase): AchievementDao = db.achievementDao()
     @Provides
     fun providePearlLedgerDao(db: SkillzDatabase): PearlLedgerDao = db.pearlLedgerDao()
 

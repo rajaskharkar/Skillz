@@ -12,6 +12,16 @@ import kotlin.test.assertTrue
 
 class ShellChestInventoryMapperTest {
     @Test
+    fun closestToMasterySortsByLevelsRemaining() {
+        val stacks = listOf(
+            ChestInventoryStackUiModel("far", "Far", 90, 1, "far"),
+            ChestInventoryStackUiModel("near", "Near", 98, 1, "near"),
+            ChestInventoryStackUiModel("mastered", "Mastered", 99, 1, "mastered")
+        )
+        assertEquals(listOf("mastered", "near", "far"),
+            sortChestInventoryStacks(stacks, ChestSortOption.ClosestToMastery).map { it.creatureId })
+    }
+    @Test
     fun activeCreaturesStackByCreatureAndLevel() {
         val stacks = buildChestInventoryStacks(
             listOf(

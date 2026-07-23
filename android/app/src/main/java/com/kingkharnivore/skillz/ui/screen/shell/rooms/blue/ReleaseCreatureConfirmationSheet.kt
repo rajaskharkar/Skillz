@@ -1,5 +1,7 @@
 package com.kingkharnivore.skillz.ui.screen.shell.rooms.blue
 
+import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraParchmentSheet
+
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,12 +14,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material3.Button
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -123,7 +125,7 @@ fun ReleaseCreatureConfirmationSheet(
         selectedQuantities = List(levelGroups.size) { 0 }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ScyraParchmentSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -234,6 +236,7 @@ private fun CreatureReleaseLevelSelector(
     val increaseDescription = stringResource(R.string.shell_creature_release_quantity_increase_level, level, creatureName)
 
     ElevatedCard(
+        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = modifier.semantics {
             contentDescription = "Level $level $creatureName. $ownedQuantity owned. $selectedQuantity selected."
         }

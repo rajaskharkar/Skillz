@@ -2,6 +2,9 @@
 
 package com.kingkharnivore.skillz.ui.screen.shell
 
+import com.kingkharnivore.skillz.domain.achievement.BadgeActionDestination
+import android.util.Log
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -54,6 +57,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -80,6 +84,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellPearlMiniIcon
 import com.kingkharnivore.skillz.ui.screen.shell.icons.draw.TurtleShellInteriorBackground
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgesScreen
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.MasteryCelebrationScreen
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellChestScreen
 import com.kingkharnivore.skillz.data.repository.shell.SHELL_BADGES_ROUTE
 import com.kingkharnivore.skillz.data.repository.shell.SHELL_CHEST_ROUTE
@@ -133,19 +138,67 @@ fun ShellRootScreen(
     onLaunchFlowForJourney: (String) -> Unit = {},
     onLaunchFlowFromPulse: (Long, String, String?) -> Unit = { _, _, _ -> },
     onOpenActiveFlow: () -> Unit = {},
+    onPlanArc: () -> Unit = {},
+    onMovementInfo: () -> Unit = {},
     viewModel: ShellViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val activeFlowMessage = stringResource(R.string.lookout_flow_already_active)
     var destination by remember { mutableStateOf<ShellDestination>(ShellDestination.Heart) }
+    var pendingNavigation by remember { mutableStateOf<PendingShellNavigation?>(null) }
+    val handledNavigationRequestIds = remember { mutableSetOf<String>() }
     var showNotifications by remember { mutableStateOf(false) }
     val notificationCount = unseenNotificationCount(uiState)
 
+    fun handleNavigationResult(requestId: String, result: NavigationConsumptionResult) {
+        if (pendingNavigation?.requestId != requestId) return
+        when (result) {
+            NavigationConsumptionResult.Pending -> return
+            NavigationConsumptionResult.Consumed -> {
+                if (!handledNavigationRequestIds.add(requestId)) return
+                if (NotificationAcknowledgementPolicy.shouldMarkViewed(result)) {
+                    pendingNavigation?.notificationId?.let(viewModel::markNotificationViewed)
+                }
+                pendingNavigation = null
+                showNotifications = false
+            }
+            is NavigationConsumptionResult.Failed -> {
+                if (!handledNavigationRequestIds.add(requestId)) return
+                Log.w("ShellNavigation", "request_failed reason=${result.reason} request=${pendingNavigation?.javaClass?.simpleName}")
+                pendingNavigation = null
+            }
+        }
+    }
+
+    fun dispatchBadgeDestination(
+        request: BadgeActionDestination,
+        notificationId: String? = null
+    ): NavigationConsumptionResult {
+        val dispatch = ShellNavigationCoordinator.dispatch(request, notificationId)
+        if (dispatch != null) {
+            pendingNavigation = dispatch.pending
+            destination = dispatch.destination
+            return NavigationConsumptionResult.Pending
+        }
+        return when (request) {
+            BadgeActionDestination.Flow -> {
+                if (isFlowActive) onOpenActiveFlow() else onLaunchFlowForJourney("")
+                NavigationConsumptionResult.Consumed
+            }
+            BadgeActionDestination.Arc -> { onPlanArc(); NavigationConsumptionResult.Consumed }
+            BadgeActionDestination.MovementInfo -> { onMovementInfo(); NavigationConsumptionResult.Consumed }
+            else -> NavigationConsumptionResult.Failed(NavigationFailureReason.UNSUPPORTED_REQUEST)
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.events.collect { message ->
-            snackbarHostState.showSnackbar(message)
+            snackbarHostState.showSnackbar(when (message) {
+                is com.kingkharnivore.skillz.viewmodel.shell.UiText.Resource -> context.getString(message.resId, *message.args.toTypedArray())
+            })
         }
     }
 
@@ -213,28 +266,54 @@ fun ShellRootScreen(
                     onDrawFromStillwater = viewModel::onDrawFromStillwater,
                     onConfirmStillwaterDraw = viewModel::onConfirmStillwaterDraw,
                     onDismissStillwaterReveal = viewModel::onDismissStillwaterReveal,
-                    onDismissStillwaterDrawConfirmation = viewModel::onDismissStillwaterDrawConfirmation
+                    onDismissStillwaterDrawConfirmation = viewModel::onDismissStillwaterDrawConfirmation,
+                    onNavigate = { dispatchBadgeDestination(it) },
+                    focusRequest = pendingNavigation as? PendingShellNavigation.OpenStillwaterSpecies,
+                    onFocusResult = ::handleNavigationResult
                 )
 
                 ShellDestination.ShellChest -> ShellChestScreen(
                     uiState = uiState,
                     onReleaseCreaturesByLevel = viewModel::releaseCreaturesByLevel,
-                    onLevelUpCreatureByLevel = viewModel::growCreatureByLevel,
+                    onLevelUpCreatureByLevel = { id, level -> viewModel.growCreatureByLevel(id, level, "CHEST") },
                     onOpenBlue = { destination = ShellDestination.TheBluePreview },
-                    onSortOptionSelected = viewModel::setChestSortOption
+                    onSortOptionSelected = viewModel::setChestSortOption,
+                    onFilterSelected = viewModel::setChestFilter,
+                    focusSpeciesId = (pendingNavigation as? PendingShellNavigation.OpenChestSpecies)?.speciesId,
+                    focusRequestId = (pendingNavigation as? PendingShellNavigation.OpenChestSpecies)?.requestId,
+                    onFocusResult = ::handleNavigationResult
                 )
 
-                ShellDestination.Badges -> BadgesScreen(uiState)
+                ShellDestination.Badges -> BadgesScreen(
+                    uiState = uiState,
+                    onPin = viewModel::pinBadge,
+                    onDismissPinReplacement = viewModel::dismissPinReplacement,
+                    onUnpin = viewModel::unpinBadge,
+                    onTrack = viewModel::trackBadge,
+                    onUntrack = viewModel::untrackBadge,
+                    onCategory = viewModel::setBadgeCategory,
+                    onSort = viewModel::setBadgeSort,
+                    onBadgeViewed = { viewModel.markBadgeViewed(it) },
+                    onAcknowledgeBackfill = viewModel::acknowledgeBackfill,
+                    onNavigate = { dispatchBadgeDestination(it) },
+                    onOpenFlow = { if (isFlowActive) onOpenActiveFlow() else onLaunchFlowForJourney("") },
+                    onOpenArc = onPlanArc,
+                    onRetryInitialization = viewModel::initializeAchievements,
+                    pendingNavigation = pendingNavigation,
+                    onNavigationResult = ::handleNavigationResult
+                )
 
                 ShellDestination.VoyagePreview -> VoyageHallScreen()
 
                 ShellDestination.TheBluePreview -> TheBlueRoomScreen(
                     uiState = uiState,
                     onDisplayInFocus = viewModel::place,
-                    onGrowCreature = viewModel::growCreature,
+                    onGrowCreature = { id -> viewModel.growCreature(id, "BLUE") },
                     onReleaseCreaturesByLevel = viewModel::releaseCreaturesByLevel,
                     onEncounterBeyondBlue = viewModel::encounterBeyondBlue,
-                    onOpenChest = { destination = ShellDestination.ShellChest }
+                    onOpenChest = { destination = ShellDestination.ShellChest },
+                    focusRequest = pendingNavigation,
+                    onFocusResult = ::handleNavigationResult
                 )
 
                 ShellDestination.IdeaGrovePreview -> IdeaGroveRoute(
@@ -268,13 +347,39 @@ fun ShellRootScreen(
                 onDismiss = { showNotifications = false },
                 onMarkNotificationViewed = viewModel::markNotificationViewed,
                 onMarkAllViewed = viewModel::markAllNotificationsViewed,
-                onDeepLinkRoute = { route ->
-                    destination = when (route) {
-                        SHELL_CHEST_ROUTE -> ShellDestination.ShellChest
-                        SHELL_BADGES_ROUTE -> ShellDestination.Badges
-                        else -> destination
-                    }
+                onFindDestination = { notification ->
+                    dispatchBadgeDestination(
+                        BadgeActionDestination.ChestSpecies(notification.findId), notification.id
+                    )
+                },
+                onBadgeDestination = { notification ->
+                    dispatchBadgeDestination(notification.destination, notification.id)
                 }
+            )
+        }
+
+        uiState.masteryCelebration?.let { celebration ->
+            MasteryCelebrationScreen(
+                event = celebration,
+                uiState = uiState,
+                onBegin = { viewModel.beginCelebration() },
+                onAdvance = { reduced -> viewModel.advanceCelebration(reduced) },
+                onSkip = { viewModel.skipCelebration() },
+                onComplete = { origin ->
+                    viewModel.completeCelebration {
+                        destination = when (origin) {
+                            "BLUE" -> ShellDestination.TheBluePreview
+                            "STILLWATER" -> ShellDestination.Stillwater
+                            else -> ShellDestination.ShellChest
+                        }
+                    }
+                },
+                onPin = { badgeId, replacementId -> viewModel.pinBadge(badgeId, replacementId) },
+                onDismissPinReplacement = viewModel::dismissPinReplacement,
+                onUnpin = viewModel::unpinBadge,
+                onTrack = viewModel::trackBadge,
+                onUntrack = viewModel::untrackBadge,
+                onNavigate = { dispatchBadgeDestination(it) }
             )
         }
 

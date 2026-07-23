@@ -52,8 +52,13 @@ import com.kingkharnivore.skillz.data.repository.shell.SHELL_BADGES_ROUTE
 import com.kingkharnivore.skillz.data.repository.shell.SHELL_CHEST_ROUTE
 import com.kingkharnivore.skillz.data.repository.shell.ShellNotificationType
 import com.kingkharnivore.skillz.data.repository.shell.notificationId
+import com.kingkharnivore.skillz.domain.achievement.BadgeActionDestination
+import com.kingkharnivore.skillz.domain.achievement.BadgeDefinitionResolver
+import com.kingkharnivore.skillz.domain.achievement.BadgeVisibilityContext
+import com.kingkharnivore.skillz.domain.achievement.BadgeVisibilityEvaluator
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
+import com.kingkharnivore.skillz.ui.screen.shell.NavigationConsumptionResult
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -78,11 +83,18 @@ sealed interface ShellNotificationInlayItem {
         val badgeId: String,
         val count: Int,
         override val createdAt: Long,
-        override val deepLinkRoute: String? = SHELL_BADGES_ROUTE
+        override val deepLinkRoute: String? = null,
+        val destination: BadgeActionDestination = BadgeActionDestination.BadgeDetails(badgeId)
     ) : ShellNotificationInlayItem
 }
 
 fun unviewedShellNotifications(uiState: ShellUiState): List<ShellNotificationInlayItem> = buildList {
+    val visibilityContext = BadgeVisibilityContext(
+        // Legacy user_discovery IDs are not authoritative creature species IDs.
+        discoveredSpeciesIds = emptySet(),
+        earnedBadgeIds = uiState.badges.mapTo(mutableSetOf()) { it.badgeId },
+        historicallyMasteredSpeciesIds = emptySet()
+    )
     uiState.finds
         .filter { it.viewedAt == null && isActiveChestCreature(it) }
         .forEach { find ->
@@ -97,14 +109,17 @@ fun unviewedShellNotifications(uiState: ShellUiState): List<ShellNotificationInl
         }
 
     uiState.badges
-        .filter { it.viewedAt == null }
+        .filter { badge -> badge.viewedAt == null && BadgeVisibilityEvaluator.isVisible(
+            BadgeDefinitionResolver.resolve(badge.badgeId), visibilityContext
+        ) }
         .forEach { badge ->
             add(
                 ShellNotificationInlayItem.Badge(
                     id = notificationId(ShellNotificationType.BADGE, badge.badgeId),
                     badgeId = badge.badgeId,
                     count = badge.count,
-                    createdAt = badge.lastEarnedAt
+                    createdAt = badge.lastEarnedAt,
+                    destination = BadgeActionDestination.BadgeDetails(badge.badgeId)
                 )
             )
         }
@@ -116,11 +131,13 @@ fun NotificationInlayOverlay(
     onDismiss: () -> Unit,
     onMarkNotificationViewed: (String) -> Unit,
     onMarkAllViewed: () -> Unit,
-    onDeepLinkRoute: (String) -> Unit,
+    onFindDestination: (ShellNotificationInlayItem.Find) -> NavigationConsumptionResult,
+    onBadgeDestination: (ShellNotificationInlayItem.Badge) -> NavigationConsumptionResult,
     modifier: Modifier = Modifier
 ) {
     val notifications = unviewedShellNotifications(uiState)
     val backgroundInteraction = remember { MutableInteractionSource() }
+    val inlayDescription = stringResource(R.string.notifications_inlay_a11y)
 
     BackHandler(onBack = onDismiss)
 
@@ -144,12 +161,7 @@ fun NotificationInlayOverlay(
                 .then(if (maxWidth < 600.dp) Modifier.fillMaxWidth() else Modifier.width(380.dp))
                 .heightIn(max = 420.dp)
                 .align(Alignment.TopEnd)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = {}
-                )
-                .semantics { contentDescription = "Notifications inlay" }
+                .semantics { contentDescription = inlayDescription }
         ) {
             Column {
                 Row(
@@ -189,10 +201,11 @@ fun NotificationInlayOverlay(
                                 notification = notification,
                                 onMarkViewed = { onMarkNotificationViewed(notification.id) },
                                 onClick = {
-                                    notification.deepLinkRoute?.let { route ->
-                                        onMarkNotificationViewed(notification.id)
-                                        onDismiss()
-                                        onDeepLinkRoute(route)
+                                    when (notification) {
+                                        is ShellNotificationInlayItem.Badge -> {
+                                            onBadgeDestination(notification)
+                                        }
+                                        is ShellNotificationInlayItem.Find -> onFindDestination(notification)
                                     }
                                 }
                             )
@@ -236,26 +249,32 @@ private fun NotificationInlayRow(
     when (notification) {
         is ShellNotificationInlayItem.Find -> {
             val def = ShellContentCatalog.find(notification.findId)
-            title = def?.let { notificationTitleFor(it) } ?: "New shell reward"
-            body = def?.let { notificationBodyFor(it) } ?: "A new reward is waiting in The Shell."
+            title = def?.let { notificationTitleFor(it) } ?: stringResource(R.string.shell_notification_fallback_title)
+            body = def?.let { notificationBodyFor(it) } ?: stringResource(R.string.shell_notification_fallback_body)
             icon = def?.let { iconFor(it.category) } ?: Icons.Outlined.Notifications
         }
         is ShellNotificationInlayItem.Badge -> {
-            val def = ShellContentCatalog.badge(notification.badgeId) ?: return
-            val badgeTitle = stringResource(def.titleRes)
+            val presentation = resolveBadgePresentation(notification.badgeId)
+            val badgeTitle = presentation.title
             title = stringResource(R.string.shell_badge_notification_title, badgeTitle)
             body = stringResource(
                 R.string.shell_badge_notification_body,
                 notification.count,
-                stringResource(def.descriptionRes)
+                presentation.description
             )
-            icon = Icons.Outlined.MilitaryTech
+            icon = when (presentation.artworkKind) {
+                BadgeArtworkKind.SPECIES_MASTERY -> Icons.Outlined.Pets
+                BadgeArtworkKind.COLLECTOR -> Icons.Outlined.FilterVintage
+                BadgeArtworkKind.CURATOR -> Icons.Outlined.CheckCircle
+                BadgeArtworkKind.COMPLETIONIST -> Icons.Outlined.EmojiEvents
+                else -> Icons.Outlined.MilitaryTech
+            }
         }
     }
 
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         modifier = Modifier
             .fillMaxWidth()

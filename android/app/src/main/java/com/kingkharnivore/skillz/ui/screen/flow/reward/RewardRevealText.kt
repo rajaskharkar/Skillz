@@ -43,8 +43,7 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         "badge_flow_10_min" to stringResource(R.string.reward_card_badge_reason_10),
         "badge_flow_30_min" to stringResource(R.string.reward_card_badge_reason_30),
         "badge_flow_60_min" to stringResource(R.string.reward_card_badge_reason_60),
-        "badge_flow_120_min" to stringResource(R.string.reward_card_badge_reason_120),
-        "badge_discovery" to stringResource(R.string.reward_card_badge_reason_discovery)
+        "badge_flow_120_min" to stringResource(R.string.reward_card_badge_reason_120)
     )
     val theBlueHint = stringResource(R.string.reward_card_the_blue_hint)
     val stillwaterHint = stringResource(R.string.reward_card_stillwater_hint)

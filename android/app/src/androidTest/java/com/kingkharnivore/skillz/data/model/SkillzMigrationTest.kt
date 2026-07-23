@@ -19,6 +19,88 @@ class SkillzMigrationTest {
         SkillzDatabase::class.java
     )
 
+    @Test fun migration31To36CompletesWithoutDestructiveFallback() = assertAchievementMigrationChain(31)
+    @Test fun migration32To36CompletesWithoutDestructiveFallback() = assertAchievementMigrationChain(32)
+    @Test fun migration33To36CompletesWithoutDestructiveFallback() = assertAchievementMigrationChain(33)
+    @Test fun migration34To36CompletesWithoutDestructiveFallback() = assertAchievementMigrationChain(34)
+    @Test fun migration35To36PreservesCompletionsPinsAndTracking() {
+        helper.createDatabase(TEST_DB, 35).apply {
+            execSQL("INSERT INTO collection_completion VALUES ('c','blue_sunlit_reef','COLLECTOR',123,1,'hash','a,b')")
+            execSQL("INSERT INTO collection_completion VALUES ('undated','blue_sunlit_reef','COMPLETIONIST',0,1,'legacy','a,b')")
+            execSQL("INSERT INTO user_badge VALUES ('mastery_first',1,100,100,0,100)")
+            execSQL("INSERT INTO badge_pin VALUES ('blue_sunlit_reef_collector',0,1)")
+            execSQL("INSERT INTO badge_tracking VALUES ('blue_sunlit_reef_completionist',1)")
+            close()
+        }
+        val db = helper.runMigrationsAndValidate(TEST_DB, 36, true, SkillzDatabaseMigrations.MIGRATION_35_36)
+        db.assertColumn("collection_completion", "completedAt", notNull = 0, defaultValue = null)
+        db.assertColumn("collection_completion", "timestampConfidence", notNull = 1, defaultValue = null)
+        db.assertColumn("user_badge", "timestampConfidence", notNull = 1, defaultValue = "'EXACT'")
+        db.query("SELECT completedAt,timestampConfidence,rosterHash,requiredSpeciesIds FROM collection_completion WHERE completionId='c'").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(123L, c.getLong(0)); assertEquals("UNKNOWN", c.getString(1));
+            assertEquals("hash", c.getString(2)); assertEquals("a,b", c.getString(3))
+        }
+        db.query("SELECT completedAt,timestampConfidence FROM collection_completion WHERE completionId='undated'").use { c ->
+            assertTrue(c.moveToFirst()); assertTrue(c.isNull(0)); assertEquals("UNKNOWN", c.getString(1))
+        }
+        db.query("SELECT firstEarnedAt,lastEarnedAt,timestampConfidence FROM user_badge WHERE badgeId='mastery_first'").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(100L, c.getLong(0)); assertEquals(100L, c.getLong(1));
+            assertEquals("UNKNOWN", c.getString(2))
+        }
+        assertEquals(1, db.countRows("badge_pin", "badgeId = ?", arrayOf("blue_sunlit_reef_collector")))
+        assertEquals(1, db.countRows("badge_tracking", "badgeId = ?", arrayOf("blue_sunlit_reef_completionist")))
+        db.close()
+    }
+
+    @Test fun migration34To35RepairsDiscoveryAndPreservesLegacyBadgeFloor() {
+        helper.createDatabase(TEST_DB, 34).apply {
+            execSQL("INSERT INTO user_shell_find_instance (instanceId,findId,acquiredAt,sourceType,sourceId,currentUpgradeStageId,customName,isNew,isArchivedInChest,viewedAt,animalLevel,creatureStatus,creatureSource,flowTimeValueMinutes) VALUES ('later','focus_minnow',20,'flow_later',NULL,NULL,NULL,0,1,NULL,1,'ACTIVE',NULL,10),('earlier','focus_minnow',10,'flow_earlier',NULL,NULL,NULL,0,1,NULL,1,'RELEASED',NULL,10)")
+            execSQL("INSERT INTO creature_discovery VALUES ('focus_minnow',20,'flow_later','later',20)")
+            execSQL("INSERT INTO user_badge VALUES ('mastery_species_focus_minnow',5,1,2,0,0)")
+            close()
+        }
+        val db = helper.runMigrationsAndValidate(TEST_DB, 35, true, SkillzDatabaseMigrations.MIGRATION_34_35)
+        db.query("SELECT firstDiscoveredAt,acquisitionSource,firstCreatureId FROM creature_discovery WHERE speciesId='focus_minnow'").use { c ->
+            assertTrue(c.moveToFirst()); assertEquals(10L, c.getLong(0)); assertEquals("flow_earlier", c.getString(1)); assertEquals("earlier", c.getString(2))
+        }
+        assertEquals(1, db.countRows("badge_count_floor", "badgeId = ? AND minimumCount = 5", arrayOf("mastery_species_focus_minnow")))
+        db.close()
+    }
+
+    @Test fun migration33To34CreatesDurableCelebrationLedger() {
+        helper.createDatabase(TEST_DB, 33).close()
+        val db = helper.runMigrationsAndValidate(TEST_DB, 34, true, SkillzDatabaseMigrations.MIGRATION_33_34)
+        assertTrue(db.tableExists("mastery_celebration_event"))
+        db.assertColumn("mastery_celebration_event", "transactionId", notNull = 1, defaultValue = null)
+        db.assertColumn("mastery_celebration_event", "completedAt", notNull = 0, defaultValue = null)
+        db.close()
+    }
+
+    @Test fun migration32To33PersistsPinningAndTrackingSchema() {
+        helper.createDatabase(TEST_DB, 32).close()
+        val db = helper.runMigrationsAndValidate(TEST_DB, 33, true, SkillzDatabaseMigrations.MIGRATION_32_33)
+        assertTrue(db.tableExists("badge_pin"))
+        assertTrue(db.tableExists("badge_tracking"))
+        db.execSQL("INSERT INTO badge_pin VALUES ('badge_flow_30_min', 0, 1)")
+        db.execSQL("INSERT INTO badge_tracking VALUES ('mastery_first', 1)")
+        db.close()
+    }
+
+    @Test
+    fun migration31To32CreatesAchievementFoundationAndBackfillsReliableEvidence() {
+        helper.createDatabase(TEST_DB, 31).apply {
+            execSQL("CREATE TABLE IF NOT EXISTS `user_shell_find_instance` (`instanceId` TEXT NOT NULL, `findId` TEXT NOT NULL, `acquiredAt` INTEGER NOT NULL, `sourceType` TEXT NOT NULL, `sourceId` TEXT, `currentUpgradeStageId` TEXT, `customName` TEXT, `isNew` INTEGER NOT NULL, `isArchivedInChest` INTEGER NOT NULL, `viewedAt` INTEGER, `animalLevel` INTEGER NOT NULL DEFAULT 1, `creatureStatus` TEXT NOT NULL DEFAULT 'ACTIVE', `creatureSource` TEXT, `flowTimeValueMinutes` INTEGER, PRIMARY KEY(`instanceId`))")
+            execSQL("INSERT INTO user_shell_find_instance VALUES ('one','focus_minnow',10,'flow',NULL,NULL,NULL,0,1,NULL,99,'RELEASED','FLOW_EARNED',10)")
+            close()
+        }
+        val db = helper.runMigrationsAndValidate(TEST_DB, 32, true, SkillzDatabaseMigrations.MIGRATION_31_32)
+        assertTrue(db.tableExists("creature_discovery"))
+        assertTrue(db.tableExists("creature_mastery_event"))
+        assertEquals(1, db.countRows("creature_discovery", "speciesId = ?", arrayOf("focus_minnow")))
+        assertEquals(1, db.countRows("creature_mastery_event", "creatureInstanceId = ?", arrayOf("one")))
+        db.close()
+    }
+
     @Test
     fun migration13To14CreatesShellTables() {
         helper.createDatabase(TEST_DB, 13).apply {
@@ -184,6 +266,27 @@ class SkillzMigrationTest {
             "Expected direct legacy migrations plus current step migrations",
             SkillzDatabaseMigrations.ALL_MIGRATIONS.isNotEmpty()
         )
+    }
+
+    private fun assertAchievementMigrationChain(startVersion: Int) {
+        helper.createDatabase("$TEST_DB-$startVersion", startVersion).close()
+        val db = helper.runMigrationsAndValidate(
+            "$TEST_DB-$startVersion",
+            36,
+            true,
+            *SkillzDatabaseMigrations.ALL_MIGRATIONS
+        )
+        listOf(
+            "creature_discovery",
+            "creature_mastery_event",
+            "collection_completion",
+            "achievement_backfill",
+            "badge_pin",
+            "badge_tracking",
+            "mastery_celebration_event",
+            "badge_count_floor"
+        ).forEach { assertTrue("Expected $it after $startVersion→36", db.tableExists(it)) }
+        db.close()
     }
 
     private fun SupportSQLiteDatabase.createVersion13CoreTables() {

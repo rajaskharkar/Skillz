@@ -2,7 +2,6 @@
 
 package com.kingkharnivore.skillz.ui.screen.shell.rooms.ideagrove
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -66,6 +65,7 @@ import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveSort
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveUiState
 import com.kingkharnivore.skillz.utils.time.formatIdeaGroveDuration
 import com.kingkharnivore.skillz.utils.time.formatIdeaGroveDurationForSpeech
+import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraRoomTabRow
 import com.kingkharnivore.skillz.viewmodel.IdeaGroveEvent
 import com.kingkharnivore.skillz.viewmodel.IdeaGroveViewModel
 import kotlinx.coroutines.launch
@@ -137,10 +137,11 @@ fun IdeaGroveScreen(
             fontWeight = FontWeight.Bold
         )
         Spacer(Modifier.height(14.dp))
-        IdeaGroveSegmentedControl(
+        ScyraRoomTabRow(
             tabs = tabs,
             selectedIndex = pagerState.currentPage,
-            onSelected = { index -> scope.launch { pagerState.animateScrollToPage(index) } }
+            onSelected = { index -> scope.launch { pagerState.animateScrollToPage(index) } },
+            accessibilityLabel = { _, title, _ -> stringResource(R.string.idea_grove_tab_a11y, title) }
         )
         Spacer(Modifier.height(12.dp))
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
@@ -201,60 +202,6 @@ fun IdeaGroveScreen(
             onConfirm = onConfirmDeletePulse,
             onDismiss = onDismissDeletePulse
         )
-    }
-}
-
-@Composable
-private fun IdeaGroveSegmentedControl(
-    tabs: List<String>,
-    selectedIndex: Int,
-    onSelected: (Int) -> Unit
-) {
-    val scheme = MaterialTheme.colorScheme
-    Surface(
-        shape = RoundedCornerShape(999.dp),
-        color = scheme.primary.copy(alpha = 0.10f),
-        border = BorderStroke(1.dp, scheme.primary.copy(alpha = 0.12f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(Modifier.padding(5.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            tabs.forEachIndexed { index, title ->
-                val selected = selectedIndex == index
-                val tabA11y = stringResource(R.string.idea_grove_tab_a11y, title)
-                val background by animateColorAsState(
-                    targetValue = if (selected) scheme.surface else scheme.primary.copy(alpha = 0.00f),
-                    label = "idea_grove_segment_background"
-                )
-                val textColor by animateColorAsState(
-                    targetValue = if (selected) scheme.primary else scheme.onSurfaceVariant,
-                    label = "idea_grove_segment_text"
-                )
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = background,
-                    shadowElevation = if (selected) 2.dp else 0.dp,
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { onSelected(index) }
-                        .semantics {
-                            contentDescription = tabA11y
-                            role = Role.Tab
-                        }
-                ) {
-                    Box(
-                        modifier = Modifier.padding(vertical = 10.dp, horizontal = 14.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
-                            color = textColor
-                        )
-                    }
-                }
-            }
-        }
     }
 }
 

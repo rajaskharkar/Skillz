@@ -19,7 +19,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -137,7 +136,7 @@ fun ObjectCopySheet(
     val returnToChestText = returnToChestLabel(def)
     val placeInFocusText = placeInFocusLabel(def)
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ScyraParchmentSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)

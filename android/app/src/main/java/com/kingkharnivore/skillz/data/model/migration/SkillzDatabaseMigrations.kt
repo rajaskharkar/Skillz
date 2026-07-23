@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 31.
+     * Current database version is 36.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -143,6 +143,121 @@ object SkillzDatabaseMigrations {
     val MIGRATION_30_31 = object : Migration(30, 31) {
         override fun migrate(db: SupportSQLiteDatabase) {
             addNotificationViewedAtColumns(db)
+        }
+    }
+
+    val MIGRATION_31_32 = object : Migration(31, 32) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `creature_discovery` (`speciesId` TEXT NOT NULL, `firstDiscoveredAt` INTEGER NOT NULL, `acquisitionSource` TEXT, `firstCreatureId` TEXT, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`speciesId`))")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_creature_discovery_firstCreatureId` ON `creature_discovery` (`firstCreatureId`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `creature_mastery_event` (`eventId` TEXT NOT NULL, `creatureInstanceId` TEXT NOT NULL, `speciesId` TEXT NOT NULL, `achievedAt` INTEGER NOT NULL, `levelUpTransactionId` TEXT NOT NULL, PRIMARY KEY(`eventId`))")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_creature_mastery_event_creatureInstanceId` ON `creature_mastery_event` (`creatureInstanceId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_creature_mastery_event_speciesId` ON `creature_mastery_event` (`speciesId`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `collection_completion` (`completionId` TEXT NOT NULL, `collectionId` TEXT NOT NULL, `completionType` TEXT NOT NULL, `completedAt` INTEGER NOT NULL, `rosterVersion` INTEGER NOT NULL, `rosterHash` TEXT NOT NULL, `requiredSpeciesIds` TEXT NOT NULL, PRIMARY KEY(`completionId`))")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_collection_completion_collectionId_completionType_rosterHash` ON `collection_completion` (`collectionId`, `completionType`, `rosterHash`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `achievement_event` (`eventId` TEXT NOT NULL, `eventType` TEXT NOT NULL, `creatureInstanceId` TEXT, `speciesId` TEXT, `createdAt` INTEGER NOT NULL, `resultPayload` TEXT NOT NULL, PRIMARY KEY(`eventId`))")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_achievement_event_creatureInstanceId` ON `achievement_event` (`creatureInstanceId`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `achievement_backfill` (`version` INTEGER NOT NULL, `completedAt` INTEGER NOT NULL, `discoveredCount` INTEGER NOT NULL, `masteryCount` INTEGER NOT NULL, `completionCount` INTEGER NOT NULL, PRIMARY KEY(`version`))")
+            // Current inventory and released rows are reliable lifetime-discovery evidence.
+            db.execSQL("""INSERT OR IGNORE INTO `creature_discovery`
+                SELECT i.`findId`, i.`acquiredAt`, i.`sourceType`, i.`instanceId`, i.`acquiredAt`
+                FROM `user_shell_find_instance` i
+                WHERE (i.`findId` LIKE 'creature_%' OR i.`findId` LIKE 'stillwater_%' OR i.`findId` IN ('focus_minnow','focus_seahorse','focus_manta','focus_whale','focus_octopus'))
+                AND NOT EXISTS (SELECT 1 FROM `user_shell_find_instance` earlier WHERE earlier.`findId` = i.`findId` AND (earlier.`acquiredAt` < i.`acquiredAt` OR (earlier.`acquiredAt` = i.`acquiredAt` AND earlier.`instanceId` < i.`instanceId`)))""".trimIndent())
+            // A present level-99 instance is reliable mastery evidence. Lost historical copies cannot be fabricated.
+            db.execSQL("INSERT OR IGNORE INTO `creature_mastery_event` SELECT 'backfill_mastery_' || `instanceId`, `instanceId`, `findId`, `acquiredAt`, 'backfill_' || `instanceId` FROM `user_shell_find_instance` WHERE `animalLevel` >= 99")
+        }
+    }
+    val MIGRATION_32_33 = object : Migration(32, 33) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `badge_pin` (`badgeId` TEXT NOT NULL, `pinOrder` INTEGER NOT NULL, `pinnedAt` INTEGER NOT NULL, PRIMARY KEY(`badgeId`))")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_badge_pin_pinOrder` ON `badge_pin` (`pinOrder`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `badge_tracking` (`badgeId` TEXT NOT NULL, `trackedAt` INTEGER NOT NULL, PRIMARY KEY(`badgeId`))")
+        }
+    }
+    val MIGRATION_33_34 = object : Migration(33, 34) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS `mastery_celebration_event` (
+                    `eventId` TEXT NOT NULL, `transactionId` TEXT NOT NULL,
+                    `creatureInstanceId` TEXT NOT NULL, `speciesId` TEXT NOT NULL,
+                    `artworkKey` TEXT NOT NULL, `regionId` TEXT NOT NULL, `sourceId` TEXT NOT NULL,
+                    `previousLevel` INTEGER NOT NULL, `newLevel` INTEGER NOT NULL,
+                    `speciesMasteryCount` INTEGER NOT NULL, `totalMasteries` INTEGER NOT NULL,
+                    `uniqueMasteredSpecies` INTEGER NOT NULL, `regionalDiscovered` INTEGER NOT NULL,
+                    `regionalTotal` INTEGER NOT NULL, `regionalMastered` INTEGER NOT NULL,
+                    `regionalCollectorEarned` INTEGER NOT NULL, `regionalCompletionistEarned` INTEGER NOT NULL,
+                    `blueMastered` INTEGER NOT NULL, `blueTotal` INTEGER NOT NULL,
+                    `stillwaterMastered` INTEGER NOT NULL, `stillwaterTotal` INTEGER NOT NULL,
+                    `allWatersMastered` INTEGER NOT NULL, `allWatersTotal` INTEGER NOT NULL,
+                    `newlyEarnedBadgeIds` TEXT NOT NULL, `advancedBadgeIds` TEXT NOT NULL,
+                    `milestonesReached` TEXT NOT NULL, `originDestination` TEXT NOT NULL,
+                    `createdAt` INTEGER NOT NULL, `lifecycleState` TEXT NOT NULL,
+                    `presentationStage` TEXT NOT NULL, `completedAt` INTEGER,
+                    PRIMARY KEY(`eventId`))""".trimIndent()
+            )
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_mastery_celebration_event_transactionId` ON `mastery_celebration_event` (`transactionId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_mastery_celebration_event_lifecycleState` ON `mastery_celebration_event` (`lifecycleState`)")
+        }
+    }
+    val MIGRATION_34_35 = object : Migration(34, 35) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            addColumnIfMissing(db, "user_shell_find_instance", "lastActivityAt", "INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("UPDATE `user_shell_find_instance` SET `lastActivityAt` = `acquiredAt` WHERE `lastActivityAt` = 0")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `badge_count_floor` (`badgeId` TEXT NOT NULL, `speciesId` TEXT, `minimumCount` INTEGER NOT NULL, `verifiedCountAtReconciliation` INTEGER NOT NULL, `source` TEXT NOT NULL, `reconciledAt` INTEGER NOT NULL, PRIMARY KEY(`badgeId`))")
+            db.execSQL("""INSERT OR IGNORE INTO `badge_count_floor` (`badgeId`,`speciesId`,`minimumCount`,`verifiedCountAtReconciliation`,`source`,`reconciledAt`)
+                SELECT b.`badgeId`, CASE WHEN b.`badgeId` LIKE 'mastery_species_%' THEN substr(b.`badgeId`, 17) ELSE NULL END,
+                b.`count`, CASE
+                    WHEN b.`badgeId` LIKE 'mastery_species_%' THEN (SELECT COUNT(*) FROM `creature_mastery_event` m WHERE m.`speciesId` = substr(b.`badgeId`, 17))
+                    WHEN b.`badgeId` = 'mastery_circle' THEN (SELECT COUNT(*) FROM `creature_mastery_event`)
+                    WHEN b.`badgeId` = 'mastery_variety' THEN (SELECT COUNT(DISTINCT `speciesId`) FROM `creature_mastery_event`)
+                    WHEN b.`badgeId` = 'variety_collector' THEN (SELECT COUNT(*) FROM `creature_discovery`)
+                    ELSE b.`count` END,
+                'legacy_user_badge', b.`lastEarnedAt` FROM `user_badge` b WHERE b.`count` > 0""".trimIndent())
+            // Repair development installs migrated by v32's grouped SELECT. The correlated
+            // ordering makes timestamp, source, and creature identity describe one exact row.
+            db.execSQL("""UPDATE `creature_discovery` SET
+                `firstDiscoveredAt` = (SELECT i.`acquiredAt` FROM `user_shell_find_instance` i WHERE i.`findId` = `creature_discovery`.`speciesId` ORDER BY i.`acquiredAt`, i.`instanceId` LIMIT 1),
+                `acquisitionSource` = (SELECT i.`sourceType` FROM `user_shell_find_instance` i WHERE i.`findId` = `creature_discovery`.`speciesId` ORDER BY i.`acquiredAt`, i.`instanceId` LIMIT 1),
+                `firstCreatureId` = (SELECT i.`instanceId` FROM `user_shell_find_instance` i WHERE i.`findId` = `creature_discovery`.`speciesId` ORDER BY i.`acquiredAt`, i.`instanceId` LIMIT 1)
+                WHERE EXISTS (SELECT 1 FROM `user_shell_find_instance` i WHERE i.`findId` = `creature_discovery`.`speciesId`)
+                AND (SELECT MIN(i.`acquiredAt`) FROM `user_shell_find_instance` i WHERE i.`findId` = `creature_discovery`.`speciesId`) <= `firstDiscoveredAt`""".trimIndent())
+        }
+    }
+
+    /** Preserves proven historical collection achievements whose original date is unavailable. */
+    val MIGRATION_35_36 = object : Migration(35, 36) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `user_badge` ADD COLUMN `timestampConfidence` TEXT NOT NULL DEFAULT 'EXACT'")
+            // v35 stored dates without provenance. Preserve the value, but do not
+            // claim precision until reconciliation can verify supporting evidence.
+            db.execSQL("UPDATE `user_badge` SET `timestampConfidence` = 'UNKNOWN'")
+            db.execSQL(
+                """CREATE TABLE `collection_completion_new` (
+                    `completionId` TEXT NOT NULL,
+                    `collectionId` TEXT NOT NULL,
+                    `completionType` TEXT NOT NULL,
+                    `completedAt` INTEGER,
+                    `timestampConfidence` TEXT NOT NULL,
+                    `rosterVersion` INTEGER NOT NULL,
+                    `rosterHash` TEXT NOT NULL,
+                    `requiredSpeciesIds` TEXT NOT NULL,
+                    PRIMARY KEY(`completionId`)
+                )""".trimIndent()
+            )
+            db.execSQL(
+                """INSERT INTO `collection_completion_new`
+                    (`completionId`, `collectionId`, `completionType`, `completedAt`,
+                     `timestampConfidence`, `rosterVersion`, `rosterHash`, `requiredSpeciesIds`)
+                    SELECT `completionId`, `collectionId`, `completionType`,
+                           CASE WHEN `completedAt` > 0 THEN `completedAt` ELSE NULL END,
+                           'UNKNOWN',
+                           `rosterVersion`, `rosterHash`, `requiredSpeciesIds`
+                    FROM `collection_completion`""".trimIndent()
+            )
+            db.execSQL("DROP TABLE `collection_completion`")
+            db.execSQL("ALTER TABLE `collection_completion_new` RENAME TO `collection_completion`")
+            db.execSQL("CREATE UNIQUE INDEX `index_collection_completion_collectionId_completionType_rosterHash` ON `collection_completion` (`collectionId`, `completionType`, `rosterHash`)")
         }
     }
 
@@ -297,7 +412,12 @@ object SkillzDatabaseMigrations {
                 MIGRATION_27_28 +
                 MIGRATION_28_29 +
                 MIGRATION_29_30 +
-                MIGRATION_30_31
+                MIGRATION_30_31 +
+                MIGRATION_31_32 +
+                MIGRATION_32_33 +
+                MIGRATION_33_34 +
+                MIGRATION_34_35 +
+                MIGRATION_35_36
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(

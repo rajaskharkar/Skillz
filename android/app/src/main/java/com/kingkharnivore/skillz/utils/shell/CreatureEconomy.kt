@@ -72,9 +72,27 @@ data class CreatureDefinition(
     val renderFamily: CreatureRenderFamily,
     val sceneBehavior: CreatureSceneBehavior,
     val placementBand: CreaturePlacementBand,
-    val scaleClass: CreatureScaleClass
+    val scaleClass: CreatureScaleClass,
+    val participatesInCollector: Boolean = true,
+    val participatesInCompletionist: Boolean = true,
+    val secretUntilDiscovered: Boolean = false,
+    val isAvailable: Boolean = true,
+    val rosterVersion: Int = 1
 ) {
     val pearlPrice: Int? get() = requirementMinutes?.times(PEARLS_PER_REQUIRED_FLOW_MINUTE)
+    val collectionId: String get() = if (sourceType == CreatureSourceType.STILLWATER) {
+        "collection_stillwater"
+    } else {
+        "blue_${zone.name.lowercase()}"
+    }
+    val primaryProgressCollectionId: String get() = if (sourceType == CreatureSourceType.STILLWATER) {
+        StillwaterCatalog.byId[creatureId]?.vessel?.let { "stillwater_${it.name.lowercase()}" }
+            ?: "collection_stillwater"
+    } else collectionId
+    val collectionIds: Set<String> get() = if (sourceType == CreatureSourceType.STILLWATER) {
+        setOf(primaryProgressCollectionId, "collection_stillwater", "collection_all_waters")
+    } else setOf(collectionId, "collection_the_blue", "collection_all_waters")
+    val titleRes: Int get() = ShellContentCatalog.find(creatureId)?.titleRes ?: 0
 }
 
 data class CreatureReward(val creatureId: String, val quantity: Int)

@@ -5,13 +5,14 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserDiscoveryEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindStackEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
-import com.kingkharnivore.skillz.data.repository.shell.SHELL_BADGES_ROUTE
 import com.kingkharnivore.skillz.data.repository.shell.SHELL_CHEST_ROUTE
+import com.kingkharnivore.skillz.domain.achievement.BadgeActionDestination
 import com.kingkharnivore.skillz.data.repository.shell.ShellNotificationType
 import com.kingkharnivore.skillz.data.repository.shell.notificationId
 import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDateTime
@@ -27,8 +28,8 @@ class ShellNotificationInlayMapperTest {
                 find("find-viewed", viewedAt = 50L, acquiredAt = 30L)
             ),
             badges = listOf(
-                badge("badge-new", viewedAt = null, earnedAt = 10L),
-                badge("badge-viewed", viewedAt = 60L, earnedAt = 40L)
+                badge("badge_flow_10_min", viewedAt = null, earnedAt = 10L),
+                badge("badge_flow_30_min", viewedAt = 60L, earnedAt = 40L)
             )
         )
 
@@ -36,14 +37,21 @@ class ShellNotificationInlayMapperTest {
 
         assertEquals(2, notifications.size)
         assertTrue(notifications.all { it.id != notificationId(ShellNotificationType.FIND, "find-viewed") })
-        assertTrue(notifications.all { it.id != notificationId(ShellNotificationType.BADGE, "badge-viewed") })
+        assertTrue(notifications.all { it.id != notificationId(ShellNotificationType.BADGE, "badge_flow_30_min") })
+    }
+
+    @Test
+    fun obsoleteDiscoveryBadgeDoesNotProduceNotification() {
+        val state = ShellUiState(badges = listOf(badge("badge_discovery", viewedAt = null)))
+
+        assertTrue(unviewedShellNotifications(state).isEmpty())
     }
 
     @Test
     fun viewedNotificationsDisappearFromActiveInlay() {
         val before = ShellUiState(
             finds = listOf(find("find-new", viewedAt = null)),
-            badges = listOf(badge("badge-new", viewedAt = null))
+            badges = listOf(badge("badge_flow_10_min", viewedAt = null))
         )
         val after = before.copy(
             finds = before.finds.map { it.copy(viewedAt = 123L) },
@@ -58,13 +66,14 @@ class ShellNotificationInlayMapperTest {
     fun newestNotificationsAppearFirstAndExposeDeepLinkRoutes() {
         val state = ShellUiState(
             finds = listOf(find("find-new", acquiredAt = 20L)),
-            badges = listOf(badge("badge-new", earnedAt = 30L))
+            badges = listOf(badge("badge_flow_10_min", earnedAt = 30L))
         )
 
         val notifications = unviewedShellNotifications(state)
 
-        assertEquals(notificationId(ShellNotificationType.BADGE, "badge-new"), notifications[0].id)
-        assertEquals(SHELL_BADGES_ROUTE, notifications[0].deepLinkRoute)
+        assertEquals(notificationId(ShellNotificationType.BADGE, "badge_flow_10_min"), notifications[0].id)
+        assertNull(notifications[0].deepLinkRoute)
+        assertEquals(BadgeActionDestination.BadgeDetails("badge_flow_10_min"), (notifications[0] as ShellNotificationInlayItem.Badge).destination)
         assertEquals(SHELL_CHEST_ROUTE, notifications[1].deepLinkRoute)
     }
 

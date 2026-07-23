@@ -39,8 +39,7 @@ fun ArcSummaryContent(
         "badge_flow_10_min" to stringResource(R.string.shell_badge_flow_10_title),
         "badge_flow_30_min" to stringResource(R.string.shell_badge_flow_30_title),
         "badge_flow_60_min" to stringResource(R.string.shell_badge_flow_60_title),
-        "badge_flow_120_min" to stringResource(R.string.shell_badge_flow_120_title),
-        "badge_discovery" to stringResource(R.string.shell_badge_discovery_title)
+        "badge_flow_120_min" to stringResource(R.string.shell_badge_flow_120_title)
     )
     val discoveryTitles = mapOf(
         "discovery_sea_glass_shard" to stringResource(R.string.shell_find_sea_glass_title),

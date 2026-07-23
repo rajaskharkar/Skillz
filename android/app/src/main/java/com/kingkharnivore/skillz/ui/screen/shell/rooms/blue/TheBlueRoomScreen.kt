@@ -30,6 +30,12 @@ import com.kingkharnivore.skillz.ui.screen.shell.theBlueZoneForPage
 import com.kingkharnivore.skillz.ui.screen.shell.ux.canDisplayInstance
 import com.kingkharnivore.skillz.utils.shell.shellBackground
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
+import com.kingkharnivore.skillz.ui.screen.shell.NavigationConsumptionResult
+import com.kingkharnivore.skillz.ui.screen.shell.NavigationFailureReason
+import com.kingkharnivore.skillz.ui.screen.shell.PendingShellNavigation
+import com.kingkharnivore.skillz.ui.screen.shell.validateBlueSpeciesFocus
+import com.kingkharnivore.skillz.ui.screen.shell.validateBeyondBlueFocus
+import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -40,7 +46,9 @@ fun TheBlueRoomScreen(
     onGrowCreature: (String) -> Unit,
     onReleaseCreaturesByLevel: (String, Map<Int, Int>) -> Unit,
     onEncounterBeyondBlue: (String, List<String>) -> Unit,
-    onOpenChest: () -> Unit
+    onOpenChest: () -> Unit,
+    focusRequest: PendingShellNavigation? = null,
+    onFocusResult: (String, NavigationConsumptionResult) -> Unit = { _, _ -> }
 ) {
     val theBlueState = remember(uiState.finds, uiState.focusPlacements) {
         buildTheBlueUiState(uiState.finds, uiState.focusPlacements)
@@ -49,6 +57,7 @@ fun TheBlueRoomScreen(
     var releaseCandidate by remember { mutableStateOf<TheBlueAnimalGroupUiModel?>(null) }
     var showBeyondBlue by remember { mutableStateOf(false) }
     var beyondBlueInitialZone by remember { mutableStateOf(TheBlueZoneId.SUNLIT_REEF) }
+    var beyondBlueTargetSpeciesId by remember { mutableStateOf<String?>(null) }
     var entryNewAnimalFindIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var railNavigationJob by remember { mutableStateOf<Job?>(null) }
     LaunchedEffect(theBlueState.newAnimalCount, theBlueState.zones) {
@@ -60,6 +69,62 @@ fun TheBlueRoomScreen(
     }
     val pageCount = if (theBlueState.isEmpty) 1 else theBlueState.zones.size
     val pagerState = rememberPagerState(pageCount = { pageCount })
+    LaunchedEffect(focusRequest, theBlueState.zones) {
+        val request = focusRequest
+        val collectionId = when (request) {
+            is PendingShellNavigation.OpenBlueSpecies -> request.collectionId
+            is PendingShellNavigation.OpenBeyondBlue -> request.collectionId
+            else -> return@LaunchedEffect
+        }
+        val speciesId = when (request) {
+            is PendingShellNavigation.OpenBlueSpecies -> request.speciesId
+            is PendingShellNavigation.OpenBeyondBlue -> request.speciesId
+            else -> null
+        }
+        val species = speciesId?.let(CreatureCatalog::get)
+        if (request is PendingShellNavigation.OpenBeyondBlue) {
+            val validation = validateBeyondBlueFocus(
+                speciesExists = species != null,
+                isBeyondBlueSpecies = species != null && species in CreatureCatalog.beyondBlue,
+                belongsToCollection = species?.collectionId == collectionId
+            )
+            if (validation is NavigationConsumptionResult.Failed) {
+                onFocusResult(request.requestId, validation)
+                return@LaunchedEffect
+            }
+        }
+        val zoneName = collectionId.removePrefix("blue_")
+        val page = theBlueState.zones.indexOfFirst { it.zoneId.name.lowercase() == zoneName }
+        if (page < 0) {
+            onFocusResult(request.requestId, NavigationConsumptionResult.Failed(NavigationFailureReason.DESTINATION_UNAVAILABLE))
+            return@LaunchedEffect
+        }
+        pagerState.scrollToPage(page)
+        if (request is PendingShellNavigation.OpenBeyondBlue) {
+            beyondBlueInitialZone = theBlueState.zones[page].zoneId
+            beyondBlueTargetSpeciesId = request.speciesId
+            showBeyondBlue = true
+            withFrameNanos { }
+            onFocusResult(request.requestId, NavigationConsumptionResult.Consumed)
+        } else if (speciesId == null) {
+            withFrameNanos { }
+            onFocusResult(request.requestId, NavigationConsumptionResult.Consumed)
+        } else {
+            val targetAnimal = theBlueState.zones[page].animals.firstOrNull { it.findId == speciesId }
+            val validation = validateBlueSpeciesFocus(
+                speciesId,
+                catalogSpeciesExists = species != null,
+                renderedSpeciesIds = theBlueState.zones[page].animals.mapTo(mutableSetOf()) { it.findId }
+            )
+            if (validation is NavigationConsumptionResult.Failed) {
+                onFocusResult(request.requestId, validation)
+                return@LaunchedEffect
+            }
+            selectedAnimal = targetAnimal ?: return@LaunchedEffect
+            withFrameNanos { }
+            onFocusResult(request.requestId, NavigationConsumptionResult.Consumed)
+        }
+    }
     val scope = rememberCoroutineScope()
     var sceneTimeSeconds by remember { mutableStateOf(0f) }
     LaunchedEffect(Unit) {
@@ -95,9 +160,13 @@ fun TheBlueRoomScreen(
                     sceneTimeSeconds = sceneTimeSeconds,
                     onZoneBeyondBlue = {
                         beyondBlueInitialZone = zone.zoneId
+                        beyondBlueTargetSpeciesId = null
                         showBeyondBlue = true
                     },
-                    onAnimalClick = { selectedAnimal = it }
+                    onAnimalClick = { selectedAnimal = it },
+                    collectionProgress = uiState.badgeDashboard?.collections?.firstOrNull {
+                        it.collectionId == "blue_${zone.zoneId.name.lowercase()}"
+                    }
                 )
             }
         }
@@ -139,6 +208,7 @@ fun TheBlueRoomScreen(
             },
             onBeyondBlue = {
                 beyondBlueInitialZone = animal.zoneId
+                beyondBlueTargetSpeciesId = null
                 showBeyondBlue = true
                 selectedAnimal = null
             },
@@ -152,7 +222,9 @@ fun TheBlueRoomScreen(
             },
             firstRestingInstanceId = remember(uiState.finds, uiState.focusPlacements, animal.findId) {
                 firstRestingInstanceId(animal.findId, uiState)
-            }
+            },
+            level99Preview = uiState.badgeDashboard?.level99Previews?.get(animal.findId)
+                ?.takeIf { animal.highestLevel == 98 }
         )
     }
 
@@ -174,6 +246,7 @@ fun TheBlueRoomScreen(
             activeAnimalInstances = uiState.finds.filter {
                 it.creatureStatus == CreatureStatus.ACTIVE && ShellContentCatalog.find(it.findId)?.kind == ShellRewardKind.ANIMAL
             },
+            initialTargetSpeciesId = beyondBlueTargetSpeciesId,
             onDismiss = { showBeyondBlue = false },
             onEncounter = { targetCreatureId, selectedIds ->
                 onEncounterBeyondBlue(targetCreatureId, selectedIds)

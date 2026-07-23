@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
@@ -24,10 +26,18 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -46,6 +56,15 @@ import com.kingkharnivore.skillz.ui.screen.shell.ux.shellChamberBrush
 import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.viewmodel.shell.isBlueZoneUnlocked
+import com.kingkharnivore.skillz.domain.achievement.CollectionProgress
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.CollectionDetailsSheet
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.collectionDisplayName
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.collectionSpeciesDestination
+import com.kingkharnivore.skillz.domain.achievement.BadgeActionDestination
+import com.kingkharnivore.skillz.ui.screen.shell.NavigationConsumptionResult
+import com.kingkharnivore.skillz.ui.screen.shell.NavigationFailureReason
+import com.kingkharnivore.skillz.ui.screen.shell.PendingShellNavigation
+import com.kingkharnivore.skillz.ui.screen.shell.validateCollectionSpeciesFocus
 
 internal data class StillwaterDropsCardUiModel(
     @StringRes val primaryStringRes: Int,
@@ -96,43 +115,93 @@ fun StillwaterRoomScreen(
     onDrawFromStillwater: (StillwaterVessel) -> Unit,
     onConfirmStillwaterDraw: (StillwaterVessel) -> Unit,
     onDismissStillwaterReveal: () -> Unit,
-    onDismissStillwaterDrawConfirmation: () -> Unit
+    onDismissStillwaterDrawConfirmation: () -> Unit,
+    onNavigate: (BadgeActionDestination) -> Unit,
+    focusRequest: PendingShellNavigation.OpenStillwaterSpecies? = null,
+    onFocusResult: (String, NavigationConsumptionResult) -> Unit = { _, _ -> }
 ) {
     val dropsCard = buildStillwaterDropsCardUiModel(uiState)
     val drops = dropsCard.primaryDrops
 
-    Column(
+    val listState = rememberLazyListState()
+    var collectionDetails by remember { mutableStateOf<CollectionProgress?>(null) }
+    var highlightedCollectionId by rememberSaveable { mutableStateOf<String?>(null) }
+    var focusedSpeciesId by rememberSaveable { mutableStateOf<String?>(null) }
+    var focusedRequestId by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(focusRequest) {
+        val request = focusRequest ?: return@LaunchedEffect
+        val focusedCollectionId = request.collectionId
+        val collection = uiState.badgeDashboard?.collections?.firstOrNull { it.collectionId == focusedCollectionId }
+        val speciesId = request.speciesId
+        val validation = validateCollectionSpeciesFocus(collection, speciesId)
+        if (validation is NavigationConsumptionResult.Failed) {
+            onFocusResult(request.requestId, validation)
+            return@LaunchedEffect
+        }
+        collection ?: return@LaunchedEffect
+        highlightedCollectionId = focusedCollectionId
+        focusedSpeciesId = speciesId
+        focusedRequestId = request.requestId
+        val index = if (focusedCollectionId == "collection_stillwater") 2 else {
+            val vesselName = focusedCollectionId.removePrefix("stillwater_")
+            4 + StillwaterVessel.entries.indexOfFirst { it.name.lowercase() == vesselName }.coerceAtLeast(0)
+        }
+        listState.animateScrollToItem(index)
+        if (speciesId == null) {
+            withFrameNanos { }
+            onFocusResult(request.requestId, NavigationConsumptionResult.Consumed)
+        } else {
+            collectionDetails = collection
+        }
+    }
+    LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        RoomHeader(
+        item("header") { RoomHeader(
             title = R.string.shell_room_stillwater_title,
             body = R.string.shell_stillwater_body
-        )
+        ) }
 
-        StillwaterDropsCard(dropsCard = dropsCard)
+        item("drops") { StillwaterDropsCard(dropsCard = dropsCard) }
 
-        Text(
+        uiState.badgeDashboard?.collections?.firstOrNull { it.collectionId == "collection_stillwater" }?.let { progress ->
+            item("overall-progress") { StillwaterProgressCard(progress, highlightedCollectionId == progress.collectionId) { highlightedCollectionId = progress.collectionId; focusedSpeciesId = null; focusedRequestId = null; collectionDetails = progress } }
+        }
+
+        item("prompt") { Text(
             text = stringResource(R.string.shell_stillwater_draw_prompt),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.SemiBold
-        )
+        ) }
 
         StillwaterVessel.entries.forEach { vessel ->
-            StillwaterVesselCard(
+            val collectionId = "stillwater_${vessel.name.lowercase()}"
+            item(collectionId) { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { StillwaterVesselCard(
                 vessel = vessel,
                 claimableDrops = drops,
                 isUnlocked = uiState.isBlueZoneUnlocked(vessel.zone),
                 onDraw = onDrawFromStillwater
-            )
+            ); uiState.badgeDashboard?.collections?.firstOrNull { it.collectionId == collectionId }?.let { progress ->
+                StillwaterProgressCard(progress, highlightedCollectionId == collectionId) { highlightedCollectionId = collectionId; focusedSpeciesId = null; focusedRequestId = null; collectionDetails = progress }
+            } } }
         }
 
-        StillwaterExplainerCard()
+        item("explainer") { StillwaterExplainerCard() }
     }
+
+    collectionDetails?.let { progress -> CollectionDetailsSheet(
+        p = progress,
+        dismiss = { collectionDetails = null },
+        onSpeciesAction = { action -> collectionSpeciesDestination(action)?.let(onNavigate) },
+        initialFocusSpeciesId = focusedSpeciesId,
+        initialFocusRequestId = focusedRequestId,
+        onFocusResult = { result -> focusedRequestId?.let { onFocusResult(it, result) } }
+    ) }
 
     uiState.stillwaterRevealCreature?.let { creature ->
         StillwaterCreatureRevealDialog(
@@ -147,6 +216,22 @@ fun StillwaterRoomScreen(
             onConfirm = { onConfirmStillwaterDraw(vessel) },
             onDismiss = onDismissStillwaterDrawConfirmation
         )
+    }
+}
+
+@Composable private fun StillwaterProgressCard(progress: CollectionProgress, focused: Boolean, onClick: () -> Unit) {
+    OutlinedCard(onClick = onClick, colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = if (focused) BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+            else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(R.string.stillwater_named_collection_progress, collectionDisplayName(progress.collectionId)), fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.collection_discovered_progress, progress.discoveredSpeciesCount, progress.totalParticipatingSpecies))
+            Text(stringResource(R.string.collection_owned_progress, progress.currentlyOwnedSpeciesCount, progress.totalParticipatingSpecies))
+            Text(stringResource(R.string.collection_mastered_progress, progress.masteredSpeciesCount, progress.totalCompletionistSpecies))
+            Text("${stringResource(R.string.badge_state_collector)}: ${stringResource(if (progress.collectorEarned) R.string.badge_earned else R.string.badge_locked)}")
+            Text("${stringResource(R.string.badge_state_curator)}: ${stringResource(if (progress.curatorEarned) R.string.badge_earned else R.string.badge_locked)}")
+            Text("${stringResource(R.string.badge_state_completionist)}: ${stringResource(if (progress.completionistEarned) R.string.badge_earned else R.string.badge_locked)}")
+        }
     }
 }
 
@@ -380,6 +465,7 @@ private fun StillwaterDrawConfirmDialog(
     val vesselName = stringResource(titleFor(vessel))
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = { Text(stringResource(R.string.shell_stillwater_confirm_draw_title, vesselName)) },
         text = {
             Text(
@@ -405,11 +491,13 @@ private fun StillwaterCreatureRevealDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = { Text(stringResource(R.string.shell_stillwater_creature_found)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = creature.displayName,
+                    text = creature.titleRes.takeIf { it != 0 }?.let { stringResource(it) }
+                        ?: stringResource(R.string.badge_creature_fallback),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
