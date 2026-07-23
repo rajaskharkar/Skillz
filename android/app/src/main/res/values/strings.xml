@@ -2007,6 +2007,11 @@ You can turn Health back on later.</string>
     <string name="badge_earned">Earned</string>
     <string name="badge_locked">Locked</string>
     <string name="badge_progress_remaining">%1$d of %2$d. %3$d remaining.</string>
+    <string name="badge_current_roster_progress">Current roster: %1$d of %2$d.</string>
+    <string name="badge_all_milestones_reached">All current milestones reached.</string>
+    <string name="achievement_backfill_retry_title">Achievement history needs another check</string>
+    <string name="achievement_backfill_retry_body">Your current progress is still available. Retry the historical evidence check when you’re ready.</string>
+    <string name="achievement_backfill_retry_action">Retry</string>
     <string name="badge_current_milestone">Current milestone: %1$d</string>
     <string name="badge_next_milestone">Next milestone: %1$d</string>
     <string name="badge_first_earned">First earned: %1$s</string>

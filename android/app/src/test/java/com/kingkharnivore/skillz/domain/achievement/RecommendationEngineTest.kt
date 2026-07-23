@@ -40,7 +40,7 @@ class RecommendationEngineTest {
 
     @Test fun completedAndUnavailableTargetsAreExcluded() {
         val complete = badge("complete", BadgeUiCategory.FLOW, 0)
-        val invalid = complete.copy(badgeId = "invalid", remaining = 2, target = 0)
+        val invalid = complete.copy(badgeId = "invalid", remaining = 2, objectiveTarget = 0)
         assertTrue(RecommendationEngine.recommend(listOf(complete, invalid)).isEmpty())
     }
 }

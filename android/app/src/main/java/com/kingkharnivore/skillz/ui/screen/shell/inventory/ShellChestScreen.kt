@@ -68,6 +68,8 @@ import com.kingkharnivore.skillz.ui.screen.shell.ux.RoomHeader
 import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraParchmentSheet
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
+import com.kingkharnivore.skillz.ui.screen.shell.NavigationConsumptionResult
+import com.kingkharnivore.skillz.ui.screen.shell.NavigationFailureReason
 import com.kingkharnivore.skillz.domain.achievement.Level99AchievementPreview
 import com.kingkharnivore.skillz.domain.achievement.BadgeDefinitionResolver
 import com.kingkharnivore.skillz.domain.achievement.BadgeRequirement
@@ -97,7 +99,7 @@ fun ShellChestScreen(
     onSortOptionSelected: (ChestSortOption) -> Unit,
     onFilterSelected: (ChestFilterOption) -> Unit,
     focusSpeciesId: String? = null,
-    onFocusConsumed: () -> Unit = {}
+    onFocusResult: (NavigationConsumptionResult) -> Unit = {}
 ) {
     var selectedStack by remember { mutableStateOf<ChestInventoryStackUiModel?>(null) }
     val masteryCounts = uiState.badgeDashboard?.badges?.mapNotNull { badge ->
@@ -137,7 +139,8 @@ fun ShellChestScreen(
         focusSpeciesId?.let { id ->
             allStacks.filter { it.creatureId == id }.maxWithOrNull(
                 compareBy<ChestInventoryStackUiModel> { if (it.level < 99) 1 else 0 }.thenBy { it.level }
-            )?.let { selectedStack = it; onFocusConsumed() }
+            )?.let { selectedStack = it; onFocusResult(NavigationConsumptionResult.Consumed) }
+                ?: onFocusResult(NavigationConsumptionResult.Failed(NavigationFailureReason.SPECIES_NOT_FOUND))
         }
     }
 

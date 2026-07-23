@@ -58,6 +58,7 @@ import com.kingkharnivore.skillz.domain.achievement.BadgeVisibilityContext
 import com.kingkharnivore.skillz.domain.achievement.BadgeVisibilityEvaluator
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
+import com.kingkharnivore.skillz.ui.screen.shell.NavigationConsumptionResult
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -118,8 +119,7 @@ fun unviewedShellNotifications(uiState: ShellUiState): List<ShellNotificationInl
                     badgeId = badge.badgeId,
                     count = badge.count,
                     createdAt = badge.lastEarnedAt,
-                    destination = uiState.badgeDashboard?.badges?.firstOrNull { it.badgeId == badge.badgeId }?.action
-                        ?: BadgeActionDestination.BadgeDetails(badge.badgeId)
+                    destination = BadgeActionDestination.BadgeDetails(badge.badgeId)
                 )
             )
         }
@@ -131,8 +131,8 @@ fun NotificationInlayOverlay(
     onDismiss: () -> Unit,
     onMarkNotificationViewed: (String) -> Unit,
     onMarkAllViewed: () -> Unit,
-    onDeepLinkRoute: (String) -> Boolean,
-    onBadgeDestination: (BadgeActionDestination) -> Boolean,
+    onFindDestination: (ShellNotificationInlayItem.Find) -> NavigationConsumptionResult,
+    onBadgeDestination: (ShellNotificationInlayItem.Badge) -> NavigationConsumptionResult,
     modifier: Modifier = Modifier
 ) {
     val notifications = unviewedShellNotifications(uiState)
@@ -203,17 +203,9 @@ fun NotificationInlayOverlay(
                                 onClick = {
                                     when (notification) {
                                         is ShellNotificationInlayItem.Badge -> {
-                                            if (onBadgeDestination(notification.destination)) {
-                                                onMarkNotificationViewed(notification.id)
-                                                onDismiss()
-                                            }
+                                            onBadgeDestination(notification)
                                         }
-                                        is ShellNotificationInlayItem.Find -> notification.deepLinkRoute?.let { route ->
-                                            if (onDeepLinkRoute(route)) {
-                                                onMarkNotificationViewed(notification.id)
-                                                onDismiss()
-                                            }
-                                        }
+                                        is ShellNotificationInlayItem.Find -> onFindDestination(notification)
                                     }
                                 }
                             )

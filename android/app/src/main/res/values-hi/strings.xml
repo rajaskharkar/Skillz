@@ -1975,6 +1975,11 @@
     <string name="badge_pin">Pin</string>
     <string name="badge_pinned_a11y"> Pinned.</string>
     <string name="badge_progress_remaining">%1$d of %2$d. %3$d remaining.</string>
+    <string name="badge_current_roster_progress">मौजूदा सूची: %2$d में से %1$d।</string>
+    <string name="badge_all_milestones_reached">सभी मौजूदा पड़ाव पूरे हुए।</string>
+    <string name="achievement_backfill_retry_title">उपलब्धि इतिहास की फिर से जाँच ज़रूरी है</string>
+    <string name="achievement_backfill_retry_body">आपकी मौजूदा प्रगति सुरक्षित है। तैयार होने पर ऐतिहासिक प्रमाण की जाँच फिर करें।</string>
+    <string name="achievement_backfill_retry_action">फिर कोशिश करें</string>
     <string name="badge_sort_alphabetical">Alphabetical</string>
     <string name="badge_sort_closest">Closest to next milestone</string>
     <string name="badge_sort_highest_count">Highest count</string>

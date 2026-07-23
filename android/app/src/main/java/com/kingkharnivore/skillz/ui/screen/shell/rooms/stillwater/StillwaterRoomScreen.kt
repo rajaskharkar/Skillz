@@ -60,6 +60,9 @@ import com.kingkharnivore.skillz.ui.screen.shell.inventory.CollectionDetailsShee
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.collectionDisplayName
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.collectionSpeciesDestination
 import com.kingkharnivore.skillz.domain.achievement.BadgeActionDestination
+import com.kingkharnivore.skillz.ui.screen.shell.NavigationConsumptionResult
+import com.kingkharnivore.skillz.ui.screen.shell.NavigationFailureReason
+import com.kingkharnivore.skillz.ui.screen.shell.PendingShellNavigation
 
 internal data class StillwaterDropsCardUiModel(
     @StringRes val primaryStringRes: Int,
@@ -112,8 +115,8 @@ fun StillwaterRoomScreen(
     onDismissStillwaterReveal: () -> Unit,
     onDismissStillwaterDrawConfirmation: () -> Unit,
     onNavigate: (BadgeActionDestination) -> Unit,
-    focusedCollectionId: String? = null,
-    onFocusConsumed: () -> Unit = {}
+    focusRequest: PendingShellNavigation.OpenStillwaterSpecies? = null,
+    onFocusResult: (NavigationConsumptionResult) -> Unit = {}
 ) {
     val dropsCard = buildStillwaterDropsCardUiModel(uiState)
     val drops = dropsCard.primaryDrops
@@ -121,15 +124,25 @@ fun StillwaterRoomScreen(
     val listState = rememberLazyListState()
     var collectionDetails by remember { mutableStateOf<CollectionProgress?>(null) }
     var highlightedCollectionId by rememberSaveable { mutableStateOf<String?>(null) }
-    LaunchedEffect(focusedCollectionId) {
-        focusedCollectionId ?: return@LaunchedEffect
+    LaunchedEffect(focusRequest) {
+        val focusedCollectionId = focusRequest?.collectionId ?: return@LaunchedEffect
+        val collection = uiState.badgeDashboard?.collections?.firstOrNull { it.collectionId == focusedCollectionId }
+        if (collection == null) {
+            onFocusResult(NavigationConsumptionResult.Failed(NavigationFailureReason.COLLECTION_NOT_FOUND))
+            return@LaunchedEffect
+        }
+        val speciesId = focusRequest.speciesId
+        if (speciesId != null && collection.speciesStates.none { it.speciesId == speciesId }) {
+            onFocusResult(NavigationConsumptionResult.Failed(NavigationFailureReason.SPECIES_NOT_FOUND))
+            return@LaunchedEffect
+        }
         highlightedCollectionId = focusedCollectionId
         val index = if (focusedCollectionId == "collection_stillwater") 2 else {
             val vesselName = focusedCollectionId.removePrefix("stillwater_")
             4 + StillwaterVessel.entries.indexOfFirst { it.name.lowercase() == vesselName }.coerceAtLeast(0)
         }
         listState.animateScrollToItem(index)
-        onFocusConsumed()
+        onFocusResult(NavigationConsumptionResult.Consumed)
     }
     LazyColumn(
         state = listState,

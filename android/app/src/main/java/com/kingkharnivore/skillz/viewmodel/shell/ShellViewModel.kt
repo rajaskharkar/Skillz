@@ -1,5 +1,8 @@
 package com.kingkharnivore.skillz.viewmodel.shell
 
+import android.content.Context
+import android.util.Log
+
 import androidx.lifecycle.ViewModel
 import androidx.annotation.StringRes
 import com.kingkharnivore.skillz.R
@@ -47,6 +50,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import dagger.hilt.android.qualifiers.ApplicationContext
+import com.kingkharnivore.skillz.data.repository.shell.AchievementBackfillWorker
+import kotlinx.coroutines.delay
 
 data class ShellUiState(
     val pearlBalance: Int = 0,
@@ -69,7 +75,8 @@ data class ShellUiState(
     val masteryCelebration: MasteryCelebrationEventEntity? = null,
     val calmMode: Boolean = false,
     val chestFilter: ChestFilterOption = ChestFilterOption.All,
-    val pinReplacement: PinReplacementUiState? = null
+    val pinReplacement: PinReplacementUiState? = null,
+    val achievementInitializationState: AchievementInitializationState = AchievementInitializationState.NotStarted
 )
 
 data class PinReplacementUiState(val requestedBadgeId: String, val pinnedBadgeIds: List<String>)
@@ -123,6 +130,13 @@ private data class ShellAchievementPersistence(
     val celebration: MasteryCelebrationEventEntity?, val floors: List<BadgeCountFloorEntity>
 )
 
+private data class ShellTransientState(
+    val reveal: CreatureDefinition?,
+    val vessel: StillwaterVessel?,
+    val replacement: PinReplacementUiState?,
+    val achievementInitialization: AchievementInitializationState
+)
+
 private data class ShellPreferenceState(
     val chestSort: ChestSortOption,
     val badgeCategory: BadgeUiCategory,
@@ -142,12 +156,14 @@ sealed interface AchievementInitializationState {
 @HiltViewModel
 class ShellViewModel @Inject constructor(
     private val repository: ShellRepository,
-    private val userPrefs: UserPrefs
+    private val userPrefs: UserPrefs,
+    @ApplicationContext private val applicationContext: Context
 ) : ViewModel() {
     private val _events = MutableSharedFlow<UiText>()
     val events: SharedFlow<UiText> = _events
     private val _achievementInitialization = MutableStateFlow<AchievementInitializationState>(AchievementInitializationState.NotStarted)
     val achievementInitialization: StateFlow<AchievementInitializationState> = _achievementInitialization
+    private var automaticBackfillRetries = 0
 
     init { initializeAchievements() }
 
@@ -161,10 +177,25 @@ class ShellViewModel @Inject constructor(
             runCatching { repository.backfillAchievements() }
                 .onSuccess { _achievementInitialization.value = AchievementInitializationState.Complete }
                 .onFailure { failure ->
+                    val category = failure::class.simpleName ?: "AchievementInitializationFailure"
+                    val retryScheduled = runCatching {
+                        AchievementBackfillWorker.enqueue(applicationContext)
+                    }.isSuccess
+                    Log.w(
+                        "AchievementBackfill",
+                        "version=${AchievementBackfillWorker.BACKFILL_VERSION} category=$category " +
+                            "transient=true retryScheduled=$retryScheduled timestamp=${System.currentTimeMillis()}"
+                    )
                     _achievementInitialization.value = AchievementInitializationState.Failed(
                         retryable = true,
-                        errorCategory = failure::class.simpleName ?: "AchievementInitializationFailure"
+                        errorCategory = category
                     )
+                    if (automaticBackfillRetries < 2) {
+                        val delayMillis = 1_000L shl automaticBackfillRetries
+                        automaticBackfillRetries++
+                        delay(delayMillis)
+                        initializeAchievements()
+                    }
                 }
         }
     }
@@ -216,8 +247,13 @@ class ShellViewModel @Inject constructor(
         preferences.acknowledgedBackfillVersion, preferences.calmMode, preferences.chestFilter, achievements
     ) }
 
-    private val transientState = combine(stillwaterRevealCreature, pendingStillwaterDrawVessel, pinReplacement) { reveal, vessel, replacement ->
-        Triple(reveal, vessel, replacement)
+    private val transientState = combine(
+        stillwaterRevealCreature,
+        pendingStillwaterDrawVessel,
+        pinReplacement,
+        _achievementInitialization
+    ) { reveal, vessel, replacement, initialization ->
+        ShellTransientState(reveal, vessel, replacement, initialization)
     }
 
     val uiState: StateFlow<ShellUiState> = combine(
@@ -230,8 +266,8 @@ class ShellViewModel @Inject constructor(
             pearlBalance = economy.pearlBalance,
             stillwaterClaimableDrops = economy.stillwaterClaimableDrops,
             stillwaterLifetimeDrops = economy.stillwaterLifetimeDrops,
-            stillwaterRevealCreature = transient.first,
-            pendingStillwaterDrawVessel = transient.second,
+            stillwaterRevealCreature = transient.reveal,
+            pendingStillwaterDrawVessel = transient.vessel,
             unlockedBlueZones = deriveUnlockedBlueZonesFromHistoricalFinds(ownership.finds),
             finds = ownership.finds,
             stacks = ownership.stacks,
@@ -259,7 +295,8 @@ class ShellViewModel @Inject constructor(
             masteryCelebration = memoryAndPreferences.achievements.celebration,
             calmMode = memoryAndPreferences.calmMode,
             chestFilter = memoryAndPreferences.chestFilter,
-            pinReplacement = transient.third
+            pinReplacement = transient.replacement,
+            achievementInitializationState = transient.achievementInitialization
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ShellUiState())
 

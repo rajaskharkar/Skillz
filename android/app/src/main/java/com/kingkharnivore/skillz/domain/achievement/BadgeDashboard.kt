@@ -27,11 +27,11 @@ sealed interface BadgeActionDestination {
 
 data class BadgeProgressModel(
     val badgeId: String,
-    val count: Int,
-    val earned: Boolean,
+    val lifetimeCount: Int,
+    val everEarned: Boolean,
     val category: BadgeUiCategory,
-    val progress: Int,
-    val target: Int,
+    val currentProgress: Int,
+    val objectiveTarget: Int,
     val remaining: Int,
     val milestone: MilestoneProgress,
     val firstEarnedAt: Long? = null,
@@ -53,14 +53,18 @@ data class BadgeProgressModel(
     val goalType: BadgeGoalType = BadgeGoalType.REPEATABLE_MILESTONE,
     val countType: BadgeCountType = BadgeCountType.REPEATABLE,
     val terminal: Boolean = false,
-    val nextTarget: Int? = milestone.nextThreshold,
+    val nextMilestoneTarget: Int? = milestone.nextThreshold,
     val currentRosterComplete: Boolean? = null,
     val specialProgress: SpecialBadgeProgress? = null
 ) {
-    val lifetimeCount: Int get() = count
-    val currentProgress: Int get() = progress
-    val currentTarget: Int? get() = target.takeIf { it > 0 }
-    val everEarned: Boolean get() = earned
+    // Compatibility names keep rendering call sites concise; unlike the previous aliases,
+    // these now point at independently calculated historical and current-roster values.
+    val count: Int get() = lifetimeCount
+    val earned: Boolean get() = everEarned
+    val progress: Int get() = currentProgress
+    val target: Int get() = objectiveTarget
+    val currentTarget: Int? get() = objectiveTarget.takeIf { it > 0 }
+    val nextTarget: Int? get() = nextMilestoneTarget
 }
 
 data class BadgeDashboard(
@@ -134,7 +138,7 @@ object BadgeDashboardCalculator {
             val stored = earnedById[definition.badgeId]
             val collection = definition.collectionId?.let(collectionById::get)
             val speciesLevels = definition.speciesId?.let { activeLevels[it].orEmpty() }.orEmpty()
-            val verified = when (definition.requirement) {
+            val currentVerified = when (definition.requirement) {
                 BadgeRequirement.COLLECTOR -> if (collection?.collectorEarned == true) 1 else 0
                 BadgeRequirement.CURATOR -> if (collection?.curatorEarned == true) 1 else 0
                 BadgeRequirement.COMPLETIONIST -> if (collection?.completionistEarned == true) 1 else 0
@@ -161,20 +165,32 @@ object BadgeDashboardCalculator {
                 }
             }
             val boundedRosterBadge = definition.badgeId in setOf("mastery_variety", "variety_collector", "stillwater_variety")
-            val computed = if (boundedRosterBadge || definition.badgeId == "mastery_circle" || definition.speciesId != null || definition.badgeId == "stillwater_mastery") verified
-                else MasteryEvidenceCalculator.effectiveCount(verified, floors[definition.badgeId])
+            val historicalVerified = when (definition.badgeId) {
+                "mastery_variety" -> mastered.size
+                "variety_collector" -> discovered.size
+                "stillwater_variety" -> discovered.count {
+                    CreatureCatalog.get(it)?.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER
+                }
+                else -> currentVerified
+            }
+            val lifetimeCount = if (boundedRosterBadge || definition.badgeId == "mastery_circle" || definition.speciesId != null || definition.badgeId == "stillwater_mastery") {
+                maxOf(historicalVerified, stored?.count ?: 0)
+            } else {
+                maxOf(MasteryEvidenceCalculator.effectiveCount(historicalVerified, floors[definition.badgeId]), stored?.count ?: 0)
+            }
             val target = when (definition.requirement) {
                 BadgeRequirement.COLLECTOR -> collection?.totalParticipatingSpecies ?: 1
                 BadgeRequirement.CURATOR -> collection?.totalParticipatingSpecies ?: 1
                 BadgeRequirement.COMPLETIONIST -> collection?.totalCompletionistSpecies ?: 1
                 BadgeRequirement.EXACT_COUNT -> if (definition.goalType == BadgeGoalType.HISTORICAL_COUNT_ONLY) 0
-                    else MilestoneEngine.evaluate(computed, thresholds = definition.milestones).nextThreshold ?: computed.coerceAtLeast(1)
+                    else MilestoneEngine.evaluate(currentVerified, thresholds = definition.milestones).nextThreshold
+                        ?: currentVerified.coerceAtLeast(1)
             }
             val progress = when (definition.requirement) {
                 BadgeRequirement.COLLECTOR -> collection?.discoveredSpeciesCount ?: 0
                 BadgeRequirement.CURATOR -> collection?.currentlyOwnedSpeciesCount ?: 0
                 BadgeRequirement.COMPLETIONIST -> collection?.masteredSpeciesCount ?: 0
-                BadgeRequirement.EXACT_COUNT -> computed
+                BadgeRequirement.EXACT_COUNT -> currentVerified
             }
             val currentRosterIncomplete = when (definition.requirement) {
                 BadgeRequirement.COLLECTOR -> collection?.currentRosterCollectorComplete == false
@@ -182,9 +198,17 @@ object BadgeDashboardCalculator {
                 BadgeRequirement.COMPLETIONIST -> collection?.currentRosterCompletionistComplete == false
                 BadgeRequirement.EXACT_COUNT -> false
             }
-            val terminal = definition.countType == BadgeCountType.ONE_TIME && computed > 0 && !currentRosterIncomplete
+            val evidenceProvesCurrentCompletion = when (definition.requirement) {
+                BadgeRequirement.COLLECTOR -> collection?.currentRosterCollectorComplete == true
+                BadgeRequirement.CURATOR -> collection?.currentRosterCuratorComplete == true
+                BadgeRequirement.COMPLETIONIST -> collection?.currentRosterCompletionistComplete == true
+                BadgeRequirement.EXACT_COUNT -> currentVerified > 0
+            }
+            val everEarned = (stored?.count ?: 0) > 0 || evidenceProvesCurrentCompletion
+            val terminal = definition.countType == BadgeCountType.ONE_TIME && everEarned && !currentRosterIncomplete
+            val milestoneCount = if (boundedRosterBadge) currentVerified else lifetimeCount
             val hasNextMilestone = definition.countType == BadgeCountType.REPEATABLE &&
-                definition.milestones.any { it > computed }
+                definition.milestones.any { it > milestoneCount }
             val nonEmptyRoster = collection == null || when (definition.requirement) {
                 BadgeRequirement.COMPLETIONIST -> collection.totalCompletionistSpecies > 0
                 BadgeRequirement.COLLECTOR, BadgeRequirement.CURATOR -> collection.totalParticipatingSpecies > 0
@@ -208,8 +232,8 @@ object BadgeDashboardCalculator {
                 !canNavigate -> BadgeDisabledReason.UNSUPPORTED_DESTINATION
                 else -> null
             }
-            BadgeProgressModel(definition.badgeId, computed, computed > 0, category(definition), progress,
-                target, (target - progress).coerceAtLeast(0), MilestoneEngine.evaluate(computed, thresholds = definition.milestones),
+            BadgeProgressModel(definition.badgeId, lifetimeCount, everEarned, category(definition), progress,
+                target, (target - progress).coerceAtLeast(0), MilestoneEngine.evaluate(milestoneCount, thresholds = definition.milestones),
                 stored?.firstEarnedAt, stored?.lastEarnedAt, pinOrder[definition.badgeId],
                 definition.badgeId in tracked,
                 collection, speciesLevels.maxOrNull(), primaryAction,
@@ -218,7 +242,7 @@ object BadgeDashboardCalculator {
                 definition.importance, canTrack, canNavigate, canProgressNow, disabledReason,
                 acquisition, definition.pinnable, definition.goalType,
                 definition.countType, terminal,
-                if (definition.countType == BadgeCountType.REPEATABLE) milestoneNextTarget(definition, computed) else null,
+                if (definition.countType == BadgeCountType.REPEATABLE) milestoneNextTarget(definition, milestoneCount) else null,
                 when (definition.requirement) {
                     BadgeRequirement.COLLECTOR -> collection?.currentRosterCollectorComplete
                     BadgeRequirement.CURATOR -> collection?.currentRosterCuratorComplete

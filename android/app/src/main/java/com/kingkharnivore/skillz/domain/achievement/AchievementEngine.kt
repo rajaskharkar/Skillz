@@ -8,6 +8,8 @@ import com.kingkharnivore.skillz.utils.shell.StillwaterCatalog
 import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
 import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.CreatureMasteryEventEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.CreatureDiscoveryEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.CollectionCompletionEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserBadgeEntity
 import com.kingkharnivore.skillz.data.model.shell.BadgeCategory
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
@@ -19,6 +21,92 @@ enum class BadgeGoalType { ONE_TIME, REPEATABLE_MILESTONE, COLLECTION, SPECIES_M
 enum class BadgeRequirement { EXACT_COUNT, COLLECTOR, CURATOR, COMPLETIONIST }
 enum class BadgeVisibility { ALWAYS, AFTER_SPECIES_DISCOVERY, AFTER_EARNED }
 enum class MasteryTimestampConfidence { EXACT, ESTIMATED_FROM_ACQUISITION, UNKNOWN }
+
+data class EvidenceTimestamp(
+    val timestamp: Long,
+    val confidence: MasteryTimestampConfidence
+)
+
+/** Pure reconstruction rules for historical dates. A missing event never becomes "now". */
+object AchievementTimestampCalculator {
+    private fun CreatureMasteryEventEntity.evidenceTimestamp(): EvidenceTimestamp? =
+        achievedAt.takeIf { it > 0 }?.let { timestamp ->
+            EvidenceTimestamp(
+                timestamp,
+                if (levelUpTransactionId.startsWith("backfill_"))
+                    MasteryTimestampConfidence.ESTIMATED_FROM_ACQUISITION
+                else MasteryTimestampConfidence.EXACT
+            )
+        }
+
+    fun firstMasteryTimestamp(events: List<CreatureMasteryEventEntity>): EvidenceTimestamp? =
+        events.mapNotNull { it.evidenceTimestamp() }.minByOrNull { it.timestamp }
+
+    fun masteryThresholdTimestamp(
+        events: List<CreatureMasteryEventEntity>,
+        threshold: Int
+    ): EvidenceTimestamp? {
+        if (threshold <= 0 || events.size < threshold || events.any { it.achievedAt <= 0 }) return null
+        return events.sortedBy(CreatureMasteryEventEntity::achievedAt).getOrNull(threshold - 1)
+            ?.evidenceTimestamp()
+    }
+
+    fun masteryVarietyThresholdTimestamp(
+        events: List<CreatureMasteryEventEntity>,
+        threshold: Int
+    ): EvidenceTimestamp? {
+        val bySpecies = events.groupBy { it.speciesId }
+        if (threshold <= 0 || bySpecies.size < threshold || bySpecies.values.any { firstMasteryTimestamp(it) == null }) return null
+        return bySpecies.values.mapNotNull { firstMasteryTimestamp(it) }
+            .sortedBy { it.timestamp }.getOrNull(threshold - 1)
+    }
+
+    fun discoveryVarietyThresholdTimestamp(
+        discoveries: List<CreatureDiscoveryEntity>,
+        threshold: Int,
+        participatingSpecies: Set<String>? = null
+    ): EvidenceTimestamp? = discoveries
+        .filter { it.firstDiscoveredAt > 0 && (participatingSpecies == null || it.speciesId in participatingSpecies) }
+        .distinctBy { it.speciesId }.sortedBy { it.firstDiscoveredAt }.getOrNull(threshold - 1)
+        ?.let { EvidenceTimestamp(it.firstDiscoveredAt, MasteryTimestampConfidence.EXACT) }
+
+    fun acrossTheDepthsTimestamp(
+        discoveries: List<CreatureDiscoveryEntity>,
+        requiredCollections: List<CollectionDefinition>
+    ): EvidenceTimestamp? = requiredCollections.map { collection ->
+        val roster = collection.eligibleRoster(BadgeRequirement.COLLECTOR)
+        discoveries.filter { it.speciesId in roster && it.firstDiscoveredAt > 0 }.minOfOrNull { it.firstDiscoveredAt }
+            ?: return null
+    }.maxOrNull()?.let { EvidenceTimestamp(it, MasteryTimestampConfidence.EXACT) }
+
+    fun oneFromEveryWaterTimestamp(
+        masteries: List<CreatureMasteryEventEntity>,
+        requiredCollections: List<CollectionDefinition>
+    ): EvidenceTimestamp? {
+        val requirements = requiredCollections.map { collection ->
+            val roster = collection.eligibleRoster(BadgeRequirement.COMPLETIONIST)
+            firstMasteryTimestamp(masteries.filter { it.speciesId in roster }) ?: return null
+        }
+        return requirements.maxByOrNull { it.timestamp }?.let { latest ->
+            latest.copy(confidence = if (requirements.any { it.confidence == MasteryTimestampConfidence.UNKNOWN })
+                MasteryTimestampConfidence.UNKNOWN else latest.confidence)
+        }
+    }
+
+    fun keeperOfTheBlueTimestamp(
+        completions: List<CollectionCompletionEntity>,
+        requiredCollectionIds: Set<String>
+    ): EvidenceTimestamp? {
+        val required = requiredCollectionIds.map { id ->
+            completions.filter {
+                it.collectionId == id && it.completionType == BadgeRequirement.COLLECTOR.name &&
+                    it.completedAt > 0
+            }.minByOrNull { it.completedAt } ?: return null
+        }
+        return required.maxOfOrNull { it.completedAt }
+            ?.let { EvidenceTimestamp(it, MasteryTimestampConfidence.EXACT) }
+    }
+}
 
 data class BadgeVisibilityContext(
     val discoveredSpeciesIds: Set<String>,
@@ -82,7 +170,7 @@ object MasteryEvidenceCalculator {
                 val speciesEvents = eventsBySpecies[speciesId].orEmpty()
                 val floor = floorsBySpecies[speciesId]
                 val effective = effectiveCount(speciesEvents.size, floor)
-                val earliest = speciesEvents.minByOrNull { it.achievedAt }
+                val earliest = speciesEvents.filter { it.achievedAt > 0 }.minByOrNull { it.achievedAt }
                 SpeciesMasteryEvidence(
                     speciesId = speciesId,
                     verifiedIndividualCount = speciesEvents.size,
@@ -91,7 +179,7 @@ object MasteryEvidenceCalculator {
                     hasEverBeenMastered = effective > 0,
                     currentLevel99Count = ownedLevels[speciesId].orEmpty().count { it >= 99 },
                     firstMasteryAt = earliest?.achievedAt,
-                    latestMasteryAt = speciesEvents.maxOfOrNull { it.achievedAt },
+                    latestMasteryAt = speciesEvents.filter { it.achievedAt > 0 }.maxOfOrNull { it.achievedAt },
                     timestampConfidence = when {
                         earliest == null -> MasteryTimestampConfidence.UNKNOWN
                         earliest.levelUpTransactionId.startsWith("backfill_") -> MasteryTimestampConfidence.ESTIMATED_FROM_ACQUISITION

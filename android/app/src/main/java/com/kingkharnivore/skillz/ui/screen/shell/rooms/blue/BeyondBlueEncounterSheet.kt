@@ -56,6 +56,7 @@ fun BeyondBlueEncounterSheet(
     pearlBalance: Int,
     initialZone: TheBlueZoneId,
     activeAnimalInstances: List<UserShellFindInstanceEntity>,
+    initialTargetSpeciesId: String? = null,
     onDismiss: () -> Unit,
     onEncounter: (String, List<String>) -> Unit
 ) {
@@ -67,7 +68,7 @@ fun BeyondBlueEncounterSheet(
         val perMinutes: Int
     )
 
-    var confirmTargetId by remember { mutableStateOf<String?>(null) }
+    var confirmTargetId by remember(initialTargetSpeciesId) { mutableStateOf(initialTargetSpeciesId) }
     var selectedZone by remember(initialZone) { mutableStateOf(initialZone) }
     var selectedCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var tradeExpanded by remember { mutableStateOf(false) }

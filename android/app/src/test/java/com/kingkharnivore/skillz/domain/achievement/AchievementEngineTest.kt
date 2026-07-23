@@ -2,6 +2,9 @@ package com.kingkharnivore.skillz.domain.achievement
 
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.CreatureMasteryEventEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.CreatureDiscoveryEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.CollectionCompletionEntity
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -114,5 +117,106 @@ class AchievementEngineTest {
         assertEquals(0, progress.totalParticipatingSpecies)
         assertFalse(progress.currentRosterCollectorComplete)
         assertFalse(progress.currentRosterCompletionistComplete)
+    }
+
+    @Test fun firstAndAggregateMasteryTimestampsUseQualifyingEvents() {
+        val events = (1..6).map { index ->
+            CreatureMasteryEventEntity("e$index", "i$index", "species-${index % 3}",
+                achievedAt = index * 100L, levelUpTransactionId = if (index == 1) "backfill_i1" else "live-$index")
+        } + CreatureMasteryEventEntity("late", "late", "unrelated", 9_999L, "live-late")
+
+        assertEquals(100L, AchievementTimestampCalculator.firstMasteryTimestamp(events)?.timestamp)
+        assertEquals(MasteryTimestampConfidence.ESTIMATED_FROM_ACQUISITION,
+            AchievementTimestampCalculator.firstMasteryTimestamp(events)?.confidence)
+        assertEquals(500L, AchievementTimestampCalculator.masteryThresholdTimestamp(events, 5)?.timestamp)
+        assertEquals(300L, AchievementTimestampCalculator.masteryVarietyThresholdTimestamp(events, 3)?.timestamp)
+    }
+
+    @Test fun unknownMasteryTimeRemainsUnknownInsteadOfBecomingBackfillTime() {
+        val unknown = CreatureMasteryEventEntity("unknown", "instance", "species", 0L, "backfill_instance")
+
+        assertNull(AchievementTimestampCalculator.firstMasteryTimestamp(listOf(unknown)))
+        assertNull(AchievementTimestampCalculator.masteryThresholdTimestamp(listOf(unknown), 1))
+        assertEquals(MasteryTimestampConfidence.UNKNOWN,
+            MasteryEvidenceCalculator.bySpecies(listOf(unknown), emptyList()).getValue("species").timestampConfidence)
+    }
+
+    @Test fun discoveryVarietyTimestampIgnoresUnrelatedLaterEvidence() {
+        val discoveries = listOf(
+            CreatureDiscoveryEntity("a", 100L, null, null, 100L),
+            CreatureDiscoveryEntity("b", 200L, null, null, 200L),
+            CreatureDiscoveryEntity("unrelated", 9_999L, null, null, 9_999L)
+        )
+
+        assertEquals(200L, AchievementTimestampCalculator.discoveryVarietyThresholdTimestamp(
+            discoveries, threshold = 2, participatingSpecies = setOf("a", "b")
+        )?.timestamp)
+        assertNull(AchievementTimestampCalculator.discoveryVarietyThresholdTimestamp(
+            discoveries, threshold = 3, participatingSpecies = setOf("a", "b")
+        ))
+    }
+
+    @Test fun lockedOneTimeDashboardBadgeIsNotEarnedAndHasObjectiveTarget() {
+        val badge = BadgeDashboardCalculator.calculate(
+            earned = emptyList(), instances = emptyList(), discoveries = emptyList(),
+            masteries = emptyList(), completions = emptyList(), pins = emptyList(), tracking = emptyList()
+        ).badges.first { it.badgeId == "mastery_first" }
+
+        assertFalse(badge.everEarned)
+        assertFalse(badge.terminal)
+        assertEquals(0, badge.currentProgress)
+        assertEquals(1, badge.objectiveTarget)
+        assertNull(badge.nextMilestoneTarget)
+    }
+
+    @Test fun specialCompletionDatesUseOnlyRequiredEvidence() {
+        val species = CreatureCatalog.all.take(2)
+        val collections = listOf(
+            CollectionDefinition("blue_first", 1, listOf(species[0])),
+            CollectionDefinition("blue_second", 1, listOf(species[1]))
+        )
+        val discoveries = listOf(
+            CreatureDiscoveryEntity(species[0].creatureId, 100L, null, null, 100L),
+            CreatureDiscoveryEntity(species[1].creatureId, 300L, null, null, 300L),
+            CreatureDiscoveryEntity("unrelated", 9_999L, null, null, 9_999L)
+        )
+        val masteries = listOf(
+            CreatureMasteryEventEntity("a", "a", species[0].creatureId, 200L, "live-a"),
+            CreatureMasteryEventEntity("b", "b", species[1].creatureId, 400L, "live-b"),
+            CreatureMasteryEventEntity("late", "late", "unrelated", 9_999L, "live-late")
+        )
+        val completions = collections.mapIndexed { index, collection ->
+            CollectionCompletionEntity("c$index", collection.collectionId, BadgeRequirement.COLLECTOR.name,
+                500L + index * 100, 1, "hash-$index", species[index].creatureId)
+        } + CollectionCompletionEntity("late", "unrelated", BadgeRequirement.COLLECTOR.name,
+            9_999L, 1, "late", "unrelated")
+
+        assertEquals(300L, AchievementTimestampCalculator.acrossTheDepthsTimestamp(discoveries, collections)?.timestamp)
+        assertEquals(400L, AchievementTimestampCalculator.oneFromEveryWaterTimestamp(masteries, collections)?.timestamp)
+        assertEquals(600L, AchievementTimestampCalculator.keeperOfTheBlueTimestamp(
+            completions, collections.mapTo(mutableSetOf()) { it.collectionId }
+        )?.timestamp)
+        assertNull(AchievementTimestampCalculator.keeperOfTheBlueTimestamp(
+            completions.map { if (it.collectionId == "blue_first") it.copy(completedAt = 0L) else it },
+            collections.mapTo(mutableSetOf()) { it.collectionId }
+        ))
+    }
+
+    @Test fun boundedBadgeSeparatesHistoricalLifetimeFromCurrentRosterProgress() {
+        val unavailableOrNonparticipating = CreatureCatalog.all.first()
+        val stored = com.kingkharnivore.skillz.data.model.entity.shell.UserBadgeEntity(
+            "mastery_variety", 7, 10L, 20L, false, viewedAt = 20L
+        )
+        val event = CreatureMasteryEventEntity(
+            "historical", "instance", unavailableOrNonparticipating.creatureId, 10L, "live"
+        )
+        val badge = BadgeDashboardCalculator.calculate(
+            earned = listOf(stored), instances = emptyList(), discoveries = emptyList(),
+            masteries = listOf(event), completions = emptyList(), pins = emptyList(), tracking = emptyList()
+        ).badges.first { it.badgeId == "mastery_variety" }
+
+        assertEquals(7, badge.lifetimeCount)
+        assertTrue(badge.currentProgress <= badge.objectiveTarget)
+        assertTrue(badge.everEarned)
     }
 }
