@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Diamond
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Route
@@ -27,6 +30,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -40,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
@@ -222,12 +228,38 @@ fun BeyondBlueEncounterSheet(
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
                                         ShellMetricPill(Icons.Outlined.Route, stringResource(R.string.beyond_blue_each_value, formatMinutesCompact(stack.perMinutes)))
-                                        ShellMetricPill(Icons.Outlined.WaterDrop, stringResource(R.string.beyond_blue_selected_count, selected))
                                         ShellMetricPill(Icons.Outlined.Route, stringResource(R.string.beyond_blue_contributes_value, formatMinutesCompact(selected * stack.perMinutes)))
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        OutlinedButton(onClick = { selectedCounts = selectedCounts + (stack.key to (selected - 1).coerceAtLeast(0)) }, enabled = selected > 0) { Text(stringResource(R.string.beyond_blue_remove_one, findName(stack.findId))) }
-                                        OutlinedButton(onClick = { selectedCounts = selectedCounts + (stack.key to (selected + 1).coerceAtMost(stack.instances.size)) }, enabled = selected < stack.instances.size) { Text(stringResource(R.string.beyond_blue_add_one, findName(stack.findId))) }
+                                        FilledTonalIconButton(
+                                            onClick = { selectedCounts = selectedCounts + (stack.key to (selected - 1).coerceAtLeast(0)) },
+                                            enabled = selected > 0,
+                                            modifier = Modifier.size(48.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Remove,
+                                                contentDescription = stringResource(R.string.beyond_blue_remove_one, findName(stack.findId)),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                        Text(
+                                            text = selected.toString(),
+                                            modifier = Modifier.widthIn(min = 24.dp),
+                                            textAlign = TextAlign.Center,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        FilledTonalIconButton(
+                                            onClick = { selectedCounts = selectedCounts + (stack.key to (selected + 1).coerceAtMost(stack.instances.size)) },
+                                            enabled = selected < stack.instances.size,
+                                            modifier = Modifier.size(48.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = stringResource(R.string.beyond_blue_add_one, findName(stack.findId)),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
