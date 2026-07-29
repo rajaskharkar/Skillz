@@ -32,6 +32,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -234,7 +235,11 @@ fun BeyondBlueEncounterSheet(
                                         FilledTonalIconButton(
                                             onClick = { selectedCounts = selectedCounts + (stack.key to (selected - 1).coerceAtLeast(0)) },
                                             enabled = selected > 0,
-                                            modifier = Modifier.size(48.dp)
+                                            modifier = Modifier.size(48.dp),
+                                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary
+                                            )
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Remove,
@@ -252,7 +257,11 @@ fun BeyondBlueEncounterSheet(
                                         FilledTonalIconButton(
                                             onClick = { selectedCounts = selectedCounts + (stack.key to (selected + 1).coerceAtMost(stack.instances.size)) },
                                             enabled = selected < stack.instances.size,
-                                            modifier = Modifier.size(48.dp)
+                                            modifier = Modifier.size(48.dp),
+                                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary
+                                            )
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.Add,
