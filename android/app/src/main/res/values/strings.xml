@@ -678,7 +678,7 @@
     <string name="flow_screen_begin_soft_flow">Begin Soft Flow</string>
     <string name="flow_screen_enter_flow">Enter Flow</string>
     <string name="flow_screen_soft_flow_label">Soft Flow</string>
-    <string name="flow_screen_soft_flow_body">This session will be recorded without score, Surge, Beam, or Arc progression.</string>
+    <string name="flow_screen_soft_flow_body">This session will be recorded without score, Surge, or Beam.</string>
     <string name="flow_screen_in_flow_helper">You\'re in Flow. You may use other parts of this app.\nYou may turn off the screen — the timer continues.</string>
     <string name="flow_screen_saving">Saving...</string>
     <string name="flow_screen_save_soft_flow">Save Soft Flow</string>
@@ -715,7 +715,7 @@
     <string name="flow_screen_soft_reward_body">You showed up without turning this session into a score chase.</string>
     <string name="flow_screen_duration_label">Duration</string>
     <string name="flow_screen_minutes_value">%1$d min</string>
-    <string name="flow_screen_soft_reward_footer">This session is part of your Story, but it does not affect score, Surge, Beam, or Arc progression.</string>
+    <string name="flow_screen_soft_reward_footer">This session is part of your Story, but it does not affect score, Surge, or Beam.</string>
     <string name="flow_title_field_label">Focus</string>
     <string name="flow_title_field_placeholder">What are you flowing through?</string>
     <string name="flow_title_field_a11y">Flow title. %1$s</string>

@@ -671,7 +671,7 @@
     <string name="flow_screen_begin_soft_flow">Comenzar Soft Flow</string>
     <string name="flow_screen_enter_flow">Entrar en Flow</string>
     <string name="flow_screen_soft_flow_label">Soft Flow</string>
-    <string name="flow_screen_soft_flow_body">Esta sesión se registrará sin puntuación, Surge, Beam ni progresión de Arc.</string>
+    <string name="flow_screen_soft_flow_body">Esta sesión se registrará sin puntuación, Surge ni Beam.</string>
     <string name="flow_screen_in_flow_helper">Estás en Flow. Puedes usar otras partes de esta app.\nPuedes apagar la pantalla: el temporizador seguirá corriendo.</string>
     <string name="flow_screen_saving">Guardando...</string>
     <string name="flow_screen_save_soft_flow">Guardar Soft Flow</string>
@@ -708,7 +708,7 @@
     <string name="flow_screen_soft_reward_body">Te presentaste sin convertir esta sesión en una carrera por la puntuación.</string>
     <string name="flow_screen_duration_label">Duración</string>
     <string name="flow_screen_minutes_value">%1$d min</string>
-    <string name="flow_screen_soft_reward_footer">Esta sesión forma parte de tu Story, pero no afecta la puntuación, Surge, Beam ni la progresión de Arc.</string>
+    <string name="flow_screen_soft_reward_footer">Esta sesión forma parte de tu Story, pero no afecta la puntuación, Surge ni Beam.</string>
     <string name="common_done">Listo</string>
     <string name="common_next">Siguiente</string>
     <string name="common_ok">Aceptar</string>

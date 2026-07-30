@@ -674,7 +674,7 @@
     <string name="flow_screen_begin_soft_flow">सॉफ्ट फ्लो सुरू करा</string>
     <string name="flow_screen_enter_flow">फ्लोमध्ये प्रवेश करा</string>
     <string name="flow_screen_soft_flow_label">सॉफ्ट फ्लो</string>
-    <string name="flow_screen_soft_flow_body">हे सत्र स्कोअर, सर्ज, बीम किंवा आर्क प्रगतीशिवाय नोंदवले जाईल.</string>
+    <string name="flow_screen_soft_flow_body">हे सत्र स्कोअर, सर्ज किंवा बीमशिवाय नोंदवले जाईल.</string>
     <string name="flow_screen_in_flow_helper">तुम्ही फ्लोमध्ये आहात. अॅपचे इतर भाग वापरू शकता.\nस्क्रीन बंद केली तरी टाइमर सुरूच राहील.</string>
     <string name="flow_screen_saving">जतन होत आहे…</string>
     <string name="flow_screen_save_soft_flow">सॉफ्ट फ्लो जतन करा</string>
@@ -711,7 +711,7 @@
     <string name="flow_screen_soft_reward_body">तुम्ही हे सत्र गुणांच्या शर्यतीत न बदलता पूर्ण केले.</string>
     <string name="flow_screen_duration_label">कालावधी</string>
     <string name="flow_screen_minutes_value">%1$d मिनिटे</string>
-    <string name="flow_screen_soft_reward_footer">हे सत्र तुमच्या कथेत सामील आहे, पण याचा स्कोअर, सर्ज, बीम किंवा आर्क प्रगतीवर परिणाम होत नाही.</string>
+    <string name="flow_screen_soft_reward_footer">हे सत्र तुमच्या कथेत सामील आहे, पण याचा स्कोअर, सर्ज किंवा बीमवर परिणाम होत नाही.</string>
     <string name="flow_title_field_label">लक्ष</string>
     <string name="flow_title_field_placeholder">तुम्ही कशातून वाहत आहात?</string>
     <string name="flow_title_field_a11y">फ्लोशीर्षक. %1$s</string>

@@ -671,7 +671,7 @@
     <string name="flow_screen_begin_soft_flow">सॉफ्ट फ़्लो शुरू करें</string>
     <string name="flow_screen_enter_flow">फ़्लो में प्रवेश करें</string>
     <string name="flow_screen_soft_flow_label">सॉफ्ट फ़्लो</string>
-    <string name="flow_screen_soft_flow_body">यह सत्र बिना स्कोर, सर्ज, बीम, या आर्क प्रगति के रिकॉर्ड होगा।</string>
+    <string name="flow_screen_soft_flow_body">यह सत्र बिना स्कोर, सर्ज या बीम के रिकॉर्ड होगा।</string>
     <string name="flow_screen_in_flow_helper">आप फ़्लो में हैं। आप इस ऐप के अन्य हिस्सों का उपयोग कर सकते हैं।\nआप स्क्रीन बंद कर सकते हैं — टाइमर चलता रहेगा।</string>
     <string name="flow_screen_saving">सहेजा जा रहा है…</string>
     <string name="flow_screen_save_soft_flow">सॉफ्ट फ़्लो सहेजें</string>
@@ -708,7 +708,7 @@
     <string name="flow_screen_soft_reward_body">आपने इस सत्र में उसे स्कोर की दौड़ बनाए बिना भी उपस्थिति दर्ज की।</string>
     <string name="flow_screen_duration_label">अवधि</string>
     <string name="flow_screen_minutes_value">%1$d मिनट</string>
-    <string name="flow_screen_soft_reward_footer">यह सत्र आपकी स्टोरी का हिस्सा है, लेकिन यह स्कोर, सर्ज, बीम, या आर्क प्रगति को प्रभावित नहीं करता।</string>
+    <string name="flow_screen_soft_reward_footer">यह सत्र आपकी स्टोरी का हिस्सा है, लेकिन यह स्कोर, सर्ज या बीम को प्रभावित नहीं करता।</string>
     <string name="common_done">पूर्ण</string>
     <string name="common_next">अगला</string>
     <string name="common_ok">ठीक है</string>
