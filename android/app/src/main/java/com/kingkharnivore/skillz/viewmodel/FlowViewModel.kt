@@ -263,14 +263,27 @@ class FlowViewModel @Inject constructor(
 
     private val _exitAfterReward = MutableStateFlow(false)
     val exitAfterReward: StateFlow<Boolean> = _exitAfterReward.asStateFlow()
+    private var isConsumingExitAfterReward = false
 
     private var arcCountdownJob: Job? = null
 
-    fun consumeExitAfterReward(): Boolean {
-        val shouldExit = _exitAfterReward.value
-        _exitAfterReward.value = false
-        if (shouldExit) viewModelScope.launch { arcPrefs.clearPlannedFlowHandoff() }
-        return shouldExit
+    fun consumeExitAfterReward(onConsumed: () -> Unit) {
+        if (!_exitAfterReward.value || isConsumingExitAfterReward) return
+        isConsumingExitAfterReward = true
+
+        viewModelScope.launch {
+            try {
+                // Navigation may destroy this ViewModel, so the durable terminal marker
+                // must be removed before invoking the navigation callback.
+                arcPrefs.clearPlannedFlowHandoff()
+                _exitAfterReward.value = false
+                onConsumed()
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Failed to finish Flow"
+            } finally {
+                isConsumingExitAfterReward = false
+            }
+        }
     }
 
     fun isModeLocked(): Boolean = _uiState.value.stopwatch.elapsedMs > 0L
@@ -534,7 +547,6 @@ class FlowViewModel @Inject constructor(
                 )
                 syncArcUi()
                 _exitAfterReward.value = true
-                arcPrefs.clearPlannedFlowHandoff()
                 return@launch
             }
 
@@ -1161,7 +1173,7 @@ class FlowViewModel @Inject constructor(
                 )
             }
 
-            clearOngoing()
+            saveOngoingNow()
             arcPrefs.clearPlannedFlowHandoff()
         }
     }

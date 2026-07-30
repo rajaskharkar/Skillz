@@ -694,16 +694,22 @@ fun FlowScreen(
                         if (r.arcSummary != null && !showArcSummary && !r.isArcOnlySummary) {
                             showArcSummary = true
                         } else {
-                            showPointsDialog = false
                             if (awaitingNextFlow) {
+                                showPointsDialog = false
                                 if (pendingArcIdeaContinuation != null) {
                                     showArcIdeaContinuationDialog = true
                                 } else {
                                     viewModel.beginNextFlowAfterContinue()
                                 }
+                            } else if (exitAfterReward) {
+                                viewModel.consumeExitAfterReward {
+                                    showPointsDialog = false
+                                    viewModel.clearLastReward()
+                                    onDone()
+                                }
                             } else {
+                                showPointsDialog = false
                                 viewModel.clearLastReward()
-                                if (exitAfterReward && viewModel.consumeExitAfterReward()) onDone()
                             }
                         }
                     }
