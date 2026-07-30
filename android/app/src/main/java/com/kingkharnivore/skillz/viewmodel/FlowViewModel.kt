@@ -267,10 +267,14 @@ class FlowViewModel @Inject constructor(
         saveOngoing()
     }
 
-    fun setSoftModeAndConcludeArc() {
+    fun setSoftModeAndResetArcMultiplier() {
         if (isModeLocked()) return
 
-        val hadArc = arcState != null
+        // The mode selector can be tapped rapidly. Once Soft Mode is selected this
+        // transition has already happened, so do not enqueue duplicate persistence work.
+        if (_uiState.value.isSoftMode) return
+
+        arcState = arcState?.resetMultiplierForSoftFlow()
 
         _uiState.update { current ->
             current.copy(
@@ -279,10 +283,14 @@ class FlowViewModel @Inject constructor(
                 surgePlannedMs = null
             )
         }
+        syncArcUi()
         saveOngoing()
 
-        if (hadArc) {
-            concludeArc("soft_mode")
+        // ArcPrefs is authoritative across process recreation. Persist the reset at
+        // selection/start time; it is intentionally never restored if the Soft Flow
+        // is subsequently abandoned.
+        arcState?.let { reset ->
+            viewModelScope.launch { arcPrefs.save(reset) }
         }
     }
 
@@ -1251,13 +1259,6 @@ class FlowViewModel @Inject constructor(
                 syncArcUi()
             }
 
-            if (state.isSoftMode && localArc != null) {
-                clearArcPersistedAsync()
-                localArc = null
-                arcState = null
-                syncArcUi()
-            }
-
             val arcIdForSummary: Long? = localArc?.arcId
             val isInExistingArc = localArc != null
 
@@ -1391,29 +1392,40 @@ class FlowViewModel @Inject constructor(
 
                 arcIndex = s.sessionCountInArc + 1
 
-                val resWithoutMovement = ScoreCalculator.arcMath(
-                    beforeArcPoints = baseScyra,
-                    chainBase = s.multiplier,
-                    durationMs = realDurationMs
-                )
-                finalWithoutMovement = resWithoutMovement.finalPoints
+                if (isSoft) {
+                    // Soft Flows are members of the Arc sequence, but never receive
+                    // duration tiers or the multiplier accumulated by regular Flows.
+                    finalWithoutMovement = baseScyra
+                    finalScyra = beforeArc
+                    arcMultiplierUsed = ArcRuntimeState.BASE_MULTIPLIER
+                    arcBonusPoints = 0
+                    arcDidLevelUp = false
+                    nextMultiplier = ArcRuntimeState.BASE_MULTIPLIER
+                } else {
+                    val resWithoutMovement = ScoreCalculator.arcMath(
+                        beforeArcPoints = baseScyra,
+                        chainBase = s.multiplier,
+                        durationMs = realDurationMs
+                    )
+                    finalWithoutMovement = resWithoutMovement.finalPoints
 
-                val res = ScoreCalculator.arcMath(
-                    beforeArcPoints = beforeArc,
-                    chainBase = s.multiplier,
-                    durationMs = realDurationMs
-                )
+                    val res = ScoreCalculator.arcMath(
+                        beforeArcPoints = beforeArc,
+                        chainBase = s.multiplier,
+                        durationMs = realDurationMs
+                    )
 
-                arcMultiplierUsed = res.arcMultiplierUsed
-                arcBonusPoints = res.arcBonusPoints
-                finalScyra = res.finalPoints
+                    arcMultiplierUsed = res.arcMultiplierUsed
+                    arcBonusPoints = res.arcBonusPoints
+                    finalScyra = res.finalPoints
 
-                val (forcedNext, forcedDidLevel) = nextArcMultiplier(
-                    chainBase = s.multiplier,
-                    realDurationMs = realDurationMs
-                )
-                arcDidLevelUp = forcedDidLevel
-                nextMultiplier = forcedNext
+                    val (forcedNext, forcedDidLevel) = nextArcMultiplier(
+                        chainBase = s.multiplier,
+                        realDurationMs = realDurationMs
+                    )
+                    arcDidLevelUp = forcedDidLevel
+                    nextMultiplier = forcedNext
+                }
             }
 
             val insertedId = sessionRepository.addSession(
@@ -1455,13 +1467,17 @@ class FlowViewModel @Inject constructor(
 
                 val newCount = s.sessionCountInArc + 1
 
-                arcState = s.copy(
-                    isPending = newCount < 2,
-                    multiplier = nextMultiplier ?: s.multiplier,
-                    progressMs = 0L,
-                    lastSessionEndTimeMs = sessionEnd,
-                    sessionCountInArc = newCount
-                )
+                arcState = if (isSoft) {
+                    s.afterCompletedSoftFlow(sessionEnd)
+                } else {
+                    s.copy(
+                        isPending = newCount < 2,
+                        multiplier = nextMultiplier ?: s.multiplier,
+                        progressMs = 0L,
+                        lastSessionEndTimeMs = sessionEnd,
+                        sessionCountInArc = newCount
+                    )
+                }
 
                 arcPrefs.save(arcState!!)
                 syncArcUi()
@@ -1599,7 +1615,7 @@ class FlowViewModel @Inject constructor(
                     _lastReward.value = baseReward
                     _exitAfterReward.value = true
 
-                    if (arcState != null) {
+                    if (!state.isSoftMode && arcState != null) {
                         saveRecentlyEndedArcSnapshot(
                             state = arcState,
                             endedAtMs = sessionEnd
@@ -1630,7 +1646,9 @@ class FlowViewModel @Inject constructor(
 
                     aliveFlowServiceController.stop()
                     clearOngoing()
-                    activeArcRunRepository.clear()
+                    if (!state.isSoftMode) {
+                        activeArcRunRepository.clear()
+                    }
                     ongoingCreatedAtMs = System.currentTimeMillis()
                     currentFlowInstanceId = UUID.randomUUID().toString()
                 }

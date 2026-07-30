@@ -496,7 +496,7 @@ fun FlowScreen(
                 TextButton(
                     onClick = {
                         showSoftArcConfirmDialog = false
-                        viewModel.setSoftModeAndConcludeArc()
+                        viewModel.setSoftModeAndResetArcMultiplier()
                     }
                 ) { Text(stringResource(R.string.flow_screen_enter_soft)) }
             },

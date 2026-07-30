@@ -685,10 +685,10 @@
     <string name="flow_screen_continue_arc">Continue Arc</string>
     <string name="flow_screen_complete_arc">Complete Arc</string>
     <string name="flow_screen_complete_flow">Complete Flow</string>
-    <string name="flow_screen_soft_confirm_title">Enter Soft Mode?</string>
-    <string name="flow_screen_soft_confirm_body">This will complete your current Arc. Soft sessions are recorded without score or Arc progression.</string>
-    <string name="flow_screen_enter_soft">Enter Soft</string>
-    <string name="flow_screen_stay_in_flow">Stay in Flow</string>
+    <string name="flow_screen_soft_confirm_title">Enter soft?</string>
+    <string name="flow_screen_soft_confirm_body">Your Arc multiplier will be reset when you enter Soft Mode.</string>
+    <string name="flow_screen_enter_soft">Enter soft</string>
+    <string name="flow_screen_stay_in_flow">Keep multiplier</string>
     <string name="flow_screen_current_flow_value">Current Flow: %1$s</string>
     <string name="flow_screen_pulse_title_label">Title</string>
     <string name="flow_screen_pulse_title_placeholder">What was the moment?</string>

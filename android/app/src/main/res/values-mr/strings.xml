@@ -681,10 +681,10 @@
     <string name="flow_screen_continue_arc">आर्क चालू ठेवा</string>
     <string name="flow_screen_complete_arc">आर्क पूर्ण करा</string>
     <string name="flow_screen_complete_flow">फ्लो पूर्ण करा</string>
-    <string name="flow_screen_soft_confirm_title">सॉफ्ट मोडमध्ये जायचे?</string>
-    <string name="flow_screen_soft_confirm_body">यामुळे तुमचा सध्याचा आर्क पूर्ण होईल. सॉफ्ट सत्रे स्कोअर किंवा आर्क प्रगतीशिवाय नोंदवली जातात.</string>
+    <string name="flow_screen_soft_confirm_title">सॉफ्टमध्ये जायचे?</string>
+    <string name="flow_screen_soft_confirm_body">सॉफ्ट मोडमध्ये गेल्यावर तुमचा आर्क गुणक रीसेट होईल.</string>
     <string name="flow_screen_enter_soft">सॉफ्टमध्ये जा</string>
-    <string name="flow_screen_stay_in_flow">फ्लोमध्येच रहा</string>
+    <string name="flow_screen_stay_in_flow">गुणक कायम ठेवा</string>
     <string name="flow_screen_current_flow_value">सध्याचा फ्लो: %1$s</string>
     <string name="flow_screen_pulse_title_label">शीर्षक</string>
     <string name="flow_screen_pulse_title_placeholder">तो क्षण कोणता होता?</string>

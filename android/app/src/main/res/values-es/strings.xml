@@ -678,10 +678,10 @@
     <string name="flow_screen_continue_arc">Continuar Arc</string>
     <string name="flow_screen_complete_arc">Completar Arc</string>
     <string name="flow_screen_complete_flow">Completar Flow</string>
-    <string name="flow_screen_soft_confirm_title">¿Entrar en Soft Mode?</string>
-    <string name="flow_screen_soft_confirm_body">Esto completará tu Arc actual. Las sesiones Soft se registran sin puntuación ni progresión de Arc.</string>
-    <string name="flow_screen_enter_soft">Entrar en Soft</string>
-    <string name="flow_screen_stay_in_flow">Seguir en Flow</string>
+    <string name="flow_screen_soft_confirm_title">¿Entrar en soft?</string>
+    <string name="flow_screen_soft_confirm_body">Tu multiplicador de Arc se restablecerá cuando entres en Soft Mode.</string>
+    <string name="flow_screen_enter_soft">Entrar en soft</string>
+    <string name="flow_screen_stay_in_flow">Mantener multiplicador</string>
     <string name="flow_screen_current_flow_value">Flow actual: %1$s</string>
     <string name="flow_screen_pulse_title_label">Título</string>
     <string name="flow_screen_pulse_title_placeholder">¿Cuál fue el momento?</string>
