@@ -9,10 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -37,6 +34,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,6 +77,8 @@ fun BeyondBlueEncounterSheet(
     var selectedZone by remember(initialZone) { mutableStateOf(initialZone) }
     var selectedCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var tradeExpanded by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val contentScrollState = rememberScrollState()
     val confirmTarget = confirmTargetId?.let { CreatureCatalog.get(it) }
 
     val tradeStacks = remember(activeAnimalInstances) {
@@ -108,11 +108,11 @@ fun BeyondBlueEncounterSheet(
         }
     }
 
-    ScyraParchmentSheet(onDismissRequest = onDismiss) {
+    ScyraParchmentSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(contentScrollState)
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -208,14 +208,13 @@ fun BeyondBlueEncounterSheet(
                     Text(stringResource(R.string.beyond_blue_calling_life_in), fontWeight = FontWeight.SemiBold)
                     LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                     Text(stringResource(R.string.beyond_blue_contribution_value, formatMinutesCompact(selectedMinutes), formatMinutesCompact(requirement)))
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 420.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp)
+                    // Keep one vertical scroll owner inside the sheet. A bounded LazyColumn here
+                    // competed with both the parent scroll and the sheet's nested-scroll handler.
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(items = tradeStacks, key = { it.key }) { stack ->
+                        tradeStacks.forEach { stack ->
                             val selected = selectedCounts[stack.key] ?: 0
                             ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                                 Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -273,6 +272,7 @@ fun BeyondBlueEncounterSheet(
                                 }
                             }
                         }
+                        Spacer(Modifier.height(16.dp))
                     }
                 }
 
