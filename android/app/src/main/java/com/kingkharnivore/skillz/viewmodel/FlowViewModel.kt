@@ -92,6 +92,9 @@ internal fun resolveFlowEndMode(
     return if (isSoftMode && !isInArc) FlowEndAction.SAVE_FLOW else requested
 }
 
+internal fun usesBaseArcReward(isSoftMode: Boolean, completedArcSessionCount: Int): Boolean =
+    isSoftMode || completedArcSessionCount == 0
+
 data class PendingArcIdeaContinuation(
     val pulseId: Long,
     val pulseTitle: String?,
@@ -266,6 +269,7 @@ class FlowViewModel @Inject constructor(
     fun consumeExitAfterReward(): Boolean {
         val shouldExit = _exitAfterReward.value
         _exitAfterReward.value = false
+        if (shouldExit) viewModelScope.launch { arcPrefs.clearPlannedFlowHandoff() }
         return shouldExit
     }
 
@@ -471,6 +475,7 @@ class FlowViewModel @Inject constructor(
                 storedOngoing
             }
             val activePlannedRun = activeArcRunRepository.getActiveArcRunOnce()
+            val plannedHandoff = arcPrefs.loadPlannedFlowHandoff()
 
             if (activePlannedRun != null && isPlannedArcLaunch()) {
                 arcState = arcPrefs.load()
@@ -501,6 +506,37 @@ class FlowViewModel @Inject constructor(
             }
 
             syncArcUi()
+
+            if (plannedHandoff == ArcPrefs.PlannedFlowHandoff.BLANK_ARC_CONTINUATION) {
+                activeArcRunRepository.clear()
+                clearOngoing()
+                ongoingCreatedAtMs = System.currentTimeMillis()
+                currentFlowInstanceId = UUID.randomUUID().toString()
+                _uiState.value = FlowUiState(
+                    showScoreUi = _uiState.value.showScoreUi,
+                    calmMode = _uiState.value.calmMode
+                )
+                syncArcUi()
+                saveOngoingNow()
+                arcPrefs.clearPlannedFlowHandoff()
+                return@launch
+            }
+
+            if (plannedHandoff == ArcPrefs.PlannedFlowHandoff.COMPLETED_ARC_EXIT) {
+                activeArcRunRepository.clear()
+                clearOngoing()
+                arcPrefs.clear()
+                arcPrefs.clearRecentlyEnded()
+                arcState = null
+                _uiState.value = FlowUiState(
+                    showScoreUi = _uiState.value.showScoreUi,
+                    calmMode = _uiState.value.calmMode
+                )
+                syncArcUi()
+                _exitAfterReward.value = true
+                arcPrefs.clearPlannedFlowHandoff()
+                return@launch
+            }
 
             ongoing?.let { entity ->
                 val shouldOverrideDraft = hasLaunchOverrides && shouldTreatOngoingAsDraft(entity)
@@ -609,6 +645,7 @@ class FlowViewModel @Inject constructor(
                 activePlannedRun.currentStepIndex > plannedArcStepIndexOverride
             ) {
                 advancePlannedArcAfterCompletedSession(continuationOrigin = null)
+                arcPrefs.clearPlannedFlowHandoff()
             }
 
             if (_uiState.value.isSoftMode) {
@@ -1078,7 +1115,10 @@ class FlowViewModel @Inject constructor(
 
         viewModelScope.launch {
             val advanceResult = advancePlannedArcAfterCompletedSession(continuationOrigin)
-            if (advanceResult == PlannedArcAdvanceResult.Advanced) return@launch
+            if (advanceResult == PlannedArcAdvanceResult.Advanced) {
+                arcPrefs.clearPlannedFlowHandoff()
+                return@launch
+            }
 
             val keepTag = _uiState.value.tagName
             val keepArc = arcState
@@ -1122,6 +1162,7 @@ class FlowViewModel @Inject constructor(
             }
 
             clearOngoing()
+            arcPrefs.clearPlannedFlowHandoff()
         }
     }
 
@@ -1439,9 +1480,9 @@ class FlowViewModel @Inject constructor(
 
                 arcIndex = s.sessionCountInArc + 1
 
-                if (isSoft) {
-                    // Soft Flows are members of the Arc sequence, but never receive
-                    // duration tiers or the multiplier accumulated by regular Flows.
+                if (usesBaseArcReward(isSoft, s.sessionCountInArc)) {
+                    // Soft Flows and the first session of a pre-created Arc establish
+                    // continuity without duration tiers or accumulated Arc rewards.
                     finalWithoutMovement = baseScyra
                     finalScyra = beforeArc
                     arcMultiplierUsed = ArcRuntimeState.BASE_MULTIPLIER
@@ -1531,7 +1572,15 @@ class FlowViewModel @Inject constructor(
             }
 
             if (isInExistingArc && endMode == FlowEndAction.CONTINUE_ARC) {
-                persistPlannedStepAdvanceAfterSave()
+                when (persistPlannedStepAdvanceAfterSave()) {
+                    PlannedArcAdvanceResult.Advanced -> arcPrefs.savePlannedFlowHandoff(
+                        ArcPrefs.PlannedFlowHandoff.NEXT_PLANNED_STEP
+                    )
+                    PlannedArcAdvanceResult.Completed -> arcPrefs.savePlannedFlowHandoff(
+                        ArcPrefs.PlannedFlowHandoff.BLANK_ARC_CONTINUATION
+                    )
+                    PlannedArcAdvanceResult.NotPlannedArc -> Unit
+                }
             }
 
             saveMovementSnapshotAndBreakdown(
@@ -1596,6 +1645,11 @@ class FlowViewModel @Inject constructor(
 
             when (resolvedEndMode) {
                 FlowEndAction.COMPLETE_ARC -> {
+                    if (activeArcRunRepository.getActiveArcRunOnce() != null) {
+                        arcPrefs.savePlannedFlowHandoff(
+                            ArcPrefs.PlannedFlowHandoff.COMPLETED_ARC_EXIT
+                        )
+                    }
                     if (!state.isSoftMode && state.isSurgeOn && state.surgePlannedMs != null) {
                         if (surgeSucceeded) {
                             surgeHapticsManager.playCompletedSuccess()
@@ -1628,12 +1682,8 @@ class FlowViewModel @Inject constructor(
                     _exitAfterReward.value = true
                     _awaitingNextFlowAfterContinue.value = false
 
-                    saveRecentlyEndedArcSnapshot(
-                        state = arcState,
-                        endedAtMs = sessionEnd
-                    )
-
                     clearArcPersistedAsync()
+                    arcPrefs.clearRecentlyEnded()
                     arcState = null
 
                     baseStartTimeMs = null

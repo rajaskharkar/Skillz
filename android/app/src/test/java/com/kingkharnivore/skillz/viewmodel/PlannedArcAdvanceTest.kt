@@ -1,9 +1,23 @@
 package com.kingkharnivore.skillz.viewmodel
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PlannedArcAdvanceTest {
+    @Test fun firstRegularSessionInPrecreatedArcUsesBaseReward() {
+        assertTrue(usesBaseArcReward(isSoftMode = false, completedArcSessionCount = 0))
+    }
+
+    @Test fun secondRegularSessionCanRebuildMultiplier() {
+        assertFalse(usesBaseArcReward(isSoftMode = false, completedArcSessionCount = 1))
+    }
+
+    @Test fun softSessionAlwaysUsesBaseReward() {
+        assertTrue(usesBaseArcReward(isSoftMode = true, completedArcSessionCount = 6))
+    }
+
     @Test
     fun nonFinalStepAdvances() {
         assertEquals(

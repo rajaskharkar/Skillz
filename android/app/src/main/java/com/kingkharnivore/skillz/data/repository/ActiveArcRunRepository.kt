@@ -31,6 +31,7 @@ class ActiveArcRunRepository @Inject constructor(
         currentIsSoftMode: Boolean
     ) {
         val now = System.currentTimeMillis()
+        arcPrefs.clearPlannedFlowHandoff()
         dao.upsert(
             ActiveArcRunEntity(
                 arcPlanId = arcPlanId,

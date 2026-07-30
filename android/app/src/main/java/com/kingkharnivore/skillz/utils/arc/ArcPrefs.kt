@@ -7,10 +7,13 @@ import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.kingkharnivore.skillz.ui.model.ArcRuntimeState
 import kotlinx.coroutines.flow.first
 
 class ArcPrefs(private val ds: DataStore<Preferences>) {
+
+    enum class PlannedFlowHandoff { NEXT_PLANNED_STEP, BLANK_ARC_CONTINUATION, COMPLETED_ARC_EXIT }
 
     private val K_ARC_ID = longPreferencesKey("arc_id")
     private val K_PENDING = booleanPreferencesKey("arc_pending")
@@ -18,6 +21,7 @@ class ArcPrefs(private val ds: DataStore<Preferences>) {
     private val K_PROGRESS = longPreferencesKey("arc_progress")
     private val K_LAST_END = longPreferencesKey("arc_last_end")
     private val K_COUNT = intPreferencesKey("arc_count")
+    private val K_PLANNED_HANDOFF = stringPreferencesKey("planned_flow_handoff")
 
     private val K_RECENT_ARC_ID = longPreferencesKey("recent_arc_id")
     private val K_RECENT_PENDING = booleanPreferencesKey("recent_arc_pending")
@@ -110,5 +114,16 @@ class ArcPrefs(private val ds: DataStore<Preferences>) {
             p.remove(K_RECENT_COUNT)
             p.remove(K_RECENT_COMPLETED_AT)
         }
+    }
+
+    suspend fun savePlannedFlowHandoff(handoff: PlannedFlowHandoff) {
+        ds.edit { it[K_PLANNED_HANDOFF] = handoff.name }
+    }
+
+    suspend fun loadPlannedFlowHandoff(): PlannedFlowHandoff? = ds.data.first()[K_PLANNED_HANDOFF]
+        ?.let { stored -> PlannedFlowHandoff.values().firstOrNull { it.name == stored } }
+
+    suspend fun clearPlannedFlowHandoff() {
+        ds.edit { it.remove(K_PLANNED_HANDOFF) }
     }
 }
