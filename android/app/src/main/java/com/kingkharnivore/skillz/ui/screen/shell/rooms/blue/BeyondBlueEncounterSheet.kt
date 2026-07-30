@@ -343,7 +343,7 @@ fun BeyondBlueEncounterSheet(
                 }
 
                 item(key = "back_action") {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
                         FilledIconButton(
                             onClick = navigateBackToCreatureList,
                             colors = IconButtonDefaults.filledIconButtonColors(
