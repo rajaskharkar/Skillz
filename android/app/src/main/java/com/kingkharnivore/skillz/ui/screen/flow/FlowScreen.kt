@@ -645,7 +645,7 @@ fun FlowScreen(
                 Text(
                     when {
                         showArcSummary && r.arcSummary != null -> stringResource(R.string.flow_screen_arc_reward)
-                        uiState.isSoftMode -> stringResource(R.string.flow_screen_soft_flow_recorded)
+                        r.isSoftSession -> stringResource(R.string.flow_screen_soft_flow_recorded)
                         else -> stringResource(R.string.flow_screen_you_did_it)
                     }
                 )
@@ -664,7 +664,7 @@ fun FlowScreen(
                             )
                         }
 
-                        uiState.isSoftMode -> {
+                        r.isSoftSession -> {
                             SoftSessionRewardContent(r = r)
                         }
 

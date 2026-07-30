@@ -84,6 +84,25 @@ internal fun plannedArcAdvanceResult(currentStepIndex: Int, totalSteps: Int): Pl
         PlannedArcAdvanceResult.Advanced
     }
 
+internal fun resolveFlowEndMode(
+    requested: FlowEndAction,
+    isSoftMode: Boolean,
+    plannedCurrentStepIndex: Int?,
+    plannedTotalSteps: Int?
+): FlowEndAction {
+    if (!isSoftMode || plannedCurrentStepIndex == null || plannedTotalSteps == null) {
+        return if (isSoftMode) FlowEndAction.SAVE_FLOW else requested
+    }
+
+    return if (plannedArcAdvanceResult(plannedCurrentStepIndex, plannedTotalSteps) ==
+        PlannedArcAdvanceResult.Completed
+    ) {
+        FlowEndAction.COMPLETE_ARC
+    } else {
+        FlowEndAction.CONTINUE_ARC
+    }
+}
+
 data class PendingArcIdeaContinuation(
     val pulseId: Long,
     val pulseTitle: String?,
@@ -1555,14 +1574,17 @@ class FlowViewModel @Inject constructor(
                 arcBonusPoints = arcBonusPoints,
                 arcNextMultiplier = arcState?.multiplier,
                 arcProgressTowardNextMs = arcState?.progressMs ?: 0L,
-                arcDidLevelUp = arcDidLevelUp
+                arcDidLevelUp = arcDidLevelUp,
+                isSoftSession = state.isSoftMode
             ).withShellReward(shellReward)
 
-            val resolvedEndMode = if (state.isSoftMode) {
-                if (isLastPlannedArcStep()) FlowEndAction.COMPLETE_ARC else FlowEndAction.SAVE_FLOW
-            } else {
-                endMode
-            }
+            val activePlannedRun = activeArcRunRepository.getActiveArcRunOnce()
+            val resolvedEndMode = resolveFlowEndMode(
+                requested = endMode,
+                isSoftMode = state.isSoftMode,
+                plannedCurrentStepIndex = activePlannedRun?.currentStepIndex,
+                plannedTotalSteps = activePlannedRun?.totalSteps
+            )
 
             when (resolvedEndMode) {
                 FlowEndAction.COMPLETE_ARC -> {
@@ -1643,21 +1665,6 @@ class FlowViewModel @Inject constructor(
                     _lastReward.value = baseReward
                     _exitAfterReward.value = true
 
-                    val plannedSoftStepResult = if (state.isSoftMode) {
-                        advancePlannedArcAfterCompletedSession(
-                            continuationOrigin = null,
-                            preserveReward = true
-                        )
-                    } else {
-                        PlannedArcAdvanceResult.NotPlannedArc
-                    }
-
-                    if (plannedSoftStepResult == PlannedArcAdvanceResult.Advanced) {
-                        // Hydration has already advanced ActiveArcRun, prepared the next
-                        // draft, and persisted its synchronized ongoing snapshot.
-                        return
-                    }
-
                     if (!state.isSoftMode && arcState != null) {
                         saveRecentlyEndedArcSnapshot(
                             state = arcState,
@@ -1707,6 +1714,7 @@ class FlowViewModel @Inject constructor(
 
                     _lastReward.value = baseReward
                     _awaitingNextFlowAfterContinue.value = true
+                    _exitAfterReward.value = false
                     queueArcIdeaContinuationPromptIfNeeded(state)
 
                     baseStartTimeMs = null
@@ -1737,8 +1745,7 @@ class FlowViewModel @Inject constructor(
     }
 
     private suspend fun advancePlannedArcAfterCompletedSession(
-        continuationOrigin: PendingArcIdeaContinuation?,
-        preserveReward: Boolean = false
+        continuationOrigin: PendingArcIdeaContinuation?
     ): PlannedArcAdvanceResult {
         val activeRun = activeArcRunRepository.getActiveArcRunOnce()
             ?: return PlannedArcAdvanceResult.NotPlannedArc
@@ -1786,7 +1793,7 @@ class FlowViewModel @Inject constructor(
         stopTicker()
         aliveFlowServiceController.stop()
 
-        if (!preserveReward) _lastReward.value = null
+        _lastReward.value = null
         _awaitingNextFlowAfterContinue.value = false
 
         _uiState.update { old ->
