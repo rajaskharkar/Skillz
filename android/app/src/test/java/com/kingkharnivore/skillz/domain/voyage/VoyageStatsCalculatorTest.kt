@@ -147,7 +147,7 @@ class VoyageStatsCalculatorTest {
     }
 
     @Test
-    fun arcRecordsRequireAtLeastTwoEligibleFlowsAfterSoftFiltering() {
+    fun arcRecordsAggregateArcLinkedRegularAndSoftFlows() {
         val stats = calculate(
             listOf(
                 session(id = 1, date = LocalDate.of(2026, 5, 20), arcId = 10, durationMinutes = 30),
@@ -235,7 +235,7 @@ class VoyageStatsCalculatorTest {
     }
 
     @Test
-    fun eligibleFlowsWithoutValidArcsReturnFlowAndPointRecordsButNoArcRecords() {
+    fun aSingleArcLinkedFlowIsStillAnArcRecord() {
         val stats = calculate(
             listOf(
                 session(id = 1, date = LocalDate.of(2026, 5, 29), points = 250),
@@ -246,9 +246,9 @@ class VoyageStatsCalculatorTest {
         assertTrue(stats.hasEligibleFlows)
         assertNotNull(stats.bestFlowByPoints)
         assertNotNull(stats.bestDayByPoints)
-        assertNull(stats.longestArcByTime)
-        assertNull(stats.highestArcMultiplier)
-        assertNull(stats.mostArcsInDay)
+        assertEquals(99L, stats.longestArcByTime?.arcId)
+        assertEquals(1, stats.longestArcByTime?.flowCount)
+        assertNotNull(stats.mostArcsInDay)
     }
 
 
@@ -326,7 +326,7 @@ class VoyageStatsCalculatorTest {
     }
 
     @Test
-    fun softFlowsRemainExcludedFromDetailSourceLists() {
+    fun arcLinkedSoftFlowsCountInEveryArcAggregateButNotRegularFlowRecords() {
         val stats = calculate(
             listOf(
                 session(id = 1, date = LocalDate.of(2026, 5, 20), arcId = 8, durationMinutes = 30, points = 100),
@@ -335,9 +335,38 @@ class VoyageStatsCalculatorTest {
             )
         )
 
-        assertEquals(listOf(1L, 3L), stats.longestArcByTime?.flows?.map { it.sessionId })
+        assertEquals(listOf(1L, 2L, 3L), stats.longestArcByTime?.flows?.map { it.sessionId })
         assertEquals(listOf(3L), stats.bestDayByPoints?.flows?.map { it.sessionId })
-        assertEquals(400, stats.longestArcByTime?.totalPoints)
+        assertEquals(600, stats.longestArcByTime?.totalPoints)
+        assertEquals(135 * 60_000L, stats.longestArcByTime?.totalDurationMs)
+        assertEquals(3, stats.mostChainedFlowsInArc?.flowCount)
+    }
+
+    @Test
+    fun fiveRegularAndFourSoftFlowsProduceNineSessionArcWithoutLoweringPeak() {
+        val sessions = (1L..9L).map { id ->
+            session(
+                id = id,
+                date = LocalDate.of(2026, 5, 20).plusDays(id - 1),
+                arcId = 42,
+                durationMinutes = 10,
+                points = if (id <= 5) 100 else 0,
+                soft = id > 5,
+                multiplier = when (id) {
+                    5L -> 2.0
+                    in 6L..9L -> 1.0
+                    else -> 1.3
+                }
+            )
+        }
+
+        val stats = calculate(sessions)
+        val arc = stats.mostChainedFlowsInArc!!
+        assertEquals(9, arc.flowCount)
+        assertEquals(90 * 60_000L, arc.totalDurationMs)
+        assertEquals(500, arc.totalPoints)
+        assertEquals(2.0, arc.peakMultiplier ?: 0.0, 0.001)
+        assertEquals((1L..9L).toList(), arc.flows.map { it.sessionId })
     }
 
     private fun calculate(sessions: List<VoyageSourceFlow>) = calculator.calculate(sessions, now, zone)

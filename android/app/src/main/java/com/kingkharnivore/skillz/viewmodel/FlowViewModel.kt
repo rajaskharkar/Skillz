@@ -358,6 +358,7 @@ class FlowViewModel @Inject constructor(
     }
 
     private fun isArcExpired(nowMs: Long, state: ArcRuntimeState): Boolean {
+        if (state.sessionCountInArc == 0) return false
         val delta = nowMs - state.lastSessionEndTimeMs
         return delta > ArcRules.GRACE_WINDOW_MS
     }
@@ -424,6 +425,7 @@ class FlowViewModel @Inject constructor(
         now: Long,
         s: ArcRuntimeState
     ): Long {
+        if (s.sessionCountInArc == 0) return ArcRules.GRACE_WINDOW_MS
         val elapsedSinceLastEnd = now - s.lastSessionEndTimeMs
         val remaining = ArcRules.GRACE_WINDOW_MS - elapsedSinceLastEnd
         return remaining.coerceAtLeast(0L)
@@ -468,8 +470,11 @@ class FlowViewModel @Inject constructor(
             } else {
                 storedOngoing
             }
+            val activePlannedRun = activeArcRunRepository.getActiveArcRunOnce()
 
-            if (ongoing?.arcId != null) {
+            if (activePlannedRun != null && isPlannedArcLaunch()) {
+                arcState = arcPrefs.load()
+            } else if (ongoing?.arcId != null) {
                 arcState = ArcRuntimeState(
                     arcId = ongoing.arcId,
                     isPending = (ongoing.arcSessionCountInArc ?: 0) < 2,
@@ -481,6 +486,18 @@ class FlowViewModel @Inject constructor(
                 arcPrefs.save(arcState!!)
             } else {
                 arcState = loadActiveArcOrRestoreRecentIfEligible(ongoing)
+            }
+
+            if (arcState == null && activePlannedRun != null) {
+                arcState = ArcRuntimeState(
+                    arcId = System.currentTimeMillis(),
+                    isPending = true,
+                    multiplier = ArcRuntimeState.BASE_MULTIPLIER,
+                    progressMs = 0L,
+                    lastSessionEndTimeMs = System.currentTimeMillis(),
+                    sessionCountInArc = 0
+                )
+                arcPrefs.save(arcState!!)
             }
 
             syncArcUi()
@@ -584,6 +601,14 @@ class FlowViewModel @Inject constructor(
                     }
                 }
                 if (hasLaunchOverrides && !_uiState.value.isSoftMode) saveOngoing()
+            }
+
+            if (
+                activePlannedRun != null &&
+                plannedArcStepIndexOverride != null &&
+                activePlannedRun.currentStepIndex > plannedArcStepIndexOverride
+            ) {
+                advancePlannedArcAfterCompletedSession(continuationOrigin = null)
             }
 
             if (_uiState.value.isSoftMode) {

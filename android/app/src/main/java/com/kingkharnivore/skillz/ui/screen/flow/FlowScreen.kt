@@ -428,7 +428,7 @@ fun FlowScreen(
                 )
             }
 
-            val isArcLinked = uiState.isInArc || !uiState.plannedArcTitle.isNullOrBlank()
+            val isArcLinked = uiState.isInArc
             if (flowCompletionControls(uiState.isSoftMode, isArcLinked) ==
                 FlowCompletionControls.StandaloneSoft
             ) {

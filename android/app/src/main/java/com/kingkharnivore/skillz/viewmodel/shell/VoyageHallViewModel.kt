@@ -129,6 +129,7 @@ class VoyageHallViewModel @Inject constructor(
         isSoftMode = isSoftMode,
         arcId = arcId,
         arcIndex = arcIndex,
-        arcMultiplierUsed = arcMultiplierUsed
+        arcMultiplierUsed = arcMultiplierUsed,
+        arcBonusPoints = arcBonusPoints
     )
 }
