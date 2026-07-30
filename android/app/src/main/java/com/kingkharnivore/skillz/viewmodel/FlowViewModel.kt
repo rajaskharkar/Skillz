@@ -87,20 +87,9 @@ internal fun plannedArcAdvanceResult(currentStepIndex: Int, totalSteps: Int): Pl
 internal fun resolveFlowEndMode(
     requested: FlowEndAction,
     isSoftMode: Boolean,
-    plannedCurrentStepIndex: Int?,
-    plannedTotalSteps: Int?
+    isInArc: Boolean
 ): FlowEndAction {
-    if (!isSoftMode || plannedCurrentStepIndex == null || plannedTotalSteps == null) {
-        return if (isSoftMode) FlowEndAction.SAVE_FLOW else requested
-    }
-
-    return if (plannedArcAdvanceResult(plannedCurrentStepIndex, plannedTotalSteps) ==
-        PlannedArcAdvanceResult.Completed
-    ) {
-        FlowEndAction.COMPLETE_ARC
-    } else {
-        FlowEndAction.CONTINUE_ARC
-    }
+    return if (isSoftMode && !isInArc) FlowEndAction.SAVE_FLOW else requested
 }
 
 data class PendingArcIdeaContinuation(
@@ -1122,17 +1111,9 @@ class FlowViewModel @Inject constructor(
     }
 
     fun onEndFlowClicked(action: FlowEndAction) {
+        if (_isSaving.value) return
         viewModelScope.launch {
-            val effectiveAction = if (
-                action == FlowEndAction.CONTINUE_ARC &&
-                isLastPlannedArcStep()
-            ) {
-                FlowEndAction.COMPLETE_ARC
-            } else {
-                action
-            }
-
-            saveWithArcBehavior(endMode = effectiveAction)
+            saveWithArcBehavior(endMode = action)
         }
     }
 
@@ -1524,6 +1505,10 @@ class FlowViewModel @Inject constructor(
                 syncArcUi()
             }
 
+            if (isInExistingArc && endMode == FlowEndAction.CONTINUE_ARC) {
+                persistPlannedStepAdvanceAfterSave()
+            }
+
             saveMovementSnapshotAndBreakdown(
                 sessionId = insertedId,
                 state = state,
@@ -1578,12 +1563,10 @@ class FlowViewModel @Inject constructor(
                 isSoftSession = state.isSoftMode
             ).withShellReward(shellReward)
 
-            val activePlannedRun = activeArcRunRepository.getActiveArcRunOnce()
             val resolvedEndMode = resolveFlowEndMode(
                 requested = endMode,
                 isSoftMode = state.isSoftMode,
-                plannedCurrentStepIndex = activePlannedRun?.currentStepIndex,
-                plannedTotalSteps = activePlannedRun?.totalSteps
+                isInArc = isInExistingArc
             )
 
             when (resolvedEndMode) {
@@ -1618,6 +1601,7 @@ class FlowViewModel @Inject constructor(
 
                     _lastReward.value = baseReward.copy(arcSummary = summary)
                     _exitAfterReward.value = true
+                    _awaitingNextFlowAfterContinue.value = false
 
                     saveRecentlyEndedArcSnapshot(
                         state = arcState,
@@ -1664,6 +1648,7 @@ class FlowViewModel @Inject constructor(
 
                     _lastReward.value = baseReward
                     _exitAfterReward.value = true
+                    _awaitingNextFlowAfterContinue.value = false
 
                     if (!state.isSoftMode && arcState != null) {
                         saveRecentlyEndedArcSnapshot(
@@ -1749,9 +1734,19 @@ class FlowViewModel @Inject constructor(
     ): PlannedArcAdvanceResult {
         val activeRun = activeArcRunRepository.getActiveArcRunOnce()
             ?: return PlannedArcAdvanceResult.NotPlannedArc
-        val nextIndex = activeRun.currentStepIndex + 1
+        val displayedStepIndex = _uiState.value.plannedArcStepIndex
+        val persistedAlreadyAdvanced = displayedStepIndex != null &&
+                activeRun.currentStepIndex > displayedStepIndex
+        val nextIndex = if (persistedAlreadyAdvanced) {
+            activeRun.currentStepIndex
+        } else {
+            activeRun.currentStepIndex + 1
+        }
 
-        if (plannedArcAdvanceResult(activeRun.currentStepIndex, activeRun.totalSteps) ==
+        if (!persistedAlreadyAdvanced && plannedArcAdvanceResult(
+                activeRun.currentStepIndex,
+                activeRun.totalSteps
+            ) ==
             PlannedArcAdvanceResult.Completed
         ) {
             activeArcRunRepository.clear()
@@ -1776,12 +1771,14 @@ class FlowViewModel @Inject constructor(
             ?.let { tagId -> tagNameById[tagId] }
             .orEmpty()
 
-        activeArcRunRepository.updateCurrentStep(
-            currentStepIndex = nextIndex,
-            currentStepTitle = nextStep.titleSnapshot,
-            currentTagName = nextTagName,
-            currentIsSoftMode = nextStep.isSoftModeSnapshot
-        )
+        if (!persistedAlreadyAdvanced) {
+            activeArcRunRepository.updateCurrentStep(
+                currentStepIndex = nextIndex,
+                currentStepTitle = nextStep.titleSnapshot,
+                currentTagName = nextTagName,
+                currentIsSoftMode = nextStep.isSoftModeSnapshot
+            )
+        }
 
         ongoingCreatedAtMs = System.currentTimeMillis()
         currentFlowInstanceId = UUID.randomUUID().toString()
@@ -1838,9 +1835,37 @@ class FlowViewModel @Inject constructor(
         return PlannedArcAdvanceResult.Advanced
     }
 
-    private suspend fun isLastPlannedArcStep(): Boolean {
-        val activeRun = activeArcRunRepository.getActiveArcRunOnce() ?: return false
-        return activeRun.currentStepIndex >= activeRun.totalSteps - 1
+    /**
+     * Durably marks a planned step complete before its reward is dismissed. UI hydration
+     * is intentionally deferred; process recreation therefore resumes the next step,
+     * while the live process continues to show the completed session's reward.
+     */
+    private suspend fun persistPlannedStepAdvanceAfterSave(): PlannedArcAdvanceResult {
+        val activeRun = activeArcRunRepository.getActiveArcRunOnce()
+            ?: return PlannedArcAdvanceResult.NotPlannedArc
+        val nextIndex = activeRun.currentStepIndex + 1
+        if (nextIndex >= activeRun.totalSteps) {
+            activeArcRunRepository.clear()
+            return PlannedArcAdvanceResult.Completed
+        }
+
+        val nextStep = arcPlanRepository.getStepsForArcPlanOnce(activeRun.arcPlanId)
+            .sortedBy { it.orderIndex }
+            .getOrNull(nextIndex)
+            ?: run {
+                activeArcRunRepository.clear()
+                return PlannedArcAdvanceResult.Completed
+            }
+        val tagNameById = tagRepository.getAllTags().firstOrNull().orEmpty()
+            .associate { it.id to it.name }
+
+        activeArcRunRepository.updateCurrentStep(
+            currentStepIndex = nextIndex,
+            currentStepTitle = nextStep.titleSnapshot,
+            currentTagName = nextStep.tagIdSnapshot?.let(tagNameById::get).orEmpty(),
+            currentIsSoftMode = nextStep.isSoftModeSnapshot
+        )
+        return PlannedArcAdvanceResult.Advanced
     }
 
     private fun isPlannedArcLaunch(): Boolean {

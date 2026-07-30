@@ -70,6 +70,15 @@ import com.kingkharnivore.skillz.ui.health.MovementBonusActivePill
 import com.kingkharnivore.skillz.viewmodel.FlowEndAction
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 
+internal enum class FlowCompletionControls { StandaloneSoft, ArcActions, RegularActions }
+
+internal fun flowCompletionControls(isSoftMode: Boolean, isArcLinked: Boolean): FlowCompletionControls =
+    when {
+        isSoftMode && !isArcLinked -> FlowCompletionControls.StandaloneSoft
+        isArcLinked -> FlowCompletionControls.ArcActions
+        else -> FlowCompletionControls.RegularActions
+    }
+
 @Composable
 fun FlowScreen(
     viewModel: FlowViewModel,
@@ -419,7 +428,10 @@ fun FlowScreen(
                 )
             }
 
-            if (uiState.isSoftMode) {
+            val isArcLinked = uiState.isInArc || !uiState.plannedArcTitle.isNullOrBlank()
+            if (flowCompletionControls(uiState.isSoftMode, isArcLinked) ==
+                FlowCompletionControls.StandaloneSoft
+            ) {
                 Button(
                     enabled = uiState.title.isNotBlank() &&
                             uiState.tagName.isNotBlank() &&
@@ -453,8 +465,7 @@ fun FlowScreen(
                         Text(stringResource(R.string.flow_screen_continue_arc))
                     }
 
-                    val isPlannedArc = !uiState.plannedArcTitle.isNullOrBlank()
-                    val isArcActuallyCompletable = uiState.isInArc || isPlannedArc
+                    val isArcActuallyCompletable = isArcLinked
                     val completeLabel = if (isArcActuallyCompletable) {
                         stringResource(R.string.flow_screen_complete_arc)
                     } else {

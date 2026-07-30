@@ -21,27 +21,25 @@ class PlannedArcAdvanceTest {
     }
 
     @Test
-    fun nonFinalPlannedSoftFlowWaitsForContinuation() {
+    fun arcLinkedSoftFlowPreservesContinueChoice() {
         assertEquals(
             FlowEndAction.CONTINUE_ARC,
             resolveFlowEndMode(
-                requested = FlowEndAction.SAVE_FLOW,
+                requested = FlowEndAction.CONTINUE_ARC,
                 isSoftMode = true,
-                plannedCurrentStepIndex = 0,
-                plannedTotalSteps = 2
+                isInArc = true
             )
         )
     }
 
     @Test
-    fun finalPlannedSoftFlowCompletesArc() {
+    fun arcLinkedSoftFlowPreservesCompleteChoice() {
         assertEquals(
             FlowEndAction.COMPLETE_ARC,
             resolveFlowEndMode(
-                requested = FlowEndAction.SAVE_FLOW,
+                requested = FlowEndAction.COMPLETE_ARC,
                 isSoftMode = true,
-                plannedCurrentStepIndex = 1,
-                plannedTotalSteps = 2
+                isInArc = true
             )
         )
     }
@@ -53,8 +51,7 @@ class PlannedArcAdvanceTest {
             resolveFlowEndMode(
                 requested = FlowEndAction.SAVE_FLOW,
                 isSoftMode = true,
-                plannedCurrentStepIndex = null,
-                plannedTotalSteps = null
+                isInArc = false
             )
         )
     }
