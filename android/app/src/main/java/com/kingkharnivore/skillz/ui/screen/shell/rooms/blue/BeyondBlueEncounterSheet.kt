@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Diamond
@@ -31,6 +32,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -83,7 +85,8 @@ fun BeyondBlueEncounterSheet(
     var selectedCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var tradeExpanded by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    val contentListState = rememberLazyListState()
+    val creatureListState = rememberLazyListState()
+    val creatureDetailState = rememberLazyListState()
     val confirmTarget = confirmTargetId?.let { CreatureCatalog.get(it) }
 
     val tradeStacks = remember(activeAnimalInstances) {
@@ -132,13 +135,19 @@ fun BeyondBlueEncounterSheet(
         navigateBackToCreatureList()
     }
 
-    LaunchedEffect(confirmTargetId, selectedZone) {
-        contentListState.scrollToItem(0)
+    LaunchedEffect(confirmTargetId) {
+        if (confirmTargetId != null) {
+            creatureDetailState.scrollToItem(0)
+        }
+    }
+
+    LaunchedEffect(selectedZone) {
+        creatureListState.scrollToItem(0)
     }
 
     ScyraParchmentSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         LazyColumn(
-            state = contentListState,
+            state = if (confirmTargetId == null) creatureListState else creatureDetailState,
             modifier = Modifier
                 .fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
@@ -334,8 +343,20 @@ fun BeyondBlueEncounterSheet(
                 }
 
                 item(key = "back_action") {
-                    OutlinedButton(onClick = navigateBackToCreatureList, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.beyond_blue_back))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        FilledIconButton(
+                            onClick = navigateBackToCreatureList,
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.beyond_blue_back)
+                            )
+                        }
                     }
                 }
             }
