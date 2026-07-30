@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.ui.screen.shell.rooms.blue
 
 import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraParchmentSheet
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,6 +40,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -115,9 +117,23 @@ fun BeyondBlueEncounterSheet(
         CreatureEconomy.quoteBeyondBluePayment(it.creatureId, selectedMinutes, pearlBalance)
     }
     var showConfirm by remember(confirmTargetId, selectedCounts, quote) { mutableStateOf(false) }
+    val navigateBackToCreatureList = {
+        showConfirm = false
+        confirmTargetId = null
+        selectedCounts = emptyMap()
+        tradeExpanded = false
+    }
     val targetName = confirmTarget?.let { target ->
         target.titleRes.takeIf { it != 0 }?.let { stringResource(it) }
             ?: stringResource(R.string.badge_creature_fallback)
+    }
+
+    BackHandler(enabled = confirmTargetId != null) {
+        navigateBackToCreatureList()
+    }
+
+    LaunchedEffect(confirmTargetId, selectedZone) {
+        contentListState.scrollToItem(0)
     }
 
     ScyraParchmentSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
@@ -318,7 +334,7 @@ fun BeyondBlueEncounterSheet(
                 }
 
                 item(key = "back_action") {
-                    OutlinedButton(onClick = { confirmTargetId = null }, modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = navigateBackToCreatureList, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.beyond_blue_back))
                     }
                 }
@@ -340,6 +356,7 @@ fun BeyondBlueEncounterSheet(
                 dismissButton = { OutlinedButton(onClick = { showConfirm = false }) { Text(stringResource(R.string.beyond_blue_cancel)) } },
                 title = { Text(stringResource(if (selectedInstanceIds.isEmpty()) R.string.beyond_blue_buy_with_pearls_title else R.string.beyond_blue_trade_and_buy_title, targetName)) },
                 text = {
+                    BackHandler { navigateBackToCreatureList() }
                     Column {
                         if (selectedInstanceIds.isEmpty()) {
                             Text(stringResource(R.string.beyond_blue_pearls_will_be_used, dialogQuote.pearlCostForRemaining))
