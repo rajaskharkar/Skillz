@@ -78,6 +78,20 @@ class ArcMetadataDaoTest {
         assertNotNull(database.arcMetadataDao().get(10))
     }
 
+    @Test fun deleteSessionAndCleanupTagAlsoRemovesFinalArcMetadata() = runBlocking {
+        val repository = FlowRepository(
+            database.sessionDao(), database.tagDao(), database.pulseDao(),
+            database.arcMetadataDao(), database
+        )
+        database.tagDao().insertTag(TagEntity(id = 1, name = "Journey", createdAt = 1))
+        val finalId = database.sessionDao().insertSession(session(arcId = 10, arcIndex = 1))
+        database.arcMetadataDao().upsert(metadata(10, "Arc"))
+
+        repository.deleteSessionAndCleanupTag(finalId)
+
+        assertNull(database.arcMetadataDao().get(10))
+    }
+
     private fun metadata(arcId: Long, title: String) = ArcMetadataEntity(
         arcId, title, null, null, null, null, 1, 1
     )

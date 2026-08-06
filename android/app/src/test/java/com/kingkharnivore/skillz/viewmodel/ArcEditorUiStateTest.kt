@@ -29,4 +29,18 @@ class ArcEditorUiStateTest {
         assertTrue(changed.canSave)
         assertFalse(changed.copy(isSaving = true).canSave)
     }
+
+    @Test fun editorUpdatesAreIgnoredAfterSavingStarts() {
+        val saving = ArcEditorUiState(
+            arcId = 1,
+            title = "Captured snapshot",
+            baseline = ArcMetadata(1),
+            isSaving = true
+        )
+
+        val updated = applyArcEditorUpdate(saving) { it.copy(title = "Late edit") }
+
+        assertSame(saving, updated)
+        assertEquals("Captured snapshot", updated.title)
+    }
 }

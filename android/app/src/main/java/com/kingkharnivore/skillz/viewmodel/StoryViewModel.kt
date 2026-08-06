@@ -71,6 +71,11 @@ data class ArcEditorUiState(
     val canSave: Boolean get() = isDirty && isValid && !isLoading && loadErrorResId == null && !isSaving
 }
 
+internal fun applyArcEditorUpdate(
+    current: ArcEditorUiState,
+    transform: (ArcEditorUiState) -> ArcEditorUiState
+): ArcEditorUiState = if (current.isSaving) current else transform(current).copy(errorResId = null)
+
 @HiltViewModel
 class StoryViewModel @Inject constructor(
     private val sessionRepository: FlowRepository,
@@ -377,7 +382,7 @@ class StoryViewModel @Inject constructor(
     }
 
     fun updateArcEditor(transform: (ArcEditorUiState) -> ArcEditorUiState) {
-        _arcEditorState.update { transform(it).copy(errorResId = null) }
+        _arcEditorState.update { current -> applyArcEditorUpdate(current, transform) }
     }
 
     fun requestCloseArcEditor() {
@@ -400,12 +405,13 @@ class StoryViewModel @Inject constructor(
         if (!snapshot.canSave) return
         _arcEditorState.update { it.copy(isSaving = true, showDiscardConfirmation = false, errorResId = null) }
         viewModelScope.launch {
-            runCatching {
+            try {
                 if (metadata.isEmpty) arcMetadataRepository.clear(metadata.arcId)
                 else arcMetadataRepository.save(metadata)
-            }.onSuccess {
                 if (_arcEditorState.value.arcId == metadata.arcId) _arcEditorState.value = ArcEditorUiState()
-            }.onFailure {
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
                 if (_arcEditorState.value.arcId == metadata.arcId) _arcEditorState.update {
                     it.copy(isSaving = false, errorResId = R.string.arc_details_save_error)
                 }
