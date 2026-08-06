@@ -12,6 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
@@ -38,9 +40,16 @@ fun ArcDetailsSheet(
 ) {
     if (state.arcId == null) return
     val surface = MaterialTheme.colorScheme.surface
+    val latestEditorState = rememberUpdatedState(state)
+    val confirmSheetValueChange: (SheetValue) -> Boolean = remember {
+        { target ->
+            val current = latestEditorState.value
+            target != SheetValue.Hidden || (!current.isSaving && !current.isDirty)
+        }
+    }
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
-        confirmValueChange = { target -> target != SheetValue.Hidden || (!state.isSaving && !state.isDirty) }
+        confirmValueChange = confirmSheetValueChange
     )
     val keyboard = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
