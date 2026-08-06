@@ -28,7 +28,7 @@ class SkillzMigrationTest {
         val db = helper.runMigrationsAndValidate(TEST_DB, 37, true, SkillzDatabaseMigrations.MIGRATION_36_37)
         assertTrue(db.tableExists("arc_metadata"))
         assertEquals(1, db.countRows("sessions", "arcId = ?", arrayOf("42")))
-        db.execSQL("INSERT INTO arc_metadata VALUES (42,'Title',NULL,NULL,NULL,NULL,1,1)")
+        db.execSQL("INSERT INTO arc_metadata (arcId,title,summary,outcome,highlight,nextStep,createdAtEpochMillis,updatedAtEpochMillis) VALUES (42,'Title',NULL,NULL,NULL,NULL,1,1)")
         assertEquals(1, db.countRows("arc_metadata", "arcId = ?", arrayOf("42")))
         db.close()
     }

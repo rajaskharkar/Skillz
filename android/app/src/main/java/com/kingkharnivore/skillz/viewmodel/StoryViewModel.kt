@@ -3,6 +3,8 @@ package com.kingkharnivore.skillz.viewmodel
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.annotation.StringRes
+import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.PulseEntity
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
@@ -33,6 +35,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 data class TagUiModel(
@@ -48,9 +54,11 @@ data class ArcEditorUiState(
     val highlight: String = "",
     val nextStep: String = "",
     val reflectionExpanded: Boolean = false,
+    val isLoading: Boolean = false,
     val isSaving: Boolean = false,
     val showDiscardConfirmation: Boolean = false,
-    val errorMessage: String? = null,
+    @StringRes val errorResId: Int? = null,
+    @StringRes val loadErrorResId: Int? = null,
     val baseline: ArcMetadata? = null
 ) {
     val normalized: ArcMetadata?
@@ -59,8 +67,8 @@ data class ArcEditorUiState(
         get() = title.length <= ArcMetadata.TITLE_LIMIT && summary.length <= ArcMetadata.SUMMARY_LIMIT &&
             outcome.length <= ArcMetadata.REFLECTION_LIMIT && highlight.length <= ArcMetadata.REFLECTION_LIMIT &&
             nextStep.length <= ArcMetadata.REFLECTION_LIMIT
-    val isDirty: Boolean get() = normalized != baseline
-    val canSave: Boolean get() = isDirty && isValid && !isSaving
+    val isDirty: Boolean get() = baseline != null && normalized != baseline
+    val canSave: Boolean get() = isDirty && isValid && !isLoading && loadErrorResId == null && !isSaving
 }
 
 @HiltViewModel
@@ -101,7 +109,9 @@ class StoryViewModel @Inject constructor(
     private val tagsFlow: Flow<List<TagEntity>> = tagRepository.getAllTags()
     private val arcMetadataFlow = arcMetadataRepository.observeAll()
 
-    val arcEditorState = MutableStateFlow(ArcEditorUiState())
+    private val _arcEditorState = MutableStateFlow(ArcEditorUiState())
+    val arcEditorState: StateFlow<ArcEditorUiState> = _arcEditorState.asStateFlow()
+    private var arcEditorLoadJob: Job? = null
 
     val uiState = MutableStateFlow(
         FlowListUiState(
@@ -318,6 +328,8 @@ class StoryViewModel @Inject constructor(
                 if (removedTagId != null) {
                     selectedTagIds.value = selectedTagIds.value - removedTagId
                 }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (_: Exception) {
             }
         }
@@ -328,44 +340,74 @@ class StoryViewModel @Inject constructor(
     }
 
     fun openArcEditor(arcId: Long) {
-        if (arcEditorState.value.arcId == arcId || arcEditorState.value.isSaving) return
-        viewModelScope.launch {
-            val metadata = runCatching { arcMetadataRepository.get(arcId) }.getOrNull()
-                ?: ArcMetadata(arcId)
-            arcEditorState.value = ArcEditorUiState(
-                arcId = arcId, title = metadata.title.orEmpty(), summary = metadata.summary.orEmpty(),
-                outcome = metadata.outcome.orEmpty(), highlight = metadata.highlight.orEmpty(),
-                nextStep = metadata.nextStep.orEmpty(), reflectionExpanded = metadata.hasReflection,
-                baseline = metadata
-            )
+        if (_arcEditorState.value.arcId == arcId || _arcEditorState.value.isSaving) return
+        loadArcEditor(arcId)
+    }
+
+    fun retryArcEditorLoad() {
+        val arcId = _arcEditorState.value.arcId ?: return
+        if (_arcEditorState.value.isSaving || _arcEditorState.value.isLoading) return
+        loadArcEditor(arcId)
+    }
+
+    private fun loadArcEditor(arcId: Long) {
+        arcEditorLoadJob?.cancel()
+        _arcEditorState.value = ArcEditorUiState(arcId = arcId, isLoading = true)
+        arcEditorLoadJob = viewModelScope.launch {
+            try {
+                val metadata = arcMetadataRepository.get(arcId) ?: ArcMetadata(arcId)
+                if (_arcEditorState.value.arcId != arcId) return@launch
+                _arcEditorState.value = ArcEditorUiState(
+                    arcId = arcId, title = metadata.title.orEmpty(), summary = metadata.summary.orEmpty(),
+                    outcome = metadata.outcome.orEmpty(), highlight = metadata.highlight.orEmpty(),
+                    nextStep = metadata.nextStep.orEmpty(), reflectionExpanded = metadata.hasReflection,
+                    baseline = metadata
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                if (_arcEditorState.value.arcId == arcId) {
+                    _arcEditorState.value = ArcEditorUiState(
+                        arcId = arcId,
+                        loadErrorResId = R.string.arc_details_load_error
+                    )
+                }
+            }
         }
     }
 
     fun updateArcEditor(transform: (ArcEditorUiState) -> ArcEditorUiState) {
-        arcEditorState.update { transform(it).copy(errorMessage = null) }
+        _arcEditorState.update { transform(it).copy(errorResId = null) }
     }
 
     fun requestCloseArcEditor() {
-        arcEditorState.update { if (it.isDirty) it.copy(showDiscardConfirmation = true) else ArcEditorUiState() }
+        val state = _arcEditorState.value
+        if (state.isSaving) return
+        arcEditorLoadJob?.cancel()
+        _arcEditorState.update { if (it.isDirty) it.copy(showDiscardConfirmation = true) else ArcEditorUiState() }
     }
 
-    fun keepEditingArc() = arcEditorState.update { it.copy(showDiscardConfirmation = false) }
-    fun discardArcChanges() { arcEditorState.value = ArcEditorUiState() }
+    fun keepEditingArc() = _arcEditorState.update { it.copy(showDiscardConfirmation = false) }
+    fun discardArcChanges() {
+        if (_arcEditorState.value.isSaving) return
+        arcEditorLoadJob?.cancel()
+        _arcEditorState.value = ArcEditorUiState()
+    }
 
     fun saveArcDetails() {
-        val snapshot = arcEditorState.value
+        val snapshot = _arcEditorState.value
         val metadata = snapshot.normalized ?: return
         if (!snapshot.canSave) return
+        _arcEditorState.update { it.copy(isSaving = true, showDiscardConfirmation = false, errorResId = null) }
         viewModelScope.launch {
-            arcEditorState.update { it.copy(isSaving = true, errorMessage = null) }
             runCatching {
                 if (metadata.isEmpty) arcMetadataRepository.clear(metadata.arcId)
                 else arcMetadataRepository.save(metadata)
             }.onSuccess {
-                if (arcEditorState.value.arcId == metadata.arcId) arcEditorState.value = ArcEditorUiState()
+                if (_arcEditorState.value.arcId == metadata.arcId) _arcEditorState.value = ArcEditorUiState()
             }.onFailure {
-                if (arcEditorState.value.arcId == metadata.arcId) arcEditorState.update {
-                    it.copy(isSaving = false, errorMessage = "Couldn’t save Arc details. Try again.")
+                if (_arcEditorState.value.arcId == metadata.arcId) _arcEditorState.update {
+                    it.copy(isSaving = false, errorResId = R.string.arc_details_save_error)
                 }
             }
         }

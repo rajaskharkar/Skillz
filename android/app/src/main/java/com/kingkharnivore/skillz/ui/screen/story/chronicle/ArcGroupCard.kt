@@ -178,7 +178,7 @@ fun ArcGroupCard(
                                     maxLines = if (isExpanded) 6 else 2, overflow = TextOverflow.Ellipsis,
                                     onTextLayout = { overflowed = it.hasVisualOverflow })
                                 if (isExpanded && overflowed) {
-                                    TextButton(onClick = onEditDetails) { Text("Read full summary") }
+                                    TextButton(onClick = onEditDetails) { Text(stringResource(R.string.arc_details_read_full_summary)) }
                                 }
                             }
                         }
@@ -275,7 +275,7 @@ fun ArcGroupCard(
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     IconButton(onClick = onEditDetails) {
-                        Icon(Icons.Outlined.Edit, contentDescription = "Edit Arc details", modifier = Modifier.padding(3.dp))
+                        Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.arc_details_edit), modifier = Modifier.padding(3.dp))
                     }
                 }
             }
@@ -284,10 +284,10 @@ fun ArcGroupCard(
         if (isExpanded) {
             group.metadata?.takeIf { it.hasReflection }?.let { metadata ->
                 Column(Modifier.padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Arc reflection", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                    metadata.outcome?.let { ReflectionField("Outcome", it) }
-                    metadata.highlight?.let { ReflectionField("Highlight", it) }
-                    metadata.nextStep?.let { ReflectionField("Next step", it) }
+                    Text(stringResource(R.string.arc_details_reflection_heading), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    metadata.outcome?.let { ReflectionField(stringResource(R.string.arc_details_field_outcome), it) }
+                    metadata.highlight?.let { ReflectionField(stringResource(R.string.arc_details_field_highlight), it) }
+                    metadata.nextStep?.let { ReflectionField(stringResource(R.string.arc_details_field_next_step), it) }
                 }
             }
             HorizontalDivider(
