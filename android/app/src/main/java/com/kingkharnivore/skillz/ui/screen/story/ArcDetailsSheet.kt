@@ -22,6 +22,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.stateDescription
@@ -67,6 +72,18 @@ fun ArcDetailsSheet(
     val focusHighlight = { highlightFocus.requestFocus(); Unit }
     val focusNextStep = { nextStepFocus.requestFocus(); Unit }
     var focusedField by remember { mutableStateOf<ArcEditorField?>(null) }
+    val containFormScroll = remember {
+        object : NestedScrollConnection {
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset = Offset(x = 0f, y = available.y)
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity =
+                Velocity(x = 0f, y = available.y)
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = { if (!state.isSaving) onDismiss() },
@@ -91,7 +108,8 @@ fun ArcDetailsSheet(
             }
 
             Column(
-                Modifier.weight(1f).fillMaxWidth().background(surface).verticalScroll(rememberScrollState())
+                Modifier.weight(1f).fillMaxWidth().background(surface).nestedScroll(containFormScroll)
+                    .verticalScroll(rememberScrollState())
                     .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
