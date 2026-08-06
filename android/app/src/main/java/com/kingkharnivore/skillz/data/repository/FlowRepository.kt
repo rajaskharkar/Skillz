@@ -3,6 +3,7 @@ package com.kingkharnivore.skillz.data.repository
 import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.dao.TagDao
+import com.kingkharnivore.skillz.data.model.dao.ArcMetadataDao
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -10,7 +11,8 @@ import javax.inject.Inject
 class FlowRepository @Inject constructor(
     private val sessionDao: SessionDao,
     private val tagDao: TagDao,
-    private val pulseDao: PulseDao
+    private val pulseDao: PulseDao,
+    private val arcMetadataDao: ArcMetadataDao
 ) {
 
     fun getAllSessions(): Flow<List<SessionEntity>> =
@@ -49,9 +51,11 @@ class FlowRepository @Inject constructor(
     suspend fun deleteSessionAndCleanupTag(sessionId: Long): Long? {
         val session = sessionDao.getSessionById(sessionId) ?: return null
         val tagId = session.tagId
+        val arcId = session.arcId
 
         pulseDao.detachPulsesFromSession(sessionId)
         sessionDao.deleteSessionById(sessionId)
+        if (arcId != null && sessionDao.getSessionCountForArc(arcId) == 0) arcMetadataDao.delete(arcId)
 
         val remainingSessions = sessionDao.getSessionCountForTag(tagId)
         val remainingPulses = pulseDao.getPulseCountForTag(tagId)

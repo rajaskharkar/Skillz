@@ -1,5 +1,7 @@
 package com.kingkharnivore.skillz.model.ui
 
+import com.kingkharnivore.skillz.model.ArcMetadata
+
 import androidx.compose.ui.graphics.Color
 
 sealed interface ChronicleUiModel {
@@ -28,7 +30,8 @@ sealed interface ChronicleUiModel {
         val hiddenFlowsCount: Int,
         val totalFlowsCount: Int,
         val filteredJourneyDurationMs: Long? = null,
-        val filteredJourneyPercentOfArc: Int? = null
+        val filteredJourneyPercentOfArc: Int? = null,
+        val metadata: ArcMetadata? = null
     ) : ChronicleUiModel {
         override val key: String = "arc_$arcId"
     }

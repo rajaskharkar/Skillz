@@ -8,6 +8,7 @@ import androidx.room.Room
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.dao.ActiveArcRunDao
 import com.kingkharnivore.skillz.data.model.dao.ArcPlanDao
+import com.kingkharnivore.skillz.data.model.dao.ArcMetadataDao
 import com.kingkharnivore.skillz.data.model.dao.FlowPlanDao
 import com.kingkharnivore.skillz.data.model.dao.health.FlowHealthDao
 import com.kingkharnivore.skillz.data.model.dao.shell.IdeaGroveDao
@@ -67,6 +68,9 @@ object DatabaseModule {
     @Provides
     fun provideActiveArcRunDao(db: SkillzDatabase): ActiveArcRunDao =
         db.activeArcRunDao()
+
+    @Provides
+    fun provideArcMetadataDao(db: SkillzDatabase): ArcMetadataDao = db.arcMetadataDao()
 
     @Provides
     fun provideFlowHealthDao(db: SkillzDatabase): FlowHealthDao = db.flowHealthDao()

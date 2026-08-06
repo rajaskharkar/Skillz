@@ -74,6 +74,9 @@ interface SessionDao {
     )
     suspend fun getSessionsForArc(arcId: Long): List<SessionEntity>
 
+    @Query("SELECT COUNT(*) FROM sessions WHERE arcId = :arcId")
+    suspend fun getSessionCountForArc(arcId: Long): Int
+
     @Query(
         """
         SELECT * FROM sessions

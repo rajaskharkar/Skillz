@@ -7,6 +7,8 @@ import com.kingkharnivore.skillz.data.model.entity.PulseEntity
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
+import com.kingkharnivore.skillz.data.repository.ArcMetadataRepository
+import com.kingkharnivore.skillz.model.ArcMetadata
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.health.FlowHealthRepository
 import com.kingkharnivore.skillz.data.model.entity.health.FlowHealthSnapshotEntity
@@ -38,6 +40,29 @@ data class TagUiModel(
     val name: String
 )
 
+data class ArcEditorUiState(
+    val arcId: Long? = null,
+    val title: String = "",
+    val summary: String = "",
+    val outcome: String = "",
+    val highlight: String = "",
+    val nextStep: String = "",
+    val reflectionExpanded: Boolean = false,
+    val isSaving: Boolean = false,
+    val showDiscardConfirmation: Boolean = false,
+    val errorMessage: String? = null,
+    val baseline: ArcMetadata? = null
+) {
+    val normalized: ArcMetadata?
+        get() = arcId?.let { ArcMetadata.normalize(it, title, summary, outcome, highlight, nextStep) }
+    val isValid: Boolean
+        get() = title.length <= ArcMetadata.TITLE_LIMIT && summary.length <= ArcMetadata.SUMMARY_LIMIT &&
+            outcome.length <= ArcMetadata.REFLECTION_LIMIT && highlight.length <= ArcMetadata.REFLECTION_LIMIT &&
+            nextStep.length <= ArcMetadata.REFLECTION_LIMIT
+    val isDirty: Boolean get() = normalized != baseline
+    val canSave: Boolean get() = isDirty && isValid && !isSaving
+}
+
 @HiltViewModel
 class StoryViewModel @Inject constructor(
     private val sessionRepository: FlowRepository,
@@ -46,7 +71,8 @@ class StoryViewModel @Inject constructor(
     private val aliveFlowRepository: AliveFlowRepository,
     private val flowHealthRepository: FlowHealthRepository,
     private val healthRefreshUseCase: HealthRefreshUseCase,
-    private val userPrefs: UserPrefs
+    private val userPrefs: UserPrefs,
+    private val arcMetadataRepository: ArcMetadataRepository
 ) : ViewModel() {
 
     private val selectedTagIds = MutableStateFlow<Set<Long>>(emptySet())
@@ -73,6 +99,9 @@ class StoryViewModel @Inject constructor(
         flowHealthRepository.observeSnapshots()
     private val pulsesFlow: Flow<List<PulseEntity>> = pulseRepository.getAllPulses()
     private val tagsFlow: Flow<List<TagEntity>> = tagRepository.getAllTags()
+    private val arcMetadataFlow = arcMetadataRepository.observeAll()
+
+    val arcEditorState = MutableStateFlow(ArcEditorUiState())
 
     val uiState = MutableStateFlow(
         FlowListUiState(
@@ -298,6 +327,50 @@ class StoryViewModel @Inject constructor(
         uiState.value = uiState.value.copy(errorMessage = null)
     }
 
+    fun openArcEditor(arcId: Long) {
+        if (arcEditorState.value.arcId == arcId || arcEditorState.value.isSaving) return
+        viewModelScope.launch {
+            val metadata = runCatching { arcMetadataRepository.get(arcId) }.getOrNull()
+                ?: ArcMetadata(arcId)
+            arcEditorState.value = ArcEditorUiState(
+                arcId = arcId, title = metadata.title.orEmpty(), summary = metadata.summary.orEmpty(),
+                outcome = metadata.outcome.orEmpty(), highlight = metadata.highlight.orEmpty(),
+                nextStep = metadata.nextStep.orEmpty(), reflectionExpanded = metadata.hasReflection,
+                baseline = metadata
+            )
+        }
+    }
+
+    fun updateArcEditor(transform: (ArcEditorUiState) -> ArcEditorUiState) {
+        arcEditorState.update { transform(it).copy(errorMessage = null) }
+    }
+
+    fun requestCloseArcEditor() {
+        arcEditorState.update { if (it.isDirty) it.copy(showDiscardConfirmation = true) else ArcEditorUiState() }
+    }
+
+    fun keepEditingArc() = arcEditorState.update { it.copy(showDiscardConfirmation = false) }
+    fun discardArcChanges() { arcEditorState.value = ArcEditorUiState() }
+
+    fun saveArcDetails() {
+        val snapshot = arcEditorState.value
+        val metadata = snapshot.normalized ?: return
+        if (!snapshot.canSave) return
+        viewModelScope.launch {
+            arcEditorState.update { it.copy(isSaving = true, errorMessage = null) }
+            runCatching {
+                if (metadata.isEmpty) arcMetadataRepository.clear(metadata.arcId)
+                else arcMetadataRepository.save(metadata)
+            }.onSuccess {
+                if (arcEditorState.value.arcId == metadata.arcId) arcEditorState.value = ArcEditorUiState()
+            }.onFailure {
+                if (arcEditorState.value.arcId == metadata.arcId) arcEditorState.update {
+                    it.copy(isSaving = false, errorMessage = "Couldn’t save Arc details. Try again.")
+                }
+            }
+        }
+    }
+
     private fun observeSessions() {
         viewModelScope.launch {
             uiState.value = uiState.value.copy(
@@ -317,7 +390,8 @@ class StoryViewModel @Inject constructor(
                 isViewJourneysOpen,
                 showScoreUiFlow,
                 calmModeFlow,
-                appLanguageTagFlow
+                appLanguageTagFlow,
+                arcMetadataFlow
             ) { arr: Array<Any?> ->
                 val sessions = arr[0] as List<SessionEntity>
                 val healthSnapshots = arr[1] as List<FlowHealthSnapshotEntity>
@@ -331,6 +405,7 @@ class StoryViewModel @Inject constructor(
                 val showScoreUi = arr[9] as Boolean
                 val calmMode = arr[10] as Boolean
                 val appLanguageTag = arr[11] as String?
+                val arcMetadata = arr[12] as Map<Long, ArcMetadata>
 
                 val hasAnyRecordedFlows = sessions.isNotEmpty()
                 val hasAnyRecordedArtifacts = sessions.isNotEmpty() || pulses.isNotEmpty()
@@ -418,7 +493,8 @@ class StoryViewModel @Inject constructor(
                     tags = tags,
                     healthSnapshots = healthSnapshots,
                     journeyColors = journeyColors,
-                    selectedTagIds = effectiveSelectedTagIds
+                    selectedTagIds = effectiveSelectedTagIds,
+                    arcMetadata = arcMetadata
                 )
 
                 val todayAnchor = TimeWindowUtils.startOfPeriodMs(nowMs, currentPeriod)
@@ -670,7 +746,8 @@ class StoryViewModel @Inject constructor(
         tags: List<TagEntity>,
         healthSnapshots: List<FlowHealthSnapshotEntity>,
         journeyColors: Map<Long, Color>,
-        selectedTagIds: Set<Long>
+        selectedTagIds: Set<Long>,
+        arcMetadata: Map<Long, ArcMetadata>
     ): List<ChronicleUiModel> {
         val visibleFlowUi = visibleSessionsInWindow.toUiModels(tags, journeyColors, healthSnapshots)
         val visibleFlowUiBySessionId = visibleFlowUi.associateBy { it.sessionId }
@@ -792,7 +869,8 @@ class StoryViewModel @Inject constructor(
                 hiddenFlowsCount = hiddenFlowsCount,
                 totalFlowsCount = allArcSessions.size,
                 filteredJourneyDurationMs = filteredJourneyDurationMs,
-                filteredJourneyPercentOfArc = filteredJourneyPercentOfArc
+                filteredJourneyPercentOfArc = filteredJourneyPercentOfArc,
+                metadata = arcMetadata[arcId]
             )
         }
 

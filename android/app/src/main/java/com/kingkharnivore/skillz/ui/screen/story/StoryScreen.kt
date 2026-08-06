@@ -114,6 +114,7 @@ fun StoryScreen(
     isFlowStateActive: Boolean
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val arcEditorState by viewModel.arcEditorState.collectAsState()
     val listState = rememberLazyListState()
 
     LaunchedEffect(uiState.chronicleItems.size) {
@@ -159,8 +160,12 @@ fun StoryScreen(
                 onUpdatePulse = viewModel::updatePulse,
                 onUpdateSessionDescription = viewModel::updateSessionDescription,
                 onCreatePulseForSession = viewModel::createPulseForSession,
-                onOpenViewJourneys = viewModel::openViewJourneys
+                onOpenViewJourneys = viewModel::openViewJourneys,
+                onEditArc = viewModel::openArcEditor
             )
+
+            ArcDetailsSheet(arcEditorState, viewModel::updateArcEditor, viewModel::requestCloseArcEditor,
+                viewModel::saveArcDetails, viewModel::keepEditingArc, viewModel::discardArcChanges)
 
             ViewJourneysBottomSheet(
                 uiState = uiState,

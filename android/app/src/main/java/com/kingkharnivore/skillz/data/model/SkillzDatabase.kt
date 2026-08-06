@@ -4,6 +4,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.kingkharnivore.skillz.data.model.dao.ActiveArcRunDao
 import com.kingkharnivore.skillz.data.model.dao.ArcPlanDao
+import com.kingkharnivore.skillz.data.model.dao.ArcMetadataDao
 import com.kingkharnivore.skillz.data.model.dao.FlowPlanDao
 import com.kingkharnivore.skillz.data.model.entity.health.FlowRewardBreakdownEntity
 import com.kingkharnivore.skillz.data.model.entity.health.FlowHealthSnapshotEntity
@@ -16,6 +17,7 @@ import com.kingkharnivore.skillz.data.model.dao.TagDao
 import com.kingkharnivore.skillz.data.model.dao.shell.ShellDaoProvider
 import com.kingkharnivore.skillz.data.model.entity.ActiveArcRunEntity
 import com.kingkharnivore.skillz.data.model.entity.ArcPlanEntity
+import com.kingkharnivore.skillz.data.model.entity.ArcMetadataEntity
 import com.kingkharnivore.skillz.data.model.entity.ArcPlanStepEntity
 import com.kingkharnivore.skillz.data.model.entity.FlowPlanEntity
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
@@ -82,9 +84,10 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
         BadgePinEntity::class,
         BadgeTrackingEntity::class,
         MasteryCelebrationEventEntity::class,
-        BadgeCountFloorEntity::class
+        BadgeCountFloorEntity::class,
+        ArcMetadataEntity::class
     ],
-    version = 36,
+    version = 37,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
@@ -96,6 +99,7 @@ abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
     abstract fun flowPlanDao(): FlowPlanDao
     abstract fun arcPlanDao(): ArcPlanDao
     abstract fun activeArcRunDao(): ActiveArcRunDao
+    abstract fun arcMetadataDao(): ArcMetadataDao
     abstract fun flowHealthDao(): FlowHealthDao
     override abstract fun shellRewardEventDao(): com.kingkharnivore.skillz.data.model.dao.shell.ShellRewardEventDao
     override abstract fun objectiveDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveDao
