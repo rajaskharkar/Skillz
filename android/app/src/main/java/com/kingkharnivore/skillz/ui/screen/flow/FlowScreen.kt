@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
@@ -117,6 +118,36 @@ fun FlowScreen(
 
     LaunchedEffect(reward) {
         if (reward != null) showPointsDialog = true
+    }
+
+    val isRecoveringTerminalExit = exitAfterReward && reward == null
+    LaunchedEffect(isRecoveringTerminalExit) {
+        if (isRecoveringTerminalExit) {
+            viewModel.consumeExitAfterReward(onConsumed = onDone)
+        }
+    }
+
+    if (isRecoveringTerminalExit) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            if (error != null) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Text(error.orEmpty(), color = MaterialTheme.colorScheme.error)
+                    Button(onClick = {
+                        viewModel.consumeExitAfterReward(onConsumed = onDone)
+                    }) {
+                        Text(stringResource(R.string.achievement_backfill_retry_action))
+                    }
+                }
+            }
+        }
+        return
     }
 
     LaunchedEffect(uiState.recentlyResumedArcMessage) {
@@ -726,9 +757,17 @@ fun FlowScreen(
                 if (r.hasShellReward()) {
                     TextButton(
                         onClick = {
-                            showPointsDialog = false
-                            viewModel.abandonPendingArcContinuationForShellEntry()
-                            onOpenShell()
+                            if (exitAfterReward) {
+                                viewModel.consumeExitAfterReward {
+                                    showPointsDialog = false
+                                    viewModel.clearLastReward()
+                                    onOpenShell()
+                                }
+                            } else {
+                                showPointsDialog = false
+                                viewModel.abandonPendingArcContinuationForShellEntry()
+                                onOpenShell()
+                            }
                         }
                     ) { Text(stringResource(R.string.session_reward_enter_shell)) }
                 }
