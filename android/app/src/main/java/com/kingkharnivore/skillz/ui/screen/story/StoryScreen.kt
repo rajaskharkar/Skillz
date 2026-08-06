@@ -26,7 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -113,7 +113,8 @@ fun StoryScreen(
     onGoToActiveSession: () -> Unit,
     isFlowStateActive: Boolean
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val arcEditorState by viewModel.arcEditorState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
 
     LaunchedEffect(uiState.chronicleItems.size) {
@@ -159,8 +160,13 @@ fun StoryScreen(
                 onUpdatePulse = viewModel::updatePulse,
                 onUpdateSessionDescription = viewModel::updateSessionDescription,
                 onCreatePulseForSession = viewModel::createPulseForSession,
-                onOpenViewJourneys = viewModel::openViewJourneys
+                onOpenViewJourneys = viewModel::openViewJourneys,
+                onEditArc = viewModel::openArcEditor
             )
+
+            ArcDetailsSheet(arcEditorState, viewModel::updateArcEditor, viewModel::requestCloseArcEditor,
+                viewModel::saveArcDetails, viewModel::retryArcEditorLoad,
+                viewModel::keepEditingArc, viewModel::discardArcChanges)
 
             ViewJourneysBottomSheet(
                 uiState = uiState,

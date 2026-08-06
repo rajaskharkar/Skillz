@@ -19,6 +19,20 @@ class SkillzMigrationTest {
         SkillzDatabase::class.java
     )
 
+    @Test fun migration36To37AddsArcMetadataWithoutChangingFlows() {
+        helper.createDatabase(TEST_DB, 36).apply {
+            execSQL("INSERT INTO tags (id,name,createdAt) VALUES (1,'Journey',1)")
+            execSQL("INSERT INTO sessions (id,title,description,tagId,startTime,endTime,durationMs,surgePlannedMs,surgePoints,scyraPoints,isSoftMode,arcId,arcIndex,arcMultiplierUsed,arcBonusPoints,createdAt) VALUES (1,'Flow','',1,1,2,1,NULL,0,1,0,42,1,1.0,0,1)")
+            close()
+        }
+        val db = helper.runMigrationsAndValidate(TEST_DB, 37, true, SkillzDatabaseMigrations.MIGRATION_36_37)
+        assertTrue(db.tableExists("arc_metadata"))
+        assertEquals(1, db.countRows("sessions", "arcId = ?", arrayOf("42")))
+        db.execSQL("INSERT INTO arc_metadata (arcId,title,summary,outcome,highlight,nextStep,createdAtEpochMillis,updatedAtEpochMillis) VALUES (42,'Title',NULL,NULL,NULL,NULL,1,1)")
+        assertEquals(1, db.countRows("arc_metadata", "arcId = ?", arrayOf("42")))
+        db.close()
+    }
+
     @Test fun migration31To36CompletesWithoutDestructiveFallback() = assertAchievementMigrationChain(31)
     @Test fun migration32To36CompletesWithoutDestructiveFallback() = assertAchievementMigrationChain(32)
     @Test fun migration33To36CompletesWithoutDestructiveFallback() = assertAchievementMigrationChain(33)

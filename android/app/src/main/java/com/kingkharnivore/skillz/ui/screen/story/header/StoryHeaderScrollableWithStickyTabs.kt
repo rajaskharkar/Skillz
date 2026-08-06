@@ -64,7 +64,8 @@ fun StoryHeaderScrollableWithStickyTabs(
     onUpdatePulse: (Long, String, String, String) -> Unit,
     onCreatePulseForSession: (Long, String, String, String) -> Unit,
     onAddSessionClick: () -> Unit,
-    extraTopContent: (@Composable () -> Unit)? = null
+    extraTopContent: (@Composable () -> Unit)? = null,
+    onEditArc: (Long) -> Unit
 ) {
     var tab by rememberSaveable { mutableStateOf(StoryTab.CHRONICLES) }
 
@@ -275,7 +276,8 @@ fun StoryHeaderScrollableWithStickyTabs(
                                     onEditPulse = { pulse -> pulseEditState.startEditing(pulse) },
                                     onDeletePulse = onDeletePulse,
                                     onLongPress = { session -> editState.startEditing(session) },
-                                    onClick = onSessionClick
+                                    onClick = onSessionClick,
+                                    onEditDetails = { onEditArc(item.arcId) }
                                 )
                             }
                         }

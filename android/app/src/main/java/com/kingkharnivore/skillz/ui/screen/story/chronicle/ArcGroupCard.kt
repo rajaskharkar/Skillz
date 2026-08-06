@@ -12,12 +12,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoGraph
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -54,7 +63,8 @@ fun ArcGroupCard(
     onEditPulse: (PulseListItemUiModel) -> Unit,
     onDeletePulse: (Long) -> Unit,
     onLongPress: (FlowListItemUiModel) -> Unit,
-    onClick: (Long) -> Unit
+    onClick: (Long) -> Unit,
+    onEditDetails: () -> Unit
 ) {
     val arcTimeRangeLabel = rememberArcTimeRangeLabel(group.visibleFlows.map { it.flow.createdAt })
     val wrapperBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f)
@@ -153,6 +163,27 @@ fun ArcGroupCard(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                group.metadata?.let { metadata ->
+                    if (metadata.title != null || metadata.summary != null) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            metadata.title?.let {
+                                Text(it, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurface, maxLines = if (isExpanded) 2 else 1,
+                                    overflow = TextOverflow.Ellipsis)
+                            }
+                            metadata.summary?.let { summary ->
+                                var overflowed by remember(summary, isExpanded) { mutableStateOf(false) }
+                                Text(summary, style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = if (isExpanded) 6 else 2, overflow = TextOverflow.Ellipsis,
+                                    onTextLayout = { overflowed = it.hasVisualOverflow })
+                                if (isExpanded && overflowed) {
+                                    TextButton(onClick = onEditDetails) { Text(stringResource(R.string.arc_details_read_full_summary)) }
+                                }
+                            }
+                        }
+                    }
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -241,10 +272,24 @@ fun ArcGroupCard(
                         )
                     }
                 }
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    IconButton(onClick = onEditDetails) {
+                        Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.arc_details_edit), modifier = Modifier.padding(3.dp))
+                    }
+                }
             }
         }
 
         if (isExpanded) {
+            group.metadata?.takeIf { it.hasReflection }?.let { metadata ->
+                Column(Modifier.padding(horizontal = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(stringResource(R.string.arc_details_reflection_heading), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    metadata.outcome?.let { ReflectionField(stringResource(R.string.arc_details_field_outcome), it) }
+                    metadata.highlight?.let { ReflectionField(stringResource(R.string.arc_details_field_highlight), it) }
+                    metadata.nextStep?.let { ReflectionField(stringResource(R.string.arc_details_field_next_step), it) }
+                }
+            }
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
             )
@@ -281,6 +326,14 @@ fun ArcGroupCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ReflectionField(label: String, value: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 

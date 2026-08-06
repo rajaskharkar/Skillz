@@ -38,7 +38,8 @@ fun StoryBody(
     onUpdatePulse: (Long, String, String, String) -> Unit,
     onUpdateSessionDescription: (Long, String) -> Unit,
     onCreatePulseForSession: (Long, String, String, String) -> Unit,
-    onOpenViewJourneys: (Long) -> Unit
+    onOpenViewJourneys: (Long) -> Unit,
+    onEditArc: (Long) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         when {
@@ -69,7 +70,8 @@ fun StoryBody(
                     onAddSessionClick = onAddSessionClick,
                     extraTopContent = if (isFlowStateActive) {
                         { FlowModeHeroCard(onGoToActiveSession = onGoToActiveSession) }
-                    } else null
+                    } else null,
+                    onEditArc = onEditArc
                 )
             }
         }

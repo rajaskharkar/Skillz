@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 36.
+     * Current database version is 37.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -261,6 +261,12 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_36_37 = object : Migration(36, 37) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("""CREATE TABLE IF NOT EXISTS `arc_metadata` (`arcId` INTEGER NOT NULL, `title` TEXT, `summary` TEXT, `outcome` TEXT, `highlight` TEXT, `nextStep` TEXT, `createdAtEpochMillis` INTEGER NOT NULL, `updatedAtEpochMillis` INTEGER NOT NULL, PRIMARY KEY(`arcId`))""")
+        }
+    }
+
     private fun normalizePostAnchorTestSchemaToTargetBranch(db: SupportSQLiteDatabase) {
         db.execSQL("PRAGMA foreign_keys=OFF")
 
@@ -417,7 +423,8 @@ object SkillzDatabaseMigrations {
                 MIGRATION_32_33 +
                 MIGRATION_33_34 +
                 MIGRATION_34_35 +
-                MIGRATION_35_36
+                MIGRATION_35_36 +
+                MIGRATION_36_37
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(

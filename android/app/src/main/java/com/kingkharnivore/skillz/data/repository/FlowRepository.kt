@@ -3,6 +3,9 @@ package com.kingkharnivore.skillz.data.repository
 import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.dao.TagDao
+import com.kingkharnivore.skillz.data.model.dao.ArcMetadataDao
+import com.kingkharnivore.skillz.data.model.SkillzDatabase
+import androidx.room.withTransaction
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -10,7 +13,9 @@ import javax.inject.Inject
 class FlowRepository @Inject constructor(
     private val sessionDao: SessionDao,
     private val tagDao: TagDao,
-    private val pulseDao: PulseDao
+    private val pulseDao: PulseDao,
+    private val arcMetadataDao: ArcMetadataDao,
+    private val database: SkillzDatabase
 ) {
 
     fun getAllSessions(): Flow<List<SessionEntity>> =
@@ -50,8 +55,7 @@ class FlowRepository @Inject constructor(
         val session = sessionDao.getSessionById(sessionId) ?: return null
         val tagId = session.tagId
 
-        pulseDao.detachPulsesFromSession(sessionId)
-        sessionDao.deleteSessionById(sessionId)
+        deleteSessionTransactionally(sessionId)
 
         val remainingSessions = sessionDao.getSessionCountForTag(tagId)
         val remainingPulses = pulseDao.getPulseCountForTag(tagId)
@@ -69,8 +73,18 @@ class FlowRepository @Inject constructor(
     }
 
     suspend fun deleteSession(sessionId: Long) {
-        pulseDao.detachPulsesFromSession(sessionId)
-        sessionDao.deleteSession(sessionId)
+        deleteSessionTransactionally(sessionId)
+    }
+
+    private suspend fun deleteSessionTransactionally(sessionId: Long) {
+        database.withTransaction {
+            val arcId = sessionDao.getSessionById(sessionId)?.arcId
+            pulseDao.detachPulsesFromSession(sessionId)
+            sessionDao.deleteSessionById(sessionId)
+            if (arcId != null && sessionDao.getSessionCountForArc(arcId) == 0) {
+                arcMetadataDao.delete(arcId)
+            }
+        }
     }
 
     suspend fun insertSession(session: SessionEntity) {
