@@ -73,6 +73,7 @@ import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 
 internal enum class FlowCompletionControls { StandaloneSoft, ArcActions, RegularActions }
 internal enum class RewardShellEntry { ConsumeTerminalExit, PreserveContinuation }
+enum class ShellNavigationMode { PreservePreparedFlow, RemoveCompletedFlow }
 
 internal fun flowCompletionControls(isSoftMode: Boolean, isArcLinked: Boolean): FlowCompletionControls =
     when {
@@ -88,12 +89,18 @@ internal fun rewardShellEntry(exitAfterReward: Boolean): RewardShellEntry =
     if (exitAfterReward) RewardShellEntry.ConsumeTerminalExit
     else RewardShellEntry.PreserveContinuation
 
+internal fun shellNavigationMode(entry: RewardShellEntry): ShellNavigationMode =
+    when (entry) {
+        RewardShellEntry.ConsumeTerminalExit -> ShellNavigationMode.RemoveCompletedFlow
+        RewardShellEntry.PreserveContinuation -> ShellNavigationMode.PreservePreparedFlow
+    }
+
 @Composable
 fun FlowScreen(
     viewModel: FlowViewModel,
     onDone: () -> Unit,
     onCancel: () -> Unit,
-    onOpenShell: () -> Unit = {}
+    onOpenShell: (ShellNavigationMode) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
@@ -774,12 +781,13 @@ fun FlowScreen(
                                 viewModel.consumeExitAfterReward {
                                     showPointsDialog = false
                                     viewModel.clearLastReward()
-                                    onOpenShell()
+                                    onOpenShell(shellNavigationMode(RewardShellEntry.ConsumeTerminalExit))
                                 }
                             } else {
-                                showPointsDialog = false
-                                viewModel.abandonPendingArcContinuationForShellEntry()
-                                onOpenShell()
+                                viewModel.prepareContinuationAndEnterShell {
+                                    showPointsDialog = false
+                                    onOpenShell(shellNavigationMode(RewardShellEntry.PreserveContinuation))
+                                }
                             }
                         }
                     ) { Text(stringResource(R.string.session_reward_enter_shell)) }

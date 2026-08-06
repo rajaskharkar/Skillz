@@ -16,6 +16,7 @@ import com.kingkharnivore.skillz.ui.screen.HelpScreen
 import com.kingkharnivore.skillz.ui.screen.HelpSection
 import com.kingkharnivore.skillz.ui.screen.SkillzHomeScreen
 import com.kingkharnivore.skillz.ui.screen.flow.FlowScreen
+import com.kingkharnivore.skillz.ui.screen.flow.ShellNavigationMode
 import com.kingkharnivore.skillz.ui.screen.paths.arc.ArcDetailScreen
 import com.kingkharnivore.skillz.ui.screen.shell.ShellRootScreen
 import com.kingkharnivore.skillz.ui.screen.paths.arc.PlanArcScreen
@@ -129,7 +130,17 @@ fun SkillzNavHost(
                 viewModel = addSessionViewModel,
                 onDone = { popToHome(navController) },
                 onCancel = { popToHome(navController) },
-                onOpenShell = { navController.navigate(SkillzDestinations.SHELL) }
+                onOpenShell = { mode ->
+                    when (mode) {
+                        ShellNavigationMode.PreservePreparedFlow -> {
+                            navController.navigate(SkillzDestinations.SHELL) { launchSingleTop = true }
+                        }
+                        ShellNavigationMode.RemoveCompletedFlow -> {
+                            popToHome(navController)
+                            navController.navigate(SkillzDestinations.SHELL) { launchSingleTop = true }
+                        }
+                    }
+                }
             )
         }
 

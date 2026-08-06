@@ -264,6 +264,8 @@ class FlowViewModel @Inject constructor(
     private val _exitAfterReward = MutableStateFlow(false)
     val exitAfterReward: StateFlow<Boolean> = _exitAfterReward.asStateFlow()
     private var isConsumingExitAfterReward = false
+    private var isPreparingShellContinuation = false
+    private var hasPreparedShellContinuation = false
 
     private var arcCountdownJob: Job? = null
 
@@ -667,12 +669,6 @@ class FlowViewModel @Inject constructor(
     }
 
     fun clearLastReward() {
-        _lastReward.value = null
-    }
-
-    fun abandonPendingArcContinuationForShellEntry() {
-        _pendingArcIdeaContinuation.value = null
-        _awaitingNextFlowAfterContinue.value = false
         _lastReward.value = null
     }
 
@@ -1109,6 +1105,15 @@ class FlowViewModel @Inject constructor(
         beginNextFlowAfterContinueInternal(continuationOrigin = null)
     }
 
+    fun prepareContinuationAndEnterShell(onPrepared: () -> Unit) {
+        _pendingArcIdeaContinuation.value = null
+        beginNextFlowAfterContinueInternal(
+            continuationOrigin = null,
+            isShellEntry = true,
+            onPrepared = onPrepared
+        )
+    }
+
     fun continueArcOnlyAfterIdeaPrompt() {
         _pendingArcIdeaContinuation.value = null
         beginNextFlowAfterContinueInternal(continuationOrigin = null)
@@ -1121,60 +1126,71 @@ class FlowViewModel @Inject constructor(
     }
 
     private fun beginNextFlowAfterContinueInternal(
-        continuationOrigin: PendingArcIdeaContinuation?
+        continuationOrigin: PendingArcIdeaContinuation?,
+        isShellEntry: Boolean = false,
+        onPrepared: () -> Unit = {}
     ) {
-        if (!_awaitingNextFlowAfterContinue.value) return
+        if (!_awaitingNextFlowAfterContinue.value || isPreparingShellContinuation) return
+        isPreparingShellContinuation = true
 
         viewModelScope.launch {
-            val advanceResult = advancePlannedArcAfterCompletedSession(continuationOrigin)
-            if (advanceResult == PlannedArcAdvanceResult.Advanced) {
+            try {
+                if (!hasPreparedShellContinuation) {
+                    val advanceResult = advancePlannedArcAfterCompletedSession(continuationOrigin)
+                    if (advanceResult != PlannedArcAdvanceResult.Advanced) {
+                        val keepTag = _uiState.value.tagName
+                        val keepArc = arcState
+
+                        ongoingCreatedAtMs = System.currentTimeMillis()
+                        currentFlowInstanceId = UUID.randomUUID().toString()
+
+                        baseStartTimeMs = null
+                        accumulatedBeforeStartMs = 0L
+                        activeIntervals.clear()
+                        activeIntervalStartMs = null
+                        stopTicker()
+                        aliveFlowServiceController.stop()
+
+                        _uiState.update { old ->
+                            old.copy(
+                                title = "",
+                                description = "",
+                                tagName = keepTag,
+                                stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L),
+                                isInFlowMode = false,
+                                isSoftMode = false,
+                                isSurgeOn = false,
+                                surgePlannedMs = null,
+                                isInArc = keepArc != null,
+                                arcIsPending = keepArc?.isPending ?: false,
+                                arcMultiplier = keepArc?.multiplier,
+                                arcProgressMs = keepArc?.progressMs ?: 0L,
+                                arcNextIndex = keepArc?.let { it.sessionCountInArc + 1 },
+                                arcGraceRemainingMs = null,
+                                arcPauseRemainingMs = null,
+                                plannedArcTitle = null,
+                                plannedArcStepIndex = null,
+                                plannedArcTotalSteps = null,
+                                originPulseId = continuationOrigin?.pulseId,
+                                originPulseTitle = continuationOrigin?.pulseTitle,
+                                originPulseJourneyName = continuationOrigin?.pulseJourneyName
+                            )
+                        }
+
+                        saveOngoingNow()
+                    }
+                    hasPreparedShellContinuation = isShellEntry
+                }
                 arcPrefs.clearPlannedFlowHandoff()
-                return@launch
+                hasPreparedShellContinuation = false
+                _lastReward.value = null
+                _awaitingNextFlowAfterContinue.value = false
+                onPrepared()
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Failed to prepare Arc continuation"
+            } finally {
+                isPreparingShellContinuation = false
             }
-
-            val keepTag = _uiState.value.tagName
-            val keepArc = arcState
-
-            _lastReward.value = null
-            _awaitingNextFlowAfterContinue.value = false
-            ongoingCreatedAtMs = System.currentTimeMillis()
-            currentFlowInstanceId = UUID.randomUUID().toString()
-
-            baseStartTimeMs = null
-            accumulatedBeforeStartMs = 0L
-            activeIntervals.clear()
-            activeIntervalStartMs = null
-            stopTicker()
-            aliveFlowServiceController.stop()
-
-            _uiState.update { old ->
-                old.copy(
-                    title = "",
-                    description = "",
-                    tagName = keepTag,
-                    stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L),
-                    isInFlowMode = false,
-                    isSoftMode = false,
-                    isSurgeOn = false,
-                    surgePlannedMs = null,
-                    isInArc = keepArc != null,
-                    arcIsPending = keepArc?.isPending ?: false,
-                    arcMultiplier = keepArc?.multiplier,
-                    arcProgressMs = keepArc?.progressMs ?: 0L,
-                    arcNextIndex = keepArc?.let { it.sessionCountInArc + 1 },
-                    arcGraceRemainingMs = null,
-                    arcPauseRemainingMs = null,
-                    plannedArcTitle = null,
-                    plannedArcStepIndex = null,
-                    plannedArcTotalSteps = null,
-                    originPulseId = continuationOrigin?.pulseId,
-                    originPulseTitle = continuationOrigin?.pulseTitle,
-                    originPulseJourneyName = continuationOrigin?.pulseJourneyName
-                )
-            }
-
-            saveOngoingNow()
-            arcPrefs.clearPlannedFlowHandoff()
         }
     }
 
@@ -1876,9 +1892,6 @@ class FlowViewModel @Inject constructor(
         activeIntervalStartMs = null
         stopTicker()
         aliveFlowServiceController.stop()
-
-        _lastReward.value = null
-        _awaitingNextFlowAfterContinue.value = false
 
         _uiState.update { old ->
             old.copy(

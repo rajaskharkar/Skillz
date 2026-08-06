@@ -53,4 +53,18 @@ class FlowCompletionControlsTest {
             rewardShellEntry(exitAfterReward = false)
         )
     }
+
+    @Test fun terminalShellEntryRemovesCompletedFlowDestination() {
+        assertEquals(
+            ShellNavigationMode.RemoveCompletedFlow,
+            shellNavigationMode(RewardShellEntry.ConsumeTerminalExit)
+        )
+    }
+
+    @Test fun continuationShellEntryPreservesPreparedFlowDestination() {
+        assertEquals(
+            ShellNavigationMode.PreservePreparedFlow,
+            shellNavigationMode(RewardShellEntry.PreserveContinuation)
+        )
+    }
 }
