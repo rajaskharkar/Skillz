@@ -31,4 +31,26 @@ class FlowCompletionControlsTest {
             flowCompletionControls(isSoftMode = false, isArcLinked = false)
         )
     }
+
+    @Test fun terminalWithoutRewardSelectsRecoveredExit() {
+        assertEquals(true, shouldRecoverTerminalExit(exitAfterReward = true, hasReward = false))
+    }
+
+    @Test fun terminalWithLiveRewardDoesNotAutoExit() {
+        assertEquals(false, shouldRecoverTerminalExit(exitAfterReward = true, hasReward = true))
+    }
+
+    @Test fun terminalShellEntryConsumesExit() {
+        assertEquals(
+            RewardShellEntry.ConsumeTerminalExit,
+            rewardShellEntry(exitAfterReward = true)
+        )
+    }
+
+    @Test fun continuationShellEntryPreservesHandoff() {
+        assertEquals(
+            RewardShellEntry.PreserveContinuation,
+            rewardShellEntry(exitAfterReward = false)
+        )
+    }
 }

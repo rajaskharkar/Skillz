@@ -72,6 +72,7 @@ import com.kingkharnivore.skillz.viewmodel.FlowEndAction
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 
 internal enum class FlowCompletionControls { StandaloneSoft, ArcActions, RegularActions }
+internal enum class RewardShellEntry { ConsumeTerminalExit, PreserveContinuation }
 
 internal fun flowCompletionControls(isSoftMode: Boolean, isArcLinked: Boolean): FlowCompletionControls =
     when {
@@ -79,6 +80,13 @@ internal fun flowCompletionControls(isSoftMode: Boolean, isArcLinked: Boolean): 
         isArcLinked -> FlowCompletionControls.ArcActions
         else -> FlowCompletionControls.RegularActions
     }
+
+internal fun shouldRecoverTerminalExit(exitAfterReward: Boolean, hasReward: Boolean): Boolean =
+    exitAfterReward && !hasReward
+
+internal fun rewardShellEntry(exitAfterReward: Boolean): RewardShellEntry =
+    if (exitAfterReward) RewardShellEntry.ConsumeTerminalExit
+    else RewardShellEntry.PreserveContinuation
 
 @Composable
 fun FlowScreen(
@@ -120,7 +128,10 @@ fun FlowScreen(
         if (reward != null) showPointsDialog = true
     }
 
-    val isRecoveringTerminalExit = exitAfterReward && reward == null
+    val isRecoveringTerminalExit = shouldRecoverTerminalExit(
+        exitAfterReward = exitAfterReward,
+        hasReward = reward != null
+    )
     LaunchedEffect(isRecoveringTerminalExit) {
         if (isRecoveringTerminalExit) {
             viewModel.consumeExitAfterReward(onConsumed = onDone)
@@ -757,7 +768,9 @@ fun FlowScreen(
                 if (r.hasShellReward()) {
                     TextButton(
                         onClick = {
-                            if (exitAfterReward) {
+                            if (rewardShellEntry(exitAfterReward) ==
+                                RewardShellEntry.ConsumeTerminalExit
+                            ) {
                                 viewModel.consumeExitAfterReward {
                                     showPointsDialog = false
                                     viewModel.clearLastReward()
