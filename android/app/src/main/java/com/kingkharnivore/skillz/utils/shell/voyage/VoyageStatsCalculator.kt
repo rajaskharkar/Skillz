@@ -14,18 +14,20 @@ class VoyageStatsCalculator @Inject constructor() {
         now: Instant,
         zoneId: ZoneId
     ): VoyageHallStats {
-        val eligible = sessions
-            .filter { it.isEligibleForVoyageHall() }
+        val completed = sessions
+            .filter { it.isCompletedForVoyageHall() }
             .map { it.toEligibleFlow(zoneId) }
-
-        if (eligible.isEmpty()) return emptyStats(hasEligibleFlows = false)
+        val eligible = completed.filterNot { it.flow.isSoftMode }
 
         val dates = eligible.map { it.completedDate }.toSet()
-        val validArcGroups = eligible
+        val validArcGroups = completed
             .filter { it.flow.arcId != null }
             .groupBy { it.flow.arcId!! }
-            .filterValues { it.size >= 2 }
         val arcSummaries = validArcGroups.mapValues { (arcId, flows) -> arcSummary(arcId, flows) }
+
+        if (eligible.isEmpty() && arcSummaries.isEmpty()) {
+            return emptyStats(hasEligibleFlows = false)
+        }
 
         return VoyageHallStats(
             currentDailyStreak = currentDailyStreak(dates, now, zoneId),
@@ -44,7 +46,7 @@ class VoyageStatsCalculator @Inject constructor() {
             mostTimeInMonth = bestPeriodByDuration(eligible.groupByPeriod { Period.month(it.completedDate) }),
             mostArcsInDay = mostArcsByPeriod(arcSummaries.values, zoneId) { Period.day(it) },
             mostArcsInWeek = mostArcsByPeriod(arcSummaries.values, zoneId) { Period.week(it) },
-            hasEligibleFlows = true
+            hasEligibleFlows = eligible.isNotEmpty() || arcSummaries.isNotEmpty()
         )
     }
 
@@ -68,8 +70,8 @@ class VoyageStatsCalculator @Inject constructor() {
         hasEligibleFlows = hasEligibleFlows
     )
 
-    private fun VoyageSourceFlow.isEligibleForVoyageHall(): Boolean =
-        endTime > 0L && durationMs > 0L && !isSoftMode
+    private fun VoyageSourceFlow.isCompletedForVoyageHall(): Boolean =
+        endTime > 0L && durationMs > 0L
 
     private fun VoyageSourceFlow.toEligibleFlow(zoneId: ZoneId) = EligibleFlow(
         flow = this,
@@ -173,9 +175,12 @@ class VoyageStatsCalculator @Inject constructor() {
         return VoyageArcSummary(
             arcId = arcId,
             flowCount = summaries.size,
+            regularFlowCount = flows.count { !it.flow.isSoftMode },
+            softFlowCount = flows.count { it.flow.isSoftMode },
             totalDurationMs = summaries.sumOf { it.durationMs },
             totalPoints = summaries.sumOf { it.points },
-            peakMultiplier = summaries.mapNotNull { it.arcMultiplierUsed }.maxOrNull(),
+            totalArcBonusPoints = flows.sumOf { it.flow.arcBonusPoints },
+            peakMultiplier = summaries.mapNotNull { it.arcMultiplierUsed }.maxOrNull() ?: 1.0,
             latestFlowEndMillis = summaries.maxOf { it.completedAtMillis },
             flows = summaries
         )

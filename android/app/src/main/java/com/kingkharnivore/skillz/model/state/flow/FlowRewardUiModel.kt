@@ -24,5 +24,7 @@ data class FlowRewardUiModel(
     val shellDiscoveryIds: List<String> = emptyList(),
     val shellBadgeIds: List<String> = emptyList(),
     val arcSummary: ArcSummaryUiModel? = null,
-    val isArcOnlySummary: Boolean = false
+    val isArcOnlySummary: Boolean = false,
+    /** Identifies the completed session independently from the next draft's mode. */
+    val isSoftSession: Boolean = false
 )

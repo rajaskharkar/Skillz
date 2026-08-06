@@ -33,7 +33,8 @@ data class VoyageSourceFlow(
     val isSoftMode: Boolean,
     val arcId: Long?,
     val arcIndex: Int?,
-    val arcMultiplierUsed: Double?
+    val arcMultiplierUsed: Double?,
+    val arcBonusPoints: Int = 0
 )
 
 data class VoyageFlowSummary(
@@ -51,8 +52,11 @@ data class VoyageFlowSummary(
 data class VoyageArcSummary(
     val arcId: Long,
     val flowCount: Int,
+    val regularFlowCount: Int,
+    val softFlowCount: Int,
     val totalDurationMs: Long,
     val totalPoints: Int,
+    val totalArcBonusPoints: Int,
     val peakMultiplier: Double?,
     val latestFlowEndMillis: Long,
     val flows: List<VoyageFlowSummary>

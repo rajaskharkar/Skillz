@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
@@ -70,12 +71,36 @@ import com.kingkharnivore.skillz.ui.health.MovementBonusActivePill
 import com.kingkharnivore.skillz.viewmodel.FlowEndAction
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 
+internal enum class FlowCompletionControls { StandaloneSoft, ArcActions, RegularActions }
+internal enum class RewardShellEntry { ConsumeTerminalExit, PreserveContinuation }
+enum class ShellNavigationMode { PreservePreparedFlow, RemoveCompletedFlow }
+
+internal fun flowCompletionControls(isSoftMode: Boolean, isArcLinked: Boolean): FlowCompletionControls =
+    when {
+        isSoftMode && !isArcLinked -> FlowCompletionControls.StandaloneSoft
+        isArcLinked -> FlowCompletionControls.ArcActions
+        else -> FlowCompletionControls.RegularActions
+    }
+
+internal fun shouldRecoverTerminalExit(exitAfterReward: Boolean, hasReward: Boolean): Boolean =
+    exitAfterReward && !hasReward
+
+internal fun rewardShellEntry(exitAfterReward: Boolean): RewardShellEntry =
+    if (exitAfterReward) RewardShellEntry.ConsumeTerminalExit
+    else RewardShellEntry.PreserveContinuation
+
+internal fun shellNavigationMode(entry: RewardShellEntry): ShellNavigationMode =
+    when (entry) {
+        RewardShellEntry.ConsumeTerminalExit -> ShellNavigationMode.RemoveCompletedFlow
+        RewardShellEntry.PreserveContinuation -> ShellNavigationMode.PreservePreparedFlow
+    }
+
 @Composable
 fun FlowScreen(
     viewModel: FlowViewModel,
     onDone: () -> Unit,
     onCancel: () -> Unit,
-    onOpenShell: () -> Unit = {}
+    onOpenShell: (ShellNavigationMode) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
@@ -108,6 +133,39 @@ fun FlowScreen(
 
     LaunchedEffect(reward) {
         if (reward != null) showPointsDialog = true
+    }
+
+    val isRecoveringTerminalExit = shouldRecoverTerminalExit(
+        exitAfterReward = exitAfterReward,
+        hasReward = reward != null
+    )
+    LaunchedEffect(isRecoveringTerminalExit) {
+        if (isRecoveringTerminalExit) {
+            viewModel.consumeExitAfterReward(onConsumed = onDone)
+        }
+    }
+
+    if (isRecoveringTerminalExit) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            if (error != null) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Text(error.orEmpty(), color = MaterialTheme.colorScheme.error)
+                    Button(onClick = {
+                        viewModel.consumeExitAfterReward(onConsumed = onDone)
+                    }) {
+                        Text(stringResource(R.string.achievement_backfill_retry_action))
+                    }
+                }
+            }
+        }
+        return
     }
 
     LaunchedEffect(uiState.recentlyResumedArcMessage) {
@@ -419,7 +477,10 @@ fun FlowScreen(
                 )
             }
 
-            if (uiState.isSoftMode) {
+            val isArcLinked = uiState.isInArc
+            if (flowCompletionControls(uiState.isSoftMode, isArcLinked) ==
+                FlowCompletionControls.StandaloneSoft
+            ) {
                 Button(
                     enabled = uiState.title.isNotBlank() &&
                             uiState.tagName.isNotBlank() &&
@@ -453,8 +514,7 @@ fun FlowScreen(
                         Text(stringResource(R.string.flow_screen_continue_arc))
                     }
 
-                    val isPlannedArc = !uiState.plannedArcTitle.isNullOrBlank()
-                    val isArcActuallyCompletable = uiState.isInArc || isPlannedArc
+                    val isArcActuallyCompletable = isArcLinked
                     val completeLabel = if (isArcActuallyCompletable) {
                         stringResource(R.string.flow_screen_complete_arc)
                     } else {
@@ -496,7 +556,7 @@ fun FlowScreen(
                 TextButton(
                     onClick = {
                         showSoftArcConfirmDialog = false
-                        viewModel.setSoftModeAndConcludeArc()
+                        viewModel.setSoftModeAndResetArcMultiplier()
                     }
                 ) { Text(stringResource(R.string.flow_screen_enter_soft)) }
             },
@@ -645,7 +705,7 @@ fun FlowScreen(
                 Text(
                     when {
                         showArcSummary && r.arcSummary != null -> stringResource(R.string.flow_screen_arc_reward)
-                        uiState.isSoftMode -> stringResource(R.string.flow_screen_soft_flow_recorded)
+                        r.isSoftSession -> stringResource(R.string.flow_screen_soft_flow_recorded)
                         else -> stringResource(R.string.flow_screen_you_did_it)
                     }
                 )
@@ -664,7 +724,7 @@ fun FlowScreen(
                             )
                         }
 
-                        uiState.isSoftMode -> {
+                        r.isSoftSession -> {
                             SoftSessionRewardContent(r = r)
                         }
 
@@ -683,16 +743,22 @@ fun FlowScreen(
                         if (r.arcSummary != null && !showArcSummary && !r.isArcOnlySummary) {
                             showArcSummary = true
                         } else {
-                            showPointsDialog = false
                             if (awaitingNextFlow) {
+                                showPointsDialog = false
                                 if (pendingArcIdeaContinuation != null) {
                                     showArcIdeaContinuationDialog = true
                                 } else {
                                     viewModel.beginNextFlowAfterContinue()
                                 }
+                            } else if (exitAfterReward) {
+                                viewModel.consumeExitAfterReward {
+                                    showPointsDialog = false
+                                    viewModel.clearLastReward()
+                                    onDone()
+                                }
                             } else {
+                                showPointsDialog = false
                                 viewModel.clearLastReward()
-                                if (exitAfterReward && viewModel.consumeExitAfterReward()) onDone()
                             }
                         }
                     }
@@ -709,9 +775,20 @@ fun FlowScreen(
                 if (r.hasShellReward()) {
                     TextButton(
                         onClick = {
-                            showPointsDialog = false
-                            viewModel.abandonPendingArcContinuationForShellEntry()
-                            onOpenShell()
+                            if (rewardShellEntry(exitAfterReward) ==
+                                RewardShellEntry.ConsumeTerminalExit
+                            ) {
+                                viewModel.consumeExitAfterReward {
+                                    showPointsDialog = false
+                                    viewModel.clearLastReward()
+                                    onOpenShell(shellNavigationMode(RewardShellEntry.ConsumeTerminalExit))
+                                }
+                            } else {
+                                viewModel.prepareContinuationAndEnterShell {
+                                    showPointsDialog = false
+                                    onOpenShell(shellNavigationMode(RewardShellEntry.PreserveContinuation))
+                                }
+                            }
                         }
                     ) { Text(stringResource(R.string.session_reward_enter_shell)) }
                 }
