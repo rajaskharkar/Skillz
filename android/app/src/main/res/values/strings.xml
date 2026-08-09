@@ -1653,7 +1653,7 @@
     <string name="lookout_back_to_objectives">Back to Objectives</string>
     <string name="lookout_achievements_empty_title">No Achievements yet.</string>
     <string name="lookout_achievements_empty_body" formatted="false">Objective Achievements will appear here once your progress reaches 100%.</string>
-    <string name="lookout_history_row_title">%1$s %2$s Objective</string>
+    <string name="lookout_history_row_title">%1$s Objective</string>
     <string name="lookout_history_row_summary_claimed">%1$d completions · %2$d Pearls claimed</string>
     <string name="lookout_history_row_summary_with_waiting">%1$d completions · %2$d Pearls claimed · %3$d waiting</string>
     <string name="lookout_history_last_completed">Last completed %1$s</string>
@@ -1681,6 +1681,20 @@
     <string name="lookout_save_objective">Save Objective</string>
     <string name="lookout_claim">Claim</string>
     <string name="lookout_claimed">Claimed</string>
+    <string name="lookout_unclaimed_pearls">%1$d Unclaimed Pearls</string>
+    <plurals name="lookout_from_completed_objectives">
+        <item quantity="one">From %1$d completed Objective</item>
+        <item quantity="other">From %1$d completed Objectives</item>
+    </plurals>
+    <string name="lookout_all_pearls_claimed">All Pearls Claimed!</string>
+    <string name="lookout_no_rewards_waiting">No Objective rewards waiting</string>
+    <string name="lookout_pearls_unclaimed">%1$d Pearls unclaimed</string>
+    <string name="lookout_pearls_earned">%1$d Pearls earned</string>
+    <string name="lookout_pearls_claimed">%1$d Pearls claimed</string>
+    <string name="lookout_history_row_summary_earned">%1$d completions · %2$d Pearls earned</string>
+    <string name="lookout_claim_pearls_accessibility">Claim %1$d Pearls</string>
+    <string name="lookout_claim_from_objective_accessibility">Claim %1$d Pearls from %2$s Objective</string>
+    <string name="lookout_pearls_claimed_amount">%1$d Pearls claimed</string>
     <string name="lookout_pearls_claimed_title">Pearls claimed</string>
     <string name="lookout_start_flow">Flow</string>
     <string name="lookout_flow_already_active">A Flow is already active.</string>

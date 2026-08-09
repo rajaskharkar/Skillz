@@ -55,6 +55,9 @@ data class LookoutUiState(
     val weekly: ObjectivePeriodUiState = ObjectivePeriodUiState(ObjectivePeriod.Weekly),
     val monthly: ObjectivePeriodUiState = ObjectivePeriodUiState(ObjectivePeriod.Monthly),
     val completedHistory: List<CompletedObjectiveHistoryGroupUiState> = emptyList(),
+    val unclaimedPearls: Int = 0,
+    val unclaimedObjectiveCount: Int = 0,
+    val claimInProgress: Boolean = false,
     val setObjectiveDialog: SetObjectiveDialogState? = null,
     val rewardDialog: ObjectiveRewardDialogState? = null,
     val removeDialog: ObjectiveRemoveDialogState? = null,
@@ -100,9 +103,11 @@ data class CompletedObjectiveHistoryGroupUiState(
 )
 
 data class CompletedObjectiveHistoryRowUiState(
+    val objectiveId: Long,
     val title: String,
     val summary: String,
     val lastCompletedLabel: String,
+    val unclaimedPearls: Int,
     val periodOrder: Int
 )
 
@@ -269,21 +274,20 @@ class LookoutViewModel @Inject constructor(
         }
     }
 
-    fun claimReward(completionId: Long) = viewModelScope.launch {
-        val completion = lookoutRepository.claimObjectivePearls(completionId) ?: return@launch
-        val period = ObjectivePeriod.fromStorage(completion.periodType)
-        val kind = ObjectiveKind.fromStorage(completion.objectiveType)
-        val bonusPct = ((completion.streakMultiplier - 1.0) * 100).toInt()
-        _uiState.update {
-            it.copy(
-                rewardDialog = ObjectiveRewardDialogState(
-                    title = text(R.string.lookout_pearls_claimed_title),
-                    body = text(R.string.lookout_objective_complete_body, completion.journeyNameSnapshot, periodLabel(period)),
-                    pearls = text(R.string.lookout_pearls_delta, completion.finalRewardPearls),
-                    streakBonus = if (bonusPct > 0) text(R.string.lookout_streak_bonus_percent, bonusPct) else null,
-                    currentStreak = if (kind == ObjectiveKind.Recurring) text(R.string.lookout_current_streak_value, completion.streakBeforeCompletion + 1) else null
-                )
-            )
+    fun claimReward(completionId: Long) = claim { lookoutRepository.claimObjectivePearls(completionId) }
+
+    fun claimAchievement(objectiveId: Long) = claim { lookoutRepository.claimObjectiveHistory(objectiveId) }
+
+    fun claimAllRewards() = claim { lookoutRepository.claimAllObjectiveRewards() }
+
+    private fun claim(block: suspend () -> Int) = viewModelScope.launch {
+        if (_uiState.value.claimInProgress) return@launch
+        _uiState.update { it.copy(claimInProgress = true) }
+        try {
+            val claimed = block()
+            if (claimed > 0) _events.emit(text(R.string.lookout_pearls_claimed_amount, claimed))
+        } finally {
+            _uiState.update { it.copy(claimInProgress = false) }
         }
     }
 
@@ -332,8 +336,12 @@ class LookoutViewModel @Inject constructor(
             ) { objectives, completions, skipped, sessions, journeys ->
                 LookoutSourceData(objectives, completions, skipped, sessions, journeys)
             }
+            val rewardStatus = combine(
+                lookoutRepository.observeUnclaimedPearlTotal(),
+                lookoutRepository.observeUnclaimedCompletionCount()
+            ) { pearls, count -> pearls to count }
 
-            combine(sourceData, nowTick) { data, now ->
+            combine(sourceData, nowTick, rewardStatus) { data, now, rewards ->
                 latestObjectives = data.objectives
                 latestJourneys = data.journeys
                 val flows = data.sessions.map { it.toObjectiveSourceFlow() }
@@ -345,10 +353,11 @@ class LookoutViewModel @Inject constructor(
                     lookoutRepository.applyCompletionGrant(grant.completion, grant.newCurrentStreak, grant.newMaxStreak, grant.newTotalCompletions)
                 }
                 result.streakResets.forEach { lookoutRepository.resetStreak(it.objectiveId) }
-                Triple(result.cards, data.journeys, data.completions) to now
+                Triple(result.cards, data.journeys, data.completions) to (now to rewards)
             }.catch { error ->
                 _uiState.update { it.copy(isLoading = false, errorMessage = error.message) }
-            }.collect { (payload, now) ->
+            }.collect { (payload, timeAndRewards) ->
+                val (now, rewards) = timeAndRewards
                 val (cards, journeys, completions) = payload
                 latestCards = cards
                 _uiState.update { state ->
@@ -359,6 +368,8 @@ class LookoutViewModel @Inject constructor(
                         weekly = cards.toPeriodState(ObjectivePeriod.Weekly, now),
                         monthly = cards.toPeriodState(ObjectivePeriod.Monthly, now),
                         completedHistory = completions.toCompletedHistory(),
+                        unclaimedPearls = rewards.first,
+                        unclaimedObjectiveCount = rewards.second,
                         errorMessage = null
                     )
                 }
@@ -403,7 +414,7 @@ class LookoutViewModel @Inject constructor(
                     text(R.string.lookout_completed)
                 }
             },
-            estimatedRewardLabel = completion?.let { text(R.string.lookout_pearls_delta, it.finalRewardPearls) } ?: text(R.string.lookout_pearls_value, targetPearls),
+            estimatedRewardLabel = completion?.let { text(R.string.lookout_pearls_earned, it.finalRewardPearls) } ?: text(R.string.lookout_pearls_value, targetPearls),
             isRecurring = kind == ObjectiveKind.Recurring,
             currentStreak = if (kind == ObjectiveKind.Recurring) effectiveCurrentStreak else null,
             maxStreak = if (kind == ObjectiveKind.Recurring) objective.maxStreak else null,
@@ -422,24 +433,23 @@ class LookoutViewModel @Inject constructor(
         return groupBy { it.journeyId to it.journeyNameSnapshot }
             .map { (journeyKey, journeyCompletions) ->
                 val rows = journeyCompletions
-                    .groupBy { it.periodType }
-                    .map { (periodType, periodCompletions) ->
+                    .groupBy { it.objectiveId }
+                    .map { (objectiveId, periodCompletions) ->
+                        val periodType = periodCompletions.first().periodType
                         val period = ObjectivePeriod.fromStorage(periodType)
                         val count = periodCompletions.size
-                        val claimedPearls = periodCompletions.filter { it.pearlsClaimed }.sumOf { it.finalRewardPearls }
                         val waitingPearls = periodCompletions.filterNot { it.pearlsClaimed }.sumOf { it.finalRewardPearls }
+                        val earnedPearls = periodCompletions.sumOf { it.finalRewardPearls }
                         val lastCompleted = periodCompletions.maxOf { it.completedAt }
                         CompletedObjectiveHistoryRowUiState(
-                            title = text(R.string.lookout_history_row_title, journeyKey.second, periodLabel(period)),
-                            summary = if (waitingPearls > 0) {
-                                text(R.string.lookout_history_row_summary_with_waiting, count, claimedPearls, waitingPearls)
-                            } else {
-                                text(R.string.lookout_history_row_summary_claimed, count, claimedPearls)
-                            },
+                            objectiveId = objectiveId,
+                            title = text(R.string.lookout_history_row_title, periodLabel(period)),
+                            summary = text(R.string.lookout_history_row_summary_earned, count, earnedPearls),
                             lastCompletedLabel = text(
                                 R.string.lookout_history_last_completed,
                                 dateFormatter.format(Instant.ofEpochMilli(lastCompleted).atZone(zone))
                             ),
+                            unclaimedPearls = waitingPearls,
                             periodOrder = period.ordinal
                         )
                     }

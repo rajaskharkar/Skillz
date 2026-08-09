@@ -50,6 +50,12 @@ interface ObjectiveDao {
 
 @Dao
 interface ObjectiveCompletionDao {
+    @Query("SELECT COALESCE(SUM(finalRewardPearls), 0) FROM objective_completions WHERE pearlsClaimed = 0")
+    fun observeUnclaimedPearlTotal(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM objective_completions WHERE pearlsClaimed = 0")
+    fun observeUnclaimedCompletionCount(): Flow<Int>
+
     @Query("SELECT * FROM objective_completions ORDER BY completedAt DESC")
     fun observeCompletions(): Flow<List<ObjectiveCompletionEntity>>
 
@@ -72,8 +78,17 @@ interface ObjectiveCompletionDao {
     @Query("SELECT * FROM objective_completions WHERE id = :id LIMIT 1")
     suspend fun getCompletionById(id: Long): ObjectiveCompletionEntity?
 
+    @Query("SELECT * FROM objective_completions WHERE pearlsClaimed = 0 ORDER BY completedAt, id")
+    suspend fun getAllUnclaimed(): List<ObjectiveCompletionEntity>
+
+    @Query("SELECT * FROM objective_completions WHERE objectiveId = :objectiveId AND pearlsClaimed = 0 ORDER BY completedAt, id")
+    suspend fun getUnclaimedForObjective(objectiveId: Long): List<ObjectiveCompletionEntity>
+
     @Query("UPDATE objective_completions SET pearlsGranted = 1, pearlsClaimed = 1, pearlsClaimedAt = :claimedAt WHERE id = :id AND pearlsClaimed = 0")
     suspend fun markPearlsClaimed(id: Long, claimedAt: Long): Int
+
+    @Query("UPDATE objective_completions SET pearlsGranted = 1, pearlsClaimed = 1, pearlsClaimedAt = :claimedAt WHERE id IN (:ids) AND pearlsClaimed = 0")
+    suspend fun markPearlsClaimed(ids: List<Long>, claimedAt: Long): Int
 }
 
 @Dao

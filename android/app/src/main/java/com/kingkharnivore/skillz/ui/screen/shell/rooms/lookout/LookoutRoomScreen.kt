@@ -33,11 +33,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -72,6 +72,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -129,6 +130,10 @@ fun LookoutRoomScreen(
         Column(Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 14.dp)) {
             LookoutHeader(
                 mode = uiState.mode,
+                unclaimedPearls = uiState.unclaimedPearls,
+                unclaimedCount = uiState.unclaimedObjectiveCount,
+                claimInProgress = uiState.claimInProgress,
+                onClaimAll = viewModel::claimAllRewards,
                 onSetObjective = { viewModel.openSetObjective(uiState.selectedPeriod) },
                 onCompleted = viewModel::showAchievements,
                 onBackToObjectives = viewModel::showObjectives
@@ -138,7 +143,11 @@ fun LookoutRoomScreen(
             if (uiState.isLoading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             } else if (uiState.mode == LookoutMode.Achievements) {
-                CompletedHistoryView(uiState.completedHistory)
+                CompletedHistoryView(
+                    uiState.completedHistory,
+                    uiState.claimInProgress,
+                    viewModel::claimAchievement
+                )
             } else {
                 PeriodTabs(
                     selected = uiState.selectedPeriod,
@@ -191,6 +200,10 @@ fun LookoutRoomScreen(
 @Composable
 private fun LookoutHeader(
     mode: LookoutMode,
+    unclaimedPearls: Int,
+    unclaimedCount: Int,
+    claimInProgress: Boolean,
+    onClaimAll: () -> Unit,
     onSetObjective: () -> Unit,
     onCompleted: () -> Unit,
     onBackToObjectives: () -> Unit
@@ -264,7 +277,53 @@ private fun LookoutHeader(
                         Text(stringResource(R.string.lookout_set))
                     }
                 }
+                LookoutRewardStatus(
+                    pearls = unclaimedPearls,
+                    completionCount = unclaimedCount,
+                    isClaiming = claimInProgress,
+                    onClaim = onClaimAll
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun LookoutRewardStatus(
+    pearls: Int,
+    completionCount: Int,
+    isClaiming: Boolean,
+    onClaim: () -> Unit
+) {
+    val claimDescription = stringResource(R.string.lookout_claim_pearls_accessibility, pearls)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        if (pearls > 0) ShellPearlMiniIcon(Modifier.size(22.dp))
+        else Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        Column(Modifier.weight(1f)) {
+            Text(
+                if (pearls > 0) stringResource(R.string.lookout_unclaimed_pearls, pearls)
+                else stringResource(R.string.lookout_all_pearls_claimed),
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                if (pearls > 0) pluralStringResource(R.plurals.lookout_from_completed_objectives, completionCount, completionCount)
+                else stringResource(R.string.lookout_no_rewards_waiting),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (pearls > 0) {
+            FilledTonalButton(
+                onClick = onClaim,
+                enabled = !isClaiming,
+                modifier = Modifier.semantics {
+                    contentDescription = claimDescription
+                }
+            ) { if (isClaiming) CircularProgressIndicator(Modifier.size(18.dp)) else Text(stringResource(R.string.lookout_claim)) }
         }
     }
 }
@@ -378,8 +437,13 @@ private fun ObjectiveCard(card: ObjectiveCardUiState, onClaimClick: (Long) -> Un
                 }
                 Text(stringResource(R.string.lookout_reward), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    AssistChip(onClick = {}, leadingIcon = { ShellPearlMiniIcon(Modifier.size(16.dp)) }, label = { Text(card.estimatedRewardLabel) })
-                    card.streakBonusLabel?.let { AssistChip(onClick = {}, label = { Text(it) }) }
+                    Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)) {
+                        Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            ShellPearlMiniIcon(Modifier.size(16.dp))
+                            Text(card.estimatedRewardLabel)
+                        }
+                    }
+                    card.streakBonusLabel?.let { StatChip(it) }
                 }
                 when (card.state) {
                     ObjectiveCardState.InProgress -> {
@@ -390,7 +454,11 @@ private fun ObjectiveCard(card: ObjectiveCardUiState, onClaimClick: (Long) -> Un
                     }
                     ObjectiveCardState.Completed -> {
                         if (card.pearlsClaimed) {
-                            AssistChip(onClick = {}, label = { Text(stringResource(R.string.lookout_claimed)) })
+                            Text(
+                                stringResource(R.string.lookout_pearls_claimed, card.rewardPearls ?: 0),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         } else {
                             Button(onClick = { card.completionId?.let(onClaimClick) }) {
                                 Text(stringResource(R.string.lookout_claim))
@@ -427,7 +495,11 @@ private fun EmptyPeriodState(period: ObjectivePeriod) {
 }
 
 @Composable
-private fun CompletedHistoryView(groups: List<CompletedObjectiveHistoryGroupUiState>) {
+private fun CompletedHistoryView(
+    groups: List<CompletedObjectiveHistoryGroupUiState>,
+    claimInProgress: Boolean,
+    onClaim: (Long) -> Unit
+) {
     LazyColumn(contentPadding = PaddingValues(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (groups.isEmpty()) {
             item {
@@ -444,10 +516,33 @@ private fun CompletedHistoryView(groups: List<CompletedObjectiveHistoryGroupUiSt
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(group.journeyName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         group.rows.forEach { row ->
+                            val claimDescription = stringResource(
+                                R.string.lookout_claim_from_objective_accessibility,
+                                row.unclaimedPearls,
+                                group.journeyName
+                            )
                             Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                                 Text(row.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                                 Text(row.summary, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(row.lastCompletedLabel, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                if (row.unclaimedPearls > 0) {
+                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            stringResource(R.string.lookout_pearls_unclaimed, row.unclaimedPearls),
+                                            modifier = Modifier.weight(1f),
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        FilledTonalButton(
+                                            onClick = { onClaim(row.objectiveId) },
+                                            enabled = !claimInProgress,
+                                            modifier = Modifier.semantics {
+                                                contentDescription = claimDescription
+                                            }
+                                        ) { Text(stringResource(R.string.lookout_claim)) }
+                                    }
+                                } else {
+                                    Text(stringResource(R.string.lookout_all_pearls_claimed), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                         }
                     }

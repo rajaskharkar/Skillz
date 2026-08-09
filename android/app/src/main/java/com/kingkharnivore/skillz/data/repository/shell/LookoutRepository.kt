@@ -31,6 +31,8 @@ class LookoutRepository @Inject constructor(
         completionDao.observeCompletions()
     fun observeSkippedCycles(): Flow<List<ObjectiveSkippedCycleEntity>> =
         skippedCycleDao.observeSkippedCycles()
+    fun observeUnclaimedPearlTotal(): Flow<Int> = completionDao.observeUnclaimedPearlTotal()
+    fun observeUnclaimedCompletionCount(): Flow<Int> = completionDao.observeUnclaimedCompletionCount()
 
     suspend fun getActiveObjectives(): List<ObjectiveEntity> = objectiveDao.getActiveObjectives()
     suspend fun insertObjective(objective: ObjectiveEntity): Long =
@@ -82,30 +84,24 @@ class LookoutRepository @Inject constructor(
     }
 
     suspend fun claimObjectivePearls(completionId: Long):
-            ObjectiveCompletionEntity? = db.withTransaction {
+            Int = db.withTransaction {
         val completion = completionDao.getCompletionById(completionId)
-            ?: return@withTransaction null
-        if (completion.pearlsClaimed) return@withTransaction null
+            ?: return@withTransaction 0
+        claimInTransaction(listOf(completion), "objective_completion", completion.id.toString())
+    }
 
-        val now = System.currentTimeMillis()
-        val updated = completionDao.markPearlsClaimed(completionId, now)
-        if (updated == 0) return@withTransaction null
+    /** Claims every outstanding occurrence for one Objective definition atomically. */
+    suspend fun claimObjectiveHistory(objectiveId: Long): Int = db.withTransaction {
+        claimInTransaction(
+            completionDao.getUnclaimedForObjective(objectiveId),
+            "objective_history",
+            objectiveId.toString()
+        )
+    }
 
-        if (completion.finalRewardPearls > 0) {
-            pearlLedgerDao.insert(
-                PearlLedgerEntity(
-                    id = UUID.randomUUID().toString(),
-                    delta = completion.finalRewardPearls,
-                    reason = "objective_completion_claim",
-                    sourceType = "objective_completion",
-                    sourceId = completion.id.toString(),
-                    createdAt = now,
-                    note = completion.badgeLabelSnapshot
-                )
-            )
-        }
-
-        completion.copy(pearlsGranted = true, pearlsClaimed = true, pearlsClaimedAt = now)
+    /** Claims the exact snapshot of all outstanding Objective rewards in one transaction. */
+    suspend fun claimAllObjectiveRewards(): Int = db.withTransaction {
+        claimInTransaction(completionDao.getAllUnclaimed(), "objective_claim_all", null)
     }
 
     suspend fun resetStreak(objectiveId: Long) {
@@ -124,5 +120,32 @@ class LookoutRepository @Inject constructor(
                     isNew = true
                 )
         )
+    }
+
+    private suspend fun claimInTransaction(
+        candidates: List<ObjectiveCompletionEntity>,
+        sourceType: String,
+        sourceId: String?
+    ): Int {
+        val eligible = candidates.filterNot { it.pearlsClaimed }
+        if (eligible.isEmpty()) return 0
+        val total = eligible.sumOf { it.finalRewardPearls }
+        val now = System.currentTimeMillis()
+        val updated = completionDao.markPearlsClaimed(eligible.map { it.id }, now)
+        check(updated == eligible.size) { "Objective rewards changed during claim" }
+        if (total > 0) {
+            pearlLedgerDao.insert(
+                PearlLedgerEntity(
+                    id = UUID.randomUUID().toString(),
+                    delta = total,
+                    reason = "objective_completion_claim",
+                    sourceType = sourceType,
+                    sourceId = sourceId,
+                    createdAt = now,
+                    note = "${eligible.size} Objective reward(s)"
+                )
+            )
+        }
+        return total
     }
 }
