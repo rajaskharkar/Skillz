@@ -36,6 +36,7 @@ class LookoutRepository @Inject constructor(
     fun observeUnclaimedCompletionCount(): Flow<Int> = completionDao.observeUnclaimedCompletionCount()
 
     suspend fun getActiveObjectives(): List<ObjectiveEntity> = objectiveDao.getActiveObjectives()
+    suspend fun getObjective(id: Long): ObjectiveEntity? = objectiveDao.getObjective(id)
     suspend fun getCompletions(): List<ObjectiveCompletionEntity> = completionDao.getCompletions()
     suspend fun getSkippedCycles(): List<ObjectiveSkippedCycleEntity> = skippedCycleDao.getSkippedCycles()
     suspend fun insertObjective(objective: ObjectiveEntity): Long =

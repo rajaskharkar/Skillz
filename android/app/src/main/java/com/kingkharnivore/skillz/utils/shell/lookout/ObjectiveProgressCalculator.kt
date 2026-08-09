@@ -43,6 +43,7 @@ data class ObjectiveSourceFlow(
 )
 
 data class ObjectiveWindow(val startMs: Long, val endMs: Long)
+data class ObjectiveCompletionEvidence(val achievedDurationMs: Long, val completedAtMs: Long)
 
 data class ObjectiveCardModel(
     val objective: ObjectiveEntity,
@@ -205,7 +206,7 @@ class ObjectiveProgressCalculator @Inject constructor() {
         return window
     }
 
-    private fun eligibleFlowsFor(objective: ObjectiveEntity, flows: List<ObjectiveSourceFlow>, window: ObjectiveWindow): List<ObjectiveSourceFlow> =
+    fun eligibleFlowsFor(objective: ObjectiveEntity, flows: List<ObjectiveSourceFlow>, window: ObjectiveWindow): List<ObjectiveSourceFlow> =
         flows.asSequence()
             .filter { it.journeyId == objective.journeyId }
             .filterNot { it.isSoftMode }
@@ -213,16 +214,27 @@ class ObjectiveProgressCalculator @Inject constructor() {
             .sortedWith(compareBy<ObjectiveSourceFlow> { it.endTimeMs }.thenBy { it.id })
             .toList()
 
+    fun completionEvidence(
+        objective: ObjectiveEntity,
+        flows: List<ObjectiveSourceFlow>,
+        window: ObjectiveWindow
+    ): ObjectiveCompletionEvidence? {
+        var total = 0L
+        eligibleFlowsFor(objective, flows, window).forEach { flow ->
+            total += flow.durationMs.coerceAtLeast(0L)
+            if (total >= objective.targetDurationMs) {
+                return ObjectiveCompletionEvidence(total, flow.endTimeMs)
+            }
+        }
+        return null
+    }
+
     private fun progressFor(objective: ObjectiveEntity, flows: List<ObjectiveSourceFlow>, window: ObjectiveWindow): Long =
         eligibleFlowsFor(objective, flows, window).sumOf { it.durationMs.coerceAtLeast(0L) }
 
     private fun achievedDurationAtFirstCompletion(objective: ObjectiveEntity, flows: List<ObjectiveSourceFlow>, window: ObjectiveWindow): Long {
-        var total = 0L
-        eligibleFlowsFor(objective, flows, window).forEach { flow ->
-            total += flow.durationMs.coerceAtLeast(0L)
-            if (total >= objective.targetDurationMs) return total
-        }
-        return total
+        return completionEvidence(objective, flows, window)?.achievedDurationMs
+            ?: eligibleFlowsFor(objective, flows, window).sumOf { it.durationMs.coerceAtLeast(0L) }
     }
 
     fun buildGrant(

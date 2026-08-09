@@ -160,6 +160,28 @@ class ObjectiveProgressCalculatorTest {
         assertEquals("objective_badge_12_weekly", calculator.objectiveBadgeKey(12, ObjectivePeriod.Weekly))
     }
 
+    @Test
+    fun completionEvidenceMatchesDisplayedProgressEligibilityAndCrossingSession() {
+        val start = LocalDate.of(2026, 6, 1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val objective = objective(startAtMs = start, targetMinutes = 60)
+        val firstEnd = start + 30 * MINUTE
+        val crossingEnd = start + 100 * MINUTE
+        val flows = listOf(
+            flow(1, firstEnd, 30 * MINUTE, false),
+            flow(2, crossingEnd, 40 * MINUTE, false),
+            flow(3, crossingEnd, 500 * MINUTE, true),
+            ObjectiveSourceFlow(4, 99, start, crossingEnd, 500 * MINUTE, false)
+        )
+        val window = calculator.windowFor(objective, Instant.ofEpochMilli(crossingEnd), zone)
+        val evidence = requireNotNull(calculator.completionEvidence(objective, flows, window))
+        val card = calculator.calculate(
+            listOf(objective), flows, emptyList(), emptyList(), Instant.ofEpochMilli(crossingEnd), zone
+        ).cards.single()
+        assertEquals(70 * MINUTE, evidence.achievedDurationMs)
+        assertEquals(crossingEnd, evidence.completedAtMs)
+        assertEquals(100, card.progressPercent)
+    }
+
     private fun objective(
         id: Long = 7,
         startAtMs: Long,

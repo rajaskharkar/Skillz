@@ -12,6 +12,8 @@ import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.domain.lookout.ObjectiveCompletionProcessor
 import com.kingkharnivore.skillz.utils.shell.lookout.ObjectiveProgressCalculator
 import kotlinx.coroutines.runBlocking
+import java.time.LocalDate
+import java.time.ZoneId
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -169,6 +171,69 @@ class LookoutRewardClaimTest {
         assertEquals(1, processor.reconcileUnprocessedSessions())
         assertEquals(100, db.objectiveProcessedSessionDao().processedCount())
     }
+
+    @Test fun processedFlowCompletesObjectiveCreatedLaterWithoutChangingJournal() = runBlocking {
+        val start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        db.tagDao().insertTag(TagEntity(id = 11, name = "Piano", createdAt = start))
+        val sessionId = db.sessionDao().insertSession(regularSession(11, start + 1, 60))
+        db.objectiveProcessedSessionDao().markProcessed(ObjectiveProcessedSessionEntity(sessionId, start + 4_000_000))
+        val processor = processor()
+
+        val objectiveId = processor.createObjectiveAndReconcile(objective(11, "Piano", start, 60))
+        assertEquals(false, processor.reconcileNewObjective(objectiveId))
+
+        val completion = db.objectiveCompletionDao().getCompletions().single()
+        assertEquals(start + 1, completion.completedAt)
+        assertEquals(60, completion.finalRewardPearls)
+        assertEquals(false, completion.pearlsClaimed)
+        assertEquals(1, db.userBadgeDao().get(completion.badgeKey)?.count)
+        assertEquals(1, db.objectiveProcessedSessionDao().processedCount())
+    }
+
+    @Test fun partialProcessedProgressCompletesOnceAfterLaterRegularFlow() = runBlocking {
+        val start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        db.tagDao().insertTag(TagEntity(id = 12, name = "Piano", createdAt = start))
+        val firstId = db.sessionDao().insertSession(regularSession(12, start + 1, 30))
+        db.objectiveProcessedSessionDao().markProcessed(ObjectiveProcessedSessionEntity(firstId, start + 2_000_000))
+        val processor = processor()
+        processor.createObjectiveAndReconcile(objective(12, "Piano", start, 60))
+        assertEquals(0, db.objectiveCompletionDao().getCompletions().size)
+        assertEquals(null, db.userBadgeDao().get("objective_badge_12_daily"))
+
+        db.sessionDao().insertSession(regularSession(12, start + 2, 30))
+        assertEquals(1, processor.reconcileUnprocessedSessions())
+        assertEquals(1, db.objectiveCompletionDao().getCompletions().size)
+        assertEquals(1, db.userBadgeDao().get("objective_badge_12_daily")?.count)
+    }
+
+    @Test fun targetedReconciliationExcludesSoftUnrelatedAndOutsideWindowFlows() = runBlocking {
+        val start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        db.tagDao().insertTag(TagEntity(id = 13, name = "Piano", createdAt = start))
+        db.tagDao().insertTag(TagEntity(id = 14, name = "Other", createdAt = start))
+        db.sessionDao().insertSession(regularSession(14, start + 1, 60))
+        db.sessionDao().insertSession(regularSession(13, start + 2, 60).copy(isSoftMode = true))
+        db.sessionDao().insertSession(regularSession(13, start - 1, 60))
+
+        processor().createObjectiveAndReconcile(objective(13, "Piano", start, 60))
+        assertEquals(0, db.objectiveCompletionDao().getCompletions().size)
+    }
+
+    private fun processor() = ObjectiveCompletionProcessor(
+        db, db.sessionDao(), db.objectiveProcessedSessionDao(), repository,
+        ObjectiveProgressCalculator()
+    )
+
+    private fun objective(journeyId: Long, name: String, start: Long, minutes: Long) = ObjectiveEntity(
+        journeyId = journeyId, journeyNameSnapshot = name, periodType = "daily",
+        objectiveType = "recurring", targetDurationMs = minutes * 60_000,
+        startAtMs = start, createdAt = start, updatedAt = start
+    )
+
+    private fun regularSession(tagId: Long, end: Long, minutes: Long) = SessionEntity(
+        title = "Flow", description = "", tagId = tagId,
+        startTime = end - minutes * 60_000, endTime = end,
+        durationMs = minutes * 60_000, isSoftMode = false
+    )
 
     private fun completion(id: Long, objectiveId: Long, pearls: Int) = ObjectiveCompletionEntity(
         id = id,

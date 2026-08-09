@@ -40,6 +40,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.kingkharnivore.skillz.domain.lookout.objectiveJourneyPresentationNames
+import com.kingkharnivore.skillz.domain.lookout.ObjectiveCompletionProcessor
 
 private const val MILLIS_PER_MINUTE = 60_000L
 private const val LOOKOUT_TICK_MS = 60_000L
@@ -166,7 +167,8 @@ class LookoutViewModel @Inject constructor(
     private val flowRepository: FlowRepository,
     private val journeyRepository: JourneyRepository,
     private val lookoutRepository: LookoutRepository,
-    private val calculator: ObjectiveProgressCalculator
+    private val calculator: ObjectiveProgressCalculator,
+    private val objectiveCompletionProcessor: ObjectiveCompletionProcessor
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LookoutUiState())
     val uiState: StateFlow<LookoutUiState> = _uiState
@@ -258,7 +260,7 @@ class LookoutViewModel @Inject constructor(
                 val zone = ZoneId.systemDefault()
                 val startMs = dialog.startDate.atStartOfDay(zone).toInstant().toEpochMilli()
                 val now = System.currentTimeMillis()
-                lookoutRepository.insertObjective(
+                objectiveCompletionProcessor.createObjectiveAndReconcile(
                     ObjectiveEntity(
                         journeyId = journeyId,
                         journeyNameSnapshot = journeySnapshot,
