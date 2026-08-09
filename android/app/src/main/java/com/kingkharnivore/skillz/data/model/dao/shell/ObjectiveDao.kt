@@ -9,6 +9,8 @@ import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveSkippedCycleEntity
 import kotlinx.coroutines.flow.Flow
 
+data class ObjectiveClaimAggregate(val pearlTotal: Int, val completionCount: Int)
+
 @Dao
 interface ObjectiveDao {
     @Query("SELECT * FROM objectives WHERE isArchived = 0 ORDER BY createdAt DESC")
@@ -78,17 +80,20 @@ interface ObjectiveCompletionDao {
     @Query("SELECT * FROM objective_completions WHERE id = :id LIMIT 1")
     suspend fun getCompletionById(id: Long): ObjectiveCompletionEntity?
 
-    @Query("SELECT * FROM objective_completions WHERE pearlsClaimed = 0 ORDER BY completedAt, id")
-    suspend fun getAllUnclaimed(): List<ObjectiveCompletionEntity>
+    @Query("SELECT COALESCE(SUM(finalRewardPearls), 0) AS pearlTotal, COUNT(*) AS completionCount FROM objective_completions WHERE pearlsClaimed = 0")
+    suspend fun getAllUnclaimedAggregate(): ObjectiveClaimAggregate
 
-    @Query("SELECT * FROM objective_completions WHERE objectiveId = :objectiveId AND pearlsClaimed = 0 ORDER BY completedAt, id")
-    suspend fun getUnclaimedForObjective(objectiveId: Long): List<ObjectiveCompletionEntity>
+    @Query("SELECT COALESCE(SUM(finalRewardPearls), 0) AS pearlTotal, COUNT(*) AS completionCount FROM objective_completions WHERE badgeKey = :badgeKey AND pearlsClaimed = 0")
+    suspend fun getUnclaimedAggregateForBadge(badgeKey: String): ObjectiveClaimAggregate
 
     @Query("UPDATE objective_completions SET pearlsGranted = 1, pearlsClaimed = 1, pearlsClaimedAt = :claimedAt WHERE id = :id AND pearlsClaimed = 0")
     suspend fun markPearlsClaimed(id: Long, claimedAt: Long): Int
 
-    @Query("UPDATE objective_completions SET pearlsGranted = 1, pearlsClaimed = 1, pearlsClaimedAt = :claimedAt WHERE id IN (:ids) AND pearlsClaimed = 0")
-    suspend fun markPearlsClaimed(ids: List<Long>, claimedAt: Long): Int
+    @Query("UPDATE objective_completions SET pearlsGranted = 1, pearlsClaimed = 1, pearlsClaimedAt = :claimedAt WHERE badgeKey = :badgeKey AND pearlsClaimed = 0")
+    suspend fun markBadgePearlsClaimed(badgeKey: String, claimedAt: Long): Int
+
+    @Query("UPDATE objective_completions SET pearlsGranted = 1, pearlsClaimed = 1, pearlsClaimedAt = :claimedAt WHERE pearlsClaimed = 0")
+    suspend fun markAllPearlsClaimed(claimedAt: Long): Int
 }
 
 @Dao

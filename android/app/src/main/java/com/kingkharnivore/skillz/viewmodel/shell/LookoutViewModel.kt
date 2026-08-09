@@ -103,7 +103,7 @@ data class CompletedObjectiveHistoryGroupUiState(
 )
 
 data class CompletedObjectiveHistoryRowUiState(
-    val objectiveId: Long,
+    val achievementKey: String,
     val title: String,
     val summary: String,
     val lastCompletedLabel: String,
@@ -276,7 +276,7 @@ class LookoutViewModel @Inject constructor(
 
     fun claimReward(completionId: Long) = claim { lookoutRepository.claimObjectivePearls(completionId) }
 
-    fun claimAchievement(objectiveId: Long) = claim { lookoutRepository.claimObjectiveHistory(objectiveId) }
+    fun claimAchievement(achievementKey: String) = claim { lookoutRepository.claimAchievementRewards(achievementKey) }
 
     fun claimAllRewards() = claim { lookoutRepository.claimAllObjectiveRewards() }
 
@@ -347,12 +347,6 @@ class LookoutViewModel @Inject constructor(
                 val flows = data.sessions.map { it.toObjectiveSourceFlow() }
                 val result = calculator.calculate(data.objectives, flows, data.completions, data.skipped, now, ZoneId.systemDefault())
 
-                // V1 evaluates Objective completions while The Lookout is active/open.
-                // A future pass can move this into the post-Flow reward pipeline for immediate grants.
-                result.completionsToGrant.forEach { grant ->
-                    lookoutRepository.applyCompletionGrant(grant.completion, grant.newCurrentStreak, grant.newMaxStreak, grant.newTotalCompletions)
-                }
-                result.streakResets.forEach { lookoutRepository.resetStreak(it.objectiveId) }
                 Triple(result.cards, data.journeys, data.completions) to (now to rewards)
             }.catch { error ->
                 _uiState.update { it.copy(isLoading = false, errorMessage = error.message) }
@@ -433,8 +427,8 @@ class LookoutViewModel @Inject constructor(
         return groupBy { it.journeyId to it.journeyNameSnapshot }
             .map { (journeyKey, journeyCompletions) ->
                 val rows = journeyCompletions
-                    .groupBy { it.objectiveId }
-                    .map { (objectiveId, periodCompletions) ->
+                    .groupBy { it.badgeKey }
+                    .map { (badgeKey, periodCompletions) ->
                         val periodType = periodCompletions.first().periodType
                         val period = ObjectivePeriod.fromStorage(periodType)
                         val count = periodCompletions.size
@@ -442,7 +436,7 @@ class LookoutViewModel @Inject constructor(
                         val earnedPearls = periodCompletions.sumOf { it.finalRewardPearls }
                         val lastCompleted = periodCompletions.maxOf { it.completedAt }
                         CompletedObjectiveHistoryRowUiState(
-                            objectiveId = objectiveId,
+                            achievementKey = badgeKey,
                             title = text(R.string.lookout_history_row_title, periodLabel(period)),
                             summary = text(R.string.lookout_history_row_summary_earned, count, earnedPearls),
                             lastCompletedLabel = text(

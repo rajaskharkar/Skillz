@@ -1692,6 +1692,11 @@
     <string name="lookout_pearls_earned">%1$d Pearls earned</string>
     <string name="lookout_pearls_claimed">%1$d Pearls claimed</string>
     <string name="lookout_history_row_summary_earned">%1$d completions · %2$d Pearls earned</string>
+    <string name="badge_category_objectives">Objectives</string>
+    <string name="badge_objective_title">%1$s · %2$s Objective</string>
+    <string name="badge_objective_description">%1$s Objective completions for %2$s.</string>
+    <string name="badge_objective_fallback_title">%1$s Objective</string>
+    <string name="badge_objective_fallback_description">Completed %1$s Objectives in The Lookout.</string>
     <string name="lookout_claim_pearls_accessibility">Claim %1$d Pearls</string>
     <string name="lookout_claim_from_objective_accessibility">Claim %1$d Pearls from %2$s Objective</string>
     <string name="lookout_pearls_claimed_amount">%1$d Pearls claimed</string>

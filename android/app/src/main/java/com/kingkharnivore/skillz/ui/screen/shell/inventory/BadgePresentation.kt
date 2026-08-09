@@ -3,13 +3,16 @@ package com.kingkharnivore.skillz.ui.screen.shell.inventory
 import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.res.stringResource
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.domain.achievement.*
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
+import com.kingkharnivore.skillz.domain.lookout.ObjectiveBadgeIdentity
+import com.kingkharnivore.skillz.domain.lookout.ObjectiveBadgePresentationMetadata
 
-enum class BadgeArtworkKind { FLOW_DURATION, SPECIES_MASTERY, COLLECTOR, CURATOR, COMPLETIONIST, MASTERY, ACTIVITY, SPECIAL }
+enum class BadgeArtworkKind { FLOW_DURATION, SPECIES_MASTERY, COLLECTOR, CURATOR, COMPLETIONIST, MASTERY, ACTIVITY, OBJECTIVE, SPECIAL }
 enum class CollectionArtworkIdentity { SUNLIT_REEF, DEEPER_REEF, OPEN_BLUE, GREAT_BLUE, FISHBOWL, AQUARIUM, POND, LAKE, THE_BLUE, STILLWATER, ALL_WATERS }
 
 data class BadgePresentation(
@@ -22,8 +25,34 @@ data class BadgePresentation(
     val collectionIdentity: CollectionArtworkIdentity? = null
 )
 
+val LocalObjectiveBadgePresentationMetadata = staticCompositionLocalOf<Map<String, ObjectiveBadgePresentationMetadata>> {
+    emptyMap()
+}
+
 @Composable
-fun resolveBadgePresentation(badgeId: String): BadgePresentation {
+fun resolveBadgePresentation(
+    badgeId: String,
+    objectiveMetadata: ObjectiveBadgePresentationMetadata? = null
+): BadgePresentation {
+    ObjectiveBadgeIdentity.fromBadgeId(badgeId)?.let { identity ->
+        val period = when (identity.periodType) {
+            "daily" -> stringResource(R.string.lookout_period_daily)
+            "weekly" -> stringResource(R.string.lookout_period_weekly)
+            else -> stringResource(R.string.lookout_period_monthly)
+        }
+        val metadata = objectiveMetadata ?: LocalObjectiveBadgePresentationMetadata.current[badgeId]
+        val journey = metadata?.takeIf { it.badgeKey == badgeId }
+            ?.journeyNameSnapshot?.takeIf { it.isNotBlank() }
+        return BadgePresentation(
+            badgeId = badgeId,
+            title = if (journey != null) stringResource(R.string.badge_objective_title, journey, period)
+                else stringResource(R.string.badge_objective_fallback_title, period),
+            description = if (journey != null) stringResource(R.string.badge_objective_description, period, journey)
+                else stringResource(R.string.badge_objective_fallback_description, period),
+            artworkKind = BadgeArtworkKind.OBJECTIVE,
+            centerLabel = period.take(1)
+        )
+    }
     ShellContentCatalog.badge(badgeId)?.let { legacy ->
         val duration = when (badgeId) {
             "badge_flow_10_min" -> "10"; "badge_flow_30_min" -> "30"

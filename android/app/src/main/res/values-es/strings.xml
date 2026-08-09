@@ -49,7 +49,8 @@
     <plurals name="arc_group_flow_count_label">
         <item quantity="one">Duración del Arc · %1$d Flow</item>
         <item quantity="other">Duración del Arc · %1$d Flows</item>
-    </plurals>
+
+        <item quantity="many">Duración del Arc · %1$d Flows</item></plurals>
     <string name="arc_group_total_time">Tiempo total · %1$s</string>
     <string name="arc_group_show_flows">Mostrar Flows</string>
     <string name="arc_group_hide_flows">Ocultar Flows</string>
@@ -59,7 +60,8 @@
     <plurals name="arc_group_hidden_flows">
         <item quantity="one">%1$d otro Flow en el Arc</item>
         <item quantity="other">%1$d otros Flows en el Arc</item>
-    </plurals>
+
+        <item quantity="many">%1$d otros Flows en el Arc</item></plurals>
     <string name="arc_group_a11y_expand">Expandir Arc</string>
     <string name="arc_group_a11y_collapse">Contraer Arc</string>
     <string name="arc_group_a11y_open_flow">Abrir Flow</string>
@@ -1625,7 +1627,7 @@ Piedritas — 60 Pearls</string>
     <string name="lookout_back_to_objectives">Volver a Objetivos</string>
     <string name="lookout_achievements_empty_title">Aún no hay Logros.</string>
     <string name="lookout_achievements_empty_body" formatted="false">Los Logros de Objetivos aparecerán aquí cuando tu progreso llegue al 100%.</string>
-    <string name="lookout_history_row_title">Objetivo %1$s %2$s</string>
+    <string name="lookout_history_row_title">%1$s Objective</string>
     <string name="lookout_history_row_summary_claimed">%1$d finalizaciones · %2$d Pearls reclamadas</string>
     <string name="lookout_history_row_summary_with_waiting">%1$d finalizaciones · %2$d Pearls reclamadas · %3$d esperando</string>
     <string name="lookout_history_last_completed">Último completado %1$s</string>
@@ -1649,7 +1651,7 @@ Piedritas — 60 Pearls</string>
     <string name="lookout_hours">Horas</string>
     <string name="lookout_minutes">Minutos</string>
     <string name="lookout_monthly_helper">Los Objetivos mensuales duran 30 días.</string>
-    <string name="lookout_recurring_helper" formatted="false">Las recompensas de racha crecen un +10% cada vez que completas este Objetivo.</string>
+    <string name="lookout_recurring_helper" formatted="false">Streak rewards grow by +10% each time you complete this Objective.</string>
     <string name="lookout_save_objective">Guardar Objetivo</string>
     <string name="lookout_claim">Reclamar</string>
     <string name="lookout_claimed">Reclamado</string>
@@ -2203,4 +2205,25 @@ Puedes volver a activar Health más tarde.</string>
     <string name="arc_details_close">Cerrar detalles del Arco</string>
     <string name="arc_details_character_count">%1$d/%2$d</string>
     <string name="common_retry">Reintentar</string>
+
+    <string name="badge_category_objectives">Objectives</string>
+    <string name="badge_objective_description">%1$s Objective completions for %2$s.</string>
+    <string name="badge_objective_fallback_description">Completed %1$s Objectives in The Lookout.</string>
+    <string name="badge_objective_fallback_title">%1$s Objective</string>
+    <string name="badge_objective_title">%1$s · %2$s Objective</string>
+    <string name="lookout_all_pearls_claimed">All Pearls Claimed!</string>
+    <string name="lookout_claim_from_objective_accessibility">Claim %1$d Pearls from %2$s Objective</string>
+    <string name="lookout_claim_pearls_accessibility">Claim %1$d Pearls</string>
+    <plurals name="lookout_from_completed_objectives">
+        <item quantity="one">From %1$d completed Objective</item>
+        <item quantity="other">From %1$d completed Objectives</item>
+
+        <item quantity="many">From %1$d completed Objectives</item></plurals>
+    <string name="lookout_history_row_summary_earned">%1$d completions · %2$d Pearls earned</string>
+    <string name="lookout_no_rewards_waiting">No Objective rewards waiting</string>
+    <string name="lookout_pearls_claimed">%1$d Pearls claimed</string>
+    <string name="lookout_pearls_claimed_amount">%1$d Pearls claimed</string>
+    <string name="lookout_pearls_earned">%1$d Pearls earned</string>
+    <string name="lookout_pearls_unclaimed">%1$d Pearls unclaimed</string>
+    <string name="lookout_unclaimed_pearls">%1$d Unclaimed Pearls</string>
 </resources>

@@ -46,6 +46,7 @@ import com.kingkharnivore.skillz.ui.screen.shell.PendingShellNavigation
 import java.text.NumberFormat
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.CompositionLocalProvider
 
 enum class BadgesTab { SHOWCASE, BADGE_BOOK, WITHIN_REACH, PROGRESS;
     val showsBadgeBookControls: Boolean get() = this == BADGE_BOOK
@@ -85,7 +86,12 @@ fun BadgesScreen(
     LaunchedEffect(collectionDetailsId, collectionDetails) {
         if (collectionDetailsId != null && collectionDetails == null) collectionDetailsId = null
     }
-    val presentations = dashboard.badges.associate { it.badgeId to resolveBadgePresentation(it.badgeId) }
+    val objectiveMetadata = remember(uiState.objectiveCompletions) {
+        com.kingkharnivore.skillz.domain.lookout.objectiveBadgePresentationMetadata(uiState.objectiveCompletions)
+    }
+    val presentations = dashboard.badges.associate { badge ->
+        badge.badgeId to resolveBadgePresentation(badge.badgeId, objectiveMetadata[badge.badgeId])
+    }
     val localizedCreatureNames = dashboard.badges.associate { badge ->
         val creature = BadgeDefinitionResolver.resolve(badge.badgeId).speciesId?.let(CreatureCatalog::get)
         badge.badgeId to (creature?.titleRes?.takeIf { it != 0 }?.let { stringResource(it) }.orEmpty())
@@ -95,7 +101,8 @@ fun BadgesScreen(
         BadgeUiCategory.ARC to stringResource(R.string.badge_category_arc), BadgeUiCategory.CREATURES to stringResource(R.string.badge_category_creatures),
         BadgeUiCategory.MASTERY to stringResource(R.string.badge_category_mastery), BadgeUiCategory.COLLECTIONS to stringResource(R.string.badge_category_collections),
         BadgeUiCategory.STILLWATER to stringResource(R.string.badge_category_stillwater), BadgeUiCategory.MOVEMENT to stringResource(R.string.badge_category_movement),
-        BadgeUiCategory.SURGE to stringResource(R.string.badge_category_surge), BadgeUiCategory.SPECIAL to stringResource(R.string.badge_category_special)
+        BadgeUiCategory.SURGE to stringResource(R.string.badge_category_surge), BadgeUiCategory.OBJECTIVES to stringResource(R.string.badge_category_objectives),
+        BadgeUiCategory.SPECIAL to stringResource(R.string.badge_category_special)
     )
     val sortLabels = mapOf(
         BadgeSort.RECOMMENDED to stringResource(R.string.badge_sort_recommended), BadgeSort.RECENTLY_EARNED to stringResource(R.string.badge_sort_recent_earned),
@@ -177,6 +184,7 @@ fun BadgesScreen(
             else -> Unit
         }
     }
+    CompositionLocalProvider(LocalObjectiveBadgePresentationMetadata provides objectiveMetadata) {
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             RoomHeader(R.string.shell_badges_title, R.string.badges_hub_body)
@@ -312,6 +320,7 @@ fun BadgesScreen(
             confirmButton = { TextButton({ onAcknowledgeBackfill(summary.version) }) { Text(stringResource(R.string.badges_view_new)) } },
             dismissButton = { TextButton({ onAcknowledgeBackfill(summary.version) }) { Text(stringResource(R.string.mastery_continue)) } })
     }
+    }
 }
 
 @Composable internal fun PinReplacementDialog(uiState: ShellUiState, onPin: (String, String?) -> Unit, onDismiss: () -> Unit) {
@@ -385,6 +394,7 @@ internal fun badgeMedallionState(badge: BadgeProgressModel): BadgeMedallionState
                     BadgeArtworkKind.COMPLETIONIST -> CollectionBadgeArtwork(presentation, Icons.Outlined.WorkspacePremium, diameter)
                     BadgeArtworkKind.MASTERY -> Icon(Icons.Outlined.AutoAwesome, null, Modifier.size(diameter/2))
                     BadgeArtworkKind.ACTIVITY -> Icon(Icons.Outlined.Bolt, null, Modifier.size(diameter/2))
+                    BadgeArtworkKind.OBJECTIVE -> Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.TrackChanges, null, Modifier.size(diameter/2)); Text(presentation.centerLabel.orEmpty(), Modifier.align(Alignment.TopEnd).padding(5.dp), fontWeight = FontWeight.Black) }
                     BadgeArtworkKind.SPECIAL -> Icon(Icons.Outlined.Stars, null, Modifier.size(diameter/2))
                 }
                 if (badge.count > 0 && (badge.countType == BadgeCountType.REPEATABLE || badge.count > 1)) {

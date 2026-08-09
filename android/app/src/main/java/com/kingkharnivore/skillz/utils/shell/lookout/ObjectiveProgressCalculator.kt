@@ -5,6 +5,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectivePeriodTypes
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveSkippedCycleEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveTypes
+import com.kingkharnivore.skillz.domain.lookout.ObjectiveBadgeIdentity
 import java.time.Instant
 import java.time.ZoneId
 import javax.inject.Inject
@@ -175,7 +176,7 @@ class ObjectiveProgressCalculator @Inject constructor() {
     }
 
     fun objectiveBadgeKey(journeyId: Long, period: ObjectivePeriod): String =
-        "objective_badge_${journeyId}_${period.storageValue}"
+        ObjectiveBadgeIdentity.badgeId(journeyId, period.storageValue)
 
     private fun currentOrInitialWindow(
         objective: ObjectiveEntity,

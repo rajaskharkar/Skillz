@@ -35,6 +35,8 @@ class LookoutRepository @Inject constructor(
     fun observeUnclaimedCompletionCount(): Flow<Int> = completionDao.observeUnclaimedCompletionCount()
 
     suspend fun getActiveObjectives(): List<ObjectiveEntity> = objectiveDao.getActiveObjectives()
+    suspend fun getCompletions(): List<ObjectiveCompletionEntity> = completionDao.getCompletions()
+    suspend fun getSkippedCycles(): List<ObjectiveSkippedCycleEntity> = skippedCycleDao.getSkippedCycles()
     suspend fun insertObjective(objective: ObjectiveEntity): Long =
         objectiveDao.insertObjective(objective)
     suspend fun archiveObjective(id: Long) =
@@ -87,21 +89,28 @@ class LookoutRepository @Inject constructor(
             Int = db.withTransaction {
         val completion = completionDao.getCompletionById(completionId)
             ?: return@withTransaction 0
-        claimInTransaction(listOf(completion), "objective_completion", completion.id.toString())
+        if (completion.pearlsClaimed) return@withTransaction 0
+        val now = System.currentTimeMillis()
+        if (completionDao.markPearlsClaimed(completion.id, now) != 1) return@withTransaction 0
+        creditClaim(completion.finalRewardPearls, 1, "objective_completion", completion.id.toString(), now)
     }
 
     /** Claims every outstanding occurrence for one Objective definition atomically. */
-    suspend fun claimObjectiveHistory(objectiveId: Long): Int = db.withTransaction {
-        claimInTransaction(
-            completionDao.getUnclaimedForObjective(objectiveId),
-            "objective_history",
-            objectiveId.toString()
-        )
+    suspend fun claimAchievementRewards(badgeKey: String): Int = db.withTransaction {
+        val aggregate = completionDao.getUnclaimedAggregateForBadge(badgeKey)
+        if (aggregate.completionCount == 0) return@withTransaction 0
+        val now = System.currentTimeMillis()
+        check(completionDao.markBadgePearlsClaimed(badgeKey, now) == aggregate.completionCount)
+        creditClaim(aggregate.pearlTotal, aggregate.completionCount, "objective_achievement", badgeKey, now)
     }
 
     /** Claims the exact snapshot of all outstanding Objective rewards in one transaction. */
     suspend fun claimAllObjectiveRewards(): Int = db.withTransaction {
-        claimInTransaction(completionDao.getAllUnclaimed(), "objective_claim_all", null)
+        val aggregate = completionDao.getAllUnclaimedAggregate()
+        if (aggregate.completionCount == 0) return@withTransaction 0
+        val now = System.currentTimeMillis()
+        check(completionDao.markAllPearlsClaimed(now) == aggregate.completionCount)
+        creditClaim(aggregate.pearlTotal, aggregate.completionCount, "objective_claim_all", null, now)
     }
 
     suspend fun resetStreak(objectiveId: Long) {
@@ -122,17 +131,13 @@ class LookoutRepository @Inject constructor(
         )
     }
 
-    private suspend fun claimInTransaction(
-        candidates: List<ObjectiveCompletionEntity>,
+    private suspend fun creditClaim(
+        total: Int,
+        count: Int,
         sourceType: String,
-        sourceId: String?
+        sourceId: String?,
+        now: Long
     ): Int {
-        val eligible = candidates.filterNot { it.pearlsClaimed }
-        if (eligible.isEmpty()) return 0
-        val total = eligible.sumOf { it.finalRewardPearls }
-        val now = System.currentTimeMillis()
-        val updated = completionDao.markPearlsClaimed(eligible.map { it.id }, now)
-        check(updated == eligible.size) { "Objective rewards changed during claim" }
         if (total > 0) {
             pearlLedgerDao.insert(
                 PearlLedgerEntity(
@@ -142,7 +147,7 @@ class LookoutRepository @Inject constructor(
                     sourceType = sourceType,
                     sourceId = sourceId,
                     createdAt = now,
-                    note = "${eligible.size} Objective reward(s)"
+                    note = "$count Objective reward(s)"
                 )
             )
         }

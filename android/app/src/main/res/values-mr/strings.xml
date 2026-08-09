@@ -1610,7 +1610,7 @@
     <string name="lookout_back_to_objectives">लक्ष्यांकडे परत</string>
     <string name="lookout_achievements_empty_title">अजून उपलब्धी नाहीत.</string>
     <string name="lookout_achievements_empty_body" formatted="false">तुमची प्रगती 100% वर पोहोचल्यावर लक्ष्य उपलब्धी येथे दिसतील.</string>
-    <string name="lookout_history_row_title">%1$s %2$s लक्ष्य</string>
+    <string name="lookout_history_row_title">%1$s Objective</string>
     <string name="lookout_history_row_summary_claimed">%1$d पूर्णता · %2$d पर्ल्स क्लेम केले</string>
     <string name="lookout_history_row_summary_with_waiting">%1$d पूर्णता · %2$d पर्ल्स क्लेम केले · %3$d प्रतीक्षेत</string>
     <string name="lookout_history_last_completed">शेवटचे पूर्ण झाले %1$s</string>
@@ -1634,7 +1634,7 @@
     <string name="lookout_hours">तास</string>
     <string name="lookout_minutes">मिनिटे</string>
     <string name="lookout_monthly_helper">मासिक लक्ष्य 30 दिवस चालतात.</string>
-    <string name="lookout_recurring_helper" formatted="false">तुम्ही हे लक्ष्य प्रत्येक वेळी पूर्ण करता तेव्हा स्ट्रीक रिवॉर्ड्स +10% ने वाढतात.</string>
+    <string name="lookout_recurring_helper" formatted="false">Streak rewards grow by +10% each time you complete this Objective.</string>
     <string name="lookout_save_objective">लक्ष्य सेव्ह करा</string>
     <string name="lookout_claim">क्लेम करा</string>
     <string name="lookout_claimed">क्लेम केले</string>
@@ -2200,4 +2200,24 @@
     <string name="arc_details_close">Close Arc details</string>
     <string name="arc_details_character_count">%1$d/%2$d</string>
     <string name="common_retry">Retry</string>
+
+    <string name="badge_category_objectives">Objectives</string>
+    <string name="badge_objective_description">%1$s Objective completions for %2$s.</string>
+    <string name="badge_objective_fallback_description">Completed %1$s Objectives in The Lookout.</string>
+    <string name="badge_objective_fallback_title">%1$s Objective</string>
+    <string name="badge_objective_title">%1$s · %2$s Objective</string>
+    <string name="lookout_all_pearls_claimed">All Pearls Claimed!</string>
+    <string name="lookout_claim_from_objective_accessibility">Claim %1$d Pearls from %2$s Objective</string>
+    <string name="lookout_claim_pearls_accessibility">Claim %1$d Pearls</string>
+    <plurals name="lookout_from_completed_objectives">
+        <item quantity="one">From %1$d completed Objective</item>
+        <item quantity="other">From %1$d completed Objectives</item>
+    </plurals>
+    <string name="lookout_history_row_summary_earned">%1$d completions · %2$d Pearls earned</string>
+    <string name="lookout_no_rewards_waiting">No Objective rewards waiting</string>
+    <string name="lookout_pearls_claimed">%1$d Pearls claimed</string>
+    <string name="lookout_pearls_claimed_amount">%1$d Pearls claimed</string>
+    <string name="lookout_pearls_earned">%1$d Pearls earned</string>
+    <string name="lookout_pearls_unclaimed">%1$d Pearls unclaimed</string>
+    <string name="lookout_unclaimed_pearls">%1$d Unclaimed Pearls</string>
 </resources>

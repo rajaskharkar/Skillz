@@ -498,7 +498,7 @@ private fun EmptyPeriodState(period: ObjectivePeriod) {
 private fun CompletedHistoryView(
     groups: List<CompletedObjectiveHistoryGroupUiState>,
     claimInProgress: Boolean,
-    onClaim: (Long) -> Unit
+    onClaim: (String) -> Unit
 ) {
     LazyColumn(contentPadding = PaddingValues(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (groups.isEmpty()) {
@@ -533,7 +533,7 @@ private fun CompletedHistoryView(
                                             fontWeight = FontWeight.SemiBold
                                         )
                                         FilledTonalButton(
-                                            onClick = { onClaim(row.objectiveId) },
+                                            onClick = { onClaim(row.achievementKey) },
                                             enabled = !claimInProgress,
                                             modifier = Modifier.semantics {
                                                 contentDescription = claimDescription
