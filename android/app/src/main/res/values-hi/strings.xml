@@ -1661,7 +1661,6 @@
     <string name="lookout_time_left">समय बचा: %1$s</string>
     <string name="lookout_starts_in">शुरू होगा: %1$s में</string>
     <string name="lookout_completed_next_reset">इस चक्र के लिए पूरा · अगला रीसेट: %1$s</string>
-    <string name="lookout_pearls_value">%1$d पर्ल्स</string>
     <string name="lookout_badge_reward">%1$s %2$s लक्ष्य बैज +1</string>
     <string name="lookout_reward">रिवॉर्ड</string>
     <string name="lookout_card_period_type">%1$s · %2$s</string>
@@ -2207,17 +2206,42 @@
     <string name="badge_objective_fallback_title">%1$s Objective</string>
     <string name="badge_objective_title">%1$s · %2$s Objective</string>
     <string name="lookout_all_pearls_claimed">All Pearls Claimed!</string>
-    <string name="lookout_claim_from_objective_accessibility">Claim %1$d Pearls from %2$s Objective</string>
-    <string name="lookout_claim_pearls_accessibility">Claim %1$d Pearls</string>
     <plurals name="lookout_from_completed_objectives">
         <item quantity="one">From %1$d completed Objective</item>
         <item quantity="other">From %1$d completed Objectives</item>
     </plurals>
-    <string name="lookout_history_row_summary_earned">%1$d completions · %2$d Pearls earned</string>
     <string name="lookout_no_rewards_waiting">No Objective rewards waiting</string>
-    <string name="lookout_pearls_claimed">%1$d Pearls claimed</string>
-    <string name="lookout_pearls_claimed_amount">%1$d Pearls claimed</string>
-    <string name="lookout_pearls_earned">%1$d Pearls earned</string>
-    <string name="lookout_pearls_unclaimed">%1$d Pearls unclaimed</string>
-    <string name="lookout_unclaimed_pearls">%1$d Unclaimed Pearls</string>
+    <plurals name="lookout_unclaimed_pearls">
+        <item quantity="one">1 बिना दावा किया मोती</item>
+        <item quantity="other">%1$d बिना दावा किए मोती</item>
+    </plurals>
+    <plurals name="lookout_pearls_unclaimed">
+        <item quantity="one">1 मोती बिना दावा किया</item>
+        <item quantity="other">%1$d मोती बिना दावा किए</item>
+    </plurals>
+    <plurals name="lookout_pearls_earned">
+        <item quantity="one">1 मोती अर्जित</item>
+        <item quantity="other">%1$d मोती अर्जित</item>
+    </plurals>
+    <plurals name="lookout_pearls_claimed">
+        <item quantity="one">1 मोती दावा किया</item>
+        <item quantity="other">%1$d मोती दावा किए</item>
+    </plurals>
+    <plurals name="lookout_claim_pearls_accessibility">
+        <item quantity="one">1 मोती का दावा करें</item>
+        <item quantity="other">%1$d मोतियों का दावा करें</item>
+    </plurals>
+    <plurals name="lookout_claim_from_objective_accessibility">
+        <item quantity="one">%2$s लक्ष्य से 1 मोती का दावा करें</item>
+        <item quantity="other">%2$s लक्ष्य से %1$d मोतियों का दावा करें</item>
+    </plurals>
+    <plurals name="lookout_completion_count">
+        <item quantity="one">1 पूर्णता</item>
+        <item quantity="other">%1$d पूर्णताएँ</item>
+    </plurals>
+    <string name="lookout_history_summary_separator">%1$s · %2$s</string>
+    <plurals name="lookout_pearls_value">
+        <item quantity="one">1 मोती</item>
+        <item quantity="other">%1$d मोती</item>
+    </plurals>
 </resources>

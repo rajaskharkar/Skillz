@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.viewmodel.shell
 
 import android.content.Context
 import androidx.annotation.StringRes
+import androidx.annotation.PluralsRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.R
@@ -38,6 +39,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.kingkharnivore.skillz.domain.lookout.objectiveJourneyPresentationNames
 
 private const val MILLIS_PER_MINUTE = 60_000L
 private const val LOOKOUT_TICK_MS = 60_000L
@@ -97,6 +99,7 @@ data class ObjectiveCardUiState(
 )
 
 data class CompletedObjectiveHistoryGroupUiState(
+    val journeyId: Long,
     val journeyName: String,
     val rows: List<CompletedObjectiveHistoryRowUiState>,
     val lastCompletedAt: Long
@@ -285,7 +288,7 @@ class LookoutViewModel @Inject constructor(
         _uiState.update { it.copy(claimInProgress = true) }
         try {
             val claimed = block()
-            if (claimed > 0) _events.emit(text(R.string.lookout_pearls_claimed_amount, claimed))
+            if (claimed > 0) _events.emit(plural(R.plurals.lookout_pearls_claimed, claimed))
         } finally {
             _uiState.update { it.copy(claimInProgress = false) }
         }
@@ -408,7 +411,7 @@ class LookoutViewModel @Inject constructor(
                     text(R.string.lookout_completed)
                 }
             },
-            estimatedRewardLabel = completion?.let { text(R.string.lookout_pearls_earned, it.finalRewardPearls) } ?: text(R.string.lookout_pearls_value, targetPearls),
+            estimatedRewardLabel = completion?.let { plural(R.plurals.lookout_pearls_earned, it.finalRewardPearls) } ?: plural(R.plurals.lookout_pearls_value, targetPearls.toInt()),
             isRecurring = kind == ObjectiveKind.Recurring,
             currentStreak = if (kind == ObjectiveKind.Recurring) effectiveCurrentStreak else null,
             maxStreak = if (kind == ObjectiveKind.Recurring) objective.maxStreak else null,
@@ -424,8 +427,9 @@ class LookoutViewModel @Inject constructor(
     private fun List<ObjectiveCompletionEntity>.toCompletedHistory(): List<CompletedObjectiveHistoryGroupUiState> {
         val zone = ZoneId.systemDefault()
         val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault())
-        return groupBy { it.journeyId to it.journeyNameSnapshot }
-            .map { (journeyKey, journeyCompletions) ->
+        val journeyNames = objectiveJourneyPresentationNames(this)
+        return groupBy { it.journeyId }
+            .map { (journeyId, journeyCompletions) ->
                 val rows = journeyCompletions
                     .groupBy { it.badgeKey }
                     .map { (badgeKey, periodCompletions) ->
@@ -438,7 +442,11 @@ class LookoutViewModel @Inject constructor(
                         CompletedObjectiveHistoryRowUiState(
                             achievementKey = badgeKey,
                             title = text(R.string.lookout_history_row_title, periodLabel(period)),
-                            summary = text(R.string.lookout_history_row_summary_earned, count, earnedPearls),
+                            summary = text(
+                                R.string.lookout_history_summary_separator,
+                                plural(R.plurals.lookout_completion_count, count),
+                                plural(R.plurals.lookout_pearls_earned, earnedPearls)
+                            ),
                             lastCompletedLabel = text(
                                 R.string.lookout_history_last_completed,
                                 dateFormatter.format(Instant.ofEpochMilli(lastCompleted).atZone(zone))
@@ -449,7 +457,10 @@ class LookoutViewModel @Inject constructor(
                     }
                     .sortedBy { it.periodOrder }
                 CompletedObjectiveHistoryGroupUiState(
-                    journeyName = journeyKey.second,
+                    journeyId = journeyId,
+                    journeyName = journeyNames[journeyId]
+                        ?: journeyCompletions.firstOrNull { it.journeyId == journeyId }
+                            ?.journeyNameSnapshot.orEmpty(),
                     rows = rows,
                     lastCompletedAt = journeyCompletions.maxOf { it.completedAt }
                 )
@@ -520,4 +531,6 @@ class LookoutViewModel @Inject constructor(
     }
 
     private fun text(@StringRes resId: Int, vararg args: Any): String = context.getString(resId, *args)
+    private fun plural(@PluralsRes resId: Int, quantity: Int): String =
+        context.resources.getQuantityString(resId, quantity, quantity)
 }

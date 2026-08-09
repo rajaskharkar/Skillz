@@ -225,7 +225,7 @@ class ObjectiveProgressCalculator @Inject constructor() {
         return total
     }
 
-    private fun buildGrant(
+    fun buildGrant(
         objective: ObjectiveEntity,
         kind: ObjectiveKind,
         window: ObjectiveWindow,

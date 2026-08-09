@@ -73,7 +73,7 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
     val arcBadgesTitle = stringResource(R.string.reward_card_arc_badges_title)
     val arcShellShapedBody = stringResource(R.string.reward_card_arc_shell_shaped_body)
 
-        return object : RewardRevealTextProvider {
+    return object : RewardRevealTextProvider {
         override fun scyraPoints(points: Int) = scyraPointsTemplate.format(points)
         override fun pointsDelta(points: Int) = pointsDeltaTemplate.format(points)
         override fun minutes(minutes: Int) = minutesTemplate.format(minutes)

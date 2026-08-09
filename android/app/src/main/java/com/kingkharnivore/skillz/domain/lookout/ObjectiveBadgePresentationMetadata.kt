@@ -13,7 +13,9 @@ fun objectiveBadgePresentationMetadata(
     completions: List<ObjectiveCompletionEntity>
 ): Map<String, ObjectiveBadgePresentationMetadata> = completions
     .asSequence()
-    .filter { ObjectiveBadgeIdentity.fromBadgeId(it.badgeKey) != null }
+    .filter {
+        ObjectiveBadgeIdentity.fromBadgeId(it.badgeKey) != null && it.journeyNameSnapshot.isNotBlank()
+    }
     .sortedWith(compareBy<ObjectiveCompletionEntity> { it.completedAt }.thenBy { it.id })
     .distinctBy { it.badgeKey }
     .associate { completion ->
@@ -24,3 +26,11 @@ fun objectiveBadgePresentationMetadata(
             completion.periodType
         )
     }
+
+fun objectiveJourneyPresentationNames(
+    completions: List<ObjectiveCompletionEntity>
+): Map<Long, String> = completions.asSequence()
+    .filter { it.journeyNameSnapshot.isNotBlank() }
+    .sortedWith(compareBy<ObjectiveCompletionEntity> { it.completedAt }.thenBy { it.id })
+    .distinctBy { it.journeyId }
+    .associate { it.journeyId to it.journeyNameSnapshot }

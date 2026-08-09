@@ -286,7 +286,7 @@ class SkillzMigrationTest {
         helper.createDatabase("$TEST_DB-$startVersion", startVersion).close()
         val db = helper.runMigrationsAndValidate(
             "$TEST_DB-$startVersion",
-            36,
+            38,
             true,
             *SkillzDatabaseMigrations.ALL_MIGRATIONS
         )
@@ -299,7 +299,7 @@ class SkillzMigrationTest {
             "badge_tracking",
             "mastery_celebration_event",
             "badge_count_floor"
-        ).forEach { assertTrue("Expected $it after $startVersion→36", db.tableExists(it)) }
+        ).forEach { assertTrue("Expected $it after $startVersion→38", db.tableExists(it)) }
         db.close()
     }
 
@@ -378,6 +378,19 @@ class SkillzMigrationTest {
         ).use { cursor ->
             cursor.moveToFirst()
         }
+
+    @Test fun migration37To38AddsObjectiveProcessingJournalWithoutChangingHistory() {
+        helper.createDatabase(TEST_DB, 37).apply {
+            execSQL("INSERT INTO tags (id,name,createdAt) VALUES (1,'Journey',1)")
+            execSQL("INSERT INTO sessions (id,title,description,tagId,startTime,endTime,durationMs,surgePlannedMs,surgePoints,scyraPoints,isSoftMode,arcId,arcIndex,arcMultiplierUsed,arcBonusPoints,createdAt) VALUES (1,'Flow','',1,1,2,1,NULL,0,1,0,NULL,NULL,NULL,0,1)")
+            close()
+        }
+        val db = helper.runMigrationsAndValidate(TEST_DB, 38, true, SkillzDatabaseMigrations.MIGRATION_37_38)
+        assertTrue(db.tableExists("objective_processed_session"))
+        assertEquals(1, db.countRows("sessions", "1 = 1", emptyArray()))
+        assertEquals(0, db.countRows("objective_processed_session", "1 = 1", emptyArray()))
+        db.close()
+    }
 
     private companion object {
         const val TEST_DB = "skillz-migration-test"

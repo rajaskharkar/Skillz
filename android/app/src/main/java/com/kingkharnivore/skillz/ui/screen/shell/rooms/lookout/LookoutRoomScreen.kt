@@ -39,6 +39,7 @@ import androidx.compose.material.icons.outlined.Event
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -295,7 +296,7 @@ private fun LookoutRewardStatus(
     isClaiming: Boolean,
     onClaim: () -> Unit
 ) {
-    val claimDescription = stringResource(R.string.lookout_claim_pearls_accessibility, pearls)
+    val claimDescription = pluralStringResource(R.plurals.lookout_claim_pearls_accessibility, pearls, pearls)
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -305,7 +306,7 @@ private fun LookoutRewardStatus(
         else Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         Column(Modifier.weight(1f)) {
             Text(
-                if (pearls > 0) stringResource(R.string.lookout_unclaimed_pearls, pearls)
+                if (pearls > 0) pluralStringResource(R.plurals.lookout_unclaimed_pearls, pearls, pearls)
                 else stringResource(R.string.lookout_all_pearls_claimed),
                 fontWeight = FontWeight.Bold
             )
@@ -320,6 +321,10 @@ private fun LookoutRewardStatus(
             FilledTonalButton(
                 onClick = onClaim,
                 enabled = !isClaiming,
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                ),
                 modifier = Modifier.semantics {
                     contentDescription = claimDescription
                 }
@@ -455,7 +460,7 @@ private fun ObjectiveCard(card: ObjectiveCardUiState, onClaimClick: (Long) -> Un
                     ObjectiveCardState.Completed -> {
                         if (card.pearlsClaimed) {
                             Text(
-                                stringResource(R.string.lookout_pearls_claimed, card.rewardPearls ?: 0),
+                                pluralStringResource(R.plurals.lookout_pearls_claimed, card.rewardPearls ?: 0, card.rewardPearls ?: 0),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -511,14 +516,14 @@ private fun CompletedHistoryView(
                 }
             }
         } else {
-            items(groups, key = { it.journeyName }) { group ->
+            items(groups, key = { it.journeyId }) { group ->
                 ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)), shape = RoundedCornerShape(24.dp)) {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(group.journeyName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         group.rows.forEach { row ->
-                            val claimDescription = stringResource(
-                                R.string.lookout_claim_from_objective_accessibility,
-                                row.unclaimedPearls,
+                            val claimDescription = pluralStringResource(
+                                R.plurals.lookout_claim_from_objective_accessibility,
+                                row.unclaimedPearls, row.unclaimedPearls,
                                 group.journeyName
                             )
                             Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -528,13 +533,17 @@ private fun CompletedHistoryView(
                                 if (row.unclaimedPearls > 0) {
                                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                         Text(
-                                            stringResource(R.string.lookout_pearls_unclaimed, row.unclaimedPearls),
+                                            pluralStringResource(R.plurals.lookout_pearls_unclaimed, row.unclaimedPearls, row.unclaimedPearls),
                                             modifier = Modifier.weight(1f),
                                             fontWeight = FontWeight.SemiBold
                                         )
                                         FilledTonalButton(
                                             onClick = { onClaim(row.achievementKey) },
                                             enabled = !claimInProgress,
+                                            colors = ButtonDefaults.filledTonalButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                            ),
                                             modifier = Modifier.semantics {
                                                 contentDescription = claimDescription
                                             }

@@ -17,7 +17,8 @@ import androidx.room.PrimaryKey
     ],
     indices = [
         Index("tagId"),
-        Index("arcId")
+        Index("arcId"),
+        Index(value = ["tagId", "isSoftMode", "endTime"])
     ]
 )
 data class SessionEntity(

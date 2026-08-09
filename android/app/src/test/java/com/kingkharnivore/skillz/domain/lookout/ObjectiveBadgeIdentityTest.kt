@@ -37,6 +37,7 @@ class ObjectiveBadgeIdentityTest {
         val metadata = objectiveBadgePresentationMetadata(listOf(later, earlier)).getValue(earlier.badgeKey)
         assertEquals("Original", metadata.journeyNameSnapshot)
         assertEquals(42, metadata.journeyId)
+        assertEquals("Original", objectiveJourneyPresentationNames(listOf(later, earlier))[42])
     }
 
     private fun completion(id: Long, completedAt: Long, name: String) = ObjectiveCompletionEntity(

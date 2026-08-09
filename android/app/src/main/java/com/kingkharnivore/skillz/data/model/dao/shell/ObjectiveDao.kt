@@ -7,6 +7,8 @@ import androidx.room.Query
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveCompletionEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveSkippedCycleEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveProcessedSessionEntity
+import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import kotlinx.coroutines.flow.Flow
 
 data class ObjectiveClaimAggregate(val pearlTotal: Int, val completionCount: Int)
@@ -46,8 +48,6 @@ interface ObjectiveDao {
         updatedAt: Long
     )
 
-    @Query("UPDATE objectives SET currentStreak = 0, updatedAt = :updatedAt WHERE id = :id")
-    suspend fun resetStreak(id: Long, updatedAt: Long)
 }
 
 @Dao
@@ -106,4 +106,16 @@ interface ObjectiveSkippedCycleDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertSkippedCycle(entity: ObjectiveSkippedCycleEntity): Long
+}
+
+@Dao
+interface ObjectiveProcessedSessionDao {
+    @Query("SELECT s.* FROM sessions s LEFT JOIN objective_processed_session p ON p.sessionId = s.id WHERE s.isSoftMode = 0 AND p.sessionId IS NULL ORDER BY s.endTime, s.id")
+    suspend fun getUnprocessedRegularSessions(): List<SessionEntity>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun markProcessed(entity: ObjectiveProcessedSessionEntity): Long
+
+    @Query("SELECT COUNT(*) FROM objective_processed_session")
+    suspend fun processedCount(): Int
 }

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.kingkharnivore.skillz.domain.lookout.RecurringObjectiveStats
 
 @Singleton
 class LookoutRepository @Inject constructor(
@@ -113,8 +114,10 @@ class LookoutRepository @Inject constructor(
         creditClaim(aggregate.pearlTotal, aggregate.completionCount, "objective_claim_all", null, now)
     }
 
-    suspend fun resetStreak(objectiveId: Long) {
-        objectiveDao.resetStreak(objectiveId, System.currentTimeMillis())
+    suspend fun updateRecurringStats(objectiveId: Long, stats: RecurringObjectiveStats, updatedAt: Long) {
+        objectiveDao.updateRecurringStats(
+            objectiveId, stats.currentStreak, stats.maxStreak, stats.totalCompletions, updatedAt
+        )
     }
 
     private suspend fun incrementBadgeInTransaction(badgeId: String, now: Long) {
