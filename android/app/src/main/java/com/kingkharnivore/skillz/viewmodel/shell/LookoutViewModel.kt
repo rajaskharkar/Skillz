@@ -314,13 +314,13 @@ class LookoutViewModel @Inject constructor(
 
     fun deleteOneTimeObjective() = viewModelScope.launch {
         val dialog = _uiState.value.removeDialog ?: return@launch
-        lookoutRepository.archiveObjective(dialog.objectiveId)
+        objectiveCompletionProcessor.archiveObjectiveSafely(dialog.objectiveId)
         _uiState.update { it.copy(removeDialog = null) }
     }
 
     fun stopRecurringObjective() = viewModelScope.launch {
         val dialog = _uiState.value.removeDialog ?: return@launch
-        lookoutRepository.archiveObjective(dialog.objectiveId)
+        objectiveCompletionProcessor.archiveObjectiveSafely(dialog.objectiveId)
         _uiState.update { it.copy(removeDialog = null) }
     }
 

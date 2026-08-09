@@ -15,6 +15,10 @@ import java.time.Instant
 import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+const val OBJECTIVE_RECONCILIATION_BATCH_SIZE = 200
 
 /** Durable, UI-independent materialization of Objective occurrences from saved sessions. */
 @Singleton
@@ -25,15 +29,35 @@ class ObjectiveCompletionProcessor @Inject constructor(
     private val lookoutRepository: LookoutRepository,
     private val calculator: ObjectiveProgressCalculator
 ) {
-    suspend fun createObjectiveAndReconcile(objective: ObjectiveEntity): Long = database.withTransaction {
-        val objectiveId = lookoutRepository.insertObjective(objective)
-        reconcileObjectiveInTransaction(objective.copy(id = objectiveId), Instant.now(), ZoneId.systemDefault())
-        objectiveId
+    private val reconciliationMutex = Mutex()
+
+    suspend fun createObjectiveAndReconcile(objective: ObjectiveEntity): Long = reconciliationMutex.withLock {
+        database.withTransaction {
+            val objectiveId = lookoutRepository.insertObjective(objective)
+            reconcileObjectiveInTransaction(objective.copy(id = objectiveId), Instant.now(), ZoneId.systemDefault())
+            objectiveId
+        }
     }
 
-    suspend fun reconcileNewObjective(objectiveId: Long): Boolean = database.withTransaction {
-        val objective = lookoutRepository.getObjective(objectiveId) ?: return@withTransaction false
-        reconcileObjectiveInTransaction(objective, Instant.now(), ZoneId.systemDefault())
+    suspend fun reconcileNewObjective(objectiveId: Long): Boolean = reconciliationMutex.withLock {
+        database.withTransaction {
+            val objective = lookoutRepository.getObjective(objectiveId) ?: return@withTransaction false
+            if (objective.isArchived) return@withTransaction false
+            reconcileObjectiveInTransaction(objective, Instant.now(), ZoneId.systemDefault())
+        }
+    }
+
+    suspend fun archiveObjectiveSafely(objectiveId: Long): Boolean = reconciliationMutex.withLock {
+        database.withTransaction {
+            val objective = lookoutRepository.getObjective(objectiveId) ?: return@withTransaction false
+            if (objective.isArchived) return@withTransaction false
+            val mutationTime = System.currentTimeMillis().coerceAtLeast(objective.createdAt)
+            reconcileObjectiveInTransaction(
+                objective, Instant.ofEpochMilli(mutationTime), ZoneId.systemDefault(), mutationTime
+            )
+            lookoutRepository.archiveObjective(objectiveId, mutationTime)
+            true
+        }
     }
 
     suspend fun processCompletedSession(savedSession: SessionEntity) {
@@ -42,18 +66,21 @@ class ObjectiveCompletionProcessor @Inject constructor(
     }
 
     /** Startup and hot-path entry point; work scales with unprocessed sessions, not lifetime history. */
-    suspend fun reconcileUnprocessedSessions(): Int {
-        val pending = processedSessionDao.getUnprocessedRegularSessions()
-        if (pending.isEmpty()) return 0
+    suspend fun reconcileUnprocessedSessions(): Int = reconciliationMutex.withLock {
+        var totalProcessed = 0
         val zoneId = ZoneId.systemDefault()
-        pending.forEachIndexed { index, session ->
-            processOne(
-                session, zoneId,
-                if (index == pending.lastIndex) Instant.now() else Instant.ofEpochMilli(session.endTime),
-                rebuildAllStats = index == pending.lastIndex
-            )
+        while (true) {
+            val pending = processedSessionDao.getUnprocessedRegularSessions(OBJECTIVE_RECONCILIATION_BATCH_SIZE)
+            if (pending.isEmpty()) break
+            pending.forEachIndexed { index, session ->
+                processOne(
+                    session, zoneId, Instant.now(),
+                    rebuildAllStats = index == pending.lastIndex
+                )
+            }
+            totalProcessed += pending.size
         }
-        return pending.size
+        totalProcessed
     }
 
     private suspend fun processOne(
@@ -67,6 +94,7 @@ class ObjectiveCompletionProcessor @Inject constructor(
         val skipped = lookoutRepository.getSkippedCycles()
         val completions = lookoutRepository.getCompletions().toMutableList()
         val eventTime = Instant.ofEpochMilli(session.endTime)
+        val mutationTime = System.currentTimeMillis()
         val completedObjectiveIds = mutableSetOf<Long>()
 
         objectives.forEach { objective ->
@@ -109,7 +137,9 @@ class ObjectiveCompletionProcessor @Inject constructor(
                 val stats = RecurringObjectiveStatsCalculator.derive(
                     objective, completions, skipped, statsAsOf, zoneId, calculator
                 )
-                lookoutRepository.updateRecurringStats(objective.id, stats, session.endTime)
+                lookoutRepository.updateRecurringStats(
+                    objective.id, stats, mutationTime.coerceAtLeast(objective.createdAt)
+                )
             }
         }
         processedSessionDao.markProcessed(ObjectiveProcessedSessionEntity(session.id, System.currentTimeMillis()))
@@ -118,7 +148,8 @@ class ObjectiveCompletionProcessor @Inject constructor(
     private suspend fun reconcileObjectiveInTransaction(
         objective: ObjectiveEntity,
         now: Instant,
-        zoneId: ZoneId
+        zoneId: ZoneId,
+        mutationTime: Long = System.currentTimeMillis().coerceAtLeast(objective.createdAt)
     ): Boolean {
         val window = calculator.windowFor(objective, now, zoneId)
         val skipped = lookoutRepository.getSkippedCycles()
@@ -148,7 +179,7 @@ class ObjectiveCompletionProcessor @Inject constructor(
             val stats = RecurringObjectiveStatsCalculator.derive(
                 objective, completions, skipped, now, zoneId, calculator
             )
-            lookoutRepository.updateRecurringStats(objective.id, stats, evidence.completedAtMs)
+            lookoutRepository.updateRecurringStats(objective.id, stats, mutationTime)
         }
         return true
     }

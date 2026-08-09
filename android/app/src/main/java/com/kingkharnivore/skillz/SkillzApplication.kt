@@ -1,6 +1,9 @@
 package com.kingkharnivore.skillz
 
 import android.app.Application
+import android.app.Activity
+import android.os.Bundle
+import android.util.Log
 import com.kingkharnivore.skillz.utils.localization.AppLocaleManager
 import com.kingkharnivore.skillz.utils.user.UserPrefs
 import dagger.hilt.android.HiltAndroidApp
@@ -29,6 +32,24 @@ class SkillzApplication : Application() {
             val savedTag = userPrefs.appLanguageTag.first()
             AppLocaleManager.applyLanguage(savedTag)
         }
-        applicationScope.launch { objectiveCompletionProcessor.reconcileUnprocessedSessions() }
+        launchObjectiveReconciliation("startup")
+        registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
+            override fun onActivityStarted(activity: Activity) {
+                launchObjectiveReconciliation("foreground")
+            }
+            override fun onActivityCreated(activity: Activity, state: Bundle?) = Unit
+            override fun onActivityResumed(activity: Activity) = Unit
+            override fun onActivityPaused(activity: Activity) = Unit
+            override fun onActivityStopped(activity: Activity) = Unit
+            override fun onActivitySaveInstanceState(activity: Activity, state: Bundle) = Unit
+            override fun onActivityDestroyed(activity: Activity) = Unit
+        })
+    }
+
+    private fun launchObjectiveReconciliation(trigger: String) {
+        applicationScope.launch {
+            runCatching { objectiveCompletionProcessor.reconcileUnprocessedSessions() }
+                .onFailure { error -> Log.e("ObjectiveReconciliation", "$trigger reconciliation failed", error) }
+        }
     }
 }

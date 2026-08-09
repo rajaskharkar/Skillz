@@ -41,8 +41,8 @@ class LookoutRepository @Inject constructor(
     suspend fun getSkippedCycles(): List<ObjectiveSkippedCycleEntity> = skippedCycleDao.getSkippedCycles()
     suspend fun insertObjective(objective: ObjectiveEntity): Long =
         objectiveDao.insertObjective(objective)
-    suspend fun archiveObjective(id: Long) =
-        objectiveDao.archiveObjective(id, System.currentTimeMillis())
+    suspend fun archiveObjective(id: Long, updatedAtMs: Long = System.currentTimeMillis()) =
+        objectiveDao.archiveObjective(id, updatedAtMs)
 
     suspend fun skipCycle(objectiveId: Long, periodStartMs: Long, periodEndMs: Long) {
         skippedCycleDao.insertSkippedCycle(
@@ -115,9 +115,9 @@ class LookoutRepository @Inject constructor(
         creditClaim(aggregate.pearlTotal, aggregate.completionCount, "objective_claim_all", null, now)
     }
 
-    suspend fun updateRecurringStats(objectiveId: Long, stats: RecurringObjectiveStats, updatedAt: Long) {
+    suspend fun updateRecurringStats(objectiveId: Long, stats: RecurringObjectiveStats, updatedAtMs: Long) {
         objectiveDao.updateRecurringStats(
-            objectiveId, stats.currentStreak, stats.maxStreak, stats.totalCompletions, updatedAt
+            objectiveId, stats.currentStreak, stats.maxStreak, stats.totalCompletions, updatedAtMs
         )
     }
 

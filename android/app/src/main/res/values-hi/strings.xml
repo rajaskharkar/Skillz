@@ -1610,7 +1610,7 @@
     <string name="lookout_back_to_objectives">लक्ष्यों पर वापस</string>
     <string name="lookout_achievements_empty_title">अभी कोई उपलब्धि नहीं।</string>
     <string name="lookout_achievements_empty_body" formatted="false">जब आपकी प्रगति 100% तक पहुँचेगी, लक्ष्य उपलब्धियाँ यहाँ दिखेंगी।</string>
-    <string name="lookout_history_row_title">%1$s Objective</string>
+    <string name="lookout_history_row_title">%1$s लक्ष्य</string>
     <string name="lookout_history_row_summary_claimed">%1$d बार पूरे · %2$d पर्ल्स क्लेम किए</string>
     <string name="lookout_history_row_summary_with_waiting">%1$d बार पूरे · %2$d पर्ल्स क्लेम किए · %3$d इंतज़ार में</string>
     <string name="lookout_history_last_completed">आखिरी बार पूरा हुआ %1$s</string>
@@ -1634,7 +1634,7 @@
     <string name="lookout_hours">घंटे</string>
     <string name="lookout_minutes">मिनट</string>
     <string name="lookout_monthly_helper">मासिक लक्ष्य 30 दिनों तक चलते हैं।</string>
-    <string name="lookout_recurring_helper" formatted="false">Streak rewards grow by +10% each time you complete this Objective.</string>
+    <string name="lookout_recurring_helper" formatted="false">हर पूर्णता स्ट्रीक इनाम बढ़ाती है: +10%.</string>
     <string name="lookout_save_objective">लक्ष्य सहेजें</string>
     <string name="lookout_claim">क्लेम करें</string>
     <string name="lookout_claimed">क्लेम किया गया</string>
@@ -2200,17 +2200,17 @@
     <string name="arc_details_character_count">%1$d/%2$d</string>
     <string name="common_retry">Retry</string>
 
-    <string name="badge_category_objectives">Objectives</string>
-    <string name="badge_objective_description">%1$s Objective completions for %2$s.</string>
-    <string name="badge_objective_fallback_description">Completed %1$s Objectives in The Lookout.</string>
-    <string name="badge_objective_fallback_title">%1$s Objective</string>
-    <string name="badge_objective_title">%1$s · %2$s Objective</string>
-    <string name="lookout_all_pearls_claimed">All Pearls Claimed!</string>
+    <string name="badge_category_objectives">लक्ष्य</string>
+    <string name="badge_objective_description">%1$s लक्ष्य completions for %2$s.</string>
+    <string name="badge_objective_fallback_description">Completed %1$s लक्ष्यs in The Lookout.</string>
+    <string name="badge_objective_fallback_title">%1$s लक्ष्य</string>
+    <string name="badge_objective_title">%1$s · %2$s लक्ष्य</string>
+    <string name="lookout_all_pearls_claimed">सभी मोती दावा किए गए!</string>
     <plurals name="lookout_from_completed_objectives">
-        <item quantity="one">From %1$d completed Objective</item>
-        <item quantity="other">From %1$d completed Objectives</item>
+        <item quantity="one">%1$d पूरे किए गए लक्ष्य से</item>
+        <item quantity="other">%1$d पूरे किए गए लक्ष्य सेs</item>
     </plurals>
-    <string name="lookout_no_rewards_waiting">No Objective rewards waiting</string>
+    <string name="lookout_no_rewards_waiting">कोई लक्ष्य इनाम प्रतीक्षा में नहीं</string>
     <plurals name="lookout_unclaimed_pearls">
         <item quantity="one">1 बिना दावा किया मोती</item>
         <item quantity="other">%1$d बिना दावा किए मोती</item>

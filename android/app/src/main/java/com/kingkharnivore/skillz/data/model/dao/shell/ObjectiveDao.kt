@@ -110,8 +110,8 @@ interface ObjectiveSkippedCycleDao {
 
 @Dao
 interface ObjectiveProcessedSessionDao {
-    @Query("SELECT s.* FROM sessions s LEFT JOIN objective_processed_session p ON p.sessionId = s.id WHERE s.isSoftMode = 0 AND p.sessionId IS NULL ORDER BY s.endTime, s.id")
-    suspend fun getUnprocessedRegularSessions(): List<SessionEntity>
+    @Query("SELECT s.* FROM sessions s LEFT JOIN objective_processed_session p ON p.sessionId = s.id WHERE s.isSoftMode = 0 AND p.sessionId IS NULL ORDER BY s.endTime, s.id LIMIT :limit")
+    suspend fun getUnprocessedRegularSessions(limit: Int): List<SessionEntity>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun markProcessed(entity: ObjectiveProcessedSessionEntity): Long

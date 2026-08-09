@@ -12,6 +12,8 @@ import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.domain.lookout.ObjectiveCompletionProcessor
 import com.kingkharnivore.skillz.utils.shell.lookout.ObjectiveProgressCalculator
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import java.time.LocalDate
 import java.time.ZoneId
 import org.junit.After
@@ -151,16 +153,17 @@ class LookoutRewardClaimTest {
         assertEquals(1, rows[1].finalRewardPearls)
         assertEquals(2, db.objectiveDao().getObjective(rows[0].objectiveId)?.maxStreak)
         assertEquals(2, db.objectiveDao().getObjective(rows[0].objectiveId)?.totalCompletions)
+        assertEquals(true, requireNotNull(db.objectiveDao().getObjective(rows[0].objectiveId)).updatedAt >= day)
     }
 
     @Test fun hotPathSelectsOnlyUnprocessedSessions() = runBlocking {
         db.tagDao().insertTag(TagEntity(id = 9, name = "History", createdAt = 1))
-        repeat(100) { index ->
+        repeat(450) { index ->
             val id = db.sessionDao().insertSession(SessionEntity(
                 title = "Flow", description = "", tagId = 9, startTime = index * 2L,
                 endTime = index * 2L + 1, durationMs = 1, isSoftMode = false
             ))
-            if (index < 99) db.objectiveProcessedSessionDao().markProcessed(
+            if (index < 10) db.objectiveProcessedSessionDao().markProcessed(
                 ObjectiveProcessedSessionEntity(id, index.toLong())
             )
         }
@@ -168,26 +171,37 @@ class LookoutRewardClaimTest {
             db, db.sessionDao(), db.objectiveProcessedSessionDao(), repository,
             ObjectiveProgressCalculator()
         )
-        assertEquals(1, processor.reconcileUnprocessedSessions())
-        assertEquals(100, db.objectiveProcessedSessionDao().processedCount())
+        val firstBatch = db.objectiveProcessedSessionDao().getUnprocessedRegularSessions(
+            com.kingkharnivore.skillz.domain.lookout.OBJECTIVE_RECONCILIATION_BATCH_SIZE
+        )
+        assertEquals(200, firstBatch.size)
+        assertEquals(firstBatch.sortedWith(compareBy<SessionEntity> { it.endTime }.thenBy { it.id }), firstBatch)
+        assertEquals(440, processor.reconcileUnprocessedSessions())
+        assertEquals(450, db.objectiveProcessedSessionDao().processedCount())
     }
 
     @Test fun processedFlowCompletesObjectiveCreatedLaterWithoutChangingJournal() = runBlocking {
         val start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         db.tagDao().insertTag(TagEntity(id = 11, name = "Piano", createdAt = start))
-        val sessionId = db.sessionDao().insertSession(regularSession(11, start + 1, 60))
+        val crossingTime = start + 1
+        val createdAt = System.currentTimeMillis()
+        val sessionId = db.sessionDao().insertSession(regularSession(11, crossingTime, 60))
         db.objectiveProcessedSessionDao().markProcessed(ObjectiveProcessedSessionEntity(sessionId, start + 4_000_000))
         val processor = processor()
 
-        val objectiveId = processor.createObjectiveAndReconcile(objective(11, "Piano", start, 60))
+        val objectiveId = processor.createObjectiveAndReconcile(
+            objective(11, "Piano", start, 60).copy(createdAt = createdAt, updatedAt = createdAt)
+        )
         assertEquals(false, processor.reconcileNewObjective(objectiveId))
 
         val completion = db.objectiveCompletionDao().getCompletions().single()
-        assertEquals(start + 1, completion.completedAt)
+        assertEquals(crossingTime, completion.completedAt)
         assertEquals(60, completion.finalRewardPearls)
         assertEquals(false, completion.pearlsClaimed)
         assertEquals(1, db.userBadgeDao().get(completion.badgeKey)?.count)
         assertEquals(1, db.objectiveProcessedSessionDao().processedCount())
+        val persistedObjective = requireNotNull(db.objectiveDao().getObjective(objectiveId))
+        assertEquals(true, persistedObjective.updatedAt >= persistedObjective.createdAt)
     }
 
     @Test fun partialProcessedProgressCompletesOnceAfterLaterRegularFlow() = runBlocking {
@@ -216,6 +230,50 @@ class LookoutRewardClaimTest {
 
         processor().createObjectiveAndReconcile(objective(13, "Piano", start, 60))
         assertEquals(0, db.objectiveCompletionDao().getCompletions().size)
+    }
+
+    @Test fun safeArchiveMaterializesEarnedRewardBeforeArchivingAndRemainsIdempotent() = runBlocking {
+        val start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        db.tagDao().insertTag(TagEntity(id = 15, name = "Archive", createdAt = start))
+        val objectiveId = repository.insertObjective(objective(15, "Archive", start, 60))
+        db.sessionDao().insertSession(regularSession(15, start + 1, 60))
+        val processor = processor()
+
+        assertEquals(true, processor.archiveObjectiveSafely(objectiveId))
+        assertEquals(false, processor.archiveObjectiveSafely(objectiveId))
+        val completion = db.objectiveCompletionDao().getCompletions().single()
+        assertEquals(false, completion.pearlsClaimed)
+        assertEquals(1, db.userBadgeDao().get(completion.badgeKey)?.count)
+        assertEquals(true, db.objectiveDao().getObjective(objectiveId)?.isArchived)
+        assertEquals(1, processor.reconcileUnprocessedSessions())
+        assertEquals(1, db.objectiveCompletionDao().getCompletions().size)
+        assertEquals(1, db.userBadgeDao().get(completion.badgeKey)?.count)
+    }
+
+    @Test fun safeArchiveDoesNotFabricateRewardForPartialProgress() = runBlocking {
+        val start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        db.tagDao().insertTag(TagEntity(id = 16, name = "Partial", createdAt = start))
+        val objectiveId = repository.insertObjective(objective(16, "Partial", start, 60))
+        db.sessionDao().insertSession(regularSession(16, start + 1, 30))
+
+        assertEquals(true, processor().archiveObjectiveSafely(objectiveId))
+        assertEquals(0, db.objectiveCompletionDao().getCompletions().size)
+        assertEquals(null, db.userBadgeDao().get("objective_badge_16_daily"))
+        assertEquals(true, db.objectiveDao().getObjective(objectiveId)?.isArchived)
+    }
+
+    @Test fun overlappingReconciliationCallsAreSingleFlightAndIdempotent() = runBlocking {
+        db.tagDao().insertTag(TagEntity(id = 17, name = "Retry", createdAt = 1))
+        repeat(20) { index ->
+            db.sessionDao().insertSession(regularSession(17, index + 1L, 1))
+        }
+        val processor = processor()
+        val processed = listOf(
+            async { processor.reconcileUnprocessedSessions() },
+            async { processor.reconcileUnprocessedSessions() }
+        ).awaitAll()
+        assertEquals(20, processed.sum())
+        assertEquals(20, db.objectiveProcessedSessionDao().processedCount())
     }
 
     private fun processor() = ObjectiveCompletionProcessor(

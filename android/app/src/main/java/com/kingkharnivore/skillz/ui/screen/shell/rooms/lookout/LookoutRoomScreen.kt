@@ -322,8 +322,8 @@ private fun LookoutRewardStatus(
                 onClick = onClaim,
                 enabled = !isClaiming,
                 colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
                 ),
                 modifier = Modifier.semantics {
                     contentDescription = claimDescription
@@ -541,8 +541,8 @@ private fun CompletedHistoryView(
                                             onClick = { onClaim(row.achievementKey) },
                                             enabled = !claimInProgress,
                                             colors = ButtonDefaults.filledTonalButtonColors(
-                                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                                containerColor = MaterialTheme.colorScheme.secondary,
+                                                contentColor = MaterialTheme.colorScheme.onSecondary
                                             ),
                                             modifier = Modifier.semantics {
                                                 contentDescription = claimDescription

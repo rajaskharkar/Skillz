@@ -1677,7 +1677,7 @@
     <string name="lookout_hours">Hours</string>
     <string name="lookout_minutes">Minutes</string>
     <string name="lookout_monthly_helper">Monthly Objectives run for 30 days.</string>
-    <string name="lookout_recurring_helper" formatted="false">Streak rewards grow by +10% each time you complete this Objective.</string>
+    <string name="lookout_recurring_helper" formatted="false">Each completion increases the streak reward: +10%.</string>
     <string name="lookout_save_objective">Save Objective</string>
     <string name="lookout_claim">Claim</string>
     <string name="lookout_claimed">Claimed</string>
