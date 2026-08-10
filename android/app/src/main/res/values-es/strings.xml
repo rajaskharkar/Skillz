@@ -49,7 +49,8 @@
     <plurals name="arc_group_flow_count_label">
         <item quantity="one">Duración del Arc · %1$d Flow</item>
         <item quantity="other">Duración del Arc · %1$d Flows</item>
-    </plurals>
+
+        <item quantity="many">Duración del Arc · %1$d Flows</item></plurals>
     <string name="arc_group_total_time">Tiempo total · %1$s</string>
     <string name="arc_group_show_flows">Mostrar Flows</string>
     <string name="arc_group_hide_flows">Ocultar Flows</string>
@@ -59,7 +60,8 @@
     <plurals name="arc_group_hidden_flows">
         <item quantity="one">%1$d otro Flow en el Arc</item>
         <item quantity="other">%1$d otros Flows en el Arc</item>
-    </plurals>
+
+        <item quantity="many">%1$d otros Flows en el Arc</item></plurals>
     <string name="arc_group_a11y_expand">Expandir Arc</string>
     <string name="arc_group_a11y_collapse">Contraer Arc</string>
     <string name="arc_group_a11y_open_flow">Abrir Flow</string>
@@ -1625,7 +1627,7 @@ Piedritas — 60 Pearls</string>
     <string name="lookout_back_to_objectives">Volver a Objetivos</string>
     <string name="lookout_achievements_empty_title">Aún no hay Logros.</string>
     <string name="lookout_achievements_empty_body" formatted="false">Los Logros de Objetivos aparecerán aquí cuando tu progreso llegue al 100%.</string>
-    <string name="lookout_history_row_title">Objetivo %1$s %2$s</string>
+    <string name="lookout_history_row_title">Objetivo %1$s</string>
     <string name="lookout_history_row_summary_claimed">%1$d finalizaciones · %2$d Pearls reclamadas</string>
     <string name="lookout_history_row_summary_with_waiting">%1$d finalizaciones · %2$d Pearls reclamadas · %3$d esperando</string>
     <string name="lookout_history_last_completed">Último completado %1$s</string>
@@ -1649,7 +1651,7 @@ Piedritas — 60 Pearls</string>
     <string name="lookout_hours">Horas</string>
     <string name="lookout_minutes">Minutos</string>
     <string name="lookout_monthly_helper">Los Objetivos mensuales duran 30 días.</string>
-    <string name="lookout_recurring_helper" formatted="false">Las recompensas de racha crecen un +10% cada vez que completas este Objetivo.</string>
+    <string name="lookout_recurring_helper" formatted="false">Cada finalización aumenta la recompensa de racha: +10%.</string>
     <string name="lookout_save_objective">Guardar Objetivo</string>
     <string name="lookout_claim">Reclamar</string>
     <string name="lookout_claimed">Reclamado</string>
@@ -1676,7 +1678,6 @@ Piedritas — 60 Pearls</string>
     <string name="lookout_time_left">Tiempo restante: %1$s</string>
     <string name="lookout_starts_in">Empieza en: %1$s</string>
     <string name="lookout_completed_next_reset">Completado para este ciclo · Próximo reinicio: %1$s</string>
-    <string name="lookout_pearls_value">%1$d Pearls</string>
     <string name="lookout_badge_reward">Insignia de Objetivo %1$s %2$s +1</string>
     <string name="lookout_reward">Recompensa</string>
     <string name="lookout_card_period_type">%1$s · %2$s</string>
@@ -2203,4 +2204,58 @@ Puedes volver a activar Health más tarde.</string>
     <string name="arc_details_close">Cerrar detalles del Arco</string>
     <string name="arc_details_character_count">%1$d/%2$d</string>
     <string name="common_retry">Reintentar</string>
+
+    <string name="badge_category_objectives">Objetivos</string>
+    <string name="badge_objective_description">Objetivo %1$s completions for %2$s.</string>
+    <string name="badge_objective_fallback_description">Completed Objetivo %1$ss in The Lookout.</string>
+    <string name="badge_objective_fallback_title">Objetivo %1$s</string>
+    <string name="badge_objective_title">%1$s · Objetivo %2$s</string>
+    <string name="lookout_all_pearls_claimed">¡Todas las Perlas reclamadas!</string>
+    <plurals name="lookout_from_completed_objectives">
+        <item quantity="one">De %1$d Objetivo completado</item>
+        <item quantity="other">De %1$d Objetivo completados</item>
+
+        <item quantity="many">De %1$d Objetivo completados</item></plurals>
+    <string name="lookout_no_rewards_waiting">No hay recompensas de Objetivos pendientes</string>
+    <plurals name="lookout_unclaimed_pearls">
+        <item quantity="one">1 Perla sin reclamar</item>
+        <item quantity="other">%1$d Perlas sin reclamar</item>
+
+        <item quantity="many">%1$d Perlas sin reclamar</item></plurals>
+    <plurals name="lookout_pearls_unclaimed">
+        <item quantity="one">1 Perla sin reclamar</item>
+        <item quantity="other">%1$d Perlas sin reclamar</item>
+
+        <item quantity="many">%1$d Perlas sin reclamar</item></plurals>
+    <plurals name="lookout_pearls_earned">
+        <item quantity="one">1 Perla ganada</item>
+        <item quantity="other">%1$d Perlas ganadas</item>
+
+        <item quantity="many">%1$d Perlas ganadas</item></plurals>
+    <plurals name="lookout_pearls_claimed">
+        <item quantity="one">1 Perla reclamada</item>
+        <item quantity="other">%1$d Perlas reclamadas</item>
+
+        <item quantity="many">%1$d Perlas reclamadas</item></plurals>
+    <plurals name="lookout_claim_pearls_accessibility">
+        <item quantity="one">Reclamar 1 Perla</item>
+        <item quantity="other">Reclamar %1$d Perlas</item>
+
+        <item quantity="many">Reclamar %1$d Perlas</item></plurals>
+    <plurals name="lookout_claim_from_objective_accessibility">
+        <item quantity="one">Reclamar 1 Perla del Objetivo %2$s</item>
+        <item quantity="other">Reclamar %1$d Perlas del Objetivo %2$s</item>
+
+        <item quantity="many">Reclamar %1$d Perlas del Objetivo %2$s</item></plurals>
+    <plurals name="lookout_completion_count">
+        <item quantity="one">1 finalización</item>
+        <item quantity="other">%1$d finalizaciones</item>
+
+        <item quantity="many">%1$d finalizaciones</item></plurals>
+    <string name="lookout_history_summary_separator">%1$s · %2$s</string>
+    <plurals name="lookout_pearls_value">
+        <item quantity="one">1 Perla</item>
+        <item quantity="other">%1$d Perlas</item>
+        <item quantity="many">%1$d Perlas</item>
+    </plurals>
 </resources>

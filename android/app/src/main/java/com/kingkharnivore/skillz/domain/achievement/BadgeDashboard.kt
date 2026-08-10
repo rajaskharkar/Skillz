@@ -6,7 +6,7 @@ import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
 
-enum class BadgeUiCategory { ALL, FLOW, ARC, CREATURES, MASTERY, COLLECTIONS, STILLWATER, MOVEMENT, SURGE, SPECIAL }
+enum class BadgeUiCategory { ALL, FLOW, ARC, CREATURES, MASTERY, COLLECTIONS, STILLWATER, MOVEMENT, SURGE, OBJECTIVES, SPECIAL }
 enum class BadgeSort { RECOMMENDED, RECENTLY_EARNED, RECENTLY_ADVANCED, HIGHEST_COUNT, CLOSEST_MILESTONE, ALPHABETICAL }
 enum class BadgeDisabledReason { COMPLETE, NO_NEXT_MILESTONE, CREATURE_NOT_OWNED, REGION_LOCKED, VESSEL_LOCKED, EMPTY_ROSTER, UNSUPPORTED_DESTINATION }
 data class AchievementAccessState(
@@ -333,6 +333,7 @@ object BadgeDashboardCalculator {
         def.family == BadgeFamily.MOVEMENT -> BadgeUiCategory.MOVEMENT
         def.family == BadgeFamily.SURGE -> BadgeUiCategory.SURGE
         def.family == BadgeFamily.MASTERY -> BadgeUiCategory.MASTERY
+        def.family == BadgeFamily.OBJECTIVE -> BadgeUiCategory.OBJECTIVES
         else -> BadgeUiCategory.SPECIAL
     }
     private fun action(def: AchievementBadgeDefinition): BadgeActionDestination = when {

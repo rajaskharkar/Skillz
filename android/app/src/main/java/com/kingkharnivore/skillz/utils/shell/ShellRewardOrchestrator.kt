@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.utils.shell
 
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.repository.shell.ShellRepository
+import com.kingkharnivore.skillz.domain.lookout.ObjectiveCompletionProcessor
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,7 +27,8 @@ object ShellRewardPolicy {
 @Singleton
 class ShellRewardOrchestrator @Inject constructor(
     private val shellRepository: ShellRepository,
-    private val shellRewardEventRecorder: ShellRewardEventRecorder
+    private val shellRewardEventRecorder: ShellRewardEventRecorder,
+    private val objectiveCompletionProcessor: ObjectiveCompletionProcessor
 ) {
     suspend fun onSessionCompleted(session: SessionEntity): ShellRewardResult {
         val sourceId = session.id.toString()
@@ -75,6 +77,7 @@ class ShellRewardOrchestrator @Inject constructor(
             }
         }
         shellRewardEventRecorder.recordSessionRewards(session, result)
+        objectiveCompletionProcessor.processCompletedSession(session)
         return result
     }
 }

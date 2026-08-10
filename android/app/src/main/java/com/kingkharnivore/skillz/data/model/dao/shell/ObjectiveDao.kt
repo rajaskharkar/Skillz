@@ -7,7 +7,11 @@ import androidx.room.Query
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveCompletionEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveSkippedCycleEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveProcessedSessionEntity
+import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import kotlinx.coroutines.flow.Flow
+
+data class ObjectiveClaimAggregate(val pearlTotal: Int, val completionCount: Int)
 
 @Dao
 interface ObjectiveDao {
@@ -44,12 +48,16 @@ interface ObjectiveDao {
         updatedAt: Long
     )
 
-    @Query("UPDATE objectives SET currentStreak = 0, updatedAt = :updatedAt WHERE id = :id")
-    suspend fun resetStreak(id: Long, updatedAt: Long)
 }
 
 @Dao
 interface ObjectiveCompletionDao {
+    @Query("SELECT COALESCE(SUM(finalRewardPearls), 0) FROM objective_completions WHERE pearlsClaimed = 0")
+    fun observeUnclaimedPearlTotal(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM objective_completions WHERE pearlsClaimed = 0")
+    fun observeUnclaimedCompletionCount(): Flow<Int>
+
     @Query("SELECT * FROM objective_completions ORDER BY completedAt DESC")
     fun observeCompletions(): Flow<List<ObjectiveCompletionEntity>>
 
@@ -72,8 +80,20 @@ interface ObjectiveCompletionDao {
     @Query("SELECT * FROM objective_completions WHERE id = :id LIMIT 1")
     suspend fun getCompletionById(id: Long): ObjectiveCompletionEntity?
 
+    @Query("SELECT COALESCE(SUM(finalRewardPearls), 0) AS pearlTotal, COUNT(*) AS completionCount FROM objective_completions WHERE pearlsClaimed = 0")
+    suspend fun getAllUnclaimedAggregate(): ObjectiveClaimAggregate
+
+    @Query("SELECT COALESCE(SUM(finalRewardPearls), 0) AS pearlTotal, COUNT(*) AS completionCount FROM objective_completions WHERE badgeKey = :badgeKey AND pearlsClaimed = 0")
+    suspend fun getUnclaimedAggregateForBadge(badgeKey: String): ObjectiveClaimAggregate
+
     @Query("UPDATE objective_completions SET pearlsGranted = 1, pearlsClaimed = 1, pearlsClaimedAt = :claimedAt WHERE id = :id AND pearlsClaimed = 0")
     suspend fun markPearlsClaimed(id: Long, claimedAt: Long): Int
+
+    @Query("UPDATE objective_completions SET pearlsGranted = 1, pearlsClaimed = 1, pearlsClaimedAt = :claimedAt WHERE badgeKey = :badgeKey AND pearlsClaimed = 0")
+    suspend fun markBadgePearlsClaimed(badgeKey: String, claimedAt: Long): Int
+
+    @Query("UPDATE objective_completions SET pearlsGranted = 1, pearlsClaimed = 1, pearlsClaimedAt = :claimedAt WHERE pearlsClaimed = 0")
+    suspend fun markAllPearlsClaimed(claimedAt: Long): Int
 }
 
 @Dao
@@ -86,4 +106,16 @@ interface ObjectiveSkippedCycleDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertSkippedCycle(entity: ObjectiveSkippedCycleEntity): Long
+}
+
+@Dao
+interface ObjectiveProcessedSessionDao {
+    @Query("SELECT s.* FROM sessions s LEFT JOIN objective_processed_session p ON p.sessionId = s.id WHERE s.isSoftMode = 0 AND p.sessionId IS NULL ORDER BY s.endTime, s.id LIMIT :limit")
+    suspend fun getUnprocessedRegularSessions(limit: Int): List<SessionEntity>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun markProcessed(entity: ObjectiveProcessedSessionEntity): Long
+
+    @Query("SELECT COUNT(*) FROM objective_processed_session")
+    suspend fun processedCount(): Int
 }

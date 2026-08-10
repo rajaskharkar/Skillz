@@ -28,6 +28,7 @@ import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveCompletionEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveSkippedCycleEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveProcessedSessionEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.PearlLedgerEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellFindUpgradeEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellPlacementEntity
@@ -74,6 +75,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
         ObjectiveEntity::class,
         ObjectiveCompletionEntity::class,
         ObjectiveSkippedCycleEntity::class,
+        ObjectiveProcessedSessionEntity::class,
         FlowHealthSnapshotEntity::class,
         FlowRewardBreakdownEntity::class,
         CreatureDiscoveryEntity::class,
@@ -87,7 +89,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
         BadgeCountFloorEntity::class,
         ArcMetadataEntity::class
     ],
-    version = 37,
+    version = 38,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
@@ -105,4 +107,5 @@ abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
     override abstract fun objectiveDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveDao
     override abstract fun objectiveCompletionDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveCompletionDao
     override abstract fun objectiveSkippedCycleDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveSkippedCycleDao
+    override abstract fun objectiveProcessedSessionDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveProcessedSessionDao
 }

@@ -4,6 +4,7 @@ import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveCompletionDao
 import com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveDao
 import com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveSkippedCycleDao
+import com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveProcessedSessionDao
 import com.kingkharnivore.skillz.data.model.dao.shell.PearlLedgerDao
 import com.kingkharnivore.skillz.data.model.dao.shell.ShellFindInstanceDao
 import com.kingkharnivore.skillz.data.model.dao.shell.ShellRewardEventDao
@@ -74,4 +75,7 @@ object ShellDatabaseModule {
     @Provides
     fun provideObjectiveSkippedCycleDao(db: SkillzDatabase): ObjectiveSkippedCycleDao =
         db.objectiveSkippedCycleDao()
+
+    @Provides fun provideObjectiveProcessedSessionDao(db: SkillzDatabase): ObjectiveProcessedSessionDao =
+        db.objectiveProcessedSessionDao()
 }

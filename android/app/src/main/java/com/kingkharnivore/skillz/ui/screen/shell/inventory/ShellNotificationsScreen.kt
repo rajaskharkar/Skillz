@@ -58,6 +58,8 @@ import com.kingkharnivore.skillz.domain.achievement.BadgeVisibilityContext
 import com.kingkharnivore.skillz.domain.achievement.BadgeVisibilityEvaluator
 import com.kingkharnivore.skillz.ui.screen.shell.ux.isActiveChestCreature
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
+import com.kingkharnivore.skillz.domain.lookout.ObjectiveBadgePresentationMetadata
+import com.kingkharnivore.skillz.domain.lookout.objectiveBadgePresentationMetadata
 import com.kingkharnivore.skillz.ui.screen.shell.NavigationConsumptionResult
 import java.time.Instant
 import java.time.ZoneId
@@ -136,6 +138,9 @@ fun NotificationInlayOverlay(
     modifier: Modifier = Modifier
 ) {
     val notifications = unviewedShellNotifications(uiState)
+    val objectiveMetadata = remember(uiState.objectiveCompletions) {
+        objectiveBadgePresentationMetadata(uiState.objectiveCompletions)
+    }
     val backgroundInteraction = remember { MutableInteractionSource() }
     val inlayDescription = stringResource(R.string.notifications_inlay_a11y)
 
@@ -199,6 +204,8 @@ fun NotificationInlayOverlay(
                         items(notifications, key = { it.id }) { notification ->
                             NotificationInlayRow(
                                 notification = notification,
+                                objectiveMetadata = (notification as? ShellNotificationInlayItem.Badge)
+                                    ?.let { objectiveMetadata[it.badgeId] },
                                 onMarkViewed = { onMarkNotificationViewed(notification.id) },
                                 onClick = {
                                     when (notification) {
@@ -236,6 +243,7 @@ private fun NotificationEmptyState() {
 @Composable
 private fun NotificationInlayRow(
     notification: ShellNotificationInlayItem,
+    objectiveMetadata: ObjectiveBadgePresentationMetadata?,
     onMarkViewed: () -> Unit,
     onClick: () -> Unit
 ) {
@@ -254,7 +262,7 @@ private fun NotificationInlayRow(
             icon = def?.let { iconFor(it.category) } ?: Icons.Outlined.Notifications
         }
         is ShellNotificationInlayItem.Badge -> {
-            val presentation = resolveBadgePresentation(notification.badgeId)
+            val presentation = resolveBadgePresentation(notification.badgeId, objectiveMetadata)
             val badgeTitle = presentation.title
             title = stringResource(R.string.shell_badge_notification_title, badgeTitle)
             body = stringResource(
@@ -267,6 +275,7 @@ private fun NotificationInlayRow(
                 BadgeArtworkKind.COLLECTOR -> Icons.Outlined.FilterVintage
                 BadgeArtworkKind.CURATOR -> Icons.Outlined.CheckCircle
                 BadgeArtworkKind.COMPLETIONIST -> Icons.Outlined.EmojiEvents
+                BadgeArtworkKind.OBJECTIVE -> Icons.Outlined.EmojiEvents
                 else -> Icons.Outlined.MilitaryTech
             }
         }

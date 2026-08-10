@@ -1610,7 +1610,7 @@
     <string name="lookout_back_to_objectives">लक्ष्यांकडे परत</string>
     <string name="lookout_achievements_empty_title">अजून उपलब्धी नाहीत.</string>
     <string name="lookout_achievements_empty_body" formatted="false">तुमची प्रगती 100% वर पोहोचल्यावर लक्ष्य उपलब्धी येथे दिसतील.</string>
-    <string name="lookout_history_row_title">%1$s %2$s लक्ष्य</string>
+    <string name="lookout_history_row_title">%1$s लक्ष्य</string>
     <string name="lookout_history_row_summary_claimed">%1$d पूर्णता · %2$d पर्ल्स क्लेम केले</string>
     <string name="lookout_history_row_summary_with_waiting">%1$d पूर्णता · %2$d पर्ल्स क्लेम केले · %3$d प्रतीक्षेत</string>
     <string name="lookout_history_last_completed">शेवटचे पूर्ण झाले %1$s</string>
@@ -1634,7 +1634,7 @@
     <string name="lookout_hours">तास</string>
     <string name="lookout_minutes">मिनिटे</string>
     <string name="lookout_monthly_helper">मासिक लक्ष्य 30 दिवस चालतात.</string>
-    <string name="lookout_recurring_helper" formatted="false">तुम्ही हे लक्ष्य प्रत्येक वेळी पूर्ण करता तेव्हा स्ट्रीक रिवॉर्ड्स +10% ने वाढतात.</string>
+    <string name="lookout_recurring_helper" formatted="false">प्रत्येक पूर्णतेने स्ट्रीक बक्षीस वाढते: +10%.</string>
     <string name="lookout_save_objective">लक्ष्य सेव्ह करा</string>
     <string name="lookout_claim">क्लेम करा</string>
     <string name="lookout_claimed">क्लेम केले</string>
@@ -1661,7 +1661,6 @@
     <string name="lookout_time_left">उरलेला वेळ: %1$s</string>
     <string name="lookout_starts_in">सुरू होईल: %1$s मध्ये</string>
     <string name="lookout_completed_next_reset">या सायकलसाठी पूर्ण · पुढील रीसेट: %1$s</string>
-    <string name="lookout_pearls_value">%1$d पर्ल्स</string>
     <string name="lookout_badge_reward">%1$s %2$s लक्ष्य बॅज +1</string>
     <string name="lookout_reward">रिवॉर्ड</string>
     <string name="lookout_card_period_type">%1$s · %2$s</string>
@@ -2200,4 +2199,49 @@
     <string name="arc_details_close">Close Arc details</string>
     <string name="arc_details_character_count">%1$d/%2$d</string>
     <string name="common_retry">Retry</string>
+
+    <string name="badge_category_objectives">लक्ष्ये</string>
+    <string name="badge_objective_description">%1$s लक्ष्य completions for %2$s.</string>
+    <string name="badge_objective_fallback_description">Completed %1$s लक्ष्यs in The Lookout.</string>
+    <string name="badge_objective_fallback_title">%1$s लक्ष्य</string>
+    <string name="badge_objective_title">%1$s · %2$s लक्ष्य</string>
+    <string name="lookout_all_pearls_claimed">सर्व मोती दावा केले!</string>
+    <plurals name="lookout_from_completed_objectives">
+        <item quantity="one">%1$d पूर्ण केलेल्या लक्ष्यातून</item>
+        <item quantity="other">%1$d पूर्ण केलेल्या लक्ष्यातूनs</item>
+    </plurals>
+    <string name="lookout_no_rewards_waiting">कोणतेही लक्ष्य बक्षीस प्रतीक्षेत नाही</string>
+    <plurals name="lookout_unclaimed_pearls">
+        <item quantity="one">1 दावा न केलेला मोती</item>
+        <item quantity="other">%1$d दावा न केलेले मोती</item>
+    </plurals>
+    <plurals name="lookout_pearls_unclaimed">
+        <item quantity="one">1 मोती दावा न केलेला</item>
+        <item quantity="other">%1$d मोती दावा न केलेले</item>
+    </plurals>
+    <plurals name="lookout_pearls_earned">
+        <item quantity="one">1 मोती कमावला</item>
+        <item quantity="other">%1$d मोती कमावले</item>
+    </plurals>
+    <plurals name="lookout_pearls_claimed">
+        <item quantity="one">1 मोती दावा केला</item>
+        <item quantity="other">%1$d मोती दावा केले</item>
+    </plurals>
+    <plurals name="lookout_claim_pearls_accessibility">
+        <item quantity="one">1 मोती दावा करा</item>
+        <item quantity="other">%1$d मोती दावा करा</item>
+    </plurals>
+    <plurals name="lookout_claim_from_objective_accessibility">
+        <item quantity="one">%2$s लक्ष्यातून 1 मोती दावा करा</item>
+        <item quantity="other">%2$s लक्ष्यातून %1$d मोती दावा करा</item>
+    </plurals>
+    <plurals name="lookout_completion_count">
+        <item quantity="one">1 पूर्णता</item>
+        <item quantity="other">%1$d पूर्णता</item>
+    </plurals>
+    <string name="lookout_history_summary_separator">%1$s · %2$s</string>
+    <plurals name="lookout_pearls_value">
+        <item quantity="one">1 मोती</item>
+        <item quantity="other">%1$d मोती</item>
+    </plurals>
 </resources>

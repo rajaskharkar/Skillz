@@ -94,3 +94,9 @@ data class ObjectiveSkippedCycleEntity(
     val periodEndMs: Long,
     val skippedAt: Long
 )
+
+@Entity(tableName = "objective_processed_session")
+data class ObjectiveProcessedSessionEntity(
+    @PrimaryKey val sessionId: Long,
+    val processedAt: Long
+)

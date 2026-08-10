@@ -14,8 +14,9 @@ import com.kingkharnivore.skillz.data.model.entity.shell.UserBadgeEntity
 import com.kingkharnivore.skillz.data.model.shell.BadgeCategory
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import java.security.MessageDigest
+import com.kingkharnivore.skillz.domain.lookout.ObjectiveBadgeIdentity
 
-enum class BadgeFamily { SPECIES_MASTERY, MASTERY, COLLECTION, FLOW, SOFT_FLOW, ARC, MOVEMENT, SURGE }
+enum class BadgeFamily { SPECIES_MASTERY, MASTERY, COLLECTION, FLOW, SOFT_FLOW, ARC, MOVEMENT, SURGE, OBJECTIVE }
 enum class BadgeCountType { ONE_TIME, REPEATABLE }
 enum class BadgeGoalType { ONE_TIME, REPEATABLE_MILESTONE, COLLECTION, SPECIES_MASTERY, HISTORICAL_COUNT_ONLY }
 enum class BadgeRequirement { EXACT_COUNT, COLLECTOR, CURATOR, COMPLETIONIST }
@@ -322,6 +323,17 @@ object BadgeDefinitionResolver {
 
     fun resolve(badgeId: String): AchievementBadgeDefinition {
         AchievementBadgeCatalog.byId[badgeId]?.let { return it }
+        ObjectiveBadgeIdentity.fromBadgeId(badgeId)?.let {
+            return AchievementBadgeDefinition(
+                badgeId = badgeId,
+                family = BadgeFamily.OBJECTIVE,
+                countType = BadgeCountType.REPEATABLE,
+                requirement = BadgeRequirement.EXACT_COUNT,
+                pinnable = true,
+                trackable = false,
+                navigationDestination = "badge_details"
+            )
+        }
         val legacy = ShellContentCatalog.badge(badgeId)
         val family = when (legacy?.category) {
             BadgeCategory.FLOW -> BadgeFamily.FLOW

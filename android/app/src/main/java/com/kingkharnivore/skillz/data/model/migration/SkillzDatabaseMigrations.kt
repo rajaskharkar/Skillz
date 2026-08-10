@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 37.
+     * Current database version is 38.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -267,6 +267,13 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_37_38 = object : Migration(37, 38) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `objective_processed_session` (`sessionId` INTEGER NOT NULL, `processedAt` INTEGER NOT NULL, PRIMARY KEY(`sessionId`))")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_sessions_tagId_isSoftMode_endTime` ON `sessions` (`tagId`, `isSoftMode`, `endTime`)")
+        }
+    }
+
     private fun normalizePostAnchorTestSchemaToTargetBranch(db: SupportSQLiteDatabase) {
         db.execSQL("PRAGMA foreign_keys=OFF")
 
@@ -424,7 +431,8 @@ object SkillzDatabaseMigrations {
                 MIGRATION_33_34 +
                 MIGRATION_34_35 +
                 MIGRATION_35_36 +
-                MIGRATION_36_37
+                MIGRATION_36_37 +
+                MIGRATION_37_38
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(

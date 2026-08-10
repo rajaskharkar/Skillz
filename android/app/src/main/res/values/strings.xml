@@ -1653,7 +1653,7 @@
     <string name="lookout_back_to_objectives">Back to Objectives</string>
     <string name="lookout_achievements_empty_title">No Achievements yet.</string>
     <string name="lookout_achievements_empty_body" formatted="false">Objective Achievements will appear here once your progress reaches 100%.</string>
-    <string name="lookout_history_row_title">%1$s %2$s Objective</string>
+    <string name="lookout_history_row_title">%1$s Objective</string>
     <string name="lookout_history_row_summary_claimed">%1$d completions · %2$d Pearls claimed</string>
     <string name="lookout_history_row_summary_with_waiting">%1$d completions · %2$d Pearls claimed · %3$d waiting</string>
     <string name="lookout_history_last_completed">Last completed %1$s</string>
@@ -1677,10 +1677,21 @@
     <string name="lookout_hours">Hours</string>
     <string name="lookout_minutes">Minutes</string>
     <string name="lookout_monthly_helper">Monthly Objectives run for 30 days.</string>
-    <string name="lookout_recurring_helper" formatted="false">Streak rewards grow by +10% each time you complete this Objective.</string>
+    <string name="lookout_recurring_helper" formatted="false">Each completion increases the streak reward: +10%.</string>
     <string name="lookout_save_objective">Save Objective</string>
     <string name="lookout_claim">Claim</string>
     <string name="lookout_claimed">Claimed</string>
+    <plurals name="lookout_from_completed_objectives">
+        <item quantity="one">From %1$d completed Objective</item>
+        <item quantity="other">From %1$d completed Objectives</item>
+    </plurals>
+    <string name="lookout_all_pearls_claimed">All Pearls Claimed!</string>
+    <string name="lookout_no_rewards_waiting">No Objective rewards waiting</string>
+    <string name="badge_category_objectives">Objectives</string>
+    <string name="badge_objective_title">%1$s · %2$s Objective</string>
+    <string name="badge_objective_description">%1$s Objective completions for %2$s.</string>
+    <string name="badge_objective_fallback_title">%1$s Objective</string>
+    <string name="badge_objective_fallback_description">Completed %1$s Objectives in The Lookout.</string>
     <string name="lookout_pearls_claimed_title">Pearls claimed</string>
     <string name="lookout_start_flow">Flow</string>
     <string name="lookout_flow_already_active">A Flow is already active.</string>
@@ -1704,7 +1715,6 @@
     <string name="lookout_time_left">Time left: %1$s</string>
     <string name="lookout_starts_in">Starts in: %1$s</string>
     <string name="lookout_completed_next_reset">Completed for this cycle · Next reset: %1$s</string>
-    <string name="lookout_pearls_value">%1$d Pearls</string>
     <string name="lookout_badge_reward">%1$s %2$s Objective badge +1</string>
     <string name="lookout_reward">Reward</string>
     <string name="lookout_card_period_type">%1$s · %2$s</string>
@@ -2203,4 +2213,37 @@ You can turn Health back on later.</string>
     <string name="arc_details_close">Close Arc details</string>
     <string name="arc_details_character_count">%1$d/%2$d</string>
     <string name="common_retry">Retry</string>
+    <plurals name="lookout_unclaimed_pearls">
+        <item quantity="one">1 Unclaimed Pearl</item>
+        <item quantity="other">%1$d Unclaimed Pearls</item>
+    </plurals>
+    <plurals name="lookout_pearls_unclaimed">
+        <item quantity="one">1 Pearl unclaimed</item>
+        <item quantity="other">%1$d Pearls unclaimed</item>
+    </plurals>
+    <plurals name="lookout_pearls_earned">
+        <item quantity="one">1 Pearl earned</item>
+        <item quantity="other">%1$d Pearls earned</item>
+    </plurals>
+    <plurals name="lookout_pearls_claimed">
+        <item quantity="one">1 Pearl claimed</item>
+        <item quantity="other">%1$d Pearls claimed</item>
+    </plurals>
+    <plurals name="lookout_claim_pearls_accessibility">
+        <item quantity="one">Claim 1 Pearl</item>
+        <item quantity="other">Claim %1$d Pearls</item>
+    </plurals>
+    <plurals name="lookout_claim_from_objective_accessibility">
+        <item quantity="one">Claim 1 Pearl from %2$s Objective</item>
+        <item quantity="other">Claim %1$d Pearls from %2$s Objective</item>
+    </plurals>
+    <plurals name="lookout_completion_count">
+        <item quantity="one">1 completion</item>
+        <item quantity="other">%1$d completions</item>
+    </plurals>
+    <string name="lookout_history_summary_separator">%1$s · %2$s</string>
+    <plurals name="lookout_pearls_value">
+        <item quantity="one">1 Pearl</item>
+        <item quantity="other">%1$d Pearls</item>
+    </plurals>
 </resources>
