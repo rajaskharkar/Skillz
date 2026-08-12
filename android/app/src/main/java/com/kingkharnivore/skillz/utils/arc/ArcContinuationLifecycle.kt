@@ -43,3 +43,24 @@ class ArcContinuationLifecycle(private val store: ArcContinuationStore) {
         return started
     }
 }
+
+data class ArcFlowStart(
+    val startedAtMs: Long,
+    val arc: ArcRuntimeState?
+)
+
+/** Captures one authoritative timestamp for all work belonging to a Flow start. */
+class ArcFlowStartCoordinator(
+    private val lifecycle: ArcContinuationLifecycle,
+    private val currentTimeMillis: () -> Long = { System.currentTimeMillis() }
+) {
+    suspend fun start(
+        isSoftFlow: Boolean,
+        afterResolution: suspend (ArcRuntimeState?) -> Unit
+    ): ArcFlowStart {
+        val flowStartTimeMs = currentTimeMillis()
+        val arc = lifecycle.resolveForFlowStart(flowStartTimeMs, isSoftFlow)
+        afterResolution(arc)
+        return ArcFlowStart(flowStartTimeMs, arc)
+    }
+}

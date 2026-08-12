@@ -42,6 +42,7 @@ import com.kingkharnivore.skillz.ui.service.SurgeHapticsManager
 import com.kingkharnivore.skillz.utils.arc.ArcPrefs
 import com.kingkharnivore.skillz.utils.arc.ArcContinuationLifecycle
 import com.kingkharnivore.skillz.utils.arc.ArcContinuationResolver
+import com.kingkharnivore.skillz.utils.arc.ArcFlowStartCoordinator
 import com.kingkharnivore.skillz.utils.arc.ArcRules
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 import com.kingkharnivore.skillz.utils.user.UserPrefs
@@ -131,6 +132,7 @@ class FlowViewModel @Inject constructor(
 
     private val flowStartMutex = Mutex()
     private val arcContinuationLifecycle = ArcContinuationLifecycle(arcPrefs)
+    private val arcFlowStartCoordinator = ArcFlowStartCoordinator(arcContinuationLifecycle)
 
     private val plannedArcTitleOverride: String? =
         savedStateHandle
@@ -769,43 +771,40 @@ class FlowViewModel @Inject constructor(
         flowStartMutex.withLock {
             if (_uiState.value.stopwatch.isRunning) return@withLock
             val isResumingSameFlow = accumulatedBeforeStartMs > 0L || activeIntervals.isNotEmpty()
+            var flowStartTimeMs: Long? = null
 
             if (!isResumingSameFlow) {
-                val flowStartTimeMs = System.currentTimeMillis()
-                val resolvedArc = arcContinuationLifecycle.resolveForFlowStart(
-                    flowStartTimeMs = flowStartTimeMs,
-                    isSoftFlow = _uiState.value.isSoftMode
-                )
-                val resumedRecentlyEndedArc = arcState == null && resolvedArc != null
-                arcState = resolvedArc
-                if (resumedRecentlyEndedArc) {
+                // Start has already happened. Stop the between-Flow countdown before
+                // any suspending persistence or health work can cross the boundary.
+                arcCountdownJob?.cancel()
+                arcCountdownJob = null
+                val start = arcFlowStartCoordinator.start(_uiState.value.isSoftMode) { resolvedArc ->
+                    val resumedRecentlyEndedArc = arcState == null && resolvedArc != null
+                    arcState = resolvedArc
+                    if (resumedRecentlyEndedArc) {
+                        _uiState.update {
+                            it.copy(recentlyResumedArcMessage = "Arc resumed. Momentum preserved.")
+                        }
+                    }
                     _uiState.update {
-                        it.copy(recentlyResumedArcMessage = "Arc resumed. Momentum preserved.")
+                        it.copy(
+                            healthEnabledAtStart = false,
+                            healthPermissionGrantedAtStart = false,
+                            movementBonusEligibleAtStart = false
+                        )
                     }
+                    activeIntervals.clear()
+                    activeIntervalStartMs = null
+                    captureMovementEligibilityAtFlowStart()
                 }
-                syncArcUi()
-                _uiState.update {
-                    it.copy(
-                        healthEnabledAtStart = false,
-                        healthPermissionGrantedAtStart = false,
-                        movementBonusEligibleAtStart = false
-                    )
-                }
-                activeIntervals.clear()
-                activeIntervalStartMs = null
-                captureMovementEligibilityAtFlowStart()
-                arcState?.let { s ->
-                    val now = System.currentTimeMillis()
-                    if (isArcExpired(now, s)) {
-                        concludeArc(reason = "expired")
-                    }
-                }
+                flowStartTimeMs = start.startedAtMs
             }
 
-            val now = System.currentTimeMillis()
+            val now = flowStartTimeMs ?: System.currentTimeMillis()
             baseStartTimeMs = now
             activeIntervalStartMs = now
             _uiState.update { it.copy(stopwatch = it.stopwatch.copy(isRunning = true)) }
+            syncArcUi()
             applyArcPauseAccountingOnResume(now)
             arcCountdownJob?.cancel()
             arcCountdownJob = null
