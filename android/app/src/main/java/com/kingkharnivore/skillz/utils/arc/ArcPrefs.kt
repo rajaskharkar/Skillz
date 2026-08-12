@@ -11,7 +11,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.kingkharnivore.skillz.ui.model.ArcRuntimeState
 import kotlinx.coroutines.flow.first
 
-class ArcPrefs(private val ds: DataStore<Preferences>) {
+class ArcPrefs(private val ds: DataStore<Preferences>) : ArcContinuationStore {
 
     enum class PlannedFlowHandoff { NEXT_PLANNED_STEP, BLANK_ARC_CONTINUATION, COMPLETED_ARC_EXIT }
 
@@ -45,6 +45,8 @@ class ArcPrefs(private val ds: DataStore<Preferences>) {
         )
     }
 
+    override suspend fun loadActive(): ArcRuntimeState? = load()
+
     suspend fun save(state: ArcRuntimeState) {
         ds.edit { p ->
             p[K_ARC_ID] = state.arcId
@@ -55,6 +57,8 @@ class ArcPrefs(private val ds: DataStore<Preferences>) {
             p[K_COUNT] = state.sessionCountInArc
         }
     }
+
+    override suspend fun saveActive(state: ArcRuntimeState) = save(state)
 
     /**
      * Clears only the currently active Arc.
@@ -75,9 +79,11 @@ class ArcPrefs(private val ds: DataStore<Preferences>) {
         }
     }
 
-    suspend fun saveRecentlyEnded(
+    override suspend fun clearActive() = clear()
+
+    override suspend fun saveRecentlyEnded(
         state: ArcRuntimeState,
-        completedAtMs: Long = System.currentTimeMillis()
+        completedAtMs: Long
     ) {
         ds.edit { p ->
             p[K_RECENT_ARC_ID] = state.arcId
@@ -90,7 +96,7 @@ class ArcPrefs(private val ds: DataStore<Preferences>) {
         }
     }
 
-    suspend fun loadRecentlyEnded(): ArcRuntimeState? {
+    override suspend fun loadRecentlyEnded(): ArcRuntimeState? {
         val p = ds.data.first()
         val id = p[K_RECENT_ARC_ID] ?: return null
 
@@ -104,7 +110,7 @@ class ArcPrefs(private val ds: DataStore<Preferences>) {
         )
     }
 
-    suspend fun clearRecentlyEnded() {
+    override suspend fun clearRecentlyEnded() {
         ds.edit { p ->
             p.remove(K_RECENT_ARC_ID)
             p.remove(K_RECENT_PENDING)

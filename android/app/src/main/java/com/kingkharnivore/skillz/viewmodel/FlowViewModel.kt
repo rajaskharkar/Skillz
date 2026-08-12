@@ -40,6 +40,9 @@ import com.kingkharnivore.skillz.ui.navigation.SkillzDestinations
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
 import com.kingkharnivore.skillz.ui.service.SurgeHapticsManager
 import com.kingkharnivore.skillz.utils.arc.ArcPrefs
+import com.kingkharnivore.skillz.utils.arc.ArcContinuationLifecycle
+import com.kingkharnivore.skillz.utils.arc.ArcContinuationResolver
+import com.kingkharnivore.skillz.utils.arc.ArcFlowStartCoordinator
 import com.kingkharnivore.skillz.utils.arc.ArcRules
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 import com.kingkharnivore.skillz.utils.user.UserPrefs
@@ -57,6 +60,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
@@ -124,6 +129,10 @@ class FlowViewModel @Inject constructor(
     private val movementBonusEligibilityPolicy: MovementBonusEligibilityPolicy,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    private val flowStartMutex = Mutex()
+    private val arcContinuationLifecycle = ArcContinuationLifecycle(arcPrefs)
+    private val arcFlowStartCoordinator = ArcFlowStartCoordinator(arcContinuationLifecycle)
 
     private val plannedArcTitleOverride: String? =
         savedStateHandle
@@ -323,15 +332,11 @@ class FlowViewModel @Inject constructor(
             return
         }
 
-        arcState = arcState?.resetMultiplierForSoftFlow()
         _uiState.update { current ->
             current.copy(isSoftMode = true, isSurgeOn = false, surgePlannedMs = null)
         }
         syncArcUi()
 
-        // Persist ArcPrefs before the ongoing snapshot so neither restoration source
-        // can resurrect the pre-Soft multiplier after cancellation or process death.
-        arcState?.let { arcPrefs.save(it) }
         saveOngoingNow()
     }
 
@@ -378,8 +383,7 @@ class FlowViewModel @Inject constructor(
 
     private fun isArcExpired(nowMs: Long, state: ArcRuntimeState): Boolean {
         if (state.sessionCountInArc == 0) return false
-        val delta = nowMs - state.lastSessionEndTimeMs
-        return delta > ArcRules.GRACE_WINDOW_MS
+        return !ArcContinuationResolver.isWithinContinuationWindow(state, nowMs)
     }
 
     private fun isZeroDuration(durationMs: Long): Boolean = durationMs <= 0L
@@ -505,7 +509,7 @@ class FlowViewModel @Inject constructor(
                 )
                 arcPrefs.save(arcState!!)
             } else {
-                arcState = loadActiveArcOrRestoreRecentIfEligible(ongoing)
+                arcState = loadActiveArc(ongoing)
             }
 
             if (arcState == null && activePlannedRun != null) {
@@ -541,7 +545,6 @@ class FlowViewModel @Inject constructor(
                 activeArcRunRepository.clear()
                 clearOngoing()
                 arcPrefs.clear()
-                arcPrefs.clearRecentlyEnded()
                 arcState = null
                 _uiState.value = FlowUiState(
                     showScoreUi = _uiState.value.showScoreUi,
@@ -662,9 +665,7 @@ class FlowViewModel @Inject constructor(
                 arcPrefs.clearPlannedFlowHandoff()
             }
 
-            if (_uiState.value.isSoftMode) {
-                enterSoftModePreservingArc(persistSnapshotIfAlreadyApplied = true)
-            }
+            if (_uiState.value.isSoftMode) enterSoftModePreservingArc(persistSnapshotIfAlreadyApplied = true)
         }
     }
 
@@ -767,41 +768,53 @@ class FlowViewModel @Inject constructor(
     }
 
     private suspend fun startOrResumeStopwatchInternal() {
-        if (_uiState.value.stopwatch.isRunning) return
-        val isResumingSameFlow = accumulatedBeforeStartMs > 0L || activeIntervals.isNotEmpty()
+        flowStartMutex.withLock {
+            if (_uiState.value.stopwatch.isRunning) return@withLock
+            val isResumingSameFlow = accumulatedBeforeStartMs > 0L || activeIntervals.isNotEmpty()
+            var flowStartTimeMs: Long? = null
 
-        if (!isResumingSameFlow) {
-            _uiState.update {
-                it.copy(
-                    healthEnabledAtStart = false,
-                    healthPermissionGrantedAtStart = false,
-                    movementBonusEligibleAtStart = false
-                )
-            }
-            activeIntervals.clear()
-            activeIntervalStartMs = null
-            captureMovementEligibilityAtFlowStart()
-            arcState?.let { s ->
-                val now = System.currentTimeMillis()
-                if (isArcExpired(now, s)) {
-                    concludeArc(reason = "expired")
+            if (!isResumingSameFlow) {
+                // Start has already happened. Stop the between-Flow countdown before
+                // any suspending persistence or health work can cross the boundary.
+                arcCountdownJob?.cancel()
+                arcCountdownJob = null
+                val start = arcFlowStartCoordinator.start(_uiState.value.isSoftMode) { resolvedArc ->
+                    val resumedRecentlyEndedArc = arcState == null && resolvedArc != null
+                    arcState = resolvedArc
+                    if (resumedRecentlyEndedArc) {
+                        _uiState.update {
+                            it.copy(recentlyResumedArcMessage = "Arc resumed. Momentum preserved.")
+                        }
+                    }
+                    _uiState.update {
+                        it.copy(
+                            healthEnabledAtStart = false,
+                            healthPermissionGrantedAtStart = false,
+                            movementBonusEligibleAtStart = false
+                        )
+                    }
+                    activeIntervals.clear()
+                    activeIntervalStartMs = null
+                    captureMovementEligibilityAtFlowStart()
                 }
+                flowStartTimeMs = start.startedAtMs
             }
-        }
 
-        val now = System.currentTimeMillis()
-        baseStartTimeMs = now
-        activeIntervalStartMs = now
-        _uiState.update { it.copy(stopwatch = it.stopwatch.copy(isRunning = true)) }
-        applyArcPauseAccountingOnResume(now)
-        arcCountdownJob?.cancel()
-        arcCountdownJob = null
+            val now = flowStartTimeMs ?: System.currentTimeMillis()
+            baseStartTimeMs = now
+            activeIntervalStartMs = now
+            _uiState.update { it.copy(stopwatch = it.stopwatch.copy(isRunning = true)) }
+            syncArcUi()
+            applyArcPauseAccountingOnResume(now)
+            arcCountdownJob?.cancel()
+            arcCountdownJob = null
 
-        startTicker()
-        saveOngoing()
+            startTicker()
+            saveOngoing()
 
-        if (!isResumingSameFlow && _uiState.value.isSurgeOn) {
-            surgeHapticsManager.playStarted()
+            if (!isResumingSameFlow && _uiState.value.isSurgeOn) {
+                surgeHapticsManager.playStarted()
+            }
         }
     }
 
@@ -855,11 +868,7 @@ class FlowViewModel @Inject constructor(
         }
     }
 
-    private fun clearArcPersistedAsync() {
-        viewModelScope.launch {
-            arcPrefs.clear()
-        }
-    }
+    private suspend fun clearArcPersisted() = arcPrefs.clear()
 
     fun pauseStopwatch() {
         if (!_uiState.value.stopwatch.isRunning) return
@@ -1369,7 +1378,7 @@ class FlowViewModel @Inject constructor(
 
             var localArc = arcState
             if (localArc != null && isArcExpired(sessionStart, localArc)) {
-                clearArcPersistedAsync()
+                clearArcPersisted()
                 localArc = null
                 arcState = null
                 syncArcUi()
@@ -1710,8 +1719,9 @@ class FlowViewModel @Inject constructor(
                     _exitAfterReward.value = true
                     _awaitingNextFlowAfterContinue.value = false
 
-                    clearArcPersistedAsync()
-                    arcPrefs.clearRecentlyEnded()
+                    arcState?.let { completedArc ->
+                        arcContinuationLifecycle.completeArc(completedArc, sessionEnd)
+                    } ?: clearArcPersisted()
                     arcState = null
 
                     baseStartTimeMs = null
@@ -1759,7 +1769,7 @@ class FlowViewModel @Inject constructor(
                             endedAtMs = sessionEnd
                         )
 
-                        clearArcPersistedAsync()
+                        clearArcPersisted()
                         arcState = null
                     }
 
@@ -1974,16 +1984,7 @@ class FlowViewModel @Inject constructor(
                 plannedArcTotalStepsOverride != null
     }
 
-    private fun canRestoreRecentlyEndedArcForFreshFlow(
-        ongoing: OngoingSessionEntity?
-    ): Boolean {
-        if (ongoing != null) return false
-        if (prefillSoftModeOverride) return false
-        if (isPlannedArcLaunch()) return false
-        return true
-    }
-
-    private suspend fun loadActiveArcOrRestoreRecentIfEligible(
+    private suspend fun loadActiveArc(
         ongoing: OngoingSessionEntity?
     ): ArcRuntimeState? {
         val now = System.currentTimeMillis()
@@ -1998,27 +1999,7 @@ class FlowViewModel @Inject constructor(
             return active
         }
 
-        if (!canRestoreRecentlyEndedArcForFreshFlow(ongoing)) {
-            return null
-        }
-
-        val recent = arcPrefs.loadRecentlyEnded() ?: return null
-
-        if (isArcExpired(now, recent)) {
-            arcPrefs.clearRecentlyEnded()
-            return null
-        }
-
-        arcPrefs.save(recent)
-        arcPrefs.clearRecentlyEnded()
-
-        _uiState.update {
-            it.copy(
-                recentlyResumedArcMessage = "Arc resumed. Momentum preserved."
-            )
-        }
-
-        return recent
+        return null
     }
 
     private suspend fun saveRecentlyEndedArcSnapshot(
