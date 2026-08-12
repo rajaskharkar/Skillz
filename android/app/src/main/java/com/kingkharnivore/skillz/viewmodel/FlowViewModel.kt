@@ -40,6 +40,7 @@ import com.kingkharnivore.skillz.ui.navigation.SkillzDestinations
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
 import com.kingkharnivore.skillz.ui.service.SurgeHapticsManager
 import com.kingkharnivore.skillz.utils.arc.ArcPrefs
+import com.kingkharnivore.skillz.utils.arc.ArcContinuationLifecycle
 import com.kingkharnivore.skillz.utils.arc.ArcContinuationResolver
 import com.kingkharnivore.skillz.utils.arc.ArcRules
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
@@ -129,6 +130,7 @@ class FlowViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val flowStartMutex = Mutex()
+    private val arcContinuationLifecycle = ArcContinuationLifecycle(arcPrefs)
 
     private val plannedArcTitleOverride: String? =
         savedStateHandle
@@ -328,15 +330,11 @@ class FlowViewModel @Inject constructor(
             return
         }
 
-        arcState = arcState?.resetMultiplierForSoftFlow()
         _uiState.update { current ->
             current.copy(isSoftMode = true, isSurgeOn = false, surgePlannedMs = null)
         }
         syncArcUi()
 
-        // Persist ArcPrefs before the ongoing snapshot so neither restoration source
-        // can resurrect the pre-Soft multiplier after cancellation or process death.
-        arcState?.let { arcPrefs.save(it) }
         saveOngoingNow()
     }
 
@@ -509,7 +507,7 @@ class FlowViewModel @Inject constructor(
                 )
                 arcPrefs.save(arcState!!)
             } else {
-                arcState = loadActiveArcOrRestoreRecentIfEligible(ongoing)
+                arcState = loadActiveArc(ongoing)
             }
 
             if (arcState == null && activePlannedRun != null) {
@@ -545,7 +543,6 @@ class FlowViewModel @Inject constructor(
                 activeArcRunRepository.clear()
                 clearOngoing()
                 arcPrefs.clear()
-                arcPrefs.clearRecentlyEnded()
                 arcState = null
                 _uiState.value = FlowUiState(
                     showScoreUi = _uiState.value.showScoreUi,
@@ -666,9 +663,7 @@ class FlowViewModel @Inject constructor(
                 arcPrefs.clearPlannedFlowHandoff()
             }
 
-            if (_uiState.value.isSoftMode) {
-                enterSoftModePreservingArc(persistSnapshotIfAlreadyApplied = true)
-            }
+            if (_uiState.value.isSoftMode) enterSoftModePreservingArc(persistSnapshotIfAlreadyApplied = true)
         }
     }
 
@@ -777,24 +772,18 @@ class FlowViewModel @Inject constructor(
 
             if (!isResumingSameFlow) {
                 val flowStartTimeMs = System.currentTimeMillis()
-                val resolvedArc = ArcContinuationResolver.resolveArcForNewFlow(
-                    activeArc = arcState,
-                    recentlyEndedArc = arcPrefs.loadRecentlyEnded(),
-                    flowStartTimeMs = flowStartTimeMs
+                val resolvedArc = arcContinuationLifecycle.resolveForFlowStart(
+                    flowStartTimeMs = flowStartTimeMs,
+                    isSoftFlow = _uiState.value.isSoftMode
                 )
-                if (resolvedArc != arcState) {
-                    arcState = resolvedArc
-                    if (resolvedArc != null) {
-                        arcPrefs.save(resolvedArc)
-                        _uiState.update {
-                            it.copy(recentlyResumedArcMessage = "Arc resumed. Momentum preserved.")
-                        }
-                    } else {
-                        arcPrefs.clear()
+                val resumedRecentlyEndedArc = arcState == null && resolvedArc != null
+                arcState = resolvedArc
+                if (resumedRecentlyEndedArc) {
+                    _uiState.update {
+                        it.copy(recentlyResumedArcMessage = "Arc resumed. Momentum preserved.")
                     }
-                    arcPrefs.clearRecentlyEnded()
-                    syncArcUi()
                 }
+                syncArcUi()
                 _uiState.update {
                     it.copy(
                         healthEnabledAtStart = false,
@@ -880,11 +869,7 @@ class FlowViewModel @Inject constructor(
         }
     }
 
-    private fun clearArcPersistedAsync() {
-        viewModelScope.launch {
-            arcPrefs.clear()
-        }
-    }
+    private suspend fun clearArcPersisted() = arcPrefs.clear()
 
     fun pauseStopwatch() {
         if (!_uiState.value.stopwatch.isRunning) return
@@ -1394,7 +1379,7 @@ class FlowViewModel @Inject constructor(
 
             var localArc = arcState
             if (localArc != null && isArcExpired(sessionStart, localArc)) {
-                clearArcPersistedAsync()
+                clearArcPersisted()
                 localArc = null
                 arcState = null
                 syncArcUi()
@@ -1735,8 +1720,9 @@ class FlowViewModel @Inject constructor(
                     _exitAfterReward.value = true
                     _awaitingNextFlowAfterContinue.value = false
 
-                    clearArcPersistedAsync()
-                    arcPrefs.clearRecentlyEnded()
+                    arcState?.let { completedArc ->
+                        arcContinuationLifecycle.completeArc(completedArc, sessionEnd)
+                    } ?: clearArcPersisted()
                     arcState = null
 
                     baseStartTimeMs = null
@@ -1784,7 +1770,7 @@ class FlowViewModel @Inject constructor(
                             endedAtMs = sessionEnd
                         )
 
-                        clearArcPersistedAsync()
+                        clearArcPersisted()
                         arcState = null
                     }
 
@@ -1999,7 +1985,7 @@ class FlowViewModel @Inject constructor(
                 plannedArcTotalStepsOverride != null
     }
 
-    private suspend fun loadActiveArcOrRestoreRecentIfEligible(
+    private suspend fun loadActiveArc(
         ongoing: OngoingSessionEntity?
     ): ArcRuntimeState? {
         val now = System.currentTimeMillis()
@@ -2014,28 +2000,7 @@ class FlowViewModel @Inject constructor(
             return active
         }
 
-        val recent = arcPrefs.loadRecentlyEnded() ?: return null
-
-        val resolved = ArcContinuationResolver.resolveArcForNewFlow(
-            activeArc = null,
-            recentlyEndedArc = recent,
-            flowStartTimeMs = now
-        )
-        if (resolved == null) {
-            arcPrefs.clearRecentlyEnded()
-            return null
-        }
-
-        arcPrefs.save(resolved)
-        arcPrefs.clearRecentlyEnded()
-
-        _uiState.update {
-            it.copy(
-                recentlyResumedArcMessage = "Arc resumed. Momentum preserved."
-            )
-        }
-
-        return resolved
+        return null
     }
 
     private suspend fun saveRecentlyEndedArcSnapshot(

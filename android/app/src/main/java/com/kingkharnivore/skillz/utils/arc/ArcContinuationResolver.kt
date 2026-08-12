@@ -9,13 +9,17 @@ object ArcContinuationResolver {
         recentlyEndedArc: ArcRuntimeState?,
         flowStartTimeMs: Long
     ): ArcRuntimeState? {
-        activeArc?.let { active ->
-            if (active.sessionCountInArc == 0 || isWithinContinuationWindow(active, flowStartTimeMs)) {
-                return active
-            }
-        }
+        activeArc
+            ?.takeIf { it.sessionCountInArc > 0 && isWithinContinuationWindow(it, flowStartTimeMs) }
+            ?.let { return it }
 
-        return recentlyEndedArc?.takeIf { isWithinContinuationWindow(it, flowStartTimeMs) }
+        recentlyEndedArc
+            ?.takeIf { isWithinContinuationWindow(it, flowStartTimeMs) }
+            ?.let { return it }
+
+        // A planned Arc may be pre-created before its first Flow starts. It has no
+        // previous Flow timestamp and is used only when no completed Arc can continue.
+        return activeArc?.takeIf { it.sessionCountInArc == 0 }
     }
 
     fun isWithinContinuationWindow(arc: ArcRuntimeState, flowStartTimeMs: Long): Boolean {

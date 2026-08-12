@@ -40,6 +40,17 @@ class ArcContinuationResolverTest {
     }
 
     @Test
+    fun `eligible completed Arc wins over a pre-created empty Arc`() {
+        val empty = arc(id = 9L).copy(sessionCountInArc = 0)
+        val completed = arc(id = 4L)
+
+        assertSame(
+            completed,
+            ArcContinuationResolver.resolveArcForNewFlow(empty, completed, end + 1_000L)
+        )
+    }
+
+    @Test
     fun `continuation preserves identity progression and accumulated state`() {
         val original = arc()
         val resumed = resolve(original, end + 2 * 60_000L)!!
