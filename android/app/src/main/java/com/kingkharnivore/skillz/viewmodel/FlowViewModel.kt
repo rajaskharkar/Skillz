@@ -40,6 +40,7 @@ import com.kingkharnivore.skillz.ui.navigation.SkillzDestinations
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
 import com.kingkharnivore.skillz.ui.service.SurgeHapticsManager
 import com.kingkharnivore.skillz.utils.arc.ArcPrefs
+import com.kingkharnivore.skillz.utils.arc.ArcContinuationResolver
 import com.kingkharnivore.skillz.utils.arc.ArcRules
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 import com.kingkharnivore.skillz.utils.user.UserPrefs
@@ -57,6 +58,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
@@ -124,6 +127,8 @@ class FlowViewModel @Inject constructor(
     private val movementBonusEligibilityPolicy: MovementBonusEligibilityPolicy,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    private val flowStartMutex = Mutex()
 
     private val plannedArcTitleOverride: String? =
         savedStateHandle
@@ -378,8 +383,7 @@ class FlowViewModel @Inject constructor(
 
     private fun isArcExpired(nowMs: Long, state: ArcRuntimeState): Boolean {
         if (state.sessionCountInArc == 0) return false
-        val delta = nowMs - state.lastSessionEndTimeMs
-        return delta > ArcRules.GRACE_WINDOW_MS
+        return !ArcContinuationResolver.isWithinContinuationWindow(state, nowMs)
     }
 
     private fun isZeroDuration(durationMs: Long): Boolean = durationMs <= 0L
@@ -767,41 +771,62 @@ class FlowViewModel @Inject constructor(
     }
 
     private suspend fun startOrResumeStopwatchInternal() {
-        if (_uiState.value.stopwatch.isRunning) return
-        val isResumingSameFlow = accumulatedBeforeStartMs > 0L || activeIntervals.isNotEmpty()
+        flowStartMutex.withLock {
+            if (_uiState.value.stopwatch.isRunning) return@withLock
+            val isResumingSameFlow = accumulatedBeforeStartMs > 0L || activeIntervals.isNotEmpty()
 
-        if (!isResumingSameFlow) {
-            _uiState.update {
-                it.copy(
-                    healthEnabledAtStart = false,
-                    healthPermissionGrantedAtStart = false,
-                    movementBonusEligibleAtStart = false
+            if (!isResumingSameFlow) {
+                val flowStartTimeMs = System.currentTimeMillis()
+                val resolvedArc = ArcContinuationResolver.resolveArcForNewFlow(
+                    activeArc = arcState,
+                    recentlyEndedArc = arcPrefs.loadRecentlyEnded(),
+                    flowStartTimeMs = flowStartTimeMs
                 )
-            }
-            activeIntervals.clear()
-            activeIntervalStartMs = null
-            captureMovementEligibilityAtFlowStart()
-            arcState?.let { s ->
-                val now = System.currentTimeMillis()
-                if (isArcExpired(now, s)) {
-                    concludeArc(reason = "expired")
+                if (resolvedArc != arcState) {
+                    arcState = resolvedArc
+                    if (resolvedArc != null) {
+                        arcPrefs.save(resolvedArc)
+                        _uiState.update {
+                            it.copy(recentlyResumedArcMessage = "Arc resumed. Momentum preserved.")
+                        }
+                    } else {
+                        arcPrefs.clear()
+                    }
+                    arcPrefs.clearRecentlyEnded()
+                    syncArcUi()
+                }
+                _uiState.update {
+                    it.copy(
+                        healthEnabledAtStart = false,
+                        healthPermissionGrantedAtStart = false,
+                        movementBonusEligibleAtStart = false
+                    )
+                }
+                activeIntervals.clear()
+                activeIntervalStartMs = null
+                captureMovementEligibilityAtFlowStart()
+                arcState?.let { s ->
+                    val now = System.currentTimeMillis()
+                    if (isArcExpired(now, s)) {
+                        concludeArc(reason = "expired")
+                    }
                 }
             }
-        }
 
-        val now = System.currentTimeMillis()
-        baseStartTimeMs = now
-        activeIntervalStartMs = now
-        _uiState.update { it.copy(stopwatch = it.stopwatch.copy(isRunning = true)) }
-        applyArcPauseAccountingOnResume(now)
-        arcCountdownJob?.cancel()
-        arcCountdownJob = null
+            val now = System.currentTimeMillis()
+            baseStartTimeMs = now
+            activeIntervalStartMs = now
+            _uiState.update { it.copy(stopwatch = it.stopwatch.copy(isRunning = true)) }
+            applyArcPauseAccountingOnResume(now)
+            arcCountdownJob?.cancel()
+            arcCountdownJob = null
 
-        startTicker()
-        saveOngoing()
+            startTicker()
+            saveOngoing()
 
-        if (!isResumingSameFlow && _uiState.value.isSurgeOn) {
-            surgeHapticsManager.playStarted()
+            if (!isResumingSameFlow && _uiState.value.isSurgeOn) {
+                surgeHapticsManager.playStarted()
+            }
         }
     }
 
@@ -1974,15 +1999,6 @@ class FlowViewModel @Inject constructor(
                 plannedArcTotalStepsOverride != null
     }
 
-    private fun canRestoreRecentlyEndedArcForFreshFlow(
-        ongoing: OngoingSessionEntity?
-    ): Boolean {
-        if (ongoing != null) return false
-        if (prefillSoftModeOverride) return false
-        if (isPlannedArcLaunch()) return false
-        return true
-    }
-
     private suspend fun loadActiveArcOrRestoreRecentIfEligible(
         ongoing: OngoingSessionEntity?
     ): ArcRuntimeState? {
@@ -1998,18 +2014,19 @@ class FlowViewModel @Inject constructor(
             return active
         }
 
-        if (!canRestoreRecentlyEndedArcForFreshFlow(ongoing)) {
-            return null
-        }
-
         val recent = arcPrefs.loadRecentlyEnded() ?: return null
 
-        if (isArcExpired(now, recent)) {
+        val resolved = ArcContinuationResolver.resolveArcForNewFlow(
+            activeArc = null,
+            recentlyEndedArc = recent,
+            flowStartTimeMs = now
+        )
+        if (resolved == null) {
             arcPrefs.clearRecentlyEnded()
             return null
         }
 
-        arcPrefs.save(recent)
+        arcPrefs.save(resolved)
         arcPrefs.clearRecentlyEnded()
 
         _uiState.update {
@@ -2018,7 +2035,7 @@ class FlowViewModel @Inject constructor(
             )
         }
 
-        return recent
+        return resolved
     }
 
     private suspend fun saveRecentlyEndedArcSnapshot(
