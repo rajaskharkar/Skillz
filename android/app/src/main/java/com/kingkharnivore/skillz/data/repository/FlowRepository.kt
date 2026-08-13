@@ -22,6 +22,8 @@ class FlowRepository @Inject constructor(
     private val chronicleDao: ChronicleDao,
     private val chronicleRepository: ChronicleRepository
 ) {
+    suspend fun findCreatedSession(flowInstanceId: String): Long? =
+        sessionDao.findCreatedSession(flowInstanceId)
 
     fun getAllSessions(): Flow<List<SessionEntity>> =
         sessionDao.getAllSessions()

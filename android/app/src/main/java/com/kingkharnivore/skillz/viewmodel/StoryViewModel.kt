@@ -99,8 +99,12 @@ class StoryViewModel @Inject constructor(
     val pulseChronicle = ChronicleStateHolder(
         ChronicleOwnerType.PULSE_DRAFT, pulseDraftId, chronicleRepository, viewModelScope
     )
+    private val _restoredCreatedPulseId = MutableStateFlow<Long?>(null)
+    val restoredCreatedPulseId: StateFlow<Long?> = _restoredCreatedPulseId.asStateFlow()
     fun createHistoricalChronicle(ownerType: String, ownerKey: String) =
-        ChronicleStateHolder(ownerType, ownerKey, chronicleRepository, viewModelScope)
+        com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleReadState(
+            ownerType, ownerKey, chronicleRepository, viewModelScope
+        )
 
     private val selectedTagIds = MutableStateFlow<Set<Long>>(emptySet())
     private val showScoreUiFlow = userPrefs.showScoreUi
@@ -144,6 +148,9 @@ class StoryViewModel @Inject constructor(
     )
 
     init {
+        viewModelScope.launch {
+            _restoredCreatedPulseId.value = pulseRepository.findCreatedPulse(pulseDraftId)
+        }
         observeSessions()
         viewModelScope.launch { runCatching { healthRefreshUseCase.refreshForeground() } }
     }

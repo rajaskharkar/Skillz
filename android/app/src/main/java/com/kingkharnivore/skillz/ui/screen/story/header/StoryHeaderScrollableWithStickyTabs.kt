@@ -68,7 +68,7 @@ fun StoryHeaderScrollableWithStickyTabs(
     onAddSessionClick: () -> Unit,
     extraTopContent: (@Composable () -> Unit)? = null,
     onEditArc: (Long) -> Unit,
-    createHistoricalChronicle: (String, String) -> com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleStateHolder
+    createHistoricalChronicle: (String, String) -> com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleReadState
 ) {
     var tab by rememberSaveable { mutableStateOf(StoryTab.CHRONICLES) }
 
@@ -88,13 +88,13 @@ fun StoryHeaderScrollableWithStickyTabs(
     DisposableEffect(historicalHolder) {
         onDispose { historicalHolder?.close() }
     }
-    val historicalState = historicalHolder?.state?.collectAsState()?.value
+    val historicalMoments = historicalHolder?.moments?.collectAsState()?.value.orEmpty()
     val editingPulse = pulseEditState.editingPulse.value
     val pulseHistoricalHolder = editingPulse?.let { pulse ->
         remember(pulse.pulseId) { createHistoricalChronicle("PULSE", pulse.pulseId.toString()) }
     }
     DisposableEffect(pulseHistoricalHolder) { onDispose { pulseHistoricalHolder?.close() } }
-    val pulseHistoricalState = pulseHistoricalHolder?.state?.collectAsState()?.value
+    val pulseHistoricalMoments = pulseHistoricalHolder?.moments?.collectAsState()?.value.orEmpty()
     FlowDetailsSheet(
         editState = editState,
         tags = uiState.tags,
@@ -102,14 +102,14 @@ fun StoryHeaderScrollableWithStickyTabs(
         onCreatePulse = onCreatePulseForSession,
         onDeletePulse = onDeletePulse,
         onEditPulse = { pulse -> pulseEditState.startEditing(pulse) },
-        chronicleMoments = historicalState?.moments.orEmpty()
+        chronicleMoments = historicalMoments
     )
 
     PulseEditSheet(
         editState = pulseEditState,
         tags = uiState.tags,
         onSave = onUpdatePulse,
-        chronicleMoments = pulseHistoricalState?.moments.orEmpty()
+        chronicleMoments = pulseHistoricalMoments
     )
 
     LazyColumn(

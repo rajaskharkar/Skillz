@@ -39,7 +39,7 @@ class ChronicleDaoTest {
 
     @Test fun flowPromotionIsAtomicAndNextFlowIsIndependent() = runBlocking {
         db.tagDao().insertTag(TagEntity(name = "Journey"))
-        val repository = ChronicleRepository(db, db.chronicleDao(), repository)
+        val repository = ChronicleRepository(db, db.chronicleDao())
         repository.setDraft(ChronicleOwnerType.ACTIVE_FLOW, "flow-a", "A")
         repository.addText(ChronicleOwnerType.ACTIVE_FLOW, "flow-a", "A")
         val flows = FlowRepository(db.sessionDao(), db.tagDao(), db.pulseDao(), db.arcMetadataDao(), db, db.chronicleDao(), repository)
@@ -54,6 +54,11 @@ class ChronicleDaoTest {
         val next = db.chronicleDao().find(ChronicleOwnerType.ACTIVE_FLOW, "flow-b")!!
         assertEquals("A", db.chronicleDao().moments(completed.id).single().text)
         assertEquals("B", next.draftText)
+        val restartedRepository = ChronicleRepository(db, db.chronicleDao())
+        assertThrows(IllegalStateException::class.java) {
+            runBlocking { restartedRepository.setDraft(ChronicleOwnerType.ACTIVE_FLOW, "flow-a", "late") }
+        }
+        assertEquals(null, db.chronicleDao().find(ChronicleOwnerType.ACTIVE_FLOW, "flow-a"))
     }
 
     @Test fun pulseCreationKeyIsIdempotentAcrossRepositoryRecreation() = runBlocking {
@@ -70,5 +75,8 @@ class ChronicleDaoTest {
         assertEquals(first, retry)
         assertEquals(1, db.pulseDao().getAllPulses().first().size)
         assertEquals(null, db.chronicleDao().find(ChronicleOwnerType.PULSE_DRAFT, "draft-x"))
+        assertThrows(IllegalStateException::class.java) {
+            runBlocking { recreatedChronicles.setDraft(ChronicleOwnerType.PULSE_DRAFT, "draft-x", "late") }
+        }
     }
 }

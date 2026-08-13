@@ -567,6 +567,17 @@ class FlowViewModel @Inject constructor(
             }
 
             ongoing?.let { entity ->
+                if (sessionRepository.findCreatedSession(entity.flowInstanceId) != null) {
+                    clearOngoing()
+                    currentFlowInstanceId = UUID.randomUUID().toString()
+                    ongoingCreatedAtMs = System.currentTimeMillis()
+                    _uiState.value = FlowUiState(
+                        showScoreUi = _uiState.value.showScoreUi,
+                        calmMode = _uiState.value.calmMode
+                    )
+                    syncArcUi()
+                    return@launch
+                }
                 val shouldOverrideDraft = hasLaunchOverrides && shouldTreatOngoingAsDraft(entity)
 
                 if (shouldOverrideDraft) {

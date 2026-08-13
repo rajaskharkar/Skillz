@@ -26,6 +26,8 @@ class PulseRepository @Inject constructor(
     private val chronicleDao: ChronicleDao,
     private val chronicleRepository: ChronicleRepository
 ) {
+    suspend fun findCreatedPulse(creationKey: String): Long? =
+        pulseDao.findCreatedPulse(creationKey)
 
     fun getAllPulses(): Flow<List<PulseEntity>> = pulseDao.getAllPulses()
 

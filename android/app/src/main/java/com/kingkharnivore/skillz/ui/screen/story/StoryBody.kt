@@ -39,7 +39,7 @@ fun StoryBody(
     onCreatePulseForSession: (Long, String, String, String) -> Unit,
     onOpenViewJourneys: (Long) -> Unit,
     onEditArc: (Long) -> Unit,
-    createHistoricalChronicle: (String, String) -> com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleStateHolder
+    createHistoricalChronicle: (String, String) -> com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleReadState
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         when {

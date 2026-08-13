@@ -94,9 +94,13 @@ fun PulseScreen(
     val pagerScope = rememberCoroutineScope()
     val cancelPulse = { viewModel.cancelPulseDraft(onCancel) }
     val chronicleState by viewModel.pulseChronicle.state.collectAsState()
+    val restoredCreatedPulseId by viewModel.restoredCreatedPulseId.collectAsState()
     var showDraftPrompt by remember { mutableStateOf(false) }
     fun savePulse() = viewModel.pulseChronicle.quiesce {
         viewModel.createPulseFromStory(title, tagName, attachToCurrentFlow, onDone)
+    }
+    LaunchedEffect(restoredCreatedPulseId) {
+        if (restoredCreatedPulseId != null) onDone()
     }
 
     Scaffold(

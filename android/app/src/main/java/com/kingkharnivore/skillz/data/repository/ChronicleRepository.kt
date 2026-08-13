@@ -27,6 +27,16 @@ class ChronicleRepository @Inject constructor(
     private val ownerMutexes = ConcurrentHashMap<Owner, Mutex>()
     private val finalizedOwners = ConcurrentHashMap.newKeySet<Owner>()
     private fun mutex(owner: Owner) = ownerMutexes.getOrPut(owner) { Mutex() }
+    private suspend fun isDurablyFinalized(owner: Owner): Boolean = when (owner.type) {
+        ChronicleOwnerType.ACTIVE_FLOW -> database.sessionDao().findCreatedSession(owner.key) != null
+        ChronicleOwnerType.PULSE_DRAFT -> database.pulseDao().findCreatedPulse(owner.key) != null
+        else -> false
+    }
+    private suspend fun requireMutable(owner: Owner) {
+        check(owner !in finalizedOwners && !isDurablyFinalized(owner)) {
+            "Chronicle owner is finalized"
+        }
+    }
     data class Snapshot(val chronicle: ChronicleEntity?, val moments: List<ChronicleMomentEntity>)
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -49,7 +59,7 @@ class ChronicleRepository @Inject constructor(
     suspend fun getOrCreate(ownerType: String, ownerKey: String): ChronicleEntity {
         val owner = Owner(ownerType, ownerKey)
         return mutex(owner).withLock {
-            check(owner !in finalizedOwners) { "Chronicle owner is finalized" }
+            requireMutable(owner)
             getOrCreateUnlocked(ownerType, ownerKey)
         }
     }
@@ -57,7 +67,7 @@ class ChronicleRepository @Inject constructor(
     suspend fun setDraft(ownerType: String, ownerKey: String, text: String) {
         val owner = Owner(ownerType, ownerKey)
         mutex(owner).withLock {
-            check(owner !in finalizedOwners) { "Chronicle owner is finalized" }
+            requireMutable(owner)
             val chronicle = getOrCreateUnlocked(ownerType, ownerKey)
             dao.updateChronicle(chronicle.copy(draftText = text, updatedAt = System.currentTimeMillis()))
         }
@@ -67,7 +77,7 @@ class ChronicleRepository @Inject constructor(
         if (text.isBlank()) return null
         val owner = Owner(ownerType, ownerKey)
         return mutex(owner).withLock {
-            check(owner !in finalizedOwners) { "Chronicle owner is finalized" }
+            requireMutable(owner)
             database.withTransaction {
             val chronicle = getOrCreateUnlocked(ownerType, ownerKey)
             val now = System.currentTimeMillis()

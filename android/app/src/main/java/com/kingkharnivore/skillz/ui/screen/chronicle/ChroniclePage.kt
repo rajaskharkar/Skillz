@@ -35,6 +35,7 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
     val removeLabel = stringResource(R.string.chronicle_remove_action)
     val haptics = LocalHapticFeedback.current
     val listState = rememberLazyListState()
+    val gestureScope = rememberCoroutineScope()
     val displayedMoments = remember(state.moments, state.stagedOrder) {
         if (state.stagedOrder.isEmpty()) state.moments else {
             val byId = state.moments.associateBy { it.id }
@@ -101,7 +102,7 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                                             val nearBottom = visible.offset + visible.size > viewport.viewportEndOffset - 48
                                             val nearTop = visible.offset < viewport.viewportStartOffset + 48
                                             if ((nearBottom && amount.y > 0) || (nearTop && amount.y < 0)) {
-                                                launch { listState.scrollBy(amount.y) }
+                                                gestureScope.launch { listState.scrollBy(amount.y) }
                                             }
                                         }
                                     }

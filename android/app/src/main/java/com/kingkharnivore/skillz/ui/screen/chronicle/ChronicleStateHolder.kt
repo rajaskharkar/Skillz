@@ -162,12 +162,21 @@ class ChronicleStateHolder(
     }
     fun discardDraft(onSuccess: (() -> Unit)? = null) {
         draftJob?.cancel()
+        val previous = _state.value.draft
         ++draftGeneration
         _state.update { it.copy(draft = "") }
         scope.launch {
-            repository.setDraft(ownerType, ownerKey, "")
-            onSuccess?.invoke()
+            runCatching { repository.setDraft(ownerType, ownerKey, "") }
+                .onSuccess { onSuccess?.invoke() }
+                .onFailure {
+                    _state.update { it.copy(draft = previous, hasError = true) }
+                }
         }
+    }
+
+    /** Re-enables a prepared holder only when the durable owner was not finalized. */
+    fun resumeAfterPreCommitFailure() {
+        if (holderJob.isActive) acceptingMutations = true
     }
 
     /** Flushes the newest local value, then permanently prevents this holder from writing. */
