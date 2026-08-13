@@ -16,6 +16,7 @@ import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
 import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.dao.TagDao
+import com.kingkharnivore.skillz.data.model.dao.ChronicleDao
 import com.kingkharnivore.skillz.data.model.migration.SkillzDatabaseMigrations
 import com.kingkharnivore.skillz.utils.arc.ArcPrefs
 import dagger.Module
@@ -74,6 +75,9 @@ object DatabaseModule {
 
     @Provides
     fun provideFlowHealthDao(db: SkillzDatabase): FlowHealthDao = db.flowHealthDao()
+
+    @Provides
+    fun provideChronicleDao(db: SkillzDatabase): ChronicleDao = db.chronicleDao()
 
     @Provides
     @Singleton
