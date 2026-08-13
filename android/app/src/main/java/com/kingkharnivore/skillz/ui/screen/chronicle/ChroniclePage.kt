@@ -5,8 +5,10 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -21,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -31,6 +34,7 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
     val moveDownLabel = stringResource(R.string.chronicle_move_down)
     val removeLabel = stringResource(R.string.chronicle_remove_action)
     val haptics = LocalHapticFeedback.current
+    val listState = rememberLazyListState()
     val displayedMoments = remember(state.moments, state.stagedOrder) {
         if (state.stagedOrder.isEmpty()) state.moments else {
             val byId = state.moments.associateBy { it.id }
@@ -38,6 +42,7 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
         }
     }
     LazyColumn(
+        state = listState,
         modifier = modifier.fillMaxSize().imePadding(),
         contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -86,10 +91,19 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                                 if (state.editingId == null) detectDragGesturesAfterLongPress(
                                     onDragStart = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); holder.startDrag(moment) },
                                     onDragEnd = holder::finishDrag,
-                                    onDragCancel = holder::finishDrag,
+                                    onDragCancel = holder::cancelDrag,
                                     onDrag = { change, amount ->
                                         change.consume()
-                                        if (amount.y > 18f) holder.dragBy(1) else if (amount.y < -18f) holder.dragBy(-1)
+                                        val visible = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == moment.id }
+                                        holder.dragByPixels(amount.y, visible?.size?.toFloat()?.coerceAtLeast(1f) ?: 96f)
+                                        if (visible != null) {
+                                            val viewport = listState.layoutInfo
+                                            val nearBottom = visible.offset + visible.size > viewport.viewportEndOffset - 48
+                                            val nearTop = visible.offset < viewport.viewportStartOffset + 48
+                                            if ((nearBottom && amount.y > 0) || (nearTop && amount.y < 0)) {
+                                                launch { listState.scrollBy(amount.y) }
+                                            }
+                                        }
                                     }
                                 )
                             }
@@ -128,7 +142,12 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
 
 @Composable private fun chronicleTextFieldColors() = TextFieldDefaults.colors(
     focusedTextColor = MaterialTheme.colorScheme.primary, unfocusedTextColor = MaterialTheme.colorScheme.primary,
+    disabledTextColor = MaterialTheme.colorScheme.secondary,
+    cursorColor = MaterialTheme.colorScheme.primary,
     focusedContainerColor = MaterialTheme.colorScheme.surface, unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+    disabledContainerColor = MaterialTheme.colorScheme.surface,
     focusedIndicatorColor = MaterialTheme.colorScheme.secondary, unfocusedIndicatorColor = MaterialTheme.colorScheme.secondary.copy(alpha = .35f),
-    focusedPlaceholderColor = MaterialTheme.colorScheme.secondary, unfocusedPlaceholderColor = MaterialTheme.colorScheme.secondary
+    disabledIndicatorColor = MaterialTheme.colorScheme.secondary.copy(alpha = .20f),
+    focusedPlaceholderColor = MaterialTheme.colorScheme.secondary, unfocusedPlaceholderColor = MaterialTheme.colorScheme.secondary,
+    disabledPlaceholderColor = MaterialTheme.colorScheme.secondary.copy(alpha = .55f)
 )

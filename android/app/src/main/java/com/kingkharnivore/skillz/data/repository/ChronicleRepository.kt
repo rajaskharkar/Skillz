@@ -9,29 +9,35 @@ import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentType
 import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.util.concurrent.ConcurrentHashMap
 
 @Singleton
 class ChronicleRepository @Inject constructor(
     private val database: SkillzDatabase,
     private val dao: ChronicleDao
 ) {
-    private val commitMutex = Mutex()
+    private data class Owner(val type: String, val key: String)
+    private val ownerMutexes = ConcurrentHashMap<Owner, Mutex>()
+    private val finalizedOwners = ConcurrentHashMap.newKeySet<Owner>()
+    private fun mutex(owner: Owner) = ownerMutexes.getOrPut(owner) { Mutex() }
     data class Snapshot(val chronicle: ChronicleEntity?, val moments: List<ChronicleMomentEntity>)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun observe(ownerType: String, ownerKey: String): Flow<Snapshot> =
-        dao.observe(ownerType, ownerKey).flatMapLatest { chronicle ->
-            if (chronicle == null) flowOf(Snapshot(null, emptyList()))
-            else dao.observeMoments(chronicle.id).flatMapLatest { flowOf(Snapshot(chronicle, it)) }
+        dao.observe(ownerType, ownerKey).transformLatest { chronicle ->
+            if (chronicle == null) emit(Snapshot(null, emptyList()))
+            else dao.observeMoments(chronicle.id).collect { emit(Snapshot(chronicle, it)) }
         }
 
-    fun observeTextPreviews() = dao.observeTextPreviews()
-    suspend fun getOrCreate(ownerType: String, ownerKey: String): ChronicleEntity =
+    fun observeSummaries() = dao.observeSummaries()
+    private suspend fun getOrCreateUnlocked(ownerType: String, ownerKey: String): ChronicleEntity =
         database.withTransaction {
             dao.find(ownerType, ownerKey) ?: run {
                 val now = System.currentTimeMillis()
@@ -40,15 +46,30 @@ class ChronicleRepository @Inject constructor(
             }
         }
 
-    suspend fun setDraft(ownerType: String, ownerKey: String, text: String) {
-        val chronicle = getOrCreate(ownerType, ownerKey)
-        dao.updateChronicle(chronicle.copy(draftText = text, updatedAt = System.currentTimeMillis()))
+    suspend fun getOrCreate(ownerType: String, ownerKey: String): ChronicleEntity {
+        val owner = Owner(ownerType, ownerKey)
+        return mutex(owner).withLock {
+            check(owner !in finalizedOwners) { "Chronicle owner is finalized" }
+            getOrCreateUnlocked(ownerType, ownerKey)
+        }
     }
 
-    suspend fun addText(ownerType: String, ownerKey: String, text: String): String? = commitMutex.withLock {
-        if (text.isBlank()) return@withLock null
-        database.withTransaction {
-            val chronicle = getOrCreate(ownerType, ownerKey)
+    suspend fun setDraft(ownerType: String, ownerKey: String, text: String) {
+        val owner = Owner(ownerType, ownerKey)
+        mutex(owner).withLock {
+            check(owner !in finalizedOwners) { "Chronicle owner is finalized" }
+            val chronicle = getOrCreateUnlocked(ownerType, ownerKey)
+            dao.updateChronicle(chronicle.copy(draftText = text, updatedAt = System.currentTimeMillis()))
+        }
+    }
+
+    suspend fun addText(ownerType: String, ownerKey: String, text: String): String? {
+        if (text.isBlank()) return null
+        val owner = Owner(ownerType, ownerKey)
+        return mutex(owner).withLock {
+            check(owner !in finalizedOwners) { "Chronicle owner is finalized" }
+            database.withTransaction {
+            val chronicle = getOrCreateUnlocked(ownerType, ownerKey)
             val now = System.currentTimeMillis()
             val id = UUID.randomUUID().toString()
             dao.insertMoment(
@@ -64,6 +85,7 @@ class ChronicleRepository @Inject constructor(
             )
             dao.compareAndSetDraft(chronicle.id, text, "", now)
             id
+            }
         }
     }
 
@@ -78,7 +100,21 @@ class ChronicleRepository @Inject constructor(
     suspend fun reorder(chronicleId: String, ids: List<String>) =
         dao.reorderMoments(chronicleId, ids, System.currentTimeMillis())
 
-    suspend fun discard(ownerType: String, ownerKey: String) = dao.delete(ownerType, ownerKey)
+    suspend fun discard(ownerType: String, ownerKey: String) {
+        val owner = Owner(ownerType, ownerKey)
+        mutex(owner).withLock {
+            dao.delete(ownerType, ownerKey)
+            finalizedOwners += owner
+        }
+    }
+
+    /** Serializes the last draft mutation with an atomic owner save/promotion. */
+    suspend fun <T> finalizeOwner(ownerType: String, ownerKey: String, block: suspend () -> T): T {
+        val owner = Owner(ownerType, ownerKey)
+        return mutex(owner).withLock {
+            block().also { finalizedOwners += owner }
+        }
+    }
 
     suspend fun promoteActiveFlow(flowInstanceId: String, sessionId: Long) =
         dao.promote(

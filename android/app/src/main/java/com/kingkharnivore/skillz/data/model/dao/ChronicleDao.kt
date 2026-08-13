@@ -11,12 +11,12 @@ import com.kingkharnivore.skillz.data.model.entity.ChronicleMediaItemEntity
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
 import kotlinx.coroutines.flow.Flow
 
-data class ChronicleTextPreview(val ownerType: String, val ownerKey: String, val text: String, val position: Int)
+data class ChronicleSummary(val ownerType: String, val ownerKey: String, val momentCount: Int, val excerpt: String?)
 
 @Dao
 abstract class ChronicleDao {
-    @Query("SELECT c.ownerType, c.ownerKey, m.text AS text, m.position AS position FROM chronicles c JOIN chronicle_moments m ON m.chronicleId=c.id WHERE m.type='TEXT' ORDER BY c.ownerType,c.ownerKey,m.position")
-    abstract fun observeTextPreviews(): Flow<List<ChronicleTextPreview>>
+    @Query("SELECT c.ownerType, c.ownerKey, COUNT(m.id) AS momentCount, substr((SELECT t.text FROM chronicle_moments t WHERE t.chronicleId=c.id AND t.type='TEXT' AND length(trim(t.text)) > 0 ORDER BY t.position LIMIT 1),1,240) AS excerpt FROM chronicles c LEFT JOIN chronicle_moments m ON m.chronicleId=c.id GROUP BY c.id")
+    abstract fun observeSummaries(): Flow<List<ChronicleSummary>>
     @Query("SELECT * FROM chronicles WHERE ownerType=:ownerType AND ownerKey=:ownerKey LIMIT 1")
     abstract fun observe(ownerType: String, ownerKey: String): Flow<ChronicleEntity?>
 

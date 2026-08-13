@@ -99,6 +99,8 @@ class StoryViewModel @Inject constructor(
     val pulseChronicle = ChronicleStateHolder(
         ChronicleOwnerType.PULSE_DRAFT, pulseDraftId, chronicleRepository, viewModelScope
     )
+    fun createHistoricalChronicle(ownerType: String, ownerKey: String) =
+        ChronicleStateHolder(ownerType, ownerKey, chronicleRepository, viewModelScope)
 
     private val selectedTagIds = MutableStateFlow<Set<Long>>(emptySet())
     private val showScoreUiFlow = userPrefs.showScoreUi
@@ -127,7 +129,7 @@ class StoryViewModel @Inject constructor(
     private val pulsesFlow: Flow<List<PulseEntity>> = pulseRepository.getAllPulses()
     private val tagsFlow: Flow<List<TagEntity>> = tagRepository.getAllTags()
     private val arcMetadataFlow = arcMetadataRepository.observeAll()
-    private val chroniclePreviewsFlow = chronicleRepository.observeTextPreviews()
+    private val chroniclePreviewsFlow = chronicleRepository.observeSummaries()
 
     private val _arcEditorState = MutableStateFlow(ArcEditorUiState())
     val arcEditorState: StateFlow<ArcEditorUiState> = _arcEditorState.asStateFlow()
@@ -263,10 +265,7 @@ class StoryViewModel @Inject constructor(
     }
 
     fun cancelPulseDraft(onCanceled: () -> Unit) {
-        viewModelScope.launch {
-            chronicleRepository.discard(ChronicleOwnerType.PULSE_DRAFT, pulseDraftId)
-            onCanceled()
-        }
+        pulseChronicle.discardAndQuiesce(onCanceled)
     }
 
     fun updatePulse(
@@ -277,8 +276,6 @@ class StoryViewModel @Inject constructor(
         viewModelScope.launch {
             val trimmedTitle = title.trim()
             val trimmedTag = tagName.trim()
-
-            if (trimmedTitle.isBlank()) return@launch
 
             val tagId = if (trimmedTag.isBlank()) {
                 null
@@ -452,8 +449,8 @@ class StoryViewModel @Inject constructor(
                 arcMetadataFlow,
                 chroniclePreviewsFlow
             ) { arr: Array<Any?> ->
-                val chronicleTexts = (arr[13] as List<com.kingkharnivore.skillz.data.model.dao.ChronicleTextPreview>)
-                    .groupBy({ it.ownerType + "/" + it.ownerKey }, { it.text })
+                val chronicleTexts = (arr[13] as List<com.kingkharnivore.skillz.data.model.dao.ChronicleSummary>)
+                    .associate { (it.ownerType + "/" + it.ownerKey) to listOfNotNull(it.excerpt) }
                 chronicleTextsFlowCache = chronicleTexts.filterKeys { it.startsWith("SESSION/") }
                     .mapKeys { it.key.removePrefix("SESSION/").toLong() }
                 chronicleTextsPulseCache = chronicleTexts.filterKeys { it.startsWith("PULSE/") }

@@ -22,16 +22,25 @@ class ChronicleMigrationTest {
         helper.createDatabase("chronicle-migration", 38).apply {
             execSQL("INSERT INTO tags(id,name) VALUES(1,'Journey')")
             execSQL("INSERT INTO sessions(id,title,description,tagId,startTime,endTime,durationMs,surgePoints,scyraPoints,isSoftMode,arcBonusPoints,createdAt) VALUES(1,'Flow',?,1,1,2,1,0,0,0,0,3)", arrayOf(exact))
+            listOf("", "   ", "\t", "\n", "\r\n").forEachIndexed { index, blank ->
+                execSQL("INSERT INTO sessions(id,title,description,tagId,startTime,endTime,durationMs,surgePoints,scyraPoints,isSoftMode,arcBonusPoints,createdAt) VALUES(?, 'Blank',?,1,1,2,1,0,0,0,0,3)", arrayOf(index + 10, blank))
+            }
             execSQL("INSERT INTO pulses(id,title,description,createdAt,updatedAt,groveStatus) VALUES(2,'Pulse',?,3,3,'ALIVE')", arrayOf(exact))
             execSQL("INSERT INTO ongoing_session(id,flowInstanceId,title,description,tagName,isInFlowMode,isRunning,isSoftMode,accumulatedBeforeStartMs,isSurgeOn,surgeMilestonesFiredCsv,surgeTargetReached,surgeFinalCountdownStarted,createdAt,healthEnabledAtStart,healthPermissionGrantedAtStart,movementBonusEligibleAtStart) VALUES(1,'active','Flow',?,'Journey',1,0,0,0,0,'',0,0,3,0,0,0)", arrayOf(exact))
             close()
         }
         helper.runMigrationsAndValidate("chronicle-migration", 39, true, SkillzDatabaseMigrations.MIGRATION_38_39).apply {
             query("SELECT draftText FROM chronicles WHERE ownerType='ACTIVE_FLOW'").use { it.moveToFirst(); assertEquals("", it.getString(0)) }
+            query("SELECT ownerType,ownerKey,id FROM chronicles ORDER BY ownerType").use {
+                val owners = mutableSetOf<Pair<String,String>>()
+                while (it.moveToNext()) owners += it.getString(0) to it.getString(1)
+                assertEquals(setOf("ACTIVE_FLOW" to "active", "PULSE" to "2", "SESSION" to "1"), owners)
+            }
             query("SELECT text,position FROM chronicle_moments ORDER BY id").use {
                 var count=0; while(it.moveToNext()) { assertEquals(exact,it.getString(0)); assertEquals(0,it.getInt(1)); count++ }
                 assertEquals(3,count)
             }
+            query("SELECT COUNT(*) FROM chronicles").use { it.moveToFirst(); assertEquals(3, it.getInt(0)) }
             close()
         }
     }

@@ -6,7 +6,7 @@ import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.dao.TagDao
 import com.kingkharnivore.skillz.data.model.dao.ChronicleDao
-import com.kingkharnivore.skillz.data.model.dao.ChronicleTextPreview
+import com.kingkharnivore.skillz.data.model.dao.ChronicleSummary
 import com.kingkharnivore.skillz.data.model.dao.shell.IdeaGroveDao
 import com.kingkharnivore.skillz.data.model.entity.PulseEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseFlowLinkEntity
@@ -38,7 +38,7 @@ class IdeaGroveRepository @Inject constructor(
         ideaGroveDao.observePulseFlowLinks(),
         sessionDao.getAllSessions(),
         tagDao.getAllTags(),
-        chronicleDao.observeTextPreviews()
+        chronicleDao.observeSummaries()
     ) { pulses, links, sessions, tags, texts ->
         mapItems(pulses, links, sessions, tags, texts)
     }
@@ -126,12 +126,12 @@ class IdeaGroveRepository @Inject constructor(
         links: List<PulseFlowLinkEntity>,
         sessions: List<SessionEntity>,
         tags: List<TagEntity>,
-        texts: List<ChronicleTextPreview>
+        texts: List<ChronicleSummary>
     ): List<IdeaGroveItemUiModel> {
         val tagsById = tags.associateBy { it.id }
         val sessionsById = sessions.associateBy { it.id }
         val linksByPulse = links.groupBy { it.pulseId }
-        val previews = texts.filter { it.position == 0 }.associate { "${it.ownerType}/${it.ownerKey}" to it.text }
+        val previews = texts.associate { "${it.ownerType}/${it.ownerKey}" to it.excerpt.orEmpty() }
 
         return pulses.map { pulse ->
             val flows = linksByPulse[pulse.id]

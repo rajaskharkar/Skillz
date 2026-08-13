@@ -49,7 +49,8 @@ fun FlowDetailsSheet(
     childPulses: List<PulseListItemUiModel>,
     onCreatePulse: (sessionId: Long, title: String, description: String, tagName: String) -> Unit,
     onDeletePulse: (Long) -> Unit,
-    onEditPulse: (PulseListItemUiModel) -> Unit
+    onEditPulse: (PulseListItemUiModel) -> Unit,
+    chronicleMoments: List<com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity>
 ) {
     val session = editState.editingSession.value ?: return
 
@@ -153,14 +154,11 @@ fun FlowDetailsSheet(
                 }
             }
 
-            if (session.chronicleTexts.isNotEmpty()) {
+            if (chronicleMoments.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
                     Text(stringResource(R.string.chronicle_title), style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold)
-                    session.chronicleTexts.forEachIndexed { index, text ->
-                        Text(text = text, style = MaterialTheme.typography.bodyLarge)
-                        if (index < session.chronicleTexts.lastIndex) HorizontalDivider()
-                    }
+                    com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleReader(chronicleMoments)
                 }
                 HorizontalDivider()
             }

@@ -284,14 +284,18 @@ object SkillzDatabaseMigrations {
             db.execSQL("CREATE TABLE IF NOT EXISTS `chronicle_media_items` (`id` TEXT NOT NULL, `momentId` TEXT NOT NULL, `position` INTEGER NOT NULL, `localPath` TEXT NOT NULL, `mimeType` TEXT NOT NULL, `durationMs` INTEGER, `width` INTEGER, `height` INTEGER, `thumbnailPath` TEXT, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`momentId`) REFERENCES `chronicle_moments`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_chronicle_media_items_momentId` ON `chronicle_media_items` (`momentId`)")
             db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_chronicle_media_items_momentId_position` ON `chronicle_media_items` (`momentId`, `position`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `pulse_creations` (`creationKey` TEXT NOT NULL, `pulseId` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`creationKey`), FOREIGN KEY(`pulseId`) REFERENCES `pulses`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_pulse_creations_pulseId` ON `pulse_creations` (`pulseId`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `session_creations` (`flowInstanceId` TEXT NOT NULL, `sessionId` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`flowInstanceId`), FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_session_creations_sessionId` ON `session_creations` (`sessionId`)")
             val now = "CAST(strftime('%s','now') AS INTEGER) * 1000"
             // Deterministic IDs make this safe even when a migration is replayed by a test harness.
-            db.execSQL("INSERT OR IGNORE INTO chronicles SELECT 'session-' || id, 'SESSION', CAST(id AS TEXT), '', createdAt, $now FROM sessions WHERE trim(description) <> ''")
-            db.execSQL("INSERT OR IGNORE INTO chronicle_moments SELECT 'session-text-' || id, 'session-' || id, 'TEXT', 0, description, NULL, NULL, NULL, NULL, NULL, 0, createdAt, $now FROM sessions WHERE trim(description) <> ''")
-            db.execSQL("INSERT OR IGNORE INTO chronicles SELECT 'pulse-' || id, 'PULSE', CAST(id AS TEXT), '', createdAt, $now FROM pulses WHERE trim(description) <> ''")
-            db.execSQL("INSERT OR IGNORE INTO chronicle_moments SELECT 'pulse-text-' || id, 'pulse-' || id, 'TEXT', 0, description, NULL, NULL, NULL, NULL, NULL, 0, createdAt, $now FROM pulses WHERE trim(description) <> ''")
-            db.execSQL("INSERT OR IGNORE INTO chronicles SELECT 'flow-' || flowInstanceId, 'ACTIVE_FLOW', flowInstanceId, '', createdAt, $now FROM ongoing_session WHERE trim(description) <> ''")
-            db.execSQL("INSERT OR IGNORE INTO chronicle_moments SELECT 'flow-text-' || flowInstanceId, 'flow-' || flowInstanceId, 'TEXT', 0, description, NULL, NULL, NULL, NULL, NULL, 0, createdAt, $now FROM ongoing_session WHERE trim(description) <> ''")
+            db.execSQL("INSERT OR IGNORE INTO chronicles SELECT 'session-' || id, 'SESSION', CAST(id AS TEXT), '', createdAt, $now FROM sessions WHERE length(trim(replace(replace(replace(description, char(9), ''), char(10), ''), char(13), ''))) > 0")
+            db.execSQL("INSERT OR IGNORE INTO chronicle_moments SELECT 'session-text-' || id, 'session-' || id, 'TEXT', 0, description, NULL, NULL, NULL, NULL, NULL, 0, createdAt, $now FROM sessions WHERE length(trim(replace(replace(replace(description, char(9), ''), char(10), ''), char(13), ''))) > 0")
+            db.execSQL("INSERT OR IGNORE INTO chronicles SELECT 'pulse-' || id, 'PULSE', CAST(id AS TEXT), '', createdAt, $now FROM pulses WHERE length(trim(replace(replace(replace(description, char(9), ''), char(10), ''), char(13), ''))) > 0")
+            db.execSQL("INSERT OR IGNORE INTO chronicle_moments SELECT 'pulse-text-' || id, 'pulse-' || id, 'TEXT', 0, description, NULL, NULL, NULL, NULL, NULL, 0, createdAt, $now FROM pulses WHERE length(trim(replace(replace(replace(description, char(9), ''), char(10), ''), char(13), ''))) > 0")
+            db.execSQL("INSERT OR IGNORE INTO chronicles SELECT 'flow-' || flowInstanceId, 'ACTIVE_FLOW', flowInstanceId, '', createdAt, $now FROM ongoing_session WHERE length(trim(replace(replace(replace(description, char(9), ''), char(10), ''), char(13), ''))) > 0")
+            db.execSQL("INSERT OR IGNORE INTO chronicle_moments SELECT 'flow-text-' || flowInstanceId, 'flow-' || flowInstanceId, 'TEXT', 0, description, NULL, NULL, NULL, NULL, NULL, 0, createdAt, $now FROM ongoing_session WHERE length(trim(replace(replace(replace(description, char(9), ''), char(10), ''), char(13), ''))) > 0")
         }
     }
 

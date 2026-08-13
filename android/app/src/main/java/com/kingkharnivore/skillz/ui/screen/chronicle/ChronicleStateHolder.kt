@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.SupervisorJob
 
 data class ChronicleUiState(
     val chronicleId: String? = null,
@@ -31,20 +32,33 @@ class ChronicleStateHolder(
     private val ownerType: String,
     private val ownerKey: String,
     private val repository: ChronicleRepository,
-    private val scope: CoroutineScope
+    parentScope: CoroutineScope
 ) {
+    private val holderJob = SupervisorJob(parentScope.coroutineContext[Job])
+    private val scope = CoroutineScope(parentScope.coroutineContext + holderJob)
     private val _state = MutableStateFlow(ChronicleUiState())
     val state: StateFlow<ChronicleUiState> = _state.asStateFlow()
     private var draftJob: Job? = null
+    private var draftGeneration = 0L
+    private var syncedGeneration = 0L
+    @Volatile private var acceptingMutations = true
+    private var accumulatedDragPx = 0f
 
     init {
         scope.launch {
             repository.observe(ownerType, ownerKey)
                 .catch { _state.update { state -> state.copy(hasError = true) } }
                 .collectLatest { snapshot ->
-                    _state.update { it.copy(
+                    _state.update { current ->
+                      val persisted = snapshot.chronicle?.draftText.orEmpty()
+                      if (draftGeneration != syncedGeneration && persisted == current.draft) {
+                          syncedGeneration = draftGeneration
+                      }
+                      current.copy(
                         chronicleId = snapshot.chronicle?.id,
-                        draft = snapshot.chronicle?.draftText.orEmpty(),
+                        draft = if (draftGeneration == syncedGeneration) {
+                            persisted
+                        } else current.draft,
                         moments = snapshot.moments
                     ) }
                 }
@@ -52,6 +66,8 @@ class ChronicleStateHolder(
     }
 
     fun setDraft(value: String) {
+        if (!acceptingMutations) return
+        ++draftGeneration
         _state.update { it.copy(draft = value, hasError = false) }
         draftJob?.cancel()
         draftJob = scope.launch {
@@ -62,22 +78,29 @@ class ChronicleStateHolder(
     }
 
     fun add(onSuccess: (() -> Unit)? = null) {
-        if (_state.value.isCommitting || _state.value.draft.isBlank()) return
+        if (!acceptingMutations || _state.value.isCommitting || _state.value.draft.isBlank()) return
         val captured = _state.value.draft
+        val capturedGeneration = draftGeneration
         val pendingDraftWrite = draftJob
         _state.update { it.copy(isCommitting = true, hasError = false) }
         scope.launch {
             runCatching {
                 pendingDraftWrite?.join()
                 repository.addText(ownerType, ownerKey, captured)
-            }.onSuccess { onSuccess?.invoke() }
+            }.onSuccess {
+                if (draftGeneration == capturedGeneration) {
+                    syncedGeneration = capturedGeneration
+                    _state.update { state -> state.copy(draft = "") }
+                }
+                onSuccess?.invoke()
+            }
                 .onFailure { _state.update { it.copy(hasError = true) } }
             _state.update { it.copy(isCommitting = false) }
         }
     }
 
     fun beginEdit(moment: ChronicleMomentEntity) =
-        _state.update { it.copy(editingId = moment.id, editingText = moment.text.orEmpty()) }
+        if (acceptingMutations) _state.update { it.copy(editingId = moment.id, editingText = moment.text.orEmpty()) } else Unit
     fun editText(value: String) = _state.update { it.copy(editingText = value) }
     fun cancelEdit() = _state.update { it.copy(editingId = null, editingText = "") }
     fun finishEdit() {
@@ -96,10 +119,21 @@ class ChronicleStateHolder(
         scope.launch { repository.reorder(moment.chronicleId, items.map { it.id }) }
     }
     fun startDrag(moment: ChronicleMomentEntity) = _state.update {
+        accumulatedDragPx = 0f
         if (it.editingId != null) it else it.copy(
             draggingId = moment.id,
             stagedOrder = it.moments.map(ChronicleMomentEntity::id)
         )
+    }
+    fun dragByPixels(deltaPx: Float, itemExtentPx: Float) {
+        if (_state.value.draggingId == null || itemExtentPx <= 0f) return
+        accumulatedDragPx += deltaPx
+        while (accumulatedDragPx >= itemExtentPx) {
+            dragBy(1); accumulatedDragPx -= itemExtentPx
+        }
+        while (accumulatedDragPx <= -itemExtentPx) {
+            dragBy(-1); accumulatedDragPx += itemExtentPx
+        }
     }
     fun dragBy(delta: Int) = _state.update { current ->
         val ids = current.stagedOrder.toMutableList()
@@ -113,6 +147,7 @@ class ChronicleStateHolder(
         val current = _state.value
         val chronicleId = current.chronicleId
         val order = current.stagedOrder
+        accumulatedDragPx = 0f
         _state.update { it.copy(draggingId = null, stagedOrder = emptyList()) }
         if (chronicleId != null && order.isNotEmpty() && order != current.moments.map { it.id }) {
             scope.launch {
@@ -121,8 +156,56 @@ class ChronicleStateHolder(
             }
         }
     }
+    fun cancelDrag() {
+        accumulatedDragPx = 0f
+        _state.update { it.copy(draggingId = null, stagedOrder = emptyList()) }
+    }
     fun discardDraft(onSuccess: (() -> Unit)? = null) {
         draftJob?.cancel()
-        scope.launch { repository.setDraft(ownerType, ownerKey, ""); onSuccess?.invoke() }
+        ++draftGeneration
+        _state.update { it.copy(draft = "") }
+        scope.launch {
+            repository.setDraft(ownerType, ownerKey, "")
+            onSuccess?.invoke()
+        }
+    }
+
+    /** Flushes the newest local value, then permanently prevents this holder from writing. */
+    fun quiesce(onReady: () -> Unit) {
+        if (!acceptingMutations) return
+        acceptingMutations = false
+        val value = _state.value.draft
+        val generation = draftGeneration
+        draftJob?.cancel()
+        scope.launch {
+            val result = runCatching {
+                if (generation != syncedGeneration) repository.setDraft(ownerType, ownerKey, value)
+            }
+            if (result.isSuccess) {
+                onReady()
+            } else {
+                acceptingMutations = true
+                _state.update { it.copy(hasError = true) }
+            }
+        }
+    }
+
+    fun discardAndQuiesce(onReady: () -> Unit) {
+        if (!acceptingMutations) return
+        acceptingMutations = false
+        draftJob?.cancel()
+        scope.launch {
+            runCatching { repository.discard(ownerType, ownerKey) }
+                .onSuccess { onReady() }
+                .onFailure {
+                    acceptingMutations = true
+                    _state.update { it.copy(hasError = true) }
+                }
+        }
+    }
+
+    fun close() {
+        acceptingMutations = false
+        holderJob.cancel()
     }
 }

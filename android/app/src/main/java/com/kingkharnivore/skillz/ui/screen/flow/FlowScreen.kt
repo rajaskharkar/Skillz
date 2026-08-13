@@ -56,6 +56,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -138,12 +139,13 @@ fun FlowScreen(
     val modeLocked = viewModel.isModeLocked()
     val chronicleOwnerKey by viewModel.chronicleOwnerKey.collectAsState()
     val chronicleHolder = remember(chronicleOwnerKey) { viewModel.createChronicleStateHolder(chronicleOwnerKey) }
+    DisposableEffect(chronicleHolder) { onDispose { chronicleHolder.close() } }
     val pagerState = rememberPagerState(pageCount = { 2 })
     val pagerScope = rememberCoroutineScope()
     fun requestEnd(action: FlowEndAction) {
         val chronicle = chronicleHolder.state.value
         if (chronicle.blocksCompletion || chronicle.draft.isNotBlank()) pendingChronicleEnd = action
-        else viewModel.onEndFlowClicked(action)
+        else chronicleHolder.quiesce { viewModel.onEndFlowClicked(action) }
     }
 
     LaunchedEffect(reward) {
@@ -575,13 +577,17 @@ fun FlowScreen(
             title = { Text(stringResource(if (chronicle.editingId != null) R.string.chronicle_finish_edit else R.string.chronicle_unfinished)) },
             confirmButton = {
                 if (chronicle.editingId == null) TextButton(onClick = {
-                    chronicleHolder.add { pendingChronicleEnd = null; viewModel.onEndFlowClicked(action) }
+                    chronicleHolder.add {
+                        chronicleHolder.quiesce { pendingChronicleEnd = null; viewModel.onEndFlowClicked(action) }
+                    }
                 }) { Text(stringResource(R.string.chronicle_add_moment)) }
             },
             dismissButton = {
                 Row {
                     if (chronicle.editingId == null) TextButton(onClick = {
-                        chronicleHolder.discardDraft { pendingChronicleEnd = null; viewModel.onEndFlowClicked(action) }
+                        chronicleHolder.discardDraft {
+                            chronicleHolder.quiesce { pendingChronicleEnd = null; viewModel.onEndFlowClicked(action) }
+                        }
                     }) { Text(stringResource(R.string.chronicle_discard)) }
                     TextButton(onClick = { pendingChronicleEnd = null }) { Text(stringResource(R.string.common_cancel)) }
                 }

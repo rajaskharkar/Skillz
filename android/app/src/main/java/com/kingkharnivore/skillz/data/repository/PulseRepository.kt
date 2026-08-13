@@ -14,6 +14,7 @@ import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
 import com.kingkharnivore.skillz.data.model.entity.ChronicleEntity
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentType
+import com.kingkharnivore.skillz.data.model.entity.PulseCreationEntity
 import java.util.UUID
 
 @Singleton
@@ -22,7 +23,8 @@ class PulseRepository @Inject constructor(
     private val sessionDao: SessionDao,
     private val tagDao: TagDao,
     private val database: SkillzDatabase,
-    private val chronicleDao: ChronicleDao
+    private val chronicleDao: ChronicleDao,
+    private val chronicleRepository: ChronicleRepository
 ) {
 
     fun getAllPulses(): Flow<List<PulseEntity>> = pulseDao.getAllPulses()
@@ -68,11 +70,15 @@ class PulseRepository @Inject constructor(
     }
 
     suspend fun addPulseAndPromoteDraft(draftId: String, pulse: PulseEntity): Long =
-        database.withTransaction {
+        chronicleRepository.finalizeOwner(ChronicleOwnerType.PULSE_DRAFT, draftId) {
+          database.withTransaction {
+            pulseDao.findCreatedPulse(draftId)?.let { return@withTransaction it }
             val id = pulseDao.insertPulse(pulse)
             chronicleDao.promote(ChronicleOwnerType.PULSE_DRAFT, draftId,
                 ChronicleOwnerType.PULSE, id.toString(), System.currentTimeMillis())
+            pulseDao.insertCreation(PulseCreationEntity(draftId, id, System.currentTimeMillis()))
             id
+          }
         }
 
     suspend fun updatePulse(pulse: PulseEntity) {

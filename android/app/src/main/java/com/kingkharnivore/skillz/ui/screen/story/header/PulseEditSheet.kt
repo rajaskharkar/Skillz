@@ -45,6 +45,7 @@ fun PulseEditSheet(
     editState: PulseEditState,
     tags: List<TagUiModel>,
     onSave: (pulseId: Long, title: String, tagName: String) -> Unit,
+    chronicleMoments: List<com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity>
 ) {
     val pulse = editState.editingPulse.value ?: return
 
@@ -104,6 +105,10 @@ fun PulseEditSheet(
                 onTagNameChange = { editState.editTagName.value = it }
             )
 
+            if (chronicleMoments.isNotEmpty()) {
+                com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleReader(chronicleMoments)
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -124,7 +129,7 @@ fun PulseEditSheet(
                         )
                         editState.stopEditing()
                     },
-                    enabled = editState.editTitle.value.isNotBlank(),
+                    enabled = true,
                     modifier = Modifier.weight(1.2f),
                     shape = RoundedCornerShape(18.dp)
                 ) {

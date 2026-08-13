@@ -155,7 +155,8 @@ fun StoryScreen(
                 onUpdatePulse = viewModel::updatePulse,
                 onCreatePulseForSession = viewModel::createPulseForSession,
                 onOpenViewJourneys = viewModel::openViewJourneys,
-                onEditArc = viewModel::openArcEditor
+                onEditArc = viewModel::openArcEditor,
+                createHistoricalChronicle = viewModel::createHistoricalChronicle
             )
 
             ArcDetailsSheet(arcEditorState, viewModel::updateArcEditor, viewModel::requestCloseArcEditor,

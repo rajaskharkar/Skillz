@@ -6,10 +6,16 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.kingkharnivore.skillz.data.model.entity.PulseEntity
+import com.kingkharnivore.skillz.data.model.entity.PulseCreationEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PulseDao {
+    @Query("SELECT pulseId FROM pulse_creations WHERE creationKey=:creationKey LIMIT 1")
+    suspend fun findCreatedPulse(creationKey: String): Long?
+
+    @Insert
+    suspend fun insertCreation(value: PulseCreationEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPulse(pulse: PulseEntity): Long

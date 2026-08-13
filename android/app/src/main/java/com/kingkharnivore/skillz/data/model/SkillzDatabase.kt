@@ -24,7 +24,9 @@ import com.kingkharnivore.skillz.data.model.entity.FlowPlanEntity
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseFlowLinkEntity
+import com.kingkharnivore.skillz.data.model.entity.PulseCreationEntity
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
+import com.kingkharnivore.skillz.data.model.entity.SessionCreationEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.model.entity.ChronicleEntity
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
@@ -58,8 +60,10 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
     entities = [
         TagEntity::class,
         SessionEntity::class,
+        SessionCreationEntity::class,
         PulseEntity::class,
         PulseFlowLinkEntity::class,
+        PulseCreationEntity::class,
         OngoingSessionEntity::class,
         FlowPlanEntity::class,
         ArcPlanEntity::class,

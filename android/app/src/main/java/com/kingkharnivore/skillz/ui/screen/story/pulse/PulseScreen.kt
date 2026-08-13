@@ -95,7 +95,9 @@ fun PulseScreen(
     val cancelPulse = { viewModel.cancelPulseDraft(onCancel) }
     val chronicleState by viewModel.pulseChronicle.state.collectAsState()
     var showDraftPrompt by remember { mutableStateOf(false) }
-    fun savePulse() = viewModel.createPulseFromStory(title, tagName, attachToCurrentFlow, onDone)
+    fun savePulse() = viewModel.pulseChronicle.quiesce {
+        viewModel.createPulseFromStory(title, tagName, attachToCurrentFlow, onDone)
+    }
 
     Scaffold(
         topBar = {

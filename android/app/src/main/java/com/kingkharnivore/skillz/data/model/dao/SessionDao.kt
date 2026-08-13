@@ -5,10 +5,16 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
+import com.kingkharnivore.skillz.data.model.entity.SessionCreationEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SessionDao {
+    @Query("SELECT sessionId FROM session_creations WHERE flowInstanceId=:flowInstanceId LIMIT 1")
+    suspend fun findCreatedSession(flowInstanceId: String): Long?
+
+    @Insert
+    suspend fun insertCreation(value: SessionCreationEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSession(session: SessionEntity): Long
