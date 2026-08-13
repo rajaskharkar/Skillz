@@ -274,6 +274,25 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_38_39 = object : Migration(38, 39) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `chronicles` (`id` TEXT NOT NULL, `ownerType` TEXT NOT NULL, `ownerKey` TEXT NOT NULL, `draft` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_chronicles_ownerType_ownerKey` ON `chronicles` (`ownerType`, `ownerKey`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `chronicle_moments` (`id` TEXT NOT NULL, `chronicleId` TEXT NOT NULL, `type` TEXT NOT NULL, `position` INTEGER NOT NULL, `text` TEXT, `fileName` TEXT, `localFileName` TEXT, `mimeType` TEXT, `durationMs` INTEGER, `transcript` TEXT, `transcriptEdited` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`chronicleId`) REFERENCES `chronicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_chronicle_moments_chronicleId` ON `chronicle_moments` (`chronicleId`)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_chronicle_moments_chronicleId_position` ON `chronicle_moments` (`chronicleId`, `position`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `chronicle_media_items` (`id` TEXT NOT NULL, `momentId` TEXT NOT NULL, `position` INTEGER NOT NULL, `localFileName` TEXT NOT NULL, `mimeType` TEXT NOT NULL, `durationMs` INTEGER, `thumbnailFileName` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`momentId`) REFERENCES `chronicle_moments`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_chronicle_media_items_momentId` ON `chronicle_media_items` (`momentId`)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_chronicle_media_items_momentId_position` ON `chronicle_media_items` (`momentId`, `position`)")
+            // Old narratives become one TextMoment. Stable deterministic ids make this idempotent.
+            db.execSQL("INSERT OR IGNORE INTO chronicles SELECT 'flow-' || id, 'FLOW', CAST(id AS TEXT), '', createdAt, createdAt FROM sessions WHERE trim(description) <> ''")
+            db.execSQL("INSERT OR IGNORE INTO chronicle_moments SELECT 'legacy-flow-' || id, 'flow-' || id, 'TEXT', 0, description, NULL, NULL, NULL, NULL, NULL, 0, createdAt FROM sessions WHERE trim(description) <> ''")
+            db.execSQL("INSERT OR IGNORE INTO chronicles SELECT 'pulse-' || id, 'PULSE', CAST(id AS TEXT), '', createdAt, updatedAt FROM pulses WHERE trim(description) <> ''")
+            db.execSQL("INSERT OR IGNORE INTO chronicle_moments SELECT 'legacy-pulse-' || id, 'pulse-' || id, 'TEXT', 0, description, NULL, NULL, NULL, NULL, NULL, 0, createdAt FROM pulses WHERE trim(description) <> ''")
+            db.execSQL("INSERT OR IGNORE INTO chronicles SELECT 'flow-draft-' || flowInstanceId, 'FLOW_DRAFT', flowInstanceId, description, createdAt, createdAt FROM ongoing_session WHERE trim(description) <> ''")
+        }
+    }
+
     private fun normalizePostAnchorTestSchemaToTargetBranch(db: SupportSQLiteDatabase) {
         db.execSQL("PRAGMA foreign_keys=OFF")
 
@@ -432,7 +451,8 @@ object SkillzDatabaseMigrations {
                 MIGRATION_34_35 +
                 MIGRATION_35_36 +
                 MIGRATION_36_37 +
-                MIGRATION_37_38
+                MIGRATION_37_38 +
+                MIGRATION_38_39
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(
