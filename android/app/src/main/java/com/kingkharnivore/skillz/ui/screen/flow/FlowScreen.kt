@@ -25,6 +25,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -70,6 +72,9 @@ import com.kingkharnivore.skillz.ui.screen.flow.reward.SoftSessionRewardContent
 import com.kingkharnivore.skillz.ui.health.MovementBonusActivePill
 import com.kingkharnivore.skillz.viewmodel.FlowEndAction
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
+import com.kingkharnivore.skillz.ui.screen.chronicle.ChroniclePage
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 internal enum class FlowCompletionControls { StandaloneSoft, ArcActions, RegularActions }
 internal enum class RewardShellEntry { ConsumeTerminalExit, PreserveContinuation }
@@ -117,6 +122,7 @@ fun FlowScreen(
     var showPulseDialog by remember { mutableStateOf(false) }
     var showSoftArcConfirmDialog by remember { mutableStateOf(false) }
     var showArcIdeaContinuationDialog by remember { mutableStateOf(false) }
+    var pendingChronicleEnd by remember { mutableStateOf<FlowEndAction?>(null) }
 
     var surgeMinutesInput by remember { mutableStateOf("") }
     var surgeMinutesInline by rememberSaveable { mutableStateOf("") }
@@ -130,6 +136,15 @@ fun FlowScreen(
     val isInFlowState = uiState.isInFlowMode
     val hasTime = stopwatchState.elapsedMs > 0L
     val modeLocked = viewModel.isModeLocked()
+    val chronicleOwnerKey by viewModel.chronicleOwnerKey.collectAsState()
+    val chronicleHolder = remember(chronicleOwnerKey) { viewModel.createChronicleStateHolder(chronicleOwnerKey) }
+    val pagerState = rememberPagerState(pageCount = { 2 })
+    val pagerScope = rememberCoroutineScope()
+    fun requestEnd(action: FlowEndAction) {
+        val chronicle = chronicleHolder.state.value
+        if (chronicle.blocksCompletion || chronicle.draft.isNotBlank()) pendingChronicleEnd = action
+        else viewModel.onEndFlowClicked(action)
+    }
 
     LaunchedEffect(reward) {
         if (reward != null) showPointsDialog = true
@@ -194,9 +209,22 @@ fun FlowScreen(
         }
     ) { innerPadding ->
 
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                TextButton(onClick = { pagerScope.launch { pagerState.animateScrollToPage(0) } }) {
+                    Text(stringResource(R.string.flow_screen_title))
+                }
+                TextButton(onClick = { pagerScope.launch { pagerState.animateScrollToPage(1) } }) {
+                    Text(stringResource(R.string.chronicle_title))
+                }
+            }
+            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
+                if (page == 1) {
+                    ChroniclePage(chronicleHolder)
+                    return@HorizontalPager
+                }
         Column(
             modifier = Modifier
-                .padding(innerPadding)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
                 .verticalScroll(rememberScrollState())
                 .imePadding(),
@@ -462,13 +490,6 @@ fun FlowScreen(
                 }
             }
 
-            RitualCard(rotation = 0.16f, corner = 28.dp) {
-                ChronicleField(
-                    value = uiState.description,
-                    onValueChange = viewModel::onDescriptionChange
-                )
-            }
-
             if (error != null) {
                 Text(
                     text = error ?: "",
@@ -487,7 +508,7 @@ fun FlowScreen(
                             hasTime &&
                             !isSaving &&
                             !isInFlowState,
-                    onClick = { viewModel.onEndFlowClicked(FlowEndAction.SAVE_FLOW) },
+                    onClick = { requestEnd(FlowEndAction.SAVE_FLOW) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp)
                 ) {
@@ -507,7 +528,7 @@ fun FlowScreen(
                                 hasTime &&
                                 !isSaving &&
                                 !isInFlowState,
-                        onClick = { viewModel.onEndFlowClicked(FlowEndAction.CONTINUE_ARC) },
+                        onClick = { requestEnd(FlowEndAction.CONTINUE_ARC) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(18.dp)
                     ) {
@@ -532,7 +553,7 @@ fun FlowScreen(
                                 hasTime &&
                                 !isSaving &&
                                 !isInFlowState,
-                        onClick = { viewModel.onEndFlowClicked(completeAction) },
+                        onClick = { requestEnd(completeAction) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(18.dp)
                     ) {
@@ -543,6 +564,29 @@ fun FlowScreen(
 
             Spacer(Modifier.height(10.dp))
         }
+            }
+        }
+    }
+
+    pendingChronicleEnd?.let { action ->
+        val chronicle = chronicleHolder.state.value
+        AlertDialog(
+            onDismissRequest = { pendingChronicleEnd = null },
+            title = { Text(stringResource(if (chronicle.editingId != null) R.string.chronicle_finish_edit else R.string.chronicle_unfinished)) },
+            confirmButton = {
+                if (chronicle.editingId == null) TextButton(onClick = {
+                    chronicleHolder.add { pendingChronicleEnd = null; viewModel.onEndFlowClicked(action) }
+                }) { Text(stringResource(R.string.chronicle_add_moment)) }
+            },
+            dismissButton = {
+                Row {
+                    if (chronicle.editingId == null) TextButton(onClick = {
+                        chronicleHolder.discardDraft { pendingChronicleEnd = null; viewModel.onEndFlowClicked(action) }
+                    }) { Text(stringResource(R.string.chronicle_discard)) }
+                    TextButton(onClick = { pendingChronicleEnd = null }) { Text(stringResource(R.string.common_cancel)) }
+                }
+            }
+        )
     }
 
     if (showSoftArcConfirmDialog) {

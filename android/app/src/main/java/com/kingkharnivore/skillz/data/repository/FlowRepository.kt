@@ -7,6 +7,8 @@ import com.kingkharnivore.skillz.data.model.dao.ArcMetadataDao
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import androidx.room.withTransaction
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
+import com.kingkharnivore.skillz.data.model.dao.ChronicleDao
+import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
@@ -15,7 +17,8 @@ class FlowRepository @Inject constructor(
     private val tagDao: TagDao,
     private val pulseDao: PulseDao,
     private val arcMetadataDao: ArcMetadataDao,
-    private val database: SkillzDatabase
+    private val database: SkillzDatabase,
+    private val chronicleDao: ChronicleDao
 ) {
 
     fun getAllSessions(): Flow<List<SessionEntity>> =
@@ -50,6 +53,14 @@ class FlowRepository @Inject constructor(
         )
         return sessionDao.insertSession(session)
     }
+
+    suspend fun addSessionAndPromoteChronicle(flowInstanceId: String, session: SessionEntity): Long =
+        database.withTransaction {
+            val id = sessionDao.insertSession(session)
+            chronicleDao.promote(ChronicleOwnerType.ACTIVE_FLOW, flowInstanceId,
+                ChronicleOwnerType.SESSION, id.toString(), System.currentTimeMillis())
+            id
+        }
 
     suspend fun deleteSessionAndCleanupTag(sessionId: Long): Long? {
         val session = sessionDao.getSessionById(sessionId) ?: return null

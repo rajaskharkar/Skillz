@@ -8,14 +8,18 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.PsychologyAlt
@@ -59,6 +63,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.ui.screen.flow.ChronicleField
+import com.kingkharnivore.skillz.ui.screen.chronicle.ChroniclePage
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import com.kingkharnivore.skillz.ui.screen.flow.GrandTitleField
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
 import com.kingkharnivore.skillz.viewmodel.TagUiModel
@@ -73,7 +80,6 @@ fun PulseScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     var title by rememberSaveable { mutableStateOf("") }
-    var description by rememberSaveable { mutableStateOf("") }
     var tagName by rememberSaveable { mutableStateOf("") }
     var attachToCurrentFlow by rememberSaveable { mutableStateOf(isFlowStateActive) }
 
@@ -85,6 +91,12 @@ fun PulseScreen(
     val attachEnabledText = stringResource(R.string.pulse_screen_attach_enabled)
     val attachDisabledText = stringResource(R.string.pulse_screen_attach_disabled)
     val attachSwitchLabel = stringResource(R.string.pulse_a11y_attach_switch)
+    val pagerState = rememberPagerState(pageCount = { 2 })
+    val pagerScope = rememberCoroutineScope()
+    val cancelPulse = { viewModel.cancelPulseDraft(onCancel) }
+    val chronicleState by viewModel.pulseChronicle.state.collectAsState()
+    var showDraftPrompt by remember { mutableStateOf(false) }
+    fun savePulse() = viewModel.createPulseFromStory(title, tagName, attachToCurrentFlow, onDone)
 
     Scaffold(
         topBar = {
@@ -96,7 +108,7 @@ fun PulseScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onCancel) {
+                    IconButton(onClick = cancelPulse) {
                         Icon(
                             Icons.Default.ArrowBack,
                             contentDescription = backLabel
@@ -106,9 +118,15 @@ fun PulseScreen(
             )
         }
     ) { innerPadding ->
+        Column(modifier = Modifier.padding(innerPadding)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                TextButton(onClick = { pagerScope.launch { pagerState.animateScrollToPage(0) } }) { Text(screenTitle) }
+                TextButton(onClick = { pagerScope.launch { pagerState.animateScrollToPage(1) } }) { Text(stringResource(R.string.chronicle_title)) }
+            }
+            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
+                if (page == 1) { ChroniclePage(viewModel.pulseChronicle); return@HorizontalPager }
         Column(
             modifier = Modifier
-                .padding(innerPadding)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
                 .verticalScroll(rememberScrollState())
                 .imePadding(),
@@ -147,11 +165,6 @@ fun PulseScreen(
                     )
                 }
             }
-
-            ChronicleField(
-                value = description,
-                onValueChange = { description = it }
-            )
 
             if (isFlowStateActive) {
                 Surface(
@@ -215,7 +228,7 @@ fun PulseScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 TextButton(
-                    onClick = onCancel,
+                    onClick = cancelPulse,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(cancelLabel)
@@ -223,23 +236,33 @@ fun PulseScreen(
 
                 Button(
                     onClick = {
-                        viewModel.createPulseFromStory(
-                            title = title,
-                            description = description,
-                            tagName = tagName,
-                            attachToCurrentFlow = attachToCurrentFlow
-                        )
-                        onDone()
+                        if (chronicleState.blocksCompletion || chronicleState.draft.isNotBlank()) showDraftPrompt = true
+                        else savePulse()
                     },
-                    enabled = title.isNotBlank() || description.isNotBlank(),
+                    enabled = title.isNotBlank() || chronicleState.moments.isNotEmpty() || chronicleState.draft.isNotBlank(),
                     modifier = Modifier.weight(1.25f),
                     shape = RoundedCornerShape(18.dp)
                 ) {
                     Text(savePulseLabel)
                 }
             }
+            }
+        }
         }
     }
+    if (showDraftPrompt) AlertDialog(
+        onDismissRequest = { showDraftPrompt = false },
+        title = { Text(stringResource(if (chronicleState.editingId != null) R.string.chronicle_finish_edit else R.string.chronicle_unfinished)) },
+        confirmButton = { if (chronicleState.editingId == null) TextButton(onClick = {
+            viewModel.pulseChronicle.add { showDraftPrompt = false; savePulse() }
+        }) { Text(stringResource(R.string.chronicle_add_moment)) } },
+        dismissButton = { Row {
+            if (chronicleState.editingId == null) TextButton(onClick = {
+                viewModel.pulseChronicle.discardDraft { showDraftPrompt = false; savePulse() }
+            }) { Text(stringResource(R.string.chronicle_discard)) }
+            TextButton(onClick = { showDraftPrompt = false }) { Text(cancelLabel) }
+        } }
+    )
 }
 
 @Composable

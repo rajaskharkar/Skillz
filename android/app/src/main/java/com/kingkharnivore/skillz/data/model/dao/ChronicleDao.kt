@@ -11,8 +11,12 @@ import com.kingkharnivore.skillz.data.model.entity.ChronicleMediaItemEntity
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
 import kotlinx.coroutines.flow.Flow
 
+data class ChronicleTextPreview(val ownerType: String, val ownerKey: String, val text: String)
+
 @Dao
 abstract class ChronicleDao {
+    @Query("SELECT c.ownerType, c.ownerKey, m.text AS text FROM chronicles c JOIN chronicle_moments m ON m.chronicleId=c.id WHERE m.position=0 AND m.type='TEXT'")
+    abstract fun observeTextPreviews(): Flow<List<ChronicleTextPreview>>
     @Query("SELECT * FROM chronicles WHERE ownerType=:ownerType AND ownerKey=:ownerKey LIMIT 1")
     abstract fun observe(ownerType: String, ownerKey: String): Flow<ChronicleEntity?>
 
@@ -28,6 +32,9 @@ abstract class ChronicleDao {
     @Query("SELECT * FROM chronicle_media_items WHERE momentId=:momentId ORDER BY position")
     abstract suspend fun media(momentId: String): List<ChronicleMediaItemEntity>
 
+    @Query("DELETE FROM chronicles WHERE ownerType=:ownerType AND ownerKey=:ownerKey")
+    abstract suspend fun delete(ownerType: String, ownerKey: String)
+
     @Insert abstract suspend fun insertChronicle(value: ChronicleEntity)
     @Insert abstract suspend fun insertMoment(value: ChronicleMomentEntity)
     @Insert abstract suspend fun insertMedia(values: List<ChronicleMediaItemEntity>)
@@ -36,6 +43,9 @@ abstract class ChronicleDao {
     @Update abstract suspend fun updateMedia(value: ChronicleMediaItemEntity)
     @Delete abstract suspend fun deleteMoment(value: ChronicleMomentEntity)
     @Delete abstract suspend fun deleteMedia(value: ChronicleMediaItemEntity)
+
+    @Query("UPDATE chronicles SET draftText=:replacement, updatedAt=:now WHERE id=:id AND draftText=:expected")
+    abstract suspend fun compareAndSetDraft(id: String, expected: String, replacement: String, now: Long): Int
 
     @Query("UPDATE chronicle_moments SET position=:position, updatedAt=:now WHERE id=:id")
     protected abstract suspend fun setMomentPosition(id: String, position: Int, now: Long)
@@ -64,5 +74,11 @@ abstract class ChronicleDao {
         val chronicle = find(ownerType, ownerKey) ?: return
         check(find(newType, newKey) == null) { "Chronicle owner already exists" }
         updateChronicle(chronicle.copy(ownerType = newType, ownerKey = newKey, updatedAt = now))
+    }
+
+    @Transaction
+    open suspend fun deleteMomentAndNormalize(moment: ChronicleMomentEntity, now: Long) {
+        deleteMoment(moment)
+        moments(moment.chronicleId).forEachIndexed { index, item -> setMomentPosition(item.id, index, now) }
     }
 }

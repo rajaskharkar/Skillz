@@ -28,6 +28,9 @@ import com.kingkharnivore.skillz.data.repository.health.HealthPermissionReposito
 import com.kingkharnivore.skillz.data.repository.shell.IdeaGroveRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.data.repository.PulseRepository
+import com.kingkharnivore.skillz.data.repository.ChronicleRepository
+import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
+import com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleStateHolder
 import com.kingkharnivore.skillz.utils.shell.ShellRewardEventRecorder
 import com.kingkharnivore.skillz.utils.shell.ShellRewardOrchestrator
 import com.kingkharnivore.skillz.utils.shell.ShellRewardResult
@@ -127,6 +130,7 @@ class FlowViewModel @Inject constructor(
     private val flowHealthRepository: FlowHealthRepository,
     private val movementBonusCalculator: MovementBonusCalculator,
     private val movementBonusEligibilityPolicy: MovementBonusEligibilityPolicy,
+    private val chronicleRepository: ChronicleRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -266,7 +270,14 @@ class FlowViewModel @Inject constructor(
     private var activeIntervalStartMs: Long? = null
     private var tickerJob: Job? = null
     private var ongoingCreatedAtMs: Long = System.currentTimeMillis()
-    private var currentFlowInstanceId: String = UUID.randomUUID().toString()
+    private val _chronicleOwnerKey = MutableStateFlow(UUID.randomUUID().toString())
+    val chronicleOwnerKey: StateFlow<String> = _chronicleOwnerKey.asStateFlow()
+    private var currentFlowInstanceId: String = _chronicleOwnerKey.value
+        set(value) { field = value; _chronicleOwnerKey.value = value }
+
+    fun createChronicleStateHolder(ownerKey: String) = ChronicleStateHolder(
+        ChronicleOwnerType.ACTIVE_FLOW, ownerKey, chronicleRepository, viewModelScope
+    )
 
     private var arcState: ArcRuntimeState? = null
 
@@ -611,7 +622,7 @@ class FlowViewModel @Inject constructor(
                     _uiState.update { old ->
                         old.copy(
                             title = entity.title,
-                            description = entity.description,
+                            description = "",
                             tagName = entity.tagName,
                             isInFlowMode = entity.isInFlowMode,
                             isSoftMode = entity.isSoftMode,
@@ -675,11 +686,6 @@ class FlowViewModel @Inject constructor(
 
     fun onTitleChange(newTitle: String) {
         _uiState.update { it.copy(title = newTitle) }
-        saveOngoing()
-    }
-
-    fun onDescriptionChange(newDescription: String) {
-        _uiState.update { it.copy(description = newDescription) }
         saveOngoing()
     }
 
@@ -1048,7 +1054,7 @@ class FlowViewModel @Inject constructor(
             id = 1,
             flowInstanceId = currentFlowInstanceId,
             title = state.title,
-            description = state.description,
+            description = "",
             tagName = state.tagName,
             isInFlowMode = state.isInFlowMode,
             isRunning = state.stopwatch.isRunning,
@@ -1321,7 +1327,7 @@ class FlowViewModel @Inject constructor(
         val state = _uiState.value
         val title = state.title.trim()
         val tagName = state.tagName.trim()
-        val description = state.description.trim()
+        val description = ""
 
         if (title.isBlank() || tagName.isBlank()) {
             _error.value = "Title and Skill are required"
@@ -1388,17 +1394,12 @@ class FlowViewModel @Inject constructor(
             val isInExistingArc = localArc != null
 
             if (!state.isSoftMode && !isInExistingArc && endMode == FlowEndAction.CONTINUE_ARC) {
-                val firstSessionId = sessionRepository.addSession(
-                    title = title,
-                    description = description,
-                    tagId = tagId,
-                    startTime = sessionStart,
-                    endTime = sessionEnd,
-                    durationMs = realDurationMs,
-                    surgePlannedMs = state.surgePlannedMs,
-                    surgePoints = surgePoints,
-                    scyraPoints = beforeArc,
-                    isSoftMode = state.isSoftMode
+                val firstSessionId = sessionRepository.addSessionAndPromoteChronicle(
+                    currentFlowInstanceId,
+                    SessionEntity(title = title, description = "", tagId = tagId,
+                        startTime = sessionStart, endTime = sessionEnd, durationMs = realDurationMs,
+                        surgePlannedMs = state.surgePlannedMs, surgePoints = surgePoints,
+                        scyraPoints = beforeArc, isSoftMode = state.isSoftMode)
                 )
 
                 val arcId = System.currentTimeMillis()
@@ -1553,17 +1554,12 @@ class FlowViewModel @Inject constructor(
                 }
             }
 
-            val insertedId = sessionRepository.addSession(
-                title = title,
-                description = description,
-                tagId = tagId,
-                startTime = sessionStart,
-                endTime = sessionEnd,
-                durationMs = realDurationMs,
-                surgePlannedMs = state.surgePlannedMs,
-                surgePoints = surgePoints,
-                scyraPoints = finalScyra,
-                isSoftMode = state.isSoftMode
+            val insertedId = sessionRepository.addSessionAndPromoteChronicle(
+                currentFlowInstanceId,
+                SessionEntity(title = title, description = "", tagId = tagId,
+                    startTime = sessionStart, endTime = sessionEnd, durationMs = realDurationMs,
+                    surgePlannedMs = state.surgePlannedMs, surgePoints = surgePoints,
+                    scyraPoints = finalScyra, isSoftMode = state.isSoftMode)
             )
 
             pulseRepository.attachLivePulsesToSession(

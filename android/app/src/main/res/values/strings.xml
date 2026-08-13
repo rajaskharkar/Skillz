@@ -2246,4 +2246,18 @@ You can turn Health back on later.</string>
         <item quantity="one">1 Pearl</item>
         <item quantity="other">%1$d Pearls</item>
     </plurals>
+    <string name="chronicle_title">Chronicle</string>
+    <string name="chronicle_empty_title">What happened here?</string>
+    <string name="chronicle_empty_body">Capture something worth keeping.</string>
+    <string name="chronicle_write_placeholder">Write a moment…</string>
+    <string name="chronicle_add">Add</string>
+    <string name="chronicle_remove">Remove</string>
+    <string name="chronicle_remove_title">Remove this moment?</string>
+    <string name="chronicle_move_up">Move up</string>
+    <string name="chronicle_move_down">Move down</string>
+    <string name="chronicle_remove_action">Remove moment</string>
+    <string name="chronicle_unfinished">You have an unfinished moment.</string>
+    <string name="chronicle_finish_edit">Finish or cancel your moment edit before completing.</string>
+    <string name="chronicle_add_moment">Add Moment</string>
+    <string name="chronicle_discard">Discard</string>
 </resources>

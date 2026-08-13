@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.viewmodel
 
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.annotation.StringRes
 import com.kingkharnivore.skillz.R
@@ -16,6 +17,9 @@ import com.kingkharnivore.skillz.data.repository.health.FlowHealthRepository
 import com.kingkharnivore.skillz.data.model.entity.health.FlowHealthSnapshotEntity
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.data.repository.PulseRepository
+import com.kingkharnivore.skillz.data.repository.ChronicleRepository
+import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
+import com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleStateHolder
 import com.kingkharnivore.skillz.utils.health.HealthRefreshUseCase
 import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.model.ui.ArcFlowItemUiModel
@@ -85,8 +89,16 @@ class StoryViewModel @Inject constructor(
     private val flowHealthRepository: FlowHealthRepository,
     private val healthRefreshUseCase: HealthRefreshUseCase,
     private val userPrefs: UserPrefs,
-    private val arcMetadataRepository: ArcMetadataRepository
+    private val arcMetadataRepository: ArcMetadataRepository,
+    private val chronicleRepository: ChronicleRepository,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    val pulseDraftId: String = savedStateHandle.get<String>("pulseChronicleDraftId")
+        ?: java.util.UUID.randomUUID().toString().also { savedStateHandle["pulseChronicleDraftId"] = it }
+    val pulseChronicle = ChronicleStateHolder(
+        ChronicleOwnerType.PULSE_DRAFT, pulseDraftId, chronicleRepository, viewModelScope
+    )
 
     private val selectedTagIds = MutableStateFlow<Set<Long>>(emptySet())
     private val showScoreUiFlow = userPrefs.showScoreUi
@@ -113,6 +125,7 @@ class StoryViewModel @Inject constructor(
     private val pulsesFlow: Flow<List<PulseEntity>> = pulseRepository.getAllPulses()
     private val tagsFlow: Flow<List<TagEntity>> = tagRepository.getAllTags()
     private val arcMetadataFlow = arcMetadataRepository.observeAll()
+    private val chroniclePreviewsFlow = chronicleRepository.observeTextPreviews()
 
     private val _arcEditorState = MutableStateFlow(ArcEditorUiState())
     val arcEditorState: StateFlow<ArcEditorUiState> = _arcEditorState.asStateFlow()
@@ -218,16 +231,15 @@ class StoryViewModel @Inject constructor(
 
     fun createPulseFromStory(
         title: String,
-        description: String,
         tagName: String,
-        attachToCurrentFlow: Boolean
+        attachToCurrentFlow: Boolean,
+        onSaved: () -> Unit
     ) {
         viewModelScope.launch {
             val trimmedTitle = title.trim()
-            val trimmedDescription = description.trim()
             val trimmedTag = tagName.trim()
 
-            if (trimmedTitle.isBlank() && trimmedDescription.isBlank()) {
+            if (trimmedTitle.isBlank() && pulseChronicle.state.value.moments.isEmpty()) {
                 uiState.value = uiState.value.copy(
                     errorMessage = "Add a title or description to save this moment."
                 )
@@ -243,16 +255,21 @@ class StoryViewModel @Inject constructor(
             val ongoing = aliveFlowRepository.getOngoingSession().firstOrNull()
             val shouldAttach = attachToCurrentFlow && ongoing?.isInFlowMode == true
 
-            pulseRepository.addPulse(
-                title = trimmedTitle,
-                description = trimmedDescription,
-                tagId = tagId,
-                parentSessionId = null,
+            val now = System.currentTimeMillis()
+            pulseRepository.addPulseAndPromoteDraft(pulseDraftId, PulseEntity(
+                title = trimmedTitle, description = "", tagId = tagId, parentSessionId = null,
                 parentFlowInstanceId = if (shouldAttach) ongoing?.flowInstanceId else null,
-                arcId = if (shouldAttach) ongoing?.arcId else null
-            )
+                arcId = if (shouldAttach) ongoing?.arcId else null, createdAt = now, updatedAt = now))
 
             uiState.value = uiState.value.copy(errorMessage = null)
+            onSaved()
+        }
+    }
+
+    fun cancelPulseDraft(onCanceled: () -> Unit) {
+        viewModelScope.launch {
+            chronicleRepository.discard(ChronicleOwnerType.PULSE_DRAFT, pulseDraftId)
+            onCanceled()
         }
     }
 
@@ -439,11 +456,18 @@ class StoryViewModel @Inject constructor(
                 showScoreUiFlow,
                 calmModeFlow,
                 appLanguageTagFlow,
-                arcMetadataFlow
+                arcMetadataFlow,
+                chroniclePreviewsFlow
             ) { arr: Array<Any?> ->
-                val sessions = arr[0] as List<SessionEntity>
+                val previews = (arr[13] as List<com.kingkharnivore.skillz.data.model.dao.ChronicleTextPreview>)
+                    .associate { (it.ownerType + "/" + it.ownerKey) to it.text }
+                val sessions = (arr[0] as List<SessionEntity>).map { session ->
+                    session.copy(description = previews["SESSION/${session.id}"].orEmpty())
+                }
                 val healthSnapshots = arr[1] as List<FlowHealthSnapshotEntity>
-                val pulses = arr[2] as List<PulseEntity>
+                val pulses = (arr[2] as List<PulseEntity>).map { pulse ->
+                    pulse.copy(description = previews["PULSE/${pulse.id}"].orEmpty())
+                }
                 val tags = arr[3] as List<TagEntity>
                 val currentTagIds = arr[4] as Set<Long>
                 val currentPeriod = arr[5] as StoryPeriod

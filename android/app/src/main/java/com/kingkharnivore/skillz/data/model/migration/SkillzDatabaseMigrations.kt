@@ -290,7 +290,8 @@ object SkillzDatabaseMigrations {
             db.execSQL("INSERT OR IGNORE INTO chronicle_moments SELECT 'session-text-' || id, 'session-' || id, 'TEXT', 0, description, NULL, NULL, NULL, NULL, NULL, 0, createdAt, $now FROM sessions WHERE trim(description) <> ''")
             db.execSQL("INSERT OR IGNORE INTO chronicles SELECT 'pulse-' || id, 'PULSE', CAST(id AS TEXT), '', createdAt, $now FROM pulses WHERE trim(description) <> ''")
             db.execSQL("INSERT OR IGNORE INTO chronicle_moments SELECT 'pulse-text-' || id, 'pulse-' || id, 'TEXT', 0, description, NULL, NULL, NULL, NULL, NULL, 0, createdAt, $now FROM pulses WHERE trim(description) <> ''")
-            db.execSQL("INSERT OR IGNORE INTO chronicles SELECT 'flow-' || flowInstanceId, 'ACTIVE_FLOW', flowInstanceId, description, createdAt, $now FROM ongoing_session WHERE trim(description) <> ''")
+            db.execSQL("INSERT OR IGNORE INTO chronicles SELECT 'flow-' || flowInstanceId, 'ACTIVE_FLOW', flowInstanceId, '', createdAt, $now FROM ongoing_session WHERE trim(description) <> ''")
+            db.execSQL("INSERT OR IGNORE INTO chronicle_moments SELECT 'flow-text-' || flowInstanceId, 'flow-' || flowInstanceId, 'TEXT', 0, description, NULL, NULL, NULL, NULL, NULL, 0, createdAt, $now FROM ongoing_session WHERE trim(description) <> ''")
         }
     }
 
