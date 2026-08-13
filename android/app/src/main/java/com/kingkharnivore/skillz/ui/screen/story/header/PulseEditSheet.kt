@@ -44,15 +44,13 @@ import com.kingkharnivore.skillz.viewmodel.TagUiModel
 fun PulseEditSheet(
     editState: PulseEditState,
     tags: List<TagUiModel>,
-    onSave: (pulseId: Long, title: String, description: String, tagName: String) -> Unit,
+    onSave: (pulseId: Long, title: String, tagName: String) -> Unit,
 ) {
     val pulse = editState.editingPulse.value ?: return
 
     val paneTitle = stringResource(R.string.pulse_edit_sheet_pane_title)
     val titleText = stringResource(R.string.pulse_edit_sheet_title)
     val subtitleText = stringResource(R.string.pulse_edit_sheet_subtitle)
-    val descriptionLabel = stringResource(R.string.pulse_edit_sheet_description_label)
-    val descriptionPlaceholder = stringResource(R.string.pulse_edit_sheet_description_placeholder)
     val cancelText = stringResource(R.string.common_cancel)
     val saveText = stringResource(R.string.common_save)
     val headerA11y = stringResource(R.string.pulse_edit_sheet_header_a11y)
@@ -106,17 +104,6 @@ fun PulseEditSheet(
                 onTagNameChange = { editState.editTagName.value = it }
             )
 
-            OutlinedTextField(
-                value = editState.editDescription.value,
-                onValueChange = { editState.editDescription.value = it },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 5,
-                maxLines = 8,
-                label = { Text(descriptionLabel) },
-                placeholder = { Text(descriptionPlaceholder) },
-                shape = RoundedCornerShape(20.dp)
-            )
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -133,13 +120,11 @@ fun PulseEditSheet(
                         onSave(
                             pulse.pulseId,
                             editState.editTitle.value,
-                            editState.editDescription.value,
                             editState.editTagName.value
                         )
                         editState.stopEditing()
                     },
-                    enabled = editState.editTitle.value.isNotBlank() ||
-                            editState.editDescription.value.isNotBlank(),
+                    enabled = editState.editTitle.value.isNotBlank(),
                     modifier = Modifier.weight(1.2f),
                     shape = RoundedCornerShape(18.dp)
                 ) {

@@ -6,6 +6,7 @@ data class FlowListItemUiModel(
     val sessionId: Long,
     val title: String,
     val description: String,
+    val chronicleTexts: List<String> = emptyList(),
     val tagId: Long,
     val tagName: String,
     val journeyColor: Color,

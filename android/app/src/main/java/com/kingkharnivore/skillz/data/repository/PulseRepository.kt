@@ -105,7 +105,10 @@ class PulseRepository @Inject constructor(
         val pulse = pulseDao.getPulseById(pulseId) ?: return null
         val tagId = pulse.tagId
 
-        pulseDao.deletePulseById(pulseId)
+        database.withTransaction {
+            chronicleDao.delete(ChronicleOwnerType.PULSE, pulseId.toString())
+            pulseDao.deletePulseById(pulseId)
+        }
 
         if (tagId == null) return null
 
@@ -126,7 +129,6 @@ class PulseRepository @Inject constructor(
     suspend fun updatePulseDetails(
         pulseId: Long,
         title: String,
-        description: String,
         tagId: Long?
     ): Long? {
         val existing = pulseDao.getPulseById(pulseId) ?: return null

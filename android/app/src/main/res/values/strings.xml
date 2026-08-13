@@ -2260,4 +2260,5 @@ You can turn Health back on later.</string>
     <string name="chronicle_finish_edit">Finish or cancel your moment edit before completing.</string>
     <string name="chronicle_add_moment">Add Moment</string>
     <string name="chronicle_discard">Discard</string>
+    <string name="chronicle_save_error">Chronicle could not be saved. Try again.</string>
 </resources>

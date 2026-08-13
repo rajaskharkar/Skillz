@@ -6,9 +6,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
@@ -26,12 +30,19 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
     val moveUpLabel = stringResource(R.string.chronicle_move_up)
     val moveDownLabel = stringResource(R.string.chronicle_move_down)
     val removeLabel = stringResource(R.string.chronicle_remove_action)
+    val haptics = LocalHapticFeedback.current
+    val displayedMoments = remember(state.moments, state.stagedOrder) {
+        if (state.stagedOrder.isEmpty()) state.moments else {
+            val byId = state.moments.associateBy { it.id }
+            state.stagedOrder.mapNotNull(byId::get)
+        }
+    }
     LazyColumn(
         modifier = modifier.fillMaxSize().imePadding(),
         contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        if (state.moments.isEmpty()) item {
+        if (displayedMoments.isEmpty()) item {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stringResource(R.string.chronicle_empty_title), style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.primary)
@@ -39,7 +50,7 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.secondary)
             }
         }
-        itemsIndexed(state.moments, key = { _, item -> item.id }) { index, moment ->
+        itemsIndexed(displayedMoments, key = { _, item -> item.id }) { index, moment ->
             Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
                 if (state.editingId == moment.id) {
                     Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(22.dp)) {
@@ -56,7 +67,12 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                         }
                     }
                 } else {
-                    Text(
+                    val isDragging = state.draggingId == moment.id
+                    Surface(
+                        color = if (isDragging) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+                        shape = RoundedCornerShape(18.dp),
+                        tonalElevation = if (isDragging) 6.dp else 0.dp
+                    ) { Text(
                         text = moment.text.orEmpty(), style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxWidth().semantics {
@@ -65,11 +81,22 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                                 CustomAccessibilityAction(moveDownLabel) { holder.move(moment, 1); true },
                                 CustomAccessibilityAction(removeLabel) { deleteTarget = moment; true }
                             )
-                        }.combinedClickable(onClick = { holder.beginEdit(moment) }, onLongClick = { holder.move(moment, 1) })
+                        }.combinedClickable(onClick = { holder.beginEdit(moment) }, onLongClick = null)
+                            .pointerInput(moment.id, state.editingId) {
+                                if (state.editingId == null) detectDragGesturesAfterLongPress(
+                                    onDragStart = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); holder.startDrag(moment) },
+                                    onDragEnd = holder::finishDrag,
+                                    onDragCancel = holder::finishDrag,
+                                    onDrag = { change, amount ->
+                                        change.consume()
+                                        if (amount.y > 18f) holder.dragBy(1) else if (amount.y < -18f) holder.dragBy(-1)
+                                    }
+                                )
+                            }
                             .padding(vertical = 8.dp)
-                    )
+                    ) }
                 }
-                if (index < state.moments.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.secondary.copy(alpha = .22f))
+                if (index < displayedMoments.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.secondary.copy(alpha = if (state.draggingId != null) .55f else .22f))
             }
         }
         item {
@@ -86,7 +113,7 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                             disabledContentColor = MaterialTheme.colorScheme.onSecondary), modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.chronicle_add))
                     }
-                    state.error?.let { Text(it, color = MaterialTheme.colorScheme.secondary) }
+                    if (state.hasError) Text(stringResource(R.string.chronicle_save_error), color = MaterialTheme.colorScheme.secondary)
                 }
             }
         }

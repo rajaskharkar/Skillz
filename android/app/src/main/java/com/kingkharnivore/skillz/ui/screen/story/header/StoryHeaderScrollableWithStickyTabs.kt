@@ -60,8 +60,7 @@ fun StoryHeaderScrollableWithStickyTabs(
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
     onDeletePulse: (Long) -> Unit,
-    onUpdateSessionDescription: (Long, String) -> Unit,
-    onUpdatePulse: (Long, String, String, String) -> Unit,
+    onUpdatePulse: (Long, String, String) -> Unit,
     onCreatePulseForSession: (Long, String, String, String) -> Unit,
     onAddSessionClick: () -> Unit,
     extraTopContent: (@Composable () -> Unit)? = null,
@@ -83,7 +82,6 @@ fun StoryHeaderScrollableWithStickyTabs(
         editState = editState,
         tags = uiState.tags,
         childPulses = editingFlow?.let { uiState.pulsesBySessionId[it.sessionId].orEmpty() }.orEmpty(),
-        onSaveNotes = { id, text -> onUpdateSessionDescription(id, text) },
         onCreatePulse = onCreatePulseForSession,
         onDeletePulse = onDeletePulse,
         onEditPulse = { pulse -> pulseEditState.startEditing(pulse) }

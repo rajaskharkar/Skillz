@@ -21,6 +21,7 @@
     <string name="flow_card_surge_points_compact">⚡ +%1$d</string>
     <plurals name="flow_card_moments_count">
         <item quantity="one">%1$d momento</item>
+        <item quantity="many">%1$d momentos</item>
         <item quantity="other">%1$d momentos</item>
     </plurals>
     <string name="flow_card_delete_flow">Eliminar Flow</string>
@@ -2272,4 +2273,5 @@ Puedes volver a activar Health más tarde.</string>
     <string name="chronicle_finish_edit">Finish or cancel your moment edit before completing.</string>
     <string name="chronicle_add_moment">Add Moment</string>
     <string name="chronicle_discard">Discard</string>
+    <string name="chronicle_save_error">Chronicle could not be saved. Try again.</string>
 </resources>

@@ -20,7 +20,9 @@ data class ChronicleUiState(
     val editingId: String? = null,
     val editingText: String = "",
     val isCommitting: Boolean = false,
-    val error: String? = null
+    val hasError: Boolean = false,
+    val draggingId: String? = null,
+    val stagedOrder: List<String> = emptyList()
 ) {
     val blocksCompletion: Boolean get() = editingId != null || isCommitting
 }
@@ -38,7 +40,7 @@ class ChronicleStateHolder(
     init {
         scope.launch {
             repository.observe(ownerType, ownerKey)
-                .catch { _state.update { state -> state.copy(error = "Chronicle couldn't be loaded") } }
+                .catch { _state.update { state -> state.copy(hasError = true) } }
                 .collectLatest { snapshot ->
                     _state.update { it.copy(
                         chronicleId = snapshot.chronicle?.id,
@@ -50,12 +52,12 @@ class ChronicleStateHolder(
     }
 
     fun setDraft(value: String) {
-        _state.update { it.copy(draft = value, error = null) }
+        _state.update { it.copy(draft = value, hasError = false) }
         draftJob?.cancel()
         draftJob = scope.launch {
             delay(250)
             runCatching { repository.setDraft(ownerType, ownerKey, value) }
-                .onFailure { _state.update { it.copy(error = "Moment couldn't be saved") } }
+                .onFailure { _state.update { it.copy(hasError = true) } }
         }
     }
 
@@ -63,13 +65,13 @@ class ChronicleStateHolder(
         if (_state.value.isCommitting || _state.value.draft.isBlank()) return
         val captured = _state.value.draft
         val pendingDraftWrite = draftJob
+        _state.update { it.copy(isCommitting = true, hasError = false) }
         scope.launch {
-            _state.update { it.copy(isCommitting = true, error = null) }
             runCatching {
                 pendingDraftWrite?.join()
                 repository.addText(ownerType, ownerKey, captured)
             }.onSuccess { onSuccess?.invoke() }
-                .onFailure { _state.update { it.copy(error = "Moment couldn't be added") } }
+                .onFailure { _state.update { it.copy(hasError = true) } }
             _state.update { it.copy(isCommitting = false) }
         }
     }
@@ -92,6 +94,32 @@ class ChronicleStateHolder(
         if (from < 0 || from == to) return
         items.add(to, items.removeAt(from))
         scope.launch { repository.reorder(moment.chronicleId, items.map { it.id }) }
+    }
+    fun startDrag(moment: ChronicleMomentEntity) = _state.update {
+        if (it.editingId != null) it else it.copy(
+            draggingId = moment.id,
+            stagedOrder = it.moments.map(ChronicleMomentEntity::id)
+        )
+    }
+    fun dragBy(delta: Int) = _state.update { current ->
+        val ids = current.stagedOrder.toMutableList()
+        val from = ids.indexOf(current.draggingId)
+        val to = (from + delta).coerceIn(0, ids.lastIndex)
+        if (from < 0 || from == to) current else current.copy(
+            stagedOrder = ids.apply { add(to, removeAt(from)) }
+        )
+    }
+    fun finishDrag() {
+        val current = _state.value
+        val chronicleId = current.chronicleId
+        val order = current.stagedOrder
+        _state.update { it.copy(draggingId = null, stagedOrder = emptyList()) }
+        if (chronicleId != null && order.isNotEmpty() && order != current.moments.map { it.id }) {
+            scope.launch {
+                runCatching { repository.reorder(chronicleId, order) }
+                    .onFailure { _state.update { it.copy(hasError = true) } }
+            }
+        }
     }
     fun discardDraft(onSuccess: (() -> Unit)? = null) {
         draftJob?.cancel()

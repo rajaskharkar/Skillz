@@ -27,33 +27,6 @@ class FlowRepository @Inject constructor(
     fun getSessionsForTag(tagId: Long): Flow<List<SessionEntity>> =
         sessionDao.getSessionsForTag(tagId)
 
-    suspend fun addSession(
-        title: String,
-        description: String,
-        tagId: Long,
-        startTime: Long,
-        endTime: Long,
-        durationMs: Long,
-        surgePlannedMs: Long?,
-        surgePoints: Int,
-        scyraPoints: Int,
-        isSoftMode: Boolean = false
-    ): Long {
-        val session = SessionEntity(
-            title = title,
-            description = description,
-            tagId = tagId,
-            startTime = startTime,
-            endTime = endTime,
-            durationMs = durationMs,
-            surgePlannedMs = surgePlannedMs,
-            surgePoints = surgePoints,
-            scyraPoints = scyraPoints,
-            isSoftMode = isSoftMode
-        )
-        return sessionDao.insertSession(session)
-    }
-
     suspend fun addSessionAndPromoteChronicle(flowInstanceId: String, session: SessionEntity): Long =
         database.withTransaction {
             val id = sessionDao.insertSession(session)
@@ -79,10 +52,6 @@ class FlowRepository @Inject constructor(
         }
     }
 
-    suspend fun updateSessionDescription(sessionId: Long, description: String) {
-        sessionDao.updateSessionDescription(sessionId, description)
-    }
-
     suspend fun deleteSession(sessionId: Long) {
         deleteSessionTransactionally(sessionId)
     }
@@ -90,16 +59,13 @@ class FlowRepository @Inject constructor(
     private suspend fun deleteSessionTransactionally(sessionId: Long) {
         database.withTransaction {
             val arcId = sessionDao.getSessionById(sessionId)?.arcId
+            chronicleDao.delete(ChronicleOwnerType.SESSION, sessionId.toString())
             pulseDao.detachPulsesFromSession(sessionId)
             sessionDao.deleteSessionById(sessionId)
             if (arcId != null && sessionDao.getSessionCountForArc(arcId) == 0) {
                 arcMetadataDao.delete(arcId)
             }
         }
-    }
-
-    suspend fun insertSession(session: SessionEntity) {
-        sessionDao.insertSession(session)
     }
 
     suspend fun updateArcFields(

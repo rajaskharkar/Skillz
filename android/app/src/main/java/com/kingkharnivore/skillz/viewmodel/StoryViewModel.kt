@@ -118,6 +118,8 @@ class StoryViewModel @Inject constructor(
 
     private val journeyColorMemory = linkedMapOf<Long, Color>()
     private var nextJourneyColorIndex = 0
+    private var chronicleTextsFlowCache: Map<Long, List<String>> = emptyMap()
+    private var chronicleTextsPulseCache: Map<Long, List<String>> = emptyMap()
 
     private val sessionsFlow: Flow<List<SessionEntity>> = sessionRepository.getAllSessions()
     private val healthSnapshotsFlow: Flow<List<FlowHealthSnapshotEntity>> =
@@ -223,12 +225,6 @@ class StoryViewModel @Inject constructor(
         setAnchorClamped(todayAnchor, p)
     }
 
-    fun updateSessionDescription(sessionId: Long, description: String) {
-        viewModelScope.launch {
-            sessionRepository.updateSessionDescription(sessionId, description)
-        }
-    }
-
     fun createPulseFromStory(
         title: String,
         tagName: String,
@@ -276,15 +272,13 @@ class StoryViewModel @Inject constructor(
     fun updatePulse(
         pulseId: Long,
         title: String,
-        description: String,
         tagName: String
     ) {
         viewModelScope.launch {
             val trimmedTitle = title.trim()
-            val trimmedDescription = description.trim()
             val trimmedTag = tagName.trim()
 
-            if (trimmedTitle.isBlank() && trimmedDescription.isBlank()) return@launch
+            if (trimmedTitle.isBlank()) return@launch
 
             val tagId = if (trimmedTag.isBlank()) {
                 null
@@ -295,7 +289,6 @@ class StoryViewModel @Inject constructor(
             val removedTagId = pulseRepository.updatePulseDetails(
                 pulseId = pulseId,
                 title = trimmedTitle,
-                description = trimmedDescription,
                 tagId = tagId
             )
 
@@ -459,14 +452,18 @@ class StoryViewModel @Inject constructor(
                 arcMetadataFlow,
                 chroniclePreviewsFlow
             ) { arr: Array<Any?> ->
-                val previews = (arr[13] as List<com.kingkharnivore.skillz.data.model.dao.ChronicleTextPreview>)
-                    .associate { (it.ownerType + "/" + it.ownerKey) to it.text }
+                val chronicleTexts = (arr[13] as List<com.kingkharnivore.skillz.data.model.dao.ChronicleTextPreview>)
+                    .groupBy({ it.ownerType + "/" + it.ownerKey }, { it.text })
+                chronicleTextsFlowCache = chronicleTexts.filterKeys { it.startsWith("SESSION/") }
+                    .mapKeys { it.key.removePrefix("SESSION/").toLong() }
+                chronicleTextsPulseCache = chronicleTexts.filterKeys { it.startsWith("PULSE/") }
+                    .mapKeys { it.key.removePrefix("PULSE/").toLong() }
                 val sessions = (arr[0] as List<SessionEntity>).map { session ->
-                    session.copy(description = previews["SESSION/${session.id}"].orEmpty())
+                    session.copy(description = chronicleTexts["SESSION/${session.id}"]?.firstOrNull().orEmpty())
                 }
                 val healthSnapshots = arr[1] as List<FlowHealthSnapshotEntity>
                 val pulses = (arr[2] as List<PulseEntity>).map { pulse ->
-                    pulse.copy(description = previews["PULSE/${pulse.id}"].orEmpty())
+                    pulse.copy(description = chronicleTexts["PULSE/${pulse.id}"]?.firstOrNull().orEmpty())
                 }
                 val tags = arr[3] as List<TagEntity>
                 val currentTagIds = arr[4] as Set<Long>
@@ -768,6 +765,7 @@ class StoryViewModel @Inject constructor(
                 sessionId = session.id,
                 title = session.title,
                 description = session.description,
+                chronicleTexts = chronicleTextsFlowCache[session.id].orEmpty(),
                 tagId = session.tagId,
                 tagName = tagNameById[session.tagId].orEmpty(),
                 journeyColor = journeyColors[session.tagId] ?: Color.Gray,
@@ -798,6 +796,7 @@ class StoryViewModel @Inject constructor(
                 pulseId = pulse.id,
                 title = pulse.title,
                 description = pulse.description,
+                chronicleTexts = chronicleTextsPulseCache[pulse.id].orEmpty(),
                 tagId = pulse.tagId,
                 tagName = pulse.tagId?.let { tagNameById[it].orEmpty() }.orEmpty(),
                 createdAt = pulse.createdAt,

@@ -39,9 +39,6 @@ interface SessionDao {
     @Query("SELECT COUNT(*) FROM sessions WHERE tagId = :tagId")
     suspend fun getSessionCountForTag(tagId: Long): Int
 
-    @Query("UPDATE sessions SET description = :description WHERE id = :id")
-    suspend fun updateSessionDescription(id: Long, description: String)
-
     @Query("DELETE FROM sessions WHERE id = :id")
     suspend fun deleteSession(id: Long)
 

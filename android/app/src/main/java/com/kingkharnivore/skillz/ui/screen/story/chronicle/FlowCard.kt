@@ -317,7 +317,7 @@ fun FlowCard(
 
             if (session.description.isNotBlank()) {
                 Text(
-                    text = session.description,
+                    text = session.chronicleTexts.joinToString("\n\n").ifBlank { session.description },
                     style = MaterialTheme.typography.bodyMedium,
                     color = contentColor,
                     maxLines = if (isExpanded) Int.MAX_VALUE else 2,
