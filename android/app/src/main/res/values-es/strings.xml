@@ -2295,4 +2295,11 @@ Puedes volver a activar Health más tarde.</string>
     <string name="chronicle_recording_time">Grabando · %1$s</string>
     <string name="chronicle_finish_recording">Finalizar grabación</string>
     <string name="chronicle_discard_recording">Descartar grabación</string>
+    <string name="chronicle_start_dictation">Iniciar dictado</string>
+    <string name="chronicle_start_voice_recording">Iniciar grabación de voz</string>
+    <string name="chronicle_listening">Escuchando</string>
+    <string name="chronicle_cancel_dictation">Cancelar</string>
+    <string name="chronicle_finish_dictation">Finalizar</string>
+    <string name="chronicle_speech_unavailable">El reconocimiento de voz en el dispositivo no está disponible.</string>
+    <string name="chronicle_microphone_unavailable">Se necesita permiso para usar el micrófono.</string>
 </resources>

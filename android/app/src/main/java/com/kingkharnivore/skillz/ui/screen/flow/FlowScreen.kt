@@ -140,6 +140,9 @@ fun FlowScreen(
     val modeLocked = viewModel.isModeLocked()
     val chronicleOwnerKey by viewModel.chronicleOwnerKey.collectAsState()
     val chronicleHolder = remember(chronicleOwnerKey) { viewModel.createChronicleStateHolder(chronicleOwnerKey) }
+    val chronicleUiState by chronicleHolder.state.collectAsState()
+    val chronicleMicActive = chronicleUiState.microphone !is
+        com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleMicrophoneState.Idle
     DisposableEffect(chronicleHolder) { onDispose { chronicleHolder.close() } }
     val completionState by viewModel.completionState.collectAsState()
     LaunchedEffect(completionState, chronicleHolder) {
@@ -224,14 +227,14 @@ fun FlowScreen(
 
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                TextButton(onClick = { pagerScope.launch { pagerState.animateScrollToPage(0) } }) {
+                TextButton(onClick = { pagerScope.launch { pagerState.animateScrollToPage(0) } }, enabled = !chronicleMicActive) {
                     Text(stringResource(R.string.flow_screen_title))
                 }
                 TextButton(onClick = { pagerScope.launch { pagerState.animateScrollToPage(1) } }) {
                     Text(stringResource(R.string.chronicle_title))
                 }
             }
-            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
+            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f), userScrollEnabled = !chronicleMicActive) { page ->
                 if (page == 1) {
                     ChroniclePage(chronicleHolder)
                     return@HorizontalPager

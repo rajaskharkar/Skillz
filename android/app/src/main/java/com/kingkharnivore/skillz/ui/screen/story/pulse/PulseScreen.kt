@@ -95,6 +95,8 @@ fun PulseScreen(
     val pagerScope = rememberCoroutineScope()
     val cancelPulse = { viewModel.cancelPulseDraft(onCancel) }
     val chronicleState by viewModel.pulseChronicle.state.collectAsState()
+    val chronicleMicActive = chronicleState.microphone !is
+        com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleMicrophoneState.Idle
     val restoredCreatedPulseId by viewModel.restoredCreatedPulseId.collectAsState()
     var showDraftPrompt by remember { mutableStateOf(false) }
     fun savePulse() = viewModel.pulseChronicle.quiesce {
@@ -126,10 +128,10 @@ fun PulseScreen(
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                TextButton(onClick = { pagerScope.launch { pagerState.animateScrollToPage(0) } }) { Text(screenTitle) }
+                TextButton(onClick = { pagerScope.launch { pagerState.animateScrollToPage(0) } }, enabled = !chronicleMicActive) { Text(screenTitle) }
                 TextButton(onClick = { pagerScope.launch { pagerState.animateScrollToPage(1) } }) { Text(stringResource(R.string.chronicle_title)) }
             }
-            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f)) { page ->
+            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f), userScrollEnabled = !chronicleMicActive) { page ->
                 if (page == 1) { ChroniclePage(viewModel.pulseChronicle); return@HorizontalPager }
         Column(
             modifier = Modifier

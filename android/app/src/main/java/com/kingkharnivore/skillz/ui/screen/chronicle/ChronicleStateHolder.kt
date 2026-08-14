@@ -4,6 +4,9 @@ import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
 import com.kingkharnivore.skillz.data.repository.ChronicleRepository
 import com.kingkharnivore.skillz.model.ui.ChronicleMomentUi
 import android.net.Uri
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
+import com.kingkharnivore.skillz.data.chronicle.LiveDictationEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -19,23 +22,28 @@ import kotlinx.coroutines.SupervisorJob
 data class ChronicleUiState(
     val chronicleId: String? = null,
     val draft: String = "",
+    val draftField: TextFieldValue = TextFieldValue(),
     val moments: List<ChronicleMomentEntity> = emptyList(),
     val contentMoments: List<ChronicleMomentUi> = emptyList(),
     val editingId: String? = null,
     val editingText: String = "",
+    val editingField: TextFieldValue = TextFieldValue(),
     val isCommitting: Boolean = false,
     val hasError: Boolean = false,
     val draggingId: String? = null,
     val stagedOrder: List<String> = emptyList(),
-    val voiceRecording: VoiceRecordingState? = null
+    val microphone: ChronicleMicrophoneState = ChronicleMicrophoneState.Idle,
+    val speechUnavailable: Boolean = false,
+    val microphoneUnavailable: Boolean = false
 ) {
-    val blocksCompletion: Boolean get() = editingId != null || isCommitting || voiceRecording != null
+    val blocksCompletion: Boolean get() = editingId != null || isCommitting || microphone !is ChronicleMicrophoneState.Idle
 }
 
-data class VoiceRecordingState(
-    val elapsedMs: Long = 0,
-    val amplitudes: List<Float> = emptyList()
-)
+sealed interface ChronicleMicrophoneState {
+    data object Idle : ChronicleMicrophoneState
+    data object Dictating : ChronicleMicrophoneState
+    data class RecordingVoice(val elapsedMs: Long = 0, val amplitudes: List<Float> = emptyList()) : ChronicleMicrophoneState
+}
 
 class ChronicleStateHolder(
     private val ownerType: String,
@@ -55,6 +63,12 @@ class ChronicleStateHolder(
     private val acceptingMutations: Boolean get() = lifecycle == Lifecycle.ACTIVE
     private var accumulatedDragPx = 0f
     private var voiceTicker: Job? = null
+    private var voiceStartPending = false
+    private var finishVoiceWhenStarted = false
+    private var discardVoiceWhenStarted = false
+    private var dictationSession: DictationTextSession? = null
+    private var dictationTargetsEditor = false
+    private var dictationOperation = 0L
 
     init {
         scope.launch {
@@ -71,6 +85,9 @@ class ChronicleStateHolder(
                         draft = if (draftGeneration == syncedGeneration) {
                             persisted
                         } else current.draft,
+                        draftField = if (draftGeneration == syncedGeneration) {
+                            TextFieldValue(persisted, TextRange(persisted.length))
+                        } else current.draftField,
                         moments = snapshot.moments
                     ) }
                 }
@@ -116,33 +133,59 @@ class ChronicleStateHolder(
     }
 
     fun startVoice() {
-        if (!acceptingMutations || _state.value.voiceRecording != null || _state.value.isCommitting) return
+        if (!acceptingMutations || voiceStartPending || _state.value.microphone !is ChronicleMicrophoneState.Idle || _state.value.isCommitting) return
+        voiceStartPending = true
         scope.launch {
             runCatching { repository.startVoice(ownerType, ownerKey) }
                 .onSuccess {
+                    voiceStartPending = false
                     val startedAt = System.currentTimeMillis()
-                    _state.update { it.copy(voiceRecording = VoiceRecordingState(), hasError = false) }
+                    _state.update { it.copy(microphone = ChronicleMicrophoneState.RecordingVoice(), hasError = false,
+                        microphoneUnavailable = false) }
+                    if (discardVoiceWhenStarted) {
+                        discardVoiceWhenStarted = false
+                        discardVoice()
+                        return@onSuccess
+                    }
                     voiceTicker = scope.launch {
-                        while (_state.value.voiceRecording != null) {
+                        while (_state.value.microphone is ChronicleMicrophoneState.RecordingVoice) {
                             val amplitude = (repository.voiceAmplitude() / 32767f).coerceIn(0f, 1f)
                             _state.update { current ->
-                                current.copy(voiceRecording = current.voiceRecording?.copy(
+                                val recording = current.microphone as? ChronicleMicrophoneState.RecordingVoice
+                                current.copy(microphone = recording?.copy(
                                     elapsedMs = System.currentTimeMillis() - startedAt,
-                                    amplitudes = (current.voiceRecording.amplitudes + amplitude).takeLast(48)
-                                ))
+                                    amplitudes = (recording.amplitudes + amplitude).takeLast(48)
+                                ) ?: ChronicleMicrophoneState.Idle)
                             }
                             delay(100)
                         }
                     }
+                    if (finishVoiceWhenStarted) {
+                        finishVoiceWhenStarted = false
+                        finishVoice()
+                    }
                 }
-                .onFailure { _state.update { it.copy(hasError = true) } }
+                .onFailure {
+                    voiceStartPending = false
+                    finishVoiceWhenStarted = false
+                    discardVoiceWhenStarted = false
+                    _state.update { it.copy(hasError = true) }
+                }
         }
     }
 
+    fun microphonePermissionDenied() {
+        _state.update { it.copy(microphoneUnavailable = true) }
+    }
+
     fun finishVoice() {
-        if (_state.value.voiceRecording == null) return
+        if (voiceStartPending) {
+            finishVoiceWhenStarted = true
+            return
+        }
+        if (_state.value.microphone !is ChronicleMicrophoneState.RecordingVoice) return
         voiceTicker?.cancel()
-        _state.update { it.copy(voiceRecording = null, isCommitting = true) }
+        _state.update { it.copy(microphone = ChronicleMicrophoneState.Idle, isCommitting = true) }
         scope.launch {
             runCatching { repository.finishVoice(ownerType, ownerKey) }
                 .onFailure { _state.update { it.copy(hasError = true) } }
@@ -151,25 +194,97 @@ class ChronicleStateHolder(
     }
 
     fun discardVoice() {
+        if (voiceStartPending) {
+            discardVoiceWhenStarted = true
+            finishVoiceWhenStarted = false
+            return
+        }
+        finishVoiceWhenStarted = false
         voiceTicker?.cancel()
         repository.discardVoice()
-        _state.update { it.copy(voiceRecording = null) }
+        _state.update { it.copy(microphone = ChronicleMicrophoneState.Idle) }
+    }
+
+    fun startDictation() {
+        if (!acceptingMutations || voiceStartPending || _state.value.microphone !is ChronicleMicrophoneState.Idle || _state.value.isCommitting) return
+        if (!repository.isDictationAvailable()) {
+            _state.update { it.copy(speechUnavailable = true) }
+            return
+        }
+        val editor = _state.value.editingId != null
+        val original = if (editor) _state.value.editingField else _state.value.draftField
+        if (!editor) {
+            draftJob?.cancel()
+            ++draftGeneration
+        }
+        val session = DictationTextSession(original)
+        val operation = ++dictationOperation
+        dictationSession = session
+        dictationTargetsEditor = editor
+        val started = repository.startDictation(object : LiveDictationEngine.Listener {
+            override fun onPartial(text: String) = applyDictation(operation, session.partial(text))
+            override fun onFinal(text: String) {
+                applyDictation(operation, session.partial(text))
+                finishDictation(fromEngine = true)
+            }
+            override fun onError() {
+                if (operation == dictationOperation) cancelDictation(showUnavailable = true)
+            }
+        })
+        if (started) _state.update { it.copy(microphone = ChronicleMicrophoneState.Dictating, speechUnavailable = false,
+            microphoneUnavailable = false) }
+        else cancelDictation(showUnavailable = true)
+    }
+
+    private fun applyDictation(operation: Long, value: TextFieldValue) {
+        if (operation != dictationOperation || _state.value.microphone !is ChronicleMicrophoneState.Dictating) return
+        if (dictationTargetsEditor) _state.update { it.copy(editingText = value.text, editingField = value) }
+        else _state.update { it.copy(draft = value.text, draftField = value) }
+    }
+
+    fun finishDictation(fromEngine: Boolean = false) {
+        if (_state.value.microphone !is ChronicleMicrophoneState.Dictating) return
+        dictationSession?.finish()
+        ++dictationOperation
+        if (!fromEngine) repository.finishDictation()
+        dictationSession = null
+        _state.update { it.copy(microphone = ChronicleMicrophoneState.Idle) }
+        if (!dictationTargetsEditor) setDraft(_state.value.draftField)
+    }
+
+    fun cancelDictation(showUnavailable: Boolean = false) {
+        val session = dictationSession ?: return
+        ++dictationOperation
+        repository.cancelDictation()
+        val original = session.cancel()
+        if (dictationTargetsEditor) _state.update { it.copy(editingText = original.text, editingField = original,
+            microphone = ChronicleMicrophoneState.Idle, speechUnavailable = showUnavailable) }
+        else {
+            _state.update { it.copy(draft = original.text, draftField = original,
+                microphone = ChronicleMicrophoneState.Idle, speechUnavailable = showUnavailable) }
+            setDraft(original)
+        }
+        dictationSession = null
     }
 
     fun setDraft(value: String) {
+        setDraft(TextFieldValue(value, TextRange(value.length)))
+    }
+    fun setDraft(value: TextFieldValue) {
         if (!acceptingMutations) return
         ++draftGeneration
-        _state.update { it.copy(draft = value, hasError = false) }
+        _state.update { it.copy(draft = value.text, draftField = value, hasError = false) }
         draftJob?.cancel()
         draftJob = scope.launch {
             delay(250)
-            runCatching { repository.setDraft(ownerType, ownerKey, value) }
+            runCatching { repository.setDraft(ownerType, ownerKey, value.text) }
                 .onFailure { _state.update { it.copy(hasError = true) } }
         }
     }
 
     fun add(onSuccess: (() -> Unit)? = null) {
-        if (!acceptingMutations || _state.value.isCommitting || _state.value.draft.isBlank()) return
+        if (!acceptingMutations || _state.value.isCommitting ||
+            _state.value.microphone !is ChronicleMicrophoneState.Idle || _state.value.draft.isBlank()) return
         val captured = _state.value.draft
         val capturedGeneration = draftGeneration
         val pendingDraftWrite = draftJob
@@ -181,7 +296,7 @@ class ChronicleStateHolder(
             }.onSuccess {
                 if (draftGeneration == capturedGeneration) {
                     syncedGeneration = capturedGeneration
-                    _state.update { state -> state.copy(draft = "") }
+                    _state.update { state -> state.copy(draft = "", draftField = TextFieldValue()) }
                 }
                 onSuccess?.invoke()
             }
@@ -191,13 +306,18 @@ class ChronicleStateHolder(
     }
 
     fun beginEdit(moment: ChronicleMomentEntity) =
-        if (acceptingMutations) _state.update { it.copy(editingId = moment.id, editingText = moment.text.orEmpty()) } else Unit
+        if (acceptingMutations) _state.update { it.copy(editingId = moment.id, editingText = moment.text.orEmpty(),
+            editingField = TextFieldValue(moment.text.orEmpty(), TextRange(moment.text.orEmpty().length))) } else Unit
     fun editText(value: String) {
-        if (acceptingMutations) _state.update { it.copy(editingText = value) }
+        editText(TextFieldValue(value, TextRange(value.length)))
     }
-    fun cancelEdit() = _state.update { it.copy(editingId = null, editingText = "") }
+    fun editText(value: TextFieldValue) {
+        if (acceptingMutations && _state.value.microphone !is ChronicleMicrophoneState.Dictating)
+            _state.update { it.copy(editingText = value.text, editingField = value) }
+    }
+    fun cancelEdit() = _state.update { it.copy(editingId = null, editingText = "", editingField = TextFieldValue()) }
     fun finishEdit() {
-        if (!acceptingMutations) return
+        if (!acceptingMutations || _state.value.microphone !is ChronicleMicrophoneState.Idle) return
         val moment = _state.value.moments.firstOrNull { it.id == _state.value.editingId } ?: return
         val value = _state.value.editingText
         if (value.isBlank()) return
@@ -296,12 +416,13 @@ class ChronicleStateHolder(
         draftJob?.cancel()
         val previous = _state.value.draft
         ++draftGeneration
-        _state.update { it.copy(draft = "") }
+        _state.update { it.copy(draft = "", draftField = TextFieldValue()) }
         scope.launch {
             runCatching { repository.setDraft(ownerType, ownerKey, "") }
                 .onSuccess { onSuccess?.invoke() }
                 .onFailure {
-                    _state.update { it.copy(draft = previous, hasError = true) }
+                    _state.update { it.copy(draft = previous,
+                        draftField = TextFieldValue(previous, TextRange(previous.length)), hasError = true) }
                 }
         }
     }
@@ -353,6 +474,7 @@ class ChronicleStateHolder(
 
     fun close() {
         lifecycle = Lifecycle.CLOSED
+        cancelDictation()
         discardVoice()
         holderJob.cancel()
     }

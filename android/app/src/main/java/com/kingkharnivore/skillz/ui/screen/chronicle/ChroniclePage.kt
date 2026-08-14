@@ -19,6 +19,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
@@ -30,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.viewinterop.AndroidView
@@ -54,19 +58,33 @@ import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+
+private enum class PendingMicAction { DICTATION, VOICE }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
     val state by holder.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var stopPlaybackSignal by remember { mutableIntStateOf(0) }
+    var pendingMicAction by remember { mutableStateOf<PendingMicAction?>(null) }
     val microphonePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) holder.startVoice()
+        if (granted) when (pendingMicAction) {
+            PendingMicAction.DICTATION -> holder.startDictation()
+            PendingMicAction.VOICE -> holder.startVoice()
+            null -> Unit
+        } else holder.microphonePermissionDenied()
+        pendingMicAction = null
     }
-    val startVoice = {
+    val invokeMic = { action: PendingMicAction ->
+        stopPlaybackSignal++
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            holder.startVoice()
-        } else microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+            if (action == PendingMicAction.DICTATION) holder.startDictation() else holder.startVoice()
+        } else {
+            pendingMicAction = action
+            microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+        }
     }
     var failedImports by remember { mutableIntStateOf(0) }
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris ->
@@ -125,7 +143,8 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                 if (state.editingId == moment.id && entity != null) {
                     Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(22.dp)) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            TextField(value = state.editingText, onValueChange = holder::editText,
+                            TextField(value = state.editingField, onValueChange = holder::editText,
+                                enabled = state.microphone !is ChronicleMicrophoneState.Dictating,
                                 modifier = Modifier.fillMaxWidth(), colors = chronicleTextFieldColors())
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                             TextButton(onClick = { deleteTarget = moment }) { Text(stringResource(R.string.chronicle_remove)) }
@@ -184,14 +203,15 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                         when (moment) {
                             is ChronicleMomentUi.Text -> Text(moment.text, style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.fillMaxWidth())
-                            is ChronicleMomentUi.Media -> ChronicleMediaMoment(moment.items)
+                            is ChronicleMomentUi.Media -> ChronicleMediaMoment(moment.items, stopPlaybackSignal)
                             is ChronicleMomentUi.Audio -> ChronicleAudioMoment(
                                 label = moment.displayName ?: stringResource(R.string.chronicle_audio),
                                 relativePath = moment.relativePath,
                                 durationMs = moment.durationMs,
                                 transcript = moment.transcript,
                                 transcriptEdited = moment.transcriptEdited,
-                                available = moment.isAvailable
+                                available = moment.isAvailable,
+                                stopPlaybackSignal = stopPlaybackSignal
                             )
                             is ChronicleMomentUi.Voice -> ChronicleAudioMoment(
                                 label = stringResource(R.string.chronicle_voice_note),
@@ -199,7 +219,8 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                                 durationMs = moment.durationMs,
                                 transcript = moment.transcript,
                                 transcriptEdited = moment.transcriptEdited,
-                                available = moment.isAvailable
+                                available = moment.isAvailable,
+                                stopPlaybackSignal = stopPlaybackSignal
                             )
                         }
                     } }
@@ -214,8 +235,9 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
         item {
             Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    TextField(value = state.draft, onValueChange = holder::setDraft,
-                        enabled = state.editingId == null && !state.isCommitting,
+                    TextField(value = state.draftField, onValueChange = holder::setDraft,
+                        enabled = state.editingId == null && !state.isCommitting &&
+                            state.microphone !is ChronicleMicrophoneState.Dictating,
                         placeholder = { Text(stringResource(R.string.chronicle_write_placeholder)) },
                         modifier = Modifier.fillMaxWidth(), colors = chronicleTextFieldColors())
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -223,13 +245,15 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                             failedImports = 0
                             gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
                         }, modifier = Modifier.weight(1f),
-                            enabled = !state.isCommitting) { Text(stringResource(R.string.chronicle_gallery)) }
+                            enabled = !state.isCommitting && state.microphone is ChronicleMicrophoneState.Idle) {
+                            Text(stringResource(R.string.chronicle_gallery)) }
                         TextButton(onClick = {
                             holder.createCaptureOutput(video = false)?.let { uri ->
                                 pendingPhoto = uri.toString()
                                 camera.launch(uri)
                             }
-                        }, modifier = Modifier.weight(1f), enabled = !state.isCommitting) {
+                        }, modifier = Modifier.weight(1f), enabled = !state.isCommitting &&
+                            state.microphone is ChronicleMicrophoneState.Idle) {
                             Text(stringResource(R.string.chronicle_camera))
                         }
                         TextButton(onClick = {
@@ -237,22 +261,65 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                                 pendingVideo = uri.toString()
                                 videoCapture.launch(uri)
                             }
-                        }, modifier = Modifier.weight(1f), enabled = !state.isCommitting) {
+                        }, modifier = Modifier.weight(1f), enabled = !state.isCommitting &&
+                            state.microphone is ChronicleMicrophoneState.Idle) {
                             Text(stringResource(R.string.chronicle_video))
                         }
                     }
                     TextButton(onClick = { audioPicker.launch(arrayOf("audio/*")) },
-                        modifier = Modifier.fillMaxWidth(), enabled = !state.isCommitting) {
+                        modifier = Modifier.fillMaxWidth(), enabled = !state.isCommitting &&
+                            state.microphone is ChronicleMicrophoneState.Idle) {
                         Text(stringResource(R.string.chronicle_choose_audio))
                     }
-                    if (state.voiceRecording == null) {
+                    if (state.microphone is ChronicleMicrophoneState.Idle) {
+                        val micArbiter = remember { MicGestureArbiter() }
+                        val viewConfiguration = LocalViewConfiguration.current
+                        val micHaptics = LocalHapticFeedback.current
+                        val dictateLabel = stringResource(R.string.chronicle_start_dictation)
+                        val voiceLabel = stringResource(R.string.chronicle_start_voice_recording)
                         TextButton(
-                            onClick = startVoice,
-                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { invokeMic(PendingMicAction.DICTATION) },
+                            modifier = Modifier.fillMaxWidth().semantics {
+                                customActions = listOf(
+                                    CustomAccessibilityAction(dictateLabel) { invokeMic(PendingMicAction.DICTATION); true },
+                                    CustomAccessibilityAction(voiceLabel) { invokeMic(PendingMicAction.VOICE); true }
+                                )
+                            }.pointerInput(Unit) {
+                                awaitEachGesture {
+                                    val down = awaitFirstDown(requireUnconsumed = false)
+                                    down.consume()
+                                    micArbiter.pointerDown()
+                                    val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                                        waitForUpOrCancellation()
+                                    }
+                                    if (released != null) {
+                                        if (micArbiter.pointerUp() == MicGestureArbiter.Result.START_DICTATION) {
+                                            invokeMic(PendingMicAction.DICTATION)
+                                        }
+                                    } else if (micArbiter.longPressThreshold() == MicGestureArbiter.Result.START_VOICE) {
+                                        micHaptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        val permitted = ContextCompat.checkSelfPermission(context,
+                                            Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+                                        stopPlaybackSignal++
+                                        if (permitted) holder.startVoice() else {
+                                            pendingMicAction = null
+                                            microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+                                        }
+                                        val up = waitForUpOrCancellation()
+                                        if (permitted && up != null &&
+                                            micArbiter.pointerUp() == MicGestureArbiter.Result.FINISH_VOICE) {
+                                            holder.finishVoice()
+                                        } else {
+                                            micArbiter.cancel()
+                                            holder.discardVoice()
+                                        }
+                                    }
+                                }
+                            },
                             enabled = !state.isCommitting
                         ) { Text(stringResource(R.string.chronicle_mic)) }
-                    } else {
-                        val recording = state.voiceRecording!!
+                    } else if (state.microphone is ChronicleMicrophoneState.RecordingVoice) {
+                        val recording = state.microphone as ChronicleMicrophoneState.RecordingVoice
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 stringResource(R.string.chronicle_recording_time, formatDuration(recording.elapsedMs)),
@@ -275,8 +342,22 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                                 }
                             }
                         }
+                    } else {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(stringResource(R.string.chronicle_listening), color = MaterialTheme.colorScheme.onBackground)
+                            Row {
+                                TextButton(onClick = { holder.cancelDictation() }) {
+                                    Text(stringResource(R.string.chronicle_cancel_dictation))
+                                }
+                                Button(onClick = { holder.finishDictation() }) {
+                                    Text(stringResource(R.string.chronicle_finish_dictation))
+                                }
+                            }
+                        }
                     }
-                    Button(onClick = { holder.add() }, enabled = state.draft.isNotBlank() && !state.isCommitting,
+                    Button(onClick = { holder.add() }, enabled = state.draft.isNotBlank() && !state.isCommitting &&
+                        state.microphone is ChronicleMicrophoneState.Idle,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary,
                             disabledContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = .25f),
@@ -284,6 +365,10 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                         Text(stringResource(R.string.chronicle_add))
                     }
                     if (state.hasError) Text(stringResource(R.string.chronicle_save_error), color = MaterialTheme.colorScheme.secondary)
+                    if (state.speechUnavailable) Text(stringResource(R.string.chronicle_speech_unavailable),
+                        color = MaterialTheme.colorScheme.onBackground)
+                    if (state.microphoneUnavailable) Text(stringResource(R.string.chronicle_microphone_unavailable),
+                        color = MaterialTheme.colorScheme.onBackground)
                     if (failedImports > 0) Text(stringResource(R.string.chronicle_media_failed, failedImports),
                         color = MaterialTheme.colorScheme.secondary)
                 }
@@ -305,10 +390,12 @@ internal fun ChronicleAudioMoment(
     durationMs: Long?,
     transcript: String?,
     transcriptEdited: Boolean,
-    available: Boolean
+    available: Boolean,
+    stopPlaybackSignal: Int = 0
 ) {
     val context = LocalContext.current
     var playing by remember { mutableStateOf(false) }
+    LaunchedEffect(stopPlaybackSignal) { playing = false }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.titleMedium)
         durationMs?.let { Text(formatDuration(it), color = MaterialTheme.colorScheme.onBackground) }
@@ -347,8 +434,9 @@ internal fun ChronicleAudioMoment(
 }
 
 @Composable
-internal fun ChronicleMediaMoment(items: List<ChronicleMediaItemUi>) {
+internal fun ChronicleMediaMoment(items: List<ChronicleMediaItemUi>, stopPlaybackSignal: Int = 0) {
     var viewerIndex by rememberSaveable { mutableIntStateOf(-1) }
+    LaunchedEffect(stopPlaybackSignal) { viewerIndex = -1 }
     val visible = items.take(4)
     val columns = if (visible.size == 1) 1 else 2
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

@@ -2282,4 +2282,11 @@ You can turn Health back on later.</string>
     <string name="chronicle_recording_time">Recording · %1$s</string>
     <string name="chronicle_finish_recording">Finish recording</string>
     <string name="chronicle_discard_recording">Discard recording</string>
+    <string name="chronicle_start_dictation">Start dictation</string>
+    <string name="chronicle_start_voice_recording">Start voice recording</string>
+    <string name="chronicle_listening">Listening</string>
+    <string name="chronicle_cancel_dictation">Cancel</string>
+    <string name="chronicle_finish_dictation">Finish</string>
+    <string name="chronicle_speech_unavailable">On-device speech recognition is unavailable.</string>
+    <string name="chronicle_microphone_unavailable">Microphone permission is required to use Mic.</string>
 </resources>

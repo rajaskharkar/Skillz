@@ -39,27 +39,35 @@ internal class DictationTextSession(val original: TextFieldValue) {
     private val suffix = original.text.substring(end)
     private var active = true
     private var hypothesis = ""
+    private var terminal: TextFieldValue? = null
 
     fun partial(value: String): TextFieldValue {
-        if (!active) return current()
+        if (!active) return terminal ?: original
         hypothesis = value
         return current()
     }
 
     fun finish(): TextFieldValue {
+        val value = current()
         active = false
-        return current()
+        terminal = value
+        return value
     }
 
     fun cancel(): TextFieldValue {
         active = false
         hypothesis = ""
+        terminal = original
         return original
     }
 
     private fun current(): TextFieldValue {
-        val text = prefix + hypothesis + suffix
-        val cursor = (prefix.length + hypothesis.length).coerceAtMost(text.length)
+        val before = if (hypothesis.isNotBlank() && prefix.lastOrNull()?.isLetterOrDigit() == true &&
+            hypothesis.firstOrNull()?.isLetterOrDigit() == true) " " else ""
+        val after = if (hypothesis.isNotBlank() && suffix.firstOrNull()?.isLetterOrDigit() == true &&
+            hypothesis.lastOrNull()?.isLetterOrDigit() == true) " " else ""
+        val text = prefix + before + hypothesis + after + suffix
+        val cursor = (prefix.length + before.length + hypothesis.length).coerceAtMost(text.length)
         return TextFieldValue(text, TextRange(cursor))
     }
 }

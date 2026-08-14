@@ -9,6 +9,8 @@ import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMediaItemEntity
 import com.kingkharnivore.skillz.data.chronicle.ChronicleFileStore
 import com.kingkharnivore.skillz.data.chronicle.ChronicleAudioRecorder
+import com.kingkharnivore.skillz.data.chronicle.AndroidOnDeviceDictationEngine
+import com.kingkharnivore.skillz.data.chronicle.LiveDictationEngine
 import com.kingkharnivore.skillz.model.ui.ChronicleMediaItemUi
 import com.kingkharnivore.skillz.model.ui.ChronicleMomentUi
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentType
@@ -32,7 +34,8 @@ class ChronicleRepository @Inject constructor(
     private val database: SkillzDatabase,
     private val dao: ChronicleDao,
     private val fileStore: ChronicleFileStore? = null,
-    private val audioRecorder: ChronicleAudioRecorder? = null
+    private val audioRecorder: ChronicleAudioRecorder? = null,
+    private val dictationEngine: AndroidOnDeviceDictationEngine? = null
 ) {
     private data class Owner(val type: String, val key: String)
     private val ownerMutexes = ConcurrentHashMap<Owner, Mutex>()
@@ -162,6 +165,11 @@ class ChronicleRepository @Inject constructor(
     }
 
     fun discardVoice() = audioRecorder?.discard()
+
+    fun isDictationAvailable(): Boolean = dictationEngine?.isAvailable() == true
+    fun startDictation(listener: LiveDictationEngine.Listener): Boolean = dictationEngine?.start(listener) == true
+    fun finishDictation() = dictationEngine?.finish()
+    fun cancelDictation() = dictationEngine?.cancel()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observeContent(ownerType: String, ownerKey: String): Flow<ContentSnapshot> =

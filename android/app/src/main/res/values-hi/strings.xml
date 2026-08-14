@@ -2280,4 +2280,11 @@
     <string name="chronicle_recording_time">रिकॉर्डिंग · %1$s</string>
     <string name="chronicle_finish_recording">रिकॉर्डिंग पूरी करें</string>
     <string name="chronicle_discard_recording">रिकॉर्डिंग हटाएँ</string>
+    <string name="chronicle_start_dictation">डिक्टेशन शुरू करें</string>
+    <string name="chronicle_start_voice_recording">वॉइस रिकॉर्डिंग शुरू करें</string>
+    <string name="chronicle_listening">सुन रहा है</string>
+    <string name="chronicle_cancel_dictation">रद्द करें</string>
+    <string name="chronicle_finish_dictation">पूरा करें</string>
+    <string name="chronicle_speech_unavailable">डिवाइस पर वाक् पहचान उपलब्ध नहीं है।</string>
+    <string name="chronicle_microphone_unavailable">माइक का उपयोग करने के लिए माइक्रोफ़ोन अनुमति आवश्यक है।</string>
 </resources>
