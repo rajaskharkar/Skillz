@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
@@ -123,17 +125,22 @@ class ChronicleRepository @Inject constructor(
     ): String {
         require(items.isNotEmpty())
         val owner = Owner(ownerType, ownerKey)
-        return mutex(owner).withLock {
-            requireMutable(owner)
-            database.withTransaction {
-                val chronicle = getOrCreateUnlocked(ownerType, ownerKey)
-                val now = System.currentTimeMillis()
-                val momentId = UUID.randomUUID().toString()
-                dao.insertMoment(ChronicleMomentEntity(momentId, chronicle.id, ChronicleMomentType.MEDIA,
-                    dao.moments(chronicle.id).size, createdAt = now, updatedAt = now))
-                dao.insertMedia(items.mapIndexed { index, item -> item.copy(momentId = momentId, position = index) })
-                momentId
+        return try {
+            mutex(owner).withLock {
+                requireMutable(owner)
+                database.withTransaction {
+                    val chronicle = getOrCreateUnlocked(ownerType, ownerKey)
+                    val now = System.currentTimeMillis()
+                    val momentId = UUID.randomUUID().toString()
+                    dao.insertMoment(ChronicleMomentEntity(momentId, chronicle.id, ChronicleMomentType.MEDIA,
+                        dao.moments(chronicle.id).size, createdAt = now, updatedAt = now))
+                    dao.insertMedia(items.mapIndexed { index, item -> item.copy(momentId = momentId, position = index) })
+                    momentId
+                }
             }
+        } catch (failure: Exception) {
+            cleanupOwnedPaths(items.flatMap { listOfNotNull(it.localPath, it.thumbnailPath) })
+            throw failure
         }
     }
 
@@ -143,7 +150,21 @@ class ChronicleRepository @Inject constructor(
             requireMutable(owner)
             val chronicle = dao.find(ownerType, ownerKey) ?: error("Chronicle owner is unavailable")
             check(dao.moments(chronicle.id).any { it.id == momentId && it.type == ChronicleMomentType.MEDIA })
-            dao.replaceMedia(momentId, items)
+            val previousPaths = dao.media(momentId)
+                .flatMap { listOfNotNull(it.localPath, it.thumbnailPath) }
+                .toSet()
+            try {
+                dao.replaceMedia(momentId, items)
+            } catch (failure: Exception) {
+                val prior = previousPaths
+                cleanupOwnedPaths(items.flatMap { listOfNotNull(it.localPath, it.thumbnailPath) }
+                    .filterNot(prior::contains))
+                throw failure
+            }
+            val finalPaths = items.flatMap { listOfNotNull(it.localPath, it.thumbnailPath) }.toSet()
+            (previousPaths - finalPaths).forEach { path ->
+                if (dao.mediaPathReferenceCount(path) == 0) fileStore?.deleteIfOwned(path)
+            }
         }
     }
 
@@ -162,7 +183,16 @@ class ChronicleRepository @Inject constructor(
         mutex(owner).withLock {
             requireMutable(owner)
             check(dao.find(ownerType, ownerKey)?.id == moment.chronicleId)
+            val ownedPaths = buildList {
+                addAll(dao.media(moment.id).flatMap { listOfNotNull(it.localPath, it.thumbnailPath) })
+                moment.audioPath?.let(::add)
+            }.distinct()
             dao.deleteMomentAndNormalize(moment, System.currentTimeMillis())
+            ownedPaths.forEach { path ->
+                val stillReferenced = dao.mediaPathReferenceCount(path) > 0 ||
+                    dao.audioPathReferenceCount(path) > 0
+                if (!stillReferenced) fileStore?.deleteIfOwned(path)
+            }
         }
     }
 
@@ -183,6 +213,15 @@ class ChronicleRepository @Inject constructor(
             if (chronicleId != null) fileStore?.deleteChronicle(chronicleId)
             finalizedOwners += owner
         }
+    }
+
+    /** Cleans files only after a caller has durably removed the Chronicle rows. */
+    suspend fun cleanupDeletedChronicle(chronicleId: String) {
+        fileStore?.deleteChronicle(chronicleId)
+    }
+
+    private suspend fun cleanupOwnedPaths(paths: List<String>) = withContext(NonCancellable) {
+        paths.distinct().forEach { fileStore?.deleteIfOwned(it) }
     }
 
     /** Serializes the last draft mutation with an atomic owner save/promotion. */

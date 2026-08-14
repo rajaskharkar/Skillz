@@ -112,11 +112,13 @@ class PulseRepository @Inject constructor(
     suspend fun deletePulseAndCleanupTag(pulseId: Long): Long? {
         val pulse = pulseDao.getPulseById(pulseId) ?: return null
         val tagId = pulse.tagId
+        val chronicleId = chronicleDao.find(ChronicleOwnerType.PULSE, pulseId.toString())?.id
 
         database.withTransaction {
             chronicleDao.delete(ChronicleOwnerType.PULSE, pulseId.toString())
             pulseDao.deletePulseById(pulseId)
         }
+        if (chronicleId != null) chronicleRepository.cleanupDeletedChronicle(chronicleId)
 
         if (tagId == null) return null
 

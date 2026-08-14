@@ -32,6 +32,12 @@ abstract class ChronicleDao {
     @Query("SELECT * FROM chronicle_media_items WHERE momentId=:momentId ORDER BY position")
     abstract suspend fun media(momentId: String): List<ChronicleMediaItemEntity>
 
+    @Query("SELECT COUNT(*) FROM chronicle_media_items WHERE localPath=:path OR thumbnailPath=:path")
+    abstract suspend fun mediaPathReferenceCount(path: String): Int
+
+    @Query("SELECT COUNT(*) FROM chronicle_moments WHERE audioPath=:path")
+    abstract suspend fun audioPathReferenceCount(path: String): Int
+
     @Query("SELECT i.* FROM chronicle_media_items i INNER JOIN chronicle_moments m ON m.id=i.momentId WHERE m.chronicleId=:chronicleId ORDER BY m.position, i.position")
     abstract fun observeMedia(chronicleId: String): Flow<List<ChronicleMediaItemEntity>>
 

@@ -39,20 +39,29 @@ class ChronicleFileStore @Inject constructor(
         val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime)
         val identity = UUID.randomUUID().toString() + extension?.let { ".$it" }.orEmpty()
         val staged = File(operation, identity)
+        var destination: File? = null
         try {
             resolver.openInputStream(source)?.use { input ->
                 staged.outputStream().buffered(COPY_BUFFER_BYTES).use { output -> input.copyTo(output, COPY_BUFFER_BYTES) }
             } ?: throw IOException("Media source is unavailable")
             validate(staged, mime)
+            val stagedSize = staged.length()
             val destinationDir = File(durableRoot, "$chronicleId/media").also { it.mkdirsOrThrow() }
-            val destination = File(destinationDir, identity)
-            if (!staged.renameTo(destination)) {
+            val finalized = File(destinationDir, identity)
+            destination = finalized
+            if (!staged.renameTo(finalized)) {
                 staged.inputStream().use { input ->
-                    destination.outputStream().buffered(COPY_BUFFER_BYTES).use { output -> input.copyTo(output, COPY_BUFFER_BYTES) }
+                    finalized.outputStream().buffered(COPY_BUFFER_BYTES).use { output -> input.copyTo(output, COPY_BUFFER_BYTES) }
                 }
                 staged.delete()
             }
-            StoredFile("chronicle/$chronicleId/media/$identity", mime, destination.length())
+            if (finalized.length() != stagedSize) {
+                throw IOException("Media copy is incomplete")
+            }
+            StoredFile("chronicle/$chronicleId/media/$identity", mime, finalized.length())
+        } catch (failure: Exception) {
+            destination?.delete()
+            throw failure
         } finally {
             operation.deleteRecursively()
         }

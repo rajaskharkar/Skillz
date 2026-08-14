@@ -65,6 +65,7 @@ class FlowRepository @Inject constructor(
     }
 
     private suspend fun deleteSessionTransactionally(sessionId: Long) {
+        val chronicleId = chronicleDao.find(ChronicleOwnerType.SESSION, sessionId.toString())?.id
         database.withTransaction {
             val arcId = sessionDao.getSessionById(sessionId)?.arcId
             chronicleDao.delete(ChronicleOwnerType.SESSION, sessionId.toString())
@@ -74,6 +75,7 @@ class FlowRepository @Inject constructor(
                 arcMetadataDao.delete(arcId)
             }
         }
+        if (chronicleId != null) chronicleRepository.cleanupDeletedChronicle(chronicleId)
     }
 
     suspend fun updateArcFields(

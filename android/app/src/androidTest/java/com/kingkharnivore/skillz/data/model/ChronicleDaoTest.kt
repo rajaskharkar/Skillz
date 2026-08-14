@@ -35,6 +35,11 @@ class ChronicleDaoTest {
         assertEquals(listOf("b", "a"), dao.moments("c").map { it.id })
         dao.updateMoment(a.copy(displayName="updated"))
         assertEquals(listOf("media"), dao.media("a").map { it.id })
+        val second = ChronicleMediaItemEntity("second", "a", 1, "owned-2", "video/mp4", createdAt=now)
+        dao.replaceMedia("a", listOf(second, dao.media("a").single()))
+        assertEquals(listOf("second", "media"), dao.media("a").map { it.id })
+        assertEquals(listOf(0, 1), dao.media("a").map { it.position })
+        assertEquals(1, dao.mediaPathReferenceCount("owned"))
     }
 
     @Test fun flowPromotionIsAtomicAndNextFlowIsIndependent() = runBlocking {
