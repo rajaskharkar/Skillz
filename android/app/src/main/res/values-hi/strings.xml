@@ -2275,4 +2275,5 @@
     <string name="chronicle_audio_unavailable">ऑडियो उपलब्ध नहीं है</string>
     <string name="chronicle_transcript">प्रतिलेख</string>
     <string name="chronicle_transcript_edited">प्रतिलेख · संपादित</string>
+    <string name="chronicle_choose_audio">ऑडियो चुनें</string>
 </resources>

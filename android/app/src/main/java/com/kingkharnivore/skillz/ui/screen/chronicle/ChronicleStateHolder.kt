@@ -98,6 +98,16 @@ class ChronicleStateHolder(
         scope.launch { repository.discardCapture(uri) }
     }
 
+    fun importAudio(source: Uri) {
+        if (!acceptingMutations || _state.value.isCommitting) return
+        _state.update { it.copy(isCommitting = true, hasError = false) }
+        scope.launch {
+            runCatching { repository.importAudio(ownerType, ownerKey, source) }
+                .onFailure { _state.update { it.copy(hasError = true) } }
+            _state.update { it.copy(isCommitting = false) }
+        }
+    }
+
     fun setDraft(value: String) {
         if (!acceptingMutations) return
         ++draftGeneration

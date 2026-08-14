@@ -59,6 +59,9 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris ->
         holder.importMedia(uris) { failedImports = it }
     }
+    val audioPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(holder::importAudio)
+    }
     var pendingPhoto by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingVideo by rememberSaveable { mutableStateOf<String?>(null) }
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
@@ -224,6 +227,10 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                         }, modifier = Modifier.weight(1f), enabled = !state.isCommitting) {
                             Text(stringResource(R.string.chronicle_video))
                         }
+                    }
+                    TextButton(onClick = { audioPicker.launch(arrayOf("audio/*")) },
+                        modifier = Modifier.fillMaxWidth(), enabled = !state.isCommitting) {
+                        Text(stringResource(R.string.chronicle_choose_audio))
                     }
                     Button(onClick = { holder.add() }, enabled = state.draft.isNotBlank() && !state.isCommitting,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary,

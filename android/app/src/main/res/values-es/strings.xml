@@ -2290,4 +2290,5 @@ Puedes volver a activar Health más tarde.</string>
     <string name="chronicle_audio_unavailable">Audio no disponible</string>
     <string name="chronicle_transcript">Transcripción</string>
     <string name="chronicle_transcript_edited">Transcripción · Editada</string>
+    <string name="chronicle_choose_audio">Elegir audio</string>
 </resources>
