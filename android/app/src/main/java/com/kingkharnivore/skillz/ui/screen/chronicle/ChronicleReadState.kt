@@ -1,7 +1,7 @@
 package com.kingkharnivore.skillz.ui.screen.chronicle
 
-import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
 import com.kingkharnivore.skillz.data.repository.ChronicleRepository
+import com.kingkharnivore.skillz.model.ui.ChronicleMomentUi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -18,7 +18,7 @@ class ChronicleReadState(
 ) {
     private val job = SupervisorJob(parentScope.coroutineContext[Job])
     private val scope = CoroutineScope(parentScope.coroutineContext + job)
-    val moments: StateFlow<List<ChronicleMomentEntity>> = repository.observe(ownerType, ownerKey)
+    val moments: StateFlow<List<ChronicleMomentUi>> = repository.observeContent(ownerType, ownerKey)
         .map { it.moments }
         .stateIn(scope, SharingStarted.WhileSubscribed(5_000), emptyList())
 

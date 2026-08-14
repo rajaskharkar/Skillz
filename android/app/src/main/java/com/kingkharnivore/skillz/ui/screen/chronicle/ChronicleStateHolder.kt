@@ -2,6 +2,8 @@ package com.kingkharnivore.skillz.ui.screen.chronicle
 
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
 import com.kingkharnivore.skillz.data.repository.ChronicleRepository
+import com.kingkharnivore.skillz.model.ui.ChronicleMomentUi
+import android.net.Uri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -18,6 +20,7 @@ data class ChronicleUiState(
     val chronicleId: String? = null,
     val draft: String = "",
     val moments: List<ChronicleMomentEntity> = emptyList(),
+    val contentMoments: List<ChronicleMomentUi> = emptyList(),
     val editingId: String? = null,
     val editingText: String = "",
     val isCommitting: Boolean = false,
@@ -64,6 +67,27 @@ class ChronicleStateHolder(
                         moments = snapshot.moments
                     ) }
                 }
+        }
+        scope.launch {
+            repository.observeContent(ownerType, ownerKey)
+                .catch { _state.update { state -> state.copy(hasError = true) } }
+                .collectLatest { snapshot ->
+                    _state.update { it.copy(contentMoments = snapshot.moments) }
+                }
+        }
+    }
+
+    fun importMedia(sources: List<Uri>, onResult: (Int) -> Unit = {}) {
+        if (!acceptingMutations || sources.isEmpty()) return
+        _state.update { it.copy(isCommitting = true, hasError = false) }
+        scope.launch {
+            runCatching { repository.importMedia(ownerType, ownerKey, sources) }
+                .onSuccess { result ->
+                    if (result.momentId == null) _state.update { it.copy(hasError = true) }
+                    onResult(result.failedCount)
+                }
+                .onFailure { _state.update { it.copy(hasError = true) } }
+            _state.update { it.copy(isCommitting = false) }
         }
     }
 

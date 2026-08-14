@@ -2259,4 +2259,7 @@
     <string name="chronicle_add_moment">Add Moment</string>
     <string name="chronicle_discard">Discard</string>
     <string name="chronicle_save_error">Chronicle could not be saved. Try again.</string>
+    <string name="chronicle_gallery">गॅलरी</string>
+    <string name="chronicle_open_media">मीडिया उघडा</string>
+    <string name="chronicle_media_failed">%1$d आयटम जोडता आले नाहीत.</string>
 </resources>

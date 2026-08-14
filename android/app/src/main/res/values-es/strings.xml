@@ -2274,4 +2274,7 @@ Puedes volver a activar Health más tarde.</string>
     <string name="chronicle_add_moment">Add Moment</string>
     <string name="chronicle_discard">Discard</string>
     <string name="chronicle_save_error">Chronicle could not be saved. Try again.</string>
+    <string name="chronicle_gallery">Galería</string>
+    <string name="chronicle_open_media">Abrir contenido multimedia</string>
+    <string name="chronicle_media_failed">No se pudieron añadir %1$d elemento(s).</string>
 </resources>

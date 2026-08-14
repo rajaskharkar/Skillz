@@ -1,6 +1,7 @@
 package com.kingkharnivore.skillz.data.repository
 
 import androidx.room.withTransaction
+import android.net.Uri
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.dao.ChronicleDao
 import com.kingkharnivore.skillz.data.model.entity.ChronicleEntity
@@ -56,6 +57,29 @@ class ChronicleRepository @Inject constructor(
         }
 
     fun observeSummaries() = dao.observeSummaries()
+
+    data class MediaImportResult(val momentId: String?, val failedCount: Int)
+
+    suspend fun importMedia(ownerType: String, ownerKey: String, sources: List<Uri>): MediaImportResult {
+        if (sources.isEmpty()) return MediaImportResult(null, 0)
+        val owner = Owner(ownerType, ownerKey)
+        val chronicle = mutex(owner).withLock {
+            requireMutable(owner)
+            getOrCreateUnlocked(ownerType, ownerKey)
+        }
+        val imported = sources.map { source ->
+            runCatching { fileStore?.importMedia(chronicle.id, source) ?: error("File storage unavailable") }
+                .getOrNull()
+        }
+        val successful = imported.filterNotNull()
+        if (successful.isEmpty()) return MediaImportResult(null, sources.size)
+        val now = System.currentTimeMillis()
+        val rows = successful.mapIndexed { index, stored ->
+            ChronicleMediaItemEntity(UUID.randomUUID().toString(), "", index, stored.relativePath,
+                stored.mimeType, stored.durationMs, stored.width, stored.height, createdAt = now)
+        }
+        return MediaImportResult(addMedia(ownerType, ownerKey, rows), sources.size - successful.size)
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observeContent(ownerType: String, ownerKey: String): Flow<ContentSnapshot> =

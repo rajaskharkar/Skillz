@@ -1,5 +1,13 @@
 package com.kingkharnivore.skillz.ui.screen.chronicle
 
+import android.content.Intent
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -14,6 +22,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -23,12 +34,23 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
+import com.kingkharnivore.skillz.model.ui.ChronicleMediaItemUi
+import com.kingkharnivore.skillz.model.ui.ChronicleMomentUi
+import androidx.core.content.FileProvider
+import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
     val state by holder.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var failedImports by remember { mutableIntStateOf(0) }
+    val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris ->
+        holder.importMedia(uris) { failedImports = it }
+    }
     var deleteTarget by remember { mutableStateOf<ChronicleMomentEntity?>(null) }
     val moveUpLabel = stringResource(R.string.chronicle_move_up)
     val moveDownLabel = stringResource(R.string.chronicle_move_down)
@@ -37,9 +59,9 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
     val listState = rememberLazyListState()
     val gestureScope = rememberCoroutineScope()
     var dragPointerY by remember { mutableFloatStateOf(0f) }
-    val displayedMoments = remember(state.moments, state.stagedOrder) {
-        if (state.stagedOrder.isEmpty()) state.moments else {
-            val byId = state.moments.associateBy { it.id }
+    val displayedMoments = remember(state.contentMoments, state.stagedOrder) {
+        if (state.stagedOrder.isEmpty()) state.contentMoments else {
+            val byId = state.contentMoments.associateBy { it.id }
             state.stagedOrder.mapNotNull(byId::get)
         }
     }
@@ -59,13 +81,14 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
         }
         itemsIndexed(displayedMoments, key = { _, item -> item.id }) { index, moment ->
             Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                if (state.editingId == moment.id) {
+                val entity = state.moments.firstOrNull { it.id == moment.id }
+                if (state.editingId == moment.id && entity != null) {
                     Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(22.dp)) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             TextField(value = state.editingText, onValueChange = holder::editText,
                                 modifier = Modifier.fillMaxWidth(), colors = chronicleTextFieldColors())
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                                TextButton(onClick = { deleteTarget = moment }) { Text(stringResource(R.string.chronicle_remove)) }
+                            TextButton(onClick = { deleteTarget = entity }) { Text(stringResource(R.string.chronicle_remove)) }
                                 TextButton(onClick = holder::cancelEdit) { Text(stringResource(R.string.common_cancel)) }
                                 Button(onClick = holder::finishEdit, enabled = state.editingText.isNotBlank()) {
                                     Text(stringResource(R.string.common_done))
@@ -79,21 +102,18 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                         color = if (isDragging) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surface.copy(alpha = 0f),
                         shape = RoundedCornerShape(18.dp),
                         tonalElevation = if (isDragging) 6.dp else 0.dp
-                    ) { Text(
-                        text = moment.text.orEmpty(), style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.fillMaxWidth().semantics {
+                    ) { Box(Modifier.fillMaxWidth().semantics {
                             customActions = listOf(
-                                CustomAccessibilityAction(moveUpLabel) { holder.move(moment, -1); true },
-                                CustomAccessibilityAction(moveDownLabel) { holder.move(moment, 1); true },
-                                CustomAccessibilityAction(removeLabel) { deleteTarget = moment; true }
+                                CustomAccessibilityAction(moveUpLabel) { entity?.let { holder.move(it, -1) }; true },
+                                CustomAccessibilityAction(moveDownLabel) { entity?.let { holder.move(it, 1) }; true },
+                                CustomAccessibilityAction(removeLabel) { deleteTarget = entity; true }
                             )
-                        }.combinedClickable(onClick = { holder.beginEdit(moment) }, onLongClick = null)
+                        }.combinedClickable(onClick = { if (moment is ChronicleMomentUi.Text) entity?.let(holder::beginEdit) }, onLongClick = null)
                             .pointerInput(moment.id, state.editingId) {
-                                if (state.editingId == null) detectDragGesturesAfterLongPress(
+                                if (state.editingId == null && entity != null) detectDragGesturesAfterLongPress(
                                     onDragStart = { offset ->
                                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        holder.startDrag(moment)
+                                        holder.startDrag(entity)
                                         val item = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == moment.id }
                                         dragPointerY = (item?.offset ?: 0) + offset.y
                                     },
@@ -119,8 +139,14 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                                     }
                                 )
                             }
-                            .padding(vertical = 8.dp)
-                    ) }
+                            .padding(vertical = 8.dp)) {
+                        when (moment) {
+                            is ChronicleMomentUi.Text -> Text(moment.text, style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.primary, modifier = Modifier.fillMaxWidth())
+                            is ChronicleMomentUi.Media -> ChronicleMediaMoment(moment.items) { openMedia(context, it) }
+                            is ChronicleMomentUi.Audio, is ChronicleMomentUi.Voice -> Unit
+                        }
+                    } }
                 }
                 if (index < displayedMoments.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.secondary.copy(alpha = if (state.draggingId != null) .55f else .22f))
             }
@@ -132,6 +158,13 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                         enabled = state.editingId == null && !state.isCommitting,
                         placeholder = { Text(stringResource(R.string.chronicle_write_placeholder)) },
                         modifier = Modifier.fillMaxWidth(), colors = chronicleTextFieldColors())
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = {
+                            failedImports = 0
+                            gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+                        },
+                            enabled = !state.isCommitting) { Text(stringResource(R.string.chronicle_gallery)) }
+                    }
                     Button(onClick = { holder.add() }, enabled = state.draft.isNotBlank() && !state.isCommitting,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -140,6 +173,8 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                         Text(stringResource(R.string.chronicle_add))
                     }
                     if (state.hasError) Text(stringResource(R.string.chronicle_save_error), color = MaterialTheme.colorScheme.secondary)
+                    if (failedImports > 0) Text(stringResource(R.string.chronicle_media_failed, failedImports),
+                        color = MaterialTheme.colorScheme.secondary)
                 }
             }
         }
@@ -150,6 +185,49 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
             confirmButton = { TextButton(onClick = { holder.delete(moment); holder.cancelEdit(); deleteTarget = null }) { Text(stringResource(R.string.chronicle_remove)) } },
             dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.common_cancel)) } })
     }
+}
+
+@Composable
+internal fun ChronicleMediaMoment(items: List<ChronicleMediaItemUi>, onOpen: (ChronicleMediaItemUi) -> Unit) {
+    val visible = items.take(4)
+    val columns = if (visible.size == 1) 1 else 2
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        visible.chunked(columns).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                row.forEach { item -> MediaThumbnail(item, Modifier.weight(1f), onOpen) }
+                if (row.size < columns) Spacer(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun MediaThumbnail(item: ChronicleMediaItemUi, modifier: Modifier, onOpen: (ChronicleMediaItemUi) -> Unit) {
+    val context = LocalContext.current
+    val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, item.relativePath) {
+        value = withContext(Dispatchers.IO) {
+            val file = File(context.filesDir, item.relativePath)
+            if (!file.isFile) null else if (item.mimeType.startsWith("video/")) {
+                runCatching { MediaMetadataRetriever().use { it.setDataSource(file.path); it.frameAtTime?.asImageBitmap() } }.getOrNull()
+            } else {
+                val options = BitmapFactory.Options().apply { inSampleSize = 4 }
+                BitmapFactory.decodeFile(file.path, options)?.asImageBitmap()
+            }
+        }
+    }
+    Surface(modifier.aspectRatio(if (item.position == 0) 1.35f else 1f).clickable { onOpen(item) },
+        shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondary.copy(alpha = .12f)) {
+        bitmap?.let { Image(it, contentDescription = stringResource(R.string.chronicle_open_media),
+            contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+    }
+}
+
+internal fun openMedia(context: android.content.Context, item: ChronicleMediaItemUi) {
+    val file = File(context.filesDir, item.relativePath)
+    if (!file.isFile) return
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.chronicle-files", file)
+    context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, item.mimeType)
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
 }
 
 @Composable private fun chronicleTextFieldColors() = TextFieldDefaults.colors(

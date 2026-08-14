@@ -19,7 +19,14 @@ import kotlinx.coroutines.withContext
 class ChronicleFileStore @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    data class StoredFile(val relativePath: String, val mimeType: String, val size: Long)
+    data class StoredFile(
+        val relativePath: String,
+        val mimeType: String,
+        val size: Long,
+        val durationMs: Long? = null,
+        val width: Int? = null,
+        val height: Int? = null
+    )
 
     private val durableRoot get() = File(context.filesDir, "chronicle")
     private val stagingRoot get() = File(context.cacheDir, "chronicle_staging")
@@ -58,7 +65,9 @@ class ChronicleFileStore @Inject constructor(
             if (finalized.length() != stagedSize) {
                 throw IOException("Media copy is incomplete")
             }
-            StoredFile("chronicle/$chronicleId/media/$identity", mime, finalized.length())
+            val metadata = metadata(finalized, mime)
+            StoredFile("chronicle/$chronicleId/media/$identity", mime, finalized.length(),
+                metadata.first, metadata.second, metadata.third)
         } catch (failure: Exception) {
             destination?.delete()
             throw failure
@@ -104,6 +113,22 @@ class ChronicleFileStore @Inject constructor(
         }
         if (!valid) throw IOException("Media is corrupt or unsupported")
     }
+
+    private fun metadata(file: File, mime: String): Triple<Long?, Int?, Int?> =
+        if (mime.startsWith("image/")) {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.path, bounds)
+            Triple(null, bounds.outWidth.takeIf { it > 0 }, bounds.outHeight.takeIf { it > 0 })
+        } else runCatching {
+            MediaMetadataRetriever().use { retriever ->
+                retriever.setDataSource(file.path)
+                Triple(
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull(),
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull(),
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull()
+                )
+            }
+        }.getOrDefault(Triple(null, null, null))
 
     private fun requireSafeSegment(value: String) {
         require(value.isNotBlank() && value != "." && value != ".." && '/' !in value && '\\' !in value)

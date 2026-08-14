@@ -9,20 +9,23 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
-import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentType
+import androidx.compose.ui.platform.LocalContext
+import com.kingkharnivore.skillz.model.ui.ChronicleMomentUi
 
 /** One-owner, ordered, read-only renderer; future Moment renderers extend this dispatch. */
 @Composable
-fun ChronicleReader(moments: List<ChronicleMomentEntity>, modifier: Modifier = Modifier) {
+fun ChronicleReader(moments: List<ChronicleMomentUi>, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         moments.sortedBy { it.position }.forEachIndexed { index, moment ->
-            when (moment.type) {
-                ChronicleMomentType.TEXT -> Text(
-                    text = moment.text.orEmpty(),
+            when (moment) {
+                is ChronicleMomentUi.Text -> Text(
+                    text = moment.text,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
+                is ChronicleMomentUi.Media -> ChronicleMediaMoment(moment.items) { openMedia(context, it) }
+                is ChronicleMomentUi.Audio, is ChronicleMomentUi.Voice -> Unit
             }
             if (index < moments.lastIndex) HorizontalDivider(
                 thickness = 1.dp,
