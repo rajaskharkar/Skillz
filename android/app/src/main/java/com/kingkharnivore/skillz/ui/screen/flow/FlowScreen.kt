@@ -75,6 +75,7 @@ import com.kingkharnivore.skillz.viewmodel.FlowEndAction
 import com.kingkharnivore.skillz.viewmodel.FlowCompletionState
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.ui.screen.chronicle.ChroniclePage
+import com.kingkharnivore.skillz.ui.screen.chronicle.ChroniclePagerSelector
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 
@@ -141,8 +142,7 @@ fun FlowScreen(
     val chronicleOwnerKey by viewModel.chronicleOwnerKey.collectAsState()
     val chronicleHolder = remember(chronicleOwnerKey) { viewModel.createChronicleStateHolder(chronicleOwnerKey) }
     val chronicleUiState by chronicleHolder.state.collectAsState()
-    val chronicleMicActive = chronicleUiState.microphone !is
-        com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleMicrophoneState.Idle
+    val chronicleRequiresAttention = chronicleUiState.blocksCompletion
     DisposableEffect(chronicleHolder) { onDispose { chronicleHolder.close() } }
     val completionState by viewModel.completionState.collectAsState()
     LaunchedEffect(completionState, chronicleHolder) {
@@ -158,7 +158,10 @@ fun FlowScreen(
     val pagerScope = rememberCoroutineScope()
     fun requestEnd(action: FlowEndAction) {
         val chronicle = chronicleHolder.state.value
-        if (chronicle.blocksCompletion || chronicle.draft.isNotBlank()) pendingChronicleEnd = action
+        if (chronicle.blocksCompletion) {
+            pendingChronicleEnd = action
+            pagerScope.launch { pagerState.animateScrollToPage(1) }
+        }
         else chronicleHolder.quiesce { viewModel.onEndFlowClicked(action) }
     }
 
@@ -226,15 +229,17 @@ fun FlowScreen(
     ) { innerPadding ->
 
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                TextButton(onClick = { pagerScope.launch { pagerState.animateScrollToPage(0) } }, enabled = !chronicleMicActive) {
-                    Text(stringResource(R.string.flow_screen_title))
-                }
-                TextButton(onClick = { pagerScope.launch { pagerState.animateScrollToPage(1) } }) {
-                    Text(stringResource(R.string.chronicle_title))
-                }
-            }
-            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f), userScrollEnabled = !chronicleMicActive) { page ->
+            ChroniclePagerSelector(
+                selectedPage = pagerState.currentPage,
+                primaryIcon = Icons.Outlined.AutoAwesome,
+                primaryLabel = stringResource(R.string.flow_screen_title),
+                primaryContentDescription = stringResource(R.string.flow_screen_title),
+                chronicleLabel = stringResource(R.string.chronicle_title),
+                chronicleContentDescription = stringResource(R.string.chronicle_title),
+                canLeaveChronicle = !chronicleRequiresAttention,
+                onPageSelected = { page -> pagerScope.launch { pagerState.animateScrollToPage(page) } },
+            )
+            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f), userScrollEnabled = !chronicleRequiresAttention) { page ->
                 if (page == 1) {
                     ChroniclePage(chronicleHolder)
                     return@HorizontalPager

@@ -2275,7 +2275,6 @@
     <string name="chronicle_audio_unavailable">ऑडियो उपलब्ध नहीं है</string>
     <string name="chronicle_transcript">प्रतिलेख</string>
     <string name="chronicle_transcript_edited">प्रतिलेख · संपादित</string>
-    <string name="chronicle_choose_audio">ऑडियो चुनें</string>
     <string name="chronicle_mic">माइक · वॉइस रिकॉर्डिंग शुरू करें</string>
     <string name="chronicle_recording_time">रिकॉर्डिंग · %1$s</string>
     <string name="chronicle_finish_recording">रिकॉर्डिंग पूरी करें</string>

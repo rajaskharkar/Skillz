@@ -91,33 +91,6 @@ class ChronicleRepository @Inject constructor(
         return MediaImportResult(addMedia(ownerType, ownerKey, rows), sources.size - successful.size)
     }
 
-    suspend fun importAudio(ownerType: String, ownerKey: String, source: Uri): String {
-        val owner = Owner(ownerType, ownerKey)
-        val chronicle = mutex(owner).withLock {
-            requireMutable(owner)
-            getOrCreateUnlocked(ownerType, ownerKey)
-        }
-        val stored = fileStore?.importAudio(chronicle.id, source) ?: error("File storage unavailable")
-        return try {
-            mutex(owner).withLock {
-                requireMutable(owner)
-                database.withTransaction {
-                    check(dao.find(ownerType, ownerKey)?.id == chronicle.id)
-                    val now = System.currentTimeMillis()
-                    val id = UUID.randomUUID().toString()
-                    dao.insertMoment(ChronicleMomentEntity(id, chronicle.id, ChronicleMomentType.AUDIO,
-                        dao.moments(chronicle.id).size, audioPath = stored.relativePath,
-                        displayName = stored.displayName, mimeType = stored.mimeType, durationMs = stored.durationMs,
-                        createdAt = now, updatedAt = now))
-                    id
-                }
-            }
-        } catch (failure: Exception) {
-            cleanupOwnedPaths(listOf(stored.relativePath))
-            throw failure
-        }
-    }
-
     /** Starts a private staging recording. No Room row exists until [finishVoice]. */
     suspend fun startVoice(ownerType: String, ownerKey: String) {
         val owner = Owner(ownerType, ownerKey)

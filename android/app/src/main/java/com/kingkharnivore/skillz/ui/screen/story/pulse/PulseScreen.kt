@@ -64,6 +64,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.ui.screen.chronicle.ChroniclePage
+import com.kingkharnivore.skillz.ui.screen.chronicle.ChroniclePagerSelector
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import com.kingkharnivore.skillz.ui.screen.flow.GrandTitleField
@@ -95,8 +96,7 @@ fun PulseScreen(
     val pagerScope = rememberCoroutineScope()
     val cancelPulse = { viewModel.cancelPulseDraft(onCancel) }
     val chronicleState by viewModel.pulseChronicle.state.collectAsState()
-    val chronicleMicActive = chronicleState.microphone !is
-        com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleMicrophoneState.Idle
+    val chronicleRequiresAttention = chronicleState.blocksCompletion
     val restoredCreatedPulseId by viewModel.restoredCreatedPulseId.collectAsState()
     var showDraftPrompt by remember { mutableStateOf(false) }
     fun savePulse() = viewModel.pulseChronicle.quiesce {
@@ -127,11 +127,17 @@ fun PulseScreen(
         }
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                TextButton(onClick = { pagerScope.launch { pagerState.animateScrollToPage(0) } }, enabled = !chronicleMicActive) { Text(screenTitle) }
-                TextButton(onClick = { pagerScope.launch { pagerState.animateScrollToPage(1) } }) { Text(stringResource(R.string.chronicle_title)) }
-            }
-            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f), userScrollEnabled = !chronicleMicActive) { page ->
+            ChroniclePagerSelector(
+                selectedPage = pagerState.currentPage,
+                primaryIcon = Icons.Outlined.PsychologyAlt,
+                primaryLabel = screenTitle,
+                primaryContentDescription = screenTitle,
+                chronicleLabel = stringResource(R.string.chronicle_title),
+                chronicleContentDescription = stringResource(R.string.chronicle_title),
+                canLeaveChronicle = !chronicleRequiresAttention,
+                onPageSelected = { page -> pagerScope.launch { pagerState.animateScrollToPage(page) } },
+            )
+            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f), userScrollEnabled = !chronicleRequiresAttention) { page ->
                 if (page == 1) { ChroniclePage(viewModel.pulseChronicle); return@HorizontalPager }
         Column(
             modifier = Modifier

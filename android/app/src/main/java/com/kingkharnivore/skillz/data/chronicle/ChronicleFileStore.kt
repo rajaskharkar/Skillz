@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -112,53 +111,6 @@ class ChronicleFileStore @Inject constructor(
             val metadata = metadata(finalized, mime)
             StoredFile("chronicle/$chronicleId/media/$identity", mime, finalized.length(),
                 metadata.first, metadata.second, metadata.third)
-        } catch (failure: Exception) {
-            destination?.delete()
-            throw failure
-        } finally {
-            operation.deleteRecursively()
-        }
-    }
-
-    suspend fun importAudio(
-        chronicleId: String,
-        source: Uri,
-        operationId: String = UUID.randomUUID().toString()
-    ): StoredFile = withContext(Dispatchers.IO) {
-        requireSafeSegment(chronicleId)
-        requireSafeSegment(operationId)
-        val resolver = context.contentResolver
-        val mime = resolver.getType(source)?.lowercase()
-            ?: throw IOException("Audio type is unavailable")
-        require(mime.startsWith("audio/"))
-        val operation = File(stagingRoot, operationId).also { it.mkdirsOrThrow() }
-        val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mime)
-        val identity = UUID.randomUUID().toString() + extension?.let { ".$it" }.orEmpty()
-        val staged = File(operation, identity)
-        var destination: File? = null
-        try {
-            resolver.openInputStream(source)?.use { input ->
-                staged.outputStream().buffered(COPY_BUFFER_BYTES).use { output -> input.copyTo(output, COPY_BUFFER_BYTES) }
-            } ?: throw IOException("Audio source is unavailable")
-            if (staged.length() <= 0L) throw IOException("Audio is empty")
-            val duration = MediaMetadataRetriever().use { retriever ->
-                retriever.setDataSource(staged.path)
-                retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
-            } ?: throw IOException("Audio is corrupt or unsupported")
-            val destinationDir = File(durableRoot, "$chronicleId/audio").also { it.mkdirsOrThrow() }
-            val finalized = File(destinationDir, identity)
-            destination = finalized
-            if (!staged.renameTo(finalized)) {
-                staged.inputStream().use { input ->
-                    finalized.outputStream().buffered(COPY_BUFFER_BYTES).use { output -> input.copyTo(output, COPY_BUFFER_BYTES) }
-                }
-            }
-            if (finalized.length() <= 0L) throw IOException("Audio copy is incomplete")
-            val displayName = resolver.query(source, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) cursor.getString(0) else null
-            }
-            StoredFile("chronicle/$chronicleId/audio/$identity", mime, finalized.length(), duration,
-                displayName = displayName)
         } catch (failure: Exception) {
             destination?.delete()
             throw failure

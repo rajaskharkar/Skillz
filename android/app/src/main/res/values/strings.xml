@@ -2277,7 +2277,6 @@ You can turn Health back on later.</string>
     <string name="chronicle_audio_unavailable">Audio unavailable</string>
     <string name="chronicle_transcript">Transcript</string>
     <string name="chronicle_transcript_edited">Transcript · Edited</string>
-    <string name="chronicle_choose_audio">Choose audio</string>
     <string name="chronicle_mic">Mic · start voice recording</string>
     <string name="chronicle_recording_time">Recording · %1$s</string>
     <string name="chronicle_finish_recording">Finish recording</string>
