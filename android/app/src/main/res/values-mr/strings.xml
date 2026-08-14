@@ -2265,4 +2265,8 @@
     <string name="chronicle_media_unavailable">मीडिया उपलब्ध नाही</string>
     <string name="chronicle_video">व्हिडिओ</string>
     <string name="chronicle_camera">कॅमेरा</string>
+    <string name="chronicle_close">बंद करा</string>
+    <string name="chronicle_previous">मागील</string>
+    <string name="chronicle_next">पुढील</string>
+    <string name="chronicle_media_position">%2$d पैकी %1$d</string>
 </resources>

@@ -1,7 +1,8 @@
 package com.kingkharnivore.skillz.ui.screen.chronicle
 
-import android.content.Intent
 import android.net.Uri
+import android.widget.MediaController
+import android.widget.VideoView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -28,6 +29,9 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -39,7 +43,6 @@ import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
 import com.kingkharnivore.skillz.model.ui.ChronicleMediaItemUi
 import com.kingkharnivore.skillz.model.ui.ChronicleMomentUi
-import androidx.core.content.FileProvider
 import java.io.File
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
@@ -50,7 +53,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
     val state by holder.state.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     var failedImports by remember { mutableIntStateOf(0) }
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris ->
         holder.importMedia(uris) { failedImports = it }
@@ -164,7 +166,7 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                         when (moment) {
                             is ChronicleMomentUi.Text -> Text(moment.text, style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.fillMaxWidth())
-                            is ChronicleMomentUi.Media -> ChronicleMediaMoment(moment.items) { openMedia(context, it) }
+                            is ChronicleMomentUi.Media -> ChronicleMediaMoment(moment.items)
                             is ChronicleMomentUi.Audio, is ChronicleMomentUi.Voice -> Unit
                         }
                     } }
@@ -229,7 +231,8 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
 }
 
 @Composable
-internal fun ChronicleMediaMoment(items: List<ChronicleMediaItemUi>, onOpen: (ChronicleMediaItemUi) -> Unit) {
+internal fun ChronicleMediaMoment(items: List<ChronicleMediaItemUi>) {
+    var viewerIndex by rememberSaveable { mutableIntStateOf(-1) }
     val visible = items.take(4)
     val columns = if (visible.size == 1) 1 else 2
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -238,11 +241,16 @@ internal fun ChronicleMediaMoment(items: List<ChronicleMediaItemUi>, onOpen: (Ch
                 row.forEach { item ->
                     val visibleIndex = visible.indexOf(item)
                     MediaThumbnail(item, Modifier.weight(1f),
-                        overflow = (items.size - visible.size).takeIf { it > 0 && visibleIndex == visible.lastIndex }, onOpen)
+                        overflow = (items.size - visible.size).takeIf { it > 0 && visibleIndex == visible.lastIndex }) {
+                        viewerIndex = items.indexOf(item)
+                    }
                 }
                 if (row.size < columns) Spacer(Modifier.weight(1f))
             }
         }
+    }
+    if (viewerIndex in items.indices) {
+        ChronicleMediaViewer(items, viewerIndex, onIndexChanged = { viewerIndex = it }, onClose = { viewerIndex = -1 })
     }
 }
 
@@ -279,12 +287,59 @@ private fun MediaThumbnail(
     }
 }
 
-internal fun openMedia(context: android.content.Context, item: ChronicleMediaItemUi) {
-    val file = File(context.filesDir, item.relativePath)
-    if (!file.isFile) return
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.chronicle-files", file)
-    context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, item.mimeType)
-        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
+@Composable
+private fun ChronicleMediaViewer(
+    items: List<ChronicleMediaItemUi>,
+    selectedIndex: Int,
+    onIndexChanged: (Int) -> Unit,
+    onClose: () -> Unit
+) {
+    val context = LocalContext.current
+    val item = items[selectedIndex]
+    val file = remember(item.relativePath) { File(context.filesDir, item.relativePath) }
+    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                if (!file.isFile) {
+                    Text(stringResource(R.string.chronicle_media_unavailable), color = MaterialTheme.colorScheme.onBackground)
+                } else if (item.mimeType.startsWith("video/")) {
+                    AndroidView(
+                        factory = { viewContext ->
+                            VideoView(viewContext).apply {
+                                val controls = MediaController(viewContext)
+                                controls.setAnchorView(this)
+                                setMediaController(controls)
+                                setVideoPath(file.path)
+                                setOnPreparedListener { it.isLooping = false; start() }
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    val image by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, file.path) {
+                        value = ChronicleThumbnailLoader.load(file, item.mimeType)?.asImageBitmap()
+                    }
+                    image?.let { Image(it, contentDescription = stringResource(R.string.chronicle_open_media),
+                        contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize()) }
+                }
+                Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween) {
+                    TextButton(onClick = onClose) { Text(stringResource(R.string.chronicle_close)) }
+                    Text(stringResource(R.string.chronicle_media_position, selectedIndex + 1, items.size),
+                        color = MaterialTheme.colorScheme.onBackground)
+                }
+                Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween) {
+                    TextButton(onClick = { onIndexChanged(selectedIndex - 1) }, enabled = selectedIndex > 0) {
+                        Text(stringResource(R.string.chronicle_previous))
+                    }
+                    TextButton(onClick = { onIndexChanged(selectedIndex + 1) }, enabled = selectedIndex < items.lastIndex) {
+                        Text(stringResource(R.string.chronicle_next))
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable private fun chronicleTextFieldColors() = TextFieldDefaults.colors(

@@ -2280,4 +2280,8 @@ Puedes volver a activar Health más tarde.</string>
     <string name="chronicle_media_unavailable">Contenido no disponible</string>
     <string name="chronicle_video">Video</string>
     <string name="chronicle_camera">Cámara</string>
+    <string name="chronicle_close">Cerrar</string>
+    <string name="chronicle_previous">Anterior</string>
+    <string name="chronicle_next">Siguiente</string>
+    <string name="chronicle_media_position">%1$d de %2$d</string>
 </resources>

@@ -2267,4 +2267,8 @@ You can turn Health back on later.</string>
     <string name="chronicle_media_unavailable">Media unavailable</string>
     <string name="chronicle_video">Video</string>
     <string name="chronicle_camera">Camera</string>
+    <string name="chronicle_close">Close</string>
+    <string name="chronicle_previous">Previous</string>
+    <string name="chronicle_next">Next</string>
+    <string name="chronicle_media_position">%1$d of %2$d</string>
 </resources>
