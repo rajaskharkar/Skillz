@@ -39,6 +39,9 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
 import com.kingkharnivore.skillz.model.ui.ChronicleMediaItemUi
@@ -297,6 +300,19 @@ private fun ChronicleMediaViewer(
     val context = LocalContext.current
     val item = items[selectedIndex]
     val file = remember(item.relativePath) { File(context.filesDir, item.relativePath) }
+    var activeVideoView by remember(item.id) { mutableStateOf<VideoView?>(null) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(item.id, lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) activeVideoView?.pause()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            activeVideoView?.stopPlayback()
+            activeVideoView = null
+        }
+    }
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -306,6 +322,7 @@ private fun ChronicleMediaViewer(
                     AndroidView(
                         factory = { viewContext ->
                             VideoView(viewContext).apply {
+                                activeVideoView = this
                                 val controls = MediaController(viewContext)
                                 controls.setAnchorView(this)
                                 setMediaController(controls)
