@@ -22,7 +22,7 @@ fun ChronicleReader(moments: List<ChronicleMomentUi>, modifier: Modifier = Modif
                 is ChronicleMomentUi.Text -> Text(
                     text = moment.text,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 is ChronicleMomentUi.Media -> ChronicleMediaMoment(moment.items) { openMedia(context, it) }
                 is ChronicleMomentUi.Audio, is ChronicleMomentUi.Voice -> Unit

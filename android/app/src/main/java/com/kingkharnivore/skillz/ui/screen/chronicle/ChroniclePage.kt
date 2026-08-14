@@ -1,8 +1,6 @@
 package com.kingkharnivore.skillz.ui.screen.chronicle
 
 import android.content.Intent
-import android.graphics.BitmapFactory
-import android.media.MediaMetadataRetriever
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,6 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -38,6 +38,7 @@ import com.kingkharnivore.skillz.model.ui.ChronicleMediaItemUi
 import com.kingkharnivore.skillz.model.ui.ChronicleMomentUi
 import androidx.core.content.FileProvider
 import java.io.File
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
@@ -74,9 +75,9 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
         if (displayedMoments.isEmpty()) item {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(stringResource(R.string.chronicle_empty_title), style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.primary)
+                    color = MaterialTheme.colorScheme.onBackground)
                 Text(stringResource(R.string.chronicle_empty_body), style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.secondary)
+                    color = MaterialTheme.colorScheme.onBackground)
             }
         }
         itemsIndexed(displayedMoments, key = { _, item -> item.id }) { index, moment ->
@@ -127,14 +128,15 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                                             kotlin.math.abs(dragPointerY - (item.offset + item.size / 2f))
                                         }
                                         (target?.key as? String)?.let(holder::dragToId)
-                                        val visible = items.firstOrNull { it.key == moment.id }
-                                        if (visible != null) {
-                                            val viewport = listState.layoutInfo
-                                            val nearBottom = visible.offset + visible.size > viewport.viewportEndOffset - 48
-                                            val nearTop = visible.offset < viewport.viewportStartOffset + 48
-                                            if ((nearBottom && amount.y > 0) || (nearTop && amount.y < 0)) {
-                                                gestureScope.launch { listState.scrollBy(amount.y) }
-                                            }
+                                        val viewport = listState.layoutInfo
+                                        val edge = 64f
+                                        val scroll = when {
+                                            dragPointerY < viewport.viewportStartOffset + edge -> -18f
+                                            dragPointerY > viewport.viewportEndOffset - edge -> 18f
+                                            else -> 0f
+                                        }
+                                        if (scroll != 0f) {
+                                            gestureScope.launch { listState.scrollBy(scroll) }
                                         }
                                     }
                                 )
@@ -142,13 +144,17 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                             .padding(vertical = 8.dp)) {
                         when (moment) {
                             is ChronicleMomentUi.Text -> Text(moment.text, style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.primary, modifier = Modifier.fillMaxWidth())
+                                color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.fillMaxWidth())
                             is ChronicleMomentUi.Media -> ChronicleMediaMoment(moment.items) { openMedia(context, it) }
                             is ChronicleMomentUi.Audio, is ChronicleMomentUi.Voice -> Unit
                         }
                     } }
                 }
-                if (index < displayedMoments.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.secondary.copy(alpha = if (state.draggingId != null) .55f else .22f))
+                if (index < displayedMoments.lastIndex) {
+                    val destinationIndex = state.stagedOrder.indexOf(state.draggingId)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.secondary.copy(
+                        alpha = if (destinationIndex == index && state.draggingId != null) .65f else .22f))
+                }
             }
         }
         item {
@@ -181,7 +187,7 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
     }
     deleteTarget?.let { moment ->
         AlertDialog(onDismissRequest = { deleteTarget = null }, containerColor = MaterialTheme.colorScheme.surface,
-            title = { Text(stringResource(R.string.chronicle_remove_title), color = MaterialTheme.colorScheme.primary) },
+            title = { Text(stringResource(R.string.chronicle_remove_title), color = MaterialTheme.colorScheme.onBackground) },
             confirmButton = { TextButton(onClick = { holder.delete(moment); holder.cancelEdit(); deleteTarget = null }) { Text(stringResource(R.string.chronicle_remove)) } },
             dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.common_cancel)) } })
     }
@@ -194,7 +200,11 @@ internal fun ChronicleMediaMoment(items: List<ChronicleMediaItemUi>, onOpen: (Ch
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         visible.chunked(columns).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                row.forEach { item -> MediaThumbnail(item, Modifier.weight(1f), onOpen) }
+                row.forEach { item ->
+                    val visibleIndex = visible.indexOf(item)
+                    MediaThumbnail(item, Modifier.weight(1f),
+                        overflow = (items.size - visible.size).takeIf { it > 0 && visibleIndex == visible.lastIndex }, onOpen)
+                }
                 if (row.size < columns) Spacer(Modifier.weight(1f))
             }
         }
@@ -202,23 +212,35 @@ internal fun ChronicleMediaMoment(items: List<ChronicleMediaItemUi>, onOpen: (Ch
 }
 
 @Composable
-private fun MediaThumbnail(item: ChronicleMediaItemUi, modifier: Modifier, onOpen: (ChronicleMediaItemUi) -> Unit) {
+private fun MediaThumbnail(
+    item: ChronicleMediaItemUi,
+    modifier: Modifier,
+    overflow: Int?,
+    onOpen: (ChronicleMediaItemUi) -> Unit
+) {
     val context = LocalContext.current
     val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, item.relativePath) {
         value = withContext(Dispatchers.IO) {
             val file = File(context.filesDir, item.relativePath)
-            if (!file.isFile) null else if (item.mimeType.startsWith("video/")) {
-                runCatching { MediaMetadataRetriever().use { it.setDataSource(file.path); it.frameAtTime?.asImageBitmap() } }.getOrNull()
-            } else {
-                val options = BitmapFactory.Options().apply { inSampleSize = 4 }
-                BitmapFactory.decodeFile(file.path, options)?.asImageBitmap()
-            }
+            ChronicleThumbnailLoader.load(file, item.mimeType)?.asImageBitmap()
         }
     }
     Surface(modifier.aspectRatio(if (item.position == 0) 1.35f else 1f).clickable { onOpen(item) },
         shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.secondary.copy(alpha = .12f)) {
-        bitmap?.let { Image(it, contentDescription = stringResource(R.string.chronicle_open_media),
-            contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (bitmap != null) Image(bitmap!!, contentDescription = stringResource(R.string.chronicle_open_media),
+                contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            else Text(stringResource(R.string.chronicle_media_unavailable), color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.bodySmall)
+            if (item.mimeType.startsWith("video/")) {
+                Icon(Icons.Default.PlayArrow, contentDescription = stringResource(R.string.chronicle_video),
+                    tint = MaterialTheme.colorScheme.onBackground)
+                item.durationMs?.let { Text(formatDuration(it), color = MaterialTheme.colorScheme.onBackground,
+                    style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp)) }
+            }
+            overflow?.let { Text("+$it", color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.titleLarge) }
+        }
     }
 }
 
@@ -231,8 +253,8 @@ internal fun openMedia(context: android.content.Context, item: ChronicleMediaIte
 }
 
 @Composable private fun chronicleTextFieldColors() = TextFieldDefaults.colors(
-    focusedTextColor = MaterialTheme.colorScheme.primary, unfocusedTextColor = MaterialTheme.colorScheme.primary,
-    disabledTextColor = MaterialTheme.colorScheme.secondary,
+    focusedTextColor = MaterialTheme.colorScheme.onBackground, unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+    disabledTextColor = MaterialTheme.colorScheme.onBackground.copy(alpha = .55f),
     cursorColor = MaterialTheme.colorScheme.primary,
     focusedContainerColor = MaterialTheme.colorScheme.surface, unfocusedContainerColor = MaterialTheme.colorScheme.surface,
     disabledContainerColor = MaterialTheme.colorScheme.surface,
@@ -241,3 +263,8 @@ internal fun openMedia(context: android.content.Context, item: ChronicleMediaIte
     focusedPlaceholderColor = MaterialTheme.colorScheme.secondary, unfocusedPlaceholderColor = MaterialTheme.colorScheme.secondary,
     disabledPlaceholderColor = MaterialTheme.colorScheme.secondary.copy(alpha = .55f)
 )
+
+private fun formatDuration(durationMs: Long): String {
+    val totalSeconds = durationMs / 1_000
+    return String.format(Locale.getDefault(), "%d:%02d", totalSeconds / 60, totalSeconds % 60)
+}

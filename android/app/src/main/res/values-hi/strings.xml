@@ -2262,4 +2262,6 @@
     <string name="chronicle_gallery">गैलरी</string>
     <string name="chronicle_open_media">मीडिया खोलें</string>
     <string name="chronicle_media_failed">%1$d आइटम जोड़े नहीं जा सके।</string>
+    <string name="chronicle_media_unavailable">मीडिया उपलब्ध नहीं है</string>
+    <string name="chronicle_video">वीडियो</string>
 </resources>

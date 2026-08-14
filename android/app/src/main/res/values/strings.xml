@@ -2264,4 +2264,6 @@ You can turn Health back on later.</string>
     <string name="chronicle_gallery">Gallery</string>
     <string name="chronicle_open_media">Open media</string>
     <string name="chronicle_media_failed">%1$d item(s) couldn’t be added.</string>
+    <string name="chronicle_media_unavailable">Media unavailable</string>
+    <string name="chronicle_video">Video</string>
 </resources>
