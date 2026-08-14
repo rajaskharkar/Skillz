@@ -94,4 +94,15 @@ class ChronicleDaoTest {
         assertEquals(1, summary.momentCount)
         assertEquals(240, summary.excerpt?.length)
     }
+
+    @Test fun editedTranscriptCannotBeOverwrittenByLateRecognition() = runBlocking {
+        val dao = db.chronicleDao()
+        dao.insertChronicle(ChronicleEntity("audio-c", ChronicleOwnerType.SESSION, "42", "", 1, 1))
+        val audio = ChronicleMomentEntity("audio-m", "audio-c", ChronicleMomentType.AUDIO, 0,
+            audioPath = "chronicle/audio-c/audio/a.m4a", transcript = "mine", transcriptEdited = true,
+            createdAt = 1, updatedAt = 1)
+        dao.insertMoment(audio)
+        assertEquals(0, dao.setTranscriptIfUnedited(audio.id, "late", 2))
+        assertEquals("mine", dao.moments("audio-c").single().transcript)
+    }
 }

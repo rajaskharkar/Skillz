@@ -108,7 +108,7 @@ class ChronicleRepository @Inject constructor(
                 }
             }
         } catch (failure: Exception) {
-            fileStore?.deleteIfOwned(stored.relativePath)
+            cleanupOwnedPaths(listOf(stored.relativePath))
             throw failure
         }
     }
@@ -231,6 +231,29 @@ class ChronicleRepository @Inject constructor(
             require(moment.type == ChronicleMomentType.TEXT && text.isNotBlank())
             check(dao.find(ownerType, ownerKey)?.id == moment.chronicleId)
             dao.updateMoment(moment.copy(text = text, updatedAt = System.currentTimeMillis()))
+        }
+    }
+
+    suspend fun updateTranscript(
+        ownerType: String,
+        ownerKey: String,
+        momentId: String,
+        transcript: String?,
+        manuallyEdited: Boolean
+    ): Boolean {
+        val owner = Owner(ownerType, ownerKey)
+        return mutex(owner).withLock {
+            requireMutable(owner)
+            val chronicle = dao.find(ownerType, ownerKey) ?: return@withLock false
+            val moment = dao.moments(chronicle.id).firstOrNull { it.id == momentId } ?: return@withLock false
+            check(moment.type == ChronicleMomentType.AUDIO || moment.type == ChronicleMomentType.VOICE)
+            val now = System.currentTimeMillis()
+            if (manuallyEdited) {
+                dao.updateMoment(moment.copy(transcript = transcript, transcriptEdited = true, updatedAt = now))
+                true
+            } else {
+                dao.setTranscriptIfUnedited(momentId, transcript, now) == 1
+            }
         }
     }
 

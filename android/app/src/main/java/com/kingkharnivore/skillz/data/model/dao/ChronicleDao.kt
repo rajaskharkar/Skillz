@@ -49,6 +49,8 @@ abstract class ChronicleDao {
     @Insert abstract suspend fun insertMedia(values: List<ChronicleMediaItemEntity>)
     @Update abstract suspend fun updateChronicle(value: ChronicleEntity)
     @Update abstract suspend fun updateMoment(value: ChronicleMomentEntity)
+    @Query("UPDATE chronicle_moments SET transcript=:transcript, transcriptEdited=0, updatedAt=:now WHERE id=:id AND transcriptEdited=0")
+    abstract suspend fun setTranscriptIfUnedited(id: String, transcript: String?, now: Long): Int
     @Update abstract suspend fun updateMedia(value: ChronicleMediaItemEntity)
     @Delete abstract suspend fun deleteMoment(value: ChronicleMomentEntity)
     @Delete abstract suspend fun deleteMedia(value: ChronicleMediaItemEntity)
