@@ -99,16 +99,33 @@ class ChronicleRepository @Inject constructor(
         }
     }
 
-    suspend fun updateText(moment: ChronicleMomentEntity, text: String) {
-        require(moment.type == ChronicleMomentType.TEXT && text.isNotBlank())
-        dao.updateMoment(moment.copy(text = text, updatedAt = System.currentTimeMillis()))
+    suspend fun updateText(ownerType: String, ownerKey: String, moment: ChronicleMomentEntity, text: String) {
+        val owner = Owner(ownerType, ownerKey)
+        mutex(owner).withLock {
+            requireMutable(owner)
+            require(moment.type == ChronicleMomentType.TEXT && text.isNotBlank())
+            check(dao.find(ownerType, ownerKey)?.id == moment.chronicleId)
+            dao.updateMoment(moment.copy(text = text, updatedAt = System.currentTimeMillis()))
+        }
     }
 
-    suspend fun deleteMoment(moment: ChronicleMomentEntity) =
-        dao.deleteMomentAndNormalize(moment, System.currentTimeMillis())
+    suspend fun deleteMoment(ownerType: String, ownerKey: String, moment: ChronicleMomentEntity) {
+        val owner = Owner(ownerType, ownerKey)
+        mutex(owner).withLock {
+            requireMutable(owner)
+            check(dao.find(ownerType, ownerKey)?.id == moment.chronicleId)
+            dao.deleteMomentAndNormalize(moment, System.currentTimeMillis())
+        }
+    }
 
-    suspend fun reorder(chronicleId: String, ids: List<String>) =
-        dao.reorderMoments(chronicleId, ids, System.currentTimeMillis())
+    suspend fun reorder(ownerType: String, ownerKey: String, chronicleId: String, ids: List<String>) {
+        val owner = Owner(ownerType, ownerKey)
+        mutex(owner).withLock {
+            requireMutable(owner)
+            check(dao.find(ownerType, ownerKey)?.id == chronicleId)
+            dao.reorderMoments(chronicleId, ids, System.currentTimeMillis())
+        }
+    }
 
     suspend fun discard(ownerType: String, ownerKey: String) {
         val owner = Owner(ownerType, ownerKey)

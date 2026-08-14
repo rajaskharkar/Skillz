@@ -79,4 +79,14 @@ class ChronicleDaoTest {
             runBlocking { recreatedChronicles.setDraft(ChronicleOwnerType.PULSE_DRAFT, "draft-x", "late") }
         }
     }
+
+    @Test fun storySummaryIsBounded() = runBlocking {
+        val repository = ChronicleRepository(db, db.chronicleDao())
+        val longText = "x".repeat(2_000)
+        repository.setDraft(ChronicleOwnerType.ACTIVE_FLOW, "summary", longText)
+        repository.addText(ChronicleOwnerType.ACTIVE_FLOW, "summary", longText)
+        val summary = repository.observeSummaries().first().single()
+        assertEquals(1, summary.momentCount)
+        assertEquals(240, summary.excerpt?.length)
+    }
 }

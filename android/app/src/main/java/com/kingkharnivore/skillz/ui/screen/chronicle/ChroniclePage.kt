@@ -36,6 +36,7 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
     val haptics = LocalHapticFeedback.current
     val listState = rememberLazyListState()
     val gestureScope = rememberCoroutineScope()
+    var dragPointerY by remember { mutableFloatStateOf(0f) }
     val displayedMoments = remember(state.moments, state.stagedOrder) {
         if (state.stagedOrder.isEmpty()) state.moments else {
             val byId = state.moments.associateBy { it.id }
@@ -90,13 +91,23 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                         }.combinedClickable(onClick = { holder.beginEdit(moment) }, onLongClick = null)
                             .pointerInput(moment.id, state.editingId) {
                                 if (state.editingId == null) detectDragGesturesAfterLongPress(
-                                    onDragStart = { haptics.performHapticFeedback(HapticFeedbackType.LongPress); holder.startDrag(moment) },
+                                    onDragStart = { offset ->
+                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        holder.startDrag(moment)
+                                        val item = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == moment.id }
+                                        dragPointerY = (item?.offset ?: 0) + offset.y
+                                    },
                                     onDragEnd = holder::finishDrag,
                                     onDragCancel = holder::cancelDrag,
                                     onDrag = { change, amount ->
                                         change.consume()
-                                        val visible = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == moment.id }
-                                        holder.dragByPixels(amount.y, visible?.size?.toFloat()?.coerceAtLeast(1f) ?: 96f)
+                                        dragPointerY += amount.y
+                                        val items = listState.layoutInfo.visibleItemsInfo
+                                        val target = items.minByOrNull { item ->
+                                            kotlin.math.abs(dragPointerY - (item.offset + item.size / 2f))
+                                        }
+                                        (target?.key as? String)?.let(holder::dragToId)
+                                        val visible = items.firstOrNull { it.key == moment.id }
                                         if (visible != null) {
                                             val viewport = listState.layoutInfo
                                             val nearBottom = visible.offset + visible.size > viewport.viewportEndOffset - 48

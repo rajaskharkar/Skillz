@@ -104,19 +104,24 @@ class ChronicleStateHolder(
     fun editText(value: String) = _state.update { it.copy(editingText = value) }
     fun cancelEdit() = _state.update { it.copy(editingId = null, editingText = "") }
     fun finishEdit() {
+        if (!acceptingMutations) return
         val moment = _state.value.moments.firstOrNull { it.id == _state.value.editingId } ?: return
         val value = _state.value.editingText
         if (value.isBlank()) return
-        scope.launch { runCatching { repository.updateText(moment, value) }.onSuccess { cancelEdit() } }
+        scope.launch { runCatching { repository.updateText(ownerType, ownerKey, moment, value) }.onSuccess { cancelEdit() } }
     }
-    fun delete(moment: ChronicleMomentEntity) = scope.launch { repository.deleteMoment(moment) }
+    fun delete(moment: ChronicleMomentEntity) {
+        if (!acceptingMutations) return
+        scope.launch { repository.deleteMoment(ownerType, ownerKey, moment) }
+    }
     fun move(moment: ChronicleMomentEntity, delta: Int) {
+        if (!acceptingMutations) return
         val items = _state.value.moments.toMutableList()
         val from = items.indexOfFirst { it.id == moment.id }
         val to = (from + delta).coerceIn(0, items.lastIndex)
         if (from < 0 || from == to) return
         items.add(to, items.removeAt(from))
-        scope.launch { repository.reorder(moment.chronicleId, items.map { it.id }) }
+        scope.launch { repository.reorder(ownerType, ownerKey, moment.chronicleId, items.map { it.id }) }
     }
     fun startDrag(moment: ChronicleMomentEntity) = _state.update {
         accumulatedDragPx = 0f
@@ -143,6 +148,18 @@ class ChronicleStateHolder(
             stagedOrder = ids.apply { add(to, removeAt(from)) }
         )
     }
+    fun dragTo(targetIndex: Int) = _state.update { current ->
+        val ids = current.stagedOrder.toMutableList()
+        val from = ids.indexOf(current.draggingId)
+        val to = targetIndex.coerceIn(0, ids.lastIndex)
+        if (from < 0 || from == to) current else current.copy(
+            stagedOrder = ids.apply { add(to, removeAt(from)) }
+        )
+    }
+    fun dragToId(targetId: String) {
+        val target = _state.value.stagedOrder.indexOf(targetId)
+        if (target >= 0) dragTo(target)
+    }
     fun finishDrag() {
         val current = _state.value
         val chronicleId = current.chronicleId
@@ -151,7 +168,7 @@ class ChronicleStateHolder(
         _state.update { it.copy(draggingId = null, stagedOrder = emptyList()) }
         if (chronicleId != null && order.isNotEmpty() && order != current.moments.map { it.id }) {
             scope.launch {
-                runCatching { repository.reorder(chronicleId, order) }
+                runCatching { repository.reorder(ownerType, ownerKey, chronicleId, order) }
                     .onFailure { _state.update { it.copy(hasError = true) } }
             }
         }

@@ -238,7 +238,8 @@ class StoryViewModel @Inject constructor(
         title: String,
         tagName: String,
         attachToCurrentFlow: Boolean,
-        onSaved: () -> Unit
+        onSaved: () -> Unit,
+        onFailure: () -> Unit = {}
     ) {
         viewModelScope.launch {
             val trimmedTitle = title.trim()
@@ -251,6 +252,7 @@ class StoryViewModel @Inject constructor(
                 return@launch
             }
 
+            runCatching {
             val tagId = if (trimmedTag.isBlank()) {
                 null
             } else {
@@ -268,6 +270,14 @@ class StoryViewModel @Inject constructor(
 
             uiState.value = uiState.value.copy(errorMessage = null)
             onSaved()
+            }.onFailure {
+                // If the receipt exists, core commit succeeded and the restored route will exit.
+                if (pulseRepository.findCreatedPulse(pulseDraftId) == null) {
+                    pulseChronicle.resumeAfterPreCommitFailure()
+                }
+                uiState.value = uiState.value.copy(errorMessage = "Pulse couldn't be saved")
+                onFailure()
+            }
         }
     }
 
