@@ -50,7 +50,7 @@ fun FlowDetailsSheet(
     onCreatePulse: (sessionId: Long, title: String, description: String, tagName: String) -> Unit,
     onDeletePulse: (Long) -> Unit,
     onEditPulse: (PulseListItemUiModel) -> Unit,
-    chronicleMoments: List<com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity>
+    chronicleMoments: List<com.kingkharnivore.skillz.model.ui.ChronicleMomentUi>
 ) {
     val session = editState.editingSession.value ?: return
 

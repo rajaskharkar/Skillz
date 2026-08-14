@@ -45,7 +45,7 @@ fun PulseEditSheet(
     editState: PulseEditState,
     tags: List<TagUiModel>,
     onSave: (pulseId: Long, title: String, tagName: String) -> Unit,
-    chronicleMoments: List<com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity>
+    chronicleMoments: List<com.kingkharnivore.skillz.model.ui.ChronicleMomentUi>
 ) {
     val pulse = editState.editingPulse.value ?: return
 
