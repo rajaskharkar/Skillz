@@ -268,6 +268,9 @@ class StoryViewModel @Inject constructor(
                 parentFlowInstanceId = if (shouldAttach) ongoing?.flowInstanceId else null,
                 arcId = if (shouldAttach) ongoing?.arcId else null, createdAt = now, updatedAt = now))
 
+            // The receipt and owner promotion committed atomically. Never reopen this draft,
+            // even if navigation or a later UI callback is interrupted.
+            pulseChronicle.finalizeTransition()
             uiState.value = uiState.value.copy(errorMessage = null)
             onSaved()
             }.onFailure {

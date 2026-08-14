@@ -34,6 +34,7 @@ class ChronicleStateHolder(
     private val repository: ChronicleRepository,
     parentScope: CoroutineScope
 ) {
+    private enum class Lifecycle { ACTIVE, PREPARING, CLOSED }
     private val holderJob = SupervisorJob(parentScope.coroutineContext[Job])
     private val scope = CoroutineScope(parentScope.coroutineContext + holderJob)
     private val _state = MutableStateFlow(ChronicleUiState())
@@ -41,7 +42,8 @@ class ChronicleStateHolder(
     private var draftJob: Job? = null
     private var draftGeneration = 0L
     private var syncedGeneration = 0L
-    @Volatile private var acceptingMutations = true
+    @Volatile private var lifecycle = Lifecycle.ACTIVE
+    private val acceptingMutations: Boolean get() = lifecycle == Lifecycle.ACTIVE
     private var accumulatedDragPx = 0f
 
     init {
@@ -101,18 +103,27 @@ class ChronicleStateHolder(
 
     fun beginEdit(moment: ChronicleMomentEntity) =
         if (acceptingMutations) _state.update { it.copy(editingId = moment.id, editingText = moment.text.orEmpty()) } else Unit
-    fun editText(value: String) = _state.update { it.copy(editingText = value) }
+    fun editText(value: String) {
+        if (acceptingMutations) _state.update { it.copy(editingText = value) }
+    }
     fun cancelEdit() = _state.update { it.copy(editingId = null, editingText = "") }
     fun finishEdit() {
         if (!acceptingMutations) return
         val moment = _state.value.moments.firstOrNull { it.id == _state.value.editingId } ?: return
         val value = _state.value.editingText
         if (value.isBlank()) return
-        scope.launch { runCatching { repository.updateText(ownerType, ownerKey, moment, value) }.onSuccess { cancelEdit() } }
+        scope.launch {
+            runCatching { repository.updateText(ownerType, ownerKey, moment, value) }
+                .onSuccess { cancelEdit() }
+                .onFailure { _state.update { it.copy(hasError = true) } }
+        }
     }
     fun delete(moment: ChronicleMomentEntity) {
         if (!acceptingMutations) return
-        scope.launch { repository.deleteMoment(ownerType, ownerKey, moment) }
+        scope.launch {
+            runCatching { repository.deleteMoment(ownerType, ownerKey, moment) }
+                .onFailure { _state.update { it.copy(hasError = true) } }
+        }
     }
     fun move(moment: ChronicleMomentEntity, delta: Int) {
         if (!acceptingMutations) return
@@ -121,14 +132,20 @@ class ChronicleStateHolder(
         val to = (from + delta).coerceIn(0, items.lastIndex)
         if (from < 0 || from == to) return
         items.add(to, items.removeAt(from))
-        scope.launch { repository.reorder(ownerType, ownerKey, moment.chronicleId, items.map { it.id }) }
+        scope.launch {
+            runCatching { repository.reorder(ownerType, ownerKey, moment.chronicleId, items.map { it.id }) }
+                .onFailure { _state.update { it.copy(hasError = true) } }
+        }
     }
-    fun startDrag(moment: ChronicleMomentEntity) = _state.update {
+    fun startDrag(moment: ChronicleMomentEntity) {
+        if (!acceptingMutations) return
+        _state.update {
         accumulatedDragPx = 0f
         if (it.editingId != null) it else it.copy(
             draggingId = moment.id,
             stagedOrder = it.moments.map(ChronicleMomentEntity::id)
         )
+        }
     }
     fun dragByPixels(deltaPx: Float, itemExtentPx: Float) {
         if (_state.value.draggingId == null || itemExtentPx <= 0f) return
@@ -193,13 +210,19 @@ class ChronicleStateHolder(
 
     /** Re-enables a prepared holder only when the durable owner was not finalized. */
     fun resumeAfterPreCommitFailure() {
-        if (holderJob.isActive) acceptingMutations = true
+        if (holderJob.isActive && lifecycle == Lifecycle.PREPARING) lifecycle = Lifecycle.ACTIVE
+    }
+
+    /** Permanently closes a holder after its owner promotion has durably committed. */
+    fun finalizeTransition() {
+        lifecycle = Lifecycle.CLOSED
+        draftJob?.cancel()
     }
 
     /** Flushes the newest local value, then permanently prevents this holder from writing. */
     fun quiesce(onReady: () -> Unit) {
         if (!acceptingMutations) return
-        acceptingMutations = false
+        lifecycle = Lifecycle.PREPARING
         val value = _state.value.draft
         val generation = draftGeneration
         draftJob?.cancel()
@@ -210,7 +233,7 @@ class ChronicleStateHolder(
             if (result.isSuccess) {
                 onReady()
             } else {
-                acceptingMutations = true
+                lifecycle = Lifecycle.ACTIVE
                 _state.update { it.copy(hasError = true) }
             }
         }
@@ -218,20 +241,20 @@ class ChronicleStateHolder(
 
     fun discardAndQuiesce(onReady: () -> Unit) {
         if (!acceptingMutations) return
-        acceptingMutations = false
+        lifecycle = Lifecycle.PREPARING
         draftJob?.cancel()
         scope.launch {
             runCatching { repository.discard(ownerType, ownerKey) }
                 .onSuccess { onReady() }
                 .onFailure {
-                    acceptingMutations = true
+                    lifecycle = Lifecycle.ACTIVE
                     _state.update { it.copy(hasError = true) }
                 }
         }
     }
 
     fun close() {
-        acceptingMutations = false
+        lifecycle = Lifecycle.CLOSED
         holderJob.cancel()
     }
 }
