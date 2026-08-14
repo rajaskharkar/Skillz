@@ -2291,4 +2291,8 @@ Puedes volver a activar Health más tarde.</string>
     <string name="chronicle_transcript">Transcripción</string>
     <string name="chronicle_transcript_edited">Transcripción · Editada</string>
     <string name="chronicle_choose_audio">Elegir audio</string>
+    <string name="chronicle_mic">Micrófono · iniciar grabación de voz</string>
+    <string name="chronicle_recording_time">Grabando · %1$s</string>
+    <string name="chronicle_finish_recording">Finalizar grabación</string>
+    <string name="chronicle_discard_recording">Descartar grabación</string>
 </resources>

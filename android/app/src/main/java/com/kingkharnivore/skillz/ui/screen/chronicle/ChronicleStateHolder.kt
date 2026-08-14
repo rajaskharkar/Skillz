@@ -26,10 +26,16 @@ data class ChronicleUiState(
     val isCommitting: Boolean = false,
     val hasError: Boolean = false,
     val draggingId: String? = null,
-    val stagedOrder: List<String> = emptyList()
+    val stagedOrder: List<String> = emptyList(),
+    val voiceRecording: VoiceRecordingState? = null
 ) {
-    val blocksCompletion: Boolean get() = editingId != null || isCommitting
+    val blocksCompletion: Boolean get() = editingId != null || isCommitting || voiceRecording != null
 }
+
+data class VoiceRecordingState(
+    val elapsedMs: Long = 0,
+    val amplitudes: List<Float> = emptyList()
+)
 
 class ChronicleStateHolder(
     private val ownerType: String,
@@ -48,6 +54,7 @@ class ChronicleStateHolder(
     @Volatile private var lifecycle = Lifecycle.ACTIVE
     private val acceptingMutations: Boolean get() = lifecycle == Lifecycle.ACTIVE
     private var accumulatedDragPx = 0f
+    private var voiceTicker: Job? = null
 
     init {
         scope.launch {
@@ -106,6 +113,47 @@ class ChronicleStateHolder(
                 .onFailure { _state.update { it.copy(hasError = true) } }
             _state.update { it.copy(isCommitting = false) }
         }
+    }
+
+    fun startVoice() {
+        if (!acceptingMutations || _state.value.voiceRecording != null || _state.value.isCommitting) return
+        scope.launch {
+            runCatching { repository.startVoice(ownerType, ownerKey) }
+                .onSuccess {
+                    val startedAt = System.currentTimeMillis()
+                    _state.update { it.copy(voiceRecording = VoiceRecordingState(), hasError = false) }
+                    voiceTicker = scope.launch {
+                        while (_state.value.voiceRecording != null) {
+                            val amplitude = (repository.voiceAmplitude() / 32767f).coerceIn(0f, 1f)
+                            _state.update { current ->
+                                current.copy(voiceRecording = current.voiceRecording?.copy(
+                                    elapsedMs = System.currentTimeMillis() - startedAt,
+                                    amplitudes = (current.voiceRecording.amplitudes + amplitude).takeLast(48)
+                                ))
+                            }
+                            delay(100)
+                        }
+                    }
+                }
+                .onFailure { _state.update { it.copy(hasError = true) } }
+        }
+    }
+
+    fun finishVoice() {
+        if (_state.value.voiceRecording == null) return
+        voiceTicker?.cancel()
+        _state.update { it.copy(voiceRecording = null, isCommitting = true) }
+        scope.launch {
+            runCatching { repository.finishVoice(ownerType, ownerKey) }
+                .onFailure { _state.update { it.copy(hasError = true) } }
+            _state.update { it.copy(isCommitting = false) }
+        }
+    }
+
+    fun discardVoice() {
+        voiceTicker?.cancel()
+        repository.discardVoice()
+        _state.update { it.copy(voiceRecording = null) }
     }
 
     fun setDraft(value: String) {
@@ -305,6 +353,7 @@ class ChronicleStateHolder(
 
     fun close() {
         lifecycle = Lifecycle.CLOSED
+        discardVoice()
         holderJob.cancel()
     }
 }

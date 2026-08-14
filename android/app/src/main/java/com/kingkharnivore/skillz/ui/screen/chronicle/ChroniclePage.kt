@@ -1,5 +1,7 @@
 package com.kingkharnivore.skillz.ui.screen.chronicle
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.widget.MediaController
 import android.widget.VideoView
@@ -7,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
@@ -38,6 +41,7 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -55,6 +59,15 @@ import kotlinx.coroutines.launch
 @Composable
 fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
     val state by holder.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val microphonePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) holder.startVoice()
+    }
+    val startVoice = {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            holder.startVoice()
+        } else microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+    }
     var failedImports by remember { mutableIntStateOf(0) }
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris ->
         holder.importMedia(uris) { failedImports = it }
@@ -231,6 +244,37 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                     TextButton(onClick = { audioPicker.launch(arrayOf("audio/*")) },
                         modifier = Modifier.fillMaxWidth(), enabled = !state.isCommitting) {
                         Text(stringResource(R.string.chronicle_choose_audio))
+                    }
+                    if (state.voiceRecording == null) {
+                        TextButton(
+                            onClick = startVoice,
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !state.isCommitting
+                        ) { Text(stringResource(R.string.chronicle_mic)) }
+                    } else {
+                        val recording = state.voiceRecording!!
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                stringResource(R.string.chronicle_recording_time, formatDuration(recording.elapsedMs)),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                verticalAlignment = Alignment.Bottom) {
+                                recording.amplitudes.forEach { amplitude ->
+                                    Box(Modifier.weight(1f).height((4 + amplitude * 28).dp)
+                                        .fillMaxWidth().padding(horizontal = .5.dp)
+                                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp)))
+                                }
+                            }
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                TextButton(onClick = holder::discardVoice) {
+                                    Text(stringResource(R.string.chronicle_discard_recording))
+                                }
+                                Button(onClick = holder::finishVoice) {
+                                    Text(stringResource(R.string.chronicle_finish_recording))
+                                }
+                            }
+                        }
                     }
                     Button(onClick = { holder.add() }, enabled = state.draft.isNotBlank() && !state.isCommitting,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary,

@@ -8,6 +8,7 @@ import com.kingkharnivore.skillz.data.model.entity.ChronicleEntity
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMediaItemEntity
 import com.kingkharnivore.skillz.data.chronicle.ChronicleFileStore
+import com.kingkharnivore.skillz.data.chronicle.ChronicleAudioRecorder
 import com.kingkharnivore.skillz.model.ui.ChronicleMediaItemUi
 import com.kingkharnivore.skillz.model.ui.ChronicleMomentUi
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentType
@@ -30,7 +31,8 @@ import java.util.concurrent.ConcurrentHashMap
 class ChronicleRepository @Inject constructor(
     private val database: SkillzDatabase,
     private val dao: ChronicleDao,
-    private val fileStore: ChronicleFileStore? = null
+    private val fileStore: ChronicleFileStore? = null,
+    private val audioRecorder: ChronicleAudioRecorder? = null
 ) {
     private data class Owner(val type: String, val key: String)
     private val ownerMutexes = ConcurrentHashMap<Owner, Mutex>()
@@ -112,6 +114,54 @@ class ChronicleRepository @Inject constructor(
             throw failure
         }
     }
+
+    /** Starts a private staging recording. No Room row exists until [finishVoice]. */
+    suspend fun startVoice(ownerType: String, ownerKey: String) {
+        val owner = Owner(ownerType, ownerKey)
+        mutex(owner).withLock {
+            requireMutable(owner)
+            getOrCreateUnlocked(ownerType, ownerKey)
+            audioRecorder?.start() ?: error("Audio recorder unavailable")
+        }
+    }
+
+    fun voiceAmplitude(): Int = audioRecorder?.amplitude() ?: 0
+
+    suspend fun finishVoice(ownerType: String, ownerKey: String): String {
+        val owner = Owner(ownerType, ownerKey)
+        val chronicle = mutex(owner).withLock {
+            requireMutable(owner)
+            dao.find(ownerType, ownerKey) ?: error("Chronicle owner is unavailable")
+        }
+        val stored = audioRecorder?.stop(chronicle.id) ?: error("Audio recorder unavailable")
+        return try {
+            mutex(owner).withLock {
+                requireMutable(owner)
+                database.withTransaction {
+                    check(dao.find(ownerType, ownerKey)?.id == chronicle.id)
+                    val now = System.currentTimeMillis()
+                    val id = UUID.randomUUID().toString()
+                    dao.insertMoment(ChronicleMomentEntity(
+                        id = id,
+                        chronicleId = chronicle.id,
+                        type = ChronicleMomentType.VOICE,
+                        position = dao.moments(chronicle.id).size,
+                        audioPath = stored.relativePath,
+                        mimeType = stored.mimeType,
+                        durationMs = stored.durationMs,
+                        createdAt = now,
+                        updatedAt = now
+                    ))
+                    id
+                }
+            }
+        } catch (failure: Exception) {
+            cleanupOwnedPaths(listOf(stored.relativePath))
+            throw failure
+        }
+    }
+
+    fun discardVoice() = audioRecorder?.discard()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observeContent(ownerType: String, ownerKey: String): Flow<ContentSnapshot> =

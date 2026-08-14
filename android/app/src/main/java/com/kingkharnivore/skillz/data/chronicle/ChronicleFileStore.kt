@@ -35,6 +35,32 @@ class ChronicleFileStore @Inject constructor(
     private val stagingRoot get() = File(context.cacheDir, "chronicle_staging")
     private val captureRoot get() = File(context.cacheDir, "chronicle_capture")
 
+    internal fun createVoiceStaging(): File {
+        val operation = File(stagingRoot, UUID.randomUUID().toString()).also { it.mkdirsOrThrow() }
+        return File(operation, "voice.m4a")
+    }
+
+    internal suspend fun finalizeVoice(chronicleId: String, staged: File): StoredFile = withContext(Dispatchers.IO) {
+        requireSafeSegment(chronicleId)
+        if (!staged.isFile || staged.length() <= 0L) throw IOException("Voice recording is empty")
+        val duration = MediaMetadataRetriever().use { retriever ->
+            retriever.setDataSource(staged.path)
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+        }?.takeIf { it > 0L } ?: throw IOException("Voice recording is corrupt")
+        val identity = UUID.randomUUID().toString() + ".m4a"
+        val directory = File(durableRoot, "$chronicleId/audio").also { it.mkdirsOrThrow() }
+        val destination = File(directory, identity)
+        try {
+            if (!staged.renameTo(destination)) staged.copyTo(destination, overwrite = false)
+            StoredFile("chronicle/$chronicleId/audio/$identity", "audio/mp4", destination.length(), duration)
+        } catch (failure: Exception) {
+            destination.delete()
+            throw failure
+        } finally {
+            staged.parentFile?.deleteRecursively()
+        }
+    }
+
     fun createCaptureOutput(video: Boolean): Uri {
         captureRoot.mkdirsOrThrow()
         val extension = if (video) ".mp4" else ".jpg"
