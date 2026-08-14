@@ -72,6 +72,7 @@ import com.kingkharnivore.skillz.ui.screen.flow.reward.SessionRewardContent
 import com.kingkharnivore.skillz.ui.screen.flow.reward.SoftSessionRewardContent
 import com.kingkharnivore.skillz.ui.health.MovementBonusActivePill
 import com.kingkharnivore.skillz.viewmodel.FlowEndAction
+import com.kingkharnivore.skillz.viewmodel.FlowCompletionState
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.ui.screen.chronicle.ChroniclePage
 import kotlinx.coroutines.launch
@@ -140,6 +141,16 @@ fun FlowScreen(
     val chronicleOwnerKey by viewModel.chronicleOwnerKey.collectAsState()
     val chronicleHolder = remember(chronicleOwnerKey) { viewModel.createChronicleStateHolder(chronicleOwnerKey) }
     DisposableEffect(chronicleHolder) { onDispose { chronicleHolder.close() } }
+    val completionState by viewModel.completionState.collectAsState()
+    LaunchedEffect(completionState, chronicleHolder) {
+        when (completionState) {
+            FlowCompletionState.PreCommitFailure -> chronicleHolder.resumeAfterPreCommitFailure()
+            is FlowCompletionState.CoreCommitted,
+            is FlowCompletionState.Completed -> chronicleHolder.finalizeTransition()
+            FlowCompletionState.Idle,
+            FlowCompletionState.Preparing -> Unit
+        }
+    }
     val pagerState = rememberPagerState(pageCount = { 2 })
     val pagerScope = rememberCoroutineScope()
     fun requestEnd(action: FlowEndAction) {

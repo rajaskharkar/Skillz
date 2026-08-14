@@ -32,6 +32,9 @@ abstract class ChronicleDao {
     @Query("SELECT * FROM chronicle_media_items WHERE momentId=:momentId ORDER BY position")
     abstract suspend fun media(momentId: String): List<ChronicleMediaItemEntity>
 
+    @Query("SELECT i.* FROM chronicle_media_items i INNER JOIN chronicle_moments m ON m.id=i.momentId WHERE m.chronicleId=:chronicleId ORDER BY m.position, i.position")
+    abstract fun observeMedia(chronicleId: String): Flow<List<ChronicleMediaItemEntity>>
+
     @Query("DELETE FROM chronicles WHERE ownerType=:ownerType AND ownerKey=:ownerKey")
     abstract suspend fun delete(ownerType: String, ownerKey: String)
 
@@ -43,6 +46,8 @@ abstract class ChronicleDao {
     @Update abstract suspend fun updateMedia(value: ChronicleMediaItemEntity)
     @Delete abstract suspend fun deleteMoment(value: ChronicleMomentEntity)
     @Delete abstract suspend fun deleteMedia(value: ChronicleMediaItemEntity)
+    @Query("DELETE FROM chronicle_media_items WHERE momentId=:momentId")
+    protected abstract suspend fun deleteMediaForMoment(momentId: String)
 
     @Query("UPDATE chronicles SET draftText=:replacement, updatedAt=:now WHERE id=:id AND draftText=:expected")
     abstract suspend fun compareAndSetDraft(id: String, expected: String, replacement: String, now: Long): Int
@@ -68,6 +73,17 @@ abstract class ChronicleDao {
         current.forEachIndexed { index, item -> setMediaPosition(item.id, -index - 1) }
         orderedIds.forEachIndexed { index, id -> setMediaPosition(id, index) }
     }
+
+    @Transaction
+    open suspend fun replaceMedia(momentId: String, values: List<ChronicleMediaItemEntity>) {
+        require(values.isNotEmpty() && values.all { it.momentId == momentId })
+        check(momentsForId(momentId)?.type == "MEDIA")
+        deleteMediaForMoment(momentId)
+        insertMedia(values.mapIndexed { index, item -> item.copy(position = index) })
+    }
+
+    @Query("SELECT * FROM chronicle_moments WHERE id=:id LIMIT 1")
+    protected abstract suspend fun momentsForId(id: String): ChronicleMomentEntity?
 
     @Transaction
     open suspend fun promote(ownerType: String, ownerKey: String, newType: String, newKey: String, now: Long) {

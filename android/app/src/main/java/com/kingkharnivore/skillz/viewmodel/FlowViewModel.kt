@@ -83,6 +83,14 @@ enum class FlowEndAction {
     COMPLETE_ARC
 }
 
+sealed interface FlowCompletionState {
+    data object Idle : FlowCompletionState
+    data object Preparing : FlowCompletionState
+    data object PreCommitFailure : FlowCompletionState
+    data class CoreCommitted(val sessionId: Long) : FlowCompletionState
+    data class Completed(val sessionId: Long) : FlowCompletionState
+}
+
 internal enum class PlannedArcAdvanceResult { Advanced, Completed, NotPlannedArc }
 
 internal fun plannedArcAdvanceResult(currentStepIndex: Int, totalSteps: Int): PlannedArcAdvanceResult =
@@ -218,6 +226,8 @@ class FlowViewModel @Inject constructor(
 
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
+    private val _completionState = MutableStateFlow<FlowCompletionState>(FlowCompletionState.Idle)
+    val completionState: StateFlow<FlowCompletionState> = _completionState.asStateFlow()
 
     private val _lastReward = MutableStateFlow<FlowRewardUiModel?>(null)
     val lastReward: StateFlow<FlowRewardUiModel?> = _lastReward.asStateFlow()
@@ -1232,6 +1242,7 @@ class FlowViewModel @Inject constructor(
 
     fun onEndFlowClicked(action: FlowEndAction) {
         if (_isSaving.value) return
+        _completionState.value = FlowCompletionState.Preparing
         viewModelScope.launch {
             saveWithArcBehavior(endMode = action)
         }
@@ -1335,6 +1346,8 @@ class FlowViewModel @Inject constructor(
     }
 
     private suspend fun saveWithArcBehavior(endMode: FlowEndAction) {
+        val completingFlowInstanceId = currentFlowInstanceId
+        var committedSessionId: Long? = null
         val state = _uiState.value
         val title = state.title.trim()
         val tagName = state.tagName.trim()
@@ -1342,12 +1355,14 @@ class FlowViewModel @Inject constructor(
 
         if (title.isBlank() || tagName.isBlank()) {
             _error.value = "Title and Skill are required"
+            _completionState.value = FlowCompletionState.PreCommitFailure
             return
         }
 
         val realDurationMs = state.stopwatch.elapsedMs.coerceAtLeast(0L)
         if (isZeroDuration(realDurationMs)) {
             _error.value = "Start the timer before saving."
+            _completionState.value = FlowCompletionState.PreCommitFailure
             return
         }
 
@@ -1412,6 +1427,8 @@ class FlowViewModel @Inject constructor(
                         surgePlannedMs = state.surgePlannedMs, surgePoints = surgePoints,
                         scyraPoints = beforeArc, isSoftMode = state.isSoftMode)
                 )
+                committedSessionId = firstSessionId
+                _completionState.value = FlowCompletionState.CoreCommitted(firstSessionId)
 
                 val arcId = System.currentTimeMillis()
 
@@ -1512,6 +1529,7 @@ class FlowViewModel @Inject constructor(
                 aliveFlowServiceController.stop()
                 clearOngoing()
 
+                _completionState.value = FlowCompletionState.Completed(firstSessionId)
                 return
             }
 
@@ -1572,6 +1590,8 @@ class FlowViewModel @Inject constructor(
                     surgePlannedMs = state.surgePlannedMs, surgePoints = surgePoints,
                     scyraPoints = finalScyra, isSoftMode = state.isSoftMode)
             )
+            committedSessionId = insertedId
+            _completionState.value = FlowCompletionState.CoreCommitted(insertedId)
 
             pulseRepository.attachLivePulsesToSession(
                 flowInstanceId = currentFlowInstanceId,
@@ -1842,8 +1862,13 @@ class FlowViewModel @Inject constructor(
                     clearOngoing()
                 }
             }
+            _completionState.value = FlowCompletionState.Completed(insertedId)
         } catch (e: Exception) {
             _error.value = e.message ?: "Failed to save session"
+            val durableSessionId = committedSessionId
+                ?: sessionRepository.findCreatedSession(completingFlowInstanceId)
+            _completionState.value = durableSessionId?.let(FlowCompletionState::CoreCommitted)
+                ?: FlowCompletionState.PreCommitFailure
         } finally {
             _isSaving.value = false
         }

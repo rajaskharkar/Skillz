@@ -5,11 +5,16 @@ import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.dao.ChronicleDao
 import com.kingkharnivore.skillz.data.model.entity.ChronicleEntity
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
+import com.kingkharnivore.skillz.data.model.entity.ChronicleMediaItemEntity
+import com.kingkharnivore.skillz.data.chronicle.ChronicleFileStore
+import com.kingkharnivore.skillz.model.ui.ChronicleMediaItemUi
+import com.kingkharnivore.skillz.model.ui.ChronicleMomentUi
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentType
 import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.sync.Mutex
@@ -21,7 +26,8 @@ import java.util.concurrent.ConcurrentHashMap
 @Singleton
 class ChronicleRepository @Inject constructor(
     private val database: SkillzDatabase,
-    private val dao: ChronicleDao
+    private val dao: ChronicleDao,
+    private val fileStore: ChronicleFileStore? = null
 ) {
     private data class Owner(val type: String, val key: String)
     private val ownerMutexes = ConcurrentHashMap<Owner, Mutex>()
@@ -38,6 +44,7 @@ class ChronicleRepository @Inject constructor(
         }
     }
     data class Snapshot(val chronicle: ChronicleEntity?, val moments: List<ChronicleMomentEntity>)
+    data class ContentSnapshot(val chronicle: ChronicleEntity?, val moments: List<ChronicleMomentUi>)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observe(ownerType: String, ownerKey: String): Flow<Snapshot> =
@@ -47,6 +54,16 @@ class ChronicleRepository @Inject constructor(
         }
 
     fun observeSummaries() = dao.observeSummaries()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun observeContent(ownerType: String, ownerKey: String): Flow<ContentSnapshot> =
+        dao.observe(ownerType, ownerKey).transformLatest { chronicle ->
+            if (chronicle == null) emit(ContentSnapshot(null, emptyList()))
+            else combine(dao.observeMoments(chronicle.id), dao.observeMedia(chronicle.id)) { moments, media ->
+                val byMoment = media.groupBy { it.momentId }
+                ContentSnapshot(chronicle, moments.map { it.toUi(byMoment[it.id].orEmpty()) })
+            }.collect(::emit)
+        }
     private suspend fun getOrCreateUnlocked(ownerType: String, ownerKey: String): ChronicleEntity =
         database.withTransaction {
             dao.find(ownerType, ownerKey) ?: run {
@@ -99,6 +116,37 @@ class ChronicleRepository @Inject constructor(
         }
     }
 
+    suspend fun addMedia(
+        ownerType: String,
+        ownerKey: String,
+        items: List<ChronicleMediaItemEntity>
+    ): String {
+        require(items.isNotEmpty())
+        val owner = Owner(ownerType, ownerKey)
+        return mutex(owner).withLock {
+            requireMutable(owner)
+            database.withTransaction {
+                val chronicle = getOrCreateUnlocked(ownerType, ownerKey)
+                val now = System.currentTimeMillis()
+                val momentId = UUID.randomUUID().toString()
+                dao.insertMoment(ChronicleMomentEntity(momentId, chronicle.id, ChronicleMomentType.MEDIA,
+                    dao.moments(chronicle.id).size, createdAt = now, updatedAt = now))
+                dao.insertMedia(items.mapIndexed { index, item -> item.copy(momentId = momentId, position = index) })
+                momentId
+            }
+        }
+    }
+
+    suspend fun replaceMedia(ownerType: String, ownerKey: String, momentId: String, items: List<ChronicleMediaItemEntity>) {
+        val owner = Owner(ownerType, ownerKey)
+        mutex(owner).withLock {
+            requireMutable(owner)
+            val chronicle = dao.find(ownerType, ownerKey) ?: error("Chronicle owner is unavailable")
+            check(dao.moments(chronicle.id).any { it.id == momentId && it.type == ChronicleMomentType.MEDIA })
+            dao.replaceMedia(momentId, items)
+        }
+    }
+
     suspend fun updateText(ownerType: String, ownerKey: String, moment: ChronicleMomentEntity, text: String) {
         val owner = Owner(ownerType, ownerKey)
         mutex(owner).withLock {
@@ -130,7 +178,9 @@ class ChronicleRepository @Inject constructor(
     suspend fun discard(ownerType: String, ownerKey: String) {
         val owner = Owner(ownerType, ownerKey)
         mutex(owner).withLock {
+            val chronicleId = dao.find(ownerType, ownerKey)?.id
             dao.delete(ownerType, ownerKey)
+            if (chronicleId != null) fileStore?.deleteChronicle(chronicleId)
             finalizedOwners += owner
         }
     }
@@ -151,4 +201,15 @@ class ChronicleRepository @Inject constructor(
             sessionId.toString(),
             System.currentTimeMillis()
         )
+
+    private fun ChronicleMomentEntity.toUi(media: List<ChronicleMediaItemEntity>): ChronicleMomentUi = when (type) {
+        ChronicleMomentType.TEXT -> ChronicleMomentUi.Text(id, chronicleId, position, text.orEmpty())
+        ChronicleMomentType.MEDIA -> ChronicleMomentUi.Media(id, chronicleId, position, media.sortedBy { it.position }.map { item ->
+            ChronicleMediaItemUi(item.id, item.position, item.localPath, item.mimeType, item.durationMs,
+                item.width, item.height, fileStore?.resolve(item.localPath)?.isFile != false)
+        })
+        ChronicleMomentType.VOICE -> ChronicleMomentUi.Voice(id, chronicleId, position)
+        ChronicleMomentType.AUDIO -> ChronicleMomentUi.Audio(id, chronicleId, position)
+        else -> error("Unsupported Chronicle Moment type: $type")
+    }
 }
