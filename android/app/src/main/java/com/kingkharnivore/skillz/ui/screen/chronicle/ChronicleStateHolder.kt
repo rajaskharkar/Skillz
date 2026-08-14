@@ -81,14 +81,21 @@ class ChronicleStateHolder(
         if (!acceptingMutations || sources.isEmpty()) return
         _state.update { it.copy(isCommitting = true, hasError = false) }
         scope.launch {
-            runCatching { repository.importMedia(ownerType, ownerKey, sources) }
-                .onSuccess { result ->
-                    if (result.momentId == null) _state.update { it.copy(hasError = true) }
-                    onResult(result.failedCount)
-                }
+            val result = runCatching { repository.importMedia(ownerType, ownerKey, sources) }
+            result.onSuccess { imported ->
+                if (imported.momentId == null) _state.update { it.copy(hasError = true) }
+            }
                 .onFailure { _state.update { it.copy(hasError = true) } }
+            onResult(result.getOrNull()?.failedCount ?: sources.size)
             _state.update { it.copy(isCommitting = false) }
         }
+    }
+
+    fun createCaptureOutput(video: Boolean): Uri? =
+        if (acceptingMutations) runCatching { repository.createCaptureOutput(video) }.getOrNull() else null
+
+    fun discardCapture(uri: Uri) {
+        scope.launch { repository.discardCapture(uri) }
     }
 
     fun setDraft(value: String) {

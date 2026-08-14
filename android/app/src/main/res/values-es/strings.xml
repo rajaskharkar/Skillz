@@ -2279,4 +2279,5 @@ Puedes volver a activar Health más tarde.</string>
     <string name="chronicle_media_failed">No se pudieron añadir %1$d elemento(s).</string>
     <string name="chronicle_media_unavailable">Contenido no disponible</string>
     <string name="chronicle_video">Video</string>
+    <string name="chronicle_camera">Cámara</string>
 </resources>

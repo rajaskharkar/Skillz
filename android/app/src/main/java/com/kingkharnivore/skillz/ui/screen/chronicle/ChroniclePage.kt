@@ -1,6 +1,7 @@
 package com.kingkharnivore.skillz.ui.screen.chronicle
 
 import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -52,6 +53,22 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
     var failedImports by remember { mutableIntStateOf(0) }
     val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris ->
         holder.importMedia(uris) { failedImports = it }
+    }
+    var pendingPhoto by rememberSaveable { mutableStateOf<String?>(null) }
+    var pendingVideo by rememberSaveable { mutableStateOf<String?>(null) }
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        pendingPhoto?.let(Uri::parse)?.let { uri ->
+            if (success) holder.importMedia(listOf(uri)) { failedImports = it; holder.discardCapture(uri) }
+            else holder.discardCapture(uri)
+        }
+        pendingPhoto = null
+    }
+    val videoCapture = rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
+        pendingVideo?.let(Uri::parse)?.let { uri ->
+            if (success) holder.importMedia(listOf(uri)) { failedImports = it; holder.discardCapture(uri) }
+            else holder.discardCapture(uri)
+        }
+        pendingVideo = null
     }
     var deleteTarget by remember { mutableStateOf<ChronicleMomentEntity?>(null) }
     val moveUpLabel = stringResource(R.string.chronicle_move_up)
@@ -169,8 +186,24 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                         TextButton(onClick = {
                             failedImports = 0
                             gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
-                        },
+                        }, modifier = Modifier.weight(1f),
                             enabled = !state.isCommitting) { Text(stringResource(R.string.chronicle_gallery)) }
+                        TextButton(onClick = {
+                            holder.createCaptureOutput(video = false)?.let { uri ->
+                                pendingPhoto = uri.toString()
+                                camera.launch(uri)
+                            }
+                        }, modifier = Modifier.weight(1f), enabled = !state.isCommitting) {
+                            Text(stringResource(R.string.chronicle_camera))
+                        }
+                        TextButton(onClick = {
+                            holder.createCaptureOutput(video = true)?.let { uri ->
+                                pendingVideo = uri.toString()
+                                videoCapture.launch(uri)
+                            }
+                        }, modifier = Modifier.weight(1f), enabled = !state.isCommitting) {
+                            Text(stringResource(R.string.chronicle_video))
+                        }
                     }
                     Button(onClick = { holder.add() }, enabled = state.draft.isNotBlank() && !state.isCommitting,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary,

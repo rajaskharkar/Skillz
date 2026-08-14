@@ -2264,4 +2264,5 @@
     <string name="chronicle_media_failed">%1$d आयटम जोडता आले नाहीत.</string>
     <string name="chronicle_media_unavailable">मीडिया उपलब्ध नाही</string>
     <string name="chronicle_video">व्हिडिओ</string>
+    <string name="chronicle_camera">कॅमेरा</string>
 </resources>

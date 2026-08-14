@@ -60,6 +60,11 @@ class ChronicleRepository @Inject constructor(
 
     data class MediaImportResult(val momentId: String?, val failedCount: Int)
 
+    fun createCaptureOutput(video: Boolean): Uri =
+        fileStore?.createCaptureOutput(video) ?: error("File storage unavailable")
+
+    suspend fun discardCapture(uri: Uri) = fileStore?.discardCapture(uri)
+
     suspend fun importMedia(ownerType: String, ownerKey: String, sources: List<Uri>): MediaImportResult {
         if (sources.isEmpty()) return MediaImportResult(null, 0)
         val owner = Owner(ownerType, ownerKey)

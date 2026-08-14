@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.webkit.MimeTypeMap
+import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.IOException
@@ -30,6 +31,21 @@ class ChronicleFileStore @Inject constructor(
 
     private val durableRoot get() = File(context.filesDir, "chronicle")
     private val stagingRoot get() = File(context.cacheDir, "chronicle_staging")
+    private val captureRoot get() = File(context.cacheDir, "chronicle_capture")
+
+    fun createCaptureOutput(video: Boolean): Uri {
+        captureRoot.mkdirsOrThrow()
+        val extension = if (video) ".mp4" else ".jpg"
+        val file = File(captureRoot, UUID.randomUUID().toString() + extension)
+        if (!file.createNewFile()) throw IOException("Unable to create capture output")
+        return FileProvider.getUriForFile(context, "${context.packageName}.chronicle-files", file)
+    }
+
+    suspend fun discardCapture(uri: Uri) = withContext(Dispatchers.IO) {
+        val name = uri.lastPathSegment?.substringAfterLast('/') ?: return@withContext
+        requireSafeSegment(name)
+        File(captureRoot, name).delete()
+    }
 
     suspend fun importMedia(
         chronicleId: String,
@@ -95,6 +111,7 @@ class ChronicleFileStore @Inject constructor(
     suspend fun reconcileStaging(olderThanMs: Long = STALE_STAGING_MS) = withContext(Dispatchers.IO) {
         val cutoff = System.currentTimeMillis() - olderThanMs
         stagingRoot.listFiles().orEmpty().filter { it.lastModified() < cutoff }.forEach(File::deleteRecursively)
+        captureRoot.listFiles().orEmpty().filter { it.lastModified() < cutoff }.forEach(File::delete)
     }
 
     private fun validate(file: File, mime: String) {
