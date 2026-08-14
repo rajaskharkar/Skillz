@@ -156,6 +156,9 @@ class ChronicleStateHolder(
                 .onFailure { _state.update { it.copy(hasError = true) } }
         }
     }
+    fun delete(moment: ChronicleMomentUi) {
+        _state.value.moments.firstOrNull { it.id == moment.id }?.let(::delete)
+    }
     fun move(moment: ChronicleMomentEntity, delta: Int) {
         if (!acceptingMutations) return
         val items = _state.value.moments.toMutableList()
@@ -168,6 +171,9 @@ class ChronicleStateHolder(
                 .onFailure { _state.update { it.copy(hasError = true) } }
         }
     }
+    fun move(moment: ChronicleMomentUi, delta: Int) {
+        _state.value.moments.firstOrNull { it.id == moment.id }?.let { move(it, delta) }
+    }
     fun startDrag(moment: ChronicleMomentEntity) {
         if (!acceptingMutations) return
         _state.update {
@@ -177,6 +183,9 @@ class ChronicleStateHolder(
             stagedOrder = it.moments.map(ChronicleMomentEntity::id)
         )
         }
+    }
+    fun startDrag(moment: ChronicleMomentUi) {
+        _state.value.moments.firstOrNull { it.id == moment.id }?.let(::startDrag)
     }
     fun dragByPixels(deltaPx: Float, itemExtentPx: Float) {
         if (_state.value.draggingId == null || itemExtentPx <= 0f) return

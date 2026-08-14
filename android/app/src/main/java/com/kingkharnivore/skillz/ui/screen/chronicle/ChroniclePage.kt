@@ -43,7 +43,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.kingkharnivore.skillz.R
-import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
 import com.kingkharnivore.skillz.model.ui.ChronicleMediaItemUi
 import com.kingkharnivore.skillz.model.ui.ChronicleMomentUi
 import java.io.File
@@ -76,7 +75,7 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
         }
         pendingVideo = null
     }
-    var deleteTarget by remember { mutableStateOf<ChronicleMomentEntity?>(null) }
+    var deleteTarget by remember { mutableStateOf<ChronicleMomentUi?>(null) }
     val moveUpLabel = stringResource(R.string.chronicle_move_up)
     val moveDownLabel = stringResource(R.string.chronicle_move_down)
     val removeLabel = stringResource(R.string.chronicle_remove_action)
@@ -113,7 +112,7 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                             TextField(value = state.editingText, onValueChange = holder::editText,
                                 modifier = Modifier.fillMaxWidth(), colors = chronicleTextFieldColors())
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            TextButton(onClick = { deleteTarget = entity }) { Text(stringResource(R.string.chronicle_remove)) }
+                            TextButton(onClick = { deleteTarget = moment }) { Text(stringResource(R.string.chronicle_remove)) }
                                 TextButton(onClick = holder::cancelEdit) { Text(stringResource(R.string.common_cancel)) }
                                 Button(onClick = holder::finishEdit, enabled = state.editingText.isNotBlank()) {
                                     Text(stringResource(R.string.common_done))
@@ -129,16 +128,16 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                         tonalElevation = if (isDragging) 6.dp else 0.dp
                     ) { Box(Modifier.fillMaxWidth().semantics {
                             customActions = listOf(
-                                CustomAccessibilityAction(moveUpLabel) { entity?.let { holder.move(it, -1) }; true },
-                                CustomAccessibilityAction(moveDownLabel) { entity?.let { holder.move(it, 1) }; true },
-                                CustomAccessibilityAction(removeLabel) { deleteTarget = entity; true }
+                                CustomAccessibilityAction(moveUpLabel) { holder.move(moment, -1); true },
+                                CustomAccessibilityAction(moveDownLabel) { holder.move(moment, 1); true },
+                                CustomAccessibilityAction(removeLabel) { deleteTarget = moment; true }
                             )
                         }.combinedClickable(onClick = { if (moment is ChronicleMomentUi.Text) entity?.let(holder::beginEdit) }, onLongClick = null)
                             .pointerInput(moment.id, state.editingId) {
                                 if (state.editingId == null && entity != null) detectDragGesturesAfterLongPress(
                                     onDragStart = { offset ->
                                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        holder.startDrag(entity)
+                                        holder.startDrag(moment)
                                         val item = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == moment.id }
                                         dragPointerY = (item?.offset ?: 0) + offset.y
                                     },
