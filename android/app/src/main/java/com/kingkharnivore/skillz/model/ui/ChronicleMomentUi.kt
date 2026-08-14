@@ -22,13 +22,25 @@ sealed interface ChronicleMomentUi {
     data class Voice(
         override val id: String,
         override val chronicleId: String,
-        override val position: Int
+        override val position: Int,
+        val relativePath: String?,
+        val durationMs: Long?,
+        val transcript: String?,
+        val transcriptEdited: Boolean,
+        val isAvailable: Boolean
     ) : ChronicleMomentUi
 
     data class Audio(
         override val id: String,
         override val chronicleId: String,
-        override val position: Int
+        override val position: Int,
+        val relativePath: String?,
+        val displayName: String?,
+        val mimeType: String?,
+        val durationMs: Long?,
+        val transcript: String?,
+        val transcriptEdited: Boolean,
+        val isAvailable: Boolean
     ) : ChronicleMomentUi
 }
 

@@ -276,8 +276,11 @@ class ChronicleRepository @Inject constructor(
             ChronicleMediaItemUi(item.id, item.position, item.localPath, item.mimeType, item.durationMs,
                 item.width, item.height, fileStore?.resolve(item.localPath)?.isFile != false)
         })
-        ChronicleMomentType.VOICE -> ChronicleMomentUi.Voice(id, chronicleId, position)
-        ChronicleMomentType.AUDIO -> ChronicleMomentUi.Audio(id, chronicleId, position)
+        ChronicleMomentType.VOICE -> ChronicleMomentUi.Voice(id, chronicleId, position, audioPath, durationMs,
+            transcript, transcriptEdited, audioPath?.let { fileStore?.resolve(it)?.isFile } == true)
+        ChronicleMomentType.AUDIO -> ChronicleMomentUi.Audio(id, chronicleId, position, audioPath, displayName,
+            mimeType, durationMs, transcript, transcriptEdited,
+            audioPath?.let { fileStore?.resolve(it)?.isFile } == true)
         else -> error("Unsupported Chronicle Moment type: $type")
     }
 }

@@ -170,7 +170,22 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                             is ChronicleMomentUi.Text -> Text(moment.text, style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.fillMaxWidth())
                             is ChronicleMomentUi.Media -> ChronicleMediaMoment(moment.items)
-                            is ChronicleMomentUi.Audio, is ChronicleMomentUi.Voice -> Unit
+                            is ChronicleMomentUi.Audio -> ChronicleAudioMoment(
+                                label = moment.displayName ?: stringResource(R.string.chronicle_audio),
+                                relativePath = moment.relativePath,
+                                durationMs = moment.durationMs,
+                                transcript = moment.transcript,
+                                transcriptEdited = moment.transcriptEdited,
+                                available = moment.isAvailable
+                            )
+                            is ChronicleMomentUi.Voice -> ChronicleAudioMoment(
+                                label = stringResource(R.string.chronicle_voice_note),
+                                relativePath = moment.relativePath,
+                                durationMs = moment.durationMs,
+                                transcript = moment.transcript,
+                                transcriptEdited = moment.transcriptEdited,
+                                available = moment.isAvailable
+                            )
                         }
                     } }
                 }
@@ -230,6 +245,54 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
             title = { Text(stringResource(R.string.chronicle_remove_title), color = MaterialTheme.colorScheme.onBackground) },
             confirmButton = { TextButton(onClick = { holder.delete(moment); holder.cancelEdit(); deleteTarget = null }) { Text(stringResource(R.string.chronicle_remove)) } },
             dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.common_cancel)) } })
+    }
+}
+
+@Composable
+internal fun ChronicleAudioMoment(
+    label: String,
+    relativePath: String?,
+    durationMs: Long?,
+    transcript: String?,
+    transcriptEdited: Boolean,
+    available: Boolean
+) {
+    val context = LocalContext.current
+    var playing by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(label, color = MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.titleMedium)
+        durationMs?.let { Text(formatDuration(it), color = MaterialTheme.colorScheme.onBackground) }
+        if (available && relativePath != null) {
+            TextButton(onClick = { playing = true }) { Text(stringResource(R.string.chronicle_play)) }
+        } else {
+            Text(stringResource(R.string.chronicle_audio_unavailable), color = MaterialTheme.colorScheme.onBackground)
+        }
+        transcript?.let {
+            Text(if (transcriptEdited) stringResource(R.string.chronicle_transcript_edited) else
+                stringResource(R.string.chronicle_transcript), color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.labelMedium)
+            Text(it, color = MaterialTheme.colorScheme.onBackground)
+        }
+    }
+    if (playing && relativePath != null) {
+        val file = remember(relativePath) { File(context.filesDir, relativePath) }
+        Dialog(onDismissRequest = { playing = false }) {
+            Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(20.dp)) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(label, color = MaterialTheme.colorScheme.onBackground)
+                    AndroidView(factory = { viewContext ->
+                        VideoView(viewContext).apply {
+                            val controls = MediaController(viewContext)
+                            controls.setAnchorView(this)
+                            setMediaController(controls)
+                            setVideoPath(file.path)
+                            setOnPreparedListener { start() }
+                        }
+                    }, modifier = Modifier.fillMaxWidth().height(96.dp))
+                    TextButton(onClick = { playing = false }) { Text(stringResource(R.string.chronicle_close)) }
+                }
+            }
+        }
     }
 }
 

@@ -2269,4 +2269,10 @@
     <string name="chronicle_previous">मागील</string>
     <string name="chronicle_next">पुढील</string>
     <string name="chronicle_media_position">%2$d पैकी %1$d</string>
+    <string name="chronicle_audio">ऑडिओ</string>
+    <string name="chronicle_voice_note">व्हॉइस नोट</string>
+    <string name="chronicle_play">प्ले करा</string>
+    <string name="chronicle_audio_unavailable">ऑडिओ उपलब्ध नाही</string>
+    <string name="chronicle_transcript">प्रतिलेख</string>
+    <string name="chronicle_transcript_edited">प्रतिलेख · संपादित</string>
 </resources>

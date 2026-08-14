@@ -2271,4 +2271,10 @@ You can turn Health back on later.</string>
     <string name="chronicle_previous">Previous</string>
     <string name="chronicle_next">Next</string>
     <string name="chronicle_media_position">%1$d of %2$d</string>
+    <string name="chronicle_audio">Audio</string>
+    <string name="chronicle_voice_note">Voice note</string>
+    <string name="chronicle_play">Play</string>
+    <string name="chronicle_audio_unavailable">Audio unavailable</string>
+    <string name="chronicle_transcript">Transcript</string>
+    <string name="chronicle_transcript_edited">Transcript · Edited</string>
 </resources>

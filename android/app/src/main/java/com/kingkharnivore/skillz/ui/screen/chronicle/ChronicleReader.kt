@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import com.kingkharnivore.skillz.model.ui.ChronicleMomentUi
 
 /** One-owner, ordered, read-only renderer; future Moment renderers extend this dispatch. */
@@ -23,7 +24,12 @@ fun ChronicleReader(moments: List<ChronicleMomentUi>, modifier: Modifier = Modif
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 is ChronicleMomentUi.Media -> ChronicleMediaMoment(moment.items)
-                is ChronicleMomentUi.Audio, is ChronicleMomentUi.Voice -> Unit
+                is ChronicleMomentUi.Audio -> ChronicleAudioMoment(
+                    moment.displayName ?: stringResource(com.kingkharnivore.skillz.R.string.chronicle_audio),
+                    moment.relativePath, moment.durationMs, moment.transcript, moment.transcriptEdited, moment.isAvailable)
+                is ChronicleMomentUi.Voice -> ChronicleAudioMoment(
+                    stringResource(com.kingkharnivore.skillz.R.string.chronicle_voice_note),
+                    moment.relativePath, moment.durationMs, moment.transcript, moment.transcriptEdited, moment.isAvailable)
             }
             if (index < moments.lastIndex) HorizontalDivider(
                 thickness = 1.dp,

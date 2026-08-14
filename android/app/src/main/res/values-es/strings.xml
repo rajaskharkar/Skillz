@@ -2284,4 +2284,10 @@ Puedes volver a activar Health más tarde.</string>
     <string name="chronicle_previous">Anterior</string>
     <string name="chronicle_next">Siguiente</string>
     <string name="chronicle_media_position">%1$d de %2$d</string>
+    <string name="chronicle_audio">Audio</string>
+    <string name="chronicle_voice_note">Nota de voz</string>
+    <string name="chronicle_play">Reproducir</string>
+    <string name="chronicle_audio_unavailable">Audio no disponible</string>
+    <string name="chronicle_transcript">Transcripción</string>
+    <string name="chronicle_transcript_edited">Transcripción · Editada</string>
 </resources>
