@@ -7,13 +7,27 @@ import com.kingkharnivore.skillz.data.model.entity.PulseEntity
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.room.withTransaction
+import com.kingkharnivore.skillz.data.model.SkillzDatabase
+import com.kingkharnivore.skillz.data.model.dao.ChronicleDao
+import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
+import com.kingkharnivore.skillz.data.model.entity.ChronicleEntity
+import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
+import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentType
+import com.kingkharnivore.skillz.data.model.entity.PulseCreationEntity
+import java.util.UUID
 
 @Singleton
 class PulseRepository @Inject constructor(
     private val pulseDao: PulseDao,
     private val sessionDao: SessionDao,
-    private val tagDao: TagDao
+    private val tagDao: TagDao,
+    private val database: SkillzDatabase,
+    private val chronicleDao: ChronicleDao,
+    private val chronicleRepository: ChronicleRepository
 ) {
+    suspend fun findCreatedPulse(creationKey: String): Long? =
+        pulseDao.findCreatedPulse(creationKey)
 
     fun getAllPulses(): Flow<List<PulseEntity>> = pulseDao.getAllPulses()
 
@@ -35,19 +49,39 @@ class PulseRepository @Inject constructor(
         arcId: Long?
     ): Long {
         val now = System.currentTimeMillis()
-        return pulseDao.insertPulse(
-            PulseEntity(
+        return database.withTransaction {
+            val id = pulseDao.insertPulse(PulseEntity(
                 title = title,
-                description = description,
+                description = "",
                 tagId = tagId,
                 parentSessionId = parentSessionId,
                 parentFlowInstanceId = parentFlowInstanceId,
                 arcId = arcId,
                 createdAt = now,
                 updatedAt = now
-            )
-        )
+            ))
+            if (description.isNotBlank()) {
+                val chronicleId = UUID.randomUUID().toString()
+                chronicleDao.insertChronicle(ChronicleEntity(chronicleId, ChronicleOwnerType.PULSE,
+                    id.toString(), "", now, now))
+                chronicleDao.insertMoment(ChronicleMomentEntity(UUID.randomUUID().toString(), chronicleId,
+                    ChronicleMomentType.TEXT, 0, text=description, createdAt=now, updatedAt=now))
+            }
+            id
+        }
     }
+
+    suspend fun addPulseAndPromoteDraft(draftId: String, pulse: PulseEntity): Long =
+        chronicleRepository.finalizeOwner(ChronicleOwnerType.PULSE_DRAFT, draftId) {
+          database.withTransaction {
+            pulseDao.findCreatedPulse(draftId)?.let { return@withTransaction it }
+            val id = pulseDao.insertPulse(pulse)
+            chronicleDao.promote(ChronicleOwnerType.PULSE_DRAFT, draftId,
+                ChronicleOwnerType.PULSE, id.toString(), System.currentTimeMillis())
+            pulseDao.insertCreation(PulseCreationEntity(draftId, id, System.currentTimeMillis()))
+            id
+          }
+        }
 
     suspend fun updatePulse(pulse: PulseEntity) {
         pulseDao.updatePulse(
@@ -78,8 +112,13 @@ class PulseRepository @Inject constructor(
     suspend fun deletePulseAndCleanupTag(pulseId: Long): Long? {
         val pulse = pulseDao.getPulseById(pulseId) ?: return null
         val tagId = pulse.tagId
+        val chronicleId = chronicleDao.find(ChronicleOwnerType.PULSE, pulseId.toString())?.id
 
-        pulseDao.deletePulseById(pulseId)
+        database.withTransaction {
+            chronicleDao.delete(ChronicleOwnerType.PULSE, pulseId.toString())
+            pulseDao.deletePulseById(pulseId)
+        }
+        if (chronicleId != null) chronicleRepository.cleanupDeletedChronicle(chronicleId)
 
         if (tagId == null) return null
 
@@ -100,7 +139,6 @@ class PulseRepository @Inject constructor(
     suspend fun updatePulseDetails(
         pulseId: Long,
         title: String,
-        description: String,
         tagId: Long?
     ): Long? {
         val existing = pulseDao.getPulseById(pulseId) ?: return null
@@ -109,7 +147,7 @@ class PulseRepository @Inject constructor(
         pulseDao.updatePulse(
             existing.copy(
                 title = title,
-                description = description,
+                description = existing.description,
                 tagId = tagId,
                 updatedAt = System.currentTimeMillis()
             )

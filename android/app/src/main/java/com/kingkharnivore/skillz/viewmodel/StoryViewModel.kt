@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.viewmodel
 
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.annotation.StringRes
 import com.kingkharnivore.skillz.R
@@ -16,6 +17,9 @@ import com.kingkharnivore.skillz.data.repository.health.FlowHealthRepository
 import com.kingkharnivore.skillz.data.model.entity.health.FlowHealthSnapshotEntity
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.data.repository.PulseRepository
+import com.kingkharnivore.skillz.data.repository.ChronicleRepository
+import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
+import com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleStateHolder
 import com.kingkharnivore.skillz.utils.health.HealthRefreshUseCase
 import com.kingkharnivore.skillz.model.state.FlowListUiState
 import com.kingkharnivore.skillz.model.ui.ArcFlowItemUiModel
@@ -85,8 +89,22 @@ class StoryViewModel @Inject constructor(
     private val flowHealthRepository: FlowHealthRepository,
     private val healthRefreshUseCase: HealthRefreshUseCase,
     private val userPrefs: UserPrefs,
-    private val arcMetadataRepository: ArcMetadataRepository
+    private val arcMetadataRepository: ArcMetadataRepository,
+    private val chronicleRepository: ChronicleRepository,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    val pulseDraftId: String = savedStateHandle.get<String>("pulseChronicleDraftId")
+        ?: java.util.UUID.randomUUID().toString().also { savedStateHandle["pulseChronicleDraftId"] = it }
+    val pulseChronicle = ChronicleStateHolder(
+        ChronicleOwnerType.PULSE_DRAFT, pulseDraftId, chronicleRepository, viewModelScope
+    )
+    private val _restoredCreatedPulseId = MutableStateFlow<Long?>(null)
+    val restoredCreatedPulseId: StateFlow<Long?> = _restoredCreatedPulseId.asStateFlow()
+    fun createHistoricalChronicle(ownerType: String, ownerKey: String) =
+        com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleReadState(
+            ownerType, ownerKey, chronicleRepository, viewModelScope
+        )
 
     private val selectedTagIds = MutableStateFlow<Set<Long>>(emptySet())
     private val showScoreUiFlow = userPrefs.showScoreUi
@@ -106,6 +124,8 @@ class StoryViewModel @Inject constructor(
 
     private val journeyColorMemory = linkedMapOf<Long, Color>()
     private var nextJourneyColorIndex = 0
+    private var chronicleTextsFlowCache: Map<Long, List<String>> = emptyMap()
+    private var chronicleTextsPulseCache: Map<Long, List<String>> = emptyMap()
 
     private val sessionsFlow: Flow<List<SessionEntity>> = sessionRepository.getAllSessions()
     private val healthSnapshotsFlow: Flow<List<FlowHealthSnapshotEntity>> =
@@ -113,6 +133,7 @@ class StoryViewModel @Inject constructor(
     private val pulsesFlow: Flow<List<PulseEntity>> = pulseRepository.getAllPulses()
     private val tagsFlow: Flow<List<TagEntity>> = tagRepository.getAllTags()
     private val arcMetadataFlow = arcMetadataRepository.observeAll()
+    private val chroniclePreviewsFlow = chronicleRepository.observeSummaries()
 
     private val _arcEditorState = MutableStateFlow(ArcEditorUiState())
     val arcEditorState: StateFlow<ArcEditorUiState> = _arcEditorState.asStateFlow()
@@ -127,6 +148,9 @@ class StoryViewModel @Inject constructor(
     )
 
     init {
+        viewModelScope.launch {
+            _restoredCreatedPulseId.value = pulseRepository.findCreatedPulse(pulseDraftId)
+        }
         observeSessions()
         viewModelScope.launch { runCatching { healthRefreshUseCase.refreshForeground() } }
     }
@@ -210,30 +234,25 @@ class StoryViewModel @Inject constructor(
         setAnchorClamped(todayAnchor, p)
     }
 
-    fun updateSessionDescription(sessionId: Long, description: String) {
-        viewModelScope.launch {
-            sessionRepository.updateSessionDescription(sessionId, description)
-        }
-    }
-
     fun createPulseFromStory(
         title: String,
-        description: String,
         tagName: String,
-        attachToCurrentFlow: Boolean
+        attachToCurrentFlow: Boolean,
+        onSaved: () -> Unit,
+        onFailure: () -> Unit = {}
     ) {
         viewModelScope.launch {
             val trimmedTitle = title.trim()
-            val trimmedDescription = description.trim()
             val trimmedTag = tagName.trim()
 
-            if (trimmedTitle.isBlank() && trimmedDescription.isBlank()) {
+            if (trimmedTitle.isBlank() && pulseChronicle.state.value.moments.isEmpty()) {
                 uiState.value = uiState.value.copy(
                     errorMessage = "Add a title or description to save this moment."
                 )
                 return@launch
             }
 
+            runCatching {
             val tagId = if (trimmedTag.isBlank()) {
                 null
             } else {
@@ -243,31 +262,40 @@ class StoryViewModel @Inject constructor(
             val ongoing = aliveFlowRepository.getOngoingSession().firstOrNull()
             val shouldAttach = attachToCurrentFlow && ongoing?.isInFlowMode == true
 
-            pulseRepository.addPulse(
-                title = trimmedTitle,
-                description = trimmedDescription,
-                tagId = tagId,
-                parentSessionId = null,
+            val now = System.currentTimeMillis()
+            pulseRepository.addPulseAndPromoteDraft(pulseDraftId, PulseEntity(
+                title = trimmedTitle, description = "", tagId = tagId, parentSessionId = null,
                 parentFlowInstanceId = if (shouldAttach) ongoing?.flowInstanceId else null,
-                arcId = if (shouldAttach) ongoing?.arcId else null
-            )
+                arcId = if (shouldAttach) ongoing?.arcId else null, createdAt = now, updatedAt = now))
 
+            // The receipt and owner promotion committed atomically. Never reopen this draft,
+            // even if navigation or a later UI callback is interrupted.
+            pulseChronicle.finalizeTransition()
             uiState.value = uiState.value.copy(errorMessage = null)
+            onSaved()
+            }.onFailure {
+                // If the receipt exists, core commit succeeded and the restored route will exit.
+                if (pulseRepository.findCreatedPulse(pulseDraftId) == null) {
+                    pulseChronicle.resumeAfterPreCommitFailure()
+                }
+                uiState.value = uiState.value.copy(errorMessage = "Pulse couldn't be saved")
+                onFailure()
+            }
         }
+    }
+
+    fun cancelPulseDraft(onCanceled: () -> Unit) {
+        pulseChronicle.discardAndQuiesce(onCanceled)
     }
 
     fun updatePulse(
         pulseId: Long,
         title: String,
-        description: String,
         tagName: String
     ) {
         viewModelScope.launch {
             val trimmedTitle = title.trim()
-            val trimmedDescription = description.trim()
             val trimmedTag = tagName.trim()
-
-            if (trimmedTitle.isBlank() && trimmedDescription.isBlank()) return@launch
 
             val tagId = if (trimmedTag.isBlank()) {
                 null
@@ -278,7 +306,6 @@ class StoryViewModel @Inject constructor(
             val removedTagId = pulseRepository.updatePulseDetails(
                 pulseId = pulseId,
                 title = trimmedTitle,
-                description = trimmedDescription,
                 tagId = tagId
             )
 
@@ -439,11 +466,28 @@ class StoryViewModel @Inject constructor(
                 showScoreUiFlow,
                 calmModeFlow,
                 appLanguageTagFlow,
-                arcMetadataFlow
+                arcMetadataFlow,
+                chroniclePreviewsFlow
             ) { arr: Array<Any?> ->
-                val sessions = arr[0] as List<SessionEntity>
+                val chronicleTexts = (arr[13] as List<com.kingkharnivore.skillz.data.model.dao.ChronicleSummary>)
+                    .associate { (it.ownerType + "/" + it.ownerKey) to listOfNotNull(it.excerpt) }
+                chronicleTextsFlowCache = chronicleTexts.filterKeys { it.startsWith("SESSION/") }
+                    .mapKeys { it.key.removePrefix("SESSION/").toLong() }
+                chronicleTextsPulseCache = chronicleTexts.filterKeys { it.startsWith("PULSE/") }
+                    .mapKeys { it.key.removePrefix("PULSE/").toLong() }
+                val sessions = (arr[0] as List<SessionEntity>).map { session ->
+                    session.copy(
+                        description = chronicleTexts["SESSION/${session.id}"]?.firstOrNull()
+                            ?: session.description
+                    )
+                }
                 val healthSnapshots = arr[1] as List<FlowHealthSnapshotEntity>
-                val pulses = arr[2] as List<PulseEntity>
+                val pulses = (arr[2] as List<PulseEntity>).map { pulse ->
+                    pulse.copy(
+                        description = chronicleTexts["PULSE/${pulse.id}"]?.firstOrNull()
+                            ?: pulse.description
+                    )
+                }
                 val tags = arr[3] as List<TagEntity>
                 val currentTagIds = arr[4] as Set<Long>
                 val currentPeriod = arr[5] as StoryPeriod
@@ -744,6 +788,7 @@ class StoryViewModel @Inject constructor(
                 sessionId = session.id,
                 title = session.title,
                 description = session.description,
+                chronicleTexts = chronicleTextsFlowCache[session.id].orEmpty(),
                 tagId = session.tagId,
                 tagName = tagNameById[session.tagId].orEmpty(),
                 journeyColor = journeyColors[session.tagId] ?: Color.Gray,
@@ -774,6 +819,7 @@ class StoryViewModel @Inject constructor(
                 pulseId = pulse.id,
                 title = pulse.title,
                 description = pulse.description,
+                chronicleTexts = chronicleTextsPulseCache[pulse.id].orEmpty(),
                 tagId = pulse.tagId,
                 tagName = pulse.tagId?.let { tagNameById[it].orEmpty() }.orEmpty(),
                 createdAt = pulse.createdAt,

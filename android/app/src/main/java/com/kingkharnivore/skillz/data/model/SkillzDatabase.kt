@@ -14,6 +14,7 @@ import com.kingkharnivore.skillz.data.model.dao.OngoingSessionDao
 import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.dao.TagDao
+import com.kingkharnivore.skillz.data.model.dao.ChronicleDao
 import com.kingkharnivore.skillz.data.model.dao.shell.ShellDaoProvider
 import com.kingkharnivore.skillz.data.model.entity.ActiveArcRunEntity
 import com.kingkharnivore.skillz.data.model.entity.ArcPlanEntity
@@ -23,8 +24,13 @@ import com.kingkharnivore.skillz.data.model.entity.FlowPlanEntity
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseFlowLinkEntity
+import com.kingkharnivore.skillz.data.model.entity.PulseCreationEntity
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
+import com.kingkharnivore.skillz.data.model.entity.SessionCreationEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
+import com.kingkharnivore.skillz.data.model.entity.ChronicleEntity
+import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
+import com.kingkharnivore.skillz.data.model.entity.ChronicleMediaItemEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveCompletionEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveSkippedCycleEntity
@@ -54,8 +60,10 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
     entities = [
         TagEntity::class,
         SessionEntity::class,
+        SessionCreationEntity::class,
         PulseEntity::class,
         PulseFlowLinkEntity::class,
+        PulseCreationEntity::class,
         OngoingSessionEntity::class,
         FlowPlanEntity::class,
         ArcPlanEntity::class,
@@ -87,9 +95,12 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
         BadgeTrackingEntity::class,
         MasteryCelebrationEventEntity::class,
         BadgeCountFloorEntity::class,
-        ArcMetadataEntity::class
+        ArcMetadataEntity::class,
+        ChronicleEntity::class,
+        ChronicleMomentEntity::class,
+        ChronicleMediaItemEntity::class
     ],
-    version = 38,
+    version = 40,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
@@ -103,6 +114,7 @@ abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
     abstract fun activeArcRunDao(): ActiveArcRunDao
     abstract fun arcMetadataDao(): ArcMetadataDao
     abstract fun flowHealthDao(): FlowHealthDao
+    abstract fun chronicleDao(): ChronicleDao
     override abstract fun shellRewardEventDao(): com.kingkharnivore.skillz.data.model.dao.shell.ShellRewardEventDao
     override abstract fun objectiveDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveDao
     override abstract fun objectiveCompletionDao(): com.kingkharnivore.skillz.data.model.dao.shell.ObjectiveCompletionDao

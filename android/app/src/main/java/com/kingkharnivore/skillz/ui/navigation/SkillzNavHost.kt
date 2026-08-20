@@ -255,8 +255,9 @@ fun SkillzNavHost(
         }
 
         composable(SkillzDestinations.ADD_PULSE_ROUTE) {
+            val pulseViewModel: StoryViewModel = hiltViewModel()
             PulseScreen(
-                viewModel = storyViewModel,
+                viewModel = pulseViewModel,
                 isFlowStateActive = isFocusModeOn,
                 onDone = { popToHome(navController) },
                 onCancel = { navController.popBackStack() }

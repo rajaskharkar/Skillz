@@ -131,6 +131,25 @@ dependencies {
 
     implementation("androidx.core:core-splashscreen:1.0.1")
 
+    // Chronicle keeps a durable private copy; confirmed captures are also published to MediaStore.
+    val cameraXVersion = "1.6.1"
+    implementation("androidx.camera:camera-core:$cameraXVersion")
+    implementation("androidx.camera:camera-camera2:$cameraXVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraXVersion")
+    implementation("androidx.camera:camera-video:$cameraXVersion")
+    implementation("androidx.camera:camera-view:$cameraXVersion")
+    implementation("androidx.exifinterface:exifinterface:1.4.2")
+
+    val media3Version = "1.10.1"
+    implementation("androidx.media3:media3-exoplayer:$media3Version")
+    implementation("androidx.media3:media3-ui:$media3Version")
+
+    // Kept behind Scyra-owned speech interfaces because this API is still alpha.
+    implementation("com.google.mlkit:genai-speech-recognition:1.0.0-alpha1")
+
+    // Room 2.8 migration bundles are generated against the 1.8 serialization ABI.
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

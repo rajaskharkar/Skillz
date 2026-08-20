@@ -5,7 +5,11 @@ import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.dao.PulseDao
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.dao.TagDao
+import com.kingkharnivore.skillz.data.model.dao.ChronicleDao
+import com.kingkharnivore.skillz.data.model.dao.ChronicleSummary
 import com.kingkharnivore.skillz.data.model.dao.shell.IdeaGroveDao
+import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentType
+import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
 import com.kingkharnivore.skillz.data.model.entity.PulseEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseFlowLinkEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseGroveStatusValues
@@ -28,15 +32,17 @@ class IdeaGroveRepository @Inject constructor(
     private val pulseDao: PulseDao,
     private val pulseRepository: PulseRepository,
     private val sessionDao: SessionDao,
-    private val tagDao: TagDao
+    private val tagDao: TagDao,
+    private val chronicleDao: ChronicleDao
 ) {
     fun observeIdeaGroveItems(): Flow<List<IdeaGroveItemUiModel>> = combine(
         pulseDao.getAllPulses(),
         ideaGroveDao.observePulseFlowLinks(),
         sessionDao.getAllSessions(),
-        tagDao.getAllTags()
-    ) { pulses, links, sessions, tags ->
-        mapItems(pulses, links, sessions, tags)
+        tagDao.getAllTags(),
+        chronicleDao.observeSummaries()
+    ) { pulses, links, sessions, tags, texts ->
+        mapItems(pulses, links, sessions, tags, texts)
     }
 
     suspend fun markPulseAsInsight(pulseId: Long) {
@@ -85,7 +91,17 @@ class IdeaGroveRepository @Inject constructor(
         return PulseLaunchContext(
             pulseId = pulse.id,
             title = pulse.title,
-            description = pulse.description,
+            description = chronicleDao.find(
+                ChronicleOwnerType.PULSE,
+                pulse.id.toString()
+            )?.let { chronicle ->
+                chronicleDao.moments(chronicle.id)
+                    .firstOrNull { moment ->
+                        moment.type == ChronicleMomentType.TEXT &&
+                            !moment.text.isNullOrBlank()
+                    }
+                    ?.text
+            } ?: pulse.description,
             journeyName = journeyName
         )
     }
@@ -118,11 +134,13 @@ class IdeaGroveRepository @Inject constructor(
         pulses: List<PulseEntity>,
         links: List<PulseFlowLinkEntity>,
         sessions: List<SessionEntity>,
-        tags: List<TagEntity>
+        tags: List<TagEntity>,
+        texts: List<ChronicleSummary>
     ): List<IdeaGroveItemUiModel> {
         val tagsById = tags.associateBy { it.id }
         val sessionsById = sessions.associateBy { it.id }
         val linksByPulse = links.groupBy { it.pulseId }
+        val previews = texts.associate { "${it.ownerType}/${it.ownerKey}" to it.excerpt.orEmpty() }
 
         return pulses.map { pulse ->
             val flows = linksByPulse[pulse.id]
@@ -132,7 +150,7 @@ class IdeaGroveRepository @Inject constructor(
                     IdeaGroveFlowUiModel(
                         sessionId = session.id,
                         title = session.title,
-                        description = session.description,
+                        description = previews["SESSION/${session.id}"].orEmpty(),
                         journeyName = tagsById[session.tagId]?.name,
                         durationMs = session.durationMs,
                         startTime = session.startTime,
@@ -161,7 +179,7 @@ class IdeaGroveRepository @Inject constructor(
                 pulseId = pulse.id,
                 type = type,
                 title = pulse.title,
-                description = pulse.description,
+                description = previews["PULSE/${pulse.id}"].orEmpty(),
                 journeyName = pulse.tagId?.let { tagsById[it]?.name },
                 createdAt = pulse.createdAt,
                 updatedAt = pulse.updatedAt,

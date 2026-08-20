@@ -84,11 +84,6 @@ object AliveFlowNotificationFactory {
         val bigText = buildString {
             append(tag)
 
-            entity.description.takeIf { !it.isNullOrBlank() }?.let {
-                append("\n")
-                append(it.trim())
-            }
-
             surgeLine?.let {
                 append("\n")
                 append(it)

@@ -48,7 +48,8 @@ class ArcMetadataDaoTest {
     @Test fun metadataIsRemovedOnlyWhenFinalArcFlowIsDeleted() = runBlocking {
         val repository = FlowRepository(
             database.sessionDao(), database.tagDao(), database.pulseDao(),
-            database.arcMetadataDao(), database
+            database.arcMetadataDao(), database, database.chronicleDao(),
+            com.kingkharnivore.skillz.data.repository.ChronicleRepository(database, database.chronicleDao())
         )
         database.tagDao().insertTag(TagEntity(id = 1, name = "Journey", createdAt = 1))
         val firstId = database.sessionDao().insertSession(session(arcId = 10, arcIndex = 1))
@@ -68,7 +69,8 @@ class ArcMetadataDaoTest {
     @Test fun deletingStandaloneFlowDoesNotTouchArcMetadata() = runBlocking {
         val repository = FlowRepository(
             database.sessionDao(), database.tagDao(), database.pulseDao(),
-            database.arcMetadataDao(), database
+            database.arcMetadataDao(), database, database.chronicleDao(),
+            com.kingkharnivore.skillz.data.repository.ChronicleRepository(database, database.chronicleDao())
         )
         database.tagDao().insertTag(TagEntity(id = 1, name = "Journey", createdAt = 1))
         val standaloneId = database.sessionDao().insertSession(session(arcId = null, arcIndex = null))
@@ -81,7 +83,8 @@ class ArcMetadataDaoTest {
     @Test fun deleteSessionAndCleanupTagAlsoRemovesFinalArcMetadata() = runBlocking {
         val repository = FlowRepository(
             database.sessionDao(), database.tagDao(), database.pulseDao(),
-            database.arcMetadataDao(), database
+            database.arcMetadataDao(), database, database.chronicleDao(),
+            com.kingkharnivore.skillz.data.repository.ChronicleRepository(database, database.chronicleDao())
         )
         database.tagDao().insertTag(TagEntity(id = 1, name = "Journey", createdAt = 1))
         val finalId = database.sessionDao().insertSession(session(arcId = 10, arcIndex = 1))

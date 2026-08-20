@@ -28,6 +28,9 @@ import com.kingkharnivore.skillz.data.repository.health.HealthPermissionReposito
 import com.kingkharnivore.skillz.data.repository.shell.IdeaGroveRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.data.repository.PulseRepository
+import com.kingkharnivore.skillz.data.repository.ChronicleRepository
+import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
+import com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleStateHolder
 import com.kingkharnivore.skillz.utils.shell.ShellRewardEventRecorder
 import com.kingkharnivore.skillz.utils.shell.ShellRewardOrchestrator
 import com.kingkharnivore.skillz.utils.shell.ShellRewardResult
@@ -80,6 +83,14 @@ enum class FlowEndAction {
     COMPLETE_ARC
 }
 
+sealed interface FlowCompletionState {
+    data object Idle : FlowCompletionState
+    data object Preparing : FlowCompletionState
+    data object PreCommitFailure : FlowCompletionState
+    data class CoreCommitted(val sessionId: Long) : FlowCompletionState
+    data class Completed(val sessionId: Long) : FlowCompletionState
+}
+
 internal enum class PlannedArcAdvanceResult { Advanced, Completed, NotPlannedArc }
 
 internal fun plannedArcAdvanceResult(currentStepIndex: Int, totalSteps: Int): PlannedArcAdvanceResult =
@@ -127,6 +138,7 @@ class FlowViewModel @Inject constructor(
     private val flowHealthRepository: FlowHealthRepository,
     private val movementBonusCalculator: MovementBonusCalculator,
     private val movementBonusEligibilityPolicy: MovementBonusEligibilityPolicy,
+    private val chronicleRepository: ChronicleRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -214,6 +226,8 @@ class FlowViewModel @Inject constructor(
 
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
+    private val _completionState = MutableStateFlow<FlowCompletionState>(FlowCompletionState.Idle)
+    val completionState: StateFlow<FlowCompletionState> = _completionState.asStateFlow()
 
     private val _lastReward = MutableStateFlow<FlowRewardUiModel?>(null)
     val lastReward: StateFlow<FlowRewardUiModel?> = _lastReward.asStateFlow()
@@ -266,7 +280,14 @@ class FlowViewModel @Inject constructor(
     private var activeIntervalStartMs: Long? = null
     private var tickerJob: Job? = null
     private var ongoingCreatedAtMs: Long = System.currentTimeMillis()
-    private var currentFlowInstanceId: String = UUID.randomUUID().toString()
+    private val _chronicleOwnerKey = MutableStateFlow(UUID.randomUUID().toString())
+    val chronicleOwnerKey: StateFlow<String> = _chronicleOwnerKey.asStateFlow()
+    private var currentFlowInstanceId: String = _chronicleOwnerKey.value
+        set(value) { field = value; _chronicleOwnerKey.value = value }
+
+    fun createChronicleStateHolder(ownerKey: String) = ChronicleStateHolder(
+        ChronicleOwnerType.ACTIVE_FLOW, ownerKey, chronicleRepository, viewModelScope
+    )
 
     private var arcState: ArcRuntimeState? = null
 
@@ -556,6 +577,17 @@ class FlowViewModel @Inject constructor(
             }
 
             ongoing?.let { entity ->
+                if (sessionRepository.findCreatedSession(entity.flowInstanceId) != null) {
+                    clearOngoing()
+                    currentFlowInstanceId = UUID.randomUUID().toString()
+                    ongoingCreatedAtMs = System.currentTimeMillis()
+                    _uiState.value = FlowUiState(
+                        showScoreUi = _uiState.value.showScoreUi,
+                        calmMode = _uiState.value.calmMode
+                    )
+                    syncArcUi()
+                    return@launch
+                }
                 val shouldOverrideDraft = hasLaunchOverrides && shouldTreatOngoingAsDraft(entity)
 
                 if (shouldOverrideDraft) {
@@ -611,7 +643,7 @@ class FlowViewModel @Inject constructor(
                     _uiState.update { old ->
                         old.copy(
                             title = entity.title,
-                            description = entity.description,
+                            description = "",
                             tagName = entity.tagName,
                             isInFlowMode = entity.isInFlowMode,
                             isSoftMode = entity.isSoftMode,
@@ -675,11 +707,6 @@ class FlowViewModel @Inject constructor(
 
     fun onTitleChange(newTitle: String) {
         _uiState.update { it.copy(title = newTitle) }
-        saveOngoing()
-    }
-
-    fun onDescriptionChange(newDescription: String) {
-        _uiState.update { it.copy(description = newDescription) }
         saveOngoing()
     }
 
@@ -1048,7 +1075,7 @@ class FlowViewModel @Inject constructor(
             id = 1,
             flowInstanceId = currentFlowInstanceId,
             title = state.title,
-            description = state.description,
+            description = "",
             tagName = state.tagName,
             isInFlowMode = state.isInFlowMode,
             isRunning = state.stopwatch.isRunning,
@@ -1144,6 +1171,10 @@ class FlowViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                // The previous owner is complete, but the next owner must start mutable.
+                // Leaving this as Completed caused the new Chronicle holder to close as
+                // soon as Compose observed its new owner key.
+                _completionState.value = FlowCompletionState.Idle
                 if (!hasPreparedShellContinuation) {
                     val advanceResult = advancePlannedArcAfterCompletedSession(continuationOrigin)
                     if (advanceResult != PlannedArcAdvanceResult.Advanced) {
@@ -1215,6 +1246,7 @@ class FlowViewModel @Inject constructor(
 
     fun onEndFlowClicked(action: FlowEndAction) {
         if (_isSaving.value) return
+        _completionState.value = FlowCompletionState.Preparing
         viewModelScope.launch {
             saveWithArcBehavior(endMode = action)
         }
@@ -1318,19 +1350,23 @@ class FlowViewModel @Inject constructor(
     }
 
     private suspend fun saveWithArcBehavior(endMode: FlowEndAction) {
+        val completingFlowInstanceId = currentFlowInstanceId
+        var committedSessionId: Long? = null
         val state = _uiState.value
         val title = state.title.trim()
         val tagName = state.tagName.trim()
-        val description = state.description.trim()
+        val description = ""
 
         if (title.isBlank() || tagName.isBlank()) {
             _error.value = "Title and Skill are required"
+            _completionState.value = FlowCompletionState.PreCommitFailure
             return
         }
 
         val realDurationMs = state.stopwatch.elapsedMs.coerceAtLeast(0L)
-        if (isZeroDuration(realDurationMs)) {
+        if (endMode != FlowEndAction.CONTINUE_ARC && isZeroDuration(realDurationMs)) {
             _error.value = "Start the timer before saving."
+            _completionState.value = FlowCompletionState.PreCommitFailure
             return
         }
 
@@ -1388,18 +1424,15 @@ class FlowViewModel @Inject constructor(
             val isInExistingArc = localArc != null
 
             if (!state.isSoftMode && !isInExistingArc && endMode == FlowEndAction.CONTINUE_ARC) {
-                val firstSessionId = sessionRepository.addSession(
-                    title = title,
-                    description = description,
-                    tagId = tagId,
-                    startTime = sessionStart,
-                    endTime = sessionEnd,
-                    durationMs = realDurationMs,
-                    surgePlannedMs = state.surgePlannedMs,
-                    surgePoints = surgePoints,
-                    scyraPoints = beforeArc,
-                    isSoftMode = state.isSoftMode
+                val firstSessionId = sessionRepository.addSessionAndPromoteChronicle(
+                    currentFlowInstanceId,
+                    SessionEntity(title = title, description = "", tagId = tagId,
+                        startTime = sessionStart, endTime = sessionEnd, durationMs = realDurationMs,
+                        surgePlannedMs = state.surgePlannedMs, surgePoints = surgePoints,
+                        scyraPoints = beforeArc, isSoftMode = state.isSoftMode)
                 )
+                committedSessionId = firstSessionId
+                _completionState.value = FlowCompletionState.CoreCommitted(firstSessionId)
 
                 val arcId = System.currentTimeMillis()
 
@@ -1500,6 +1533,7 @@ class FlowViewModel @Inject constructor(
                 aliveFlowServiceController.stop()
                 clearOngoing()
 
+                _completionState.value = FlowCompletionState.Completed(firstSessionId)
                 return
             }
 
@@ -1553,18 +1587,15 @@ class FlowViewModel @Inject constructor(
                 }
             }
 
-            val insertedId = sessionRepository.addSession(
-                title = title,
-                description = description,
-                tagId = tagId,
-                startTime = sessionStart,
-                endTime = sessionEnd,
-                durationMs = realDurationMs,
-                surgePlannedMs = state.surgePlannedMs,
-                surgePoints = surgePoints,
-                scyraPoints = finalScyra,
-                isSoftMode = state.isSoftMode
+            val insertedId = sessionRepository.addSessionAndPromoteChronicle(
+                currentFlowInstanceId,
+                SessionEntity(title = title, description = "", tagId = tagId,
+                    startTime = sessionStart, endTime = sessionEnd, durationMs = realDurationMs,
+                    surgePlannedMs = state.surgePlannedMs, surgePoints = surgePoints,
+                    scyraPoints = finalScyra, isSoftMode = state.isSoftMode)
             )
+            committedSessionId = insertedId
+            _completionState.value = FlowCompletionState.CoreCommitted(insertedId)
 
             pulseRepository.attachLivePulsesToSession(
                 flowInstanceId = currentFlowInstanceId,
@@ -1835,8 +1866,13 @@ class FlowViewModel @Inject constructor(
                     clearOngoing()
                 }
             }
+            _completionState.value = FlowCompletionState.Completed(insertedId)
         } catch (e: Exception) {
             _error.value = e.message ?: "Failed to save session"
+            val durableSessionId = committedSessionId
+                ?: sessionRepository.findCreatedSession(completingFlowInstanceId)
+            _completionState.value = durableSessionId?.let(FlowCompletionState::CoreCommitted)
+                ?: FlowCompletionState.PreCommitFailure
         } finally {
             _isSaving.value = false
         }

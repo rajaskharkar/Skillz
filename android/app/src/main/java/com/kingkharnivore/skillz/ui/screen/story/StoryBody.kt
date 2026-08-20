@@ -35,11 +35,11 @@ fun StoryBody(
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
     onDeletePulse: (Long) -> Unit,
-    onUpdatePulse: (Long, String, String, String) -> Unit,
-    onUpdateSessionDescription: (Long, String) -> Unit,
+    onUpdatePulse: (Long, String, String) -> Unit,
     onCreatePulseForSession: (Long, String, String, String) -> Unit,
     onOpenViewJourneys: (Long) -> Unit,
-    onEditArc: (Long) -> Unit
+    onEditArc: (Long) -> Unit,
+    createHistoricalChronicle: (String, String) -> com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleReadState
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         when {
@@ -64,14 +64,14 @@ fun StoryBody(
                     onSessionClick = onSessionClick,
                     onDeleteSession = onDeleteSession,
                     onDeletePulse = onDeletePulse,
-                    onUpdateSessionDescription = onUpdateSessionDescription,
                     onUpdatePulse = onUpdatePulse,
                     onCreatePulseForSession = onCreatePulseForSession,
                     onAddSessionClick = onAddSessionClick,
                     extraTopContent = if (isFlowStateActive) {
                         { FlowModeHeroCard(onGoToActiveSession = onGoToActiveSession) }
                     } else null,
-                    onEditArc = onEditArc
+                    onEditArc = onEditArc,
+                    createHistoricalChronicle = createHistoricalChronicle
                 )
             }
         }

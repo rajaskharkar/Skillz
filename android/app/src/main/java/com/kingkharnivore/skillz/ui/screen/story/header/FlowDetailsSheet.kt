@@ -47,10 +47,10 @@ fun FlowDetailsSheet(
     editState: SessionEditState,
     tags: List<TagUiModel>,
     childPulses: List<PulseListItemUiModel>,
-    onSaveNotes: (sessionId: Long, newText: String) -> Unit,
     onCreatePulse: (sessionId: Long, title: String, description: String, tagName: String) -> Unit,
     onDeletePulse: (Long) -> Unit,
-    onEditPulse: (PulseListItemUiModel) -> Unit
+    onEditPulse: (PulseListItemUiModel) -> Unit,
+    chronicleMoments: List<com.kingkharnivore.skillz.model.ui.ChronicleMomentUi>
 ) {
     val session = editState.editingSession.value ?: return
 
@@ -67,10 +67,7 @@ fun FlowDetailsSheet(
             R.string.flow_details_type_flow
         }
     )
-    val notesTitle = stringResource(R.string.flow_details_notes_title)
-    val notesPlaceholder = stringResource(R.string.flow_details_notes_placeholder)
     val closeText = stringResource(R.string.common_close)
-    val saveNotesText = stringResource(R.string.flow_details_save_notes)
     val pulsesTitle = stringResource(R.string.flow_details_pulses_title)
     val pulsesSubtitle = stringResource(R.string.flow_details_pulses_subtitle)
     val noPulsesText = stringResource(R.string.flow_details_no_pulses)
@@ -105,9 +102,6 @@ fun FlowDetailsSheet(
             .joinToString(" • ")
     }
 
-    LaunchedEffect(session.sessionId) {
-        editState.editText.value = session.description
-    }
 
     ModalBottomSheet(
         onDismissRequest = { editState.stopEditing() }
@@ -160,42 +154,14 @@ fun FlowDetailsSheet(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = notesTitle,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.semantics { heading() }
-                )
-                OutlinedTextField(
-                    value = editState.editText.value,
-                    onValueChange = { editState.editText.value = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 4,
-                    maxLines = 8,
-                    placeholder = {
-                        Text(notesPlaceholder)
-                    }
-                )
-
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButton(
-                        onClick = { editState.stopEditing() }
-                    ) {
-                        Text(closeText)
-                    }
-
-                    Button(
-                        onClick = {
-                            onSaveNotes(session.sessionId, editState.editText.value)
-                        }
-                    ) {
-                        Text(saveNotesText)
-                    }
+            if (chronicleMoments.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                    Text(stringResource(R.string.chronicle_title), style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold)
+                    com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleReader(chronicleMoments)
                 }
+                HorizontalDivider()
             }
-
-            HorizontalDivider()
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(

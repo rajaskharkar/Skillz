@@ -7,6 +7,9 @@ import com.kingkharnivore.skillz.data.model.dao.ArcMetadataDao
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import androidx.room.withTransaction
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
+import com.kingkharnivore.skillz.data.model.dao.ChronicleDao
+import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
+import com.kingkharnivore.skillz.data.model.entity.SessionCreationEntity
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
@@ -15,8 +18,12 @@ class FlowRepository @Inject constructor(
     private val tagDao: TagDao,
     private val pulseDao: PulseDao,
     private val arcMetadataDao: ArcMetadataDao,
-    private val database: SkillzDatabase
+    private val database: SkillzDatabase,
+    private val chronicleDao: ChronicleDao,
+    private val chronicleRepository: ChronicleRepository
 ) {
+    suspend fun findCreatedSession(flowInstanceId: String): Long? =
+        sessionDao.findCreatedSession(flowInstanceId)
 
     fun getAllSessions(): Flow<List<SessionEntity>> =
         sessionDao.getAllSessions()
@@ -24,32 +31,17 @@ class FlowRepository @Inject constructor(
     fun getSessionsForTag(tagId: Long): Flow<List<SessionEntity>> =
         sessionDao.getSessionsForTag(tagId)
 
-    suspend fun addSession(
-        title: String,
-        description: String,
-        tagId: Long,
-        startTime: Long,
-        endTime: Long,
-        durationMs: Long,
-        surgePlannedMs: Long?,
-        surgePoints: Int,
-        scyraPoints: Int,
-        isSoftMode: Boolean = false
-    ): Long {
-        val session = SessionEntity(
-            title = title,
-            description = description,
-            tagId = tagId,
-            startTime = startTime,
-            endTime = endTime,
-            durationMs = durationMs,
-            surgePlannedMs = surgePlannedMs,
-            surgePoints = surgePoints,
-            scyraPoints = scyraPoints,
-            isSoftMode = isSoftMode
-        )
-        return sessionDao.insertSession(session)
-    }
+    suspend fun addSessionAndPromoteChronicle(flowInstanceId: String, session: SessionEntity): Long =
+        chronicleRepository.finalizeOwner(ChronicleOwnerType.ACTIVE_FLOW, flowInstanceId) {
+          database.withTransaction {
+            sessionDao.findCreatedSession(flowInstanceId)?.let { return@withTransaction it }
+            val id = sessionDao.insertSession(session)
+            chronicleDao.promote(ChronicleOwnerType.ACTIVE_FLOW, flowInstanceId,
+                ChronicleOwnerType.SESSION, id.toString(), System.currentTimeMillis())
+            sessionDao.insertCreation(SessionCreationEntity(flowInstanceId, id, System.currentTimeMillis()))
+            id
+          }
+        }
 
     suspend fun deleteSessionAndCleanupTag(sessionId: Long): Long? {
         val session = sessionDao.getSessionById(sessionId) ?: return null
@@ -68,27 +60,22 @@ class FlowRepository @Inject constructor(
         }
     }
 
-    suspend fun updateSessionDescription(sessionId: Long, description: String) {
-        sessionDao.updateSessionDescription(sessionId, description)
-    }
-
     suspend fun deleteSession(sessionId: Long) {
         deleteSessionTransactionally(sessionId)
     }
 
     private suspend fun deleteSessionTransactionally(sessionId: Long) {
+        val chronicleId = chronicleDao.find(ChronicleOwnerType.SESSION, sessionId.toString())?.id
         database.withTransaction {
             val arcId = sessionDao.getSessionById(sessionId)?.arcId
+            chronicleDao.delete(ChronicleOwnerType.SESSION, sessionId.toString())
             pulseDao.detachPulsesFromSession(sessionId)
             sessionDao.deleteSessionById(sessionId)
             if (arcId != null && sessionDao.getSessionCountForArc(arcId) == 0) {
                 arcMetadataDao.delete(arcId)
             }
         }
-    }
-
-    suspend fun insertSession(session: SessionEntity) {
-        sessionDao.insertSession(session)
+        if (chronicleId != null) chronicleRepository.cleanupDeletedChronicle(chronicleId)
     }
 
     suspend fun updateArcFields(

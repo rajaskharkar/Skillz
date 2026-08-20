@@ -25,6 +25,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -54,6 +56,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -69,7 +72,12 @@ import com.kingkharnivore.skillz.ui.screen.flow.reward.SessionRewardContent
 import com.kingkharnivore.skillz.ui.screen.flow.reward.SoftSessionRewardContent
 import com.kingkharnivore.skillz.ui.health.MovementBonusActivePill
 import com.kingkharnivore.skillz.viewmodel.FlowEndAction
+import com.kingkharnivore.skillz.viewmodel.FlowCompletionState
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
+import com.kingkharnivore.skillz.ui.screen.chronicle.ChroniclePage
+import com.kingkharnivore.skillz.ui.screen.chronicle.ChroniclePagerSelector
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 internal enum class FlowCompletionControls { StandaloneSoft, ArcActions, RegularActions }
 internal enum class RewardShellEntry { ConsumeTerminalExit, PreserveContinuation }
@@ -95,6 +103,9 @@ internal fun shellNavigationMode(entry: RewardShellEntry): ShellNavigationMode =
         RewardShellEntry.PreserveContinuation -> ShellNavigationMode.PreservePreparedFlow
     }
 
+internal fun canContinueArc(title: String, journey: String, isSaving: Boolean): Boolean =
+    title.isNotBlank() && journey.isNotBlank() && !isSaving
+
 @Composable
 fun FlowScreen(
     viewModel: FlowViewModel,
@@ -117,6 +128,7 @@ fun FlowScreen(
     var showPulseDialog by remember { mutableStateOf(false) }
     var showSoftArcConfirmDialog by remember { mutableStateOf(false) }
     var showArcIdeaContinuationDialog by remember { mutableStateOf(false) }
+    var pendingChronicleEnd by remember { mutableStateOf<FlowEndAction?>(null) }
 
     var surgeMinutesInput by remember { mutableStateOf("") }
     var surgeMinutesInline by rememberSaveable { mutableStateOf("") }
@@ -130,6 +142,31 @@ fun FlowScreen(
     val isInFlowState = uiState.isInFlowMode
     val hasTime = stopwatchState.elapsedMs > 0L
     val modeLocked = viewModel.isModeLocked()
+    val chronicleOwnerKey by viewModel.chronicleOwnerKey.collectAsState()
+    val chronicleHolder = remember(chronicleOwnerKey) { viewModel.createChronicleStateHolder(chronicleOwnerKey) }
+    val chronicleUiState by chronicleHolder.state.collectAsState()
+    val chronicleBlocksPager = chronicleUiState.blocksPager
+    DisposableEffect(chronicleHolder) { onDispose { chronicleHolder.close() } }
+    val completionState by viewModel.completionState.collectAsState()
+    LaunchedEffect(completionState, chronicleHolder) {
+        when (completionState) {
+            FlowCompletionState.PreCommitFailure -> chronicleHolder.resumeAfterPreCommitFailure()
+            is FlowCompletionState.CoreCommitted,
+            is FlowCompletionState.Completed -> chronicleHolder.finalizeTransition()
+            FlowCompletionState.Idle,
+            FlowCompletionState.Preparing -> Unit
+        }
+    }
+    val pagerState = rememberPagerState(pageCount = { 2 })
+    val pagerScope = rememberCoroutineScope()
+    fun requestEnd(action: FlowEndAction) {
+        val chronicle = chronicleHolder.state.value
+        if (chronicle.blocksCompletion || chronicle.draft.isNotBlank()) {
+            pendingChronicleEnd = action
+            pagerScope.launch { pagerState.animateScrollToPage(1) }
+        }
+        else viewModel.onEndFlowClicked(action)
+    }
 
     LaunchedEffect(reward) {
         if (reward != null) showPointsDialog = true
@@ -194,9 +231,24 @@ fun FlowScreen(
         }
     ) { innerPadding ->
 
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+            ChroniclePagerSelector(
+                selectedPage = pagerState.currentPage,
+                primaryIcon = Icons.Outlined.AutoAwesome,
+                primaryLabel = stringResource(R.string.flow_screen_title),
+                primaryContentDescription = stringResource(R.string.flow_screen_title),
+                chronicleLabel = stringResource(R.string.chronicle_title),
+                chronicleContentDescription = stringResource(R.string.chronicle_title),
+                canLeaveChronicle = !chronicleBlocksPager,
+                onPageSelected = { page -> pagerScope.launch { pagerState.animateScrollToPage(page) } },
+            )
+            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f), userScrollEnabled = !chronicleBlocksPager) { page ->
+                if (page == 1) {
+                    ChroniclePage(chronicleHolder)
+                    return@HorizontalPager
+                }
         Column(
             modifier = Modifier
-                .padding(innerPadding)
                 .padding(horizontal = 16.dp, vertical = 12.dp)
                 .verticalScroll(rememberScrollState())
                 .imePadding(),
@@ -462,13 +514,6 @@ fun FlowScreen(
                 }
             }
 
-            RitualCard(rotation = 0.16f, corner = 28.dp) {
-                ChronicleField(
-                    value = uiState.description,
-                    onValueChange = viewModel::onDescriptionChange
-                )
-            }
-
             if (error != null) {
                 Text(
                     text = error ?: "",
@@ -487,7 +532,7 @@ fun FlowScreen(
                             hasTime &&
                             !isSaving &&
                             !isInFlowState,
-                    onClick = { viewModel.onEndFlowClicked(FlowEndAction.SAVE_FLOW) },
+                    onClick = { requestEnd(FlowEndAction.SAVE_FLOW) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp)
                 ) {
@@ -502,12 +547,8 @@ fun FlowScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedButton(
-                        enabled = uiState.title.isNotBlank() &&
-                                uiState.tagName.isNotBlank() &&
-                                hasTime &&
-                                !isSaving &&
-                                !isInFlowState,
-                        onClick = { viewModel.onEndFlowClicked(FlowEndAction.CONTINUE_ARC) },
+                        enabled = canContinueArc(uiState.title, uiState.tagName, isSaving),
+                        onClick = { requestEnd(FlowEndAction.CONTINUE_ARC) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(18.dp)
                     ) {
@@ -532,7 +573,7 @@ fun FlowScreen(
                                 hasTime &&
                                 !isSaving &&
                                 !isInFlowState,
-                        onClick = { viewModel.onEndFlowClicked(completeAction) },
+                        onClick = { requestEnd(completeAction) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(18.dp)
                     ) {
@@ -543,6 +584,33 @@ fun FlowScreen(
 
             Spacer(Modifier.height(10.dp))
         }
+            }
+        }
+    }
+
+    pendingChronicleEnd?.let { action ->
+        val chronicle = chronicleHolder.state.value
+        AlertDialog(
+            onDismissRequest = { pendingChronicleEnd = null },
+            title = { Text(stringResource(if (chronicle.blocksCompletion) R.string.chronicle_finish_edit else R.string.chronicle_unfinished)) },
+            confirmButton = {
+                if (!chronicle.blocksCompletion && chronicle.draft.isNotBlank()) TextButton(onClick = {
+                    chronicleHolder.add {
+                        chronicleHolder.quiesce { pendingChronicleEnd = null; viewModel.onEndFlowClicked(action) }
+                    }
+                }) { Text(stringResource(R.string.chronicle_add_moment)) }
+            },
+            dismissButton = {
+                Row {
+                    if (!chronicle.blocksCompletion && chronicle.draft.isNotBlank()) TextButton(onClick = {
+                        chronicleHolder.discardDraft {
+                            chronicleHolder.quiesce { pendingChronicleEnd = null; viewModel.onEndFlowClicked(action) }
+                        }
+                    }) { Text(stringResource(R.string.chronicle_discard)) }
+                    TextButton(onClick = { pendingChronicleEnd = null }) { Text(stringResource(R.string.common_cancel)) }
+                }
+            }
+        )
     }
 
     if (showSoftArcConfirmDialog) {

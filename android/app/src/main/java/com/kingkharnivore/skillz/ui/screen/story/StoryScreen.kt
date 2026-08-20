@@ -64,12 +64,10 @@ class ExpandedArcIdsState(
 }
 
 class SessionEditState(
-    val editingSession: MutableState<FlowListItemUiModel?>,
-    val editText: MutableState<String>
+    val editingSession: MutableState<FlowListItemUiModel?>
 ) {
     fun startEditing(session: FlowListItemUiModel) {
         editingSession.value = session
-        editText.value = session.description
     }
 
     fun stopEditing() {
@@ -80,13 +78,11 @@ class SessionEditState(
 class PulseEditState(
     val editingPulse: MutableState<PulseListItemUiModel?>,
     val editTitle: MutableState<String>,
-    val editDescription: MutableState<String>,
     val editTagName: MutableState<String>
 ) {
     fun startEditing(pulse: PulseListItemUiModel) {
         editingPulse.value = pulse
         editTitle.value = pulse.title
-        editDescription.value = pulse.description
         editTagName.value = pulse.tagName
     }
 
@@ -99,9 +95,8 @@ class PulseEditState(
 fun rememberPulseEditState(): PulseEditState {
     val editingPulse = remember { mutableStateOf<PulseListItemUiModel?>(null) }
     val editTitle = remember { mutableStateOf("") }
-    val editDescription = remember { mutableStateOf("") }
     val editTagName = remember { mutableStateOf("") }
-    return remember { PulseEditState(editingPulse, editTitle, editDescription, editTagName) }
+    return remember { PulseEditState(editingPulse, editTitle, editTagName) }
 }
 
 @Composable
@@ -158,10 +153,10 @@ fun StoryScreen(
                 onDeleteSession = viewModel::deleteSession,
                 onDeletePulse = viewModel::deletePulse,
                 onUpdatePulse = viewModel::updatePulse,
-                onUpdateSessionDescription = viewModel::updateSessionDescription,
                 onCreatePulseForSession = viewModel::createPulseForSession,
                 onOpenViewJourneys = viewModel::openViewJourneys,
-                onEditArc = viewModel::openArcEditor
+                onEditArc = viewModel::openArcEditor,
+                createHistoricalChronicle = viewModel::createHistoricalChronicle
             )
 
             ArcDetailsSheet(arcEditorState, viewModel::updateArcEditor, viewModel::requestCloseArcEditor,
@@ -186,8 +181,7 @@ fun rememberExpandedSessionIdsState(): ExpandedSessionIdsState {
 @Composable
 fun rememberSessionEditState(): SessionEditState {
     val editingSession = remember { mutableStateOf<FlowListItemUiModel?>(null) }
-    val editText = remember { mutableStateOf("") }
-    return remember { SessionEditState(editingSession, editText) }
+    return remember { SessionEditState(editingSession) }
 }
 
 @Composable

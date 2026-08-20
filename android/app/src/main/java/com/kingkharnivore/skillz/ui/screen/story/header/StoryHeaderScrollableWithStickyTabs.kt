@@ -23,6 +23,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -60,12 +63,12 @@ fun StoryHeaderScrollableWithStickyTabs(
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
     onDeletePulse: (Long) -> Unit,
-    onUpdateSessionDescription: (Long, String) -> Unit,
-    onUpdatePulse: (Long, String, String, String) -> Unit,
+    onUpdatePulse: (Long, String, String) -> Unit,
     onCreatePulseForSession: (Long, String, String, String) -> Unit,
     onAddSessionClick: () -> Unit,
     extraTopContent: (@Composable () -> Unit)? = null,
-    onEditArc: (Long) -> Unit
+    onEditArc: (Long) -> Unit,
+    createHistoricalChronicle: (String, String) -> com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleReadState
 ) {
     var tab by rememberSaveable { mutableStateOf(StoryTab.CHRONICLES) }
 
@@ -79,20 +82,34 @@ fun StoryHeaderScrollableWithStickyTabs(
     var expandedPulseIds by rememberSaveable { mutableStateOf(setOf<Long>()) }
 
     val editingFlow = editState.editingSession.value
+    val historicalHolder = editingFlow?.let { flow ->
+        remember(flow.sessionId) { createHistoricalChronicle("SESSION", flow.sessionId.toString()) }
+    }
+    DisposableEffect(historicalHolder) {
+        onDispose { historicalHolder?.close() }
+    }
+    val historicalMoments = historicalHolder?.moments?.collectAsState()?.value.orEmpty()
+    val editingPulse = pulseEditState.editingPulse.value
+    val pulseHistoricalHolder = editingPulse?.let { pulse ->
+        remember(pulse.pulseId) { createHistoricalChronicle("PULSE", pulse.pulseId.toString()) }
+    }
+    DisposableEffect(pulseHistoricalHolder) { onDispose { pulseHistoricalHolder?.close() } }
+    val pulseHistoricalMoments = pulseHistoricalHolder?.moments?.collectAsState()?.value.orEmpty()
     FlowDetailsSheet(
         editState = editState,
         tags = uiState.tags,
         childPulses = editingFlow?.let { uiState.pulsesBySessionId[it.sessionId].orEmpty() }.orEmpty(),
-        onSaveNotes = { id, text -> onUpdateSessionDescription(id, text) },
         onCreatePulse = onCreatePulseForSession,
         onDeletePulse = onDeletePulse,
-        onEditPulse = { pulse -> pulseEditState.startEditing(pulse) }
+        onEditPulse = { pulse -> pulseEditState.startEditing(pulse) },
+        chronicleMoments = historicalMoments
     )
 
     PulseEditSheet(
         editState = pulseEditState,
         tags = uiState.tags,
-        onSave = onUpdatePulse
+        onSave = onUpdatePulse,
+        chronicleMoments = pulseHistoricalMoments
     )
 
     LazyColumn(

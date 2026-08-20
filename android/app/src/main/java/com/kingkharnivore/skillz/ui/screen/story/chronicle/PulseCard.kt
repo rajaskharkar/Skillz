@@ -258,7 +258,7 @@ fun PulseCard(
             Spacer(Modifier.height(10.dp))
 
             Text(
-                text = pulse.description,
+                text = pulse.chronicleTexts.joinToString("\n\n").ifBlank { pulse.description },
                 style = MaterialTheme.typography.bodyMedium,
                 color = contentColor,
                 maxLines = if (isExpanded) Int.MAX_VALUE else 2,

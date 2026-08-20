@@ -2,6 +2,8 @@ package com.kingkharnivore.skillz.data.model
 
 import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.db.SupportSQLiteOpenHelper
+import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kingkharnivore.skillz.data.model.migration.SkillzDatabaseMigrations
@@ -117,16 +119,16 @@ class SkillzMigrationTest {
 
     @Test
     fun migration13To14CreatesShellTables() {
-        helper.createDatabase(TEST_DB, 13).apply {
+        createLegacyDatabase(TEST_DB, 13).apply {
             createVersion13CoreTables()
             close()
         }
 
         val db = helper.runMigrationsAndValidate(
             TEST_DB,
-            14,
+            CURRENT_VERSION,
             true,
-            SkillzDatabaseMigrations.MIGRATION_13_14
+            *SkillzDatabaseMigrations.ALL_MIGRATIONS
         )
 
         SHELL_TABLES.forEach { tableName ->
@@ -137,7 +139,7 @@ class SkillzMigrationTest {
 
     @Test
     fun migration14To15CreatesShellRewardEventTable() {
-        helper.createDatabase(TEST_DB, 14).apply {
+        createLegacyDatabase(TEST_DB, 14).apply {
             createVersion13CoreTables()
             SkillzDatabaseMigrations.MIGRATION_13_14.migrate(this)
             close()
@@ -145,9 +147,9 @@ class SkillzMigrationTest {
 
         val db = helper.runMigrationsAndValidate(
             TEST_DB,
-            15,
+            CURRENT_VERSION,
             true,
-            SkillzDatabaseMigrations.MIGRATION_14_15
+            *SkillzDatabaseMigrations.ALL_MIGRATIONS
         )
 
         assertTrue("Expected shell_reward_event to exist after 14→15", db.tableExists("shell_reward_event"))
@@ -156,7 +158,7 @@ class SkillzMigrationTest {
 
     @Test
     fun migration15To16NormalizesTheBlueRoomIds() {
-        helper.createDatabase(TEST_DB, 15).apply {
+        createLegacyDatabase(TEST_DB, 15).apply {
             createVersion13CoreTables()
             SkillzDatabaseMigrations.MIGRATION_13_14.migrate(this)
             SkillzDatabaseMigrations.MIGRATION_14_15.migrate(this)
@@ -173,9 +175,9 @@ class SkillzMigrationTest {
 
         val db = helper.runMigrationsAndValidate(
             TEST_DB,
-            16,
+            CURRENT_VERSION,
             true,
-            SkillzDatabaseMigrations.MIGRATION_15_16
+            *SkillzDatabaseMigrations.ALL_MIGRATIONS
         )
 
         assertEquals(1, db.countRows("user_shell_room_state", "roomId = ?", arrayOf("THE_BLUE")))
@@ -187,7 +189,7 @@ class SkillzMigrationTest {
 
     @Test
     fun migration16To17AddsCreatureEconomyFieldsSafely() {
-        helper.createDatabase(TEST_DB, 16).apply {
+        createLegacyDatabase(TEST_DB, 16).apply {
             createVersion13CoreTables()
             SkillzDatabaseMigrations.MIGRATION_13_14.migrate(this)
             SkillzDatabaseMigrations.MIGRATION_14_15.migrate(this)
@@ -200,9 +202,9 @@ class SkillzMigrationTest {
 
         val db = helper.runMigrationsAndValidate(
             TEST_DB,
-            17,
+            CURRENT_VERSION,
             true,
-            SkillzDatabaseMigrations.MIGRATION_16_17
+            *SkillzDatabaseMigrations.ALL_MIGRATIONS
         )
 
         db.query("SELECT `animalLevel`, `creatureStatus` FROM `user_shell_find_instance` WHERE `instanceId` = 'animal-1'").use { cursor ->
@@ -215,7 +217,7 @@ class SkillzMigrationTest {
 
     @Test
     fun migration18To23CreatesObjectiveClaimSchemaIdeaGroveAndKeepsSessions() {
-        helper.createDatabase(TEST_DB, 18).apply {
+        createLegacyDatabase(TEST_DB, 18).apply {
             createVersion13CoreTables()
             SkillzDatabaseMigrations.MIGRATION_13_14.migrate(this)
             SkillzDatabaseMigrations.MIGRATION_14_15.migrate(this)
@@ -228,13 +230,9 @@ class SkillzMigrationTest {
 
         val db = helper.runMigrationsAndValidate(
             TEST_DB,
-            23,
+            CURRENT_VERSION,
             true,
-            SkillzDatabaseMigrations.MIGRATION_18_19,
-            SkillzDatabaseMigrations.MIGRATION_19_20,
-            SkillzDatabaseMigrations.MIGRATION_20_21,
-            SkillzDatabaseMigrations.MIGRATION_21_22,
-            SkillzDatabaseMigrations.MIGRATION_22_23
+            *SkillzDatabaseMigrations.ALL_MIGRATIONS
         )
 
         assertTrue("Expected objectives table after 18→23", db.tableExists("objectives"))
@@ -256,13 +254,17 @@ class SkillzMigrationTest {
 
     @Test
     fun legacyDirectMigrationCreatesFinalObjectiveClaimSchema() {
-        helper.createDatabase(TEST_DB, 12).apply {
+        createLegacyDatabase(TEST_DB, 12).apply {
+            execSQL("CREATE TABLE `skills` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `createdAt` INTEGER NOT NULL)")
+            execSQL("INSERT INTO `skills` (`id`,`name`,`createdAt`) VALUES (7,'Legacy Journey',11)")
+            execSQL("CREATE TABLE `sessions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `notes` TEXT, `skillId` INTEGER, `startTime` INTEGER, `endTime` INTEGER, `durationMs` INTEGER, `createdAt` INTEGER)")
+            execSQL("INSERT INTO `sessions` (`id`,`notes`,`skillId`,`startTime`,`endTime`,`durationMs`,`createdAt`) VALUES (9,'Exact legacy Flow — कहानी 🌱',7,12,34,22,44)")
             close()
         }
 
         val db = helper.runMigrationsAndValidate(
             TEST_DB,
-            23,
+            CURRENT_VERSION,
             true,
             *SkillzDatabaseMigrations.ALL_MIGRATIONS
         )
@@ -272,6 +274,26 @@ class SkillzMigrationTest {
         db.assertColumn("objective_completions", "pearlsClaimed", notNull = 1, defaultValue = "0")
         db.assertColumn("objective_completions", "pearlsClaimedAt", notNull = 0, defaultValue = null)
         db.assertColumn("objective_completions", "badgeGranted", notNull = 1, defaultValue = "1")
+        db.query("SELECT name,createdAt FROM tags WHERE id=7").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("Legacy Journey", cursor.getString(0))
+            assertEquals(11L, cursor.getLong(1))
+        }
+        db.query("SELECT title,description,tagId,startTime,endTime,durationMs,createdAt FROM sessions WHERE id=9").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("Exact legacy Flow — कहानी 🌱", cursor.getString(0))
+            assertEquals("Exact legacy Flow — कहानी 🌱", cursor.getString(1))
+            assertEquals(7L, cursor.getLong(2))
+            assertEquals(12L, cursor.getLong(3))
+            assertEquals(34L, cursor.getLong(4))
+            assertEquals(22L, cursor.getLong(5))
+            assertEquals(44L, cursor.getLong(6))
+        }
+        db.query("SELECT m.text FROM chronicles c JOIN chronicle_moments m ON m.chronicleId=c.id WHERE c.ownerType='SESSION' AND c.ownerKey='9'").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("Exact legacy Flow — कहानी 🌱", cursor.getString(0))
+        }
+        db.close()
     }
 
     @Test
@@ -305,13 +327,50 @@ class SkillzMigrationTest {
 
     private fun SupportSQLiteDatabase.createVersion13CoreTables() {
         execSQL("CREATE TABLE IF NOT EXISTS `tags` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `createdAt` INTEGER NOT NULL)")
-        execSQL("CREATE TABLE IF NOT EXISTS `sessions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `tagId` INTEGER NOT NULL, `startTime` INTEGER NOT NULL, `endTime` INTEGER NOT NULL, `durationMs` INTEGER NOT NULL, `surgePlannedMs` INTEGER, `surgePoints` INTEGER NOT NULL, `scyraPoints` INTEGER NOT NULL, `isSoftMode` INTEGER NOT NULL, `arcId` INTEGER, `arcIndex` INTEGER, `arcMultiplierUsed` REAL, `arcBonusPoints` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)")
+        execSQL("CREATE TABLE IF NOT EXISTS `sessions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `tagId` INTEGER NOT NULL, `startTime` INTEGER NOT NULL, `endTime` INTEGER NOT NULL, `durationMs` INTEGER NOT NULL, `surgePlannedMs` INTEGER, `surgePoints` INTEGER NOT NULL, `scyraPoints` INTEGER NOT NULL, `isSoftMode` INTEGER NOT NULL, `arcId` INTEGER, `arcIndex` INTEGER, `arcMultiplierUsed` REAL, `arcBonusPoints` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`tagId`) REFERENCES `tags`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
         execSQL("CREATE TABLE IF NOT EXISTS `ongoing_session` (`id` INTEGER NOT NULL, `flowInstanceId` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `tagName` TEXT NOT NULL, `isInFlowMode` INTEGER NOT NULL, `isRunning` INTEGER NOT NULL, `isSoftMode` INTEGER NOT NULL, `baseStartTimeMs` INTEGER, `accumulatedBeforeStartMs` INTEGER NOT NULL, `isSurgeOn` INTEGER NOT NULL, `surgePlannedMs` INTEGER, `surgeMilestonesFiredCsv` TEXT NOT NULL, `surgeTargetReached` INTEGER NOT NULL, `surgeTargetReachedAtMs` INTEGER, `surgeFinalCountdownStarted` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `arcId` INTEGER, `arcChainBase` REAL, `arcSessionCountInArc` INTEGER, `arcLastSessionEndTimeMs` INTEGER, PRIMARY KEY(`id`))")
-        execSQL("CREATE TABLE IF NOT EXISTS `pulses` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `tagId` INTEGER, `parentSessionId` INTEGER, `parentFlowInstanceId` TEXT, `arcId` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)")
-        execSQL("CREATE TABLE IF NOT EXISTS `flow_plans` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `tagId` INTEGER, `isSoftMode` INTEGER NOT NULL, `targetMinutes` INTEGER, `launchWithSurge` INTEGER NOT NULL, `pinned` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `launchCount` INTEGER NOT NULL, `lastLaunchedAt` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)")
+        execSQL("CREATE TABLE IF NOT EXISTS `pulses` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `tagId` INTEGER, `parentSessionId` INTEGER, `parentFlowInstanceId` TEXT, `arcId` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, FOREIGN KEY(`tagId`) REFERENCES `tags`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL, FOREIGN KEY(`parentSessionId`) REFERENCES `sessions`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL)")
+        execSQL("CREATE TABLE IF NOT EXISTS `flow_plans` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `tagId` INTEGER, `isSoftMode` INTEGER NOT NULL, `targetMinutes` INTEGER, `launchWithSurge` INTEGER NOT NULL, `pinned` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `launchCount` INTEGER NOT NULL, `lastLaunchedAt` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, FOREIGN KEY(`tagId`) REFERENCES `tags`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL)")
         execSQL("CREATE TABLE IF NOT EXISTS `arc_plans` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `isInStudio` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `launchCount` INTEGER NOT NULL, `lastLaunchedAt` INTEGER, `recurrenceType` TEXT NOT NULL, `recurrenceDaysCsv` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)")
-        execSQL("CREATE TABLE IF NOT EXISTS `arc_plan_steps` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `arcPlanId` INTEGER NOT NULL, `orderIndex` INTEGER NOT NULL, `sourceFlowPlanId` INTEGER, `titleSnapshot` TEXT NOT NULL, `tagIdSnapshot` INTEGER, `isSoftModeSnapshot` INTEGER NOT NULL, `targetMinutesSnapshot` INTEGER, `launchWithSurgeSnapshot` INTEGER NOT NULL, `linkState` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)")
+        execSQL("CREATE TABLE IF NOT EXISTS `arc_plan_steps` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `arcPlanId` INTEGER NOT NULL, `orderIndex` INTEGER NOT NULL, `sourceFlowPlanId` INTEGER, `titleSnapshot` TEXT NOT NULL, `tagIdSnapshot` INTEGER, `isSoftModeSnapshot` INTEGER NOT NULL, `targetMinutesSnapshot` INTEGER, `launchWithSurgeSnapshot` INTEGER NOT NULL, `linkState` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, FOREIGN KEY(`arcPlanId`) REFERENCES `arc_plans`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE, FOREIGN KEY(`sourceFlowPlanId`) REFERENCES `flow_plans`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL, FOREIGN KEY(`tagIdSnapshot`) REFERENCES `tags`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL)")
         execSQL("CREATE TABLE IF NOT EXISTS `active_arc_run` (`id` INTEGER NOT NULL, `arcPlanId` INTEGER NOT NULL, `arcTitle` TEXT NOT NULL, `currentStepIndex` INTEGER NOT NULL, `totalSteps` INTEGER NOT NULL, `currentStepTitle` TEXT NOT NULL, `currentTagName` TEXT NOT NULL, `currentIsSoftMode` INTEGER NOT NULL, `startedAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+        execSQL("CREATE INDEX IF NOT EXISTS `index_sessions_tagId` ON `sessions` (`tagId`)")
+        execSQL("CREATE INDEX IF NOT EXISTS `index_sessions_arcId` ON `sessions` (`arcId`)")
+        execSQL("CREATE INDEX IF NOT EXISTS `index_pulses_tagId` ON `pulses` (`tagId`)")
+        execSQL("CREATE INDEX IF NOT EXISTS `index_pulses_parentSessionId` ON `pulses` (`parentSessionId`)")
+        execSQL("CREATE INDEX IF NOT EXISTS `index_pulses_parentFlowInstanceId` ON `pulses` (`parentFlowInstanceId`)")
+        execSQL("CREATE INDEX IF NOT EXISTS `index_pulses_arcId` ON `pulses` (`arcId`)")
+        execSQL("CREATE INDEX IF NOT EXISTS `index_pulses_createdAt` ON `pulses` (`createdAt`)")
+        execSQL("CREATE INDEX IF NOT EXISTS `index_flow_plans_tagId` ON `flow_plans` (`tagId`)")
+        execSQL("CREATE INDEX IF NOT EXISTS `index_arc_plan_steps_arcPlanId` ON `arc_plan_steps` (`arcPlanId`)")
+        execSQL("CREATE INDEX IF NOT EXISTS `index_arc_plan_steps_sourceFlowPlanId` ON `arc_plan_steps` (`sourceFlowPlanId`)")
+        execSQL("CREATE INDEX IF NOT EXISTS `index_arc_plan_steps_tagIdSnapshot` ON `arc_plan_steps` (`tagIdSnapshot`)")
+    }
+
+    /**
+     * Versions before 31 predate the retained Room JSON history. Build those
+     * databases exactly at their historical user_version so the test exercises
+     * the production migration chain without depending on missing schema assets.
+     */
+    private fun createLegacyDatabase(
+        name: String,
+        version: Int
+    ): SupportSQLiteDatabase {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.deleteDatabase(name)
+        val configuration = SupportSQLiteOpenHelper.Configuration.builder(context)
+            .name(name)
+            .callback(object : SupportSQLiteOpenHelper.Callback(version) {
+                override fun onCreate(db: SupportSQLiteDatabase) = Unit
+
+                override fun onUpgrade(
+                    db: SupportSQLiteDatabase,
+                    oldVersion: Int,
+                    newVersion: Int
+                ) = error("Unexpected upgrade while creating legacy test database")
+            })
+            .build()
+        return FrameworkSQLiteOpenHelperFactory().create(configuration).writableDatabase
     }
 
 
@@ -394,6 +453,7 @@ class SkillzMigrationTest {
 
     private companion object {
         const val TEST_DB = "skillz-migration-test"
+        const val CURRENT_VERSION = 40
 
         val SHELL_TABLES = listOf(
             "pearl_ledger",

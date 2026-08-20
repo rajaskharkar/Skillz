@@ -6,8 +6,9 @@
    See https://developer.android.com/about/versions/12/backup-restore
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <!-- Android 11 and earlier cannot distinguish cloud backup from transfer. -->
+    <exclude domain="database" path="skillz_db"/>
+    <exclude domain="database" path="skillz_db-shm"/>
+    <exclude domain="database" path="skillz_db-wal"/>
+    <exclude domain="file" path="chronicle/"/>
 </full-backup-content>
