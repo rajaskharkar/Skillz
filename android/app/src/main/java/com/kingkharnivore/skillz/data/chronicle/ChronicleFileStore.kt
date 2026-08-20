@@ -1,11 +1,14 @@
 package com.kingkharnivore.skillz.data.chronicle
 
+import android.content.ContentValues
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.webkit.MimeTypeMap
-import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.IOException
@@ -42,8 +45,7 @@ class ChronicleFileStore @Inject constructor(
     internal suspend fun finalizeVoice(chronicleId: String, staged: File): StoredFile = withContext(Dispatchers.IO) {
         requireSafeSegment(chronicleId)
         if (!staged.isFile || staged.length() <= 0L) throw IOException("Voice recording is empty")
-        val duration = MediaMetadataRetriever().use { retriever ->
-            retriever.setDataSource(staged.path)
+        val duration = withMetadataRetriever(staged) { retriever ->
             retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
         }?.takeIf { it > 0L } ?: throw IOException("Voice recording is corrupt")
         val identity = UUID.randomUUID().toString() + ".m4a"
@@ -60,15 +62,19 @@ class ChronicleFileStore @Inject constructor(
         }
     }
 
-    fun createCaptureOutput(video: Boolean): Uri {
+    fun createCameraStagingFile(video: Boolean): File {
         captureRoot.mkdirsOrThrow()
         val extension = if (video) ".mp4" else ".jpg"
-        val file = File(captureRoot, UUID.randomUUID().toString() + extension)
-        if (!file.createNewFile()) throw IOException("Unable to create capture output")
-        return FileProvider.getUriForFile(context, "${context.packageName}.chronicle-files", file)
+        return File(captureRoot, UUID.randomUUID().toString() + extension).also { file ->
+            if (!file.createNewFile()) throw IOException("Unable to create capture output")
+        }
     }
 
     suspend fun discardCapture(uri: Uri) = withContext(Dispatchers.IO) {
+        if (uri.scheme == "file") {
+            uri.path?.let(::File)?.takeIf(::isOwnedCapture)?.delete()
+            return@withContext
+        }
         val name = uri.lastPathSegment?.substringAfterLast('/') ?: return@withContext
         requireSafeSegment(name)
         File(captureRoot, name).delete()
@@ -82,7 +88,17 @@ class ChronicleFileStore @Inject constructor(
         requireSafeSegment(chronicleId)
         requireSafeSegment(operationId)
         val resolver = context.contentResolver
-        val mime = resolver.getType(source)?.lowercase()
+        val capturedFile = source.takeIf { it.scheme == "file" }
+            ?.path
+            ?.let(::File)
+            ?.takeIf(::isOwnedCapture)
+        val mime = capturedFile?.extension?.lowercase()?.let { extension ->
+            when (extension) {
+                "jpg", "jpeg" -> "image/jpeg"
+                "mp4" -> "video/mp4"
+                else -> null
+            }
+        } ?: resolver.getType(source)?.lowercase()
             ?: throw IOException("Media type is unavailable")
         require(mime.startsWith("image/") || mime.startsWith("video/"))
         val operation = File(stagingRoot, operationId).also { it.mkdirsOrThrow() }
@@ -91,7 +107,8 @@ class ChronicleFileStore @Inject constructor(
         val staged = File(operation, identity)
         var destination: File? = null
         try {
-            resolver.openInputStream(source)?.use { input ->
+            val inputStream = capturedFile?.inputStream() ?: resolver.openInputStream(source)
+            inputStream?.use { input ->
                 staged.outputStream().buffered(COPY_BUFFER_BYTES).use { output -> input.copyTo(output, COPY_BUFFER_BYTES) }
             } ?: throw IOException("Media source is unavailable")
             validate(staged, mime)
@@ -109,6 +126,7 @@ class ChronicleFileStore @Inject constructor(
                 throw IOException("Media copy is incomplete")
             }
             val metadata = metadata(finalized, mime)
+            if (capturedFile != null) publishCaptureToGallery(capturedFile, mime)
             StoredFile("chronicle/$chronicleId/media/$identity", mime, finalized.length(),
                 metadata.first, metadata.second, metadata.third)
         } catch (failure: Exception) {
@@ -141,6 +159,29 @@ class ChronicleFileStore @Inject constructor(
         captureRoot.listFiles().orEmpty().filter { it.lastModified() < cutoff }.forEach(File::delete)
     }
 
+    /** Removes abandoned operation files without touching recent work or any Room-owned file. */
+    suspend fun reconcile(referencedPaths: Set<String>, olderThanMs: Long = STALE_STAGING_MS) =
+        withContext(Dispatchers.IO) {
+            val cutoff = System.currentTimeMillis() - olderThanMs
+            stagingRoot.listFiles().orEmpty()
+                .filter { it.lastModified() < cutoff }
+                .forEach(File::deleteRecursively)
+            captureRoot.listFiles().orEmpty()
+                .filter { it.lastModified() < cutoff }
+                .forEach(File::delete)
+            if (!durableRoot.isDirectory) return@withContext
+            durableRoot.walkBottomUp().forEach { candidate ->
+                when {
+                    candidate == durableRoot -> Unit
+                    candidate.isDirectory -> candidate.delete()
+                    candidate.lastModified() < cutoff -> {
+                        val relativePath = candidate.relativeTo(context.filesDir).invariantSeparatorsPath
+                        if (relativePath !in referencedPaths) candidate.delete()
+                    }
+                }
+            }
+        }
+
     private fun validate(file: File, mime: String) {
         if (!file.isFile || file.length() <= 0L) throw IOException("Media is empty")
         val valid = if (mime.startsWith("image/")) {
@@ -149,8 +190,7 @@ class ChronicleFileStore @Inject constructor(
             bounds.outWidth > 0 && bounds.outHeight > 0
         } else {
             runCatching {
-                MediaMetadataRetriever().use { retriever ->
-                    retriever.setDataSource(file.path)
+                withMetadataRetriever(file) { retriever ->
                     retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION) != null
                 }
             }.getOrDefault(false)
@@ -162,10 +202,16 @@ class ChronicleFileStore @Inject constructor(
         if (mime.startsWith("image/")) {
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeFile(file.path, bounds)
-            Triple(null, bounds.outWidth.takeIf { it > 0 }, bounds.outHeight.takeIf { it > 0 })
+            val width = bounds.outWidth.takeIf { it > 0 }
+            val height = bounds.outHeight.takeIf { it > 0 }
+            val oriented = if (width != null && height != null) {
+                orientedChronicleDimensions(file, width, height)
+            } else {
+                null
+            }
+            Triple(null, oriented?.first, oriented?.second)
         } else runCatching {
-            MediaMetadataRetriever().use { retriever ->
-                retriever.setDataSource(file.path)
+            withMetadataRetriever(file) { retriever ->
                 Triple(
                     retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull(),
                     retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull(),
@@ -174,8 +220,70 @@ class ChronicleFileStore @Inject constructor(
             }
         }.getOrDefault(Triple(null, null, null))
 
+    /** Publishes a user-confirmed CameraX capture without exposing Chronicle's private copy. */
+    private fun publishCaptureToGallery(file: File, mime: String): Uri {
+        val resolver = context.contentResolver
+        val isVideo = mime.startsWith("video/")
+        val collection = if (isVideo) {
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        } else {
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+        val extension = if (isVideo) "mp4" else "jpg"
+        val displayName = "Scyra_${System.currentTimeMillis()}_${file.nameWithoutExtension}.$extension"
+        val values = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
+            put(MediaStore.MediaColumns.MIME_TYPE, mime)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(
+                    MediaStore.MediaColumns.RELATIVE_PATH,
+                    (if (isVideo) Environment.DIRECTORY_MOVIES else Environment.DIRECTORY_PICTURES) + "/Scyra"
+                )
+                put(MediaStore.MediaColumns.IS_PENDING, 1)
+            }
+        }
+        val destination = resolver.insert(collection, values)
+            ?: throw IOException("Unable to create the gallery item")
+        try {
+            val copied = resolver.openOutputStream(destination, "w")?.use { output ->
+                file.inputStream().buffered(COPY_BUFFER_BYTES).use { input ->
+                    input.copyTo(output, COPY_BUFFER_BYTES)
+                }
+            } ?: throw IOException("Unable to open the gallery item")
+            if (copied != file.length()) throw IOException("Gallery copy is incomplete")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                resolver.update(
+                    destination,
+                    ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) },
+                    null,
+                    null,
+                )
+            }
+            return destination
+        } catch (failure: Exception) {
+            resolver.delete(destination, null, null)
+            throw failure
+        }
+    }
+
+    private inline fun <T> withMetadataRetriever(file: File, block: (MediaMetadataRetriever) -> T): T {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(file.path)
+            block(retriever)
+        } finally {
+            retriever.release()
+        }
+    }
+
     private fun requireSafeSegment(value: String) {
         require(value.isNotBlank() && value != "." && value != ".." && '/' !in value && '\\' !in value)
+    }
+
+    private fun isOwnedCapture(file: File): Boolean {
+        val root = runCatching { captureRoot.canonicalFile }.getOrNull() ?: return false
+        val candidate = runCatching { file.canonicalFile }.getOrNull() ?: return false
+        return candidate.parentFile == root
     }
 
     private fun File.mkdirsOrThrow() {

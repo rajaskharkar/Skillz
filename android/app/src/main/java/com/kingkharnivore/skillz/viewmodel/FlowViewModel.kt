@@ -1171,6 +1171,10 @@ class FlowViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                // The previous owner is complete, but the next owner must start mutable.
+                // Leaving this as Completed caused the new Chronicle holder to close as
+                // soon as Compose observed its new owner key.
+                _completionState.value = FlowCompletionState.Idle
                 if (!hasPreparedShellContinuation) {
                     val advanceResult = advancePlannedArcAfterCompletedSession(continuationOrigin)
                     if (advanceResult != PlannedArcAdvanceResult.Advanced) {
@@ -1360,7 +1364,7 @@ class FlowViewModel @Inject constructor(
         }
 
         val realDurationMs = state.stopwatch.elapsedMs.coerceAtLeast(0L)
-        if (isZeroDuration(realDurationMs)) {
+        if (endMode != FlowEndAction.CONTINUE_ARC && isZeroDuration(realDurationMs)) {
             _error.value = "Start the timer before saving."
             _completionState.value = FlowCompletionState.PreCommitFailure
             return

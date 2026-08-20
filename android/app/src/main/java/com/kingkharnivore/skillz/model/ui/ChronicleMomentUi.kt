@@ -25,23 +25,12 @@ sealed interface ChronicleMomentUi {
         override val position: Int,
         val relativePath: String?,
         val durationMs: Long?,
+        val originalTranscript: String?,
         val transcript: String?,
         val transcriptEdited: Boolean,
         val isAvailable: Boolean
     ) : ChronicleMomentUi
 
-    data class Audio(
-        override val id: String,
-        override val chronicleId: String,
-        override val position: Int,
-        val relativePath: String?,
-        val displayName: String?,
-        val mimeType: String?,
-        val durationMs: Long?,
-        val transcript: String?,
-        val transcriptEdited: Boolean,
-        val isAvailable: Boolean
-    ) : ChronicleMomentUi
 }
 
 data class ChronicleMediaItemUi(
@@ -52,5 +41,6 @@ data class ChronicleMediaItemUi(
     val durationMs: Long?,
     val width: Int?,
     val height: Int?,
-    val isAvailable: Boolean
+    val isAvailable: Boolean,
+    val createdAt: Long,
 )

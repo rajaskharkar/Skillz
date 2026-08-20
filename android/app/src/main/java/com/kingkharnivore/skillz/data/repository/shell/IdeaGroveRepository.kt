@@ -8,6 +8,8 @@ import com.kingkharnivore.skillz.data.model.dao.TagDao
 import com.kingkharnivore.skillz.data.model.dao.ChronicleDao
 import com.kingkharnivore.skillz.data.model.dao.ChronicleSummary
 import com.kingkharnivore.skillz.data.model.dao.shell.IdeaGroveDao
+import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentType
+import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
 import com.kingkharnivore.skillz.data.model.entity.PulseEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseFlowLinkEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseGroveStatusValues
@@ -89,10 +91,17 @@ class IdeaGroveRepository @Inject constructor(
         return PulseLaunchContext(
             pulseId = pulse.id,
             title = pulse.title,
-            description = chronicleDao.moments(
-                chronicleDao.find(com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType.PULSE, pulse.id.toString())?.id
-                    ?: return PulseLaunchContext(pulse.id, pulse.title, "", journeyName)
-            ).firstOrNull()?.text.orEmpty(),
+            description = chronicleDao.find(
+                ChronicleOwnerType.PULSE,
+                pulse.id.toString()
+            )?.let { chronicle ->
+                chronicleDao.moments(chronicle.id)
+                    .firstOrNull { moment ->
+                        moment.type == ChronicleMomentType.TEXT &&
+                            !moment.text.isNullOrBlank()
+                    }
+                    ?.text
+            } ?: pulse.description,
             journeyName = journeyName
         )
     }

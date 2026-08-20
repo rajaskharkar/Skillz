@@ -4,6 +4,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.util.LruCache
+import com.kingkharnivore.skillz.data.chronicle.readChronicleImageTransform
+import com.kingkharnivore.skillz.data.chronicle.transformChronicleBitmap
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -20,9 +22,12 @@ internal object ChronicleThumbnailLoader {
         synchronized(cache) { cache.get(key) }?.let { return@withContext it }
         val bitmap = if (mimeType.startsWith("video/")) {
             runCatching {
-                MediaMetadataRetriever().use { retriever ->
+                val retriever = MediaMetadataRetriever()
+                try {
                     retriever.setDataSource(file.path)
                     retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                } finally {
+                    retriever.release()
                 }
             }.getOrNull()
         } else {
@@ -31,6 +36,9 @@ internal object ChronicleThumbnailLoader {
             var sample = 1
             while (bounds.outWidth / sample > TARGET_PX * 2 || bounds.outHeight / sample > TARGET_PX * 2) sample *= 2
             BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
+                ?.let { decoded ->
+                    transformChronicleBitmap(decoded, readChronicleImageTransform(file))
+                }
         }
         bitmap?.also { synchronized(cache) { cache.put(key, it) } }
     }

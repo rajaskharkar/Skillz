@@ -16,7 +16,6 @@ object ChronicleMomentType {
     const val TEXT = "TEXT"
     const val MEDIA = "MEDIA"
     const val VOICE = "VOICE"
-    const val AUDIO = "AUDIO"
 }
 
 @Entity(
@@ -55,6 +54,7 @@ data class ChronicleMomentEntity(
     val displayName: String? = null,
     val mimeType: String? = null,
     val durationMs: Long? = null,
+    val originalTranscript: String? = null,
     val transcript: String? = null,
     val transcriptEdited: Boolean = false,
     val createdAt: Long,

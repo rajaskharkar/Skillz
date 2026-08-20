@@ -1,9 +1,11 @@
 package com.kingkharnivore.skillz.ui.screen.chronicle
 
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
+import com.kingkharnivore.skillz.data.model.entity.ChronicleMediaItemEntity
 import com.kingkharnivore.skillz.data.repository.ChronicleRepository
 import com.kingkharnivore.skillz.model.ui.ChronicleMomentUi
 import android.net.Uri
+import java.io.File
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import com.kingkharnivore.skillz.data.chronicle.LiveDictationEngine
@@ -18,6 +20,9 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
+import java.util.concurrent.ConcurrentHashMap
 
 data class ChronicleUiState(
     val chronicleId: String? = null,
@@ -28,21 +33,38 @@ data class ChronicleUiState(
     val editingId: String? = null,
     val editingText: String = "",
     val editingField: TextFieldValue = TextFieldValue(),
+    val editingMediaId: String? = null,
+    val editingMediaOriginal: List<ChronicleMediaItemEntity> = emptyList(),
+    val editingMediaItems: List<ChronicleMediaItemEntity> = emptyList(),
+    val editingMediaStaged: List<ChronicleMediaItemEntity> = emptyList(),
+    val editingTranscriptId: String? = null,
+    val editingTranscriptField: TextFieldValue = TextFieldValue(),
+    val transcriptions: Map<String, ChronicleTranscriptionState> = emptyMap(),
+    val transcriptionSupported: Boolean = false,
     val isCommitting: Boolean = false,
     val hasError: Boolean = false,
+    val pendingDeletion: ChronicleMomentUi? = null,
     val draggingId: String? = null,
     val stagedOrder: List<String> = emptyList(),
     val microphone: ChronicleMicrophoneState = ChronicleMicrophoneState.Idle,
     val speechUnavailable: Boolean = false,
     val microphoneUnavailable: Boolean = false
 ) {
-    val blocksCompletion: Boolean get() = editingId != null || isCommitting || microphone !is ChronicleMicrophoneState.Idle
+    val hasActiveEditor: Boolean get() = editingId != null || editingMediaId != null || editingTranscriptId != null
+    val blocksCompletion: Boolean get() = hasActiveEditor || isCommitting ||
+        microphone !is ChronicleMicrophoneState.Idle
+    val blocksPager: Boolean get() = microphone !is ChronicleMicrophoneState.Idle
 }
 
 sealed interface ChronicleMicrophoneState {
     data object Idle : ChronicleMicrophoneState
     data object Dictating : ChronicleMicrophoneState
     data class RecordingVoice(val elapsedMs: Long = 0, val amplitudes: List<Float> = emptyList()) : ChronicleMicrophoneState
+}
+
+sealed interface ChronicleTranscriptionState {
+    data class Transcribing(val partial: String = "") : ChronicleTranscriptionState
+    data object Failed : ChronicleTranscriptionState
 }
 
 class ChronicleStateHolder(
@@ -62,6 +84,7 @@ class ChronicleStateHolder(
     @Volatile private var lifecycle = Lifecycle.ACTIVE
     private val acceptingMutations: Boolean get() = lifecycle == Lifecycle.ACTIVE
     private var accumulatedDragPx = 0f
+    private var pendingDeleteJob: Job? = null
     private var voiceTicker: Job? = null
     private var voiceStartPending = false
     private var finishVoiceWhenStarted = false
@@ -69,8 +92,11 @@ class ChronicleStateHolder(
     private var dictationSession: DictationTextSession? = null
     private var dictationTargetsEditor = false
     private var dictationOperation = 0L
+    private var dictationFinishPending = false
+    private val transcriptionJobs = ConcurrentHashMap<String, Job>()
 
     init {
+        _state.update { it.copy(transcriptionSupported = repository.isTranscriptionSupported()) }
         scope.launch {
             repository.observe(ownerType, ownerKey)
                 .catch { _state.update { state -> state.copy(hasError = true) } }
@@ -102,21 +128,41 @@ class ChronicleStateHolder(
     }
 
     fun importMedia(sources: List<Uri>, onResult: (Int) -> Unit = {}) {
-        if (!acceptingMutations || sources.isEmpty()) return
+        if (!acceptingMutations || sources.isEmpty()) {
+            onResult(sources.size)
+            return
+        }
         _state.update { it.copy(isCommitting = true, hasError = false) }
         scope.launch {
-            val result = runCatching { repository.importMedia(ownerType, ownerKey, sources) }
-            result.onSuccess { imported ->
-                if (imported.momentId == null) _state.update { it.copy(hasError = true) }
+            val mediaEditId = _state.value.editingMediaId
+            if (mediaEditId == null) {
+                val result = runCatching { repository.importMedia(ownerType, ownerKey, sources) }
+                result.onSuccess { imported ->
+                    if (imported.momentId == null) _state.update { it.copy(hasError = true) }
+                }.onFailure { _state.update { it.copy(hasError = true) } }
+                onResult(result.getOrNull()?.failedCount ?: sources.size)
+            } else {
+                val result = runCatching { repository.stageMedia(ownerType, ownerKey, sources) }
+                result.onSuccess { staged ->
+                    if (acceptingMutations && _state.value.editingMediaId == mediaEditId) {
+                        _state.update { current ->
+                            val additions = staged.items.map { it.copy(momentId = mediaEditId) }
+                            current.copy(
+                                editingMediaItems = (current.editingMediaItems + additions)
+                                    .mapIndexed { index, item -> item.copy(position = index) },
+                                editingMediaStaged = current.editingMediaStaged + additions,
+                            )
+                        }
+                    } else repository.discardStagedMedia(staged.items)
+                }.onFailure { _state.update { it.copy(hasError = true) } }
+                onResult(result.getOrNull()?.failedCount ?: sources.size)
             }
-                .onFailure { _state.update { it.copy(hasError = true) } }
-            onResult(result.getOrNull()?.failedCount ?: sources.size)
             _state.update { it.copy(isCommitting = false) }
         }
     }
 
-    fun createCaptureOutput(video: Boolean): Uri? =
-        if (acceptingMutations) runCatching { repository.createCaptureOutput(video) }.getOrNull() else null
+    fun createCameraStagingFile(video: Boolean): File? =
+        if (acceptingMutations) runCatching { repository.createCameraStagingFile(video) }.getOrNull() else null
 
     fun discardCapture(uri: Uri) {
         scope.launch { repository.discardCapture(uri) }
@@ -196,7 +242,9 @@ class ChronicleStateHolder(
     }
 
     fun startDictation() {
-        if (!acceptingMutations || voiceStartPending || _state.value.microphone !is ChronicleMicrophoneState.Idle || _state.value.isCommitting) return
+        val current = _state.value
+        if (!acceptingMutations || voiceStartPending || current.microphone !is ChronicleMicrophoneState.Idle ||
+            current.isCommitting || current.editingMediaId != null || current.editingTranscriptId != null) return
         if (!repository.isDictationAvailable()) {
             _state.update { it.copy(speechUnavailable = true) }
             return
@@ -211,7 +259,10 @@ class ChronicleStateHolder(
         val operation = ++dictationOperation
         dictationSession = session
         dictationTargetsEditor = editor
-        val started = repository.startDictation(object : LiveDictationEngine.Listener {
+        dictationFinishPending = false
+        _state.update { it.copy(microphone = ChronicleMicrophoneState.Dictating, speechUnavailable = false,
+            microphoneUnavailable = false) }
+        val started = runCatching { repository.startDictation(object : LiveDictationEngine.Listener {
             override fun onPartial(text: String) = applyDictation(operation, session.partial(text))
             override fun onFinal(text: String) {
                 applyDictation(operation, session.partial(text))
@@ -220,10 +271,8 @@ class ChronicleStateHolder(
             override fun onError() {
                 if (operation == dictationOperation) cancelDictation(showUnavailable = true)
             }
-        })
-        if (started) _state.update { it.copy(microphone = ChronicleMicrophoneState.Dictating, speechUnavailable = false,
-            microphoneUnavailable = false) }
-        else cancelDictation(showUnavailable = true)
+        }) }.getOrDefault(false)
+        if (!started && operation == dictationOperation) cancelDictation(showUnavailable = true)
     }
 
     private fun applyDictation(operation: Long, value: TextFieldValue) {
@@ -234,9 +283,15 @@ class ChronicleStateHolder(
 
     fun finishDictation(fromEngine: Boolean = false) {
         if (_state.value.microphone !is ChronicleMicrophoneState.Dictating) return
+        if (!fromEngine) {
+            if (dictationFinishPending) return
+            dictationFinishPending = true
+            repository.finishDictation()
+            return
+        }
         dictationSession?.finish()
         ++dictationOperation
-        if (!fromEngine) repository.finishDictation()
+        dictationFinishPending = false
         dictationSession = null
         _state.update { it.copy(microphone = ChronicleMicrophoneState.Idle) }
         if (!dictationTargetsEditor) setDraft(_state.value.draftField)
@@ -245,6 +300,7 @@ class ChronicleStateHolder(
     fun cancelDictation(showUnavailable: Boolean = false) {
         val session = dictationSession ?: return
         ++dictationOperation
+        dictationFinishPending = false
         repository.cancelDictation()
         val original = session.cancel()
         if (dictationTargetsEditor) _state.update { it.copy(editingText = original.text, editingField = original,
@@ -274,7 +330,8 @@ class ChronicleStateHolder(
 
     fun add(onSuccess: (() -> Unit)? = null) {
         if (!acceptingMutations || _state.value.isCommitting ||
-            _state.value.microphone !is ChronicleMicrophoneState.Idle || _state.value.draft.isBlank()) return
+            _state.value.hasActiveEditor || _state.value.microphone !is ChronicleMicrophoneState.Idle ||
+            _state.value.draft.isBlank()) return
         val captured = _state.value.draft
         val capturedGeneration = draftGeneration
         val pendingDraftWrite = draftJob
@@ -295,9 +352,16 @@ class ChronicleStateHolder(
         }
     }
 
-    fun beginEdit(moment: ChronicleMomentEntity) =
-        if (acceptingMutations) _state.update { it.copy(editingId = moment.id, editingText = moment.text.orEmpty(),
-            editingField = TextFieldValue(moment.text.orEmpty(), TextRange(moment.text.orEmpty().length))) } else Unit
+    fun beginEdit(moment: ChronicleMomentEntity) {
+        val current = _state.value
+        if (!acceptingMutations || current.hasActiveEditor || current.isCommitting ||
+            current.microphone !is ChronicleMicrophoneState.Idle) return
+        _state.update { it.copy(
+            editingId = moment.id,
+            editingText = moment.text.orEmpty(),
+            editingField = TextFieldValue(moment.text.orEmpty(), TextRange(moment.text.orEmpty().length)),
+        ) }
+    }
     fun editText(value: String) {
         editText(TextFieldValue(value, TextRange(value.length)))
     }
@@ -306,19 +370,129 @@ class ChronicleStateHolder(
             _state.update { it.copy(editingText = value.text, editingField = value) }
     }
     fun cancelEdit() = _state.update { it.copy(editingId = null, editingText = "", editingField = TextFieldValue()) }
+
+    fun beginMediaEdit(moment: ChronicleMomentUi.Media) {
+        val current = _state.value
+        if (!acceptingMutations || current.hasActiveEditor || current.isCommitting ||
+            current.microphone !is ChronicleMicrophoneState.Idle) return
+        val rows = moment.items.map { item ->
+            ChronicleMediaItemEntity(
+                id = item.id,
+                momentId = moment.id,
+                position = item.position,
+                localPath = item.relativePath,
+                mimeType = item.mimeType,
+                durationMs = item.durationMs,
+                width = item.width,
+                height = item.height,
+                createdAt = item.createdAt,
+            )
+        }
+        _state.update { it.copy(
+            editingMediaId = moment.id,
+            editingMediaOriginal = rows,
+            editingMediaItems = rows,
+            editingMediaStaged = emptyList(),
+        ) }
+    }
+
+    fun moveMediaItem(id: String, delta: Int) {
+        _state.update { current ->
+            val items = current.editingMediaItems.toMutableList()
+            val from = items.indexOfFirst { it.id == id }
+            val to = (from + delta).coerceIn(0, items.lastIndex)
+            if (from < 0 || from == to) current else current.copy(
+                editingMediaItems = items.apply { add(to, removeAt(from)) }
+                    .mapIndexed { index, item -> item.copy(position = index) }
+            )
+        }
+    }
+
+    fun removeMediaItem(id: String) {
+        _state.update { current ->
+            if (current.editingMediaItems.size <= 1) current else current.copy(
+                editingMediaItems = current.editingMediaItems.filterNot { it.id == id }
+                    .mapIndexed { index, item -> item.copy(position = index) }
+            )
+        }
+    }
+
+    fun cancelMediaEdit() {
+        val current = _state.value
+        val additions = current.editingMediaStaged
+        _state.update { it.copy(
+            editingMediaId = null,
+            editingMediaOriginal = emptyList(),
+            editingMediaItems = emptyList(),
+            editingMediaStaged = emptyList(),
+        ) }
+        if (additions.isNotEmpty()) scope.launch { repository.discardStagedMedia(additions) }
+    }
+
+    fun finishMediaEdit() {
+        val current = _state.value
+        val momentId = current.editingMediaId ?: return
+        if (!acceptingMutations || current.editingMediaItems.isEmpty() || current.isCommitting) return
+        val finalItems = current.editingMediaItems.mapIndexed { index, item ->
+            item.copy(momentId = momentId, position = index)
+        }
+        val finalIds = finalItems.mapTo(mutableSetOf()) { it.id }
+        val unusedStaged = current.editingMediaStaged.filterNot { it.id in finalIds }
+        _state.update { it.copy(isCommitting = true, hasError = false) }
+        scope.launch {
+            runCatching { repository.replaceMedia(ownerType, ownerKey, momentId, finalItems) }
+                .onSuccess {
+                    repository.discardStagedMedia(unusedStaged)
+                    _state.update { it.copy(
+                        editingMediaId = null,
+                        editingMediaOriginal = emptyList(),
+                        editingMediaItems = emptyList(),
+                        editingMediaStaged = emptyList(),
+                    ) }
+                }
+                .onFailure { _state.update { it.copy(hasError = true) } }
+            _state.update { it.copy(isCommitting = false) }
+        }
+    }
+
+    fun removeEditingMediaMoment() {
+        val current = _state.value
+        val momentId = current.editingMediaId ?: return
+        val entity = current.moments.firstOrNull { it.id == momentId } ?: return
+        val additions = current.editingMediaStaged
+        _state.update { it.copy(
+            editingMediaId = null,
+            editingMediaOriginal = emptyList(),
+            editingMediaItems = emptyList(),
+            editingMediaStaged = emptyList(),
+            isCommitting = true,
+        ) }
+        scope.launch {
+            runCatching {
+                repository.discardStagedMedia(additions)
+                repository.deleteMoment(ownerType, ownerKey, entity)
+            }.onFailure { _state.update { it.copy(hasError = true) } }
+            _state.update { it.copy(isCommitting = false) }
+        }
+    }
     fun finishEdit() {
-        if (!acceptingMutations || _state.value.microphone !is ChronicleMicrophoneState.Idle) return
-        val moment = _state.value.moments.firstOrNull { it.id == _state.value.editingId } ?: return
-        val value = _state.value.editingText
+        val current = _state.value
+        if (!acceptingMutations || current.isCommitting ||
+            current.microphone !is ChronicleMicrophoneState.Idle) return
+        val moment = current.moments.firstOrNull { it.id == current.editingId } ?: return
+        val value = current.editingText
         if (value.isBlank()) return
+        _state.update { it.copy(isCommitting = true, hasError = false) }
         scope.launch {
             runCatching { repository.updateText(ownerType, ownerKey, moment, value) }
                 .onSuccess { cancelEdit() }
                 .onFailure { _state.update { it.copy(hasError = true) } }
+            _state.update { it.copy(isCommitting = false) }
         }
     }
     fun delete(moment: ChronicleMomentEntity) {
         if (!acceptingMutations) return
+        cancelTranscription(moment.id)
         scope.launch {
             runCatching { repository.deleteMoment(ownerType, ownerKey, moment) }
                 .onFailure { _state.update { it.copy(hasError = true) } }
@@ -327,8 +501,120 @@ class ChronicleStateHolder(
     fun delete(moment: ChronicleMomentUi) {
         _state.value.moments.firstOrNull { it.id == moment.id }?.let(::delete)
     }
+
+    /**
+     * Optimistically hides a Moment while leaving its database rows and files intact long enough
+     * for the user to undo. A holder-owned timeout guarantees that leaving the page still commits
+     * the explicit removal request.
+     */
+    fun requestDelete(moment: ChronicleMomentUi) {
+        val current = _state.value
+        if (!acceptingMutations || current.isCommitting) return
+        current.pendingDeletion?.let { commitPendingDelete(it.id) }
+        cancelTranscription(moment.id)
+        pendingDeleteJob?.cancel()
+        _state.update { it.copy(pendingDeletion = moment, hasError = false) }
+        pendingDeleteJob = scope.launch {
+            delay(PENDING_DELETE_FALLBACK_MS)
+            commitPendingDelete(moment.id)
+        }
+    }
+
+    fun undoPendingDelete(momentId: String) {
+        if (_state.value.pendingDeletion?.id != momentId) return
+        pendingDeleteJob?.cancel()
+        pendingDeleteJob = null
+        _state.update { it.copy(pendingDeletion = null) }
+    }
+
+    fun commitPendingDelete(momentId: String) {
+        val pending = _state.value.pendingDeletion?.takeIf { it.id == momentId } ?: return
+        val entity = _state.value.moments.firstOrNull { it.id == pending.id }
+        pendingDeleteJob?.cancel()
+        pendingDeleteJob = null
+        _state.update { it.copy(pendingDeletion = null) }
+        if (entity != null) delete(entity)
+    }
+
+    fun startTranscription(moment: ChronicleMomentUi.Voice) {
+        if (!acceptingMutations || !moment.isAvailable ||
+            !repository.isTranscriptionSupported() || transcriptionJobs.containsKey(moment.id)) return
+        _state.update { current ->
+            current.copy(transcriptions = current.transcriptions +
+                (moment.id to ChronicleTranscriptionState.Transcribing()))
+        }
+        val job = scope.launch(start = CoroutineStart.LAZY) {
+            try {
+                val saved = repository.transcribeVoice(ownerType, ownerKey, moment.id) { partial ->
+                    _state.update { current ->
+                        if (transcriptionJobs.containsKey(moment.id)) current.copy(
+                            transcriptions = current.transcriptions +
+                                (moment.id to ChronicleTranscriptionState.Transcribing(partial))
+                        ) else current
+                    }
+                }
+                _state.update { current -> current.copy(
+                    transcriptions = if (saved) current.transcriptions - moment.id
+                    else current.transcriptions + (moment.id to ChronicleTranscriptionState.Failed)
+                ) }
+            } catch (cancelled: CancellationException) {
+                _state.update { current -> current.copy(transcriptions = current.transcriptions - moment.id) }
+                throw cancelled
+            } catch (_: Exception) {
+                _state.update { current -> current.copy(
+                    transcriptions = current.transcriptions + (moment.id to ChronicleTranscriptionState.Failed)
+                ) }
+            } finally {
+                transcriptionJobs.remove(moment.id)
+            }
+        }
+        transcriptionJobs[moment.id] = job
+        job.start()
+    }
+
+    fun cancelTranscription(momentId: String) {
+        transcriptionJobs.remove(momentId)?.cancel()
+        _state.update { current -> current.copy(transcriptions = current.transcriptions - momentId) }
+    }
+
+    fun beginTranscriptEdit(moment: ChronicleMomentUi.Voice) {
+        val current = _state.value
+        val editableTranscript = if (moment.transcriptEdited) moment.transcript
+            else moment.originalTranscript ?: moment.transcript
+        if (!acceptingMutations || editableTranscript == null || current.hasActiveEditor || current.isCommitting ||
+            current.microphone !is ChronicleMicrophoneState.Idle) return
+        cancelTranscription(moment.id)
+        _state.update { it.copy(
+            editingTranscriptId = moment.id,
+            editingTranscriptField = TextFieldValue(editableTranscript, TextRange(editableTranscript.length)),
+        ) }
+    }
+
+    fun editTranscript(value: TextFieldValue) {
+        if (acceptingMutations) _state.update { it.copy(editingTranscriptField = value) }
+    }
+
+    fun cancelTranscriptEdit() {
+        _state.update { it.copy(editingTranscriptId = null, editingTranscriptField = TextFieldValue()) }
+    }
+
+    fun finishTranscriptEdit() {
+        val current = _state.value
+        val momentId = current.editingTranscriptId ?: return
+        if (!acceptingMutations || current.isCommitting) return
+        val value = current.editingTranscriptField.text.trim().takeIf(String::isNotEmpty)
+        _state.update { it.copy(isCommitting = true) }
+        scope.launch {
+            runCatching { repository.updateTranscript(ownerType, ownerKey, momentId, value, manuallyEdited = true) }
+                .onSuccess { cancelTranscriptEdit() }
+                .onFailure { _state.update { it.copy(hasError = true) } }
+            _state.update { it.copy(isCommitting = false) }
+        }
+    }
     fun move(moment: ChronicleMomentEntity, delta: Int) {
-        if (!acceptingMutations) return
+        val current = _state.value
+        if (!acceptingMutations || current.hasActiveEditor || current.isCommitting ||
+            current.microphone !is ChronicleMicrophoneState.Idle) return
         val items = _state.value.moments.toMutableList()
         val from = items.indexOfFirst { it.id == moment.id }
         val to = (from + delta).coerceIn(0, items.lastIndex)
@@ -343,10 +629,12 @@ class ChronicleStateHolder(
         _state.value.moments.firstOrNull { it.id == moment.id }?.let { move(it, delta) }
     }
     fun startDrag(moment: ChronicleMomentEntity) {
-        if (!acceptingMutations) return
+        val current = _state.value
+        if (!acceptingMutations || current.hasActiveEditor || current.isCommitting ||
+            current.microphone !is ChronicleMicrophoneState.Idle) return
         _state.update {
         accumulatedDragPx = 0f
-        if (it.editingId != null) it else it.copy(
+        if (it.hasActiveEditor) it else it.copy(
             draggingId = moment.id,
             stagedOrder = it.moments.map(ChronicleMomentEntity::id)
         )
@@ -434,9 +722,15 @@ class ChronicleStateHolder(
         lifecycle = Lifecycle.PREPARING
         val value = _state.value.draft
         val generation = draftGeneration
+        val pendingDelete = _state.value.pendingDeletion
+            ?.let { pending -> _state.value.moments.firstOrNull { it.id == pending.id } }
+        pendingDeleteJob?.cancel()
+        pendingDeleteJob = null
+        _state.update { it.copy(pendingDeletion = null) }
         draftJob?.cancel()
         scope.launch {
             val result = runCatching {
+                if (pendingDelete != null) repository.deleteMoment(ownerType, ownerKey, pendingDelete)
                 if (generation != syncedGeneration) repository.setDraft(ownerType, ownerKey, value)
             }
             if (result.isSuccess) {
@@ -451,6 +745,9 @@ class ChronicleStateHolder(
     fun discardAndQuiesce(onReady: () -> Unit) {
         if (!acceptingMutations) return
         lifecycle = Lifecycle.PREPARING
+        pendingDeleteJob?.cancel()
+        pendingDeleteJob = null
+        _state.update { it.copy(pendingDeletion = null) }
         draftJob?.cancel()
         scope.launch {
             runCatching { repository.discard(ownerType, ownerKey) }
@@ -466,6 +763,25 @@ class ChronicleStateHolder(
         lifecycle = Lifecycle.CLOSED
         cancelDictation()
         discardVoice()
-        holderJob.cancel()
+        val current = _state.value
+        val additions = current.editingMediaStaged
+        val pendingDelete = current.pendingDeletion
+            ?.let { pending -> current.moments.firstOrNull { it.id == pending.id } }
+        pendingDeleteJob?.cancel()
+        pendingDeleteJob = null
+        transcriptionJobs.values.forEach(Job::cancel)
+        transcriptionJobs.clear()
+        if (additions.isEmpty() && pendingDelete == null) holderJob.cancel()
+        else scope.launch {
+            repository.discardStagedMedia(additions)
+            if (pendingDelete != null) {
+                runCatching { repository.deleteMoment(ownerType, ownerKey, pendingDelete) }
+            }
+            holderJob.cancel()
+        }
+    }
+
+    private companion object {
+        const val PENDING_DELETE_FALLBACK_MS = 30_000L
     }
 }

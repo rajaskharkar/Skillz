@@ -476,11 +476,17 @@ class StoryViewModel @Inject constructor(
                 chronicleTextsPulseCache = chronicleTexts.filterKeys { it.startsWith("PULSE/") }
                     .mapKeys { it.key.removePrefix("PULSE/").toLong() }
                 val sessions = (arr[0] as List<SessionEntity>).map { session ->
-                    session.copy(description = chronicleTexts["SESSION/${session.id}"]?.firstOrNull().orEmpty())
+                    session.copy(
+                        description = chronicleTexts["SESSION/${session.id}"]?.firstOrNull()
+                            ?: session.description
+                    )
                 }
                 val healthSnapshots = arr[1] as List<FlowHealthSnapshotEntity>
                 val pulses = (arr[2] as List<PulseEntity>).map { pulse ->
-                    pulse.copy(description = chronicleTexts["PULSE/${pulse.id}"]?.firstOrNull().orEmpty())
+                    pulse.copy(
+                        description = chronicleTexts["PULSE/${pulse.id}"]?.firstOrNull()
+                            ?: pulse.description
+                    )
                 }
                 val tags = arr[3] as List<TagEntity>
                 val currentTagIds = arr[4] as Set<Long>

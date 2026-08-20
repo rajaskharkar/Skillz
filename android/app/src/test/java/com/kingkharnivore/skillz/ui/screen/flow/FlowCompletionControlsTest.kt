@@ -67,4 +67,11 @@ class FlowCompletionControlsTest {
             shellNavigationMode(RewardShellEntry.PreserveContinuation)
         )
     }
+
+    @Test fun continueArcDependsOnlyOnTitleJourneyAndSavingState() {
+        assertEquals(true, canContinueArc("Flow", "Journey", isSaving = false))
+        assertEquals(false, canContinueArc("", "Journey", isSaving = false))
+        assertEquals(false, canContinueArc("Flow", "", isSaving = false))
+        assertEquals(false, canContinueArc("Flow", "Journey", isSaving = true))
+    }
 }

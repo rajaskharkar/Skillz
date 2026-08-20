@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import com.kingkharnivore.skillz.domain.lookout.ObjectiveCompletionProcessor
+import com.kingkharnivore.skillz.data.repository.ChronicleRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -23,6 +24,7 @@ class SkillzApplication : Application() {
     lateinit var userPrefs: UserPrefs
 
     @Inject lateinit var objectiveCompletionProcessor: ObjectiveCompletionProcessor
+    @Inject lateinit var chronicleRepository: ChronicleRepository
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
@@ -33,6 +35,7 @@ class SkillzApplication : Application() {
             AppLocaleManager.applyLanguage(savedTag)
         }
         launchObjectiveReconciliation("startup")
+        applicationScope.launch { runCatching { chronicleRepository.reconcileStorage() } }
         registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
             override fun onActivityStarted(activity: Activity) {
                 launchObjectiveReconciliation("foreground")

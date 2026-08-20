@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 38.
+     * Current database version is 40.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -299,6 +299,18 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_39_40 = object : Migration(39, 40) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `chronicle_moments` ADD COLUMN `originalTranscript` TEXT")
+            // Unedited legacy transcript text came directly from recognition and is therefore the
+            // original. Edited legacy text remains untouched; its original can be regenerated from
+            // the preserved voice file without inventing or mislabelling historical data.
+            db.execSQL("""UPDATE `chronicle_moments`
+                SET `originalTranscript`=`transcript`
+                WHERE `type`='VOICE' AND `transcriptEdited`=0 AND `transcript` IS NOT NULL""")
+        }
+    }
+
     private fun normalizePostAnchorTestSchemaToTargetBranch(db: SupportSQLiteDatabase) {
         db.execSQL("PRAGMA foreign_keys=OFF")
 
@@ -458,7 +470,8 @@ object SkillzDatabaseMigrations {
                 MIGRATION_35_36 +
                 MIGRATION_36_37 +
                 MIGRATION_37_38 +
-                MIGRATION_38_39
+                MIGRATION_38_39 +
+                MIGRATION_39_40
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(
@@ -947,6 +960,10 @@ object SkillzDatabaseMigrations {
                     FROM `skills`
                     """.trimIndent()
                 )
+                // Room 2.8 rejects unexpected legacy tables. The copy and drop
+                // run in the same migration transaction, so a failed copy rolls
+                // back without touching the user's original database.
+                db.execSQL("DROP TABLE `skills`")
             }
         }
 
@@ -1702,6 +1719,10 @@ object SkillzDatabaseMigrations {
 
     private fun createLegacySafetyTagIfNeeded(db: SupportSQLiteDatabase) {
         if (!tableExists(db, "tags")) {
+            // The earliest releases named this table `skills`. Do not create a
+            // placeholder `tags` table here or rebuildTags() would prefer it and
+            // silently skip the user's real legacy Journeys.
+            if (tableExists(db, "skills")) return
             db.execSQL(
                 """
                 CREATE TABLE IF NOT EXISTS `tags` (

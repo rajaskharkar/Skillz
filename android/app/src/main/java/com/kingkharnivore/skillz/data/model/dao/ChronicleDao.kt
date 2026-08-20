@@ -38,6 +38,15 @@ abstract class ChronicleDao {
     @Query("SELECT COUNT(*) FROM chronicle_moments WHERE audioPath=:path")
     abstract suspend fun audioPathReferenceCount(path: String): Int
 
+    @Query("SELECT localPath FROM chronicle_media_items")
+    abstract suspend fun allMediaPaths(): List<String>
+
+    @Query("SELECT thumbnailPath FROM chronicle_media_items WHERE thumbnailPath IS NOT NULL")
+    abstract suspend fun allThumbnailPaths(): List<String>
+
+    @Query("SELECT audioPath FROM chronicle_moments WHERE audioPath IS NOT NULL")
+    abstract suspend fun allAudioPaths(): List<String>
+
     @Query("SELECT i.* FROM chronicle_media_items i INNER JOIN chronicle_moments m ON m.id=i.momentId WHERE m.chronicleId=:chronicleId ORDER BY m.position, i.position")
     abstract fun observeMedia(chronicleId: String): Flow<List<ChronicleMediaItemEntity>>
 
@@ -48,9 +57,29 @@ abstract class ChronicleDao {
     @Insert abstract suspend fun insertMoment(value: ChronicleMomentEntity)
     @Insert abstract suspend fun insertMedia(values: List<ChronicleMediaItemEntity>)
     @Update abstract suspend fun updateChronicle(value: ChronicleEntity)
-    @Update abstract suspend fun updateMoment(value: ChronicleMomentEntity)
-    @Query("UPDATE chronicle_moments SET transcript=:transcript, transcriptEdited=0, updatedAt=:now WHERE id=:id AND transcriptEdited=0")
-    abstract suspend fun setTranscriptIfUnedited(id: String, transcript: String?, now: Long): Int
+    @Query("""UPDATE chronicle_moments SET text=:text, audioPath=:audioPath,
+        displayName=:displayName, mimeType=:mimeType, durationMs=:durationMs,
+        originalTranscript=:originalTranscript, transcript=:transcript,
+        transcriptEdited=:transcriptEdited, updatedAt=:updatedAt
+        WHERE id=:id""")
+    protected abstract suspend fun updateMomentContent(
+        id: String,
+        text: String?,
+        audioPath: String?,
+        displayName: String?,
+        mimeType: String?,
+        durationMs: Long?,
+        originalTranscript: String?,
+        transcript: String?,
+        transcriptEdited: Boolean,
+        updatedAt: Long,
+    )
+    @Query("""UPDATE chronicle_moments
+        SET originalTranscript=:transcript,
+            transcript=CASE WHEN transcriptEdited=0 THEN :transcript ELSE transcript END,
+            updatedAt=:now
+        WHERE id=:id AND type='VOICE'""")
+    abstract suspend fun setOriginalTranscript(id: String, transcript: String?, now: Long): Int
     @Update abstract suspend fun updateMedia(value: ChronicleMediaItemEntity)
     @Delete abstract suspend fun deleteMoment(value: ChronicleMomentEntity)
     @Delete abstract suspend fun deleteMedia(value: ChronicleMediaItemEntity)
@@ -92,6 +121,24 @@ abstract class ChronicleDao {
 
     @Query("SELECT * FROM chronicle_moments WHERE id=:id LIMIT 1")
     protected abstract suspend fun momentsForId(id: String): ChronicleMomentEntity?
+
+    @Transaction
+    open suspend fun updateMoment(value: ChronicleMomentEntity) {
+        val current = momentsForId(value.id) ?: error("Chronicle Moment is unavailable")
+        require(current.chronicleId == value.chronicleId && current.type == value.type)
+        updateMomentContent(
+            id = value.id,
+            text = value.text,
+            audioPath = value.audioPath,
+            displayName = value.displayName,
+            mimeType = value.mimeType,
+            durationMs = value.durationMs,
+            originalTranscript = value.originalTranscript,
+            transcript = value.transcript,
+            transcriptEdited = value.transcriptEdited,
+            updatedAt = value.updatedAt,
+        )
+    }
 
     @Transaction
     open suspend fun promote(ownerType: String, ownerKey: String, newType: String, newKey: String, now: Long) {

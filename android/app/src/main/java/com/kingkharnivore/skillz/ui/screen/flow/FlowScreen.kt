@@ -103,6 +103,9 @@ internal fun shellNavigationMode(entry: RewardShellEntry): ShellNavigationMode =
         RewardShellEntry.PreserveContinuation -> ShellNavigationMode.PreservePreparedFlow
     }
 
+internal fun canContinueArc(title: String, journey: String, isSaving: Boolean): Boolean =
+    title.isNotBlank() && journey.isNotBlank() && !isSaving
+
 @Composable
 fun FlowScreen(
     viewModel: FlowViewModel,
@@ -142,7 +145,7 @@ fun FlowScreen(
     val chronicleOwnerKey by viewModel.chronicleOwnerKey.collectAsState()
     val chronicleHolder = remember(chronicleOwnerKey) { viewModel.createChronicleStateHolder(chronicleOwnerKey) }
     val chronicleUiState by chronicleHolder.state.collectAsState()
-    val chronicleRequiresAttention = chronicleUiState.blocksCompletion
+    val chronicleBlocksPager = chronicleUiState.blocksPager
     DisposableEffect(chronicleHolder) { onDispose { chronicleHolder.close() } }
     val completionState by viewModel.completionState.collectAsState()
     LaunchedEffect(completionState, chronicleHolder) {
@@ -158,11 +161,11 @@ fun FlowScreen(
     val pagerScope = rememberCoroutineScope()
     fun requestEnd(action: FlowEndAction) {
         val chronicle = chronicleHolder.state.value
-        if (chronicle.blocksCompletion) {
+        if (chronicle.blocksCompletion || chronicle.draft.isNotBlank()) {
             pendingChronicleEnd = action
             pagerScope.launch { pagerState.animateScrollToPage(1) }
         }
-        else chronicleHolder.quiesce { viewModel.onEndFlowClicked(action) }
+        else viewModel.onEndFlowClicked(action)
     }
 
     LaunchedEffect(reward) {
@@ -236,10 +239,10 @@ fun FlowScreen(
                 primaryContentDescription = stringResource(R.string.flow_screen_title),
                 chronicleLabel = stringResource(R.string.chronicle_title),
                 chronicleContentDescription = stringResource(R.string.chronicle_title),
-                canLeaveChronicle = !chronicleRequiresAttention,
+                canLeaveChronicle = !chronicleBlocksPager,
                 onPageSelected = { page -> pagerScope.launch { pagerState.animateScrollToPage(page) } },
             )
-            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f), userScrollEnabled = !chronicleRequiresAttention) { page ->
+            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f), userScrollEnabled = !chronicleBlocksPager) { page ->
                 if (page == 1) {
                     ChroniclePage(chronicleHolder)
                     return@HorizontalPager
@@ -544,11 +547,7 @@ fun FlowScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OutlinedButton(
-                        enabled = uiState.title.isNotBlank() &&
-                                uiState.tagName.isNotBlank() &&
-                                hasTime &&
-                                !isSaving &&
-                                !isInFlowState,
+                        enabled = canContinueArc(uiState.title, uiState.tagName, isSaving),
                         onClick = { requestEnd(FlowEndAction.CONTINUE_ARC) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(18.dp)
@@ -593,9 +592,9 @@ fun FlowScreen(
         val chronicle = chronicleHolder.state.value
         AlertDialog(
             onDismissRequest = { pendingChronicleEnd = null },
-            title = { Text(stringResource(if (chronicle.editingId != null) R.string.chronicle_finish_edit else R.string.chronicle_unfinished)) },
+            title = { Text(stringResource(if (chronicle.blocksCompletion) R.string.chronicle_finish_edit else R.string.chronicle_unfinished)) },
             confirmButton = {
-                if (chronicle.editingId == null) TextButton(onClick = {
+                if (!chronicle.blocksCompletion && chronicle.draft.isNotBlank()) TextButton(onClick = {
                     chronicleHolder.add {
                         chronicleHolder.quiesce { pendingChronicleEnd = null; viewModel.onEndFlowClicked(action) }
                     }
@@ -603,7 +602,7 @@ fun FlowScreen(
             },
             dismissButton = {
                 Row {
-                    if (chronicle.editingId == null) TextButton(onClick = {
+                    if (!chronicle.blocksCompletion && chronicle.draft.isNotBlank()) TextButton(onClick = {
                         chronicleHolder.discardDraft {
                             chronicleHolder.quiesce { pendingChronicleEnd = null; viewModel.onEndFlowClicked(action) }
                         }

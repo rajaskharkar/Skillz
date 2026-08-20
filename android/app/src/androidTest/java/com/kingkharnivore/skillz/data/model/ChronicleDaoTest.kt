@@ -7,8 +7,10 @@ import com.kingkharnivore.skillz.data.model.entity.*
 import com.kingkharnivore.skillz.data.repository.ChronicleRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
 import com.kingkharnivore.skillz.data.repository.PulseRepository
+import com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleStateHolder
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -83,6 +85,7 @@ class ChronicleDaoTest {
         assertThrows(IllegalStateException::class.java) {
             runBlocking { recreatedChronicles.setDraft(ChronicleOwnerType.PULSE_DRAFT, "draft-x", "late") }
         }
+        Unit
     }
 
     @Test fun storySummaryIsBounded() = runBlocking {
@@ -95,14 +98,83 @@ class ChronicleDaoTest {
         assertEquals(240, summary.excerpt?.length)
     }
 
-    @Test fun editedTranscriptCannotBeOverwrittenByLateRecognition() = runBlocking {
+    @Test fun retranscriptionUpdatesOriginalWithoutOverwritingEditedTranscript() = runBlocking {
         val dao = db.chronicleDao()
         dao.insertChronicle(ChronicleEntity("audio-c", ChronicleOwnerType.SESSION, "42", "", 1, 1))
-        val audio = ChronicleMomentEntity("audio-m", "audio-c", ChronicleMomentType.AUDIO, 0,
+        val audio = ChronicleMomentEntity("audio-m", "audio-c", ChronicleMomentType.VOICE, 0,
             audioPath = "chronicle/audio-c/audio/a.m4a", transcript = "mine", transcriptEdited = true,
             createdAt = 1, updatedAt = 1)
         dao.insertMoment(audio)
-        assertEquals(0, dao.setTranscriptIfUnedited(audio.id, "late", 2))
-        assertEquals("mine", dao.moments("audio-c").single().transcript)
+        assertEquals(1, dao.setOriginalTranscript(audio.id, "late", 2))
+        val updated = dao.moments("audio-c").single()
+        assertEquals("late", updated.originalTranscript)
+        assertEquals("mine", updated.transcript)
+    }
+
+    @Test fun pendingMomentRemovalIsUndoableBeforeDatabaseDeletion() = runBlocking {
+        val repository = ChronicleRepository(db, db.chronicleDao())
+        repository.addText(ChronicleOwnerType.ACTIVE_FLOW, "undo-flow", "Keep me")
+        val holder = ChronicleStateHolder(
+            ChronicleOwnerType.ACTIVE_FLOW,
+            "undo-flow",
+            repository,
+            this,
+        )
+        val moment = withTimeout(2_000) {
+            holder.state.first { it.contentMoments.isNotEmpty() }.contentMoments.single()
+        }
+
+        holder.requestDelete(moment)
+        assertEquals(moment.id, holder.state.value.pendingDeletion?.id)
+        assertEquals(1, db.chronicleDao().moments(moment.chronicleId).size)
+
+        holder.undoPendingDelete(moment.id)
+        assertEquals(null, holder.state.value.pendingDeletion)
+        assertEquals(1, db.chronicleDao().moments(moment.chronicleId).size)
+
+        holder.requestDelete(moment)
+        holder.commitPendingDelete(moment.id)
+        withTimeout(2_000) {
+            db.chronicleDao().observeMoments(moment.chronicleId).first { it.isEmpty() }
+        }
+        holder.close()
+    }
+
+    @Test fun cancellingMediaEditRestoresStagedItemRemoval() = runBlocking {
+        val dao = db.chronicleDao()
+        val repository = ChronicleRepository(db, dao)
+        val chronicle = repository.getOrCreate(ChronicleOwnerType.ACTIVE_FLOW, "media-edit-flow")
+        val mediaMoment = ChronicleMomentEntity(
+            id = "media-moment",
+            chronicleId = chronicle.id,
+            type = ChronicleMomentType.MEDIA,
+            position = 0,
+            createdAt = 1,
+            updatedAt = 1,
+        )
+        dao.insertMoment(mediaMoment)
+        dao.insertMedia(listOf(
+            ChronicleMediaItemEntity("photo", mediaMoment.id, 0, "photo.jpg", "image/jpeg", createdAt = 1),
+            ChronicleMediaItemEntity("video", mediaMoment.id, 1, "video.mp4", "video/mp4", createdAt = 2),
+        ))
+        val holder = ChronicleStateHolder(
+            ChronicleOwnerType.ACTIVE_FLOW,
+            "media-edit-flow",
+            repository,
+            this,
+        )
+        val moment = withTimeout(2_000) {
+            holder.state.first { it.contentMoments.isNotEmpty() }.contentMoments.single()
+        } as com.kingkharnivore.skillz.model.ui.ChronicleMomentUi.Media
+
+        holder.beginMediaEdit(moment)
+        holder.removeMediaItem("photo")
+        assertEquals(listOf("video"), holder.state.value.editingMediaItems.map { it.id })
+        assertEquals(listOf("photo", "video"), dao.media(mediaMoment.id).map { it.id })
+
+        holder.cancelMediaEdit()
+        assertEquals(null, holder.state.value.editingMediaId)
+        assertEquals(listOf("photo", "video"), dao.media(mediaMoment.id).map { it.id })
+        holder.close()
     }
 }

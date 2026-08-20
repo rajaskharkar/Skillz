@@ -9,13 +9,15 @@ import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMediaItemEntity
 import com.kingkharnivore.skillz.data.chronicle.ChronicleFileStore
 import com.kingkharnivore.skillz.data.chronicle.ChronicleAudioRecorder
-import com.kingkharnivore.skillz.data.chronicle.AndroidOnDeviceDictationEngine
+import com.kingkharnivore.skillz.data.chronicle.MlKitLiveDictationEngine
 import com.kingkharnivore.skillz.data.chronicle.LiveDictationEngine
+import com.kingkharnivore.skillz.data.chronicle.MlKitTranscriptionEngine
 import com.kingkharnivore.skillz.model.ui.ChronicleMediaItemUi
 import com.kingkharnivore.skillz.model.ui.ChronicleMomentUi
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentType
 import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
 import java.util.UUID
+import java.io.File
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.combine
@@ -35,7 +37,8 @@ class ChronicleRepository @Inject constructor(
     private val dao: ChronicleDao,
     private val fileStore: ChronicleFileStore? = null,
     private val audioRecorder: ChronicleAudioRecorder? = null,
-    private val dictationEngine: AndroidOnDeviceDictationEngine? = null
+    private val dictationEngine: MlKitLiveDictationEngine? = null,
+    private val transcriptionEngine: MlKitTranscriptionEngine? = null,
 ) {
     private data class Owner(val type: String, val key: String)
     private val ownerMutexes = ConcurrentHashMap<Owner, Mutex>()
@@ -64,14 +67,31 @@ class ChronicleRepository @Inject constructor(
     fun observeSummaries() = dao.observeSummaries()
 
     data class MediaImportResult(val momentId: String?, val failedCount: Int)
+    data class MediaStageResult(val items: List<ChronicleMediaItemEntity>, val failedCount: Int)
 
-    fun createCaptureOutput(video: Boolean): Uri =
-        fileStore?.createCaptureOutput(video) ?: error("File storage unavailable")
+    fun createCameraStagingFile(video: Boolean): File =
+        fileStore?.createCameraStagingFile(video) ?: error("File storage unavailable")
 
     suspend fun discardCapture(uri: Uri) = fileStore?.discardCapture(uri)
 
+    suspend fun reconcileStorage() {
+        val referenced = buildSet {
+            addAll(dao.allMediaPaths())
+            addAll(dao.allThumbnailPaths())
+            addAll(dao.allAudioPaths())
+        }
+        fileStore?.reconcile(referenced)
+    }
+
     suspend fun importMedia(ownerType: String, ownerKey: String, sources: List<Uri>): MediaImportResult {
         if (sources.isEmpty()) return MediaImportResult(null, 0)
+        val staged = stageMedia(ownerType, ownerKey, sources)
+        if (staged.items.isEmpty()) return MediaImportResult(null, staged.failedCount)
+        return MediaImportResult(addMedia(ownerType, ownerKey, staged.items), staged.failedCount)
+    }
+
+    suspend fun stageMedia(ownerType: String, ownerKey: String, sources: List<Uri>): MediaStageResult {
+        if (sources.isEmpty()) return MediaStageResult(emptyList(), 0)
         val owner = Owner(ownerType, ownerKey)
         val chronicle = mutex(owner).withLock {
             requireMutable(owner)
@@ -82,13 +102,17 @@ class ChronicleRepository @Inject constructor(
                 .getOrNull()
         }
         val successful = imported.filterNotNull()
-        if (successful.isEmpty()) return MediaImportResult(null, sources.size)
+        if (successful.isEmpty()) return MediaStageResult(emptyList(), sources.size)
         val now = System.currentTimeMillis()
         val rows = successful.mapIndexed { index, stored ->
             ChronicleMediaItemEntity(UUID.randomUUID().toString(), "", index, stored.relativePath,
                 stored.mimeType, stored.durationMs, stored.width, stored.height, createdAt = now)
         }
-        return MediaImportResult(addMedia(ownerType, ownerKey, rows), sources.size - successful.size)
+        return MediaStageResult(rows, sources.size - successful.size)
+    }
+
+    suspend fun discardStagedMedia(items: List<ChronicleMediaItemEntity>) {
+        cleanupOwnedPaths(items.flatMap { listOfNotNull(it.localPath, it.thumbnailPath) })
     }
 
     /** Starts a private staging recording. No Room row exists until [finishVoice]. */
@@ -143,6 +167,38 @@ class ChronicleRepository @Inject constructor(
     fun startDictation(listener: LiveDictationEngine.Listener): Boolean = dictationEngine?.start(listener) == true
     fun finishDictation() = dictationEngine?.finish()
     fun cancelDictation() = dictationEngine?.cancel()
+
+    fun isTranscriptionSupported(): Boolean = transcriptionEngine?.isSupported() == true
+
+    suspend fun transcribeVoice(
+        ownerType: String,
+        ownerKey: String,
+        momentId: String,
+        onPartial: (String) -> Unit,
+    ): Boolean {
+        val owner = Owner(ownerType, ownerKey)
+        val source = mutex(owner).withLock {
+            requireMutable(owner)
+            val chronicle = dao.find(ownerType, ownerKey) ?: error("Chronicle owner is unavailable")
+            val moment = dao.moments(chronicle.id).firstOrNull { it.id == momentId }
+                ?: error("Voice moment is unavailable")
+            check(moment.type == ChronicleMomentType.VOICE)
+            val path = moment.audioPath ?: error("Voice source is unavailable")
+            path to (fileStore?.resolve(path)?.takeIf(File::isFile)
+                ?: error("Voice source is unavailable"))
+        }
+        val transcript = transcriptionEngine?.transcribe(source.second, onPartial)
+            ?: error("On-device transcription is unavailable")
+        return mutex(owner).withLock {
+            requireMutable(owner)
+            val chronicle = dao.find(ownerType, ownerKey) ?: return@withLock false
+            val current = dao.moments(chronicle.id).firstOrNull { it.id == momentId } ?: return@withLock false
+            if (current.type != ChronicleMomentType.VOICE || current.audioPath != source.first) {
+                return@withLock false
+            }
+            dao.setOriginalTranscript(momentId, transcript, System.currentTimeMillis()) == 1
+        }
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observeContent(ownerType: String, ownerKey: String): Flow<ContentSnapshot> =
@@ -240,14 +296,7 @@ class ChronicleRepository @Inject constructor(
             val previousPaths = dao.media(momentId)
                 .flatMap { listOfNotNull(it.localPath, it.thumbnailPath) }
                 .toSet()
-            try {
-                dao.replaceMedia(momentId, items)
-            } catch (failure: Exception) {
-                val prior = previousPaths
-                cleanupOwnedPaths(items.flatMap { listOfNotNull(it.localPath, it.thumbnailPath) }
-                    .filterNot(prior::contains))
-                throw failure
-            }
+            dao.replaceMedia(momentId, items)
             val finalPaths = items.flatMap { listOfNotNull(it.localPath, it.thumbnailPath) }.toSet()
             (previousPaths - finalPaths).forEach { path ->
                 if (dao.mediaPathReferenceCount(path) == 0) fileStore?.deleteIfOwned(path)
@@ -277,13 +326,13 @@ class ChronicleRepository @Inject constructor(
             requireMutable(owner)
             val chronicle = dao.find(ownerType, ownerKey) ?: return@withLock false
             val moment = dao.moments(chronicle.id).firstOrNull { it.id == momentId } ?: return@withLock false
-            check(moment.type == ChronicleMomentType.AUDIO || moment.type == ChronicleMomentType.VOICE)
+            check(moment.type == ChronicleMomentType.VOICE)
             val now = System.currentTimeMillis()
             if (manuallyEdited) {
                 dao.updateMoment(moment.copy(transcript = transcript, transcriptEdited = true, updatedAt = now))
                 true
             } else {
-                dao.setTranscriptIfUnedited(momentId, transcript, now) == 1
+                dao.setOriginalTranscript(momentId, transcript, now) == 1
             }
         }
     }
@@ -355,13 +404,19 @@ class ChronicleRepository @Inject constructor(
         ChronicleMomentType.TEXT -> ChronicleMomentUi.Text(id, chronicleId, position, text.orEmpty())
         ChronicleMomentType.MEDIA -> ChronicleMomentUi.Media(id, chronicleId, position, media.sortedBy { it.position }.map { item ->
             ChronicleMediaItemUi(item.id, item.position, item.localPath, item.mimeType, item.durationMs,
-                item.width, item.height, fileStore?.resolve(item.localPath)?.isFile != false)
+                item.width, item.height, fileStore?.resolve(item.localPath)?.isFile != false, item.createdAt)
         })
-        ChronicleMomentType.VOICE -> ChronicleMomentUi.Voice(id, chronicleId, position, audioPath, durationMs,
-            transcript, transcriptEdited, audioPath?.let { fileStore?.resolve(it)?.isFile } == true)
-        ChronicleMomentType.AUDIO -> ChronicleMomentUi.Audio(id, chronicleId, position, audioPath, displayName,
-            mimeType, durationMs, transcript, transcriptEdited,
-            audioPath?.let { fileStore?.resolve(it)?.isFile } == true)
+        ChronicleMomentType.VOICE -> ChronicleMomentUi.Voice(
+            id = id,
+            chronicleId = chronicleId,
+            position = position,
+            relativePath = audioPath,
+            durationMs = durationMs,
+            originalTranscript = originalTranscript ?: transcript.takeUnless { transcriptEdited },
+            transcript = transcript,
+            transcriptEdited = transcriptEdited,
+            isAvailable = audioPath?.let { fileStore?.resolve(it)?.isFile } == true,
+        )
         else -> error("Unsupported Chronicle Moment type: $type")
     }
 }

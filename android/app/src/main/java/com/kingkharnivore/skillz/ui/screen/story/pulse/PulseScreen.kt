@@ -96,7 +96,7 @@ fun PulseScreen(
     val pagerScope = rememberCoroutineScope()
     val cancelPulse = { viewModel.cancelPulseDraft(onCancel) }
     val chronicleState by viewModel.pulseChronicle.state.collectAsState()
-    val chronicleRequiresAttention = chronicleState.blocksCompletion
+    val chronicleBlocksPager = chronicleState.blocksPager
     val restoredCreatedPulseId by viewModel.restoredCreatedPulseId.collectAsState()
     var showDraftPrompt by remember { mutableStateOf(false) }
     fun savePulse() = viewModel.pulseChronicle.quiesce {
@@ -134,10 +134,10 @@ fun PulseScreen(
                 primaryContentDescription = screenTitle,
                 chronicleLabel = stringResource(R.string.chronicle_title),
                 chronicleContentDescription = stringResource(R.string.chronicle_title),
-                canLeaveChronicle = !chronicleRequiresAttention,
+                canLeaveChronicle = !chronicleBlocksPager,
                 onPageSelected = { page -> pagerScope.launch { pagerState.animateScrollToPage(page) } },
             )
-            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f), userScrollEnabled = !chronicleRequiresAttention) { page ->
+            HorizontalPager(state = pagerState, modifier = Modifier.weight(1f), userScrollEnabled = !chronicleBlocksPager) { page ->
                 if (page == 1) { ChroniclePage(viewModel.pulseChronicle); return@HorizontalPager }
         Column(
             modifier = Modifier
@@ -266,12 +266,12 @@ fun PulseScreen(
     }
     if (showDraftPrompt) AlertDialog(
         onDismissRequest = { showDraftPrompt = false },
-        title = { Text(stringResource(if (chronicleState.editingId != null) R.string.chronicle_finish_edit else R.string.chronicle_unfinished)) },
-        confirmButton = { if (chronicleState.editingId == null) TextButton(onClick = {
+        title = { Text(stringResource(if (chronicleState.blocksCompletion) R.string.chronicle_finish_edit else R.string.chronicle_unfinished)) },
+        confirmButton = { if (!chronicleState.blocksCompletion && chronicleState.draft.isNotBlank()) TextButton(onClick = {
             viewModel.pulseChronicle.add { showDraftPrompt = false; savePulse() }
         }) { Text(stringResource(R.string.chronicle_add_moment)) } },
         dismissButton = { Row {
-            if (chronicleState.editingId == null) TextButton(onClick = {
+            if (!chronicleState.blocksCompletion && chronicleState.draft.isNotBlank()) TextButton(onClick = {
                 viewModel.pulseChronicle.discardDraft { showDraftPrompt = false; savePulse() }
             }) { Text(stringResource(R.string.chronicle_discard)) }
             TextButton(onClick = { showDraftPrompt = false }) { Text(cancelLabel) }
