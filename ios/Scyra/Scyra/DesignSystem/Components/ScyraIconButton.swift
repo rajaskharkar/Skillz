@@ -41,7 +41,7 @@ struct ScyraIconButton: View {
         if let assetImageName {
             Image(assetImageName).renderingMode(.original).resizable().scaledToFit().accessibilityHidden(true)
         } else {
-            Image(systemName: systemImage ?? "circle")
+            ScyraCanonicalIcon(systemName: systemImage ?? "circle")
                 .font(ScyraTypography.navigationIcon)
                 .foregroundStyle(isSelected ? ScyraColors.primary : ScyraColors.textSecondary)
                 .accessibilityHidden(true)

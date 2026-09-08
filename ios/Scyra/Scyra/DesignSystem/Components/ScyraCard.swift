@@ -33,17 +33,17 @@ struct ScyraCard<Content: View>: View {
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(ScyraColors.elevatedSurface)
+            .background(ScyraColors.surface)
             .clipShape(RoundedRectangle(cornerRadius: ScyraRadius.card, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: ScyraRadius.card, style: .continuous)
-                    .stroke(ScyraColors.border, lineWidth: 1)
+                    .stroke(Color.clear, lineWidth: 0)
             )
             .shadow(
-                color: style == .elevated ? ScyraColors.primary.opacity(0.12) : .clear,
-                radius: style == .elevated ? 18 : 0,
+                color: style == .elevated ? Color.black.opacity(0.12) : .clear,
+                radius: style == .elevated ? 3 : 0,
                 x: 0,
-                y: style == .elevated ? 8 : 0
+                y: style == .elevated ? 1 : 0
             )
     }
 }

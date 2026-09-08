@@ -11,8 +11,8 @@ enum ScyraColor {
     static let textSecondary = ScyraColors.textSecondary
     static let textMuted = ScyraColors.textMuted
     static let cardBackground = ScyraColors.elevatedSurface
-    static let topBarBackground = ScyraColors.elevatedSurface
-    static let topBarSelectedBackground = ScyraColors.primaryContainer
-    static let topBarHairline = ScyraColors.hairline
+    static let topBarBackground = ScyraColors.primary
+    static let topBarSelectedBackground = ScyraColors.onPrimary.opacity(0.18)
+    static let topBarHairline = Color.clear
     static let pearlGold = ScyraColors.rewardPearl
 }

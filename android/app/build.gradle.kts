@@ -16,8 +16,8 @@ android {
         applicationId = "com.kingkharnivore.skillz"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.2.1"
 
         buildConfigField("boolean", "SHOW_SCORE", "true")
         buildConfigField("int", "PRIMARY_COLOR", "0xFF2F4F6F") // GryffindorRed

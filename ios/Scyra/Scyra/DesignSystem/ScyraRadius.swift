@@ -1,7 +1,8 @@
 import CoreGraphics
 
 enum ScyraRadius {
-    static let card: CGFloat = 20
+    /// Material 3's default medium/card corner shape.
+    static let card: CGFloat = 12
     static let largeCard: CGFloat = 28
     static let capsule: CGFloat = 999
 }
