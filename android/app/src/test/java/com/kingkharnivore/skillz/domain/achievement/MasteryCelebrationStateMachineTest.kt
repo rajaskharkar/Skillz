@@ -8,9 +8,7 @@ class MasteryCelebrationStateMachineTest {
         var transition = MasteryCelebrationStateMachine.begin(CelebrationStage.LEVEL_TRANSITION)
         assertEquals(CelebrationLifecycle.PRESENTING, transition.lifecycle)
         val expected = listOf(
-            CelebrationStage.MASTERY_REVEAL, CelebrationStage.SPECIES_BADGE_REVEAL,
-            CelebrationStage.COLLECTION_IMPACT, CelebrationStage.ADDITIONAL_ACHIEVEMENTS,
-            CelebrationStage.FINAL_SUMMARY
+            CelebrationStage.MASTERY_REVEAL, CelebrationStage.FINAL_SUMMARY
         )
         expected.forEach { stage ->
             transition = MasteryCelebrationStateMachine.advance(transition.stage)
@@ -20,10 +18,27 @@ class MasteryCelebrationStateMachineTest {
         assertEquals(transition, MasteryCelebrationStateMachine.advance(transition.stage))
     }
 
-    @Test fun skipReachesSummaryWhileReducedMotionPreservesStages() {
-        assertEquals(CelebrationLifecycle.SUMMARY_REACHED, MasteryCelebrationStateMachine.skip().lifecycle)
+    @Test fun previousUsesTheSameThreeCanonicalPages() {
+        assertEquals(CelebrationStage.MASTERY_REVEAL,
+            MasteryCelebrationStateMachine.previous(CelebrationStage.FINAL_SUMMARY).stage)
+        assertEquals(CelebrationStage.LEVEL_TRANSITION,
+            MasteryCelebrationStateMachine.previous(CelebrationStage.MASTERY_REVEAL).stage)
+        assertEquals(CelebrationStage.LEVEL_TRANSITION,
+            MasteryCelebrationStateMachine.previous(CelebrationStage.LEVEL_TRANSITION).stage)
+    }
+
+    @Test fun reducedMotionPreservesTheThreePageSequence() {
         assertEquals(CelebrationStage.MASTERY_REVEAL,
             MasteryCelebrationStateMachine.advance(CelebrationStage.LEVEL_TRANSITION, reducedMotion = true).stage)
+    }
+
+    @Test fun legacyPersistedStagesMapWithoutAddingVisiblePages() {
+        assertEquals(MasteryCelebrationStep.MASTERY,
+            MasteryCelebrationStep.from(CelebrationStage.SPECIES_BADGE_REVEAL))
+        assertEquals(MasteryCelebrationStep.PROGRESS,
+            MasteryCelebrationStep.from(CelebrationStage.COLLECTION_IMPACT))
+        assertEquals(MasteryCelebrationStep.PROGRESS,
+            MasteryCelebrationStep.from(CelebrationStage.ADDITIONAL_ACHIEVEMENTS))
     }
 
     @Test fun deliberateExitIsTheOnlyCompletionTransition() {

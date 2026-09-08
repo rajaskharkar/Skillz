@@ -1164,8 +1164,7 @@ class ShellRepository @Inject constructor(
         db.withTransaction {
             if (transition.lifecycle == CelebrationLifecycle.COMPLETED) {
                 achievementDao.getCelebration(eventId)?.let { event ->
-                    // The final summary always renders newly-earned badge chips. Advanced and
-                    // milestone rows may have been skipped, so they intentionally remain unseen.
+                    // The progress page renders every newly-earned achievement before Done is available.
                     event.newlyEarnedBadgeIds.split(',').filter { it.isNotBlank() }.distinct()
                         .forEach { badgeDao.markViewed(it, System.currentTimeMillis()) }
                 }

@@ -398,7 +398,9 @@ class ShellViewModel @Inject constructor(
     fun advanceCelebration(reducedMotion: Boolean = false) = transitionCelebration { stage ->
         MasteryCelebrationStateMachine.advance(stage, reducedMotion)
     }
-    fun skipCelebration() = transitionCelebration { MasteryCelebrationStateMachine.skip() }
+    fun previousCelebration() = transitionCelebration { stage ->
+        MasteryCelebrationStateMachine.previous(stage)
+    }
     fun completeCelebration(onCompleted: () -> Unit = {}) = viewModelScope.launch {
         val event = uiState.value.masteryCelebration ?: return@launch
         runCatching { repository.updateCelebration(event.eventId, MasteryCelebrationStateMachine.complete()) }
