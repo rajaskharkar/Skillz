@@ -2039,10 +2039,6 @@ Puedes volver a activar Health más tarde.</string>
     <string name="chest_filter_empty">No creatures match this filter.</string>
     <string name="chest_filter_mastered">Mastered</string>
     <string name="chest_filter_not_mastered">Not yet mastered</string>
-    <string name="chest_levels_to_mastery">%1$d to Mastery</string>
-    <string name="chest_mastered">Mastered</string>
-    <string name="chest_near_mastery">Near Mastery</string>
-    <string name="chest_one_to_mastery">One to Mastery</string>
     <string name="collection_all_waters">All Waters</string>
     <string name="collection_aquarium">Stillwater Aquarium</string>
     <string name="collection_deeper_reef">Deeper Reef</string>
@@ -2110,7 +2106,6 @@ Puedes volver a activar Health más tarde.</string>
     <string name="mastery_return_blue">Return to The Blue</string>
     <string name="mastery_return_chest">Return to The Chest</string>
     <string name="mastery_return_stillwater">Return to Stillwater</string>
-    <string name="mastery_skip">Skip to summary</string>
     <plurals name="mastery_species_remaining">
         <item quantity="one">One species remains.</item>
         <item quantity="many">%1$d species remain.</item>
@@ -2344,4 +2339,25 @@ Puedes volver a activar Health más tarde.</string>
     <string name="chronicle_transcription_failed">La transcripción falló.</string>
     <string name="chronicle_transcription_unavailable">La transcripción en el dispositivo no está disponible.</string>
     <string name="chronicle_edit_transcript">Editar transcripción</string>
+    <string name="mastery_level_99_title">NIVEL 99</string>
+    <string name="mastery_reached_99_sentence">%1$s alcanzó el nivel 99.</string>
+    <string name="mastery_mastered_title">%1$s: MAESTRÍA ALCANZADA</string>
+    <string name="mastery_permanent_record_short">La Maestría queda registrada permanentemente.</string>
+    <string name="mastery_first_species_support">Tu primer %1$s ha alcanzado la Maestría.</string>
+    <string name="mastery_second_species_support">Un segundo %1$s ha alcanzado la Maestría.</string>
+    <string name="mastery_third_species_support">Un tercer %1$s ha alcanzado la Maestría.</string>
+    <string name="mastery_many_species_support">La Maestría de %2$s se ha registrado %1$d veces.</string>
+    <string name="mastery_milestone_title">HITO ALCANZADO</string>
+    <string name="mastery_milestone_species">Maestría de %1$s ×%2$d</string>
+    <string name="mastery_progress_title">PROGRESO DE MAESTRÍA</string>
+    <string name="mastery_species_masteries">Maestrías de %1$s</string>
+    <string name="mastery_total_masteries">Maestrías totales</string>
+    <string name="mastery_unique_species">Especies únicas</string>
+    <string name="mastery_collection_progress_title">PROGRESO DE COLECCIÓN</string>
+    <string name="mastery_new_achievements_title">NUEVOS LOGROS</string>
+    <string name="mastery_previous">Anterior</string>
+    <string name="mastery_next">Siguiente</string>
+    <string name="mastery_done">Listo</string>
+    <string name="mastery_step_indicator">%1$d de %2$d</string>
+    <string name="mastery_seal_a11y">Sello de Maestría de nivel 99</string>
 </resources>

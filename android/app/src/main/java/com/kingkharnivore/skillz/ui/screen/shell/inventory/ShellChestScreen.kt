@@ -429,13 +429,7 @@ private fun ChestInventoryTile(stack: ChestInventoryStackUiModel, onClick: () ->
                 modifier = Modifier.size(54.dp).align(Alignment.Center)
             )
             ChestBadge(
-                text = when {
-                    stack.level >= 99 -> stringResource(R.string.chest_mastered)
-                    stack.level == 98 -> stringResource(R.string.chest_one_to_mastery)
-                    stack.level >= 95 -> stringResource(R.string.chest_near_mastery)
-                    stack.level >= 90 -> stringResource(R.string.chest_levels_to_mastery, 99 - stack.level)
-                    else -> stringResource(R.string.shell_creature_level_short, stack.level)
-                },
+                text = stringResource(R.string.shell_creature_level_short, stack.level),
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }

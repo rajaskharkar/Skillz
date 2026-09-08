@@ -2035,10 +2035,6 @@
     <string name="chest_filter_empty">No creatures match this filter.</string>
     <string name="chest_filter_mastered">Mastered</string>
     <string name="chest_filter_not_mastered">Not yet mastered</string>
-    <string name="chest_levels_to_mastery">%1$d to Mastery</string>
-    <string name="chest_mastered">Mastered</string>
-    <string name="chest_near_mastery">Near Mastery</string>
-    <string name="chest_one_to_mastery">One to Mastery</string>
     <string name="collection_all_waters">All Waters</string>
     <string name="collection_aquarium">Stillwater Aquarium</string>
     <string name="collection_deeper_reef">Deeper Reef</string>
@@ -2106,7 +2102,6 @@
     <string name="mastery_return_blue">Return to The Blue</string>
     <string name="mastery_return_chest">Return to The Chest</string>
     <string name="mastery_return_stillwater">Return to Stillwater</string>
-    <string name="mastery_skip">Skip to summary</string>
     <plurals name="mastery_species_remaining">
         <item quantity="one">One species remains.</item>
         <item quantity="other">%1$d species remain.</item>
@@ -2329,4 +2324,25 @@
     <string name="chronicle_transcription_failed">प्रतिलेखन विफल हुआ।</string>
     <string name="chronicle_transcription_unavailable">डिवाइस पर प्रतिलेखन उपलब्ध नहीं है।</string>
     <string name="chronicle_edit_transcript">प्रतिलेख संपादित करें</string>
+    <string name="mastery_level_99_title">लेवल 99</string>
+    <string name="mastery_reached_99_sentence">%1$s ने लेवल 99 हासिल किया।</string>
+    <string name="mastery_mastered_title">%1$s मास्टर्ड</string>
+    <string name="mastery_permanent_record_short">मास्टरी स्थायी रूप से दर्ज हो गई है।</string>
+    <string name="mastery_first_species_support">%1$s ने पहली बार मास्टरी हासिल की है।</string>
+    <string name="mastery_second_species_support">%1$s ने दूसरी बार मास्टरी हासिल की है।</string>
+    <string name="mastery_third_species_support">%1$s ने तीसरी बार मास्टरी हासिल की है।</string>
+    <string name="mastery_many_species_support">%2$s मास्टरी %1$d बार दर्ज हुई है।</string>
+    <string name="mastery_milestone_title">माइलस्टोन पूरा हुआ</string>
+    <string name="mastery_milestone_species">%1$s मास्टरी ×%2$d</string>
+    <string name="mastery_progress_title">मास्टरी की प्रगति</string>
+    <string name="mastery_species_masteries">%1$s मास्टरी</string>
+    <string name="mastery_total_masteries">कुल मास्टरी</string>
+    <string name="mastery_unique_species">अलग प्रजातियाँ</string>
+    <string name="mastery_collection_progress_title">कलेक्शन की प्रगति</string>
+    <string name="mastery_new_achievements_title">नई उपलब्धियाँ</string>
+    <string name="mastery_previous">पिछला</string>
+    <string name="mastery_next">अगला</string>
+    <string name="mastery_done">पूरा</string>
+    <string name="mastery_step_indicator">%2$d में से %1$d</string>
+    <string name="mastery_seal_a11y">लेवल 99 मास्टरी सील</string>
 </resources>

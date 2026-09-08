@@ -6,6 +6,23 @@ enum class CelebrationStage {
     COLLECTION_IMPACT, ADDITIONAL_ACHIEVEMENTS, FINAL_SUMMARY, COMPLETED
 }
 
+/** The three user-visible pages. Legacy stage values remain readable for persisted celebrations. */
+enum class MasteryCelebrationStep(val pageIndex: Int) {
+    LEVEL_99(0), MASTERY(1), PROGRESS(2);
+
+    companion object {
+        fun from(stage: CelebrationStage): MasteryCelebrationStep = when (stage) {
+            CelebrationStage.LEVEL_TRANSITION -> LEVEL_99
+            CelebrationStage.MASTERY_REVEAL,
+            CelebrationStage.SPECIES_BADGE_REVEAL -> MASTERY
+            CelebrationStage.COLLECTION_IMPACT,
+            CelebrationStage.ADDITIONAL_ACHIEVEMENTS,
+            CelebrationStage.FINAL_SUMMARY,
+            CelebrationStage.COMPLETED -> PROGRESS
+        }
+    }
+}
+
 data class CelebrationTransition(
     val lifecycle: CelebrationLifecycle,
     val stage: CelebrationStage
@@ -14,20 +31,16 @@ data class CelebrationTransition(
 /** Pure deterministic state machine. Persistence and rendering are its callers. */
 object MasteryCelebrationStateMachine {
     fun begin(current: CelebrationStage): CelebrationTransition =
-        if (current == CelebrationStage.FINAL_SUMMARY) {
-            CelebrationTransition(CelebrationLifecycle.SUMMARY_REACHED, current)
+        if (MasteryCelebrationStep.from(current) == MasteryCelebrationStep.PROGRESS) {
+            CelebrationTransition(CelebrationLifecycle.SUMMARY_REACHED, CelebrationStage.FINAL_SUMMARY)
         } else CelebrationTransition(CelebrationLifecycle.PRESENTING, current)
 
     fun advance(current: CelebrationStage, reducedMotion: Boolean = false): CelebrationTransition {
-        // Reduced motion changes the renderer, never the content sequence.
-        val next = when (current) {
-            CelebrationStage.LEVEL_TRANSITION -> CelebrationStage.MASTERY_REVEAL
-            CelebrationStage.MASTERY_REVEAL -> CelebrationStage.SPECIES_BADGE_REVEAL
-            CelebrationStage.SPECIES_BADGE_REVEAL -> CelebrationStage.COLLECTION_IMPACT
-            CelebrationStage.COLLECTION_IMPACT -> CelebrationStage.ADDITIONAL_ACHIEVEMENTS
-            CelebrationStage.ADDITIONAL_ACHIEVEMENTS -> CelebrationStage.FINAL_SUMMARY
-            CelebrationStage.FINAL_SUMMARY -> CelebrationStage.FINAL_SUMMARY
-            CelebrationStage.COMPLETED -> CelebrationStage.COMPLETED
+        // Reduced motion changes the pager animation, never the three-page sequence.
+        val next = when (MasteryCelebrationStep.from(current)) {
+            MasteryCelebrationStep.LEVEL_99 -> CelebrationStage.MASTERY_REVEAL
+            MasteryCelebrationStep.MASTERY -> CelebrationStage.FINAL_SUMMARY
+            MasteryCelebrationStep.PROGRESS -> CelebrationStage.FINAL_SUMMARY
         }
         return CelebrationTransition(
             if (next == CelebrationStage.FINAL_SUMMARY) CelebrationLifecycle.SUMMARY_REACHED else CelebrationLifecycle.PRESENTING,
@@ -35,7 +48,15 @@ object MasteryCelebrationStateMachine {
         )
     }
 
-    fun skip() = CelebrationTransition(CelebrationLifecycle.SUMMARY_REACHED, CelebrationStage.FINAL_SUMMARY)
+    fun previous(current: CelebrationStage): CelebrationTransition {
+        val previous = when (MasteryCelebrationStep.from(current)) {
+            MasteryCelebrationStep.LEVEL_99 -> CelebrationStage.LEVEL_TRANSITION
+            MasteryCelebrationStep.MASTERY -> CelebrationStage.LEVEL_TRANSITION
+            MasteryCelebrationStep.PROGRESS -> CelebrationStage.MASTERY_REVEAL
+        }
+        return CelebrationTransition(CelebrationLifecycle.PRESENTING, previous)
+    }
+
     fun complete() = CelebrationTransition(CelebrationLifecycle.COMPLETED, CelebrationStage.COMPLETED)
 }
 

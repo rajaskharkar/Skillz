@@ -364,7 +364,7 @@ fun ShellRootScreen(
                 uiState = uiState,
                 onBegin = { viewModel.beginCelebration() },
                 onAdvance = { reduced -> viewModel.advanceCelebration(reduced) },
-                onSkip = { viewModel.skipCelebration() },
+                onPrevious = { viewModel.previousCelebration() },
                 onComplete = { origin ->
                     viewModel.completeCelebration {
                         destination = when (origin) {
