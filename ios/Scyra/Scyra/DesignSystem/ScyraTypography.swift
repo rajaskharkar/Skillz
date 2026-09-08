@@ -6,9 +6,7 @@ import UIKit
 
 enum ScyraTypography {
     enum FontName {
-        /// Expected PostScript name for the Caveat semibold font if it is manually bundled later.
-        /// The font file is intentionally not committed in this PR, so `appTitleResolved`
-        /// falls back to a rounded semibold system font until registration is completed.
+        /// PostScript name of Android's canonical bundled `caveatsb.ttf`.
         static let appTitle = "Caveat-SemiBold"
     }
 
@@ -20,18 +18,24 @@ enum ScyraTypography {
     }
 
     static let wordmark = Font.custom(FontName.appTitle, size: 44, relativeTo: .largeTitle)
+    static let handwrittenLabel = Font.custom(FontName.appTitle, size: 16, relativeTo: .body)
     static var topBarTitle: Font { appTitleResolved }
-    static let screenTitle = Font.system(.largeTitle, design: .rounded).weight(.bold)
-    static let cardTitle = Font.system(.title3, design: .rounded).weight(.semibold)
-    static let body = Font.system(.body, design: .default)
-    static let label = Font.system(.subheadline, design: .rounded).weight(.medium)
-    static let button = Font.system(.headline, design: .rounded).weight(.semibold)
+    static var handwrittenLabelResolved: Font {
+        isAppTitleFontRegistered
+            ? handwrittenLabel
+            : Font.system(size: 16, weight: .medium, design: .rounded).italic()
+    }
+    static let screenTitle = Font.system(size: 28, weight: .semibold, design: .default)
+    static let cardTitle = Font.system(size: 16, weight: .semibold, design: .default)
+    static let body = Font.system(.subheadline, design: .default)
+    static let label = Font.system(size: 14, weight: .medium, design: .default)
+    static let button = Font.system(size: 14, weight: .semibold, design: .default)
     static let caption = Font.system(.caption, design: .default)
-    static let rewardNumber = Font.system(.title2, design: .rounded).weight(.bold)
+    static let rewardNumber = Font.system(.title2, design: .default).weight(.bold)
 
     /// SF Symbol sizing is centralized separately from text tokens so navigation icons do not
     /// scatter hardcoded system font values through feature views.
-    static let navigationIcon = Font.system(size: 24, weight: .semibold)
+    static let navigationIcon = Font.system(size: 22, weight: .regular)
 
     #if canImport(UIKit)
     static var isAppTitleFontRegistered: Bool {

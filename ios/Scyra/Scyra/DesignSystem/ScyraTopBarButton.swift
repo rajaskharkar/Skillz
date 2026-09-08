@@ -11,12 +11,8 @@ struct ScyraTopBarButton: View {
                 .frame(width: iconFrameSize, height: iconFrameSize)
                 .frame(width: ScyraSpacing.topBarTapTarget, height: ScyraSpacing.topBarTapTarget)
                 .background(
-                    Circle()
+                    Capsule()
                         .fill(buttonBackgroundColor)
-                )
-                .overlay(
-                    Circle()
-                        .stroke(isSelected ? ScyraColors.primary.opacity(0.20) : Color.clear, lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)
@@ -27,29 +23,36 @@ struct ScyraTopBarButton: View {
     }
 
     private var iconFrameSize: CGFloat {
-        route.display.assetImageName == nil ? 24 : 34
+        route.display.assetImageName == "scyraTurtle" ? 34 : 22
     }
 
     private var buttonBackgroundColor: Color {
-        if route.display.assetImageName != nil {
-            return ScyraColors.primary
-        }
-
-        return isSelected ? ScyraColors.primaryContainer : Color.clear
+        isSelected && route.display.assetImageName != "scyraTurtle"
+            ? ScyraColors.onPrimary.opacity(0.18)
+            : Color.clear
     }
 
     @ViewBuilder
     private func topBarImage(for display: AppRouteDisplay) -> some View {
         if let assetImageName = display.assetImageName {
-            Image(assetImageName)
-                .renderingMode(.original)
-                .resizable()
-                .scaledToFit()
-                .accessibilityHidden(true)
+            if assetImageName == "scyraTurtle" {
+                Image(assetImageName)
+                    .renderingMode(.original)
+                    .resizable()
+                    .scaledToFit()
+                    .accessibilityHidden(true)
+            } else {
+                Image(assetImageName)
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(ScyraColors.onPrimary.opacity(isSelected ? 1 : 0.72))
+                    .accessibilityHidden(true)
+            }
         } else {
-            Image(systemName: display.systemImage ?? "circle")
+            ScyraCanonicalIcon(systemName: display.systemImage ?? "circle")
                 .font(ScyraTypography.navigationIcon)
-                .foregroundStyle(isSelected ? ScyraColors.primary : ScyraColors.textSecondary)
+                .foregroundStyle(ScyraColors.onPrimary.opacity(isSelected ? 1 : 0.72))
                 .accessibilityHidden(true)
         }
     }

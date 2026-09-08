@@ -12,7 +12,7 @@ struct ScyraStatPill: View {
 
     var body: some View {
         HStack(spacing: ScyraSpacing.sm) {
-            if let systemImage { Image(systemName: systemImage).foregroundStyle(tint).accessibilityHidden(true) }
+            if let systemImage { ScyraCanonicalIcon(systemName: systemImage).foregroundStyle(tint).accessibilityHidden(true) }
             VStack(alignment: .leading, spacing: 2) {
                 Text(value).font(ScyraTypography.rewardNumber).foregroundStyle(ScyraColors.textPrimary)
                 Text(label).font(ScyraTypography.caption).foregroundStyle(ScyraColors.textSecondary)

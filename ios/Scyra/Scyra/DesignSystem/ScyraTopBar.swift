@@ -19,12 +19,12 @@ struct ScyraTopBar: View {
     }
 
     var body: some View {
-        HStack(spacing: ScyraSpacing.sm) {
+        HStack(spacing: 4) {
             if showsBackButton {
                 Button(action: onBackToRoot) {
-                    Image(systemName: "chevron.left")
+                    ScyraCanonicalIcon(systemName: "chevron.left")
                         .font(ScyraTypography.navigationIcon)
-                        .foregroundStyle(ScyraColors.primary)
+                        .foregroundStyle(ScyraColors.onPrimary)
                         .frame(width: ScyraSpacing.topBarTapTarget, height: ScyraSpacing.topBarTapTarget)
                 }
                 .buttonStyle(.plain)
@@ -33,12 +33,12 @@ struct ScyraTopBar: View {
 
             Text("Scyra")
                 .font(ScyraTypography.appTitleResolved)
-                .foregroundStyle(ScyraColors.primary)
+                .foregroundStyle(ScyraColors.onPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
                 .accessibilityAddTraits(.isHeader)
 
-            Spacer(minLength: ScyraSpacing.sm)
+            Spacer(minLength: 0)
 
             ForEach(AppRoute.rootTopBarActions, id: \.self) { route in
                 ScyraTopBarButton(
@@ -48,14 +48,10 @@ struct ScyraTopBar: View {
                 )
             }
         }
-        .padding(.horizontal, ScyraSpacing.md)
-        .padding(.vertical, ScyraSpacing.sm)
-        .background(ScyraColors.elevatedSurface)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(ScyraColors.hairline)
-                .frame(height: 1)
-        }
+        .padding(.leading, ScyraSpacing.md)
+        .padding(.trailing, 6)
+        .frame(height: 64)
+        .background(ScyraColors.primary)
     }
 }
 

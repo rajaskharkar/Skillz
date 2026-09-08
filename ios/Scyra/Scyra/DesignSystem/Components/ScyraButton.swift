@@ -26,7 +26,7 @@ struct ScyraButton: View {
         Button(role: variant == .destructive ? .destructive : nil, action: action) {
             HStack(spacing: ScyraSpacing.sm) {
                 if let systemImage {
-                    Image(systemName: systemImage)
+                    ScyraCanonicalIcon(systemName: systemImage)
                         .accessibilityHidden(true)
                 }
                 Text(title)
@@ -49,7 +49,8 @@ struct ScyraButton: View {
 
     private var foregroundColor: Color {
         switch variant {
-        case .primary, .destructive: return .white
+        case .primary: return ScyraColors.onPrimary
+        case .destructive: return .white
         case .secondary: return ScyraColors.primary
         case .ghost: return ScyraColors.textPrimary
         }

@@ -8,21 +8,21 @@ struct AppRouteDisplay: Equatable, Sendable {
 }
 
 extension AppRoute {
-    // SF Symbol choices mirror Android Material icons: AutoStories → books.vertical,
-    // Explore → safari, EditNote → square.and.pencil, HelpOutline → questionmark.circle,
-    // PsychologyAlt → brain.head.profile, AutoAwesome → sparkles.
+    // Root-navigation assets are the exact Material vectors used by Android.
+    // Feature-only routes continue to use SF Symbols until their canonical
+    // Material vectors are introduced with the corresponding feature surface.
     var display: AppRouteDisplay {
         switch self {
         case .story:
-            AppRouteDisplay(title: "Story", accessibilityLabel: "Open Story", systemImage: "books.vertical", assetImageName: nil)
+            AppRouteDisplay(title: "Story", accessibilityLabel: "Open Story", systemImage: nil, assetImageName: "materialAutoStories")
         case .horizon:
-            AppRouteDisplay(title: "Horizon", accessibilityLabel: "Open Horizon", systemImage: "safari", assetImageName: nil)
+            AppRouteDisplay(title: "Horizon", accessibilityLabel: "Open Horizon", systemImage: nil, assetImageName: "materialExplore")
         case .shell:
             AppRouteDisplay(title: "Shell", accessibilityLabel: "Open Shell", systemImage: nil, assetImageName: "scyraTurtle")
         case .notepad:
-            AppRouteDisplay(title: "Notepad", accessibilityLabel: "Open Notepad", systemImage: "square.and.pencil", assetImageName: nil)
+            AppRouteDisplay(title: "Notepad", accessibilityLabel: "Open Notepad", systemImage: nil, assetImageName: "materialEditNote")
         case .help:
-            AppRouteDisplay(title: "Help", accessibilityLabel: "Open Help", systemImage: "questionmark.circle", assetImageName: nil)
+            AppRouteDisplay(title: "Help", accessibilityLabel: "Open Help", systemImage: nil, assetImageName: "materialHelpOutline")
         case .flow:
             AppRouteDisplay(title: "Flow", accessibilityLabel: "Open Flow", systemImage: "sparkles", assetImageName: nil)
         case .pulse:

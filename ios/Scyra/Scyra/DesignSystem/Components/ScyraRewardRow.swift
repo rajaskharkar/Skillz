@@ -35,7 +35,7 @@ struct ScyraRewardRow: View {
 
     @ViewBuilder private var icon: some View {
         if let assetImageName { Image(assetImageName).renderingMode(.original).resizable().scaledToFit().padding(6).accessibilityHidden(true) }
-        else { Image(systemName: systemImage ?? "sparkles").foregroundStyle(tint).accessibilityHidden(true) }
+        else { ScyraCanonicalIcon(systemName: systemImage ?? "sparkles").foregroundStyle(tint).accessibilityHidden(true) }
     }
 }
 

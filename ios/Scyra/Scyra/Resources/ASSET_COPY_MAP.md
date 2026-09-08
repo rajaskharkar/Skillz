@@ -2,21 +2,18 @@
 
 This file documents Scyra visual assets prepared for local iOS use. iOS must use local copies under `ios/Scyra/` and must never reference Android resource paths at build time or runtime.
 
-> **Manual copy required:** `scyraTurtle.png` is intentionally not committed by this Codex task. After these text changes are applied, manually copy `android/app/src/main/res/drawable/scyra_turtle.png` to `ios/Scyra/Scyra/Assets.xcassets/scyraTurtle.imageset/scyraTurtle.png`. Until that PNG exists, the image set is intentionally incomplete and the app should not be considered ready to build or merge.
-
 | iOS Name | Type | iOS Location | Android Source | Android Usage Evidence | Notes |
 |---|---|---|---|---|---|
-| scyraTurtle | Image asset | `Assets.xcassets/scyraTurtle.imageset/scyraTurtle.png` | `android/app/src/main/res/drawable/scyra_turtle.png` | `SkillzTopAppBar.kt` uses `painterResource(id = R.drawable.scyra_turtle)` for the Shell top-bar action. | Prepared for direct PNG copy. The previous SVG/base64 wrapper was removed because it can render invisibly in iOS. |
+| scyraTurtle | Image asset | `Assets.xcassets/scyraTurtle.imageset/scyraTurtle.png` | `android/app/src/main/res/drawable/scyra_turtle.png` | `SkillzTopAppBar.kt` uses `painterResource(id = R.drawable.scyra_turtle)` for the Shell top-bar action. | Copied byte-for-byte and packaged locally. |
+| AppIcon-1024 | App icon | `Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png` | Android launcher foreground/background resources | Android launcher manifest/resources. | Composited as a no-alpha 1024-point App Store icon using the canonical launcher artwork and light background. |
+| material* | Template image sets | `Assets.xcassets/material*.imageset/` | AndroidX Compose Material icon vector sources used by Android screens | `Icons.Filled` and `Icons.Outlined` imports throughout the canonical Compose UI. | Converted to local template-rendered SVG image sets; `ScyraCanonicalIcon` and `ScyraCanonicalLabel` provide the SwiftUI selection layer. |
 
 ## Fonts
 
-The Caveat semibold font is intentionally not committed in this PR because Codex cannot safely update binary font files. Typography is fallback-safe: `ScyraTypography.appTitleResolved` uses the custom font only if a future manual step adds and registers it; until then, the app title uses `ScyraTypography.appTitleFallback`.
-
-| iOS Name | Type | Future iOS Location | Android Source | Android Usage Evidence | Notes |
+| iOS Name | Type | iOS Location | Android Source | Android Usage Evidence | Notes |
 |---|---|---|---|---|---|
-| caveatsb | Font | `ios/Scyra/Scyra/Resources/Fonts/caveatsb.ttf` | `android/app/src/main/res/font/caveatsb.ttf` | `SkillzTopAppBar.kt` uses `FontFamily(Font(R.font.caveatsb))` at `30.sp` for the Scyra title. | Do not reference Android paths from iOS runtime/build code. A future manual/developer task can add this font to Xcode and register it with `UIAppFonts`; until that happens, the system fallback is expected. |
+| caveatsb | Font | `Resources/Fonts/caveatsb.ttf` | `android/app/src/main/res/font/caveatsb.ttf` | `SkillzTopAppBar.kt` uses `FontFamily(Font(R.font.caveatsb))` at `30.sp` for the Scyra title. | Copied byte-for-byte, registered in `UIAppFonts`, and resolved by `ScyraTypography`. |
 
 ## Assets intentionally skipped
 
-- Android launcher/adaptive icon resources were not copied because this task only prepares the Shell turtle top-bar action asset and does not redesign the iOS app icon.
-- Shell room objects, Trinkets, Coral, Plants, Discoveries, removed economy assets, and feature-specific creature/room assets were not copied because they are outside this task's scope.
+- Android has no additional raster creature or room art beyond the turtle and launcher resources. Those visuals are authored as Compose Canvas/path drawings, so remaining parity work must port the canonical geometry and animation into SwiftUI Canvas rather than substitute unrelated third-party artwork.

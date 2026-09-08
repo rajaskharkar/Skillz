@@ -22,23 +22,22 @@ struct ScyraChip: View {
     private var content: some View {
         HStack(spacing: ScyraSpacing.xs) {
             if let systemImage {
-                Image(systemName: systemImage)
+                ScyraCanonicalIcon(systemName: systemImage)
                     .accessibilityHidden(true)
             }
             Text(title)
         }
             .font(ScyraTypography.label)
-            .foregroundStyle(isSelected ? selectedForeground : baseColor)
+            .foregroundStyle(isSelected ? baseColor : ScyraColors.textSecondary)
             .padding(.horizontal, ScyraSpacing.md)
             .padding(.vertical, ScyraSpacing.sm)
             .frame(minHeight: action == nil ? 0 : ScyraSpacing.topBarTapTarget)
-            .background(isSelected ? baseColor : baseColor.opacity(0.10))
+            .background(isSelected ? baseColor.opacity(0.18) : ScyraColors.surface)
             .clipShape(RoundedRectangle(cornerRadius: ScyraRadius.capsule, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: ScyraRadius.capsule, style: .continuous).stroke(baseColor.opacity(0.25), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: ScyraRadius.capsule, style: .continuous).stroke(baseColor.opacity(isSelected ? 0 : 0.22), lineWidth: 1))
     }
 
     private var baseColor: Color { tint == .secondary ? ScyraColors.secondaryGold : (tint == .reward ? ScyraColors.rewardMovement : ScyraColors.primary) }
-    private var selectedForeground: Color { tint == .secondary ? ScyraColors.textPrimary : .white }
 }
 
 #Preview("ScyraChip") { HStack { ScyraChip("Flow", isSelected: true); ScyraChip("Story", systemImage: "book"); ScyraChip("Movement", tint: .reward) }.padding().background(ScyraColors.background) }
