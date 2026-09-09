@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -383,12 +384,21 @@ private fun CreateFlowStepSheet(
     val validTarget = targetMinutesText.trim().toIntOrNull()?.let { it > 0 } == true
     val surgeEnabled = validTarget
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        contentWindowInsets = { WindowInsets(0, 0, 0, 0) }
+    ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
                 .imePadding(),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+            contentPadding = PaddingValues(
+                start = 20.dp,
+                top = 16.dp,
+                end = 20.dp,
+                bottom = 24.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
