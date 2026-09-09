@@ -14,6 +14,7 @@ object SkillzDestinations {
     const val ADD_SKILL_ARG_PLANNED_ARC_TITLE = "plannedArcTitle"
     const val ADD_SKILL_ARG_PLANNED_ARC_STEP_INDEX = "plannedArcStepIndex"
     const val ADD_SKILL_ARG_PLANNED_ARC_TOTAL_STEPS = "plannedArcTotalSteps"
+    const val ADD_SKILL_ARG_PREFILL_SURGE_MINUTES = "prefillSurgeMinutes"
 
     const val ADD_SKILL_ROUTE =
         "$ADD_SKILL?" +
@@ -23,7 +24,8 @@ object SkillzDestinations {
                 "$ADD_SKILL_ARG_ORIGIN_PULSE_ID={$ADD_SKILL_ARG_ORIGIN_PULSE_ID}&" +
                 "$ADD_SKILL_ARG_PLANNED_ARC_TITLE={$ADD_SKILL_ARG_PLANNED_ARC_TITLE}&" +
                 "$ADD_SKILL_ARG_PLANNED_ARC_STEP_INDEX={$ADD_SKILL_ARG_PLANNED_ARC_STEP_INDEX}&" +
-                "$ADD_SKILL_ARG_PLANNED_ARC_TOTAL_STEPS={$ADD_SKILL_ARG_PLANNED_ARC_TOTAL_STEPS}"
+                "$ADD_SKILL_ARG_PLANNED_ARC_TOTAL_STEPS={$ADD_SKILL_ARG_PLANNED_ARC_TOTAL_STEPS}&" +
+                "$ADD_SKILL_ARG_PREFILL_SURGE_MINUTES={$ADD_SKILL_ARG_PREFILL_SURGE_MINUTES}"
 
     const val HOME_SCREEN = "home_screen"
     const val SHELL = "shell"
@@ -51,7 +53,8 @@ object SkillzDestinations {
         originPulseId: Long? = null,
         plannedArcTitle: String? = null,
         plannedArcStepIndex: Int? = null,
-        plannedArcTotalSteps: Int? = null
+        plannedArcTotalSteps: Int? = null,
+        prefillSurgeMinutes: Int? = null
     ): String {
         val params = buildList {
             prefillJourney
@@ -80,6 +83,10 @@ object SkillzDestinations {
 
             plannedArcTotalSteps?.let {
                 add("$ADD_SKILL_ARG_PLANNED_ARC_TOTAL_STEPS=$it")
+            }
+
+            prefillSurgeMinutes?.takeIf { it > 0 }?.let {
+                add("$ADD_SKILL_ARG_PREFILL_SURGE_MINUTES=$it")
             }
         }
 

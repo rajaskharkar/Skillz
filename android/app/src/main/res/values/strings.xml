@@ -601,6 +601,7 @@
     <string name="arc_detail_begin_arc">Begin Arc</string>
     <string name="arc_detail_loading">Loading arc details</string>
     <string name="arc_detail_error_generic">Something went wrong</string>
+    <string name="arc_detail_complete_current_flow">Please complete your current flow</string>
     <string name="arc_detail_route_title">Route</string>
     <string name="arc_detail_route_subtitle">This is the sequence you’ll move through when you begin.</string>
     <string name="arc_detail_active_run_title">Arc in progress</string>
