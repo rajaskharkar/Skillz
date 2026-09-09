@@ -1,11 +1,45 @@
 package com.kingkharnivore.skillz.viewmodel
 
+import com.kingkharnivore.skillz.utils.arc.ArcPrefs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PlannedArcAdvanceTest {
+    @Test
+    fun durableNextStepHandoffPreventsDoubleAdvanceWhenDisplayedStepIsMissing() {
+        assertTrue(
+            isPlannedRunAlreadyAdvanced(
+                activeStepIndex = 1,
+                displayedStepIndex = null,
+                plannedHandoff = ArcPrefs.PlannedFlowHandoff.NEXT_PLANNED_STEP
+            )
+        )
+    }
+
+    @Test
+    fun activeRunAheadOfDisplayedStepPreventsDoubleAdvanceWithoutHandoff() {
+        assertTrue(
+            isPlannedRunAlreadyAdvanced(
+                activeStepIndex = 1,
+                displayedStepIndex = 0,
+                plannedHandoff = null
+            )
+        )
+    }
+
+    @Test
+    fun currentDisplayedStepStillAdvancesNormally() {
+        assertFalse(
+            isPlannedRunAlreadyAdvanced(
+                activeStepIndex = 0,
+                displayedStepIndex = 0,
+                plannedHandoff = null
+            )
+        )
+    }
+
     @Test fun firstRegularSessionInPrecreatedArcUsesBaseReward() {
         assertTrue(usesBaseArcReward(isSoftMode = false, completedArcSessionCount = 0))
     }

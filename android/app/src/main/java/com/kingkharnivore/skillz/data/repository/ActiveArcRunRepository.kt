@@ -31,6 +31,7 @@ class ActiveArcRunRepository @Inject constructor(
         currentIsSoftMode: Boolean
     ) {
         val now = System.currentTimeMillis()
+        val existingArc = arcPrefs.load()
         arcPrefs.clearPlannedFlowHandoff()
         dao.upsert(
             ActiveArcRunEntity(
@@ -43,16 +44,7 @@ class ActiveArcRunRepository @Inject constructor(
                 currentIsSoftMode = currentIsSoftMode
             )
         )
-        arcPrefs.save(
-            ArcRuntimeState(
-                arcId = now,
-                isPending = true,
-                multiplier = ArcRuntimeState.BASE_MULTIPLIER,
-                progressMs = 0L,
-                lastSessionEndTimeMs = now,
-                sessionCountInArc = 0
-            )
-        )
+        arcPrefs.save(plannedArcRuntimeForLaunch(existingArc, now))
     }
 
     suspend fun updateCurrentStep(
@@ -73,3 +65,15 @@ class ActiveArcRunRepository @Inject constructor(
         dao.clear()
     }
 }
+
+internal fun plannedArcRuntimeForLaunch(
+    existingArc: ArcRuntimeState?,
+    nowMs: Long
+): ArcRuntimeState = existingArc ?: ArcRuntimeState(
+    arcId = nowMs,
+    isPending = true,
+    multiplier = ArcRuntimeState.BASE_MULTIPLIER,
+    progressMs = 0L,
+    lastSessionEndTimeMs = nowMs,
+    sessionCountInArc = 0
+)

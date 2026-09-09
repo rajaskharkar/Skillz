@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.model.entity.ActiveArcRunEntity
 import com.kingkharnivore.skillz.data.model.entity.ArcPlanEntity
 import com.kingkharnivore.skillz.data.model.entity.ArcPlanStepEntity
+import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.data.repository.ActiveArcRunRepository
+import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.ArcPlanRepository
 import com.kingkharnivore.skillz.data.repository.JourneyRepository
 import com.kingkharnivore.skillz.ui.navigation.SkillzDestinations
@@ -16,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -36,7 +39,8 @@ data class ArcDetailLaunchPayload(
     val isSoftMode: Boolean,
     val plannedArcTitle: String,
     val plannedArcStepIndex: Int,
-    val plannedArcTotalSteps: Int
+    val plannedArcTotalSteps: Int,
+    val surgePlannedMinutes: Int?
 )
 
 data class ArcDetailUiState(
@@ -53,7 +57,8 @@ data class ArcDetailUiState(
     // recovery / polish
     val hasActiveRun: Boolean = false,
     val activeRunStepIndex: Int? = null,
-    val activeRunTotalSteps: Int? = null
+    val activeRunTotalSteps: Int? = null,
+    val launchBlockedByActiveFlow: Boolean = false
 ) {
     val totalMinutes: Int
         get() = steps.sumOf { it.targetMinutes ?: 0 }
@@ -79,6 +84,7 @@ class ArcDetailViewModel @Inject constructor(
     private val arcPlanRepository: ArcPlanRepository,
     private val journeyRepository: JourneyRepository,
     private val activeArcRunRepository: ActiveArcRunRepository,
+    private val aliveFlowRepository: AliveFlowRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -193,6 +199,8 @@ class ArcDetailViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                if (isLaunchBlockedByActiveFlow()) return@launch
+
                 // only mark launched + start run fresh if not already active for this arc
                 if (!state.hasActiveRun) {
                     arcPlanRepository.markLaunched(state.arcId)
@@ -215,7 +223,12 @@ class ArcDetailViewModel @Inject constructor(
                         isSoftMode = targetStep.isSoftMode,
                         plannedArcTitle = state.title,
                         plannedArcStepIndex = targetIndex,
-                        plannedArcTotalSteps = state.steps.size
+                        plannedArcTotalSteps = state.steps.size,
+                        surgePlannedMinutes = plannedSurgeMinutes(
+                            targetMinutes = targetStep.targetMinutes,
+                            launchWithSurge = targetStep.launchWithSurge,
+                            isSoftMode = targetStep.isSoftMode
+                        )
                     )
                 )
             } catch (e: Exception) {
@@ -235,6 +248,8 @@ class ArcDetailViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                if (isLaunchBlockedByActiveFlow()) return@launch
+
                 arcPlanRepository.markLaunched(state.arcId)
 
                 activeArcRunRepository.startRun(
@@ -254,7 +269,12 @@ class ArcDetailViewModel @Inject constructor(
                         isSoftMode = first.isSoftMode,
                         plannedArcTitle = state.title,
                         plannedArcStepIndex = 0,
-                        plannedArcTotalSteps = state.steps.size
+                        plannedArcTotalSteps = state.steps.size,
+                        surgePlannedMinutes = plannedSurgeMinutes(
+                            targetMinutes = first.targetMinutes,
+                            launchWithSurge = first.launchWithSurge,
+                            isSoftMode = first.isSoftMode
+                        )
                     )
                 )
             } catch (e: Exception) {
@@ -268,4 +288,27 @@ class ArcDetailViewModel @Inject constructor(
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }
+
+    fun clearLaunchBlockedMessage() {
+        _uiState.update { it.copy(launchBlockedByActiveFlow = false) }
+    }
+
+    private suspend fun isLaunchBlockedByActiveFlow(): Boolean {
+        val isBlocked = !canLaunchPlannedArc(aliveFlowRepository.getOngoingSession().first())
+        if (isBlocked) {
+            _uiState.update { it.copy(launchBlockedByActiveFlow = true) }
+        }
+        return isBlocked
+    }
 }
+
+internal fun canLaunchPlannedArc(
+    ongoing: OngoingSessionEntity?
+): Boolean = ongoing == null ||
+        (ongoing.accumulatedBeforeStartMs <= 0L && ongoing.baseStartTimeMs == null)
+
+internal fun plannedSurgeMinutes(
+    targetMinutes: Int?,
+    launchWithSurge: Boolean,
+    isSoftMode: Boolean
+): Int? = targetMinutes?.takeIf { launchWithSurge && !isSoftMode }

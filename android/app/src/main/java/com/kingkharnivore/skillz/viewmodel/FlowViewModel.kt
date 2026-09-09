@@ -100,6 +100,13 @@ internal fun plannedArcAdvanceResult(currentStepIndex: Int, totalSteps: Int): Pl
         PlannedArcAdvanceResult.Advanced
     }
 
+internal fun isPlannedRunAlreadyAdvanced(
+    activeStepIndex: Int,
+    displayedStepIndex: Int?,
+    plannedHandoff: ArcPrefs.PlannedFlowHandoff?
+): Boolean = plannedHandoff == ArcPrefs.PlannedFlowHandoff.NEXT_PLANNED_STEP ||
+        (displayedStepIndex != null && activeStepIndex > displayedStepIndex)
+
 internal fun resolveFlowEndMode(
     requested: FlowEndAction,
     isSoftMode: Boolean,
@@ -161,6 +168,11 @@ class FlowViewModel @Inject constructor(
             .get<Int>(SkillzDestinations.ADD_SKILL_ARG_PLANNED_ARC_TOTAL_STEPS)
             ?.takeIf { it > 0 }
 
+    private val prefillSurgeMinutesOverride: Int? =
+        savedStateHandle
+            .get<Int>(SkillzDestinations.ADD_SKILL_ARG_PREFILL_SURGE_MINUTES)
+            ?.takeIf { it > 0 }
+
     private val atlasJourneyOverride: String? =
         savedStateHandle
             .get<String>(SkillzDestinations.ADD_SKILL_ARG_PREFILL_JOURNEY)
@@ -187,7 +199,8 @@ class FlowViewModel @Inject constructor(
                 originPulseIdOverride != null ||
                 !plannedArcTitleOverride.isNullOrBlank() ||
                 plannedArcStepIndexOverride != null ||
-                plannedArcTotalStepsOverride != null
+                plannedArcTotalStepsOverride != null ||
+                prefillSurgeMinutesOverride != null
 
     private fun applyLaunchOverrides(state: FlowUiState): FlowUiState {
         val isPulseLaunch = originPulseIdOverride != null
@@ -195,8 +208,16 @@ class FlowViewModel @Inject constructor(
             title = prefillTitleOverride ?: state.title,
             tagName = atlasJourneyOverride ?: state.tagName,
             isSoftMode = if (prefillSoftModeOverride) true else state.isSoftMode,
-            isSurgeOn = if (prefillSoftModeOverride) false else state.isSurgeOn,
-            surgePlannedMs = if (prefillSoftModeOverride) null else state.surgePlannedMs,
+            isSurgeOn = when {
+                prefillSoftModeOverride -> false
+                prefillSurgeMinutesOverride != null -> true
+                else -> state.isSurgeOn
+            },
+            surgePlannedMs = when {
+                prefillSoftModeOverride -> null
+                prefillSurgeMinutesOverride != null -> prefillSurgeMinutesOverride * 60_000L
+                else -> state.surgePlannedMs
+            },
             plannedArcTitle = plannedArcTitleOverride ?: state.plannedArcTitle,
             plannedArcStepIndex = plannedArcStepIndexOverride ?: state.plannedArcStepIndex,
             plannedArcTotalSteps = plannedArcTotalStepsOverride ?: state.plannedArcTotalSteps,
@@ -586,6 +607,13 @@ class FlowViewModel @Inject constructor(
                         calmMode = _uiState.value.calmMode
                     )
                     syncArcUi()
+                    if (
+                        activePlannedRun != null &&
+                        plannedHandoff == ArcPrefs.PlannedFlowHandoff.NEXT_PLANNED_STEP
+                    ) {
+                        advancePlannedArcAfterCompletedSession(continuationOrigin = null)
+                        arcPrefs.clearPlannedFlowHandoff()
+                    }
                     return@launch
                 }
                 val shouldOverrideDraft = hasLaunchOverrides && shouldTreatOngoingAsDraft(entity)
@@ -625,6 +653,7 @@ class FlowViewModel @Inject constructor(
                     clearOngoing()
                     saveOngoing()
                 } else {
+                    val restoredPlannedRun = activePlannedRun.takeIf { isPlannedArcLaunch() }
                     currentFlowInstanceId = entity.flowInstanceId
                     ongoingCreatedAtMs = entity.createdAt
                     baseStartTimeMs = entity.baseStartTimeMs
@@ -649,6 +678,12 @@ class FlowViewModel @Inject constructor(
                             isSoftMode = entity.isSoftMode,
                             isSurgeOn = entity.isSurgeOn,
                             surgePlannedMs = entity.surgePlannedMs,
+                            plannedArcTitle = restoredPlannedRun?.arcTitle
+                                ?: old.plannedArcTitle,
+                            plannedArcStepIndex = restoredPlannedRun?.currentStepIndex
+                                ?: old.plannedArcStepIndex,
+                            plannedArcTotalSteps = restoredPlannedRun?.totalSteps
+                                ?: old.plannedArcTotalSteps,
                             originPulseId = entity.originPulseId,
                             originPulseTitle = entity.originPulseTitleSnapshot,
                             originPulseJourneyName = entity.originPulseJourneyNameSnapshot,
@@ -690,8 +725,13 @@ class FlowViewModel @Inject constructor(
 
             if (
                 activePlannedRun != null &&
-                plannedArcStepIndexOverride != null &&
-                activePlannedRun.currentStepIndex > plannedArcStepIndexOverride
+                (
+                    plannedHandoff == ArcPrefs.PlannedFlowHandoff.NEXT_PLANNED_STEP ||
+                        (
+                            plannedArcStepIndexOverride != null &&
+                                activePlannedRun.currentStepIndex > plannedArcStepIndexOverride
+                            )
+                    )
             ) {
                 advancePlannedArcAfterCompletedSession(continuationOrigin = null)
                 arcPrefs.clearPlannedFlowHandoff()
@@ -1884,8 +1924,11 @@ class FlowViewModel @Inject constructor(
         val activeRun = activeArcRunRepository.getActiveArcRunOnce()
             ?: return PlannedArcAdvanceResult.NotPlannedArc
         val displayedStepIndex = _uiState.value.plannedArcStepIndex
-        val persistedAlreadyAdvanced = displayedStepIndex != null &&
-                activeRun.currentStepIndex > displayedStepIndex
+        val persistedAlreadyAdvanced = isPlannedRunAlreadyAdvanced(
+            activeStepIndex = activeRun.currentStepIndex,
+            displayedStepIndex = displayedStepIndex,
+            plannedHandoff = arcPrefs.loadPlannedFlowHandoff()
+        )
         val nextIndex = if (persistedAlreadyAdvanced) {
             activeRun.currentStepIndex
         } else {

@@ -119,6 +119,10 @@ fun SkillzNavHost(
                     type = NavType.IntType
                     defaultValue = -1
                 },
+                navArgument(SkillzDestinations.ADD_SKILL_ARG_PREFILL_SURGE_MINUTES) {
+                    type = NavType.IntType
+                    defaultValue = -1
+                },
             ),
             deepLinks = listOf(
                 navDeepLink { uriPattern = "skillz://flow" }
@@ -169,7 +173,8 @@ fun SkillzNavHost(
                             prefillSoftMode = payload.isSoftMode,
                             plannedArcTitle = payload.plannedArcTitle,
                             plannedArcStepIndex = payload.plannedArcStepIndex,
-                            plannedArcTotalSteps = payload.plannedArcTotalSteps
+                            plannedArcTotalSteps = payload.plannedArcTotalSteps,
+                            prefillSurgeMinutes = payload.surgePlannedMinutes
                         )
                     )
                 }
@@ -222,7 +227,8 @@ fun SkillzNavHost(
                                 prefillSoftMode = payload.isSoftMode,
                                 plannedArcTitle = payload.plannedArcTitle,
                                 plannedArcStepIndex = payload.plannedArcStepIndex,
-                                plannedArcTotalSteps = payload.plannedArcTotalSteps
+                                plannedArcTotalSteps = payload.plannedArcTotalSteps,
+                                prefillSurgeMinutes = payload.surgePlannedMinutes
                             )
                         )
                     }

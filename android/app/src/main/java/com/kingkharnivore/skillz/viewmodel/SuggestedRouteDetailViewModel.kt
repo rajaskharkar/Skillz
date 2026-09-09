@@ -151,7 +151,12 @@ class SuggestedRouteDetailViewModel @Inject constructor(
                         isSoftMode = false,
                         plannedArcTitle = route.title,
                         plannedArcStepIndex = 0,
-                        plannedArcTotalSteps = route.steps.size
+                        plannedArcTotalSteps = route.steps.size,
+                        surgePlannedMinutes = plannedSurgeMinutes(
+                            targetMinutes = first.targetMinutes,
+                            launchWithSurge = first.launchWithSurge,
+                            isSoftMode = false
+                        )
                     )
                 )
             } catch (e: Exception) {
