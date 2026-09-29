@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.draw
 
+import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.drawLandEnvironment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -157,6 +158,7 @@ fun DrawScope.drawZoneEnvironment(
         TheBlueZoneId.DEEPER_REEF -> drawDeeperReefEnvironment(scheme, drift, animalDensity)
         TheBlueZoneId.OPEN_BLUE -> drawOpenBlueEnvironment(scheme, drift)
         TheBlueZoneId.GREAT_BLUE -> drawGreatBlueEnvironment(scheme, drift)
+        else -> drawLandEnvironment(zoneId.creatureZone)
     }
 }
 

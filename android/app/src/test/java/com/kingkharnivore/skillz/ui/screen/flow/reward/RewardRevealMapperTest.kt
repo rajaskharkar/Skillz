@@ -319,6 +319,8 @@ private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun deepOcean() = "Great Blue"
     override fun animalReason(findId: String) = "From a regular Flow lasting 10 minutes or more."
     override fun badgeReason(badgeId: String) = "Earned each time a regular Flow lasts 30 minutes or more."
+    override fun landArcRewardReason() = "land-depth-reason"
+    override fun mixedArcRewardReason() = "mixed-depth-reason"
     override fun theBlueHint() = "View later in The Blue."
     override fun stillwaterHint() = "View in Stillwater Room."
     override fun shellHint() = "View inside The Shell."

@@ -1,0 +1,54 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preScyraDebugBuild UP-TO-DATE
+> Task :app:mergeScyraDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:generateScyraDebugBuildConfig UP-TO-DATE
+> Task :app:checkScyraDebugAarMetadata UP-TO-DATE
+> Task :app:processScyraDebugNavigationResources UP-TO-DATE
+> Task :app:compileScyraDebugNavigationResources UP-TO-DATE
+> Task :app:generateScyraDebugResValues UP-TO-DATE
+> Task :app:mapScyraDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateScyraDebugResources UP-TO-DATE
+> Task :app:mergeScyraDebugResources UP-TO-DATE
+> Task :app:packageScyraDebugResources UP-TO-DATE
+> Task :app:parseScyraDebugLocalResources UP-TO-DATE
+> Task :app:createScyraDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksScyraDebug UP-TO-DATE
+> Task :app:processScyraDebugMainManifest UP-TO-DATE
+> Task :app:processScyraDebugManifest UP-TO-DATE
+> Task :app:processScyraDebugManifestForPackage UP-TO-DATE
+> Task :app:processScyraDebugResources UP-TO-DATE
+> Task :app:javaPreCompileScyraDebug UP-TO-DATE
+> Task :app:mergeScyraDebugShaders UP-TO-DATE
+> Task :app:compileScyraDebugShaders NO-SOURCE
+> Task :app:generateScyraDebugAssets UP-TO-DATE
+> Task :app:mergeScyraDebugAssets UP-TO-DATE
+> Task :app:compressScyraDebugAssets UP-TO-DATE
+> Task :app:checkScyraDebugDuplicateClasses UP-TO-DATE
+> Task :app:desugarScyraDebugFileDependencies UP-TO-DATE
+> Task :app:mergeExtDexScyraDebug UP-TO-DATE
+> Task :app:mergeLibDexScyraDebug UP-TO-DATE
+> Task :app:mergeScyraDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeScyraDebugNativeLibs UP-TO-DATE
+> Task :app:stripScyraDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningScyraDebug UP-TO-DATE
+> Task :app:writeScyraDebugAppMetadata UP-TO-DATE
+> Task :app:writeScyraDebugSigningConfigVersions UP-TO-DATE
+
+> Task :app:kspScyraDebugKotlin
+w: [ksp] No dependencies reported for generated source com.kingkharnivore.skillz.SkillzApplication_ComponentTreeDeps.java which willprevent incremental compilation.
+Please file a bug at https://issuetracker.google.com/issues/new?component=413107.
+
+> Task :app:compileScyraDebugKotlin
+> Task :app:compileScyraDebugJavaWithJavac UP-TO-DATE
+> Task :app:processScyraDebugJavaRes UP-TO-DATE
+> Task :app:mergeScyraDebugJavaResource UP-TO-DATE
+> Task :app:transformScyraDebugClassesWithAsm
+> Task :app:dexBuilderScyraDebug
+> Task :app:mergeProjectDexScyraDebug
+> Task :app:packageScyraDebug
+> Task :app:createScyraDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleScyraDebug
+
+BUILD SUCCESSFUL in 16s
+40 actionable tasks: 6 executed, 34 up-to-date

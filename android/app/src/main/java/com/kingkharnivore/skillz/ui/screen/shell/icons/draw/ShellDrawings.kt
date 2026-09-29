@@ -22,7 +22,18 @@ private val stillwaterStaticVisualIds = setOf(
 fun hasKnownStillwaterStaticIcon(key: String): Boolean =
     stillwaterStaticVisualIds.any { id -> id in key.lowercase() }
 
+private val landStaticVisuals by lazy {
+    buildMap {
+        com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.all.forEach {
+            put(it.staticIconKey, it)
+            put(it.creatureId, it)
+            put(it.animatedRendererKey, it)
+        }
+    }
+}
+
 fun DrawScope.drawStaticCreatureIcon(key: String, scheme: androidx.compose.material3.ColorScheme) {
+    landStaticVisuals[key]?.let { drawLandCreature(it); return }
     val w = size.width
     val h = size.height
     val primary = scheme.primary

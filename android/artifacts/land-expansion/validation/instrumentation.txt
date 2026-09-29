@@ -1,0 +1,9 @@
+
+com.kingkharnivore.skillz.domain.land.LandPersistenceTest:.....
+com.kingkharnivore.skillz.domain.land.LandMigrationTest:.
+
+Time: 12.027
+
+OK (6 tests)
+
+

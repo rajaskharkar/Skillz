@@ -17,7 +17,7 @@ enum class ChestSortOption(val key: String) {
 }
 
 enum class ChestFilterOption(val key: String) {
-    All("all"), ClosestToMastery("closest"), Mastered("mastered"), NotMastered("not_mastered"),
+    All("all"), Sea("sea"), Land("land"), ClosestToMastery("closest"), Mastered("mastered"), NotMastered("not_mastered"),
     NeededForTrackedBadges("needed_for_tracked_badges"),
     SunlitReef("sunlit_reef"), DeeperReef("deeper_reef"), OpenBlue("open_blue"), GreatBlue("great_blue"),
     Fishbowl("fishbowl"), Aquarium("aquarium"), Pond("pond"), Lake("lake");

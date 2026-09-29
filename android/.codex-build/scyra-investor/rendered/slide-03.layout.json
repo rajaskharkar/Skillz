@@ -1,0 +1,1210 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/mdo6pt",
+    "id": "mdo6pt",
+    "slide": 3,
+    "layoutId": "4b3591aa-3e23-4dd2-aca9-b96b63256ce8",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "9a00fcbd-249c-4280-b134-2130266b14ca",
+    "masterLayoutName": "Master",
+    "backgroundColor": "#FAF7F0",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Helvetica Neue"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "4b3591aa-3e23-4dd2-aca9-b96b63256ce8",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "9a00fcbd-249c-4280-b134-2130266b14ca",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "9a00fcbd-249c-4280-b134-2130266b14ca",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/mlo7yd87",
+      "id": "1",
+      "bbox": [
+        52,
+        34,
+        430,
+        24
+      ],
+      "geometry": "rect",
+      "text": "03  /  REVIEW",
+      "textPreview": "03  /  REVIEW",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 13,
+        "typeface": "Helvetica Neue",
+        "color": "#3F9694",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "03  /  REVIEW"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "03  /  REVIEW",
+          "resolvedTextStyle": {
+            "fontSize": 13,
+            "typeface": "Helvetica Neue",
+            "color": "#3F9694",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "03  /  REVIEW",
+              "fontSize": 13,
+              "typeface": "Helvetica Neue",
+              "color": "#3F9694",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/98z69s7y",
+      "id": "2",
+      "bbox": [
+        52,
+        69,
+        1176,
+        62
+      ],
+      "geometry": "rect",
+      "text": "Story turns effort into a navigable record",
+      "textPreview": "Story turns effort into a navigable record",
+      "resolvedFontSize": 40,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 40,
+        "typeface": "Helvetica Neue",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Story turns effort into a navigable record"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Story turns effort into a navigable record",
+          "resolvedTextStyle": {
+            "fontSize": 40,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Story turns effort into a navigable record",
+              "fontSize": 40,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/876p0nqd",
+      "id": "3",
+      "bbox": [
+        54,
+        128,
+        1120,
+        42
+      ],
+      "geometry": "rect",
+      "text": "Users can zoom from one day to a month, filter by journey, and move between narrative and trend views.",
+      "textPreview": "Users can zoom from one day to a month, filter by journey, and move between narrative and trend views.",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Helvetica Neue",
+        "color": "#647274",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Users can zoom from one day to a month, filter by journey, and move between narrative and trend views."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Users can zoom from one day to a month, filter by journey, and move between narrative and trend views.",
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Helvetica Neue",
+            "color": "#647274",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Users can zoom from one day to a month, filter by journey, and move between narrative and trend views.",
+              "fontSize": 18,
+              "typeface": "Helvetica Neue",
+              "color": "#647274",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/vahob2po",
+      "id": "4",
+      "bbox": [
+        52,
+        178,
+        1176,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#C8C6BD",
+      "lineWidth": 1
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/u9872x8j",
+      "id": "5",
+      "bbox": [
+        85,
+        201,
+        228,
+        477.67
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#17383B",
+      "lineColor": "#17383B",
+      "lineWidth": 1
+    },
+    {
+      "order": 6,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/kfqpkvap",
+      "id": "6",
+      "bbox": [
+        92,
+        208,
+        214,
+        463.67
+      ],
+      "geometry": "roundRect",
+      "alt": "Story dashboard",
+      "contentType": "image/png",
+      "imageFit": "cover",
+      "imageMask": {
+        "geometry": "roundRect",
+        "adjustmentList": [
+          {
+            "name": "adj",
+            "formula": "val 12617"
+          }
+        ]
+      },
+      "asset": {
+        "assetId": "0be5f38d-0948-41e6-a683-fb155187da59",
+        "contentType": "image/png",
+        "byteLength": 142341
+      }
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/wbqp47q9",
+      "id": "7",
+      "bbox": [
+        80,
+        688.67,
+        238,
+        30
+      ],
+      "geometry": "rect",
+      "text": "Story dashboard",
+      "textPreview": "Story dashboard",
+      "resolvedFontSize": 15,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 15,
+        "typeface": "Helvetica Neue",
+        "color": "#17383B",
+        "bold": true,
+        "alignment": "center",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Story dashboard"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Story dashboard",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Helvetica Neue",
+            "color": "#17383B",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Story dashboard",
+              "fontSize": 15,
+              "typeface": "Helvetica Neue",
+              "color": "#17383B",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/jeh8f2p0",
+      "id": "8",
+      "bbox": [
+        370,
+        224,
+        360,
+        22
+      ],
+      "geometry": "rect",
+      "text": "ONE HOME",
+      "textPreview": "ONE HOME",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 12,
+        "typeface": "Helvetica Neue",
+        "color": "#3F9694",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "ONE HOME"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "ONE HOME",
+          "resolvedTextStyle": {
+            "fontSize": 12,
+            "typeface": "Helvetica Neue",
+            "color": "#3F9694",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "ONE HOME",
+              "fontSize": 12,
+              "typeface": "Helvetica Neue",
+              "color": "#3F9694",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/id876x8f",
+      "id": "9",
+      "bbox": [
+        370,
+        254,
+        360,
+        62
+      ],
+      "geometry": "rect",
+      "text": "Time and score in context",
+      "textPreview": "Time and score in context",
+      "resolvedFontSize": 27,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 27,
+        "typeface": "Helvetica Neue",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Time and score in context"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Time and score in context",
+          "resolvedTextStyle": {
+            "fontSize": 27,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Time and score in context",
+              "fontSize": 27,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/0nel83qt",
+      "id": "10",
+      "bbox": [
+        370,
+        320,
+        360,
+        150
+      ],
+      "geometry": "rect",
+      "text": "The Story view combines session time, Scyra Score, journey tags, and session cards—without forcing users into a separate analytics product.",
+      "textPreview": "The Story view combines session time, Scyra Score, journey tags, and session cards—without forcing users into a separate analytics product.",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Helvetica Neue",
+        "color": "#647274",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 4,
+        "lines": [
+          {
+            "index": 1,
+            "text": "The Story view combines session time,"
+          },
+          {
+            "index": 2,
+            "text": "Scyra Score, journey tags, and session"
+          },
+          {
+            "index": 3,
+            "text": "cards—without forcing users into a"
+          },
+          {
+            "index": 4,
+            "text": "separate analytics product."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "The Story view combines session time, Scyra Score, journey tags, and session cards—without forcing users into a separate analytics product.",
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Helvetica Neue",
+            "color": "#647274",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "The Story view combines session time, Scyra Score, journey tags, and session cards—without forcing users into a separate analytics product.",
+              "fontSize": 18,
+              "typeface": "Helvetica Neue",
+              "color": "#647274",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/18nm18re",
+      "id": "11",
+      "bbox": [
+        774,
+        225,
+        78,
+        44
+      ],
+      "geometry": "rect",
+      "text": "A",
+      "textPreview": "A",
+      "resolvedFontSize": 29,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 29,
+        "typeface": "Helvetica Neue",
+        "color": "#185B72",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "A"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "A",
+          "resolvedTextStyle": {
+            "fontSize": 29,
+            "typeface": "Helvetica Neue",
+            "color": "#185B72",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "A",
+              "fontSize": 29,
+              "typeface": "Helvetica Neue",
+              "color": "#185B72",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 12,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/elw36t83",
+      "id": "12",
+      "bbox": [
+        860,
+        227,
+        319,
+        34
+      ],
+      "geometry": "rect",
+      "text": "Flexible lenses",
+      "textPreview": "Flexible lenses",
+      "resolvedFontSize": 21,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 21,
+        "typeface": "Helvetica Neue",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Flexible lenses"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Flexible lenses",
+          "resolvedTextStyle": {
+            "fontSize": 21,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Flexible lenses",
+              "fontSize": 21,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/fm54zy98",
+      "id": "13",
+      "bbox": [
+        860,
+        268,
+        319,
+        80
+      ],
+      "geometry": "rect",
+      "text": "Day, Week, Month, previous/next period, and journey filters.",
+      "textPreview": "Day, Week, Month, previous/next period, and journey filters.",
+      "resolvedFontSize": 16,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 16,
+        "typeface": "Helvetica Neue",
+        "color": "#647274",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Day, Week, Month, previous/next period,"
+          },
+          {
+            "index": 2,
+            "text": "and journey filters."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Day, Week, Month, previous/next period, and journey filters.",
+          "resolvedTextStyle": {
+            "fontSize": 16,
+            "typeface": "Helvetica Neue",
+            "color": "#647274",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Day, Week, Month, previous/next period, and journey filters.",
+              "fontSize": 16,
+              "typeface": "Helvetica Neue",
+              "color": "#647274",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 14,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/obylcnq5",
+      "id": "14",
+      "bbox": [
+        774,
+        372,
+        78,
+        44
+      ],
+      "geometry": "rect",
+      "text": "B",
+      "textPreview": "B",
+      "resolvedFontSize": 29,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 29,
+        "typeface": "Helvetica Neue",
+        "color": "#3F9694",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "B"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "B",
+          "resolvedTextStyle": {
+            "fontSize": 29,
+            "typeface": "Helvetica Neue",
+            "color": "#3F9694",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "B",
+              "fontSize": 29,
+              "typeface": "Helvetica Neue",
+              "color": "#3F9694",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 15,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/pc7m58rq",
+      "id": "15",
+      "bbox": [
+        860,
+        374,
+        319,
+        34
+      ],
+      "geometry": "rect",
+      "text": "Two storytelling modes",
+      "textPreview": "Two storytelling modes",
+      "resolvedFontSize": 21,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 21,
+        "typeface": "Helvetica Neue",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Two storytelling modes"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Two storytelling modes",
+          "resolvedTextStyle": {
+            "fontSize": 21,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Two storytelling modes",
+              "fontSize": 21,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 16,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/29g3ad8z",
+      "id": "16",
+      "bbox": [
+        860,
+        415,
+        319,
+        80
+      ],
+      "geometry": "rect",
+      "text": "Sagas organize progress; Chronicles preserve the qualitative record.",
+      "textPreview": "Sagas organize progress; Chronicles preserve the qualitative record.",
+      "resolvedFontSize": 16,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 16,
+        "typeface": "Helvetica Neue",
+        "color": "#647274",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Sagas organize progress; Chronicles"
+          },
+          {
+            "index": 2,
+            "text": "preserve the qualitative record."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Sagas organize progress; Chronicles preserve the qualitative record.",
+          "resolvedTextStyle": {
+            "fontSize": 16,
+            "typeface": "Helvetica Neue",
+            "color": "#647274",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Sagas organize progress; Chronicles preserve the qualitative record.",
+              "fontSize": 16,
+              "typeface": "Helvetica Neue",
+              "color": "#647274",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 17,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/nap43i9k",
+      "id": "17",
+      "bbox": [
+        774,
+        519,
+        78,
+        44
+      ],
+      "geometry": "rect",
+      "text": "C",
+      "textPreview": "C",
+      "resolvedFontSize": 29,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 29,
+        "typeface": "Helvetica Neue",
+        "color": "#B69B50",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "C"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "C",
+          "resolvedTextStyle": {
+            "fontSize": 29,
+            "typeface": "Helvetica Neue",
+            "color": "#B69B50",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "C",
+              "fontSize": 29,
+              "typeface": "Helvetica Neue",
+              "color": "#B69B50",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 18,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/cfy5gnq1",
+      "id": "18",
+      "bbox": [
+        860,
+        521,
+        319,
+        34
+      ],
+      "geometry": "rect",
+      "text": "Action stays close",
+      "textPreview": "Action stays close",
+      "resolvedFontSize": 21,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 21,
+        "typeface": "Helvetica Neue",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Action stays close"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Action stays close",
+          "resolvedTextStyle": {
+            "fontSize": 21,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Action stays close",
+              "fontSize": 21,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 19,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/xgrm9srm",
+      "id": "19",
+      "bbox": [
+        860,
+        562,
+        319,
+        80
+      ],
+      "geometry": "rect",
+      "text": "Start a Flow or capture a Pulse directly from the dashboard.",
+      "textPreview": "Start a Flow or capture a Pulse directly from the dashboard.",
+      "resolvedFontSize": 16,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 16,
+        "typeface": "Helvetica Neue",
+        "color": "#647274",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Start a Flow or capture a Pulse directly"
+          },
+          {
+            "index": 2,
+            "text": "from the dashboard."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Start a Flow or capture a Pulse directly from the dashboard.",
+          "resolvedTextStyle": {
+            "fontSize": 16,
+            "typeface": "Helvetica Neue",
+            "color": "#647274",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Start a Flow or capture a Pulse directly from the dashboard.",
+              "fontSize": 16,
+              "typeface": "Helvetica Neue",
+              "color": "#647274",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}

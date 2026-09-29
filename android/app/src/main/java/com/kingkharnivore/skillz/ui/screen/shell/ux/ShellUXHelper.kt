@@ -194,7 +194,7 @@ fun ObjectCopySheet(
                         Text(stringResource(R.string.shell_creature_level_up))
                     }
                 } else {
-                    Text(stringResource(R.string.shell_creature_not_swimming_lifetime_remains))
+                    Text(stringResource(if (com.kingkharnivore.skillz.utils.shell.CreatureCatalog.get(item.findId)?.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND) R.string.land_no_longer_living else R.string.shell_creature_not_swimming_lifetime_remains))
                 }
             } else {
                 Text(stringResource(R.string.shell_form_label, currentTitle))

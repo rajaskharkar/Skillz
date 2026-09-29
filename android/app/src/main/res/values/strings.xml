@@ -969,7 +969,7 @@
     <string name="the_blue_encountered_manta">Encountered through regular Flows lasting 1 hour or more.</string>
     <string name="the_blue_encountered_whale">Encountered through regular Flows lasting 2 hours or more.</string>
     <string name="the_blue_octopus_hidden">Hidden in the Deeper Reef.</string>
-    <string name="the_blue_header_a11y">The Blue. Animals encountered through regular Flows swim here.</string>
+    <string name="the_blue_header_a11y">Sea. Animals encountered through regular Flows swim here.</string>
     <string name="the_blue_zone_a11y">%1$s. %2$s. %3$d animal species.</string>
     <string name="the_blue_zone_scene_a11y">%1$s. %2$s. %3$s.</string>
     <string name="the_blue_animal_overlay_a11y">%1$s. Animal. %2$s. Count %3$d. %4$s Opens details.</string>
@@ -984,7 +984,7 @@
     <string name="shell_room_lookout_title">The Lookout</string>
     <string name="shell_room_lookout_description">Plans on your Horizon will appear here.</string>
     <string name="shell_preview_voyage">Arc journeys will gather here.</string>
-    <string name="shell_preview_the_blue">Animals encountered through regular Flows swim here.</string>
+    <string name="shell_preview_the_blue">Explore the living worlds of Sea and Land.</string>
     <string name="shell_preview_idea">Pulses will grow here.</string>
     <string name="shell_preview_lookout">Plans on your Horizon will appear here.</string>
     <string name="shell_welcome">Welcome inside The Shell.</string>
@@ -1028,7 +1028,7 @@
     <string name="shell_chest_sort_closest_mastery">Closest to Mastery</string>
     <string name="shell_chest_sort_species_mastery">Species Mastery count</string>
     <string name="shell_chest_empty_title">The Chest is empty.</string>
-    <string name="shell_chest_empty_body">Dive into The Blue to find your first creature.</string>
+    <string name="shell_chest_empty_body">Explore The Blue to encounter your first creature.</string>
     <string name="shell_chest_empty_action">Go to The Blue</string>
     <string name="shell_chest_count_badge">x%1$d</string>
     <string name="shell_chest_stack_a11y">%1$s. Level %2$d. Owned: %3$d.</string>
@@ -1429,7 +1429,7 @@
     <string name="shell_find_kraken_description">Encountered Beyond the Blue.</string>
     <string name="shell_find_leviathan_title">Leviathan</string>
     <string name="shell_find_leviathan_description">Encountered Beyond the Blue.</string>
-    <string name="beyond_blue_title">Beyond Blue</string>
+    <string name="beyond_blue_title">Encounter Beyond the Blue</string>
     <string name="beyond_blue_intro">Encounter new life beyond The Blue using creatures, Pearls, or both.</string>
     <string name="beyond_blue_requires_value">Requires %1$s creature value</string>
     <string name="beyond_blue_or_pearls">or %1$,d Pearls</string>
@@ -1879,7 +1879,7 @@ You can turn Health back on later.</string>
     <string name="shell_stillwater_ready">Ready</string>
     <string name="shell_stillwater_filling">Filling</string>
     <string name="shell_stillwater_locked">Locked</string>
-    <string name="shell_stillwater_reach_depth_first">Progress farther in The Blue to unlock this vessel.</string>
+    <string name="shell_stillwater_reach_depth_first">Progress farther in Sea to unlock this vessel.</string>
     <string name="shell_stillwater_draw">Draw</string>
     <string name="shell_stillwater_draw_from">Draw from %1$s</string>
     <string name="shell_stillwater_keep_filling">Keep filling</string>
@@ -2006,13 +2006,13 @@ You can turn Health back on later.</string>
     <string name="badge_mastery_variety">Mastery Variety</string>
     <string name="badge_mastery_variety_description">Unique species that reached Mastery.</string>
     <string name="badge_variety_collector">Variety Collector</string>
-    <string name="badge_variety_collector_description">Unique species discovered across all waters.</string>
+    <string name="badge_variety_collector_description">Unique species discovered across Sea, Land and Stillwater.</string>
     <string name="badge_across_depths">Across the Depths</string>
-    <string name="badge_across_depths_description">Discover life throughout the depths of The Blue.</string>
+    <string name="badge_across_depths_description">Discover a main Sea species in each of the four Sea regions.</string>
     <string name="badge_every_water">One from Every Water</string>
-    <string name="badge_every_water_description">Master at least one participating creature from every Blue region and every Stillwater vessel.</string>
-    <string name="badge_keeper_blue">Keeper of The Blue</string>
-    <string name="badge_keeper_blue_description">Complete the Collector roster in every region of The Blue.</string>
+    <string name="badge_every_water_description">Master at least one participating creature from every Sea region and every Sea Stillwater vessel.</string>
+    <string name="badge_keeper_blue">Keeper of the Sea</string>
+    <string name="badge_keeper_blue_description">Complete the Collector roster in every Sea zone.</string>
     <string name="badge_collection_progress_title">Collection Progress</string>
     <string name="badge_unavailable_record_title">Unavailable record</string>
     <string name="badge_unavailable_record_description">This preserved record is not part of the current Badge Book.</string>
@@ -2025,8 +2025,8 @@ You can turn Health back on later.</string>
     <string name="collection_pond">Stillwater Pond</string>
     <string name="collection_lake">Stillwater Lake</string>
     <string name="collection_stillwater">Stillwater</string>
-    <string name="collection_the_blue">The Blue</string>
-    <string name="collection_all_waters">All Waters</string>
+    <string name="collection_the_blue">Sea</string>
+    <string name="collection_all_waters">Sea and Its Waters</string>
     <string name="collection_unknown">Collection</string>
     <string name="collection_discovered_progress">%1$d of %2$d discovered</string>
     <string name="collection_owned_progress">%1$d of %2$d currently owned</string>
@@ -2098,9 +2098,10 @@ You can turn Health back on later.</string>
     </plurals>
     <string name="badges_search">Search badges</string>
     <string name="badges_empty_slot">Empty slot</string>
+    <string name="badges_showcase_empty">Open an earned badge and tap Pin to add it to Your Showcase.</string>
     <string name="badges_no_recommendations">Keep exploring—your next reachable goal will appear here.</string>
     <string name="badges_showcase_title">Your Showcase</string>
-    <string name="badges_showcase_body">Pin the achievements that mean the most to you.</string>
+    <string name="badges_showcase_body">Pin as many achievements as you like.</string>
     <string name="badges_tracked_title">Tracked Badges</string>
     <string name="badges_tracked_body">Badges you have chosen to follow. Scyra records all badge progress automatically.</string>
     <string name="badges_no_tracked_title">No tracked badges</string>
@@ -2160,12 +2161,12 @@ You can turn Health back on later.</string>
     <string name="badge_disabled_complete">This achievement is complete.</string>
     <string name="badge_disabled_no_next">You have completed every currently available milestone.</string>
     <string name="badge_disabled_not_owned">Acquire this creature to begin its Mastery goal.</string>
-    <string name="badge_disabled_region_locked">This Blue region has not been unlocked yet.</string>
+    <string name="badge_disabled_region_locked">This zone has not been unlocked yet.</string>
     <string name="badge_disabled_vessel_locked">This Stillwater vessel has not been unlocked yet.</string>
     <string name="badge_disabled_empty_roster">No participating creatures are currently available.</string>
     <string name="badge_disabled_historical">This historical badge has no repeatable current objective.</string>
     <string name="badge_action_view_chest">View in Chest</string>
-    <string name="badge_action_open_blue">Open Blue region</string>
+    <string name="badge_action_open_blue">Open zone</string>
     <string name="badge_action_open_stillwater">Visit Stillwater vessel</string>
     <string name="collection_species_open_action">Open progression action</string>
     <string name="shell_notification_fallback_title">New Shell reward</string>
@@ -2191,7 +2192,7 @@ You can turn Health back on later.</string>
     <string name="shell_message_encountered">%1$s entered %2$s.</string>
     <string name="shell_message_encounter_succeeded">Your Beyond the Blue encounter succeeded.</string>
     <string name="shell_message_encounter_failed">Could not encounter that creature.</string>
-    <string name="shell_message_vessel_locked">Progress farther in The Blue to unlock this vessel.</string>
+    <string name="shell_message_vessel_locked">Progress farther in Sea to unlock this vessel.</string>
     <string name="shell_message_drops_insufficient">Not enough Drops yet.</string>
     <string name="shell_message_stillwater_failed">Could not draw from Stillwater.</string>
     <string name="badges_tab_showcase">Showcase</string>

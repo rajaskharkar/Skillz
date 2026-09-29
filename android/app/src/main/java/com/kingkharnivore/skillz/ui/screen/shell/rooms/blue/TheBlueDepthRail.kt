@@ -37,7 +37,10 @@ fun TheBlueDepthRail(
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
-    val railDescription = stringResource(R.string.the_blue_depth_rail_a11y)
+    val localizedZoneNames = zones.map { zoneTitle(it) }
+    val railDescription = if (zones.firstOrNull()?.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND)
+        stringResource(R.string.land_regions_a11y, localizedZoneNames.joinToString())
+    else stringResource(R.string.the_blue_depth_rail_a11y)
     Surface(
         shape = RoundedCornerShape(999.dp),
         color = scheme.surface.copy(alpha = 0.68f),

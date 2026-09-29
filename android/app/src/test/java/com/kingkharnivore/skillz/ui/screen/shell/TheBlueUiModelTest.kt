@@ -12,9 +12,35 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.draw.offscreenHorizontalPassX
+import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.lifePresencePlan
 import org.junit.Test
 
 class TheBlueUiModelTest {
+    @Test
+    fun landOnlyShowsOwnedActiveCopiesAndKeepsStillwaterHabitatsOutOfWorldZones() {
+        val finds = listOf(
+            find("sea", "focus_minnow"),
+            find("tiger-1", "creature_tiger", level = 99),
+            find("tiger-2", "creature_tiger"),
+            find("released", "creature_deer", status = CreatureStatus.RELEASED),
+            find("traded", "creature_camel", status = CreatureStatus.USED_BEYOND_BLUE),
+            find("restorative", "creature_peacock")
+        )
+        val land = buildTheBlueUiState(finds, emptyList(), com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND)
+        assertEquals(5, land.zones.size)
+        assertEquals(3, land.totalAnimals)
+        assertEquals(setOf("creature_tiger", "creature_peacock"), land.zones.flatMap { it.animals }.map { it.findId }.toSet())
+        assertEquals("creature_peacock", land.zones.first().animals.single().findId)
+        val tiger = land.zones.last().animals.single()
+        assertEquals(2, tiger.totalCount)
+        assertEquals(99, tiger.highestLevel)
+        assertEquals(TheBlueZoneId.GOLDEN_FIELDS, zoneForFind("creature_peacock"))
+        assertFalse(isBlueAcquisitionCreature("creature_peacock"))
+        assertEquals(1, buildTheBlueUiState(finds, emptyList()).totalAnimals)
+        assertTrue(buildTheBlueUiState(emptyList(), emptyList(), com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND).zones.all { it.animals.isEmpty() })
+    }
+
     @Test
     fun animalSpeciesMapToExpectedZones() {
         assertEquals(TheBlueZoneId.SUNLIT_REEF, zoneForFind(ShellContentCatalog.FOCUS_MINNOW))
@@ -233,14 +259,13 @@ class TheBlueUiModelTest {
     }
 
     @Test
-    fun representativeVisibleCountUsesDensityTiersWithoutRenderingEveryCopy() {
-        assertEquals(0, representativeVisibleCount(0, maxVisible = 12))
-        assertEquals(1, representativeVisibleCount(1, maxVisible = 12))
-        assertEquals(4, representativeVisibleCount(4, maxVisible = 12))
-        assertEquals(6, representativeVisibleCount(8, maxVisible = 12))
-        assertEquals(9, representativeVisibleCount(30, maxVisible = 12))
-        assertEquals(12, representativeVisibleCount(100, maxVisible = 12))
-        assertEquals(3, representativeVisibleCount(10, maxVisible = 3))
+    fun lifePresencePlanBoundsDirectCreaturesAndPreservesOverflowAccounting() {
+        val state = buildTheBlueUiState(List(100) { find("minnow-$it", ShellContentCatalog.FOCUS_MINNOW) }, emptyList())
+        val animal = state.zones.first().animals.single()
+        val plan = lifePresencePlan(animal, com.kingkharnivore.skillz.utils.shell.CreatureCatalog.require(animal.findId))
+        assertEquals(8, plan.directIndividuals.size)
+        assertEquals(92, plan.overflowCount)
+        assertEquals(100, plan.directIndividuals.size + plan.cohorts.sumOf { it.count })
     }
 
     @Test

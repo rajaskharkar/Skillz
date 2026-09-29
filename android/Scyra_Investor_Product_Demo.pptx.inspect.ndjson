@@ -1,0 +1,358 @@
+{"kind":"deck","id":"pr/mzfqbp","name":"Deck"}
+{"kind":"layout","layoutId":"9a00fcbd-249c-4280-b134-2130266b14ca","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"4b3591aa-3e23-4dd2-aca9-b96b63256ce8","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/jsb4f1","slide":1,"title":"SCYRA","textShapes":6}
+{"kind":"textbox","id":"sh/yx4jm5kr","slide":1,"text":"SCYRA","textPreview":"SCYRA","textChars":5,"textLines":1,"bbox":[58,50,280,30]}
+{"kind":"textbox","id":"sh/kjm1ov2x","slide":1,"text":"Turn intentional time\ninto a living story","textPreview":"Turn intentional time | into a living story","textChars":41,"textLines":2,"bbox":[58,232,545,180]}
+{"kind":"textbox","id":"sh/bud0rq1g","slide":1,"text":"A complete product walkthrough for investors and stakeholders","textPreview":"A complete product walkthrough for investors and stakeholders","textChars":61,"textLines":1,"bbox":[60,438,500,68]}
+{"kind":"textbox","id":"sh/at4zilkv","slide":1,"text":"Android product demo  •  August 2026","textPreview":"Android product demo  •  August 2026","textChars":36,"textLines":1,"bbox":[60,620,450,25]}
+{"kind":"shape","id":"sh/xwvit0j6","slide":1,"bbox":[654,36,576,648]}
+{"kind":"shape","id":"sh/wvm1kv21","slide":1,"bbox":[808,62,270,568.67]}
+{"kind":"textbox","id":"sh/mpkzelkj","slide":1,"text":"THE BLUE","textPreview":"THE BLUE","textChars":8,"textLines":1,"bbox":[694,615,170,22]}
+{"kind":"textbox","id":"sh/kvu10jad","slide":1,"text":"Progress becomes a world users can return to.","textPreview":"Progress becomes a world users can return to.","textChars":45,"textLines":1,"bbox":[694,642,460,30]}
+{"kind":"image","id":"im/wfep0jil","slide":1,"name":"","geometry":"roundRect","alt":"Scyra app icon","bbox":[58,106,92,92]}
+{"kind":"image","id":"im/65g76t0n","slide":1,"name":"","geometry":"roundRect","alt":"20-blue-populated.png","bbox":[815,69,256,554.67]}
+{"kind":"notes","id":"nt/jsb4f1","slide":1,"text":"Open with the product promise: Scyra makes focus visible, memorable, and worth returning to.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/6c7ed3","slide":2,"title":"02  /  PRODUCT THESIS","textShapes":19}
+{"kind":"textbox","id":"sh/gfyh0vm9","slide":2,"text":"02  /  PRODUCT THESIS","textPreview":"02  /  PRODUCT THESIS","textChars":21,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/fupgrq5o","slide":2,"text":"The app connects a complete behavior loop","textPreview":"The app connects a complete behavior loop","textChars":41,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/etwzyl4j","slide":2,"text":"Every action creates context for the next session—and long-term progress beyond it.","textPreview":"Every action creates context for the next session—and long-term progress beyond it.","textChars":83,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/tsnypgny","slide":2,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/srehwbmd","slide":2,"bbox":[92,325,1095,0]}
+{"kind":"shape","id":"sh/rq5gn65s","slide":2,"bbox":[133,311,29,29]}
+{"kind":"textbox","id":"sh/6pwzul47","slide":2,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[78,238,140,30]}
+{"kind":"textbox","id":"sh/dori1kn2","slide":2,"text":"Focus","textPreview":"Focus","textChars":5,"textLines":1,"bbox":[78,372,140,34]}
+{"kind":"textbox","id":"sh/cnih8fmh","slide":2,"text":"Start a scored Flow or a gentle Soft Flow.","textPreview":"Start a scored Flow or a gentle Soft Flow.","textChars":42,"textLines":1,"bbox":[60,420,176,104]}
+{"kind":"shape","id":"sh/id4jy1or","slide":2,"bbox":[358,311,29,29]}
+{"kind":"textbox","id":"sh/jedk7m5w","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[303,238,140,30]}
+{"kind":"textbox","id":"sh/4f610r6h","slide":2,"text":"Capture","textPreview":"Capture","textChars":7,"textLines":1,"bbox":[303,372,140,34]}
+{"kind":"textbox","id":"sh/50f29wn2","slide":2,"text":"Record a Pulse or multimodal Chronicle.","textPreview":"Record a Pulse or multimodal Chronicle.","textChars":39,"textLines":1,"bbox":[285,420,176,104]}
+{"kind":"shape","id":"sh/u94juhof","slide":2,"bbox":[583,311,29,29]}
+{"kind":"textbox","id":"sh/vad03mp0","slide":2,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[528,238,140,30]}
+{"kind":"textbox","id":"sh/wbm1wr6l","slide":2,"text":"Review","textPreview":"Review","textChars":6,"textLines":1,"bbox":[528,372,140,34]}
+{"kind":"textbox","id":"sh/hcv25wn6","slide":2,"text":"See time, score, journeys, Sagas, and Chronicles.","textPreview":"See time, score, journeys, Sagas, and Chronicles.","textChars":49,"textLines":1,"bbox":[510,420,176,104]}
+{"kind":"shape","id":"sh/e5oj6loz","slide":2,"bbox":[808,311,29,29]}
+{"kind":"textbox","id":"sh/f6hkf654","slide":2,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[753,238,140,30]}
+{"kind":"textbox","id":"sh/ba9g7y5w","slide":2,"text":"Plan","textPreview":"Plan","textChars":4,"textLines":1,"bbox":[753,372,140,34]}
+{"kind":"textbox","id":"sh/qp0zyd4b","slide":2,"text":"Schedule Flows, build Arcs, or launch a suggested Scene.","textPreview":"Schedule Flows, build Arcs, or launch a suggested Scene.","textChars":56,"textLines":1,"bbox":[735,420,176,104]}
+{"kind":"shape","id":"sh/dcry98nm","slide":2,"bbox":[1033,311,29,29]}
+{"kind":"textbox","id":"sh/cbih03m1","slide":2,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[978,238,140,30]}
+{"kind":"textbox","id":"sh/ze9gbils","slide":2,"text":"Return","textPreview":"Return","textChars":6,"textLines":1,"bbox":[978,372,140,34]}
+{"kind":"textbox","id":"sh/yd0z2d47","slide":2,"text":"Grow The Shell, collections, creatures, and badges.","textPreview":"Grow The Shell, collections, creatures, and badges.","textChars":51,"textLines":1,"bbox":[960,420,176,104]}
+{"kind":"textbox","id":"sh/lgbyds3y","slide":2,"text":"The differentiated value is the continuity between the tools—not any single timer, journal, or reward mechanic.","textPreview":"The differentiated value is the continuity between the tools—not any single timer, journal, or reward mechanic.","textChars":111,"textLines":1,"bbox":[144,603,992,42]}
+{"kind":"notes","id":"nt/6c7ed3","slide":2,"text":"Frame Scyra as a system. The user moves from intention to evidence, then from evidence to a reason to come back.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/mdo6pt","slide":3,"title":"03  /  REVIEW","textShapes":16}
+{"kind":"textbox","id":"sh/mlo7yd87","slide":3,"text":"03  /  REVIEW","textPreview":"03  /  REVIEW","textChars":13,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/98z69s7y","slide":3,"text":"Story turns effort into a navigable record","textPreview":"Story turns effort into a navigable record","textChars":42,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/876p0nqd","slide":3,"text":"Users can zoom from one day to a month, filter by journey, and move between narrative and trend views.","textPreview":"Users can zoom from one day to a month, filter by journey, and move between narrative and trend views.","textChars":102,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/vahob2po","slide":3,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/u9872x8j","slide":3,"bbox":[85,201,228,477.67]}
+{"kind":"textbox","id":"sh/wbqp47q9","slide":3,"text":"Story dashboard","textPreview":"Story dashboard","textChars":15,"textLines":1,"bbox":[80,688.67,238,30]}
+{"kind":"textbox","id":"sh/jeh8f2p0","slide":3,"text":"ONE HOME","textPreview":"ONE HOME","textChars":8,"textLines":1,"bbox":[370,224,360,22]}
+{"kind":"textbox","id":"sh/id876x8f","slide":3,"text":"Time and score in context","textPreview":"Time and score in context","textChars":25,"textLines":1,"bbox":[370,254,360,62]}
+{"kind":"textbox","id":"sh/0nel83qt","slide":3,"text":"The Story view combines session time, Scyra Score, journey tags, and session cards—without forcing users into a separate analytics product.","textPreview":"The Story view combines session time, Scyra Score, journey tags, and session cards—without forcing users into a separate analytics product.","textChars":139,"textLines":1,"bbox":[370,320,360,150]}
+{"kind":"textbox","id":"sh/18nm18re","slide":3,"text":"A","textPreview":"A","textChars":1,"textLines":1,"bbox":[774,225,78,44]}
+{"kind":"textbox","id":"sh/elw36t83","slide":3,"text":"Flexible lenses","textPreview":"Flexible lenses","textChars":15,"textLines":1,"bbox":[860,227,319,34]}
+{"kind":"textbox","id":"sh/fm54zy98","slide":3,"text":"Day, Week, Month, previous/next period, and journey filters.","textPreview":"Day, Week, Month, previous/next period, and journey filters.","textChars":60,"textLines":1,"bbox":[860,268,319,80]}
+{"kind":"textbox","id":"sh/obylcnq5","slide":3,"text":"B","textPreview":"B","textChars":1,"textLines":1,"bbox":[774,372,78,44]}
+{"kind":"textbox","id":"sh/pc7m58rq","slide":3,"text":"Two storytelling modes","textPreview":"Two storytelling modes","textChars":22,"textLines":1,"bbox":[860,374,319,34]}
+{"kind":"textbox","id":"sh/29g3ad8z","slide":3,"text":"Sagas organize progress; Chronicles preserve the qualitative record.","textPreview":"Sagas organize progress; Chronicles preserve the qualitative record.","textChars":68,"textLines":1,"bbox":[860,415,319,80]}
+{"kind":"textbox","id":"sh/nap43i9k","slide":3,"text":"C","textPreview":"C","textChars":1,"textLines":1,"bbox":[774,519,78,44]}
+{"kind":"textbox","id":"sh/cfy5gnq1","slide":3,"text":"Action stays close","textPreview":"Action stays close","textChars":18,"textLines":1,"bbox":[860,521,319,34]}
+{"kind":"textbox","id":"sh/xgrm9srm","slide":3,"text":"Start a Flow or capture a Pulse directly from the dashboard.","textPreview":"Start a Flow or capture a Pulse directly from the dashboard.","textChars":60,"textLines":1,"bbox":[860,562,319,80]}
+{"kind":"image","id":"im/kfqpkvap","slide":3,"name":"","geometry":"roundRect","alt":"Story dashboard","bbox":[92,208,214,463.67]}
+{"kind":"notes","id":"nt/mdo6pt","slide":3,"text":"Use the current-week screenshot to show how quickly a completed session becomes visible and actionable in Story.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/orgw6p","slide":4,"title":"04  /  FOCUS","textShapes":14}
+{"kind":"textbox","id":"sh/h4fu58na","slide":4,"text":"04  /  FOCUS","textPreview":"04  /  FOCUS","textChars":12,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/u1ovatoj","slide":4,"text":"Flow supports intensity without enforcing one mode","textPreview":"Flow supports intensity without enforcing one mode","textChars":50,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/f2xc3y54","slide":4,"text":"A single session surface covers scored focus, gentle work, targets, live runtime, and continuation.","textPreview":"A single session surface covers scored focus, gentle work, targets, live runtime, and continuation.","textChars":99,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/47qdgnml","slide":4,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/p8zu9sn6","slide":4,"bbox":[79,208,204,425.67]}
+{"kind":"textbox","id":"sh/36hc7i50","slide":4,"text":"Session setup","textPreview":"Session setup","textChars":13,"textLines":1,"bbox":[74,643.67,214,30]}
+{"kind":"shape","id":"sh/cvqdknmx","slide":4,"bbox":[320,208,204,425.67]}
+{"kind":"textbox","id":"sh/hsje50j2","slide":4,"text":"Live Flow","textPreview":"Live Flow","textChars":9,"textLines":1,"bbox":[315,643.67,214,30]}
+{"kind":"textbox","id":"sh/wradcf2x","slide":4,"text":"FLEXIBLE SESSION","textPreview":"FLEXIBLE SESSION","textChars":16,"textLines":1,"bbox":[586,222,540,22]}
+{"kind":"textbox","id":"sh/vq1w3a1c","slide":4,"text":"Flow or Soft Flow","textPreview":"Flow or Soft Flow","textChars":17,"textLines":1,"bbox":[586,252,540,62]}
+{"kind":"textbox","id":"sh/upsva5kr","slide":4,"text":"Choose scored focus or a calmer, unscored mode. Add a title and journey, then run the timer in the foreground or background.","textPreview":"Choose scored focus or a calmer, unscored mode. Add a title and journey, then run the timer in the foreground or background.","textChars":124,"textLines":1,"bbox":[586,318,540,150]}
+{"kind":"textbox","id":"sh/5g3e9kje","slide":4,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[586,408,78,44]}
+{"kind":"textbox","id":"sh/4fudgf2t","slide":4,"text":"Surge targets","textPreview":"Surge targets","textChars":13,"textLines":1,"bbox":[672,410,454,34]}
+{"kind":"textbox","id":"sh/jelw7a18","slide":4,"text":"Arm a timed challenge with milestone feedback and bonus scoring.","textPreview":"Arm a timed challenge with milestone feedback and bonus scoring.","textChars":64,"textLines":1,"bbox":[672,451,454,80]}
+{"kind":"textbox","id":"sh/idsve5kn","slide":4,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[586,540,78,44]}
+{"kind":"textbox","id":"sh/lkzexgja","slide":4,"text":"Stay in the loop","textPreview":"Stay in the loop","textChars":16,"textLines":1,"bbox":[672,542,454,34]}
+{"kind":"textbox","id":"sh/0jqd4v2p","slide":4,"text":"Record a Pulse during the session, reset safely, or continue an Arc step.","textPreview":"Record a Pulse during the session, reset safely, or continue an Arc step.","textChars":73,"textLines":1,"bbox":[672,583,454,80]}
+{"kind":"image","id":"im/ri5czylg","slide":4,"name":"","geometry":"roundRect","alt":"Session setup","bbox":[86,215,190,411.67]}
+{"kind":"image","id":"im/4fetoj25","slide":4,"name":"","geometry":"roundRect","alt":"Live Flow","bbox":[327,215,190,411.67]}
+{"kind":"notes","id":"nt/orgw6p","slide":4,"text":"Call out that the timer is only the entry point: Scyra adds mode choice, journey context, Surge targets, reflection, and Arc continuation.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/g2wyvz","slide":5,"title":"05  /  CAPTURE","textShapes":11}
+{"kind":"textbox","id":"sh/l43mp8nu","slide":5,"text":"05  /  CAPTURE","textPreview":"05  /  CAPTURE","textChars":14,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/yhs3edoj","slide":5,"text":"Reflection meets users in the medium they already have","textPreview":"Reflection meets users in the medium they already have","textChars":54,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/zi14ny54","slide":5,"text":"Quick Pulse capture and rich Chronicle capture share the same journey context.","textPreview":"Quick Pulse capture and rich Chronicle capture share the same journey context.","textChars":78,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/cfalc36d","slide":5,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/xgjml8ny","slide":5,"bbox":[91,204,219,458.17]}
+{"kind":"textbox","id":"sh/be14jy5s","slide":5,"text":"Chronicle","textPreview":"Chronicle","textChars":9,"textLines":1,"bbox":[86,672.17,229,30]}
+{"kind":"shape","id":"sh/obql8j61","slide":5,"bbox":[347,204,219,458.17]}
+{"kind":"textbox","id":"sh/xsrm1gzy","slide":5,"text":"Pulse","textPreview":"Pulse","textChars":5,"textLines":1,"bbox":[342,672.17,229,30]}
+{"kind":"textbox","id":"sh/wri58bid","slide":5,"text":"CHRONICLE","textPreview":"CHRONICLE","textChars":9,"textLines":1,"bbox":[632,225,525,22]}
+{"kind":"textbox","id":"sh/bq94z6hs","slide":5,"text":"A multimodal memory layer","textPreview":"A multimodal memory layer","textChars":25,"textLines":1,"bbox":[632,255,525,62]}
+{"kind":"textbox","id":"sh/ap0n6107","slide":5,"text":"Capture text, dictated or recorded audio, gallery media, a new photo, or video. Media and transcription stay attached to the user’s story.","textPreview":"Capture text, dictated or recorded audio, gallery media, a new photo, or video. Media and transcription stay attached to the user’s story.","textChars":138,"textLines":1,"bbox":[632,321,525,150]}
+{"kind":"textbox","id":"sh/9ormxwz2","slide":5,"text":"PULSE","textPreview":"PULSE","textChars":5,"textLines":1,"bbox":[632,435,525,22]}
+{"kind":"textbox","id":"sh/ony54rih","slide":5,"text":"Low-friction reflection","textPreview":"Low-friction reflection","textChars":23,"textLines":1,"bbox":[632,465,525,62]}
+{"kind":"textbox","id":"sh/nmp4vmhw","slide":5,"text":"Tag a thought to a journey, attach it to the active Flow, and later let Idea Grove turn that reflection into something actionable.","textPreview":"Tag a thought to a journey, attach it to the active Flow, and later let Idea Grove turn that reflection into something actionable.","textChars":130,"textLines":1,"bbox":[632,531,525,150]}
+{"kind":"image","id":"im/fmh4rihs","slide":5,"name":"","geometry":"roundRect","alt":"Chronicle","bbox":[98,211,205,444.17]}
+{"kind":"image","id":"im/oral4ny9","slide":5,"name":"","geometry":"roundRect","alt":"Pulse","bbox":[354,211,205,444.17]}
+{"kind":"notes","id":"nt/g2wyvz","slide":5,"text":"Contrast Chronicle depth with Pulse speed. Both preserve context, while Pulse also feeds the idea workflow.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/cu83lz","slide":6,"title":"06  /  REWARD","textShapes":11}
+{"kind":"textbox","id":"sh/7mdcz6lg","slide":6,"text":"06  /  REWARD","textPreview":"06  /  REWARD","textChars":13,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/snmdsr21","slide":6,"text":"Completion closes the loop immediately","textPreview":"Completion closes the loop immediately","textChars":38,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/tovu1w3m","slide":6,"text":"The user sees what was logged, what was earned, and how that progress changes The Shell.","textPreview":"The user sees what was logged, what was earned, and how that progress changes The Shell.","textChars":88,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/ihkbmhkz","slide":6,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/jitcvmlk","slide":6,"bbox":[85,203,219,458.17]}
+{"kind":"textbox","id":"sh/5kbuxw3a","slide":6,"text":"Points & Pearls","textPreview":"Points & Pearls","textChars":15,"textLines":1,"bbox":[80,671.17,229,30]}
+{"kind":"shape","id":"sh/at0bihkn","slide":6,"bbox":[341,203,219,458.17]}
+{"kind":"textbox","id":"sh/jy9w7ets","slide":6,"text":"Shell impact","textPreview":"Shell impact","textChars":12,"textLines":1,"bbox":[336,671.17,229,30]}
+{"kind":"textbox","id":"sh/ix0vy9c7","slide":6,"text":"REWARD REVEAL","textPreview":"REWARD REVEAL","textChars":13,"textLines":1,"bbox":[622,231,535,22]}
+{"kind":"textbox","id":"sh/50be9oby","slide":6,"text":"Effort becomes a portable resource","textPreview":"Effort becomes a portable resource","textChars":34,"textLines":1,"bbox":[622,261,535,62]}
+{"kind":"textbox","id":"sh/kz2d0jud","slide":6,"text":"Scyra Points are explained—not just displayed—and carried into The Shell as Pearls. The carousel can also reveal creatures and Arc outcomes.","textPreview":"Scyra Points are explained—not just displayed—and carried into The Shell as Pearls. The carousel can also reveal creatures and Arc outcomes.","textChars":140,"textLines":1,"bbox":[622,327,535,150]}
+{"kind":"textbox","id":"sh/72twbeto","slide":6,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[622,474,78,44]}
+{"kind":"textbox","id":"sh/61kv2tc3","slide":6,"text":"No dead end","textPreview":"No dead end","textChars":11,"textLines":1,"bbox":[708,476,449,34]}
+{"kind":"textbox","id":"sh/t4bedobu","slide":6,"text":"Done returns the user to their story; Enter The Shell continues into the retention layer.","textPreview":"Done returns the user to their story; Enter The Shell continues into the retention layer.","textChars":89,"textLines":1,"bbox":[708,517,449,80]}
+{"kind":"image","id":"im/1ozydsr6","slide":6,"name":"","geometry":"roundRect","alt":"Points & Pearls","bbox":[92,210,205,444.17]}
+{"kind":"image","id":"im/yhszehsz","slide":6,"name":"","geometry":"roundRect","alt":"Shell impact","bbox":[348,210,205,444.17]}
+{"kind":"notes","id":"nt/cu83lz","slide":6,"text":"Swipe the live reward carousel during the demo. The investor point is that completion creates both evidence and a next action.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/ll6mnd","slide":7,"title":"07  /  PLAN","textShapes":14}
+{"kind":"textbox","id":"sh/fq9wj2ps","slide":7,"text":"07  /  PLAN","textPreview":"07  /  PLAN","textChars":11,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/grixsn6d","slide":7,"text":"Paths turns intention into a visible horizon","textPreview":"Paths turns intention into a visible horizon","textChars":44,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/hsrels7y","slide":7,"text":"Plan a single Flow, organize a multi-step Arc, or begin from a suggested Scene.","textPreview":"Plan a single Flow, organize a multi-step Arc, or begin from a suggested Scene.","textChars":79,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/2t0fuxoj","slide":7,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/3u9wn2p4","slide":7,"bbox":[87,207,212,443]}
+{"kind":"textbox","id":"sh/pwrepc7u","slide":7,"text":"Planned Flows","textPreview":"Planned Flows","textChars":13,"textLines":1,"bbox":[82,660,222,30]}
+{"kind":"shape","id":"sh/qh0fyhof","slide":7,"bbox":[339,207,212,443]}
+{"kind":"textbox","id":"sh/zixcvet8","slide":7,"text":"Arcs","textPreview":"Arcs","textChars":4,"textLines":1,"bbox":[334,660,222,30]}
+{"kind":"textbox","id":"sh/ehobmtsn","slide":7,"text":"HORIZON","textPreview":"HORIZON","textChars":7,"textLines":1,"bbox":[620,226,530,22]}
+{"kind":"textbox","id":"sh/1kzuxobe","slide":7,"text":"Two planning scales","textPreview":"Two planning scales","textChars":19,"textLines":1,"bbox":[620,256,530,62]}
+{"kind":"textbox","id":"sh/0jqtojat","slide":7,"text":"Flows support the next intentional block. Arcs link multiple steps into a reusable route with a clear beginning and continuation state.","textPreview":"Flows support the next intentional block. Arcs link multiple steps into a reusable route with a clear beginning and continuation state.","textChars":135,"textLines":1,"bbox":[620,322,530,150]}
+{"kind":"textbox","id":"sh/ruxcretc","slide":7,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[620,448,78,44]}
+{"kind":"textbox","id":"sh/qtobi9sr","slide":7,"text":"Create from scratch","textPreview":"Create from scratch","textChars":19,"textLines":1,"bbox":[706,450,444,34]}
+{"kind":"textbox","id":"sh/dgfutob2","slide":7,"text":"Plan a Flow or build an Arc around a goal.","textPreview":"Plan a Flow or build an Arc around a goal.","textChars":42,"textLines":1,"bbox":[706,491,444,80]}
+{"kind":"textbox","id":"sh/cv6tkjax","slide":7,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[620,560,78,44]}
+{"kind":"textbox","id":"sh/bq1c3ytg","slide":7,"text":"Borrow a pattern","textPreview":"Borrow a pattern","textChars":16,"textLines":1,"bbox":[706,562,444,34]}
+{"kind":"textbox","id":"sh/ap8vudsv","slide":7,"text":"Suggested Scenes provide launch-ready structures for common focus modes.","textPreview":"Suggested Scenes provide launch-ready structures for common focus modes.","textChars":72,"textLines":1,"bbox":[706,603,444,80]}
+{"kind":"image","id":"im/1k3y5srm","slide":7,"name":"","geometry":"roundRect","alt":"Planned Flows","bbox":[94,214,198,429]}
+{"kind":"image","id":"im/mlczex87","slide":7,"name":"","geometry":"roundRect","alt":"Arcs","bbox":[346,214,198,429]}
+{"kind":"notes","id":"nt/ll6mnd","slide":7,"text":"Show the Flows and Arcs tabs as the bridge between today’s focus and a repeatable longer-term plan.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/5n7tbe","slide":8,"title":"08  /  PLAN","textShapes":11}
+{"kind":"textbox","id":"sh/98jy5ofm","slide":8,"text":"08  /  PLAN","textPreview":"08  /  PLAN","textChars":11,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/m5sfu9wv","slide":8,"text":"The Studio makes multi-step work feel authored","textPreview":"The Studio makes multi-step work feel authored","textChars":46,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/n61g3exg","slide":8,"text":"A five-step builder creates an Arc; suggested routes can be saved or launched immediately.","textPreview":"A five-step builder creates an Arc; suggested routes can be saved or launched immediately.","textChars":90,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/03axszep","slide":8,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/14jy14fa","slide":8,"bbox":[81,204,219,458.17]}
+{"kind":"textbox","id":"sh/z21gzexk","slide":8,"text":"Five-step Studio","textPreview":"Five-step Studio","textChars":16,"textLines":1,"bbox":[76,672.17,229,30]}
+{"kind":"shape","id":"sh/cfqxozet","slide":8,"bbox":[361,204,219,458.17]}
+{"kind":"textbox","id":"sh/xszetoze","slide":8,"text":"Suggested Scene","textPreview":"Suggested Scene","textChars":15,"textLines":1,"bbox":[356,672.17,229,30]}
+{"kind":"textbox","id":"sh/crqxkjyt","slide":8,"text":"YOUR STUDIO","textPreview":"YOUR STUDIO","textChars":11,"textLines":1,"bbox":[620,230,530,22]}
+{"kind":"textbox","id":"sh/bqhwreh8","slide":8,"text":"Name, assemble, and tune the route","textPreview":"Name, assemble, and tune the route","textChars":34,"textLines":1,"bbox":[620,260,530,62]}
+{"kind":"textbox","id":"sh/ap8fi9gn","slide":8,"text":"The wizard lowers the cost of structuring a sequence while preserving per-step modes, timing, and Surge choices.","textPreview":"The wizard lowers the cost of structuring a sequence while preserving per-step modes, timing, and Surge choices.","textChars":112,"textLines":1,"bbox":[620,326,530,150]}
+{"kind":"textbox","id":"sh/pofep4z2","slide":8,"text":"SCENES","textPreview":"SCENES","textChars":6,"textLines":1,"bbox":[620,438,530,22]}
+{"kind":"textbox","id":"sh/on6xgzyh","slide":8,"text":"Templates remain editable","textPreview":"Templates remain editable","textChars":25,"textLines":1,"bbox":[620,468,530,62]}
+{"kind":"textbox","id":"sh/nmxwnehc","slide":8,"text":"Preview a route such as Deep Work Launch, inspect the steps and estimated duration, then Save as Arc or Begin Arc.","textPreview":"Preview a route such as Deep Work Launch, inspect the steps and estimated duration, then Save as Arc or Begin Arc.","textChars":114,"textLines":1,"bbox":[620,534,530,150]}
+{"kind":"image","id":"im/fmlonexk","slide":8,"name":"","geometry":"roundRect","alt":"Five-step Studio","bbox":[88,211,205,444.17]}
+{"kind":"image","id":"im/szu5szet","slide":8,"name":"","geometry":"roundRect","alt":"Suggested Scene","bbox":[368,211,205,444.17]}
+{"kind":"notes","id":"nt/5n7tbe","slide":8,"text":"Use this slide to position templates as scaffolding, not locked programs: users can save and adapt the route.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/fs32ga","slide":9,"title":"09  /  PERSONALIZE","textShapes":11}
+{"kind":"textbox","id":"sh/gvmtknil","slide":9,"text":"09  /  PERSONALIZE","textPreview":"09  /  PERSONALIZE","textChars":18,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/fudsri10","slide":9,"text":"Power tools stay close, but out of the way","textPreview":"Power tools stay close, but out of the way","textChars":42,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/etkrid0f","slide":9,"text":"ScratchPad supports deep capture; settings tune motivation, calm, language, and movement.","textPreview":"ScratchPad supports deep capture; settings tune motivation, calm, language, and movement.","textChars":89,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/p0vaxsji","slide":9,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/ozmtonix","slide":9,"bbox":[84,204,219,458.17]}
+{"kind":"textbox","id":"sh/2x4bmx0r","slide":9,"text":"ScratchPad","textPreview":"ScratchPad","textChars":10,"textLines":1,"bbox":[79,672.17,229,30]}
+{"kind":"shape","id":"sh/54bal8jy","slide":9,"bbox":[342,204,219,458.17]}
+{"kind":"textbox","id":"sh/m9kj29kz","slide":9,"text":"Help & settings","textPreview":"Help & settings","textChars":15,"textLines":1,"bbox":[337,672.17,229,30]}
+{"kind":"textbox","id":"sh/natkbel4","slide":9,"text":"SCRATCHPAD","textPreview":"SCRATCHPAD","textChars":10,"textLines":1,"bbox":[624,222,520,22]}
+{"kind":"textbox","id":"sh/8b214z2p","slide":9,"text":"A real writing surface","textPreview":"A real writing surface","textChars":22,"textLines":1,"bbox":[624,252,520,62]}
+{"kind":"textbox","id":"sh/9cb2d43a","slide":9,"text":"Headings, type styles, bold, italic, underline, strike, sub/superscript, search, undo/redo, and top/bottom navigation.","textPreview":"Headings, type styles, bold, italic, underline, strike, sub/superscript, search, undo/redo, and top/bottom navigation.","textChars":118,"textLines":1,"bbox":[624,318,520,150]}
+{"kind":"textbox","id":"sh/ad4j69kv","slide":9,"text":"SETTINGS","textPreview":"SETTINGS","textChars":8,"textLines":1,"bbox":[624,438,520,22]}
+{"kind":"textbox","id":"sh/vedkfelg","slide":9,"text":"Motivation can be calibrated","textPreview":"Motivation can be calibrated","textChars":28,"textLines":1,"bbox":[624,468,520,62]}
+{"kind":"textbox","id":"sh/wfm18j21","slide":9,"text":"Show or hide score, enable Calm Mode, change language, connect Health Connect, and earn a movement bonus during eligible Flows.","textPreview":"Show or hide score, enable Calm Mode, change language, connect Health Connect, and earn a movement bonus during eligible Flows.","textChars":127,"textLines":1,"bbox":[624,534,520,150]}
+{"kind":"image","id":"im/u5wb2h8z","slide":9,"name":"","geometry":"roundRect","alt":"ScratchPad","bbox":[91,211,205,444.17]}
+{"kind":"image","id":"im/9k3a9w7e","slide":9,"name":"","geometry":"roundRect","alt":"Help & settings","bbox":[349,211,205,444.17]}
+{"kind":"notes","id":"nt/fs32ga","slide":9,"text":"Call out that Scyra can be tuned for users who want numbers and for users who want a calmer experience.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/a4ywwx","slide":10,"title":"10  /  RETURN","textShapes":11}
+{"kind":"textbox","id":"sh/w7itwb6t","slide":10,"text":"10  /  RETURN","textPreview":"10  /  RETURN","textChars":13,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/v6pc3q58","slide":10,"text":"The Shell gives every session somewhere to land","textPreview":"The Shell gives every session somewhere to land","textChars":47,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/u5gbulon","slide":10,"text":"A persistent home, Pearl economy, objectives, and notifications turn isolated sessions into continuity.","textPreview":"A persistent home, Pearl economy, objectives, and notifications turn isolated sessions into continuity.","textChars":103,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/5cru90na","slide":10,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/4bit0v6p","slide":10,"bbox":[84,204,219,458.17]}
+{"kind":"textbox","id":"sh/i90byloj","slide":10,"text":"The Shell","textPreview":"The Shell","textChars":9,"textLines":1,"bbox":[79,672.17,229,30]}
+{"kind":"shape","id":"sh/t0bud0n6","slide":10,"bbox":[342,204,219,458.17]}
+{"kind":"textbox","id":"sh/ihs72xcb","slide":10,"text":"The Lookout","textPreview":"The Lookout","textChars":11,"textLines":1,"bbox":[337,672.17,229,30]}
+{"kind":"textbox","id":"sh/ji18v2tw","slide":10,"text":"THE SHELL","textPreview":"THE SHELL","textChars":9,"textLines":1,"bbox":[624,224,520,22]}
+{"kind":"textbox","id":"sh/kjap47uh","slide":10,"text":"The retention hub","textPreview":"The retention hub","textChars":17,"textLines":1,"bbox":[624,254,520,62]}
+{"kind":"textbox","id":"sh/5kjqxcb2","slide":10,"text":"Pearls, collections, Heart, The Blue, Chest, badges, and notification inlays live in one navigable place.","textPreview":"Pearls, collections, Heart, The Blue, Chest, badges, and notification inlays live in one navigable place.","textChars":105,"textLines":1,"bbox":[624,320,520,150]}
+{"kind":"textbox","id":"sh/6ls7qhcn","slide":10,"text":"THE LOOKOUT","textPreview":"THE LOOKOUT","textChars":11,"textLines":1,"bbox":[624,438,520,22]}
+{"kind":"textbox","id":"sh/r618zmt8","slide":10,"text":"Objectives without streak anxiety","textPreview":"Objectives without streak anxiety","textChars":33,"textLines":1,"bbox":[624,468,520,62]}
+{"kind":"textbox","id":"sh/s7upsrud","slide":10,"text":"Daily, weekly, and monthly goals create multiple horizons, each with clear Pearl rewards.","textPreview":"Daily, weekly, and monthly goals create multiple horizons, each with clear Pearl rewards.","textChars":89,"textLines":1,"bbox":[624,534,520,150]}
+{"kind":"image","id":"im/m94v214b","slide":10,"name":"","geometry":"roundRect","alt":"The Shell","bbox":[91,211,205,444.17]}
+{"kind":"image","id":"im/pgbu1cny","slide":10,"name":"","geometry":"roundRect","alt":"The Lookout","bbox":[349,211,205,444.17]}
+{"kind":"notes","id":"nt/a4ywwx","slide":10,"text":"Explain the transition from reward reveal into The Shell, then open The Lookout to show concrete return prompts.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/j9rtmg","slide":11,"title":"11  /  RETURN","textShapes":11}
+{"kind":"textbox","id":"sh/z2l8ze10","slide":11,"text":"11  /  RETURN","textPreview":"11  /  RETURN","textChars":13,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/k3up8zil","slide":11,"text":"Progress can be measured—or turned into the next idea","textPreview":"Progress can be measured—or turned into the next idea","textChars":53,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/l43q14j6","slide":11,"text":"Voyage Hall serves the analytical user; Idea Grove serves the exploratory user.","textPreview":"Voyage Hall serves the analytical user; Idea Grove serves the exploratory user.","textChars":79,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/m5w7a90b","slide":11,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/76583e1w","slide":11,"bbox":[84,204,219,458.17]}
+{"kind":"textbox","id":"sh/9snq5oj2","slide":11,"text":"Voyage Hall","textPreview":"Voyage Hall","textChars":11,"textLines":1,"bbox":[79,672.17,229,30]}
+{"kind":"shape","id":"sh/utw7et0n","slide":11,"bbox":[342,204,219,458.17]}
+{"kind":"textbox","id":"sh/by9kbexw","slide":11,"text":"Idea Grove","textPreview":"Idea Grove","textChars":10,"textLines":1,"bbox":[337,672.17,229,30]}
+{"kind":"textbox","id":"sh/ad0329gb","slide":11,"text":"VOYAGE HALL","textPreview":"VOYAGE HALL","textChars":11,"textLines":1,"bbox":[624,224,520,22]}
+{"kind":"textbox","id":"sh/x0r2dofm","slide":11,"text":"Stats, records, and streaks","textPreview":"Stats, records, and streaks","textChars":27,"textLines":1,"bbox":[624,254,520,62]}
+{"kind":"textbox","id":"sh/czil4jyh","slide":11,"text":"Review totals, bests, core progress, bonus contribution, and repeat behavior in a dedicated long-view space.","textPreview":"Review totals, bests, core progress, bonus contribution, and repeat behavior in a dedicated long-view space.","textChars":108,"textLines":1,"bbox":[624,320,520,150]}
+{"kind":"textbox","id":"sh/napk7uxk","slide":11,"text":"IDEA GROVE","textPreview":"IDEA GROVE","textChars":10,"textLines":1,"bbox":[624,438,520,22]}
+{"kind":"textbox","id":"sh/29g3ypgz","slide":11,"text":"Thoughts become launch points","textPreview":"Thoughts become launch points","textChars":29,"textLines":1,"bbox":[624,468,520,62]}
+{"kind":"textbox","id":"sh/pc7294fq","slide":11,"text":"Pulse-derived ideas can be alive or completed, then launch a Flow when the user is ready to act.","textPreview":"Pulse-derived ideas can be alive or completed, then launch a Flow when the user is ready to act.","textChars":96,"textLines":1,"bbox":[624,534,520,150]}
+{"kind":"image","id":"im/d8fqlkvm","slide":11,"name":"","geometry":"roundRect","alt":"Voyage Hall","bbox":[91,211,205,444.17]}
+{"kind":"image","id":"im/2h476lwz","slide":11,"name":"","geometry":"roundRect","alt":"Idea Grove","bbox":[349,211,205,444.17]}
+{"kind":"notes","id":"nt/j9rtmg","slide":11,"text":"This is a useful investor contrast: the same underlying activity supports analytical and generative motivations.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/8cvowb","slide":12,"title":"12  /  RETURN","textShapes":11}
+{"kind":"textbox","id":"sh/bu5krql8","slide":12,"text":"12  /  RETURN","textPreview":"12  /  RETURN","textChars":13,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/cve10vmd","slide":12,"text":"The app also rewards recovery and gentler momentum","textPreview":"The app also rewards recovery and gentler momentum","textChars":50,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/xwn2t03y","slide":12,"text":"Guided focus exercises and Soft Flow collection progress make the system broader than high-intensity productivity.","textPreview":"Guided focus exercises and Soft Flow collection progress make the system broader than high-intensity productivity.","textChars":114,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/2pcjul4b","slide":12,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/3qlknqlw","slide":12,"bbox":[84,204,219,458.17]}
+{"kind":"textbox","id":"sh/ps32pg32","slide":12,"text":"Focus Room","textPreview":"Focus Room","textChars":10,"textLines":1,"bbox":[79,672.17,229,30]}
+{"kind":"shape","id":"sh/e1sjq14f","slide":12,"bbox":[342,204,219,458.17]}
+{"kind":"textbox","id":"sh/36103yt8","slide":12,"text":"Stillwater","textPreview":"Stillwater","textChars":10,"textLines":1,"bbox":[337,672.17,229,30]}
+{"kind":"textbox","id":"sh/i58zadc3","slide":12,"text":"FOCUS ROOM","textPreview":"FOCUS ROOM","textChars":10,"textLines":1,"bbox":[624,224,520,22]}
+{"kind":"textbox","id":"sh/58ji58be","slide":12,"text":"Guided regulation","textPreview":"Guided regulation","textChars":17,"textLines":1,"bbox":[624,254,520,62]}
+{"kind":"textbox","id":"sh/47ahc3ut","slide":12,"text":"Voice-supported exercises include grounding and Box Breathing, giving users a deliberate on-ramp before or between demanding sessions.","textPreview":"Voice-supported exercises include grounding and Box Breathing, giving users a deliberate on-ramp before or between demanding sessions.","textChars":134,"textLines":1,"bbox":[624,320,520,150]}
+{"kind":"textbox","id":"sh/ra107itk","slide":12,"text":"STILLWATER","textPreview":"STILLWATER","textChars":10,"textLines":1,"bbox":[624,438,520,22]}
+{"kind":"textbox","id":"sh/q9szedcz","slide":12,"text":"Soft work earns its own ecology","textPreview":"Soft work earns its own ecology","textChars":31,"textLines":1,"bbox":[624,468,520,62]}
+{"kind":"textbox","id":"sh/dcji9sbq","slide":12,"text":"Soft Flow Drops fill vessels and unlock exclusive creatures—recognizing restorative effort without turning it into score competition.","textPreview":"Soft Flow Drops fill vessels and unlock exclusive creatures—recognizing restorative effort without turning it into score competition.","textChars":133,"textLines":1,"bbox":[624,534,520,150]}
+{"kind":"image","id":"im/9kjydkjq","slide":12,"name":"","geometry":"roundRect","alt":"Focus Room","bbox":[91,211,205,444.17]}
+{"kind":"image","id":"im/ulsfm5kb","slide":12,"name":"","geometry":"roundRect","alt":"Stillwater","bbox":[349,211,205,444.17]}
+{"kind":"notes","id":"nt/8cvowb","slide":12,"text":"Show that Scyra’s motivation system includes recovery and calm, not only more output.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/3xyq97","slide":13,"title":"13  /  WORLD","textShapes":11}
+{"kind":"textbox","id":"sh/lszmlsb2","slide":13,"text":"13  /  WORLD","textPreview":"13  /  WORLD","textChars":12,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/yp83qxsr","slide":13,"text":"The Blue makes accumulated effort feel alive","textPreview":"The Blue makes accumulated effort feel alive","textChars":44,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/zqh4j2tw","slide":13,"text":"Creatures inhabit depth zones, collections expand, and the environment changes with continued use.","textPreview":"Creatures inhabit depth zones, collections expand, and the environment changes with continued use.","textChars":98,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/cnqlonal","slide":13,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/dozmhsb6","slide":13,"bbox":[73,202,230,482]}
+{"kind":"textbox","id":"sh/bmh4fit0","slide":13,"text":"Sunlit Reef","textPreview":"Sunlit Reef","textChars":11,"textLines":1,"bbox":[68,694,240,30]}
+{"kind":"shape","id":"sh/oz6lk3a9","slide":13,"bbox":[337,202,230,482]}
+{"kind":"textbox","id":"sh/9g7i54ni","slide":13,"text":"Great Blue","textPreview":"Great Blue","textChars":10,"textLines":1,"bbox":[332,694,240,30]}
+{"kind":"textbox","id":"sh/ofy1cz6d","slide":13,"text":"DEPTH","textPreview":"DEPTH","textChars":5,"textLines":1,"bbox":[624,226,520,22]}
+{"kind":"textbox","id":"sh/nep03u5s","slide":13,"text":"A world with visible progression","textPreview":"A world with visible progression","textChars":32,"textLines":1,"bbox":[624,256,520,62]}
+{"kind":"textbox","id":"sh/mdgjapo7","slide":13,"text":"Move from Sunlit Reef into deeper zones, encounter new species, and see collection counts and depth progress in place.","textPreview":"Move from Sunlit Reef into deeper zones, encounter new species, and see collection counts and depth progress in place.","textChars":118,"textLines":1,"bbox":[624,322,520,150]}
+{"kind":"textbox","id":"sh/1cni1knm","slide":13,"text":"∞","textPreview":"∞","textChars":1,"textLines":1,"bbox":[624,464,78,44]}
+{"kind":"textbox","id":"sh/0be18z61","slide":13,"text":"Beyond Blue","textPreview":"Beyond Blue","textChars":11,"textLines":1,"bbox":[710,466,434,34]}
+{"kind":"textbox","id":"sh/za50zu5g","slide":13,"text":"Regular Flows can surface encounters; Pearls can grow creatures, and release creates another meaningful outcome.","textPreview":"Regular Flows can surface encounters; Pearls can grow creatures, and release creates another meaningful outcome.","textChars":112,"textLines":1,"bbox":[710,507,434,80]}
+{"kind":"image","id":"im/n69gjq9w","slide":13,"name":"","geometry":"roundRect","alt":"Sunlit Reef","bbox":[80,209,216,468]}
+{"kind":"image","id":"im/g3yhobal","slide":13,"name":"","geometry":"roundRect","alt":"Great Blue","bbox":[344,209,216,468]}
+{"kind":"notes","id":"nt/3xyq97","slide":13,"text":"The populated environment is the clearest visual explanation of the long-term return loop. Move between depth zones during the live demo.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/fbnxoi","slide":14,"title":"14  /  COLLECTION","textShapes":11}
+{"kind":"textbox","id":"sh/0ji9kre5","slide":14,"text":"14  /  COLLECTION","textPreview":"14  /  COLLECTION","textChars":17,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/zi9sb6dk","slide":14,"text":"Every creature retains the story of how it arrived","textPreview":"Every creature retains the story of how it arrived","textChars":50,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/yx0ri1wz","slide":14,"text":"The Chest makes ownership operational; detail views preserve provenance and growth state.","textPreview":"The Chest makes ownership operational; detail views preserve provenance and growth state.","textChars":89,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/9obahgvm","slide":14,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/8n29obe1","slide":14,"bbox":[84,204,219,458.17]}
+{"kind":"textbox","id":"sh/mlkrm1wv","slide":14,"text":"Creature detail","textPreview":"Creature detail","textChars":15,"textLines":1,"bbox":[79,672.17,229,30]}
+{"kind":"shape","id":"sh/hsvalgvi","slide":14,"bbox":[342,204,219,458.17]}
+{"kind":"textbox","id":"sh/25ofqtw3","slide":14,"text":"The Chest","textPreview":"The Chest","textChars":9,"textLines":1,"bbox":[337,672.17,229,30]}
+{"kind":"textbox","id":"sh/n6hwzyxo","slide":14,"text":"PROVENANCE","textPreview":"PROVENANCE","textChars":10,"textLines":1,"bbox":[624,224,520,22]}
+{"kind":"textbox","id":"sh/o7qxsje9","slide":14,"text":"Created by a real Flow","textPreview":"Created by a real Flow","textChars":22,"textLines":1,"bbox":[624,254,520,62]}
+{"kind":"textbox","id":"sh/p8ze1ofu","slide":14,"text":"Creature detail connects species, zone, level, age, and Pearl value back to the session that generated it.","textPreview":"Creature detail connects species, zone, level, age, and Pearl value back to the session that generated it.","textChars":106,"textLines":1,"bbox":[624,320,520,150]}
+{"kind":"textbox","id":"sh/a98futwf","slide":14,"text":"INVENTORY","textPreview":"INVENTORY","textChars":9,"textLines":1,"bbox":[624,438,520,22]}
+{"kind":"textbox","id":"sh/bahw3yx0","slide":14,"text":"Collect, sort, grow, place, release","textPreview":"Collect, sort, grow, place, release","textChars":35,"textLines":1,"bbox":[624,468,520,62]}
+{"kind":"textbox","id":"sh/cvqxw3e5","slide":14,"text":"The Chest supports filtering and progression actions, giving collection depth beyond a static gallery.","textPreview":"The Chest supports filtering and progression actions, giving collection depth beyond a static gallery.","textChars":102,"textLines":1,"bbox":[624,534,520,150]}
+{"kind":"image","id":"im/atcnmdwr","slide":14,"name":"","geometry":"roundRect","alt":"Creature detail","bbox":[91,211,205,444.17]}
+{"kind":"image","id":"im/l0n61cve","slide":14,"name":"","geometry":"roundRect","alt":"The Chest","bbox":[349,211,205,444.17]}
+{"kind":"notes","id":"nt/fbnxoi","slide":14,"text":"Open a creature from The Blue or the Chest and emphasize the provenance line linking the reward to a completed Flow.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/avfkvg","slide":15,"title":"15  /  MASTERY","textShapes":14}
+{"kind":"textbox","id":"sh/bqtg7mhg","slide":15,"text":"15  /  MASTERY","textPreview":"15  /  MASTERY","textChars":14,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/cr2hgry1","slide":15,"text":"Badges make progress legible before and after mastery","textPreview":"Badges make progress legible before and after mastery","textChars":53,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/dsby9wzm","slide":15,"text":"Users can pin, track, showcase, and browse what is within reach.","textPreview":"Users can pin, track, showcase, and browse what is within reach.","textChars":64,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/ytkzi1g7","slide":15,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/zut0b6hs","slide":15,"bbox":[85,203,238,499.33]}
+{"kind":"textbox","id":"sh/lwbidwzi","slide":15,"text":"Badge showcase","textPreview":"Badge showcase","textChars":14,"textLines":1,"bbox":[80,712.33,248,30]}
+{"kind":"textbox","id":"sh/mx4zm1g3","slide":15,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[395,224,78,44]}
+{"kind":"textbox","id":"sh/nid0f6ho","slide":15,"text":"Showcase","textPreview":"Showcase","textChars":8,"textLines":1,"bbox":[481,226,674,34]}
+{"kind":"textbox","id":"sh/n2x8bm14","slide":15,"text":"Pin earned badges so mastery becomes identity, not just a hidden counter.","textPreview":"Pin earned badges so mastery becomes identity, not just a hidden counter.","textChars":73,"textLines":1,"bbox":[481,267,674,80]}
+{"kind":"textbox","id":"sh/mhorihkj","slide":15,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[395,351,78,44]}
+{"kind":"textbox","id":"sh/94fadwja","slide":15,"text":"Track","textPreview":"Track","textChars":5,"textLines":1,"bbox":[481,353,674,34]}
+{"kind":"textbox","id":"sh/o369kr2p","slide":15,"text":"Choose an in-progress badge such as a two-hour Flow and keep the next milestone visible.","textPreview":"Choose an in-progress badge such as a two-hour Flow and keep the next milestone visible.","textChars":88,"textLines":1,"bbox":[481,394,674,80]}
+{"kind":"textbox","id":"sh/zed872l8","slide":15,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[395,478,78,44]}
+{"kind":"textbox","id":"sh/ed4rexkn","slide":15,"text":"Explore","textPreview":"Explore","textChars":7,"textLines":1,"bbox":[481,480,674,34]}
+{"kind":"textbox","id":"sh/1gfq9cjy","slide":15,"text":"Badge Book, Within Reach, collections, and celebration states create multiple discovery paths.","textPreview":"Badge Book, Within Reach, collections, and celebration states create multiple discovery paths.","textChars":94,"textLines":1,"bbox":[481,521,674,80]}
+{"kind":"textbox","id":"sh/0fm9g72d","slide":15,"text":"The system recognizes duration, variety, collection, Stillwater participation, and other forms of engagement.","textPreview":"The system recognizes duration, variety, collection, Stillwater participation, and other forms of engagement.","textChars":109,"textLines":1,"bbox":[398,617,750,40]}
+{"kind":"image","id":"im/xwn6xczq","slide":15,"name":"","geometry":"roundRect","alt":"Badge showcase","bbox":[92,210,224,485.33]}
+{"kind":"notes","id":"nt/avfkvg","slide":15,"text":"Badges cover more than streaks. Point out duration, variety, collection, and Stillwater achievements in the populated showcase.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/6mvbun","slide":16,"title":"16  /  SYSTEM","textShapes":16}
+{"kind":"textbox","id":"sh/cnm9cvix","slide":16,"text":"16  /  SYSTEM","textPreview":"16  /  SYSTEM","textChars":13,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/rmd83qhc","slide":16,"text":"The breadth resolves into four coherent value layers","textPreview":"The breadth resolves into four coherent value layers","textChars":52,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/ql4ral0r","slide":16,"text":"This is the complete feature map represented in the walkthrough.","textPreview":"This is the complete feature map represented in the walkthrough.","textChars":64,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/1sfa90ze","slide":16,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/0r69gvit","slide":16,"bbox":[52,220,270,377]}
+{"kind":"textbox","id":"sh/zqd87qh8","slide":16,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[74,244,60,34]}
+{"kind":"textbox","id":"sh/ep4rel03","slide":16,"text":"Act","textPreview":"Act","textChars":3,"textLines":1,"bbox":[74,302,220,46]}
+{"kind":"textbox","id":"sh/hwbqxgza","slide":16,"text":"Flow • Soft Flow • Surge\nJourney tagging • Live runtime\nPulse during Flow • Arc continuation","textPreview":"Flow • Soft Flow • Surge | Journey tagging • Live runtime | Pulse during Flow • Arc continuation","textChars":92,"textLines":3,"bbox":[74,373,225,175]}
+{"kind":"shape","id":"sh/gv294bip","slide":16,"bbox":[347,220,270,377]}
+{"kind":"textbox","id":"sh/6pg36tcr","slide":16,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[369,244,60,34]}
+{"kind":"textbox","id":"sh/7qpkzydw","slide":16,"text":"Remember","textPreview":"Remember","textChars":8,"textLines":1,"bbox":[369,302,220,46]}
+{"kind":"textbox","id":"sh/8ryl83uh","slide":16,"text":"Story • Sagas • Chronicles\nText • Audio • Photo • Video\nDay/Week/Month analytics","textPreview":"Story • Sagas • Chronicles | Text • Audio • Photo • Video | Day/Week/Month analytics","textChars":80,"textLines":3,"bbox":[369,373,225,175]}
+{"kind":"shape","id":"sh/ts7m18v2","slide":16,"bbox":[642,220,270,377]}
+{"kind":"textbox","id":"sh/utg3atcn","slide":16,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[664,244,60,34]}
+{"kind":"textbox","id":"sh/vu943yd8","slide":16,"text":"Plan","textPreview":"Plan","textChars":4,"textLines":1,"bbox":[664,302,220,46]}
+{"kind":"textbox","id":"sh/gvilc3ut","slide":16,"text":"Paths • Planned Flows • Arcs\nFive-step Studio • Suggested Scenes\nScratchPad • Idea Grove","textPreview":"Paths • Planned Flows • Arcs | Five-step Studio • Suggested Scenes | ScratchPad • Idea Grove","textChars":88,"textLines":3,"bbox":[664,373,225,175]}
+{"kind":"shape","id":"sh/hwrm58be","slide":16,"bbox":[937,220,270,377]}
+{"kind":"textbox","id":"sh/ix03edcj","slide":16,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[959,244,60,34]}
+{"kind":"textbox","id":"sh/3y947it4","slide":16,"text":"Return","textPreview":"Return","textChars":6,"textLines":1,"bbox":[959,302,220,46]}
+{"kind":"textbox","id":"sh/fmtkvi9c","slide":16,"text":"Shell • Pearls • Lookout • Voyage\nFocus Room • Stillwater • The Blue\nChest • Creatures • Badges","textPreview":"Shell • Pearls • Lookout • Voyage | Focus Room • Stillwater • The Blue | Chest • Creatures • Badges","textChars":95,"textLines":3,"bbox":[959,373,225,175]}
+{"kind":"textbox","id":"sh/e1k3mdsr","slide":16,"text":"One data spine: sessions, journeys, reflections, plans, rewards, and collection state reinforce each other.","textPreview":"One data spine: sessions, journeys, reflections, plans, rewards, and collection state reinforce each other.","textChars":107,"textLines":1,"bbox":[123,625,1034,36]}
+{"kind":"notes","id":"nt/6mvbun","slide":16,"text":"Use this as the completeness check. Every named feature in the app belongs to one of four user-facing value layers.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/2qumom","slide":17,"title":"17  /  LIVE DEMO","textShapes":23}
+{"kind":"textbox","id":"sh/7it4fq1k","slide":17,"text":"17  /  LIVE DEMO","textPreview":"17  /  LIVE DEMO","textChars":16,"textLines":1,"bbox":[52,34,430,24]}
+{"kind":"textbox","id":"sh/sj2l8v2p","slide":17,"text":"A five-minute demo can show the entire product promise","textPreview":"A five-minute demo can show the entire product promise","textChars":54,"textLines":1,"bbox":[52,69,1176,62]}
+{"kind":"textbox","id":"sh/tkbmh0ja","slide":17,"text":"Follow the natural product loop and end in the world that makes progress memorable.","textPreview":"Follow the natural product loop and end in the world that makes progress memorable.","textChars":83,"textLines":1,"bbox":[54,128,1120,42]}
+{"kind":"shape","id":"sh/ul43a5kv","slide":17,"bbox":[52,178,1176,0]}
+{"kind":"shape","id":"sh/fmd4jq1g","slide":17,"bbox":[84,217,132,269.67]}
+{"kind":"textbox","id":"sh/h8vml0jm","slide":17,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[49,505,34,34]}
+{"kind":"textbox","id":"sh/294ne5k7","slide":17,"text":"Start","textPreview":"Start","textChars":5,"textLines":1,"bbox":[91,505,165,34]}
+{"kind":"textbox","id":"sh/3ad4na1c","slide":17,"text":"Open Story, choose a journey, start a Flow.","textPreview":"Open Story, choose a journey, start a Flow.","textChars":43,"textLines":1,"bbox":[49,548,207,72]}
+{"kind":"textbox","id":"sh/76hwb21k","slide":17,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[257,348,34,34]}
+{"kind":"shape","id":"sh/658f2x0z","slide":17,"bbox":[330,217,132,269.67]}
+{"kind":"textbox","id":"sh/87qx47i5","slide":17,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[295,505,34,34]}
+{"kind":"textbox","id":"sh/j2hw721o","slide":17,"text":"Focus","textPreview":"Focus","textChars":5,"textLines":1,"bbox":[337,505,165,34]}
+{"kind":"textbox","id":"sh/y18fyxk3","slide":17,"text":"Show live time, Surge, and Pulse capture.","textPreview":"Show live time, Surge, and Pulse capture.","textChars":41,"textLines":1,"bbox":[295,548,207,72]}
+{"kind":"textbox","id":"sh/l4ze9sje","slide":17,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[503,348,34,34]}
+{"kind":"shape","id":"sh/k3qx0n29","slide":17,"bbox":[576,217,132,269.67]}
+{"kind":"textbox","id":"sh/ixsfah07","slide":17,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[541,505,34,34]}
+{"kind":"textbox","id":"sh/etwz2lkf","slide":17,"text":"Reflect","textPreview":"Reflect","textChars":7,"textLines":1,"bbox":[583,505,165,34]}
+{"kind":"textbox","id":"sh/fu50bql0","slide":17,"text":"Open Chronicle and show media choices.","textPreview":"Open Chronicle and show media choices.","textChars":38,"textLines":1,"bbox":[541,548,207,72]}
+{"kind":"textbox","id":"sh/0veh4v2l","slide":17,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[749,348,34,34]}
+{"kind":"shape","id":"sh/1wnid036","slide":17,"bbox":[822,217,132,269.67]}
+{"kind":"textbox","id":"sh/ny50falc","slide":17,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[787,505,34,34]}
+{"kind":"textbox","id":"sh/ozy18v2h","slide":17,"text":"Reward","textPreview":"Reward","textChars":6,"textLines":1,"bbox":[829,505,165,34]}
+{"kind":"textbox","id":"sh/p07ih032","slide":17,"text":"Complete the Flow and swipe the reveal.","textPreview":"Complete the Flow and swipe the reveal.","textChars":39,"textLines":1,"bbox":[787,548,207,72]}
+{"kind":"textbox","id":"sh/i1czu147","slide":17,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[995,348,34,34]}
+{"kind":"shape","id":"sh/32l036ls","slide":17,"bbox":[1068,217,132,269.67]}
+{"kind":"textbox","id":"sh/kfil0zmp","slide":17,"text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[1033,505,34,34]}
+{"kind":"textbox","id":"sh/ze9k7u5k","slide":17,"text":"Return","textPreview":"Return","textChars":6,"textLines":1,"bbox":[1075,505,165,34]}
+{"kind":"textbox","id":"sh/yt03y94z","slide":17,"text":"Enter The Shell and descend into The Blue.","textPreview":"Enter The Shell and descend into The Blue.","textChars":42,"textLines":1,"bbox":[1033,548,207,72]}
+{"kind":"textbox","id":"sh/9kb2donm","slide":17,"text":"Optional coda: open Paths to show that the next session is already plan-able.","textPreview":"Optional coda: open Paths to show that the next session is already plan-able.","textChars":77,"textLines":1,"bbox":[262,647,756,26]}
+{"kind":"image","id":"im/to7m5wjy","slide":17,"name":"","geometry":"roundRect","alt":"32-story-current.png","bbox":[91,224,118,255.67]}
+{"kind":"image","id":"im/e9sbyl4b","slide":17,"name":"","geometry":"roundRect","alt":"27-flow-active.png","bbox":[337,224,118,255.67]}
+{"kind":"image","id":"im/4jatsbm9","slide":17,"name":"","geometry":"roundRect","alt":"06-chronicle-capture.png","bbox":[583,224,118,255.67]}
+{"kind":"image","id":"im/t4batcvu","slide":17,"name":"","geometry":"roundRect","alt":"30-reward-reveal.png","bbox":[829,224,118,255.67]}
+{"kind":"image","id":"im/ydw7y9cn","slide":17,"name":"","geometry":"roundRect","alt":"20-blue-populated.png","bbox":[1075,224,118,255.67]}
+{"kind":"notes","id":"nt/2qumom","slide":17,"text":"Use this exact route for a concise stakeholder demo. It shows action, reflection, reward, and retention without getting trapped in menus.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}
+{"kind":"slide","id":"sl/inzg4t","slide":18,"title":"SCYRA","textShapes":5}
+{"kind":"textbox","id":"sh/lkzmtwzm","slide":18,"text":"SCYRA","textPreview":"SCYRA","textChars":5,"textLines":1,"bbox":[164,73,210,32]}
+{"kind":"textbox","id":"sh/kjq5kri1","slide":18,"text":"A productivity system\nusers can inhabit","textPreview":"A productivity system | users can inhabit","textChars":39,"textLines":2,"bbox":[58,205,650,148]}
+{"kind":"textbox","id":"sh/7mh4v6hc","slide":18,"text":"Focus creates evidence. Evidence creates meaning. Meaning creates a reason to return.","textPreview":"Focus creates evidence. Evidence creates meaning. Meaning creates a reason to return.","textChars":85,"textLines":1,"bbox":[61,390,600,78]}
+{"kind":"textbox","id":"sh/6l8nm10r","slide":18,"text":"Decision to advance","textPreview":"Decision to advance","textChars":19,"textLines":1,"bbox":[61,576,260,25]}
+{"kind":"textbox","id":"sh/t8zmxgzi","slide":18,"text":"Align on the live-demo story, target audience, and next validation milestone.","textPreview":"Align on the live-demo story, target audience, and next validation milestone.","textChars":77,"textLines":1,"bbox":[61,610,620,52]}
+{"kind":"shape","id":"sh/8nq5obix","slide":18,"bbox":[761,63,206,430]}
+{"kind":"shape","id":"sh/mp43ax0n","slide":18,"bbox":[977,133,206,430]}
+{"kind":"image","id":"im/j2lc3q9w","slide":18,"name":"","geometry":"roundRect","alt":"Scyra app icon","bbox":[58,58,80,80]}
+{"kind":"image","id":"im/etwv258j","slide":18,"name":"","geometry":"roundRect","alt":"19-shell-populated.png","bbox":[768,70,192,416]}
+{"kind":"image","id":"im/reh4zu9o","slide":18,"name":"","geometry":"roundRect","alt":"20-blue-populated.png","bbox":[984,140,192,416]}
+{"kind":"notes","id":"nt/inzg4t","slide":18,"text":"Close by resolving the opening: the product is a continuous system that turns intentional time into a world users can revisit. Invite alignment on the next validation milestone.\n\n[Sources]\n- Scyra Android app, locally captured on an Android emulator from the Scyra Debug build, 2026-08-19.\n[/Sources]"}

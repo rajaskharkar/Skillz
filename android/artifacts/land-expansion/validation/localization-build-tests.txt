@@ -1,0 +1,60 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preScyraDebugBuild UP-TO-DATE
+> Task :app:mergeScyraDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:generateScyraDebugBuildConfig UP-TO-DATE
+> Task :app:checkScyraDebugAarMetadata UP-TO-DATE
+> Task :app:processScyraDebugNavigationResources
+> Task :app:compileScyraDebugNavigationResources UP-TO-DATE
+> Task :app:generateScyraDebugResValues UP-TO-DATE
+> Task :app:mapScyraDebugSourceSetPaths
+> Task :app:generateScyraDebugResources
+> Task :app:mergeScyraDebugResources
+> Task :app:packageScyraDebugResources
+> Task :app:createScyraDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksScyraDebug UP-TO-DATE
+> Task :app:processScyraDebugMainManifest UP-TO-DATE
+> Task :app:processScyraDebugManifest UP-TO-DATE
+> Task :app:processScyraDebugManifestForPackage UP-TO-DATE
+> Task :app:parseScyraDebugLocalResources
+> Task :app:javaPreCompileScyraDebug UP-TO-DATE
+> Task :app:mergeScyraDebugShaders UP-TO-DATE
+> Task :app:compileScyraDebugShaders NO-SOURCE
+> Task :app:generateScyraDebugAssets UP-TO-DATE
+> Task :app:mergeScyraDebugAssets UP-TO-DATE
+> Task :app:compressScyraDebugAssets UP-TO-DATE
+> Task :app:checkScyraDebugDuplicateClasses UP-TO-DATE
+> Task :app:desugarScyraDebugFileDependencies UP-TO-DATE
+> Task :app:mergeExtDexScyraDebug UP-TO-DATE
+> Task :app:mergeLibDexScyraDebug UP-TO-DATE
+> Task :app:mergeScyraDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeScyraDebugNativeLibs UP-TO-DATE
+> Task :app:stripScyraDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningScyraDebug UP-TO-DATE
+> Task :app:writeScyraDebugAppMetadata UP-TO-DATE
+> Task :app:writeScyraDebugSigningConfigVersions UP-TO-DATE
+> Task :app:preScyraDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileScyraDebugUnitTest UP-TO-DATE
+> Task :app:processScyraDebugResources
+> Task :app:kspScyraDebugKotlin UP-TO-DATE
+> Task :app:compileScyraDebugKotlin UP-TO-DATE
+> Task :app:compileScyraDebugJavaWithJavac UP-TO-DATE
+> Task :app:transformScyraDebugClassesWithAsm UP-TO-DATE
+> Task :app:dexBuilderScyraDebug UP-TO-DATE
+> Task :app:mergeProjectDexScyraDebug UP-TO-DATE
+> Task :app:processScyraDebugJavaRes UP-TO-DATE
+> Task :app:mergeScyraDebugJavaResource UP-TO-DATE
+> Task :app:bundleScyraDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:bundleScyraDebugClassesToCompileJar UP-TO-DATE
+> Task :app:kspScyraDebugUnitTestKotlin UP-TO-DATE
+> Task :app:compileScyraDebugUnitTestKotlin UP-TO-DATE
+> Task :app:processScyraDebugUnitTestJavaRes
+> Task :app:compileScyraDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:transformScyraDebugUnitTestClassesWithAsm UP-TO-DATE
+> Task :app:testScyraDebugUnitTest
+> Task :app:packageScyraDebug
+> Task :app:createScyraDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleScyraDebug
+
+BUILD SUCCESSFUL in 3s
+48 actionable tasks: 10 executed, 38 up-to-date

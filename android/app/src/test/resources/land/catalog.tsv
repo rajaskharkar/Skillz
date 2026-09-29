@@ -1,0 +1,115 @@
+id	name	zone	source	pearls	flows
+creature_chicken	Chicken	GOLDEN_FIELDS	ARC_EARNED		3
+creature_duck	Duck	GOLDEN_FIELDS	BEYOND_BLUE	240	
+creature_turkey	Turkey	GOLDEN_FIELDS	BEYOND_BLUE	300	
+creature_goat	Goat	GOLDEN_FIELDS	BEYOND_BLUE	360	
+creature_sheep	Sheep	GOLDEN_FIELDS	BEYOND_BLUE	480	
+creature_pig	Pig	GOLDEN_FIELDS	BEYOND_BLUE	600	
+creature_alpaca	Alpaca	GOLDEN_FIELDS	BEYOND_BLUE	840	
+creature_llama	Llama	GOLDEN_FIELDS	BEYOND_BLUE	960	
+creature_donkey	Donkey	GOLDEN_FIELDS	BEYOND_BLUE	1080	
+creature_cow	Cow	GOLDEN_FIELDS	BEYOND_BLUE	1200	
+creature_horse	Horse	GOLDEN_FIELDS	BEYOND_BLUE	1440	
+creature_deer	Deer	ANCIENT_WOODS	ARC_EARNED		6
+creature_squirrel	Squirrel	ANCIENT_WOODS	BEYOND_BLUE	480	
+creature_rabbit	Rabbit	ANCIENT_WOODS	BEYOND_BLUE	600	
+creature_raccoon	Raccoon	ANCIENT_WOODS	BEYOND_BLUE	840	
+creature_fox	Fox	ANCIENT_WOODS	BEYOND_BLUE	1080	
+creature_porcupine	Porcupine	ANCIENT_WOODS	BEYOND_BLUE	1200	
+creature_wild_boar	Wild Boar	ANCIENT_WOODS	BEYOND_BLUE	1320	
+creature_badger	Badger	ANCIENT_WOODS	BEYOND_BLUE	1560	
+creature_red_panda	Red Panda	ANCIENT_WOODS	BEYOND_BLUE	1800	
+creature_chimpanzee	Chimpanzee	ANCIENT_WOODS	BEYOND_BLUE	1920	
+creature_orangutan	Orangutan	ANCIENT_WOODS	BEYOND_BLUE	2160	
+creature_bobcat	Bobcat	ANCIENT_WOODS	BEYOND_BLUE	2280	
+creature_black_bear	Black Bear	ANCIENT_WOODS	BEYOND_BLUE	2400	
+creature_camel	Camel	OPEN_SANDS	ARC_EARNED		9
+creature_meerkat	Meerkat	OPEN_SANDS	BEYOND_BLUE	840	
+creature_desert_tortoise	Desert Tortoise	OPEN_SANDS	BEYOND_BLUE	1080	
+creature_roadrunner	Roadrunner	OPEN_SANDS	BEYOND_BLUE	1200	
+creature_fennec_fox	Fennec Fox	OPEN_SANDS	BEYOND_BLUE	1440	
+creature_armadillo	Armadillo	OPEN_SANDS	BEYOND_BLUE	1680	
+creature_scorpion	Scorpion	OPEN_SANDS	BEYOND_BLUE	1920	
+creature_warthog	Warthog	OPEN_SANDS	BEYOND_BLUE	2040	
+creature_rattlesnake	Rattlesnake	OPEN_SANDS	BEYOND_BLUE	2160	
+creature_jackal	Jackal	OPEN_SANDS	BEYOND_BLUE	2280	
+creature_coyote	Coyote	OPEN_SANDS	BEYOND_BLUE	2400	
+creature_ostrich	Ostrich	OPEN_SANDS	BEYOND_BLUE	2520	
+creature_vulture	Vulture	OPEN_SANDS	BEYOND_BLUE	2760	
+creature_monitor_lizard	Monitor Lizard	OPEN_SANDS	BEYOND_BLUE	3000	
+creature_moose	Moose	HIGH_PEAKS	ARC_EARNED		12
+creature_marmot	Marmot	HIGH_PEAKS	BEYOND_BLUE	1200	
+creature_mountain_goat	Mountain Goat	HIGH_PEAKS	BEYOND_BLUE	1440	
+creature_bighorn_sheep	Bighorn Sheep	HIGH_PEAKS	BEYOND_BLUE	1680	
+creature_reindeer	Reindeer	HIGH_PEAKS	BEYOND_BLUE	1920	
+creature_arctic_fox	Arctic Fox	HIGH_PEAKS	BEYOND_BLUE	2160	
+creature_yak	Yak	HIGH_PEAKS	BEYOND_BLUE	2400	
+creature_musk_ox	Musk Ox	HIGH_PEAKS	BEYOND_BLUE	3000	
+creature_snowy_owl	Snowy Owl	HIGH_PEAKS	BEYOND_BLUE	3600	
+creature_eagle	Eagle	HIGH_PEAKS	BEYOND_BLUE	3900	
+creature_snow_leopard	Snow Leopard	HIGH_PEAKS	BEYOND_BLUE	4200	
+creature_polar_bear	Polar Bear	HIGH_PEAKS	BEYOND_BLUE	4800	
+creature_tiger	Tiger	GREAT_WILD	ARC_EARNED		15
+creature_spotted_hyena	Spotted Hyena	GREAT_WILD	BEYOND_BLUE	1800	
+creature_gray_wolf	Gray Wolf	GREAT_WILD	BEYOND_BLUE	2160	
+creature_cheetah	Cheetah	GREAT_WILD	BEYOND_BLUE	2400	
+creature_leopard	Leopard	GREAT_WILD	BEYOND_BLUE	3000	
+creature_cougar	Cougar	GREAT_WILD	BEYOND_BLUE	3300	
+creature_jaguar	Jaguar	GREAT_WILD	BEYOND_BLUE	3600	
+creature_crocodile	Crocodile	GREAT_WILD	BEYOND_BLUE	4200	
+creature_komodo_dragon	Komodo Dragon	GREAT_WILD	BEYOND_BLUE	4500	
+creature_baboon	Baboon	GREAT_WILD	BEYOND_BLUE	4650	
+creature_gorilla	Gorilla	GREAT_WILD	BEYOND_BLUE	4800	
+creature_grizzly_bear	Grizzly Bear	GREAT_WILD	BEYOND_BLUE	5400	
+creature_lion	Lion	GREAT_WILD	BEYOND_BLUE	6000	
+creature_peacock	Peacock	GOLDEN_FIELDS	RESTORATIVE_LAND		
+creature_goose	Goose	GOLDEN_FIELDS	RESTORATIVE_LAND		
+creature_pheasant	Pheasant	GOLDEN_FIELDS	RESTORATIVE_LAND		
+creature_emu	Emu	GOLDEN_FIELDS	RESTORATIVE_LAND		
+creature_capybara	Capybara	GOLDEN_FIELDS	RESTORATIVE_LAND		
+creature_quail	Quail	GOLDEN_FIELDS	RESTORATIVE_LAND		
+creature_partridge	Partridge	GOLDEN_FIELDS	RESTORATIVE_LAND		
+creature_wallaby	Wallaby	GOLDEN_FIELDS	RESTORATIVE_LAND		
+creature_kangaroo	Kangaroo	GOLDEN_FIELDS	RESTORATIVE_LAND		
+creature_wombat	Wombat	GOLDEN_FIELDS	RESTORATIVE_LAND		
+creature_echidna	Echidna	GOLDEN_FIELDS	RESTORATIVE_LAND		
+creature_hedgehog	Hedgehog	ANCIENT_WOODS	RESTORATIVE_LAND		
+creature_sloth	Sloth	ANCIENT_WOODS	RESTORATIVE_LAND		
+creature_pangolin	Pangolin	ANCIENT_WOODS	RESTORATIVE_LAND		
+creature_kinkajou	Kinkajou	ANCIENT_WOODS	RESTORATIVE_LAND		
+creature_lemur	Lemur	ANCIENT_WOODS	RESTORATIVE_LAND		
+creature_tapir	Tapir	ANCIENT_WOODS	RESTORATIVE_LAND		
+creature_okapi	Okapi	ANCIENT_WOODS	RESTORATIVE_LAND		
+creature_panda	Panda	ANCIENT_WOODS	RESTORATIVE_LAND		
+creature_koala	Koala	ANCIENT_WOODS	RESTORATIVE_LAND		
+creature_mandrill	Mandrill	ANCIENT_WOODS	RESTORATIVE_LAND		
+creature_gibbon	Gibbon	ANCIENT_WOODS	RESTORATIVE_LAND		
+creature_platypus	Platypus	ANCIENT_WOODS	RESTORATIVE_LAND		
+creature_chameleon	Chameleon	ANCIENT_WOODS	RESTORATIVE_LAND		
+creature_jerboa	Jerboa	OPEN_SANDS	RESTORATIVE_LAND		
+creature_oryx	Oryx	OPEN_SANDS	RESTORATIVE_LAND		
+creature_gazelle	Gazelle	OPEN_SANDS	RESTORATIVE_LAND		
+creature_caracal	Caracal	OPEN_SANDS	RESTORATIVE_LAND		
+creature_gerenuk	Gerenuk	OPEN_SANDS	RESTORATIVE_LAND		
+creature_addax	Addax	OPEN_SANDS	RESTORATIVE_LAND		
+creature_serval	Serval	OPEN_SANDS	RESTORATIVE_LAND		
+creature_mongoose	Mongoose	OPEN_SANDS	RESTORATIVE_LAND		
+creature_iguana	Iguana	OPEN_SANDS	RESTORATIVE_LAND		
+creature_pika	Pika	HIGH_PEAKS	RESTORATIVE_LAND		
+creature_ibex	Ibex	HIGH_PEAKS	RESTORATIVE_LAND		
+creature_chamois	Chamois	HIGH_PEAKS	RESTORATIVE_LAND		
+creature_vicuna	Vicuna	HIGH_PEAKS	RESTORATIVE_LAND		
+creature_takin	Takin	HIGH_PEAKS	RESTORATIVE_LAND		
+creature_tahr	Tahr	HIGH_PEAKS	RESTORATIVE_LAND		
+creature_macaque	Macaque	HIGH_PEAKS	RESTORATIVE_LAND		
+creature_wolverine	Wolverine	HIGH_PEAKS	RESTORATIVE_LAND		
+creature_elephant	Elephant	GREAT_WILD	RESTORATIVE_LAND		
+creature_rhinoceros	Rhinoceros	GREAT_WILD	RESTORATIVE_LAND		
+creature_giraffe	Giraffe	GREAT_WILD	RESTORATIVE_LAND		
+creature_bison	Bison	GREAT_WILD	RESTORATIVE_LAND		
+creature_hippopotamus	Hippopotamus	GREAT_WILD	RESTORATIVE_LAND		
+creature_anteater	Anteater	GREAT_WILD	RESTORATIVE_LAND		
+creature_zebra	Zebra	GREAT_WILD	RESTORATIVE_LAND		
+creature_lynx	Lynx	GREAT_WILD	RESTORATIVE_LAND		
+creature_wildebeest	Wildebeest	GREAT_WILD	RESTORATIVE_LAND		
+creature_buffalo	Buffalo	GREAT_WILD	RESTORATIVE_LAND		

@@ -10,7 +10,11 @@ import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
 import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
 import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 
-enum class TheBlueZoneId { SUNLIT_REEF, DEEPER_REEF, OPEN_BLUE, GREAT_BLUE }
+enum class TheBlueZoneId { SUNLIT_REEF, DEEPER_REEF, OPEN_BLUE, GREAT_BLUE,
+    GOLDEN_FIELDS, ANCIENT_WOODS, OPEN_SANDS, HIGH_PEAKS, GREAT_WILD;
+    val creatureZone get() = com.kingkharnivore.skillz.utils.shell.CreatureZone.valueOf(name)
+    val realm get() = creatureZone.realm
+}
 
 data class FormCountUiModel(
     val formStageId: String?,
@@ -68,14 +72,15 @@ data class TheBlueUiState(
 
 internal fun buildTheBlueUiState(
     finds: List<UserShellFindInstanceEntity>,
-    focusPlacements: List<ShellPlacementEntity>
+    focusPlacements: List<ShellPlacementEntity>,
+    realm: com.kingkharnivore.skillz.utils.shell.CreatureRealm = com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA
 ): TheBlueUiState {
     val displayedIds = focusPlacements
         .filter { it.roomId == ShellRoomId.FOCUS.name }
         .map { it.instanceId }
         .toSet()
 
-    val allAnimalFinds = finds.filter { instance -> isTheBlueOwnedDisplayCreature(instance.findId) }
+    val allAnimalFinds = finds.filter { instance -> isTheBlueOwnedDisplayCreature(instance.findId) && CreatureCatalog.get(instance.findId)?.realm == realm }
     val animalFinds = allAnimalFinds.filter { it.creatureStatus == CreatureStatus.ACTIVE }
 
     val historicalByFindId = allAnimalFinds.groupBy { it.findId }
@@ -126,7 +131,7 @@ internal fun buildTheBlueUiState(
         }
         .sortedWith(compareBy<TheBlueAnimalGroupUiModel> { it.zoneId.depthOrder() }.thenBy { it.findId })
 
-    val zones = TheBlueZoneId.values().map { zoneId ->
+    val zones = TheBlueZoneId.values().filter { it.realm == realm }.map { zoneId ->
         TheBlueZoneUiModel(
             zoneId = zoneId,
             animals = groups.filter { it.zoneId == zoneId }
@@ -146,7 +151,7 @@ internal fun buildTheBlueUiState(
 internal fun isBlueAcquisitionCreature(findId: String): Boolean {
     val definition = CreatureCatalog.get(findId) ?: return false
     return ShellContentCatalog.find(findId)?.kind == ShellRewardKind.ANIMAL &&
-        definition.sourceType != CreatureSourceType.STILLWATER
+        definition.sourceType !in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND)
 }
 
 internal fun isTheBlueOwnedDisplayCreature(findId: String): Boolean =
@@ -154,7 +159,9 @@ internal fun isTheBlueOwnedDisplayCreature(findId: String): Boolean =
         CreatureCatalog.get(findId) != null
 
 
-internal fun zoneForFind(findId: String): TheBlueZoneId? = when (findId) {
+internal fun zoneForFind(findId: String): TheBlueZoneId? =
+    CreatureCatalog.get(findId)?.takeIf { it.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND }
+        ?.let { TheBlueZoneId.valueOf(it.zone.name) } ?: when (findId) {
     ShellContentCatalog.FOCUS_MINNOW,
     "stillwater_shrimp",
     "stillwater_crab",
@@ -221,7 +228,7 @@ internal fun theBlueSequentialNavigationPath(
     }.map(::theBlueZoneForPage).toList()
 }
 
-internal fun theBlueZoneForPage(page: Int): TheBlueZoneId = when (page.coerceIn(0, TheBlueZoneId.values().lastIndex)) {
+internal fun theBlueZoneForPage(page: Int): TheBlueZoneId = when (page.coerceIn(0, 3)) {
     0 -> TheBlueZoneId.SUNLIT_REEF
     1 -> TheBlueZoneId.DEEPER_REEF
     2 -> TheBlueZoneId.OPEN_BLUE
@@ -233,6 +240,7 @@ internal fun TheBlueZoneId.depthOrder(): Int = when (this) {
     TheBlueZoneId.DEEPER_REEF -> 1
     TheBlueZoneId.OPEN_BLUE -> 2
     TheBlueZoneId.GREAT_BLUE -> 3
+    else -> ordinal - 4
 }
 
 private fun formOrder(findId: String, stageId: String?): Int =

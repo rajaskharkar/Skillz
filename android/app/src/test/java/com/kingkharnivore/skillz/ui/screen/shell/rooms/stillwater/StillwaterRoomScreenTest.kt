@@ -96,4 +96,20 @@ class StillwaterRoomScreenTest {
         assertTrue(lake.canAfford)
         assertFalse(lake.canDraw)
     }
+    @Test fun landVesselsUseTheSameAffordabilityAndProgressModels() {
+        val habitats = com.kingkharnivore.skillz.utils.shell.LandStillwaterHabitat.entries
+        habitats.forEach { habitat ->
+            val filling = buildStillwaterVesselCardUiModel(habitat, habitat.dropCost - 1, true)
+            assertFalse(filling.canDraw)
+            assertEquals(1L, filling.dropsNeeded)
+            val ready = buildStillwaterVesselCardUiModel(habitat, habitat.dropCost, true)
+            assertTrue(ready.canDraw)
+            assertEquals(1f, ready.progress)
+            assertFalse(buildStillwaterVesselCardUiModel(habitat, habitat.dropCost, false).canDraw)
+        }
+        val state = ShellUiState(stillwaterClaimableDrops=15_000L, unlockedBlueZones=setOf(CreatureZone.GOLDEN_FIELDS))
+        assertTrue(buildStillwaterDropsCardUiModel(state, habitats).hasAvailableDraw)
+        assertFalse(buildStillwaterDropsCardUiModel(state).hasAvailableDraw)
+    }
+
 }

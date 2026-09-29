@@ -7,6 +7,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 
 @Composable
 fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
     val scyraPointsTemplate = stringResource(R.string.reward_card_scyra_points_template)
     val pointsDeltaTemplate = stringResource(R.string.session_reward_points_value)
     val minutesTemplate = stringResource(R.string.session_reward_minutes_value)
@@ -45,6 +46,8 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         "badge_flow_60_min" to stringResource(R.string.reward_card_badge_reason_60),
         "badge_flow_120_min" to stringResource(R.string.reward_card_badge_reason_120)
     )
+    val landArcRewardReason = stringResource(R.string.land_arc_reward_reason)
+    val mixedArcRewardReason = stringResource(R.string.land_mixed_reward_reason)
     val theBlueHint = stringResource(R.string.reward_card_the_blue_hint)
     val stillwaterHint = stringResource(R.string.reward_card_stillwater_hint)
     val shellHint = stringResource(R.string.reward_card_shell_hint)
@@ -74,26 +77,26 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
     val arcShellShapedBody = stringResource(R.string.reward_card_arc_shell_shaped_body)
 
     return object : RewardRevealTextProvider {
-        override fun scyraPoints(points: Int) = scyraPointsTemplate.format(points)
-        override fun pointsDelta(points: Int) = pointsDeltaTemplate.format(points)
-        override fun minutes(minutes: Int) = minutesTemplate.format(minutes)
-        override fun quietMinutes(minutes: Int) = quietMinutesTemplate.format(minutes)
+        override fun scyraPoints(points: Int) = scyraPointsTemplate.format(locale, points)
+        override fun pointsDelta(points: Int) = pointsDeltaTemplate.format(locale, points)
+        override fun minutes(minutes: Int) = minutesTemplate.format(locale, minutes)
+        override fun quietMinutes(minutes: Int) = quietMinutesTemplate.format(locale, minutes)
         override fun carriedAsPearls() = carriedAsPearls
         override fun scoreBuiltFrom() = scoreBuiltFrom
-        override fun baseFlow(points: Int) = baseFlowTemplate.format(points)
-        override fun timeBonuses(points: Int) = timeBonusesTemplate.format(points)
-        override fun surge(points: Int) = surgeTemplate.format(points)
-        override fun arcBonus(points: Int) = arcBonusTemplate.format(points)
-        override fun arcMultiplier(multiplier: Double) = arcMultiplierTemplate.format(multiplier)
+        override fun baseFlow(points: Int) = baseFlowTemplate.format(locale, points)
+        override fun timeBonuses(points: Int) = timeBonusesTemplate.format(locale, points)
+        override fun surge(points: Int) = surgeTemplate.format(locale, points)
+        override fun arcBonus(points: Int) = arcBonusTemplate.format(locale, points)
+        override fun arcMultiplier(multiplier: Double) = arcMultiplierTemplate.format(locale, multiplier)
         override fun swipeFlowHint() = swipeFlowHint
         override fun swipeArcHint() = swipeArcHint
         override fun loggedStory() = loggedStory
         override fun timeLoggedTitle() = timeLoggedTitle
         override fun shellWasShapedTitle() = shellWasShapedTitle
         override fun shellWasShapedBody() = shellWasShapedBody
-        override fun animalTitle(name: String) = animalTitleTemplate.format(name)
-        override fun badgeTitle(name: String) = badgeTitleTemplate.format(name)
-        override fun animalChip(depth: String) = animalChipTemplate.format(depth)
+        override fun animalTitle(name: String) = animalTitleTemplate.format(locale, name)
+        override fun badgeTitle(name: String) = badgeTitleTemplate.format(locale, name)
+        override fun animalChip(depth: String) = animalChipTemplate.format(locale, depth)
         override fun badgeChip() = badgeChip
         override fun reef() = reef
         override fun deeperReef() = deeperReef
@@ -101,6 +104,8 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         override fun deepOcean() = deepOcean
         override fun animalReason(findId: String) = animalReasons[findId] ?: shellRewardRecordedBody
         override fun badgeReason(badgeId: String) = badgeReasons[badgeId] ?: shellRewardRecordedBody
+        override fun landArcRewardReason() = landArcRewardReason
+        override fun mixedArcRewardReason() = mixedArcRewardReason
         override fun theBlueHint() = theBlueHint
         override fun stillwaterHint() = stillwaterHint
         override fun shellHint() = shellHint
@@ -110,18 +115,18 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         override fun shellRewardRecordedTitle() = shellRewardRecordedTitle
         override fun shellRewardRecordedBody() = shellRewardRecordedBody
         override fun stillwaterAddedTitle() = stillwaterAddedTitle
-        override fun softDropsGained(drops: Long) = softDropsGainedTemplate.format(drops)
+        override fun softDropsGained(drops: Long) = softDropsGainedTemplate.format(locale, drops)
         override fun softAddedToStillwater() = softAddedToStillwater
         override fun softExplainer() = softExplainer
         override fun arcCompleteTitle() = arcCompleteTitle
-        override fun arcFlows(count: Int) = arcFlowsTemplate.format(count)
-        override fun totalDuration(duration: String) = arcTotalDurationTemplate.format(duration)
-        override fun peakMultiplier(multiplier: Double) = arcPeakMultiplierTemplate.format(multiplier)
-        override fun arcBonusLine(points: Int) = arcBonusLineTemplate.format(points)
+        override fun arcFlows(count: Int) = arcFlowsTemplate.format(locale, count)
+        override fun totalDuration(duration: String) = arcTotalDurationTemplate.format(locale, duration)
+        override fun peakMultiplier(multiplier: Double) = arcPeakMultiplierTemplate.format(locale, multiplier)
+        override fun arcBonusLine(points: Int) = arcBonusLineTemplate.format(locale, points)
         override fun arcStoryPlaceholderTitle() = arcStoryPlaceholderTitle
         override fun arcStoryPlaceholderBody() = arcStoryPlaceholderBody
         override fun groupedBadgesTitle() = groupedBadgesTitle
-        override fun itemCount(name: String, count: Int) = itemCountTemplate.format(name, count)
+        override fun itemCount(name: String, count: Int) = itemCountTemplate.format(locale, name, count)
         override fun recordsUpdatedFromFlow() = recordsUpdatedFromFlow
         override fun flowMilestonesAcrossArc() = flowMilestonesAcrossArc
         override fun recordsUpdatedAcrossArc() = recordsUpdatedAcrossArc

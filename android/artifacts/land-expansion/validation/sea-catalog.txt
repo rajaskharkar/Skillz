@@ -1,0 +1,2 @@
+Existing CreatureCatalog block matches HEAD byte-for-byte after removing the additive Land list: True
+SHA256: 72067f00e1214d71847f3122cd803dd6ef699da1eeab1ee803619e570924e85e

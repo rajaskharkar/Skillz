@@ -1,0 +1,30 @@
+Scyra investor and stakeholder product demo
+
+Communication job
+By the end, investors and stakeholders should understand Scyra as a cohesive system for intentional work, reflection, planning, and long-term return—not a collection of disconnected productivity tools—and should be ready to support or demo it because the deck shows the complete product loop and its retention layers in the latest Android build.
+
+Primary source
+- Scyra Android app, package com.kingkharnivore.skillz.scyra, locally built and captured on an Android emulator on 2026-08-19.
+- Screenshots are stored in .codex-build/scyra-investor/assets.
+- A reversible emulator-only demo snapshot was used to expose populated collection, creature, badge, currency, and reward states. No production app code was changed for those screenshots.
+
+Feature inventory represented in the deck
+- Story: journey filters, Day/Week/Month views, period navigation, time and score rollups, Sagas/Chronicles, session cards.
+- Flow: scored and Soft modes, live timer, journey tagging, Surge targets, background runtime, Pulse capture during a session, Arc continuation, completion.
+- Chronicle and Pulse: text, dictation/audio, gallery, camera photo, video, journey tagging, attachment to an active Flow.
+- Rewards: Scyra Points, Pearls, reward carousel, creature and Arc outcomes.
+- Paths: planned Flows, planned Arcs, five-step Studio, suggested Scenes, route previews, save or begin an Arc.
+- ScratchPad: rich-text editing, heading and font styles, emphasis, search, undo/redo, navigation.
+- Settings/help: score visibility, Calm Mode, app languages, Health Connect, movement bonus, feature education.
+- The Shell: Pearl economy, hub, notifications, objectives, stats/records, idea capture, focus exercises, Stillwater, The Blue, Chest, Badges.
+- The Lookout: daily/weekly/monthly objectives and Pearl rewards.
+- Voyage Hall: totals, records, streaks, core and bonus progress.
+- Idea Grove: Pulse-derived ideas, alive/completed states, launch a Flow from an idea.
+- Focus Room: guided mindfulness exercises with voice support.
+- Stillwater: Soft Flow Drops, vessels, exclusive creature collection.
+- The Blue: depth zones, encounters, creature growth with Pearls, release, collection progress.
+- Chest: inventory, creature details, levels, sorting/filtering, grow/place/release actions.
+- Badges: progress, pinning, tracking, showcase, collections, mastery celebration.
+
+Deck source-note convention
+Every slide contains a [Sources] block in speaker notes. All visible product claims are grounded in the locally captured application and repository inspection; the deck makes no external market-size, traction, or financial claims.

@@ -1,0 +1,913 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/a4ywwx",
+    "id": "a4ywwx",
+    "slide": 10,
+    "layoutId": "4b3591aa-3e23-4dd2-aca9-b96b63256ce8",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "9a00fcbd-249c-4280-b134-2130266b14ca",
+    "masterLayoutName": "Master",
+    "backgroundColor": "#FAF7F0",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Helvetica Neue"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "4b3591aa-3e23-4dd2-aca9-b96b63256ce8",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "9a00fcbd-249c-4280-b134-2130266b14ca",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "9a00fcbd-249c-4280-b134-2130266b14ca",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/w7itwb6t",
+      "id": "1",
+      "bbox": [
+        52,
+        34,
+        430,
+        24
+      ],
+      "geometry": "rect",
+      "text": "10  /  RETURN",
+      "textPreview": "10  /  RETURN",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 13,
+        "typeface": "Helvetica Neue",
+        "color": "#3F9694",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "10  /  RETURN"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "10  /  RETURN",
+          "resolvedTextStyle": {
+            "fontSize": 13,
+            "typeface": "Helvetica Neue",
+            "color": "#3F9694",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "10  /  RETURN",
+              "fontSize": 13,
+              "typeface": "Helvetica Neue",
+              "color": "#3F9694",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/v6pc3q58",
+      "id": "2",
+      "bbox": [
+        52,
+        69,
+        1176,
+        62
+      ],
+      "geometry": "rect",
+      "text": "The Shell gives every session somewhere to land",
+      "textPreview": "The Shell gives every session somewhere to land",
+      "resolvedFontSize": 40,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 40,
+        "typeface": "Helvetica Neue",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "The Shell gives every session somewhere to land"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "The Shell gives every session somewhere to land",
+          "resolvedTextStyle": {
+            "fontSize": 40,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "The Shell gives every session somewhere to land",
+              "fontSize": 40,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/u5gbulon",
+      "id": "3",
+      "bbox": [
+        54,
+        128,
+        1120,
+        42
+      ],
+      "geometry": "rect",
+      "text": "A persistent home, Pearl economy, objectives, and notifications turn isolated sessions into continuity.",
+      "textPreview": "A persistent home, Pearl economy, objectives, and notifications turn isolated sessions into continuity.",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Helvetica Neue",
+        "color": "#647274",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "A persistent home, Pearl economy, objectives, and notifications turn isolated sessions into continuity."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "A persistent home, Pearl economy, objectives, and notifications turn isolated sessions into continuity.",
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Helvetica Neue",
+            "color": "#647274",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "A persistent home, Pearl economy, objectives, and notifications turn isolated sessions into continuity.",
+              "fontSize": 18,
+              "typeface": "Helvetica Neue",
+              "color": "#647274",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/5cru90na",
+      "id": "4",
+      "bbox": [
+        52,
+        178,
+        1176,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#C8C6BD",
+      "lineWidth": 1
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/4bit0v6p",
+      "id": "5",
+      "bbox": [
+        84,
+        204,
+        219,
+        458.17
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#17383B",
+      "lineColor": "#17383B",
+      "lineWidth": 1
+    },
+    {
+      "order": 6,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/m94v214b",
+      "id": "6",
+      "bbox": [
+        91,
+        211,
+        205,
+        444.17
+      ],
+      "geometry": "roundRect",
+      "alt": "The Shell",
+      "contentType": "image/png",
+      "imageFit": "cover",
+      "imageMask": {
+        "geometry": "roundRect",
+        "adjustmentList": [
+          {
+            "name": "adj",
+            "formula": "val 13171"
+          }
+        ]
+      },
+      "asset": {
+        "assetId": "24f75796-2911-42b6-b84f-964de526d35b",
+        "contentType": "image/png",
+        "byteLength": 440789
+      }
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/i90byloj",
+      "id": "7",
+      "bbox": [
+        79,
+        672.17,
+        229,
+        30
+      ],
+      "geometry": "rect",
+      "text": "The Shell",
+      "textPreview": "The Shell",
+      "resolvedFontSize": 15,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 15,
+        "typeface": "Helvetica Neue",
+        "color": "#17383B",
+        "bold": true,
+        "alignment": "center",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "The Shell"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "The Shell",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Helvetica Neue",
+            "color": "#17383B",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "The Shell",
+              "fontSize": 15,
+              "typeface": "Helvetica Neue",
+              "color": "#17383B",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/t0bud0n6",
+      "id": "8",
+      "bbox": [
+        342,
+        204,
+        219,
+        458.17
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#17383B",
+      "lineColor": "#17383B",
+      "lineWidth": 1
+    },
+    {
+      "order": 9,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/pgbu1cny",
+      "id": "9",
+      "bbox": [
+        349,
+        211,
+        205,
+        444.17
+      ],
+      "geometry": "roundRect",
+      "alt": "The Lookout",
+      "contentType": "image/png",
+      "imageFit": "cover",
+      "imageMask": {
+        "geometry": "roundRect",
+        "adjustmentList": [
+          {
+            "name": "adj",
+            "formula": "val 13171"
+          }
+        ]
+      },
+      "asset": {
+        "assetId": "d19dcbce-9386-4bec-87f6-3692b1bffbf8",
+        "contentType": "image/png",
+        "byteLength": 500717
+      }
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ihs72xcb",
+      "id": "10",
+      "bbox": [
+        337,
+        672.17,
+        229,
+        30
+      ],
+      "geometry": "rect",
+      "text": "The Lookout",
+      "textPreview": "The Lookout",
+      "resolvedFontSize": 15,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 15,
+        "typeface": "Helvetica Neue",
+        "color": "#17383B",
+        "bold": true,
+        "alignment": "center",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "The Lookout"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "The Lookout",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Helvetica Neue",
+            "color": "#17383B",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "The Lookout",
+              "fontSize": 15,
+              "typeface": "Helvetica Neue",
+              "color": "#17383B",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ji18v2tw",
+      "id": "11",
+      "bbox": [
+        624,
+        224,
+        520,
+        22
+      ],
+      "geometry": "rect",
+      "text": "THE SHELL",
+      "textPreview": "THE SHELL",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 12,
+        "typeface": "Helvetica Neue",
+        "color": "#B69B50",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "THE SHELL"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "THE SHELL",
+          "resolvedTextStyle": {
+            "fontSize": 12,
+            "typeface": "Helvetica Neue",
+            "color": "#B69B50",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "THE SHELL",
+              "fontSize": 12,
+              "typeface": "Helvetica Neue",
+              "color": "#B69B50",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 12,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/kjap47uh",
+      "id": "12",
+      "bbox": [
+        624,
+        254,
+        520,
+        62
+      ],
+      "geometry": "rect",
+      "text": "The retention hub",
+      "textPreview": "The retention hub",
+      "resolvedFontSize": 27,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 27,
+        "typeface": "Helvetica Neue",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "The retention hub"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "The retention hub",
+          "resolvedTextStyle": {
+            "fontSize": 27,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "The retention hub",
+              "fontSize": 27,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/5kjqxcb2",
+      "id": "13",
+      "bbox": [
+        624,
+        320,
+        520,
+        150
+      ],
+      "geometry": "rect",
+      "text": "Pearls, collections, Heart, The Blue, Chest, badges, and notification inlays live in one navigable place.",
+      "textPreview": "Pearls, collections, Heart, The Blue, Chest, badges, and notification inlays live in one navigable place.",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Helvetica Neue",
+        "color": "#647274",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Pearls, collections, Heart, The Blue, Chest, badges, and"
+          },
+          {
+            "index": 2,
+            "text": "notification inlays live in one navigable place."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Pearls, collections, Heart, The Blue, Chest, badges, and notification inlays live in one navigable place.",
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Helvetica Neue",
+            "color": "#647274",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Pearls, collections, Heart, The Blue, Chest, badges, and notification inlays live in one navigable place.",
+              "fontSize": 18,
+              "typeface": "Helvetica Neue",
+              "color": "#647274",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 14,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/6ls7qhcn",
+      "id": "14",
+      "bbox": [
+        624,
+        438,
+        520,
+        22
+      ],
+      "geometry": "rect",
+      "text": "THE LOOKOUT",
+      "textPreview": "THE LOOKOUT",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 12,
+        "typeface": "Helvetica Neue",
+        "color": "#3F9694",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "THE LOOKOUT"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "THE LOOKOUT",
+          "resolvedTextStyle": {
+            "fontSize": 12,
+            "typeface": "Helvetica Neue",
+            "color": "#3F9694",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "THE LOOKOUT",
+              "fontSize": 12,
+              "typeface": "Helvetica Neue",
+              "color": "#3F9694",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 15,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/r618zmt8",
+      "id": "15",
+      "bbox": [
+        624,
+        468,
+        520,
+        62
+      ],
+      "geometry": "rect",
+      "text": "Objectives without streak anxiety",
+      "textPreview": "Objectives without streak anxiety",
+      "resolvedFontSize": 27,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 27,
+        "typeface": "Helvetica Neue",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Objectives without streak anxiety"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Objectives without streak anxiety",
+          "resolvedTextStyle": {
+            "fontSize": 27,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Objectives without streak anxiety",
+              "fontSize": 27,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 16,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s7upsrud",
+      "id": "16",
+      "bbox": [
+        624,
+        534,
+        520,
+        150
+      ],
+      "geometry": "rect",
+      "text": "Daily, weekly, and monthly goals create multiple horizons, each with clear Pearl rewards.",
+      "textPreview": "Daily, weekly, and monthly goals create multiple horizons, each with clear Pearl rewards.",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Helvetica Neue",
+        "color": "#647274",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Daily, weekly, and monthly goals create multiple horizons,"
+          },
+          {
+            "index": 2,
+            "text": "each with clear Pearl rewards."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Daily, weekly, and monthly goals create multiple horizons, each with clear Pearl rewards.",
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Helvetica Neue",
+            "color": "#647274",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Daily, weekly, and monthly goals create multiple horizons, each with clear Pearl rewards.",
+              "fontSize": 18,
+              "typeface": "Helvetica Neue",
+              "color": "#647274",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}

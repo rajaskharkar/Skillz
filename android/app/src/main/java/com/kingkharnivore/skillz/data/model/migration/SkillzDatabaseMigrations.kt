@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 object SkillzDatabaseMigrations {
 
     /**
-     * Current database version is 40.
+     * Current database version is 41.
      *
      * Versions 1 through 12 are legacy/unknown-ish schemas, so we migrate them
      * directly into the v15 schema using a safe rebuild strategy, then v16
@@ -443,6 +443,16 @@ object SkillzDatabaseMigrations {
         db.execSQL("ALTER TABLE `$newTable` RENAME TO `$oldTable`")
     }
 
+    val MIGRATION_40_41 = object : Migration(40, 41) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("""CREATE TABLE IF NOT EXISTS `arc_land_reward` (
+                `arcId` INTEGER NOT NULL, `flowCount` INTEGER NOT NULL,
+                `lastFlowEndTime` INTEGER NOT NULL, `finalSessionId` INTEGER NOT NULL,
+                `finalizedAt` INTEGER, PRIMARY KEY(`arcId`))""")
+            // No historical reward backfill. Existing records and balances are untouched.
+        }
+    }
+
     val ALL_MIGRATIONS: Array<Migration> =
         LEGACY_TO_15_MIGRATIONS +
                 MIGRATION_13_14 +
@@ -471,7 +481,8 @@ object SkillzDatabaseMigrations {
                 MIGRATION_36_37 +
                 MIGRATION_37_38 +
                 MIGRATION_38_39 +
-                MIGRATION_39_40
+                MIGRATION_39_40 +
+                MIGRATION_40_41
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(

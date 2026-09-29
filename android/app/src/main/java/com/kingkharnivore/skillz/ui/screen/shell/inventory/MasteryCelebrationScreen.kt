@@ -604,37 +604,7 @@ private fun AchievementSeal(presentation: BadgePresentation) {
         border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
     ) {
         Box(contentAlignment = Alignment.Center) {
-            if (presentation.artworkKind == BadgeArtworkKind.SPECIES_MASTERY && presentation.creatureIconKey != null) {
-                ShellAnimalCanvasIcon(
-                    presentation.creatureIconKey,
-                    Modifier.fillMaxSize().padding(6.dp)
-                )
-                Text(
-                    text = "99",
-                    modifier = Modifier.align(Alignment.TopEnd).padding(3.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Black
-                )
-            } else {
-                val icon = when (presentation.artworkKind) {
-                    BadgeArtworkKind.COLLECTOR -> Icons.Outlined.TravelExplore
-                    BadgeArtworkKind.CURATOR -> Icons.Outlined.Inventory2
-                    BadgeArtworkKind.COMPLETIONIST -> Icons.Outlined.WorkspacePremium
-                    BadgeArtworkKind.FLOW_DURATION,
-                    BadgeArtworkKind.ACTIVITY -> Icons.Outlined.Bolt
-                    BadgeArtworkKind.OBJECTIVE -> Icons.Outlined.TrackChanges
-                    BadgeArtworkKind.SPECIAL -> Icons.Outlined.Stars
-                    BadgeArtworkKind.MASTERY,
-                    BadgeArtworkKind.SPECIES_MASTERY -> Icons.Outlined.AutoAwesome
-                }
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
+            BadgeCoreArtwork(presentation, 46.dp)
         }
     }
 }

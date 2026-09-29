@@ -24,6 +24,7 @@ class SkillzApplication : Application() {
     lateinit var userPrefs: UserPrefs
 
     @Inject lateinit var objectiveCompletionProcessor: ObjectiveCompletionProcessor
+    @Inject lateinit var landArcFinalizer: com.kingkharnivore.skillz.utils.arc.ArcLandRewardFinalizer
     @Inject lateinit var chronicleRepository: ChronicleRepository
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -35,6 +36,13 @@ class SkillzApplication : Application() {
             AppLocaleManager.applyLanguage(savedTag)
         }
         launchObjectiveReconciliation("startup")
+        applicationScope.launch {
+            while (true) {
+                runCatching { landArcFinalizer.finalizeExpired() }
+                    .onFailure { Log.e("ArcLandRewards", "Finalization will retry", it) }
+                kotlinx.coroutines.delay(15_000L)
+            }
+        }
         applicationScope.launch { runCatching { chronicleRepository.reconcileStorage() } }
         registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
             override fun onActivityStarted(activity: Activity) {

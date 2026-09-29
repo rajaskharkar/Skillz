@@ -190,7 +190,7 @@ fun ReleaseCreatureConfirmationSheet(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.shell_creature_keep_swimming))
+                    Text(stringResource(if (animal.zoneId.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND) R.string.land_keep_living else R.string.shell_creature_keep_swimming))
                 }
                 Button(
                     onClick = {

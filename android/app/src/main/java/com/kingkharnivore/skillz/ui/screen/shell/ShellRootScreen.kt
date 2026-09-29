@@ -148,6 +148,7 @@ fun ShellRootScreen(
     val scope = rememberCoroutineScope()
     val activeFlowMessage = stringResource(R.string.lookout_flow_already_active)
     var destination by remember { mutableStateOf<ShellDestination>(ShellDestination.Heart) }
+    var blueRealm by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<com.kingkharnivore.skillz.utils.shell.CreatureRealm?>(null) }
     var pendingNavigation by remember { mutableStateOf<PendingShellNavigation?>(null) }
     val handledNavigationRequestIds = remember { mutableSetOf<String>() }
     var showNotifications by remember { mutableStateOf(false) }
@@ -223,6 +224,7 @@ fun ShellRootScreen(
     BackHandler(enabled = showNotifications || destination != ShellDestination.Heart) {
         when {
             showNotifications -> showNotifications = false
+            destination == ShellDestination.TheBluePreview && blueRealm != null -> blueRealm = null
             else -> destination = ShellDestination.Heart
         }
     }
@@ -235,8 +237,11 @@ fun ShellRootScreen(
                 pearlBalance = uiState.pearlBalance,
                 pearlBasinHasIndicator = hasAffordablePearlShape(uiState),
                 notificationCount = notificationCount,
+                blueRealm = blueRealm,
                 onBack = {
-                    if (destination == ShellDestination.Heart) {
+                    if (destination == ShellDestination.TheBluePreview && blueRealm != null) {
+                        blueRealm = null
+                    } else if (destination == ShellDestination.Heart) {
                         onBack()
                     } else {
                         destination = ShellDestination.Heart
@@ -306,6 +311,8 @@ fun ShellRootScreen(
                 ShellDestination.VoyagePreview -> VoyageHallScreen()
 
                 ShellDestination.TheBluePreview -> TheBlueRoomScreen(
+                    realm = blueRealm,
+                    onSelectRealm = { blueRealm = it },
                     uiState = uiState,
                     onDisplayInFocus = viewModel::place,
                     onGrowCreature = { id -> viewModel.growCreature(id, "BLUE") },

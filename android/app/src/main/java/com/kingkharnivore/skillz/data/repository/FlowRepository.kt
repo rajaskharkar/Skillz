@@ -36,6 +36,7 @@ class FlowRepository @Inject constructor(
           database.withTransaction {
             sessionDao.findCreatedSession(flowInstanceId)?.let { return@withTransaction it }
             val id = sessionDao.insertSession(session)
+            session.arcId?.let { com.kingkharnivore.skillz.utils.arc.ArcLandRewardJournal.record(database, it) }
             chronicleDao.promote(ChronicleOwnerType.ACTIVE_FLOW, flowInstanceId,
                 ChronicleOwnerType.SESSION, id.toString(), System.currentTimeMillis())
             sessionDao.insertCreation(SessionCreationEntity(flowInstanceId, id, System.currentTimeMillis()))
@@ -85,7 +86,7 @@ class FlowRepository @Inject constructor(
         arcMultiplierUsed: Double,
         arcBonusPoints: Int,
         finalScyraPoints: Int
-    ) {
+    ) = database.withTransaction {
         sessionDao.updateArcFields(
             sessionId = sessionId,
             arcId = arcId,
@@ -94,6 +95,7 @@ class FlowRepository @Inject constructor(
             arcBonusPoints = arcBonusPoints,
             finalScyraPoints = finalScyraPoints
         )
+        com.kingkharnivore.skillz.utils.arc.ArcLandRewardJournal.record(database, arcId)
     }
 
     suspend fun getSessionsForArc(arcId: Long): List<SessionEntity> =

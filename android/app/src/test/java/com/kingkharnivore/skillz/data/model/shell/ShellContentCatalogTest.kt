@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Test
 import java.io.File
 
@@ -187,7 +188,7 @@ class ShellContentCatalogTest {
         assertTrue(strings.contains("""<string name="shell_room_the_blue_title">The Blue</string>"""))
         assertTrue(strings.contains("Animals encountered through regular Flows swim here."))
         assertFalse(strings.contains("Coral " + "Reef"))
-        assertTrue(strings.contains("""shell_basin_soon_upgrade">%1$s · %2$s"""))
+        assertTrue(strings.contains("""shell_basin_soon_upgrade">%1${'$'}s · %2${'$'}s"""))
         assertTrue(strings.contains("""<string name="shell_slot_surge_current_nook">Surge Current Nook</string>"""))
         assertTrue(strings.contains("Surge rewards can be displayed here. Complete a Surge to bring a Current into this nook."))
         assertFalse(strings.contains("Surge energy will bring the reef alive."))

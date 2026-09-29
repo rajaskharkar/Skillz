@@ -13,6 +13,9 @@ import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 import com.kingkharnivore.skillz.utils.shell.StillwaterCatalog
 import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
+import com.kingkharnivore.skillz.utils.shell.StillwaterContainer
+import com.kingkharnivore.skillz.utils.shell.LandStillwaterHabitat
+import com.kingkharnivore.skillz.utils.shell.LandStillwaterCatalog
 import com.kingkharnivore.skillz.utils.shell.validateStillwaterDraw
 import com.kingkharnivore.skillz.domain.achievement.AchievementChange
 import com.kingkharnivore.skillz.domain.achievement.AchievementChangeType
@@ -112,9 +115,7 @@ class ShellRepository @Inject constructor(
         require(dashboardBadge?.everEarned == true) { "Only earned badges can be pinned." }
         val current = achievementDao.getPins()
         if (current.any { it.badgeId == badgeId }) return@withTransaction PinResult.AlreadyPinned
-        if (current.size >= 3 && replaceBadgeId == null) return@withTransaction PinResult.ReplacementRequired(current.map { it.badgeId })
         val replacement = replaceBadgeId?.let { id -> current.firstOrNull { it.badgeId == id } }
-        if (current.size >= 3) require(replacement != null) { "Choose a pinned badge to replace." }
         replacement?.let { achievementDao.deletePin(it.badgeId) }
         val order = replacement?.pinOrder ?: ((current.maxOfOrNull { it.pinOrder } ?: -1) + 1)
         achievementDao.insertPin(BadgePinEntity(badgeId, order, System.currentTimeMillis()))
@@ -228,20 +229,24 @@ class ShellRepository @Inject constructor(
     }
 
     suspend fun drawFromStillwater(
-        vessel: StillwaterVessel,
+        vessel: StillwaterContainer,
         unlockedZones: Set<CreatureZone>
     ): UserShellFindInstanceEntity = db.withTransaction {
         val balance = stillwaterLedgerDao.getTotal()
         validateStillwaterDraw(vessel, unlockedZones, balance)
-        val entry = StillwaterCatalog.roll(vessel)
-        val definition = CreatureCatalog.require(entry.creatureId)
-        require(definition.sourceType == CreatureSourceType.STILLWATER) {
+        val creatureId = when (vessel) {
+            is StillwaterVessel -> StillwaterCatalog.roll(vessel).creatureId
+            is LandStillwaterHabitat -> LandStillwaterCatalog.roll(vessel).creatureId
+        }
+        val definition = CreatureCatalog.require(creatureId)
+        require(definition.isAvailable) { "This creature is not available." }
+        require(definition.sourceType in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND)) {
             "Stillwater can only draw Stillwater creatures."
         }
         require(definition.zone == vessel.zone) { "Stillwater vessel depth mismatch." }
         val now = System.currentTimeMillis()
         val instance = grantFindCopy(
-            entry.creatureId, "stillwater", vessel.name.lowercase()
+            creatureId, "stillwater", vessel.name.lowercase()
         )
         stillwaterLedgerDao.insert(
             StillwaterLedgerEntity(
@@ -731,11 +736,11 @@ class ShellRepository @Inject constructor(
             "mastery_circle" to maxOf(evidence.values.sumOf { it.effectiveLifetimeCount }, MasteryEvidenceCalculator.effectiveCount(masteries.size, floors["mastery_circle"])),
             "mastery_variety" to uniqueMastered,
             "variety_collector" to discoveries.size,
-            "stillwater_first_catch" to if (discoveries.any { CreatureCatalog.get(it)?.sourceType == CreatureSourceType.STILLWATER }) 1 else 0,
-            "stillwater_variety" to discoveries.count { CreatureCatalog.get(it)?.sourceType == CreatureSourceType.STILLWATER },
+            "stillwater_first_catch" to if (discoveries.any { CreatureCatalog.get(it)?.sourceType in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND) }) 1 else 0,
+            "stillwater_variety" to discoveries.count { CreatureCatalog.get(it)?.sourceType in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND) },
             "stillwater_mastery" to maxOf(
-                evidence.values.filter { CreatureCatalog.get(it.speciesId)?.sourceType == CreatureSourceType.STILLWATER }.sumOf { it.effectiveLifetimeCount },
-                MasteryEvidenceCalculator.effectiveCount(masteries.count { CreatureCatalog.get(it.speciesId)?.sourceType == CreatureSourceType.STILLWATER }, floors["stillwater_mastery"])
+                evidence.values.filter { CreatureCatalog.get(it.speciesId)?.sourceType in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND) }.sumOf { it.effectiveLifetimeCount },
+                MasteryEvidenceCalculator.effectiveCount(masteries.count { CreatureCatalog.get(it.speciesId)?.sourceType in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND) }, floors["stillwater_mastery"])
             )
         )
         exactCounts.forEach { (id, verified) ->
@@ -1268,7 +1273,7 @@ class ShellRepository @Inject constructor(
         targetCreatureId: String, selectedInstanceIds: List<String>
     ): UserShellFindInstanceEntity = db.withTransaction {
         val target = CreatureCatalog.require(targetCreatureId)
-        require(target.sourceType == CreatureSourceType.BEYOND_BLUE) {
+        require(target.sourceType == CreatureSourceType.BEYOND_BLUE && target.isAvailable) {
             "Only Beyond Blue creatures can be encountered here."
         }
         val selected = if (

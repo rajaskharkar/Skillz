@@ -1,0 +1,913 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/5n7tbe",
+    "id": "5n7tbe",
+    "slide": 8,
+    "layoutId": "4b3591aa-3e23-4dd2-aca9-b96b63256ce8",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "9a00fcbd-249c-4280-b134-2130266b14ca",
+    "masterLayoutName": "Master",
+    "backgroundColor": "#FAF7F0",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Helvetica Neue"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "4b3591aa-3e23-4dd2-aca9-b96b63256ce8",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "9a00fcbd-249c-4280-b134-2130266b14ca",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "9a00fcbd-249c-4280-b134-2130266b14ca",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/98jy5ofm",
+      "id": "1",
+      "bbox": [
+        52,
+        34,
+        430,
+        24
+      ],
+      "geometry": "rect",
+      "text": "08  /  PLAN",
+      "textPreview": "08  /  PLAN",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 13,
+        "typeface": "Helvetica Neue",
+        "color": "#3F9694",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "08  /  PLAN"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "08  /  PLAN",
+          "resolvedTextStyle": {
+            "fontSize": 13,
+            "typeface": "Helvetica Neue",
+            "color": "#3F9694",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "08  /  PLAN",
+              "fontSize": 13,
+              "typeface": "Helvetica Neue",
+              "color": "#3F9694",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/m5sfu9wv",
+      "id": "2",
+      "bbox": [
+        52,
+        69,
+        1176,
+        62
+      ],
+      "geometry": "rect",
+      "text": "The Studio makes multi-step work feel authored",
+      "textPreview": "The Studio makes multi-step work feel authored",
+      "resolvedFontSize": 40,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 40,
+        "typeface": "Helvetica Neue",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "The Studio makes multi-step work feel authored"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "The Studio makes multi-step work feel authored",
+          "resolvedTextStyle": {
+            "fontSize": 40,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "The Studio makes multi-step work feel authored",
+              "fontSize": 40,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/n61g3exg",
+      "id": "3",
+      "bbox": [
+        54,
+        128,
+        1120,
+        42
+      ],
+      "geometry": "rect",
+      "text": "A five-step builder creates an Arc; suggested routes can be saved or launched immediately.",
+      "textPreview": "A five-step builder creates an Arc; suggested routes can be saved or launched immediately.",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Helvetica Neue",
+        "color": "#647274",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "A five-step builder creates an Arc; suggested routes can be saved or launched immediately."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "A five-step builder creates an Arc; suggested routes can be saved or launched immediately.",
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Helvetica Neue",
+            "color": "#647274",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "A five-step builder creates an Arc; suggested routes can be saved or launched immediately.",
+              "fontSize": 18,
+              "typeface": "Helvetica Neue",
+              "color": "#647274",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/03axszep",
+      "id": "4",
+      "bbox": [
+        52,
+        178,
+        1176,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#C8C6BD",
+      "lineWidth": 1
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/14jy14fa",
+      "id": "5",
+      "bbox": [
+        81,
+        204,
+        219,
+        458.17
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#17383B",
+      "lineColor": "#17383B",
+      "lineWidth": 1
+    },
+    {
+      "order": 6,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/fmlonexk",
+      "id": "6",
+      "bbox": [
+        88,
+        211,
+        205,
+        444.17
+      ],
+      "geometry": "roundRect",
+      "alt": "Five-step Studio",
+      "contentType": "image/png",
+      "imageFit": "cover",
+      "imageMask": {
+        "geometry": "roundRect",
+        "adjustmentList": [
+          {
+            "name": "adj",
+            "formula": "val 13171"
+          }
+        ]
+      },
+      "asset": {
+        "assetId": "63350736-1b81-49f0-a8fc-a881fd469908",
+        "contentType": "image/png",
+        "byteLength": 122849
+      }
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/z21gzexk",
+      "id": "7",
+      "bbox": [
+        76,
+        672.17,
+        229,
+        30
+      ],
+      "geometry": "rect",
+      "text": "Five-step Studio",
+      "textPreview": "Five-step Studio",
+      "resolvedFontSize": 15,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 15,
+        "typeface": "Helvetica Neue",
+        "color": "#17383B",
+        "bold": true,
+        "alignment": "center",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Five-step Studio"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Five-step Studio",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Helvetica Neue",
+            "color": "#17383B",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Five-step Studio",
+              "fontSize": 15,
+              "typeface": "Helvetica Neue",
+              "color": "#17383B",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/cfqxozet",
+      "id": "8",
+      "bbox": [
+        361,
+        204,
+        219,
+        458.17
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#17383B",
+      "lineColor": "#17383B",
+      "lineWidth": 1
+    },
+    {
+      "order": 9,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/szu5szet",
+      "id": "9",
+      "bbox": [
+        368,
+        211,
+        205,
+        444.17
+      ],
+      "geometry": "roundRect",
+      "alt": "Suggested Scene",
+      "contentType": "image/png",
+      "imageFit": "cover",
+      "imageMask": {
+        "geometry": "roundRect",
+        "adjustmentList": [
+          {
+            "name": "adj",
+            "formula": "val 13171"
+          }
+        ]
+      },
+      "asset": {
+        "assetId": "c6c7f9dd-1344-45e8-a8d6-f06764fd4eb0",
+        "contentType": "image/png",
+        "byteLength": 173280
+      }
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/xszetoze",
+      "id": "10",
+      "bbox": [
+        356,
+        672.17,
+        229,
+        30
+      ],
+      "geometry": "rect",
+      "text": "Suggested Scene",
+      "textPreview": "Suggested Scene",
+      "resolvedFontSize": 15,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 15,
+        "typeface": "Helvetica Neue",
+        "color": "#17383B",
+        "bold": true,
+        "alignment": "center",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Suggested Scene"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Suggested Scene",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Helvetica Neue",
+            "color": "#17383B",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Suggested Scene",
+              "fontSize": 15,
+              "typeface": "Helvetica Neue",
+              "color": "#17383B",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/crqxkjyt",
+      "id": "11",
+      "bbox": [
+        620,
+        230,
+        530,
+        22
+      ],
+      "geometry": "rect",
+      "text": "YOUR STUDIO",
+      "textPreview": "YOUR STUDIO",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 12,
+        "typeface": "Helvetica Neue",
+        "color": "#3F9694",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "YOUR STUDIO"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "YOUR STUDIO",
+          "resolvedTextStyle": {
+            "fontSize": 12,
+            "typeface": "Helvetica Neue",
+            "color": "#3F9694",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "YOUR STUDIO",
+              "fontSize": 12,
+              "typeface": "Helvetica Neue",
+              "color": "#3F9694",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 12,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/bqhwreh8",
+      "id": "12",
+      "bbox": [
+        620,
+        260,
+        530,
+        62
+      ],
+      "geometry": "rect",
+      "text": "Name, assemble, and tune the route",
+      "textPreview": "Name, assemble, and tune the route",
+      "resolvedFontSize": 27,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 27,
+        "typeface": "Helvetica Neue",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Name, assemble, and tune the route"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Name, assemble, and tune the route",
+          "resolvedTextStyle": {
+            "fontSize": 27,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Name, assemble, and tune the route",
+              "fontSize": 27,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ap8fi9gn",
+      "id": "13",
+      "bbox": [
+        620,
+        326,
+        530,
+        150
+      ],
+      "geometry": "rect",
+      "text": "The wizard lowers the cost of structuring a sequence while preserving per-step modes, timing, and Surge choices.",
+      "textPreview": "The wizard lowers the cost of structuring a sequence while preserving per-step modes, timing, and Surge choices.",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Helvetica Neue",
+        "color": "#647274",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "The wizard lowers the cost of structuring a sequence while"
+          },
+          {
+            "index": 2,
+            "text": "preserving per-step modes, timing, and Surge choices."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "The wizard lowers the cost of structuring a sequence while preserving per-step modes, timing, and Surge choices.",
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Helvetica Neue",
+            "color": "#647274",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "The wizard lowers the cost of structuring a sequence while preserving per-step modes, timing, and Surge choices.",
+              "fontSize": 18,
+              "typeface": "Helvetica Neue",
+              "color": "#647274",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 14,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/pofep4z2",
+      "id": "14",
+      "bbox": [
+        620,
+        438,
+        530,
+        22
+      ],
+      "geometry": "rect",
+      "text": "SCENES",
+      "textPreview": "SCENES",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 12,
+        "typeface": "Helvetica Neue",
+        "color": "#185B72",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "SCENES"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "SCENES",
+          "resolvedTextStyle": {
+            "fontSize": 12,
+            "typeface": "Helvetica Neue",
+            "color": "#185B72",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "SCENES",
+              "fontSize": 12,
+              "typeface": "Helvetica Neue",
+              "color": "#185B72",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 15,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/on6xgzyh",
+      "id": "15",
+      "bbox": [
+        620,
+        468,
+        530,
+        62
+      ],
+      "geometry": "rect",
+      "text": "Templates remain editable",
+      "textPreview": "Templates remain editable",
+      "resolvedFontSize": 27,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 27,
+        "typeface": "Helvetica Neue",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Templates remain editable"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Templates remain editable",
+          "resolvedTextStyle": {
+            "fontSize": 27,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Templates remain editable",
+              "fontSize": 27,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 16,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/nmxwnehc",
+      "id": "16",
+      "bbox": [
+        620,
+        534,
+        530,
+        150
+      ],
+      "geometry": "rect",
+      "text": "Preview a route such as Deep Work Launch, inspect the steps and estimated duration, then Save as Arc or Begin Arc.",
+      "textPreview": "Preview a route such as Deep Work Launch, inspect the steps and estimated duration, then Save as Arc or Begin Arc.",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Helvetica Neue",
+        "color": "#647274",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Preview a route such as Deep Work Launch, inspect the steps"
+          },
+          {
+            "index": 2,
+            "text": "and estimated duration, then Save as Arc or Begin Arc."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Preview a route such as Deep Work Launch, inspect the steps and estimated duration, then Save as Arc or Begin Arc.",
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Helvetica Neue",
+            "color": "#647274",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Preview a route such as Deep Work Launch, inspect the steps and estimated duration, then Save as Arc or Begin Arc.",
+              "fontSize": 18,
+              "typeface": "Helvetica Neue",
+              "color": "#647274",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}

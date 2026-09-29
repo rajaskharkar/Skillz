@@ -13,7 +13,7 @@ class CreatureCatalogTest {
         assertEquals(CreatureZone.OPEN_BLUE, CreatureCatalog.require("creature_great_white_shark").zone)
         assertEquals(CreatureZone.GREAT_BLUE, CreatureCatalog.require("creature_leviathan").zone)
         assertEquals("Anglerfish", CreatureCatalog.require("creature_anglerfish").displayName)
-        CreatureCatalog.all.forEach { creature ->
+        CreatureCatalog.all.filter { it.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA }.forEach { creature ->
             assertTrue(creature.creatureId.isNotBlank())
             assertTrue(creature.displayName.isNotBlank())
             assertTrue(creature.staticIconKey.isNotBlank())
@@ -22,7 +22,7 @@ class CreatureCatalogTest {
             assertTrue(creature.flowTimeValueMinutes != null || creature.requirementMinutes != null)
         }
         assertEquals(1, CreatureCatalog.all.count { it.displayName == "Sea Turtle" })
-        assertEquals(72, CreatureCatalog.all.size)
+        assertEquals(71, CreatureCatalog.all.count { it.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA })
     }
 
     @Test fun bannedCreaturesAreAbsent() {

@@ -1,0 +1,917 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/cu83lz",
+    "id": "cu83lz",
+    "slide": 6,
+    "layoutId": "4b3591aa-3e23-4dd2-aca9-b96b63256ce8",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "9a00fcbd-249c-4280-b134-2130266b14ca",
+    "masterLayoutName": "Master",
+    "backgroundColor": "#FAF7F0",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Helvetica Neue"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "4b3591aa-3e23-4dd2-aca9-b96b63256ce8",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "9a00fcbd-249c-4280-b134-2130266b14ca",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "9a00fcbd-249c-4280-b134-2130266b14ca",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/7mdcz6lg",
+      "id": "1",
+      "bbox": [
+        52,
+        34,
+        430,
+        24
+      ],
+      "geometry": "rect",
+      "text": "06  /  REWARD",
+      "textPreview": "06  /  REWARD",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 13,
+        "typeface": "Helvetica Neue",
+        "color": "#3F9694",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "06  /  REWARD"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "06  /  REWARD",
+          "resolvedTextStyle": {
+            "fontSize": 13,
+            "typeface": "Helvetica Neue",
+            "color": "#3F9694",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "06  /  REWARD",
+              "fontSize": 13,
+              "typeface": "Helvetica Neue",
+              "color": "#3F9694",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/snmdsr21",
+      "id": "2",
+      "bbox": [
+        52,
+        69,
+        1176,
+        62
+      ],
+      "geometry": "rect",
+      "text": "Completion closes the loop immediately",
+      "textPreview": "Completion closes the loop immediately",
+      "resolvedFontSize": 40,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 40,
+        "typeface": "Helvetica Neue",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Completion closes the loop immediately"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Completion closes the loop immediately",
+          "resolvedTextStyle": {
+            "fontSize": 40,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Completion closes the loop immediately",
+              "fontSize": 40,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/tovu1w3m",
+      "id": "3",
+      "bbox": [
+        54,
+        128,
+        1120,
+        42
+      ],
+      "geometry": "rect",
+      "text": "The user sees what was logged, what was earned, and how that progress changes The Shell.",
+      "textPreview": "The user sees what was logged, what was earned, and how that progress changes The Shell.",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Helvetica Neue",
+        "color": "#647274",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "The user sees what was logged, what was earned, and how that progress changes The Shell."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "The user sees what was logged, what was earned, and how that progress changes The Shell.",
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Helvetica Neue",
+            "color": "#647274",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "The user sees what was logged, what was earned, and how that progress changes The Shell.",
+              "fontSize": 18,
+              "typeface": "Helvetica Neue",
+              "color": "#647274",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ihkbmhkz",
+      "id": "4",
+      "bbox": [
+        52,
+        178,
+        1176,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#C8C6BD",
+      "lineWidth": 1
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/jitcvmlk",
+      "id": "5",
+      "bbox": [
+        85,
+        203,
+        219,
+        458.17
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#17383B",
+      "lineColor": "#17383B",
+      "lineWidth": 1
+    },
+    {
+      "order": 6,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/1ozydsr6",
+      "id": "6",
+      "bbox": [
+        92,
+        210,
+        205,
+        444.17
+      ],
+      "geometry": "roundRect",
+      "alt": "Points & Pearls",
+      "contentType": "image/png",
+      "imageFit": "cover",
+      "imageMask": {
+        "geometry": "roundRect",
+        "adjustmentList": [
+          {
+            "name": "adj",
+            "formula": "val 13171"
+          }
+        ]
+      },
+      "asset": {
+        "assetId": "580c3374-9f69-4e1c-8738-da6ed05083ca",
+        "contentType": "image/png",
+        "byteLength": 131993
+      }
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/5kbuxw3a",
+      "id": "7",
+      "bbox": [
+        80,
+        671.17,
+        229,
+        30
+      ],
+      "geometry": "rect",
+      "text": "Points & Pearls",
+      "textPreview": "Points & Pearls",
+      "resolvedFontSize": 15,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 15,
+        "typeface": "Helvetica Neue",
+        "color": "#17383B",
+        "bold": true,
+        "alignment": "center",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Points & Pearls"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Points & Pearls",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Helvetica Neue",
+            "color": "#17383B",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Points & Pearls",
+              "fontSize": 15,
+              "typeface": "Helvetica Neue",
+              "color": "#17383B",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/at0bihkn",
+      "id": "8",
+      "bbox": [
+        341,
+        203,
+        219,
+        458.17
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#17383B",
+      "lineColor": "#17383B",
+      "lineWidth": 1
+    },
+    {
+      "order": 9,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/yhszehsz",
+      "id": "9",
+      "bbox": [
+        348,
+        210,
+        205,
+        444.17
+      ],
+      "geometry": "roundRect",
+      "alt": "Shell impact",
+      "contentType": "image/png",
+      "imageFit": "cover",
+      "imageMask": {
+        "geometry": "roundRect",
+        "adjustmentList": [
+          {
+            "name": "adj",
+            "formula": "val 13171"
+          }
+        ]
+      },
+      "asset": {
+        "assetId": "64ece025-6648-44b6-af2d-32751dfed2a8",
+        "contentType": "image/png",
+        "byteLength": 165960
+      }
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/jy9w7ets",
+      "id": "10",
+      "bbox": [
+        336,
+        671.17,
+        229,
+        30
+      ],
+      "geometry": "rect",
+      "text": "Shell impact",
+      "textPreview": "Shell impact",
+      "resolvedFontSize": 15,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 15,
+        "typeface": "Helvetica Neue",
+        "color": "#17383B",
+        "bold": true,
+        "alignment": "center",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Shell impact"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Shell impact",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Helvetica Neue",
+            "color": "#17383B",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Shell impact",
+              "fontSize": 15,
+              "typeface": "Helvetica Neue",
+              "color": "#17383B",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ix0vy9c7",
+      "id": "11",
+      "bbox": [
+        622,
+        231,
+        535,
+        22
+      ],
+      "geometry": "rect",
+      "text": "REWARD REVEAL",
+      "textPreview": "REWARD REVEAL",
+      "resolvedFontSize": 12,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 12,
+        "typeface": "Helvetica Neue",
+        "color": "#B69B50",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "REWARD REVEAL"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "REWARD REVEAL",
+          "resolvedTextStyle": {
+            "fontSize": 12,
+            "typeface": "Helvetica Neue",
+            "color": "#B69B50",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "REWARD REVEAL",
+              "fontSize": 12,
+              "typeface": "Helvetica Neue",
+              "color": "#B69B50",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 12,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/50be9oby",
+      "id": "12",
+      "bbox": [
+        622,
+        261,
+        535,
+        62
+      ],
+      "geometry": "rect",
+      "text": "Effort becomes a portable resource",
+      "textPreview": "Effort becomes a portable resource",
+      "resolvedFontSize": 27,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 27,
+        "typeface": "Helvetica Neue",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Effort becomes a portable resource"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Effort becomes a portable resource",
+          "resolvedTextStyle": {
+            "fontSize": 27,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Effort becomes a portable resource",
+              "fontSize": 27,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/kz2d0jud",
+      "id": "13",
+      "bbox": [
+        622,
+        327,
+        535,
+        150
+      ],
+      "geometry": "rect",
+      "text": "Scyra Points are explained—not just displayed—and carried into The Shell as Pearls. The carousel can also reveal creatures and Arc outcomes.",
+      "textPreview": "Scyra Points are explained—not just displayed—and carried into The Shell as Pearls. The carousel can also reveal creatures and Arc outcomes.",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Helvetica Neue",
+        "color": "#647274",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 3,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Scyra Points are explained—not just displayed—and carried"
+          },
+          {
+            "index": 2,
+            "text": "into The Shell as Pearls. The carousel can also reveal creatures"
+          },
+          {
+            "index": 3,
+            "text": "and Arc outcomes."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Scyra Points are explained—not just displayed—and carried into The Shell as Pearls. The carousel can also reveal creatures and Arc outcomes.",
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Helvetica Neue",
+            "color": "#647274",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Scyra Points are explained—not just displayed—and carried into The Shell as Pearls. The carousel can also reveal creatures and Arc outcomes.",
+              "fontSize": 18,
+              "typeface": "Helvetica Neue",
+              "color": "#647274",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 14,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/72twbeto",
+      "id": "14",
+      "bbox": [
+        622,
+        474,
+        78,
+        44
+      ],
+      "geometry": "rect",
+      "text": "→",
+      "textPreview": "→",
+      "resolvedFontSize": 29,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 29,
+        "typeface": "Helvetica Neue",
+        "color": "#3F9694",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "→"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "→",
+          "resolvedTextStyle": {
+            "fontSize": 29,
+            "typeface": "Helvetica Neue",
+            "color": "#3F9694",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "→",
+              "fontSize": 29,
+              "typeface": "Helvetica Neue",
+              "color": "#3F9694",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 15,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/61kv2tc3",
+      "id": "15",
+      "bbox": [
+        708,
+        476,
+        449,
+        34
+      ],
+      "geometry": "rect",
+      "text": "No dead end",
+      "textPreview": "No dead end",
+      "resolvedFontSize": 21,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 21,
+        "typeface": "Helvetica Neue",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "No dead end"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "No dead end",
+          "resolvedTextStyle": {
+            "fontSize": 21,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "No dead end",
+              "fontSize": 21,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 16,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/t4bedobu",
+      "id": "16",
+      "bbox": [
+        708,
+        517,
+        449,
+        80
+      ],
+      "geometry": "rect",
+      "text": "Done returns the user to their story; Enter The Shell continues into the retention layer.",
+      "textPreview": "Done returns the user to their story; Enter The Shell continues into the retention layer.",
+      "resolvedFontSize": 16,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 16,
+        "typeface": "Helvetica Neue",
+        "color": "#647274",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Done returns the user to their story; Enter The Shell"
+          },
+          {
+            "index": 2,
+            "text": "continues into the retention layer."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Done returns the user to their story; Enter The Shell continues into the retention layer.",
+          "resolvedTextStyle": {
+            "fontSize": 16,
+            "typeface": "Helvetica Neue",
+            "color": "#647274",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Done returns the user to their story; Enter The Shell continues into the retention layer.",
+              "fontSize": 16,
+              "typeface": "Helvetica Neue",
+              "color": "#647274",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}

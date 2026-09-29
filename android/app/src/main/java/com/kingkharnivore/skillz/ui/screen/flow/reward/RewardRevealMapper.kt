@@ -38,6 +38,8 @@ interface RewardRevealTextProvider {
     fun deepOcean(): String
     fun animalReason(findId: String): String
     fun badgeReason(badgeId: String): String
+    fun landArcRewardReason(): String
+    fun mixedArcRewardReason(): String
     fun theBlueHint(): String
     fun stillwaterHint(): String
     fun shellHint(): String
@@ -191,7 +193,20 @@ fun buildArcSummaryRewardCards(
     )
 
     val shell = arc.shellSummary
-    cards += aggregateCountCard("arc-animals", RewardRevealCardType.ARC_ANIMALS, text.arcAnimalsTitle(), shell.animals, text.flowMilestonesAcrossArc(), text.theBlueHint(), "animal", text, findTitle)
+    val hasLandRewards = shell.animals.any {
+        com.kingkharnivore.skillz.utils.shell.CreatureCatalog.get(it.id)?.sourceType ==
+            com.kingkharnivore.skillz.utils.shell.CreatureSourceType.ARC_EARNED
+    }
+    val hasSeaRewards = shell.animals.any {
+        com.kingkharnivore.skillz.utils.shell.CreatureCatalog.get(it.id)?.realm ==
+            com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA
+    }
+    val creatureReason = when {
+        hasLandRewards && hasSeaRewards -> text.mixedArcRewardReason()
+        hasLandRewards -> text.landArcRewardReason()
+        else -> text.flowMilestonesAcrossArc()
+    }
+    cards += aggregateCountCard("arc-animals", RewardRevealCardType.ARC_ANIMALS, text.arcAnimalsTitle(), shell.animals, creatureReason, text.theBlueHint(), "animal", text, findTitle)
     cards += aggregateCountCard("arc-badges", RewardRevealCardType.ARC_BADGES, text.arcBadgesTitle(), shell.badges, text.recordsUpdatedAcrossArc(), text.badgesHint(), "badge", text, badgeTitle)
 
     if (shell.stillwaterAdded > 0L) {

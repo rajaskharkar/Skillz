@@ -39,7 +39,7 @@ object AchievementEvidenceScope {
         discoveries: List<CreatureDiscoveryEntity>,
         masteries: List<CreatureMasteryEventEntity>
     ): ScopedAchievementEvidence {
-        val ids = CreatureCatalog.stillwater.mapTo(mutableSetOf()) { it.creatureId }
+        val ids = CreatureCatalog.allStillwater.mapTo(mutableSetOf()) { it.creatureId }
         return ScopedAchievementEvidence(
             ids,
             discoveries.filter { it.speciesId in ids },
@@ -266,6 +266,7 @@ data class AchievementBadgeDefinition(
 
 object AchievementBadgeCatalog {
     val definitions: List<AchievementBadgeDefinition> = buildList {
+        addAll(LandBadgeCatalog.specs.map { it.definition })
         CreatureCatalog.all.forEach { creature ->
             add(AchievementBadgeDefinition(
                 "mastery_species_${creature.creatureId}", BadgeFamily.SPECIES_MASTERY,
@@ -286,7 +287,7 @@ object AchievementBadgeCatalog {
             milestones = boundedMilestones(CreatureCatalog.all.count { it.isAvailable && it.participatesInCollector })))
         add(AchievementBadgeDefinition("stillwater_first_catch", BadgeFamily.COLLECTION, BadgeCountType.ONE_TIME, BadgeRequirement.EXACT_COUNT, collectionId = "collection_stillwater"))
         add(AchievementBadgeDefinition("stillwater_variety", BadgeFamily.COLLECTION, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT,
-            milestones = boundedMilestones(CreatureCatalog.stillwater.count { it.isAvailable && it.participatesInCollector }), collectionId = "collection_stillwater"))
+            milestones = boundedMilestones(CreatureCatalog.allStillwater.count { it.isAvailable && it.participatesInCollector }), collectionId = "collection_stillwater"))
         add(AchievementBadgeDefinition("stillwater_mastery", BadgeFamily.MASTERY, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT, collectionId = "collection_stillwater"))
         CollectionCatalog.collections.forEach { collection ->
             listOf(BadgeRequirement.COLLECTOR, BadgeRequirement.CURATOR, BadgeRequirement.COMPLETIONIST).forEach { requirement ->
@@ -375,16 +376,25 @@ data class CollectionDefinition(val collectionId: String, val rosterVersion: Int
 
 object CollectionCatalog {
     private val blueRegions = CreatureZone.values().map { zone ->
-        CollectionDefinition("blue_${zone.name.lowercase()}", 1, CreatureCatalog.all.filter { it.sourceType != CreatureSourceType.STILLWATER && it.zone == zone })
+        CollectionDefinition("blue_${zone.name.lowercase()}", 1, CreatureCatalog.all.filter { it.sourceType !in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND) && it.zone == zone })
     }
     private val stillwaterVessels = StillwaterVessel.values().map { vessel ->
         val ids = StillwaterCatalog.creaturesFor(vessel).map { it.creatureId }.toSet()
         CollectionDefinition("stillwater_${vessel.name.lowercase()}", 1, CreatureCatalog.stillwater.filter { it.creatureId in ids })
     }
-    val collections = blueRegions + stillwaterVessels + listOf(
-        CollectionDefinition("collection_stillwater", 1, CreatureCatalog.stillwater),
-        CollectionDefinition("collection_the_blue", 1, CreatureCatalog.all.filter { it.sourceType != CreatureSourceType.STILLWATER }),
-        CollectionDefinition("collection_all_waters", 1, CreatureCatalog.all)
+    private val landStillwaterHabitats = com.kingkharnivore.skillz.utils.shell.LandStillwaterHabitat.entries.map { habitat ->
+        CollectionDefinition("stillwater_${habitat.name.lowercase()}", 1,
+            com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.restorative.filter { it.restorativeHabitat == habitat })
+    }
+    val collections = blueRegions + stillwaterVessels + landStillwaterHabitats + listOf(
+        CollectionDefinition("collection_stillwater", 1, CreatureCatalog.allStillwater),
+        CollectionDefinition("collection_the_blue", 1, CreatureCatalog.all.filter { it.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA && it.sourceType != CreatureSourceType.STILLWATER }),
+        CollectionDefinition("collection_land", 1, com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.main),
+        CollectionDefinition("collection_sea_stillwater", 1, CreatureCatalog.stillwater),
+        CollectionDefinition("collection_land_stillwater", 1, com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.restorative),
+        CollectionDefinition("collection_all_land", 1, com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.all),
+        CollectionDefinition("collection_living_earth", 1, CreatureCatalog.all),
+        CollectionDefinition("collection_all_waters", 1, CreatureCatalog.all.filter { it.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA })
     )
     val byId = collections.associateBy { it.collectionId }
 }
@@ -487,9 +497,9 @@ object CollectionProgressCalculator {
                     sourceId = creature.sourceType.name,
                     timestampConfidence = evidence?.timestampConfidence ?: AchievementTimestampConfidence.UNKNOWN,
                     action = when {
-                        creature.secretUntilDiscovered && creature.creatureId !in discovered -> CollectionSpeciesAction.None
+                        !creature.isAvailable || creature.secretUntilDiscovered && creature.creatureId !in discovered -> CollectionSpeciesAction.None
                         levels.isNotEmpty() -> CollectionSpeciesAction.ViewInChest(creature.creatureId)
-                        creature.sourceType == CreatureSourceType.STILLWATER -> CollectionSpeciesAction.OpenStillwaterVessel(creature.creatureId, creature.primaryProgressCollectionId)
+                        creature.sourceType in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND) -> CollectionSpeciesAction.OpenStillwaterVessel(creature.creatureId, creature.primaryProgressCollectionId)
                         creature.sourceType == CreatureSourceType.BEYOND_BLUE -> CollectionSpeciesAction.OpenBeyondBlue(creature.creatureId, creature.collectionId)
                         else -> CollectionSpeciesAction.OpenBlueRegion(creature.creatureId, creature.collectionId)
                     })

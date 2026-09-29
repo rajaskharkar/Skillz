@@ -104,7 +104,7 @@ fun TheBlueAnimalDetailSheet(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                ShellMetricPill(Icons.Outlined.Waves, stringResource(R.string.the_blue_swimming_chip, animal.totalCount))
+                ShellMetricPill(Icons.Outlined.Waves, stringResource(if (animal.zoneId.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND) R.string.land_living_chip else R.string.the_blue_swimming_chip, animal.totalCount))
                 ShellMetricPill(Icons.Outlined.AutoStories, stringResource(R.string.the_blue_lifetime_chip, animal.lifetimeEncounteredCount))
                 ShellMetricPill(Icons.Outlined.EmojiEvents, stringResource(R.string.the_blue_highest_level_chip, animal.highestLevel))
                 if (animal.releasedCount > 0) ShellMetricPill(Icons.Outlined.Route, stringResource(R.string.the_blue_released_chip, animal.releasedCount))
@@ -114,7 +114,7 @@ fun TheBlueAnimalDetailSheet(
                 ElevatedCard {
                     ListItem(
                         leadingContent = { Icon(Icons.Outlined.Route, contentDescription = null) },
-                        headlineContent = { Text(stringResource(R.string.the_blue_created_by_flow_title)) },
+                        headlineContent = { Text(stringResource(if (animal.zoneId.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND) R.string.land_effort_value else R.string.the_blue_created_by_flow_title)) },
                         supportingContent = {
                             Text(stringResource(R.string.the_blue_created_by_flow_value, formatMinutesCompact(it)))
                         }
@@ -252,6 +252,8 @@ private fun theBlueEncounteredReason(findId: String): String = when (findId) {
 
 @Composable
 private fun theBlueSourceReason(findId: String): String = when {
+    CreatureCatalog.get(findId)?.sourceType == CreatureSourceType.ARC_EARNED -> stringResource(R.string.land_arc_requirement, CreatureCatalog.require(findId).arcFlowRequirement ?: 0)
+    CreatureCatalog.get(findId)?.sourceType == CreatureSourceType.RESTORATIVE_LAND -> stringResource(R.string.shell_stillwater_exclusive)
     CreatureCatalog.get(findId)?.sourceType == CreatureSourceType.STILLWATER -> stringResource(R.string.shell_stillwater_exclusive)
     findId == ShellContentCatalog.FOCUS_MINNOW -> stringResource(R.string.the_blue_source_minnow)
     findId == ShellContentCatalog.FOCUS_SEAHORSE -> stringResource(R.string.the_blue_source_seahorse)

@@ -1,0 +1,130 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preScyraDebugBuild UP-TO-DATE
+> Task :app:mergeScyraDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:generateScyraDebugBuildConfig UP-TO-DATE
+> Task :app:checkScyraDebugAarMetadata UP-TO-DATE
+> Task :app:processScyraDebugNavigationResources UP-TO-DATE
+> Task :app:compileScyraDebugNavigationResources UP-TO-DATE
+> Task :app:generateScyraDebugResValues UP-TO-DATE
+> Task :app:mapScyraDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateScyraDebugResources UP-TO-DATE
+> Task :app:mergeScyraDebugResources UP-TO-DATE
+> Task :app:packageScyraDebugResources UP-TO-DATE
+> Task :app:parseScyraDebugLocalResources UP-TO-DATE
+> Task :app:createScyraDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksScyraDebug UP-TO-DATE
+> Task :app:processScyraDebugMainManifest UP-TO-DATE
+> Task :app:processScyraDebugManifest UP-TO-DATE
+> Task :app:processScyraDebugManifestForPackage UP-TO-DATE
+> Task :app:processScyraDebugResources UP-TO-DATE
+> Task :app:javaPreCompileScyraDebug UP-TO-DATE
+> Task :app:mergeScyraDebugShaders UP-TO-DATE
+> Task :app:compileScyraDebugShaders NO-SOURCE
+> Task :app:generateScyraDebugAssets UP-TO-DATE
+> Task :app:mergeScyraDebugAssets UP-TO-DATE
+> Task :app:compressScyraDebugAssets UP-TO-DATE
+> Task :app:checkScyraDebugDuplicateClasses UP-TO-DATE
+> Task :app:desugarScyraDebugFileDependencies UP-TO-DATE
+> Task :app:mergeExtDexScyraDebug UP-TO-DATE
+> Task :app:mergeLibDexScyraDebug UP-TO-DATE
+> Task :app:mergeScyraDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeScyraDebugNativeLibs UP-TO-DATE
+> Task :app:stripScyraDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningScyraDebug UP-TO-DATE
+> Task :app:writeScyraDebugAppMetadata UP-TO-DATE
+> Task :app:writeScyraDebugSigningConfigVersions UP-TO-DATE
+> Task :app:preScyraDebugAndroidTestBuild SKIPPED
+> Task :app:processScyraDebugAndroidTestManifest UP-TO-DATE
+> Task :app:generateScyraDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:checkScyraDebugAndroidTestAarMetadata UP-TO-DATE
+> Task :app:processScyraDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:compileScyraDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:generateScyraDebugAndroidTestResValues UP-TO-DATE
+> Task :app:mapScyraDebugAndroidTestSourceSetPaths UP-TO-DATE
+> Task :app:generateScyraDebugAndroidTestResources UP-TO-DATE
+> Task :app:mergeScyraDebugAndroidTestResources UP-TO-DATE
+> Task :app:processScyraDebugAndroidTestResources UP-TO-DATE
+> Task :app:javaPreCompileScyraDebugAndroidTest UP-TO-DATE
+> Task :app:mergeScyraDebugAndroidTestShaders UP-TO-DATE
+> Task :app:compileScyraDebugAndroidTestShaders NO-SOURCE
+> Task :app:generateScyraDebugAndroidTestAssets UP-TO-DATE
+> Task :app:mergeScyraDebugAndroidTestAssets UP-TO-DATE
+> Task :app:compressScyraDebugAndroidTestAssets UP-TO-DATE
+> Task :app:checkScyraDebugAndroidTestDuplicateClasses UP-TO-DATE
+> Task :app:desugarScyraDebugAndroidTestFileDependencies UP-TO-DATE
+> Task :app:mergeExtDexScyraDebugAndroidTest UP-TO-DATE
+> Task :app:mergeLibDexScyraDebugAndroidTest UP-TO-DATE
+> Task :app:mergeScyraDebugAndroidTestJniLibFolders UP-TO-DATE
+> Task :app:mergeScyraDebugAndroidTestNativeLibs NO-SOURCE
+> Task :app:stripScyraDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :app:validateSigningScyraDebugAndroidTest UP-TO-DATE
+> Task :app:writeScyraDebugAndroidTestSigningConfigVersions UP-TO-DATE
+> Task :app:preScyraDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileScyraDebugUnitTest UP-TO-DATE
+
+> Task :app:kspScyraDebugKotlin
+w: [ksp] No dependencies reported for generated source com.kingkharnivore.skillz.SkillzApplication_ComponentTreeDeps.java which willprevent incremental compilation.
+Please file a bug at https://issuetracker.google.com/issues/new?component=413107.
+
+> Task :app:compileScyraDebugKotlin
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/shell/inventory/BadgesScreen.kt:541:1039 'val Icons.Outlined.ArrowForward: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.ArrowForward.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/shell/rooms/stillwater/StillwaterRoomScreen.kt:74:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/shell/ShellViewModel.kt:85:25 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/shell/ShellViewModel.kt:161:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+
+> Task :app:compileScyraDebugJavaWithJavac
+> Task :app:processScyraDebugJavaRes UP-TO-DATE
+> Task :app:mergeScyraDebugJavaResource UP-TO-DATE
+> Task :app:transformScyraDebugClassesWithAsm
+> Task :app:bundleScyraDebugClassesToCompileJar
+> Task :app:dexBuilderScyraDebug
+> Task :app:mergeProjectDexScyraDebug
+> Task :app:bundleScyraDebugClassesToRuntimeJar
+> Task :app:kspScyraDebugAndroidTestKotlin
+> Task :app:kspScyraDebugUnitTestKotlin
+> Task :app:packageScyraDebug
+> Task :app:createScyraDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleScyraDebug
+> Task :app:compileScyraDebugAndroidTestKotlin
+> Task :app:compileScyraDebugUnitTestKotlin
+> Task :app:compileScyraDebugAndroidTestJavaWithJavac UP-TO-DATE
+> Task :app:processScyraDebugAndroidTestJavaRes UP-TO-DATE
+> Task :app:mergeScyraDebugAndroidTestJavaResource UP-TO-DATE
+> Task :app:processScyraDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:compileScyraDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:transformScyraDebugAndroidTestClassesWithAsm
+> Task :app:transformScyraDebugUnitTestClassesWithAsm
+> Task :app:dexBuilderScyraDebugAndroidTest
+> Task :app:mergeProjectDexScyraDebugAndroidTest
+
+> Task :app:testScyraDebugUnitTest FAILED
+
+ShellChestInventoryMapperTest > recentSortUsesBestEffortViewedOrAcquiredTimestampDescending FAILED
+    java.lang.AssertionError at ShellChestInventoryMapperTest.kt:107
+
+71 tests completed, 1 failed
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:testScyraDebugUnitTest'.
+> There were failing tests. See the report at: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/build/reports/tests/testScyraDebugUnitTest/index.html
+
+* Try:
+> Run with --scan to get full insights.
+
+BUILD FAILED in 48s
+77 actionable tasks: 18 executed, 59 up-to-date
