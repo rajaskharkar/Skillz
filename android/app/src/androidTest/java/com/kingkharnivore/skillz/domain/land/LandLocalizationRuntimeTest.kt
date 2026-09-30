@@ -32,4 +32,21 @@ class LandLocalizationRuntimeTest {
             }
         }
     }
+    @Test fun masteryTemplatesKeepSpeciesNamesUninflectedForEveryLandSpecies() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        listOf("en", "hi", "mr", "es").forEach { tag ->
+            val localized = context.createConfigurationContext(Configuration(context.resources.configuration).apply {
+                setLocales(LocaleList.forLanguageTags(tag))
+            })
+            LandCreatureCatalog.all.forEach { creature ->
+                val name = localized.getString(creature.titleRes)
+                listOf(R.string.mastery_first_species_support, R.string.mastery_second_species_support,
+                    R.string.mastery_third_species_support).forEach { resource ->
+                    assertTrue(localized.getString(resource, name).contains(name))
+                }
+                assertTrue(localized.getString(R.string.mastery_many_species_support, 10, name).contains(name))
+            }
+        }
+    }
+
 }

@@ -108,11 +108,13 @@ class MasteryCelebrationUiStateMapperTest {
         assertFalse(state.uniqueSpecies.changed)
     }
 
-    @Test fun creaturePluralizationHandlesRepositoryStyleNames() {
-        assertEquals("Minnows", pluralizeEnglishCreatureName("Minnow"))
-        assertEquals("Seahorses", pluralizeEnglishCreatureName("Seahorse"))
-        assertEquals("Clownfish", pluralizeEnglishCreatureName("Clownfish"))
-        assertEquals("Octopuses", pluralizeEnglishCreatureName("Octopus"))
+    @Test fun completionTextUsesTheOwnedCreaturesRealm() {
+        val sea = com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA
+        val land = com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND
+        assertEquals("collection_land", creatureCompletionCollectionId(land, false))
+        assertEquals("collection_all_land", creatureCompletionCollectionId(land, true))
+        assertEquals("collection_the_blue", creatureCompletionCollectionId(sea, false))
+        assertEquals("collection_all_waters", creatureCompletionCollectionId(sea, true))
     }
 
     private fun event(

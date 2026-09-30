@@ -2,7 +2,7 @@
 <resources>
     <!-- Localized display text only: never use these values as persisted IDs.
          Arc / Flow / Stillwater are product concepts. Numbered placeholders may be reordered. -->
-    <string name="badge_land_first_title">पहिली पाऊलखुणा</string>
+    <string name="badge_land_first_title">पहिल्या पाऊलखुणा</string>
     <string name="badge_land_first_description">भूमीवरील तुमचा पहिला जीव मिळवा.</string>
     <string name="badge_living_earth_first_title">एक सजीव पृथ्वी</string>
     <string name="badge_living_earth_first_description">समुद्र आणि भूमीवरील प्रत्येकी किमान एक प्रजाती शोधा.</string>
@@ -71,5 +71,5 @@
     <string name="collection_land_stillwater">भूमीचे स्टिलवॉटर</string>
     <string name="collection_all_land">भूमी आणि तिचे अधिवास</string>
     <string name="collection_living_earth">सजीव पृथ्वी</string>
-    <string name="level99_preview_completes_realm">यामुळे %1$s पूर्ण होईल.</string>
+    <string name="level99_preview_completes_realm">यामुळे हा संग्रह पूर्ण होईल: %1$s.</string>
 </resources>

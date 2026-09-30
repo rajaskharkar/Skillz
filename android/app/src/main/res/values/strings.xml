@@ -1933,10 +1933,10 @@ You can turn Health back on later.</string>
     <string name="mastery_reached_99_sentence">%1$s reached Level 99.</string>
     <string name="mastery_mastered_title">%1$s MASTERED</string>
     <string name="mastery_permanent_record_short">Mastery is permanently recorded.</string>
-    <string name="mastery_first_species_support">Your first %1$s has reached Mastery.</string>
-    <string name="mastery_second_species_support">Two %1$s have reached Mastery.</string>
-    <string name="mastery_third_species_support">Three %1$s have reached Mastery.</string>
-    <string name="mastery_many_species_support">%1$d %2$s have reached Mastery.</string>
+    <string name="mastery_first_species_support">Your first creature of the %1$s species has reached Mastery.</string>
+    <string name="mastery_second_species_support">Two creatures of the %1$s species have reached Mastery.</string>
+    <string name="mastery_third_species_support">Three creatures of the %1$s species have reached Mastery.</string>
+    <string name="mastery_many_species_support">%1$d creatures of the %2$s species have reached Mastery.</string>
     <string name="mastery_milestone_title">MILESTONE REACHED</string>
     <string name="mastery_milestone_species">%1$s Mastery ×%2$d</string>
     <string name="mastery_progress_title">MASTERY PROGRESS</string>
@@ -2066,8 +2066,8 @@ You can turn Health back on later.</string>
     <string name="level99_preview_first_species">This will be the first Mastery for this species.</string>
     <string name="level99_preview_region">Regional Mastery after upgrade: %1$d of %2$d</string>
     <string name="level99_preview_completes_region">This will complete the regional Completionist goal.</string>
-    <string name="level99_preview_completes_blue">This will complete The Blue.</string>
-    <string name="level99_preview_completes_all">This will complete All Waters.</string>
+    <string name="level99_preview_completes_blue">This will complete Sea.</string>
+    <string name="level99_preview_completes_all">This will complete Sea and Its Waters.</string>
     <string name="level99_preview_milestone">Species Mastery milestone ×%1$d will be reached.</string>
     <string name="mastery_region_remains_complete">This collection remains complete.</string>
     <string name="mastery_pin_selected">Pin %1$s. Choose a Showcase badge to replace.</string>
@@ -2349,4 +2349,7 @@ You can turn Health back on later.</string>
     <string name="chronicle_transcription_failed">Transcription failed.</string>
     <string name="chronicle_transcription_unavailable">On-device transcription is unavailable.</string>
     <string name="chronicle_edit_transcript">Edit transcript</string>
+    <string name="creature_release_selected_a11y">Selected %1$d of %2$d. Species: %3$s.</string>
+    <string name="creature_release_reward_a11y">You will receive %1$d Pearls.</string>
+    <string name="creature_release_level_a11y">Level %1$d. Species: %2$s. Owned: %3$d. Selected: %4$d.</string>
 </resources>

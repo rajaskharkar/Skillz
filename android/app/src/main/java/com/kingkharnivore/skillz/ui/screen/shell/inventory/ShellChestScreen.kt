@@ -675,10 +675,8 @@ private fun ChestLevelUpConfirmationDialog(
                     if (preview.completesStillwater) Text(stringResource(R.string.level99_preview_completes_stillwater))
                     if (preview.restoresStillwaterRoster) Text(stringResource(R.string.level99_preview_restores_stillwater))
                     if (preview.completesRegion) Text(stringResource(R.string.level99_preview_completes_region))
-                    if (preview.completesBlue) Text(stringResource(R.string.level99_preview_completes_realm,
-                        collectionDisplayName(if (CreatureCatalog.get(stack.creatureId)?.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND) "collection_land" else "collection_the_blue")))
-                    if (preview.completesAllWaters) Text(stringResource(R.string.level99_preview_completes_realm,
-                        collectionDisplayName(if (CreatureCatalog.get(stack.creatureId)?.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND) "collection_all_land" else "collection_all_waters")))
+                    if (preview.completesBlue) Text(creatureCompletionText(stack.creatureId))
+                    if (preview.completesAllWaters) Text(creatureCompletionText(stack.creatureId, includesHabitats = true))
                     if (preview.restoresRegionRoster || preview.restoresBlueRoster || preview.restoresAllWatersRoster) {
                         Text(stringResource(R.string.level99_preview_restores_roster))
                     }

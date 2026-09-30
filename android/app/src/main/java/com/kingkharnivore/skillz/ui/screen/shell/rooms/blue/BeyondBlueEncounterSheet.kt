@@ -55,6 +55,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.localizedCreatureCount
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
@@ -329,7 +330,7 @@ fun BeyondBlueEncounterSheet(
                                     ) {
                                         Icon(Icons.Default.Remove, stringResource(R.string.beyond_blue_remove_one, findName(stack.findId)), Modifier.size(20.dp))
                                     }
-                                    Text(selected.toString(), Modifier.widthIn(min = 24.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                    Text(localizedCreatureCount(selected), Modifier.widthIn(min = 24.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                                     FilledTonalIconButton(
                                         onClick = { selectedCounts = selectedCounts + (stack.key to (selected + 1).coerceAtMost(stack.instances.size)) },
                                         enabled = selected < stack.instances.size,

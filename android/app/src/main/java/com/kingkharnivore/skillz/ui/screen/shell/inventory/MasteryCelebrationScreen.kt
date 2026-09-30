@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -75,8 +76,6 @@ import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellAnimalCanvasIcon
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
-import java.text.NumberFormat
-import java.util.Locale
 import kotlinx.coroutines.delay
 
 private val CelebrationHorizontalPadding = 24.dp
@@ -237,7 +236,7 @@ private fun LevelTransition(previousLevel: Int, newLevel: Int, reducedMotion: Bo
         horizontalArrangement = Arrangement.Center
     ) {
         Text(
-            text = NumberFormat.getIntegerInstance().format(previousLevel),
+            text = localizedCreatureCount(previousLevel),
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.SemiBold
@@ -250,7 +249,7 @@ private fun LevelTransition(previousLevel: Int, newLevel: Int, reducedMotion: Bo
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = NumberFormat.getIntegerInstance().format(newLevel),
+            text = localizedCreatureCount(newLevel),
             modifier = Modifier.graphicsLayer {
                 alpha = reveal
                 scaleX = 0.9f + (0.1f * reveal)
@@ -271,7 +270,7 @@ private fun MasteryPage(state: MasteryCelebrationUiState, creatureName: String) 
         Text(
             text = stringResource(
                 R.string.mastery_mastered_title,
-                creatureName.uppercase(Locale.getDefault())
+                creatureName.uppercase(LocalConfiguration.current.locales[0])
             ),
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Black,
@@ -496,7 +495,7 @@ private fun CollectionProgressRow(collection: MasteryCollectionChange) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 MasteryCountTransition(collection.progress)
                 Text(
-                    text = " / ${NumberFormat.getIntegerInstance().format(collection.total)}",
+                    text = " / ${localizedCreatureCount(collection.total)}",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -512,7 +511,7 @@ private fun MasteryCountTransition(
     hero: Boolean = false
 ) {
     val numberStyle = if (hero) MaterialTheme.typography.displaySmall else MaterialTheme.typography.titleLarge
-    val formattedCurrent = "$prefix${NumberFormat.getIntegerInstance().format(change.current)}"
+    val formattedCurrent = "$prefix${localizedCreatureCount(change.current)}"
     if (!change.changed || change.previous == 0) {
         Text(
             text = formattedCurrent,
@@ -524,7 +523,7 @@ private fun MasteryCountTransition(
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
         Text(
-            text = "$prefix${NumberFormat.getIntegerInstance().format(change.previous)}",
+            text = "$prefix${localizedCreatureCount(change.previous)}",
             style = if (hero) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.SemiBold
@@ -672,26 +671,11 @@ private fun MasteryFooter(
 }
 
 @Composable
-private fun masterySupportText(count: Int, creatureName: String): String {
+internal fun masterySupportText(count: Int, creatureName: String): String {
     if (count <= 1) return stringResource(R.string.mastery_first_species_support, creatureName)
-    val pluralName = if (Locale.getDefault().language == Locale.ENGLISH.language) {
-        pluralizeEnglishCreatureName(creatureName)
-    } else creatureName
     return when (count) {
-        2 -> stringResource(R.string.mastery_second_species_support, pluralName)
-        3 -> stringResource(R.string.mastery_third_species_support, pluralName)
-        else -> stringResource(R.string.mastery_many_species_support, count, pluralName)
-    }
-}
-
-internal fun pluralizeEnglishCreatureName(name: String): String {
-    val lower = name.lowercase(Locale.US)
-    return when {
-        lower.endsWith("fish") -> name
-        lower.endsWith("ch") || lower.endsWith("sh") || lower.endsWith("s") ||
-            lower.endsWith("x") || lower.endsWith("z") -> "${name}es"
-        lower.endsWith("y") && lower.length > 1 && lower[lower.lastIndex - 1] !in "aeiou" ->
-            "${name.dropLast(1)}ies"
-        else -> "${name}s"
+        2 -> stringResource(R.string.mastery_second_species_support, creatureName)
+        3 -> stringResource(R.string.mastery_third_species_support, creatureName)
+        else -> stringResource(R.string.mastery_many_species_support, count, creatureName)
     }
 }

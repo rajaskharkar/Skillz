@@ -71,5 +71,5 @@
     <string name="collection_land_stillwater">धरती का स्टिलवॉटर</string>
     <string name="collection_all_land">धरती और उसके आवास</string>
     <string name="collection_living_earth">जीवंत पृथ्वी</string>
-    <string name="level99_preview_completes_realm">इससे %1$s पूरा हो जाएगा।</string>
+    <string name="level99_preview_completes_realm">इससे यह संग्रह पूरा होगा: %1$s।</string>
 </resources>

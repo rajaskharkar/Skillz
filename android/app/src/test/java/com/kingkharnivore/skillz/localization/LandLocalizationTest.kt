@@ -62,4 +62,52 @@ class LandLocalizationTest {
             assertFalse("English catalog label in $path", File(ui,path).readText().contains(".displayName"))
         }
     }
+    @Test fun supportedLanguagesCoverEveryDefaultString() {
+        val defaults = strings("values").filterValues { it.getAttribute("translatable") != "false" }
+        languages.forEach { language ->
+            assertTrue("Missing $language strings: ${defaults.keys - strings("values-$language").keys}",
+                strings("values-$language").keys.containsAll(defaults.keys))
+        }
+    }
+
+    @Test fun translatedFeatureProseIsNotAnEnglishCopy() {
+        val defaults = strings("values")
+        val keys = listOf("land_strings.xml", "land_badge_strings.xml")
+            .flatMap { elements(File(res, "values/$it")) }.map { it.getAttribute("name") } +
+            javaClass.getResourceAsStream("/land/localization-shared-keys.txt")!!.bufferedReader().readLines()
+        // Intentional product names, language-independent notation, and Spanish cognates.
+        val unchanged = setOf("land_reward_quantity", "badge_category_arc", "badge_category_flow",
+            "badge_category_stillwater", "badge_category_surge", "collection_great_blue", "collection_open_blue",
+            "land_zone_oasis", "collection_stillwater") + listOf("alpaca", "armadillo", "caracal", "coyote", "iguana", "jaguar",
+            "koala", "llama", "okapi", "panda", "serval", "tapir", "yak").map { "land_creature_$it" }
+        languages.forEach { language ->
+            val translated = strings("values-$language")
+            keys.filterNot { it == "land_reward_quantity" || (language == "es" && it in unchanged) }.forEach { key ->
+                assertNotEquals("Untranslated $language prose: $key", defaults.getValue(key).textContent,
+                    translated.getValue(key).textContent)
+            }
+        }
+    }
+
+    @Test fun releaseAccessibilityAndBothGrowthEntryPointsUseLocalizedText() {
+        val ui = File("app/src/main/java/com/kingkharnivore/skillz/ui/screen/shell")
+        val release = File(ui, "rooms/blue/ReleaseCreatureConfirmationSheet.kt").readText()
+        assertFalse("Hardcoded release accessibility text",
+            Regex("contentDescription\\s*=\\s*\"[^\"\\n]*[A-Za-z]").containsMatchIn(release))
+        listOf("rooms/blue/TheBlueAnimalDetailSheet.kt", "inventory/ShellChestScreen.kt").forEach { path ->
+            val text = File(ui, path).readText()
+            assertTrue(path, text.contains("creatureCompletionText("))
+            assertFalse(path, text.contains("R.string.level99_preview_completes_blue"))
+            assertFalse(path, text.contains("R.string.level99_preview_completes_all"))
+        }
+        val mastery = File(ui, "inventory/MasteryCelebrationScreen.kt").readText()
+        assertFalse(mastery.contains("pluralizeEnglishCreatureName"))
+    }
+
+    @Test fun hindiReleaseCountPlacesTotalBeforeSelected() {
+        val template = strings("values-hi").getValue("shell_creature_release_selected_total").textContent
+        assertEquals("चयनित: 3 में से 1",
+            String.format(java.util.Locale.forLanguageTag("hi"), template, 1, 3))
+    }
+
 }
