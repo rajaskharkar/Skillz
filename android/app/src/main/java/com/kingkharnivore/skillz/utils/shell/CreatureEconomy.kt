@@ -17,20 +17,28 @@ object CreatureStatus {
     const val USED_BEYOND_BLUE = "USED_BEYOND_BLUE"
 }
 
-enum class CreatureZone(val displayName: String) {
+enum class CreatureRealm { SEA, LAND }
+
+enum class CreatureZone(val displayName: String, val realm: CreatureRealm = CreatureRealm.SEA) {
     SUNLIT_REEF("Sunlit Reef"),
     DEEPER_REEF("Deeper Reef"),
     OPEN_BLUE("Open Blue"),
-    GREAT_BLUE("Great Blue")
+    GREAT_BLUE("Great Blue"),
+    GOLDEN_FIELDS("Golden Fields", CreatureRealm.LAND),
+    ANCIENT_WOODS("Ancient Woods", CreatureRealm.LAND),
+    OPEN_SANDS("Open Sands", CreatureRealm.LAND),
+    HIGH_PEAKS("High Peaks", CreatureRealm.LAND),
+    GREAT_WILD("Great Wild", CreatureRealm.LAND)
+
 }
 
-enum class CreatureSourceType { FLOW_EARNED, BEYOND_BLUE, STILLWATER }
+enum class CreatureSourceType { FLOW_EARNED, BEYOND_BLUE, STILLWATER, ARC_EARNED, RESTORATIVE_LAND }
 
 enum class CreatureMasteryTier { SEASONED, PROVEN, VETERAN, ASCENDANT, MASTERED }
 
-enum class CreatureSceneBehavior { SWIM, DRIFT, BOTTOM_DWELL, GLIDE, CRUISE, LEGENDARY }
+enum class CreatureSceneBehavior { SWIM, DRIFT, BOTTOM_DWELL, GLIDE, CRUISE, LEGENDARY, WALK, PROWL, GRAZE, CRAWL, PERCH }
 
-enum class CreaturePlacementBand { REEF_CANOPY, REEF_FLOOR, MID_WATER, OPEN_WATER, DEEP_WATER, SURFACE }
+enum class CreaturePlacementBand { REEF_CANOPY, REEF_FLOOR, MID_WATER, OPEN_WATER, DEEP_WATER, SURFACE, GROUND, CANOPY }
 
 enum class CreatureScaleClass { TINY, SMALL, MEDIUM, LARGE, GIANT, LEGENDARY }
 
@@ -57,7 +65,29 @@ enum class CreatureRenderFamily(val key: String, val visualCap: Float) {
     ANGLERFISH("anglerfish", 1.45f),
     SHARK("shark", 1.35f),
     GIANT_TENTACLE("giant_tentacle", 1.30f),
-    LEGENDARY("legendary", 1.25f)
+    LEGENDARY("legendary", 1.25f),
+    SMALL_MAMMAL("small_mammal", 1.45f),
+    HOOFED("hoofed", 1.45f),
+    CANID("canid", 1.45f),
+    BIG_CAT("big_cat", 1.45f),
+    BEAR("bear", 1.45f),
+    PRIMATE("primate", 1.45f),
+    GROUND_BIRD("ground_bird", 1.45f),
+    RAPTOR("raptor", 1.45f),
+    REPTILE("reptile", 1.45f),
+    LAND_SNAKE("land_snake", 1.45f),
+    TORTOISE("tortoise", 1.45f),
+    MARSUPIAL("marsupial", 1.45f),
+    MEGAFAUNA("megafauna", 1.45f),
+    SCORPION("scorpion", 1.45f)
+}
+
+sealed interface CreatureRequirement {
+    data class FlowDuration(val minutes: Int) : CreatureRequirement
+    data class ArcDepth(val flows: Int) : CreatureRequirement
+    data class EffortValue(val minutes: Int) : CreatureRequirement
+    data class Drops(val amount: Long) : CreatureRequirement
+    data object Unavailable : CreatureRequirement
 }
 
 data class CreatureDefinition(
@@ -77,10 +107,25 @@ data class CreatureDefinition(
     val participatesInCompletionist: Boolean = true,
     val secretUntilDiscovered: Boolean = false,
     val isAvailable: Boolean = true,
-    val rosterVersion: Int = 1
+    val rosterVersion: Int = 1,
+    val arcFlowRequirement: Int? = null,
+    val restorativeHabitat: LandStillwaterHabitat? = null,
+    val economicValuePearls: Int? = null,
+    // Arc depth is not a duration or a purchase price. Growth has its own Pearl basis.
+    val baseGrowthCostPearls: Int? = null
 ) {
+    val realm: CreatureRealm get() = zone.realm
+    val requirement: CreatureRequirement get() = when (sourceType) {
+        CreatureSourceType.FLOW_EARNED -> CreatureRequirement.FlowDuration(requireNotNull(flowTimeValueMinutes))
+        CreatureSourceType.BEYOND_BLUE -> CreatureRequirement.EffortValue(requireNotNull(requirementMinutes))
+        CreatureSourceType.ARC_EARNED -> CreatureRequirement.ArcDepth(requireNotNull(arcFlowRequirement))
+        CreatureSourceType.STILLWATER -> CreatureRequirement.Drops(requireNotNull(StillwaterCatalog.byId[creatureId]).vessel.dropCost)
+        CreatureSourceType.RESTORATIVE_LAND -> CreatureRequirement.Drops(requireNotNull(restorativeHabitat).dropCost)
+    }
     val pearlPrice: Int? get() = requirementMinutes?.times(PEARLS_PER_REQUIRED_FLOW_MINUTE)
-    val collectionId: String get() = if (sourceType == CreatureSourceType.STILLWATER) {
+    val collectionId: String get() = if (sourceType == CreatureSourceType.RESTORATIVE_LAND) {
+        "stillwater_${requireNotNull(restorativeHabitat).name.lowercase()}"
+    } else if (sourceType == CreatureSourceType.STILLWATER) {
         "collection_stillwater"
     } else {
         "blue_${zone.name.lowercase()}"
@@ -89,7 +134,7 @@ data class CreatureDefinition(
         StillwaterCatalog.byId[creatureId]?.vessel?.let { "stillwater_${it.name.lowercase()}" }
             ?: "collection_stillwater"
     } else collectionId
-    val collectionIds: Set<String> get() = if (sourceType == CreatureSourceType.STILLWATER) {
+    val collectionIds: Set<String> get() = if (sourceType == CreatureSourceType.STILLWATER || sourceType == CreatureSourceType.RESTORATIVE_LAND) {
         setOf(primaryProgressCollectionId, "collection_stillwater", "collection_all_waters")
     } else setOf(collectionId, "collection_the_blue", "collection_all_waters")
     val titleRes: Int get() = ShellContentCatalog.find(creatureId)?.titleRes ?: 0
@@ -244,13 +289,16 @@ object CreatureCatalog {
         beyond("creature_megalodon", "Megalodon", CreatureZone.GREAT_BLUE, 1200, CreatureRenderFamily.SHARK),
         beyond("creature_kraken", "Kraken", CreatureZone.GREAT_BLUE, 1500, CreatureRenderFamily.GIANT_TENTACLE),
         beyond("creature_leviathan", "Leviathan", CreatureZone.GREAT_BLUE, 1800, CreatureRenderFamily.LEGENDARY)
-    ) + stillwaterDefinitions
+    ) + stillwaterDefinitions + LandCreatureCatalog.all
 
 
     val byId: Map<String, CreatureDefinition> = all.associateBy { it.creatureId }
     val flowEarned: List<CreatureDefinition> = all.filter { it.sourceType == CreatureSourceType.FLOW_EARNED }
     val beyondBlue: List<CreatureDefinition> = all.filter { it.sourceType == CreatureSourceType.BEYOND_BLUE }
     val stillwater: List<CreatureDefinition> = all.filter { it.sourceType == CreatureSourceType.STILLWATER }
+    val allStillwater: List<CreatureDefinition> = all.filter {
+        it.sourceType in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND)
+    }
 
     fun get(creatureId: String): CreatureDefinition? = byId[creatureId]
     fun require(creatureId: String): CreatureDefinition = get(creatureId) ?: error("Unknown creature: $creatureId")
@@ -343,6 +391,7 @@ object CreatureEconomy {
     fun flowTimeValueMinutes(creatureId: String, level: Int = 1): Int =
         CreatureCatalog.require(creatureId).flowTimeValueMinutes
             ?: CreatureCatalog.require(creatureId).requirementMinutes
+            ?: CreatureCatalog.require(creatureId).economicValuePearls?.div(PEARLS_PER_REQUIRED_FLOW_MINUTE)
             ?: 0
 
     fun beyondBlueTradeContributionMinutes(creatureId: String, level: Int = 1): Int = flowTimeValueMinutes(creatureId, level)
@@ -355,7 +404,7 @@ object CreatureEconomy {
         val upgradeInvestment = cumulativeGrowthCostPearls(creatureId, safeLevel)
         val salvageRate = releaseSalvageRate(safeLevel)
         val normalValue = base.toLong() + (upgradeInvestment * salvageRate).toLong()
-        val adjustedValue = if (definition.sourceType == CreatureSourceType.STILLWATER) {
+        val adjustedValue = if (definition.sourceType in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND)) {
             (normalValue * STILLWATER_RELEASE_VALUE_MULTIPLIER).roundToInt().coerceAtLeast(1).toLong()
         } else {
             normalValue
@@ -366,7 +415,9 @@ object CreatureEconomy {
     fun pearlPriceForRequirement(requirementMinutes: Int): Int = requirementMinutes * PEARLS_PER_REQUIRED_FLOW_MINUTE
 
     fun quoteBeyondBluePayment(targetCreatureId: String, selectedCreatureMinutes: Int, availablePearls: Int): CreaturePaymentQuote {
-        val requirement = CreatureCatalog.require(targetCreatureId).requirementMinutes ?: error("Only Beyond Blue creatures have requirements.")
+        val target = CreatureCatalog.require(targetCreatureId)
+        require(target.sourceType == CreatureSourceType.BEYOND_BLUE && target.isAvailable) { "Only Beyond Blue creatures can be purchased." }
+        val requirement = requireNotNull(target.requirementMinutes)
         val remaining = max(0, requirement - selectedCreatureMinutes)
         val cost = pearlPriceForRequirement(remaining)
         val overpay = max(0, selectedCreatureMinutes - requirement) * PEARLS_PER_EXTRA_FLOW_MINUTE
@@ -380,10 +431,18 @@ object CreatureEconomy {
         ShellContentCatalog.FOCUS_WHALE -> 600
         else -> {
             val definition = CreatureCatalog.require(creatureId)
-            val baseMinutes = definition.requirementMinutes
-                ?: definition.flowTimeValueMinutes
-                ?: 25
-            max(25, baseMinutes)
+            if (definition.sourceType == CreatureSourceType.ARC_EARNED) {
+                // Do not silently price an Arc flagship at the generic 25-Pearl minimum.
+                requireNotNull(definition.baseGrowthCostPearls) {
+                    "Arc creature $creatureId requires an explicit growth cost."
+                }.also { require(it > 0) { "Arc creature growth cost must be positive." } }
+            } else {
+                val baseMinutes = definition.requirementMinutes
+                    ?: definition.flowTimeValueMinutes
+                    ?: definition.restorativeHabitat?.let { (it.dropCost / 60L).toInt() }
+                    ?: 25
+                max(25, baseMinutes)
+            }
         }
     }
 

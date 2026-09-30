@@ -15,6 +15,11 @@ fun zoneTitle(zoneId: TheBlueZoneId): String = when (zoneId) {
     TheBlueZoneId.DEEPER_REEF -> stringResource(R.string.the_blue_zone_deeper_reef_title)
     TheBlueZoneId.OPEN_BLUE -> stringResource(R.string.the_blue_zone_open_blue_title)
     TheBlueZoneId.GREAT_BLUE -> stringResource(R.string.the_blue_zone_great_blue_title)
+    TheBlueZoneId.GOLDEN_FIELDS -> stringResource(R.string.land_zone_golden_fields)
+    TheBlueZoneId.ANCIENT_WOODS -> stringResource(R.string.land_zone_ancient_woods)
+    TheBlueZoneId.OPEN_SANDS -> stringResource(R.string.land_zone_open_sands)
+    TheBlueZoneId.HIGH_PEAKS -> stringResource(R.string.land_zone_high_peaks)
+    TheBlueZoneId.GREAT_WILD -> stringResource(R.string.land_zone_great_wild)
 }
 
 @Composable
@@ -23,6 +28,11 @@ fun zoneRailLabel(zoneId: TheBlueZoneId): String = when (zoneId) {
     TheBlueZoneId.DEEPER_REEF -> stringResource(R.string.the_blue_zone_deeper_reef_rail)
     TheBlueZoneId.OPEN_BLUE -> stringResource(R.string.the_blue_zone_open_blue_rail)
     TheBlueZoneId.GREAT_BLUE -> stringResource(R.string.the_blue_zone_great_blue_rail)
+    TheBlueZoneId.GOLDEN_FIELDS -> stringResource(R.string.land_rail_golden_fields)
+    TheBlueZoneId.ANCIENT_WOODS -> stringResource(R.string.land_rail_ancient_woods)
+    TheBlueZoneId.OPEN_SANDS -> stringResource(R.string.land_rail_open_sands)
+    TheBlueZoneId.HIGH_PEAKS -> stringResource(R.string.land_rail_high_peaks)
+    TheBlueZoneId.GREAT_WILD -> stringResource(R.string.land_rail_great_wild)
 }
 
 @Composable
@@ -31,6 +41,11 @@ fun zoneSubtitle(zoneId: TheBlueZoneId): String = when (zoneId) {
     TheBlueZoneId.DEEPER_REEF -> stringResource(R.string.the_blue_zone_deeper_reef_subtitle)
     TheBlueZoneId.OPEN_BLUE -> stringResource(R.string.the_blue_zone_open_blue_subtitle)
     TheBlueZoneId.GREAT_BLUE -> stringResource(R.string.the_blue_zone_great_blue_subtitle)
+    TheBlueZoneId.GOLDEN_FIELDS -> stringResource(R.string.land_subtitle_golden_fields)
+    TheBlueZoneId.ANCIENT_WOODS -> stringResource(R.string.land_subtitle_ancient_woods)
+    TheBlueZoneId.OPEN_SANDS -> stringResource(R.string.land_subtitle_open_sands)
+    TheBlueZoneId.HIGH_PEAKS -> stringResource(R.string.land_subtitle_high_peaks)
+    TheBlueZoneId.GREAT_WILD -> stringResource(R.string.land_subtitle_great_wild)
 }
 
 @Composable
@@ -51,27 +66,18 @@ fun isUniqueLegendaryCreature(definition: CreatureDefinition): Boolean {
     return id.contains("leviathan") || id.contains("kraken") || id.contains("megalodon")
 }
 
+@Composable
 fun formatMinutesCompact(minutes: Int): String {
     val safe = minutes.coerceAtLeast(0)
     val hours = safe / 60
     val mins = safe % 60
     return when {
-        hours > 0 && mins > 0 -> "${hours}h ${mins}m"
-        hours > 0 -> "${hours}h"
-        else -> "${mins}m"
+        hours > 0 && mins > 0 -> stringResource(R.string.land_duration_hours_minutes, hours, mins)
+        hours > 0 -> stringResource(R.string.land_duration_hours, hours)
+        else -> stringResource(R.string.land_duration_minutes, mins)
     }
 }
 
-fun TheBlueZoneId.toCreatureZone(): CreatureZone = when (this) {
-    TheBlueZoneId.SUNLIT_REEF -> CreatureZone.SUNLIT_REEF
-    TheBlueZoneId.DEEPER_REEF -> CreatureZone.DEEPER_REEF
-    TheBlueZoneId.OPEN_BLUE -> CreatureZone.OPEN_BLUE
-    TheBlueZoneId.GREAT_BLUE -> CreatureZone.GREAT_BLUE
-}
+fun TheBlueZoneId.toCreatureZone(): CreatureZone = creatureZone
 
-fun theBlueZoneFor(zone: CreatureZone): TheBlueZoneId = when (zone) {
-    CreatureZone.SUNLIT_REEF -> TheBlueZoneId.SUNLIT_REEF
-    CreatureZone.DEEPER_REEF -> TheBlueZoneId.DEEPER_REEF
-    CreatureZone.OPEN_BLUE -> TheBlueZoneId.OPEN_BLUE
-    CreatureZone.GREAT_BLUE -> TheBlueZoneId.GREAT_BLUE
-}
+fun theBlueZoneFor(zone: CreatureZone): TheBlueZoneId = TheBlueZoneId.valueOf(zone.name)

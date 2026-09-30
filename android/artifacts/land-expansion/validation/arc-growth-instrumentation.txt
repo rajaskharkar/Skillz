@@ -1,0 +1,8 @@
+
+com.kingkharnivore.skillz.domain.land.LandPersistenceTest:..........
+
+Time: 6.15
+
+OK (10 tests)
+
+

@@ -7,7 +7,9 @@ data class ArcSummaryUiModel(
     val totalFinalPoints: Int,
     val totalArcBonusPoints: Int,
     val peakMultiplier: Double,
-    val shellSummary: ArcShellRewardSummaryUiModel = ArcShellRewardSummaryUiModel()
+    val shellSummary: ArcShellRewardSummaryUiModel = ArcShellRewardSummaryUiModel(),
+    val landRewardsPending: Boolean = false,
+    val arcId: Long? = null
 )
 
 data class ArcShellRewardSummaryUiModel(

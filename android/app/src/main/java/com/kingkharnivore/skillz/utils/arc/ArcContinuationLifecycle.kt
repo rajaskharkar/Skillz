@@ -52,15 +52,18 @@ data class ArcFlowStart(
 /** Captures one authoritative timestamp for all work belonging to a Flow start. */
 class ArcFlowStartCoordinator(
     private val lifecycle: ArcContinuationLifecycle,
+    private val serializeStart: suspend (suspend () -> ArcFlowStart) -> ArcFlowStart = { it() },
     private val currentTimeMillis: () -> Long = { System.currentTimeMillis() }
 ) {
+    constructor(lifecycle: ArcContinuationLifecycle, currentTimeMillis: () -> Long) : this(lifecycle, { it() }, currentTimeMillis)
+
     suspend fun start(
         isSoftFlow: Boolean,
         afterResolution: suspend (ArcRuntimeState?) -> Unit
-    ): ArcFlowStart {
+    ): ArcFlowStart = serializeStart {
         val flowStartTimeMs = currentTimeMillis()
         val arc = lifecycle.resolveForFlowStart(flowStartTimeMs, isSoftFlow)
         afterResolution(arc)
-        return ArcFlowStart(flowStartTimeMs, arc)
+        ArcFlowStart(flowStartTimeMs, arc)
     }
 }

@@ -1,0 +1,592 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/jsb4f1",
+    "id": "jsb4f1",
+    "slide": 1,
+    "layoutId": "4b3591aa-3e23-4dd2-aca9-b96b63256ce8",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "9a00fcbd-249c-4280-b134-2130266b14ca",
+    "masterLayoutName": "Master",
+    "backgroundColor": "#FAF7F0",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "ChatGPT",
+    "colors": {
+      "accent1": "#156082",
+      "accent2": "#E97132",
+      "accent3": "#196B24",
+      "accent4": "#0F9ED5",
+      "accent5": "#A02B93",
+      "accent6": "#4EA72E",
+      "bg1": "#FFFFFF",
+      "bg2": "#000000",
+      "tx1": "#1F1F1F",
+      "tx2": "#FFFFFF",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#0E2841",
+      "lt2": "#E8E8E8",
+      "hlink": "#467886",
+      "folHlink": "#96607D"
+    },
+    "typefaces": [
+      "Helvetica Neue"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "4b3591aa-3e23-4dd2-aca9-b96b63256ce8",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "9a00fcbd-249c-4280-b134-2130266b14ca",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "9a00fcbd-249c-4280-b134-2130266b14ca",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/yx4jm5kr",
+      "id": "1",
+      "bbox": [
+        58,
+        50,
+        280,
+        30
+      ],
+      "geometry": "rect",
+      "text": "SCYRA",
+      "textPreview": "SCYRA",
+      "resolvedFontSize": 15,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 15,
+        "typeface": "Helvetica Neue",
+        "color": "#3F9694",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "SCYRA"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "SCYRA",
+          "resolvedTextStyle": {
+            "fontSize": 15,
+            "typeface": "Helvetica Neue",
+            "color": "#3F9694",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "SCYRA",
+              "fontSize": 15,
+              "typeface": "Helvetica Neue",
+              "color": "#3F9694",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/wfep0jil",
+      "id": "2",
+      "bbox": [
+        58,
+        106,
+        92,
+        92
+      ],
+      "geometry": "roundRect",
+      "alt": "Scyra app icon",
+      "contentType": "image/png",
+      "imageFit": "cover",
+      "imageMask": {
+        "geometry": "roundRect",
+        "adjustmentList": [
+          {
+            "name": "adj",
+            "formula": "val 27174"
+          }
+        ]
+      },
+      "asset": {
+        "assetId": "188ee3a0-f69a-41ea-a47f-8031bc8b803b",
+        "contentType": "image/png",
+        "byteLength": 25492
+      }
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/kjm1ov2x",
+      "id": "3",
+      "bbox": [
+        58,
+        232,
+        545,
+        180
+      ],
+      "geometry": "rect",
+      "text": "Turn intentional time\ninto a living story",
+      "textPreview": "Turn intentional time | into a living story",
+      "resolvedFontSize": 54,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 54,
+        "typeface": "Helvetica Neue",
+        "color": "#111111",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 3,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Turn intentional"
+          },
+          {
+            "index": 2,
+            "text": "time"
+          },
+          {
+            "index": 3,
+            "text": "into a living story"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Turn intentional time",
+          "resolvedTextStyle": {
+            "fontSize": 54,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Turn intentional time",
+              "fontSize": 54,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        },
+        {
+          "index": 2,
+          "text": "into a living story",
+          "resolvedTextStyle": {
+            "fontSize": 54,
+            "typeface": "Helvetica Neue",
+            "color": "#111111",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "into a living story",
+              "fontSize": 54,
+              "typeface": "Helvetica Neue",
+              "color": "#111111",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/bud0rq1g",
+      "id": "4",
+      "bbox": [
+        60,
+        438,
+        500,
+        68
+      ],
+      "geometry": "rect",
+      "text": "A complete product walkthrough for investors and stakeholders",
+      "textPreview": "A complete product walkthrough for investors and stakeholders",
+      "resolvedFontSize": 22,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 22,
+        "typeface": "Helvetica Neue",
+        "color": "#647274",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "A complete product walkthrough for investors"
+          },
+          {
+            "index": 2,
+            "text": "and stakeholders"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "A complete product walkthrough for investors and stakeholders",
+          "resolvedTextStyle": {
+            "fontSize": 22,
+            "typeface": "Helvetica Neue",
+            "color": "#647274",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "A complete product walkthrough for investors and stakeholders",
+              "fontSize": 22,
+              "typeface": "Helvetica Neue",
+              "color": "#647274",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/at4zilkv",
+      "id": "5",
+      "bbox": [
+        60,
+        620,
+        450,
+        25
+      ],
+      "geometry": "rect",
+      "text": "Android product demo  •  August 2026",
+      "textPreview": "Android product demo  •  August 2026",
+      "resolvedFontSize": 14,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 14,
+        "typeface": "Helvetica Neue",
+        "color": "#3F9694",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Android product demo  •  August 2026"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Android product demo  •  August 2026",
+          "resolvedTextStyle": {
+            "fontSize": 14,
+            "typeface": "Helvetica Neue",
+            "color": "#3F9694",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Android product demo  •  August 2026",
+              "fontSize": 14,
+              "typeface": "Helvetica Neue",
+              "color": "#3F9694",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/xwvit0j6",
+      "id": "6",
+      "bbox": [
+        654,
+        36,
+        576,
+        648
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#DCECF2",
+      "lineColor": "#C8C6BD",
+      "lineWidth": 1
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/wvm1kv21",
+      "id": "7",
+      "bbox": [
+        808,
+        62,
+        270,
+        568.67
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#185B72",
+      "lineColor": "#17383B",
+      "lineWidth": 1
+    },
+    {
+      "order": 8,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/65g76t0n",
+      "id": "8",
+      "bbox": [
+        815,
+        69,
+        256,
+        554.67
+      ],
+      "geometry": "roundRect",
+      "alt": "20-blue-populated.png",
+      "contentType": "image/png",
+      "imageFit": "cover",
+      "imageMask": {
+        "geometry": "roundRect",
+        "adjustmentList": [
+          {
+            "name": "adj",
+            "formula": "val 10547"
+          }
+        ]
+      },
+      "asset": {
+        "assetId": "9bdebb0f-3c12-4ce2-92ba-3bb4beaf25e8",
+        "contentType": "image/png",
+        "byteLength": 330987
+      }
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/mpkzelkj",
+      "id": "9",
+      "bbox": [
+        694,
+        615,
+        170,
+        22
+      ],
+      "geometry": "rect",
+      "text": "THE BLUE",
+      "textPreview": "THE BLUE",
+      "resolvedFontSize": 13,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 13,
+        "typeface": "Helvetica Neue",
+        "color": "#185B72",
+        "bold": true,
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "THE BLUE"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "THE BLUE",
+          "resolvedTextStyle": {
+            "fontSize": 13,
+            "typeface": "Helvetica Neue",
+            "color": "#185B72",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "THE BLUE",
+              "fontSize": 13,
+              "typeface": "Helvetica Neue",
+              "color": "#185B72",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/kvu10jad",
+      "id": "10",
+      "bbox": [
+        694,
+        642,
+        460,
+        30
+      ],
+      "geometry": "rect",
+      "text": "Progress becomes a world users can return to.",
+      "textPreview": "Progress becomes a world users can return to.",
+      "resolvedFontSize": 18,
+      "resolvedTextStyle": {
+        "anchor": 1,
+        "fontSize": 18,
+        "typeface": "Helvetica Neue",
+        "color": "#17383B",
+        "alignment": "left",
+        "verticalAlignment": "top",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Progress becomes a world users can return to."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Progress becomes a world users can return to.",
+          "resolvedTextStyle": {
+            "fontSize": 18,
+            "typeface": "Helvetica Neue",
+            "color": "#17383B",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Progress becomes a world users can return to.",
+              "fontSize": 18,
+              "typeface": "Helvetica Neue",
+              "color": "#17383B",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}

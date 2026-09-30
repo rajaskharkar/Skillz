@@ -135,6 +135,7 @@ class FlowViewModel @Inject constructor(
     private val arcPlanRepository: ArcPlanRepository,
     private val aliveFlowServiceController: AliveFlowServiceController,
     private val arcPrefs: ArcPrefs,
+    private val landArcFinalizer: com.kingkharnivore.skillz.utils.arc.ArcLandRewardFinalizer,
     private val userPrefs: UserPrefs,
     private val surgeHapticsManager: SurgeHapticsManager,
     private val shellRewardOrchestrator: ShellRewardOrchestrator,
@@ -151,7 +152,7 @@ class FlowViewModel @Inject constructor(
 
     private val flowStartMutex = Mutex()
     private val arcContinuationLifecycle = ArcContinuationLifecycle(arcPrefs)
-    private val arcFlowStartCoordinator = ArcFlowStartCoordinator(arcContinuationLifecycle)
+    private val arcFlowStartCoordinator = ArcFlowStartCoordinator(arcContinuationLifecycle, serializeStart = { landArcFinalizer.startFlow(it) })
 
     private val plannedArcTitleOverride: String? =
         savedStateHandle
@@ -885,6 +886,22 @@ class FlowViewModel @Inject constructor(
         }
     }
 
+    private var landSummaryJob: Job? = null
+
+    private fun observeFinalLandSummary(arcId: Long) {
+        landSummaryJob?.cancel()
+        landSummaryJob = viewModelScope.launch {
+            landArcFinalizer.observeReward(arcId).first { it?.finalizedAt != null }
+            val shellSummary = shellRewardEventRecorder.summaryForArc(arcId)
+            _lastReward.update { reward ->
+                val summary = reward?.arcSummary
+                if (summary?.arcId == arcId) reward.copy(arcSummary = summary.copy(
+                    shellSummary = shellSummary, landRewardsPending = false
+                )) else reward
+            }
+        }
+    }
+
     private fun concludeArc(reason: String) {
         val s = arcState ?: return
         val arcId = s.arcId
@@ -899,7 +916,9 @@ class FlowViewModel @Inject constructor(
                     totalArcBonusPoints = arcSessions.sumOf { it.arcBonusPoints },
                     peakMultiplier = arcSessions.mapNotNull { it.arcMultiplierUsed }.maxOrNull()
                         ?: 1.0,
-                    shellSummary = shellRewardEventRecorder.summaryForArc(arcId)
+                    shellSummary = shellRewardEventRecorder.summaryForArc(arcId),
+                                landRewardsPending = landArcFinalizer.isPending(arcId),
+                                arcId = arcId
                 )
             } else {
                 null
@@ -917,6 +936,7 @@ class FlowViewModel @Inject constructor(
                     arcSummary = summary,
                     isArcOnlySummary = true
                 )
+                if (summary.landRewardsPending) observeFinalLandSummary(arcId)
             }
 
             arcState = null
@@ -1144,6 +1164,7 @@ class FlowViewModel @Inject constructor(
 
     private suspend fun clearOngoing() {
         focusSessionRepository.clearOngoingSession()
+        landArcFinalizer.flowEnded()
     }
 
     fun setSurgePlannedMinutes(minutes: Int) {
@@ -1777,7 +1798,9 @@ class FlowViewModel @Inject constructor(
                                 totalArcBonusPoints = arcSessions.sumOf { it.arcBonusPoints },
                                 peakMultiplier = arcSessions.mapNotNull { it.arcMultiplierUsed }
                                     .maxOrNull() ?: 1.0,
-                                shellSummary = shellRewardEventRecorder.summaryForArc(arcId)
+                                shellSummary = shellRewardEventRecorder.summaryForArc(arcId),
+                                landRewardsPending = landArcFinalizer.isPending(arcId),
+                                arcId = arcId
                             )
                         } else {
                             null
@@ -1787,6 +1810,7 @@ class FlowViewModel @Inject constructor(
                     }
 
                     _lastReward.value = baseReward.copy(arcSummary = summary)
+                    if (summary?.landRewardsPending == true && arcId != null) observeFinalLandSummary(arcId)
                     _exitAfterReward.value = true
                     _awaitingNextFlowAfterContinue.value = false
 

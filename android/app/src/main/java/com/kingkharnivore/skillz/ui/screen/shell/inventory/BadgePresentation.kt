@@ -13,7 +13,7 @@ import com.kingkharnivore.skillz.domain.lookout.ObjectiveBadgeIdentity
 import com.kingkharnivore.skillz.domain.lookout.ObjectiveBadgePresentationMetadata
 
 enum class BadgeArtworkKind { FLOW_DURATION, SPECIES_MASTERY, COLLECTOR, CURATOR, COMPLETIONIST, MASTERY, ACTIVITY, OBJECTIVE, SPECIAL }
-enum class CollectionArtworkIdentity { SUNLIT_REEF, DEEPER_REEF, OPEN_BLUE, GREAT_BLUE, FISHBOWL, AQUARIUM, POND, LAKE, THE_BLUE, STILLWATER, ALL_WATERS }
+enum class CollectionArtworkIdentity { SUNLIT_REEF, DEEPER_REEF, OPEN_BLUE, GREAT_BLUE, FISHBOWL, AQUARIUM, POND, LAKE, THE_BLUE, STILLWATER, ALL_WATERS, GOLDEN_FIELDS, ANCIENT_WOODS, OPEN_SANDS, HIGH_PEAKS, GREAT_WILD, PASTURE, GLADE, OASIS, RAVINE, SANCTUARY, LAND, LAND_STILLWATER, ALL_LAND, EARTH }
 
 data class BadgePresentation(
     val badgeId: String,
@@ -22,7 +22,8 @@ data class BadgePresentation(
     val artworkKind: BadgeArtworkKind,
     val centerLabel: String? = null,
     val creatureIconKey: String? = null,
-    val collectionIdentity: CollectionArtworkIdentity? = null
+    val collectionIdentity: CollectionArtworkIdentity? = null,
+    val motif: LandBadgeMotif? = null
 )
 
 val LocalObjectiveBadgePresentationMetadata = staticCompositionLocalOf<Map<String, ObjectiveBadgePresentationMetadata>> {
@@ -52,6 +53,17 @@ fun resolveBadgePresentation(
             artworkKind = BadgeArtworkKind.OBJECTIVE,
             centerLabel = period.take(1)
         )
+    }
+    LandBadgeCatalog.byId[badgeId]?.let { spec ->
+        return BadgePresentation(badgeId, stringResource(spec.titleRes), stringResource(spec.descriptionRes),
+            BadgeArtworkKind.SPECIAL, centerLabel = when (spec.metric) {
+                LandBadgeMetric.ARC_DEPTH -> spec.thresholds.first().toString()
+                LandBadgeMetric.TIGERS -> "2"
+                LandBadgeMetric.FLAGSHIPS, LandBadgeMetric.HABITATS -> "5"
+                else -> null
+            }, collectionIdentity = spec.habitat?.let {
+                CollectionArtworkIdentity.valueOf(it.name)
+            }, motif = spec.motif)
     }
     ShellContentCatalog.badge(badgeId)?.let { legacy ->
         val duration = when (badgeId) {
@@ -106,6 +118,21 @@ fun resolveBadgePresentation(
             "stillwater_aquarium" -> CollectionArtworkIdentity.AQUARIUM
             "stillwater_pond" -> CollectionArtworkIdentity.POND
             "stillwater_lake" -> CollectionArtworkIdentity.LAKE
+            "blue_golden_fields" -> CollectionArtworkIdentity.GOLDEN_FIELDS
+            "blue_ancient_woods" -> CollectionArtworkIdentity.ANCIENT_WOODS
+            "blue_open_sands" -> CollectionArtworkIdentity.OPEN_SANDS
+            "blue_high_peaks" -> CollectionArtworkIdentity.HIGH_PEAKS
+            "blue_great_wild" -> CollectionArtworkIdentity.GREAT_WILD
+            "stillwater_pasture" -> CollectionArtworkIdentity.PASTURE
+            "stillwater_glade" -> CollectionArtworkIdentity.GLADE
+            "stillwater_oasis" -> CollectionArtworkIdentity.OASIS
+            "stillwater_ravine" -> CollectionArtworkIdentity.RAVINE
+            "stillwater_sanctuary" -> CollectionArtworkIdentity.SANCTUARY
+            "collection_land" -> CollectionArtworkIdentity.LAND
+            "collection_land_stillwater" -> CollectionArtworkIdentity.LAND_STILLWATER
+            "collection_sea_stillwater" -> CollectionArtworkIdentity.STILLWATER
+            "collection_all_land" -> CollectionArtworkIdentity.ALL_LAND
+            "collection_living_earth" -> CollectionArtworkIdentity.EARTH
             "collection_the_blue" -> CollectionArtworkIdentity.THE_BLUE
             "collection_stillwater" -> CollectionArtworkIdentity.STILLWATER
             "collection_all_waters" -> CollectionArtworkIdentity.ALL_WATERS
@@ -123,7 +150,12 @@ fun resolveBadgePresentation(
         "keeper_of_the_blue" -> R.string.badge_keeper_blue to R.string.badge_keeper_blue_description
         else -> null
     }
-    if (known != null) return BadgePresentation(badgeId, stringResource(known.first), stringResource(known.second), BadgeArtworkKind.SPECIAL)
+    if (known != null) return BadgePresentation(badgeId, stringResource(known.first), stringResource(known.second), BadgeArtworkKind.SPECIAL, motif = when (badgeId) {
+        "across_the_depths", "keeper_of_the_blue", "one_from_every_water" -> LandBadgeMotif.SEA
+        "mastery_first", "mastery_circle", "mastery_variety" -> LandBadgeMotif.CROWN
+        "variety_collector" -> LandBadgeMotif.EARTH
+        else -> null
+    })
     Log.w("BadgePresentation", "Unresolved persisted badge id: $badgeId")
     return BadgePresentation(badgeId, stringResource(R.string.badge_unavailable_record_title),
         stringResource(R.string.badge_unavailable_record_description), BadgeArtworkKind.SPECIAL)
@@ -135,11 +167,26 @@ fun collectionDisplayName(collectionId: String): String = stringResource(when (c
     "blue_deeper_reef" -> R.string.collection_deeper_reef
     "blue_open_blue" -> R.string.collection_open_blue
     "blue_great_blue" -> R.string.collection_great_blue
+    "blue_golden_fields" -> R.string.land_zone_golden_fields
+    "blue_ancient_woods" -> R.string.land_zone_ancient_woods
+    "blue_open_sands" -> R.string.land_zone_open_sands
+    "blue_high_peaks" -> R.string.land_zone_high_peaks
+    "blue_great_wild" -> R.string.land_zone_great_wild
+    "stillwater_pasture" -> R.string.land_zone_pasture
+    "stillwater_glade" -> R.string.land_zone_glade
+    "stillwater_oasis" -> R.string.land_zone_oasis
+    "stillwater_ravine" -> R.string.land_zone_ravine
+    "stillwater_sanctuary" -> R.string.land_zone_sanctuary
     "stillwater_fishbowl" -> R.string.collection_fishbowl
     "stillwater_aquarium" -> R.string.collection_aquarium
     "stillwater_pond" -> R.string.collection_pond
     "stillwater_lake" -> R.string.collection_lake
     "collection_stillwater" -> R.string.collection_stillwater
+    "collection_land" -> R.string.collection_land
+    "collection_sea_stillwater" -> R.string.collection_sea_stillwater
+    "collection_land_stillwater" -> R.string.collection_land_stillwater
+    "collection_all_land" -> R.string.collection_all_land
+    "collection_living_earth" -> R.string.collection_living_earth
     "collection_the_blue" -> R.string.collection_the_blue
     "collection_all_waters" -> R.string.collection_all_waters
     else -> R.string.collection_unknown

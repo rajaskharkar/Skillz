@@ -1,5 +1,7 @@
 package com.kingkharnivore.skillz.ui.screen.shell.rooms.stillwater
 
+import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.zoneTitle
+import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.theBlueZoneFor
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -48,6 +50,8 @@ import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.utils.shell.CreatureDefinition
 import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
+import com.kingkharnivore.skillz.utils.shell.StillwaterContainer
+import com.kingkharnivore.skillz.utils.shell.LandStillwaterHabitat
 import com.kingkharnivore.skillz.utils.shell.stillwaterDropsNeeded
 import com.kingkharnivore.skillz.utils.shell.stillwaterVesselProgress
 import com.kingkharnivore.skillz.ui.screen.shell.icons.draw.TurtleShellInteriorBackground
@@ -81,8 +85,8 @@ internal data class StillwaterVesselCardUiModel(
     val progress: Float
 )
 
-internal fun buildStillwaterDropsCardUiModel(uiState: ShellUiState): StillwaterDropsCardUiModel {
-    val hasAvailableDraw = StillwaterVessel.entries.any { vessel ->
+internal fun buildStillwaterDropsCardUiModel(uiState: ShellUiState, vessels: List<StillwaterContainer> = StillwaterVessel.entries): StillwaterDropsCardUiModel {
+    val hasAvailableDraw = vessels.any { vessel ->
         uiState.isBlueZoneUnlocked(vessel.zone) &&
             uiState.stillwaterClaimableDrops >= vessel.dropCost
     }
@@ -95,7 +99,7 @@ internal fun buildStillwaterDropsCardUiModel(uiState: ShellUiState): StillwaterD
 }
 
 internal fun buildStillwaterVesselCardUiModel(
-    vessel: StillwaterVessel,
+    vessel: StillwaterContainer,
     claimableDrops: Long,
     isUnlocked: Boolean
 ): StillwaterVesselCardUiModel {
@@ -112,18 +116,55 @@ internal fun buildStillwaterVesselCardUiModel(
 @Composable
 fun StillwaterRoomScreen(
     uiState: ShellUiState,
-    onDrawFromStillwater: (StillwaterVessel) -> Unit,
-    onConfirmStillwaterDraw: (StillwaterVessel) -> Unit,
+    onDrawFromStillwater: (StillwaterContainer) -> Unit,
+    onConfirmStillwaterDraw: (StillwaterContainer) -> Unit,
     onDismissStillwaterReveal: () -> Unit,
     onDismissStillwaterDrawConfirmation: () -> Unit,
     onNavigate: (BadgeActionDestination) -> Unit,
     focusRequest: PendingShellNavigation.OpenStillwaterSpecies? = null,
     onFocusResult: (String, NavigationConsumptionResult) -> Unit = { _, _ -> }
 ) {
-    val dropsCard = buildStillwaterDropsCardUiModel(uiState)
+    var land by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(focusRequest) {
+        focusRequest?.let { request ->
+            land = LandStillwaterHabitat.entries.any { request.collectionId == "stillwater_${it.name.lowercase()}" }
+        }
+    }
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal=16.dp), horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            androidx.compose.material3.FilterChip(selected=!land,onClick={land=false},label={Text(stringResource(R.string.land_realm_sea))})
+            if (com.kingkharnivore.skillz.BuildConfig.LAND_ENABLED) androidx.compose.material3.FilterChip(selected=land,onClick={land=true},label={Text(stringResource(R.string.land_realm_land))})
+        }
+        Box(Modifier.weight(1f)) {
+            androidx.compose.runtime.key(land) {
+                StillwaterVesselsScreen(uiState,onDrawFromStillwater,onConfirmStillwaterDraw,onDismissStillwaterReveal,
+                    onDismissStillwaterDrawConfirmation,onNavigate,focusRequest,onFocusResult,
+                    vessels = if (land) LandStillwaterHabitat.entries else StillwaterVessel.entries)
+            }
+        }
+    }
+}
+
+@Composable
+internal fun StillwaterVesselsScreen(
+    uiState: ShellUiState,
+    onDrawFromStillwater: (StillwaterContainer) -> Unit,
+    onConfirmStillwaterDraw: (StillwaterContainer) -> Unit,
+    onDismissStillwaterReveal: () -> Unit,
+    onDismissStillwaterDrawConfirmation: () -> Unit,
+    onNavigate: (BadgeActionDestination) -> Unit,
+    focusRequest: PendingShellNavigation.OpenStillwaterSpecies? = null,
+    onFocusResult: (String, NavigationConsumptionResult) -> Unit = { _, _ -> },
+    vessels: List<StillwaterContainer> = StillwaterVessel.entries,
+    initialVessel: StillwaterContainer? = null
+) {
+    val dropsCard = buildStillwaterDropsCardUiModel(uiState, vessels)
     val drops = dropsCard.primaryDrops
 
-    val listState = rememberLazyListState()
+    val hasOverallProgress = uiState.badgeDashboard?.collections?.any { it.collectionId == "collection_stillwater" } == true
+    val firstVesselIndex = if (hasOverallProgress) 4 else 3
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex =
+        initialVessel?.let { firstVesselIndex + vessels.indexOf(it).coerceAtLeast(0) } ?: 0)
     var collectionDetails by remember { mutableStateOf<CollectionProgress?>(null) }
     var highlightedCollectionId by rememberSaveable { mutableStateOf<String?>(null) }
     var focusedSpeciesId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -131,6 +172,9 @@ fun StillwaterRoomScreen(
     LaunchedEffect(focusRequest) {
         val request = focusRequest ?: return@LaunchedEffect
         val focusedCollectionId = request.collectionId
+        // The parent selects the destination realm; do not consume its request in the previous realm.
+        if (focusedCollectionId != "collection_stillwater" &&
+            vessels.none { focusedCollectionId == "stillwater_${it.name.lowercase()}" }) return@LaunchedEffect
         val collection = uiState.badgeDashboard?.collections?.firstOrNull { it.collectionId == focusedCollectionId }
         val speciesId = request.speciesId
         val validation = validateCollectionSpeciesFocus(collection, speciesId)
@@ -144,7 +188,7 @@ fun StillwaterRoomScreen(
         focusedRequestId = request.requestId
         val index = if (focusedCollectionId == "collection_stillwater") 2 else {
             val vesselName = focusedCollectionId.removePrefix("stillwater_")
-            4 + StillwaterVessel.entries.indexOfFirst { it.name.lowercase() == vesselName }.coerceAtLeast(0)
+            firstVesselIndex + vessels.indexOfFirst { it.name.lowercase() == vesselName }.coerceAtLeast(0)
         }
         listState.animateScrollToItem(index)
         if (speciesId == null) {
@@ -179,7 +223,7 @@ fun StillwaterRoomScreen(
             fontWeight = FontWeight.SemiBold
         ) }
 
-        StillwaterVessel.entries.forEach { vessel ->
+        vessels.forEach { vessel ->
             val collectionId = "stillwater_${vessel.name.lowercase()}"
             item(collectionId) { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { StillwaterVesselCard(
                 vessel = vessel,
@@ -332,10 +376,10 @@ private fun StillwaterDropsCard(
 
 @Composable
 private fun StillwaterVesselCard(
-    vessel: StillwaterVessel,
+    vessel: StillwaterContainer,
     claimableDrops: Long,
     isUnlocked: Boolean,
-    onDraw: (StillwaterVessel) -> Unit,
+    onDraw: (StillwaterContainer) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -358,7 +402,7 @@ private fun StillwaterVesselCard(
             Row(verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = stringResource(titleFor(vessel)),
+                        text = titleFor(vessel),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -391,11 +435,11 @@ private fun StillwaterVesselCard(
             }
 
             Text(
-                text = stringResource(rewardFor(vessel)),
+                text = rewardFor(vessel),
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = stringResource(categoryFor(vessel)),
+                text = categoryFor(vessel),
                 style = MaterialTheme.typography.bodyMedium,
                 color = scheme.onSurface.copy(alpha = 0.72f)
             )
@@ -458,11 +502,11 @@ private fun StillwaterExplainerCard() {
 
 @Composable
 private fun StillwaterDrawConfirmDialog(
-    vessel: StillwaterVessel,
+    vessel: StillwaterContainer,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val vesselName = stringResource(titleFor(vessel))
+    val vesselName = titleFor(vessel)
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -519,28 +563,43 @@ private fun StillwaterCreatureRevealDialog(
     )
 }
 
-@StringRes
-private fun titleFor(vessel: StillwaterVessel): Int = when (vessel) {
-    StillwaterVessel.FISHBOWL -> R.string.shell_stillwater_fishbowl_title
-    StillwaterVessel.AQUARIUM -> R.string.shell_stillwater_aquarium_title
-    StillwaterVessel.POND -> R.string.shell_stillwater_pond_title
-    StillwaterVessel.LAKE -> R.string.shell_stillwater_lake_title
+@Composable
+private fun titleFor(vessel: StillwaterContainer): String = when (vessel) {
+    is LandStillwaterHabitat -> stringResource(when (vessel) {
+        LandStillwaterHabitat.PASTURE -> R.string.land_zone_pasture
+        LandStillwaterHabitat.GLADE -> R.string.land_zone_glade
+        LandStillwaterHabitat.OASIS -> R.string.land_zone_oasis
+        LandStillwaterHabitat.RAVINE -> R.string.land_zone_ravine
+        LandStillwaterHabitat.SANCTUARY -> R.string.land_zone_sanctuary
+    })
+    is StillwaterVessel -> stringResource(when (vessel) {
+        StillwaterVessel.FISHBOWL -> R.string.shell_stillwater_fishbowl_title
+        StillwaterVessel.AQUARIUM -> R.string.shell_stillwater_aquarium_title
+        StillwaterVessel.POND -> R.string.shell_stillwater_pond_title
+        StillwaterVessel.LAKE -> R.string.shell_stillwater_lake_title
+    })
 }
 
-@StringRes
-private fun rewardFor(vessel: StillwaterVessel): Int = when (vessel) {
-    StillwaterVessel.FISHBOWL -> R.string.shell_stillwater_fishbowl_reward
-    StillwaterVessel.AQUARIUM -> R.string.shell_stillwater_aquarium_reward
-    StillwaterVessel.POND -> R.string.shell_stillwater_pond_reward
-    StillwaterVessel.LAKE -> R.string.shell_stillwater_lake_reward
+@Composable
+private fun rewardFor(vessel: StillwaterContainer): String = when (vessel) {
+    is LandStillwaterHabitat -> stringResource(R.string.land_stillwater_reward, zoneTitle(theBlueZoneFor(vessel.zone)))
+    is StillwaterVessel -> stringResource(when (vessel) {
+        StillwaterVessel.FISHBOWL -> R.string.shell_stillwater_fishbowl_reward
+        StillwaterVessel.AQUARIUM -> R.string.shell_stillwater_aquarium_reward
+        StillwaterVessel.POND -> R.string.shell_stillwater_pond_reward
+        StillwaterVessel.LAKE -> R.string.shell_stillwater_lake_reward
+    })
 }
 
-@StringRes
-private fun categoryFor(vessel: StillwaterVessel): Int = when (vessel) {
-    StillwaterVessel.FISHBOWL -> R.string.shell_stillwater_fishbowl_category
-    StillwaterVessel.AQUARIUM -> R.string.shell_stillwater_aquarium_category
-    StillwaterVessel.POND -> R.string.shell_stillwater_pond_category
-    StillwaterVessel.LAKE -> R.string.shell_stillwater_lake_category
+@Composable
+private fun categoryFor(vessel: StillwaterContainer): String = when (vessel) {
+    is LandStillwaterHabitat -> stringResource(R.string.land_stillwater_category, vessel.level, titleFor(vessel))
+    is StillwaterVessel -> stringResource(when (vessel) {
+        StillwaterVessel.FISHBOWL -> R.string.shell_stillwater_fishbowl_category
+        StillwaterVessel.AQUARIUM -> R.string.shell_stillwater_aquarium_category
+        StillwaterVessel.POND -> R.string.shell_stillwater_pond_category
+        StillwaterVessel.LAKE -> R.string.shell_stillwater_lake_category
+    })
 }
 
 @Composable
@@ -549,4 +608,5 @@ private fun categoryForZone(zone: CreatureZone): String = when (zone) {
     CreatureZone.DEEPER_REEF -> stringResource(R.string.shell_stillwater_aquarium_category)
     CreatureZone.OPEN_BLUE -> stringResource(R.string.shell_stillwater_pond_category)
     CreatureZone.GREAT_BLUE -> stringResource(R.string.shell_stillwater_lake_category)
+    else -> zoneTitle(theBlueZoneFor(zone))
 }

@@ -6,6 +6,8 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,7 +35,8 @@ import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.draw.drawTheBlueWate
 
 @Composable
 fun TheBlueEmptyOceanPage(
-    pageHeight: Dp
+    pageHeight: Dp,
+    onEncounter: () -> Unit = {}
 ) {
     val scheme = MaterialTheme.colorScheme
     val headerDescription = stringResource(R.string.the_blue_header_a11y)
@@ -74,7 +77,7 @@ fun TheBlueEmptyOceanPage(
             TheBlueOverlaySurface {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = stringResource(R.string.shell_room_the_blue_title),
+                        text = stringResource(R.string.land_realm_sea),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = scheme.onSurface
@@ -94,6 +97,13 @@ fun TheBlueEmptyOceanPage(
                         color = scheme.primary,
                         fontWeight = FontWeight.SemiBold
                     )
+                }
+            }
+            TheBlueOverlaySurface(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onEncounter)) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(stringResource(R.string.beyond_blue_title), style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold, color = scheme.primary)
+                    Text(stringResource(R.string.beyond_blue_life_waiting_depth), style = MaterialTheme.typography.bodySmall)
                 }
             }
         }

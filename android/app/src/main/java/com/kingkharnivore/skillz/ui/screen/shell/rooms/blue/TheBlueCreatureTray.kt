@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -36,7 +37,7 @@ fun TheBlueCreatureTray(
         TheBlueOverlaySurface {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(stringResource(R.string.the_blue_swimming_here), fontWeight = FontWeight.Bold)
+                    Text(stringResource(if (zone.zoneId.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND) R.string.land_living_here else R.string.the_blue_swimming_here), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f).padding(end = 8.dp))
                     Text(
                         text = stringResource(if (expanded) R.string.shell_hide else R.string.shell_view_all),
                         color = MaterialTheme.colorScheme.primary,
@@ -44,7 +45,7 @@ fun TheBlueCreatureTray(
                     )
                 }
                 if (zone.animals.isEmpty()) {
-                    Text(stringResource(R.string.the_blue_zone_waiting), style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(if (zone.zoneId.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND) R.string.land_zone_waiting else R.string.the_blue_zone_waiting), style = MaterialTheme.typography.bodySmall)
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
                         zone.animals.forEach { animal ->

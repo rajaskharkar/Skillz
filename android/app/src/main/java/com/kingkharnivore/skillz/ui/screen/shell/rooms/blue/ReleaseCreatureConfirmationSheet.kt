@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.localizedCreatureCount
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
 import com.kingkharnivore.skillz.ui.screen.shell.TheBlueAnimalGroupUiModel
@@ -90,6 +91,9 @@ fun ReleaseCreatureConfirmationSheet(
         if (selected > 0) group.level to selected else null
     }.toMap()
     val canRelease = totalSelected > 0 && !confirming
+    val selectedDescription = stringResource(R.string.creature_release_selected_a11y, totalSelected, ownedQuantity, name)
+    val rewardDescription = stringResource(R.string.creature_release_reward_a11y, totalReward)
+    val singleRewardDescription = stringResource(R.string.creature_release_reward_a11y, singleReleaseValue)
     val releaseButtonDescription = stringResource(R.string.shell_chest_release_button_a11y)
 
     fun updateSelected(index: Int, quantity: Int) {
@@ -145,7 +149,7 @@ fun ReleaseCreatureConfirmationSheet(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.semantics {
-                        contentDescription = "Selected $totalSelected of $ownedQuantity $name"
+                        contentDescription = selectedDescription
                     }
                 )
                 Text(
@@ -153,7 +157,7 @@ fun ReleaseCreatureConfirmationSheet(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.semantics {
-                        contentDescription = "You will receive $totalReward Pearls"
+                        contentDescription = rewardDescription
                     }
                 )
                 Text(stringResource(R.string.shell_creature_release_quick_select), fontWeight = FontWeight.SemiBold)
@@ -184,13 +188,13 @@ fun ReleaseCreatureConfirmationSheet(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.semantics {
-                        contentDescription = "You will receive $singleReleaseValue Pearls"
+                        contentDescription = singleRewardDescription
                     }
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.shell_creature_keep_swimming))
+                    Text(stringResource(if (animal.zoneId.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND) R.string.land_keep_living else R.string.shell_creature_keep_swimming))
                 }
                 Button(
                     onClick = {
@@ -231,6 +235,8 @@ private fun CreatureReleaseLevelSelector(
     onQuantityChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val levelDescription = stringResource(R.string.creature_release_level_a11y,
+        level, creatureName, ownedQuantity, selectedQuantity)
     val safeOwnedQuantity = ownedQuantity.coerceAtLeast(1)
     val decreaseDescription = stringResource(R.string.shell_creature_release_quantity_decrease_level, level, creatureName)
     val increaseDescription = stringResource(R.string.shell_creature_release_quantity_increase_level, level, creatureName)
@@ -238,7 +244,7 @@ private fun CreatureReleaseLevelSelector(
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = modifier.semantics {
-            contentDescription = "Level $level $creatureName. $ownedQuantity owned. $selectedQuantity selected."
+            contentDescription = levelDescription
         }
     ) {
         Column(
@@ -265,7 +271,7 @@ private fun CreatureReleaseLevelSelector(
                     Icon(Icons.Outlined.Remove, contentDescription = decreaseDescription)
                 }
                 Text(
-                    text = selectedQuantity.toString(),
+                    text = localizedCreatureCount(selectedQuantity),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -283,8 +289,8 @@ private fun CreatureReleaseLevelSelector(
                 steps = (safeOwnedQuantity - 1).coerceAtLeast(0)
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("0")
-                Text(safeOwnedQuantity.toString())
+                Text(localizedCreatureCount(0))
+                Text(localizedCreatureCount(safeOwnedQuantity))
             }
         }
     }

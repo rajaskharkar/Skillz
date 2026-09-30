@@ -20,6 +20,7 @@ android {
         versionName = "1.2.1"
 
         buildConfigField("boolean", "SHOW_SCORE", "true")
+        buildConfigField("boolean", "LAND_ENABLED", "true")
         buildConfigField("int", "PRIMARY_COLOR", "0xFF2F4F6F") // GryffindorRed
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -41,6 +42,8 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    testOptions.unitTests.all { it.workingDir = rootProject.projectDir }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -151,6 +154,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
 
     testImplementation(libs.junit)
+    testImplementation(kotlin("test"))
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation("androidx.room:room-testing:2.8.4")

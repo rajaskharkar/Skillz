@@ -1,0 +1,8 @@
+
+com.kingkharnivore.skillz.domain.land.LandLocalizationRuntimeTest:.
+
+Time: ०.११४
+
+OK (1 test)
+
+

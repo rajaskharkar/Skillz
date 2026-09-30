@@ -106,8 +106,14 @@ fun ShellChestScreen(
     val masteryCounts = uiState.badgeDashboard?.badges?.mapNotNull { badge ->
         BadgeDefinitionResolver.resolve(badge.badgeId).speciesId?.let { it to badge.count }
     }?.toMap().orEmpty()
-    val allStacks = remember(uiState.finds, uiState.chestSortOption, masteryCounts) {
-        buildChestInventoryStacks(uiState.finds, uiState.chestSortOption, masteryCounts)
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val resources = androidx.compose.ui.platform.LocalContext.current.resources
+    val locale = configuration.locales[0]
+    val creatureNames = remember(configuration) {
+        CreatureCatalog.all.associate { it.creatureId to resources.getString(it.titleRes) }
+    }
+    val allStacks = remember(uiState.finds, uiState.chestSortOption, masteryCounts, creatureNames, locale) {
+        buildChestInventoryStacks(uiState.finds, uiState.chestSortOption, masteryCounts, creatureNames, locale)
     }
     val neededForTrackedBadges = uiState.badgeDashboard?.badges?.filter { it.tracked }
         ?.flatMap { badge ->
@@ -121,6 +127,8 @@ fun ShellChestScreen(
     val stacks = remember(allStacks, uiState.chestFilter, neededForTrackedBadges) {
         allStacks.filter { stack -> when (uiState.chestFilter) {
             ChestFilterOption.All -> true
+            ChestFilterOption.Sea -> CreatureCatalog.get(stack.creatureId)?.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA
+            ChestFilterOption.Land -> CreatureCatalog.get(stack.creatureId)?.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND
             ChestFilterOption.ClosestToMastery -> stack.level >= 90
             ChestFilterOption.Mastered -> stack.level >= 99
             ChestFilterOption.NotMastered -> stack.level < 99
@@ -229,6 +237,8 @@ fun ShellChestScreen(
 
 private val ChestFilterOption.labelRes: Int get() = when(this) {
     ChestFilterOption.All -> R.string.chest_filter_all
+    ChestFilterOption.Sea -> R.string.land_realm_sea
+    ChestFilterOption.Land -> R.string.land_realm_land
     ChestFilterOption.ClosestToMastery -> R.string.chest_filter_closest
     ChestFilterOption.Mastered -> R.string.chest_filter_mastered
     ChestFilterOption.NotMastered -> R.string.chest_filter_not_mastered
@@ -246,7 +256,9 @@ private val ChestFilterOption.labelRes: Int get() = when(this) {
 internal fun buildChestInventoryStacks(
     finds: List<UserShellFindInstanceEntity>,
     sortOption: ChestSortOption = ChestSortOption.Level,
-    masteryCounts: Map<String, Int> = emptyMap()
+    masteryCounts: Map<String, Int> = emptyMap(),
+    creatureNames: Map<String, String> = emptyMap(),
+    locale: java.util.Locale = java.util.Locale.getDefault()
 ): List<ChestInventoryStackUiModel> =
     finds
         .asSequence()
@@ -257,11 +269,11 @@ internal fun buildChestInventoryStacks(
             val creature = CreatureCatalog.get(key.first)
             ChestInventoryStackUiModel(
                 creatureId = key.first,
-                creatureName = creature?.displayName ?: definitionTitleFallback(definition),
+                creatureName = creatureNames[key.first] ?: creature?.displayName ?: definitionTitleFallback(definition),
                 level = key.second,
                 count = creaturesAtLevel.size,
                 iconKey = definition.iconKey,
-                isStillwaterExclusive = creature?.sourceType == CreatureSourceType.STILLWATER,
+                isStillwaterExclusive = creature?.sourceType in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND),
                 totalValuePearls = CreatureEconomy.releaseValuePearls(key.first, key.second) * creaturesAtLevel.size,
                 newestAcquiredAtMs = creaturesAtLevel.maxOfOrNull { it.acquiredAt } ?: 0L,
                 oldestAcquiredAtMs = creaturesAtLevel.minOfOrNull { it.acquiredAt } ?: 0L,
@@ -271,16 +283,18 @@ internal fun buildChestInventoryStacks(
                 speciesMasteryCount = masteryCounts[key.first] ?: 0
             )
         }
-        .let { stacks -> sortChestInventoryStacks(stacks, sortOption) }
+        .let { stacks -> sortChestInventoryStacks(stacks, sortOption, locale) }
 
 internal fun sortChestInventoryStacks(
     stacks: List<ChestInventoryStackUiModel>,
-    sortOption: ChestSortOption
-): List<ChestInventoryStackUiModel> = stacks.sortedWith(chestStackComparator(sortOption))
+    sortOption: ChestSortOption,
+    locale: java.util.Locale = java.util.Locale.getDefault()
+): List<ChestInventoryStackUiModel> = stacks.sortedWith(chestStackComparator(sortOption, locale))
 
-private fun chestStackComparator(sortOption: ChestSortOption): Comparator<ChestInventoryStackUiModel> {
+private fun chestStackComparator(sortOption: ChestSortOption, locale: java.util.Locale): Comparator<ChestInventoryStackUiModel> {
+    val collator = Collator.getInstance(locale)
     val localizedName = Comparator<ChestInventoryStackUiModel> { left, right ->
-        Collator.getInstance().compare(left.creatureName, right.creatureName)
+        collator.compare(left.creatureName, right.creatureName)
     }
     val levelNameTieBreakers = compareByDescending<ChestInventoryStackUiModel> { it.level }
         .then(localizedName)
@@ -661,8 +675,8 @@ private fun ChestLevelUpConfirmationDialog(
                     if (preview.completesStillwater) Text(stringResource(R.string.level99_preview_completes_stillwater))
                     if (preview.restoresStillwaterRoster) Text(stringResource(R.string.level99_preview_restores_stillwater))
                     if (preview.completesRegion) Text(stringResource(R.string.level99_preview_completes_region))
-                    if (preview.completesBlue) Text(stringResource(R.string.level99_preview_completes_blue))
-                    if (preview.completesAllWaters) Text(stringResource(R.string.level99_preview_completes_all))
+                    if (preview.completesBlue) Text(creatureCompletionText(stack.creatureId))
+                    if (preview.completesAllWaters) Text(creatureCompletionText(stack.creatureId, includesHabitats = true))
                     if (preview.restoresRegionRoster || preview.restoresBlueRoster || preview.restoresAllWatersRoster) {
                         Text(stringResource(R.string.level99_preview_restores_roster))
                     }

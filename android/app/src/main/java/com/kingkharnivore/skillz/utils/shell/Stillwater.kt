@@ -2,11 +2,18 @@ package com.kingkharnivore.skillz.utils.shell
 
 import kotlin.random.Random
 
-enum class StillwaterVessel(
-    val dropCost: Long,
-    val level: Int,
+sealed interface StillwaterContainer {
+    val name: String
+    val dropCost: Long
+    val level: Int
     val zone: CreatureZone
-) {
+}
+
+enum class StillwaterVessel(
+    override val dropCost: Long,
+    override val level: Int,
+    override val zone: CreatureZone
+) : StillwaterContainer {
     FISHBOWL(15_000L, 1, CreatureZone.SUNLIT_REEF),
     AQUARIUM(25_000L, 2, CreatureZone.DEEPER_REEF),
     POND(45_000L, 3, CreatureZone.OPEN_BLUE),
@@ -24,18 +31,18 @@ data class StillwaterCreatureEntry(
 
 fun calculateDropsForSoftFlow(durationSeconds: Long): Long = durationSeconds.coerceAtLeast(0L)
 
-fun requiresStillwaterConfirmation(vessel: StillwaterVessel): Boolean =
-    vessel == StillwaterVessel.POND || vessel == StillwaterVessel.LAKE
+fun requiresStillwaterConfirmation(vessel: StillwaterContainer): Boolean =
+    vessel.dropCost >= StillwaterVessel.POND.dropCost
 
-fun stillwaterDropsNeeded(drops: Long, vessel: StillwaterVessel): Long =
+fun stillwaterDropsNeeded(drops: Long, vessel: StillwaterContainer): Long =
     (vessel.dropCost - drops).coerceAtLeast(0L)
 
-fun stillwaterVesselProgress(drops: Long, vessel: StillwaterVessel): Float =
+fun stillwaterVesselProgress(drops: Long, vessel: StillwaterContainer): Float =
     (drops.toFloat() / vessel.dropCost.toFloat()).coerceIn(0f, 1f)
 
 
 fun validateStillwaterDraw(
-    vessel: StillwaterVessel,
+    vessel: StillwaterContainer,
     unlockedZones: Set<CreatureZone>,
     claimableDrops: Long
 ) {
@@ -84,12 +91,7 @@ object StillwaterCatalog {
     fun creaturesFor(vessel: StillwaterVessel): List<StillwaterCreatureEntry> = creatures.filter { it.vessel == vessel }
 
     fun roll(vessel: StillwaterVessel, random: Random = Random.Default): StillwaterCreatureEntry {
-        val rarity = when (random.nextInt(100)) {
-            in 0..59 -> StillwaterRarity.COMMON
-            in 60..89 -> StillwaterRarity.UNCOMMON
-            in 90..97 -> StillwaterRarity.RARE
-            else -> StillwaterRarity.MYTHIC
-        }
+        val rarity = rollStillwaterRarity(random)
         val pool = creaturesFor(vessel).filter { it.rarity == rarity }
             .ifEmpty { creaturesFor(vessel) }
         return pool[random.nextInt(pool.size)]
@@ -101,4 +103,11 @@ object StillwaterCatalog {
         vessel: StillwaterVessel,
         rarity: StillwaterRarity
     ) = StillwaterCreatureEntry(creatureId, displayName, vessel, rarity)
+}
+
+internal fun rollStillwaterRarity(random: Random): StillwaterRarity = when (random.nextInt(100)) {
+    in 0..59 -> StillwaterRarity.COMMON
+    in 60..89 -> StillwaterRarity.UNCOMMON
+    in 90..97 -> StillwaterRarity.RARE
+    else -> StillwaterRarity.MYTHIC
 }

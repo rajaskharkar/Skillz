@@ -1,0 +1,56 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preScyraDebugBuild UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:generateScyraDebugBuildConfig UP-TO-DATE
+> Task :app:checkScyraDebugAarMetadata UP-TO-DATE
+> Task :app:processScyraDebugNavigationResources UP-TO-DATE
+> Task :app:compileScyraDebugNavigationResources UP-TO-DATE
+> Task :app:generateScyraDebugResValues UP-TO-DATE
+> Task :app:mapScyraDebugSourceSetPaths UP-TO-DATE
+> Task :app:generateScyraDebugResources UP-TO-DATE
+> Task :app:mergeScyraDebugResources UP-TO-DATE
+> Task :app:packageScyraDebugResources UP-TO-DATE
+> Task :app:parseScyraDebugLocalResources UP-TO-DATE
+> Task :app:createScyraDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksScyraDebug UP-TO-DATE
+> Task :app:processScyraDebugMainManifest UP-TO-DATE
+> Task :app:processScyraDebugManifest UP-TO-DATE
+> Task :app:processScyraDebugManifestForPackage UP-TO-DATE
+> Task :app:processScyraDebugResources UP-TO-DATE
+> Task :app:kspScyraDebugKotlin UP-TO-DATE
+> Task :app:compileScyraDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileScyraDebug UP-TO-DATE
+> Task :app:compileScyraDebugJavaWithJavac UP-TO-DATE
+> Task :app:transformScyraDebugClassesWithAsm UP-TO-DATE
+> Task :app:bundleScyraDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:preScyraDebugUnitTestBuild UP-TO-DATE
+> Task :app:processScyraDebugJavaRes UP-TO-DATE
+> Task :app:bundleScyraDebugClassesToCompileJar UP-TO-DATE
+> Task :app:javaPreCompileScyraDebugUnitTest UP-TO-DATE
+> Task :app:kspScyraDebugUnitTestKotlin
+> Task :app:compileScyraDebugUnitTestKotlin
+> Task :app:processScyraDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:compileScyraDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:transformScyraDebugUnitTestClassesWithAsm
+
+> Task :app:testScyraDebugUnitTest FAILED
+
+LandGrowthEconomyTest > everyArcFlagshipUsesItsZonesPremiumGrowthTier FAILED
+    java.lang.AssertionError at LandGrowthEconomyTest.kt:24
+
+LandGrowthEconomyTest > tigerMatchesLionAtEveryUpgradeableLevel FAILED
+    java.lang.AssertionError at LandGrowthEconomyTest.kt:32
+
+5 tests completed, 2 failed
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:testScyraDebugUnitTest'.
+> There were failing tests. See the report at: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/build/reports/tests/testScyraDebugUnitTest/index.html
+
+* Try:
+> Run with --scan to get full insights.
+
+BUILD FAILED in 4s
+30 actionable tasks: 4 executed, 26 up-to-date

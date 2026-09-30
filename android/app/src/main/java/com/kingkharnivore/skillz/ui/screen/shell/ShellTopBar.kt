@@ -40,7 +40,8 @@ fun ShellTopBar(
     pearlBasinHasIndicator: Boolean,
     notificationCount: Int,
     onBack: () -> Unit,
-    onNotifications: () -> Unit
+    onNotifications: () -> Unit,
+    blueRealm: com.kingkharnivore.skillz.utils.shell.CreatureRealm? = null
 ) {
     val scheme = MaterialTheme.colorScheme
 
@@ -51,7 +52,7 @@ fun ShellTopBar(
         ShellDestination.ShellChest -> stringResource(R.string.shell_chest_title)
         ShellDestination.Badges -> stringResource(R.string.shell_badges_title)
         ShellDestination.VoyagePreview -> stringResource(R.string.shell_room_voyage_title)
-        ShellDestination.TheBluePreview -> stringResource(R.string.shell_room_the_blue_title)
+        ShellDestination.TheBluePreview -> blueRealm?.let { stringResource(if (it == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA) R.string.land_realm_sea else R.string.land_realm_land) } ?: stringResource(R.string.shell_room_the_blue_title)
         ShellDestination.IdeaGrovePreview -> stringResource(R.string.shell_room_idea_title)
         ShellDestination.LookoutPreview -> stringResource(R.string.shell_room_lookout_title)
     }

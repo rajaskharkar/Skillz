@@ -7,6 +7,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Text
+import com.kingkharnivore.skillz.utils.shell.CreatureRealm
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -48,15 +59,56 @@ fun TheBlueRoomScreen(
     onEncounterBeyondBlue: (String, List<String>) -> Unit,
     onOpenChest: () -> Unit,
     focusRequest: PendingShellNavigation? = null,
-    onFocusResult: (String, NavigationConsumptionResult) -> Unit = { _, _ -> }
+    onFocusResult: (String, NavigationConsumptionResult) -> Unit = { _, _ -> },
+    realm: CreatureRealm? = null,
+    onSelectRealm: (CreatureRealm?) -> Unit = {}
+) {
+    LaunchedEffect(focusRequest) {
+        val collectionId = when(val request = focusRequest) {
+            is PendingShellNavigation.OpenBlueSpecies -> request.collectionId
+            is PendingShellNavigation.OpenBeyondBlue -> request.collectionId
+            else -> null
+        }
+        collectionId?.removePrefix("blue_")?.let { name ->
+            com.kingkharnivore.skillz.utils.shell.CreatureZone.entries.firstOrNull { it.name.lowercase() == name }
+                ?.let { onSelectRealm(it.realm) }
+        }
+    }
+    if (!com.kingkharnivore.skillz.BuildConfig.LAND_ENABLED) {
+        BlueRealmRoomScreen(uiState,onDisplayInFocus,onGrowCreature,onReleaseCreaturesByLevel,
+            onEncounterBeyondBlue,onOpenChest,focusRequest,onFocusResult,CreatureRealm.SEA) {}
+    } else if (realm == null) {
+        BlueRealmSelector(onSelectRealm)
+    } else {
+        BackHandler { onSelectRealm(null) }
+        androidx.compose.runtime.key(realm) {
+            BlueRealmRoomScreen(uiState, onDisplayInFocus, onGrowCreature, onReleaseCreaturesByLevel,
+                onEncounterBeyondBlue, onOpenChest, focusRequest, onFocusResult, realm) { onSelectRealm(null) }
+        }
+    }
+}
+
+@Composable
+private fun BlueRealmRoomScreen(
+    uiState: ShellUiState,
+    onDisplayInFocus: (String, String) -> Unit,
+    onGrowCreature: (String) -> Unit,
+    onReleaseCreaturesByLevel: (String, Map<Int, Int>) -> Unit,
+    onEncounterBeyondBlue: (String, List<String>) -> Unit,
+    onOpenChest: () -> Unit,
+    focusRequest: PendingShellNavigation? = null,
+    onFocusResult: (String, NavigationConsumptionResult) -> Unit,
+    realm: CreatureRealm,
+    onReturn: () -> Unit
 ) {
     val theBlueState = remember(uiState.finds, uiState.focusPlacements) {
-        buildTheBlueUiState(uiState.finds, uiState.focusPlacements)
+        buildTheBlueUiState(uiState.finds, uiState.focusPlacements, realm)
     }
+    val shownZones = theBlueState.zones
     var selectedAnimal by remember { mutableStateOf<TheBlueAnimalGroupUiModel?>(null) }
     var releaseCandidate by remember { mutableStateOf<TheBlueAnimalGroupUiModel?>(null) }
     var showBeyondBlue by remember { mutableStateOf(false) }
-    var beyondBlueInitialZone by remember { mutableStateOf(TheBlueZoneId.SUNLIT_REEF) }
+    var beyondBlueInitialZone by remember { mutableStateOf(if(realm == CreatureRealm.SEA) TheBlueZoneId.SUNLIT_REEF else TheBlueZoneId.GOLDEN_FIELDS) }
     var beyondBlueTargetSpeciesId by remember { mutableStateOf<String?>(null) }
     var entryNewAnimalFindIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     var railNavigationJob by remember { mutableStateOf<Job?>(null) }
@@ -67,7 +119,7 @@ fun TheBlueRoomScreen(
                 .toSet()
         }
     }
-    val pageCount = if (theBlueState.isEmpty) 1 else theBlueState.zones.size
+    val pageCount = if (theBlueState.isEmpty && realm == CreatureRealm.SEA) 1 else shownZones.size
     val pagerState = rememberPagerState(pageCount = { pageCount })
     LaunchedEffect(focusRequest, theBlueState.zones) {
         val request = focusRequest
@@ -94,14 +146,14 @@ fun TheBlueRoomScreen(
             }
         }
         val zoneName = collectionId.removePrefix("blue_")
-        val page = theBlueState.zones.indexOfFirst { it.zoneId.name.lowercase() == zoneName }
+        val page = shownZones.indexOfFirst { it.zoneId.name.lowercase() == zoneName }
         if (page < 0) {
             onFocusResult(request.requestId, NavigationConsumptionResult.Failed(NavigationFailureReason.DESTINATION_UNAVAILABLE))
             return@LaunchedEffect
         }
         pagerState.scrollToPage(page)
         if (request is PendingShellNavigation.OpenBeyondBlue) {
-            beyondBlueInitialZone = theBlueState.zones[page].zoneId
+            beyondBlueInitialZone = shownZones[page].zoneId
             beyondBlueTargetSpeciesId = request.speciesId
             showBeyondBlue = true
             withFrameNanos { }
@@ -110,11 +162,11 @@ fun TheBlueRoomScreen(
             withFrameNanos { }
             onFocusResult(request.requestId, NavigationConsumptionResult.Consumed)
         } else {
-            val targetAnimal = theBlueState.zones[page].animals.firstOrNull { it.findId == speciesId }
+            val targetAnimal = shownZones[page].animals.firstOrNull { it.findId == speciesId }
             val validation = validateBlueSpeciesFocus(
                 speciesId,
                 catalogSpeciesExists = species != null,
-                renderedSpeciesIds = theBlueState.zones[page].animals.mapTo(mutableSetOf()) { it.findId }
+                renderedSpeciesIds = shownZones[page].animals.mapTo(mutableSetOf()) { it.findId }
             )
             if (validation is NavigationConsumptionResult.Failed) {
                 onFocusResult(request.requestId, validation)
@@ -133,8 +185,8 @@ fun TheBlueRoomScreen(
             sceneTimeSeconds = (withFrameNanos { it } - startNanos) / 1_000_000_000f
         }
     }
-    val activeZone by remember(pagerState) {
-        derivedStateOf { theBlueZoneForPage(pagerState.currentPage) }
+    val activeZone by remember(pagerState, shownZones) {
+        derivedStateOf { shownZones.getOrNull(pagerState.currentPage)?.zoneId ?: TheBlueZoneId.SUNLIT_REEF }
     }
 
     BoxWithConstraints(
@@ -143,15 +195,26 @@ fun TheBlueRoomScreen(
             .background(shellBackground())
     ) {
         val pageHeight = maxHeight
+        Column(Modifier.fillMaxSize()) {
         VerticalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize()
         ) { page ->
-            if (theBlueState.isEmpty) {
-                TheBlueEmptyOceanPage(pageHeight = pageHeight)
+            if (theBlueState.isEmpty && realm == CreatureRealm.SEA) {
+                TheBlueEmptyOceanPage(pageHeight = pageHeight, onEncounter = {
+                    beyondBlueInitialZone = TheBlueZoneId.SUNLIT_REEF
+                    beyondBlueTargetSpeciesId = null
+                    showBeyondBlue = true
+                })
             } else {
-                val zone = theBlueState.zones[page]
-                TheBlueZonePage(
+                val zone = shownZones[page]
+                if (realm == CreatureRealm.LAND) {
+                    LandZonePage(zone, { sceneTimeSeconds }, { selectedAnimal = it }, { target ->
+                        beyondBlueInitialZone = zone.zoneId
+                        beyondBlueTargetSpeciesId = target
+                        showBeyondBlue = true
+                    }, onReturn)
+                } else TheBlueZonePage(
                     zone = zone,
                     state = theBlueState,
                     pageHeight = pageHeight,
@@ -171,14 +234,17 @@ fun TheBlueRoomScreen(
             }
         }
 
-        if (!theBlueState.isEmpty) {
+        }
+        if (!theBlueState.isEmpty || realm == CreatureRealm.LAND) {
             TheBlueDepthRail(
                 zones = theBlueState.zones.map { it.zoneId },
                 activeZone = activeZone,
                 onZoneClick = { target ->
                     railNavigationJob?.cancel()
                     railNavigationJob = scope.launch {
-                        for (zone in theBlueSequentialNavigationPath(theBlueZoneForPage(pagerState.currentPage), target)) {
+                        if (realm == CreatureRealm.LAND) {
+                            pagerState.animateScrollToPage(shownZones.indexOfFirst { it.zoneId == target })
+                        } else for (zone in theBlueSequentialNavigationPath(theBlueZoneForPage(pagerState.currentPage), target)) {
                             pagerState.animateScrollToPage(zone.depthOrder())
                         }
                     }

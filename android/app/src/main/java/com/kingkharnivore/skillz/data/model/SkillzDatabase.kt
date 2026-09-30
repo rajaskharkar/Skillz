@@ -58,6 +58,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
 
 @Database(
     entities = [
+        com.kingkharnivore.skillz.data.model.entity.ArcLandRewardEntity::class,
         TagEntity::class,
         SessionEntity::class,
         SessionCreationEntity::class,
@@ -100,10 +101,11 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
         ChronicleMomentEntity::class,
         ChronicleMediaItemEntity::class
     ],
-    version = 40,
+    version = 41,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
+    abstract fun arcLandRewardDao(): com.kingkharnivore.skillz.data.model.dao.ArcLandRewardDao
     abstract fun tagDao(): TagDao
     abstract fun sessionDao(): SessionDao
     abstract fun pulseDao(): PulseDao

@@ -211,7 +211,7 @@ object ShellContentCatalog {
         ShellFindDefinition(FOCUS_PEBBLES, R.string.shell_object_pebbles_title, R.string.shell_object_pebbles_description, ShellFindCategory.CORAL, ShellRoomId.FOCUS, "pebbles", "pebbles", true, false, false, setOf(ShellSlotType.REEF_SHELF, ShellSlotType.MEMORY_NOOK), 60, true, ShellRewardKind.OBJECT),
         ShellFindDefinition(FOCUS_CURTAIN, R.string.shell_object_curtain_title, R.string.shell_object_curtain_description, ShellFindCategory.PLANTS, ShellRoomId.FOCUS, "curtain", "curtain", true, false, false, setOf(ShellSlotType.CORAL_BED, ShellSlotType.SHELL_WALL), 140, true, ShellRewardKind.OBJECT),
         ShellFindDefinition(FOCUS_BUBBLES, R.string.shell_object_bubbles_title, R.string.shell_object_bubbles_description, ShellFindCategory.CORAL, ShellRoomId.FOCUS, "bubbles", "bubbles", true, false, false, setOf(ShellSlotType.CURRENT_PATH, ShellSlotType.CENTERPIECE, ShellSlotType.MEMORY_NOOK), 100, true, ShellRewardKind.OBJECT)
-    ) + stillwaterFinds
+    ) + stillwaterFinds + LandShellFinds.all
 
     val focusSlots = listOf(
         ShellSlotDefinition("left_reef_shelf", ShellRoomId.FOCUS, ShellSlotType.REEF_SHELF, R.string.shell_slot_left_reef_shelf, .18f, .34f, .28f, .14f, 2, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS, ShellFindCategory.CORAL)),

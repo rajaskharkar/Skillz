@@ -154,7 +154,7 @@ fun TheBlueZonePage(
                 Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
                     if (showRoomHeader) {
                         Text(
-                            text = stringResource(R.string.shell_room_the_blue_title),
+                            text = stringResource(R.string.land_realm_sea),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = scheme.onSurface
@@ -290,6 +290,7 @@ private fun renderedCreaturePlacements(
             CreatureSceneBehavior.GLIDE -> 4f
             CreatureSceneBehavior.CRUISE -> 5f
             CreatureSceneBehavior.LEGENDARY -> 6f
+            else -> 1f
         }
         fun rendererFor(findId: String): String = when (findId) {
             ShellContentCatalog.FOCUS_MINNOW -> "minnow"
@@ -552,7 +553,7 @@ private fun theBlueSceneSafeBounds(sceneWidth: Float, sceneHeight: Float): TheBl
     )
 }
 
-private fun lifePresencePlan(
+internal fun lifePresencePlan(
     animal: TheBlueAnimalGroupUiModel,
     definition: CreatureDefinition
 ): LifePresencePlan {

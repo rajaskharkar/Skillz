@@ -35,6 +35,11 @@ fun ArcSummaryContent(
         ShellContentCatalog.FOCUS_CURTAIN to stringResource(R.string.shell_object_curtain_title),
         ShellContentCatalog.FOCUS_BUBBLES to stringResource(R.string.shell_object_bubbles_title)
     )
+    val rewardIds = arc.shellSummary.animals.map { it.id } +
+        com.kingkharnivore.skillz.utils.shell.LandArcRewards.forFlowCount(arc.totalSessions).map { it.creatureId }
+    val creatureTitles = rewardIds.distinct().mapNotNull { id ->
+        com.kingkharnivore.skillz.utils.shell.CreatureCatalog.get(id)?.let { id to stringResource(it.titleRes) }
+    }.toMap()
     val badgeTitles = mapOf(
         "badge_flow_10_min" to stringResource(R.string.shell_badge_flow_10_title),
         "badge_flow_30_min" to stringResource(R.string.shell_badge_flow_30_title),
@@ -54,7 +59,7 @@ fun ArcSummaryContent(
         calmMode = calmMode,
         text = rememberRewardRevealTextProvider(),
         durationText = duration,
-        findTitle = { findTitles[it] },
+        findTitle = { findTitles[it] ?: creatureTitles[it] },
         badgeTitle = { badgeTitles[it] },
         discoveryTitle = { discoveryTitles[it] }
     )
@@ -73,6 +78,17 @@ fun ArcSummaryContent(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
         )
+        if (arc.landRewardsPending) {
+            val packageLabel = com.kingkharnivore.skillz.utils.shell.LandArcRewards.forFlowCount(arc.totalSessions)
+                .map { reward ->
+                    val name = creatureTitles.getValue(reward.creatureId)
+                    if (reward.quantity == 1) name else stringResource(R.string.land_reward_quantity, reward.quantity, name)
+                }.joinToString(" + ")
+            if (packageLabel.isNotEmpty()) {
+                Text(packageLabel, style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.land_rewards_pending), style = MaterialTheme.typography.bodySmall)
+            }
+        }
         RewardRevealDeck(cards = cards)
     }
 }

@@ -1,0 +1,278 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preScyraDebugBuild UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:generateScyraDebugBuildConfig UP-TO-DATE
+> Task :app:checkScyraDebugAarMetadata UP-TO-DATE
+> Task :app:processScyraDebugNavigationResources
+> Task :app:compileScyraDebugNavigationResources UP-TO-DATE
+> Task :app:generateScyraDebugResValues UP-TO-DATE
+> Task :app:mapScyraDebugSourceSetPaths
+> Task :app:generateScyraDebugResources
+> Task :app:mergeScyraDebugResources
+> Task :app:packageScyraDebugResources
+> Task :app:createScyraDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksScyraDebug UP-TO-DATE
+> Task :app:parseScyraDebugLocalResources
+> Task :app:processScyraDebugMainManifest
+> Task :app:processScyraDebugManifest
+> Task :app:javaPreCompileScyraDebug UP-TO-DATE
+> Task :app:preScyraDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileScyraDebugUnitTest UP-TO-DATE
+> Task :app:mergeScyraDebugNativeDebugMetadata NO-SOURCE
+> Task :app:mergeScyraDebugShaders UP-TO-DATE
+> Task :app:compileScyraDebugShaders NO-SOURCE
+> Task :app:generateScyraDebugAssets UP-TO-DATE
+> Task :app:mergeScyraDebugAssets UP-TO-DATE
+> Task :app:compressScyraDebugAssets UP-TO-DATE
+> Task :app:checkScyraDebugDuplicateClasses UP-TO-DATE
+> Task :app:desugarScyraDebugFileDependencies UP-TO-DATE
+> Task :app:mergeExtDexScyraDebug UP-TO-DATE
+> Task :app:mergeLibDexScyraDebug UP-TO-DATE
+> Task :app:mergeScyraDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeScyraDebugNativeLibs UP-TO-DATE
+> Task :app:stripScyraDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningScyraDebug UP-TO-DATE
+> Task :app:writeScyraDebugAppMetadata UP-TO-DATE
+> Task :app:writeScyraDebugSigningConfigVersions UP-TO-DATE
+> Task :app:processScyraDebugManifestForPackage
+> Task :app:processScyraDebugResources
+
+> Task :app:kspScyraDebugKotlin
+w: [ksp] No dependencies reported for generated source com.kingkharnivore.skillz.SkillzApplication_ComponentTreeDeps.java which willprevent incremental compilation.
+Please file a bug at https://issuetracker.google.com/issues/new?component=413107.
+
+> Task :app:compileScyraDebugKotlin
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/chronicle/ChronicleAudioRecorder.kt:17:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/chronicle/ChronicleAudioRecorder.kt:19:26 Non-public primary constructor is exposed via the generated 'copy()' method of the 'data' class.
+
+The generated 'copy()' will change its visibility in future releases.
+
+To suppress the warning do one of the following:
+- Annotate the data class with the '@ConsistentCopyVisibility' annotation.
+- Use the '-Xconsistent-data-class-copy-visibility' compiler flag.
+- Annotate the data class with the '@ExposedCopyVisibility' annotation 
+  (Discouraged, but can be used to keep binary compatibility).
+
+To learn more, see the documentation of the '@ConsistentCopyVisibility' and '@ExposedCopyVisibility' annotations.
+
+This will become an error in language version 2.5. See https://youtrack.jetbrains.com/issue/KT-11914.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/chronicle/ChronicleFileStore.kt:24:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/chronicle/LiveDictationEngine.kt:37:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/chronicle/TranscriptionEngine.kt:55:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/health/HealthConnectClientProvider.kt:11:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/model/shell/ShellDefinitions.kt:10:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/model/shell/ShellDefinitions.kt:11:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/model/shell/ShellDefinitions.kt:23:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/model/shell/ShellDefinitions.kt:24:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/model/shell/ShellDefinitions.kt:45:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/model/shell/ShellDefinitions.kt:58:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/model/shell/ShellDefinitions.kt:59:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/model/shell/ShellDefinitions.kt:63:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/model/shell/ShellDefinitions.kt:70:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/model/shell/ShellDefinitions.kt:71:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/model/shell/ShellDefinitions.kt:78:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/model/shell/ShellDefinitions.kt:79:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/data/model/shell/ShellDefinitions.kt:80:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/health/HealthComponents.kt:42:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/health/HealthComponents.kt:43:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/health/HealthComponents.kt:44:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/health/HealthComponents.kt:114:50 'val Icons.Outlined.DirectionsWalk: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.DirectionsWalk.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/health/HealthComponents.kt:214:32 'val Icons.Outlined.DirectionsWalk: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.DirectionsWalk.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/HelpScreen.kt:105:26 'val LocalLifecycleOwner: ProvidableCompositionLocal<LifecycleOwner>' is deprecated. Moved to lifecycle-runtime-compose library in androidx.lifecycle.compose package.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/HelpScreen.kt:654:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/NotepadScreen.kt:583:36 'val Icons.Filled.Undo: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Undo.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/NotepadScreen.kt:587:36 'val Icons.Filled.Redo: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Redo.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/NotepadScreen.kt:795:51 'constructor(capitalization: KeyboardCapitalization = ..., autoCorrect: Boolean, keyboardType: KeyboardType = ..., imeAction: ImeAction = ..., platformImeOptions: PlatformImeOptions? = ..., showKeyboardOnFocus: Boolean? = ..., hintLocales: LocaleList? = ...): KeyboardOptions' is deprecated. Please use the new constructor that takes optional autoCorrectEnabled parameter.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/SkillzTopAppBar.kt:162:36 'val Icons.Outlined.HelpOutline: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.HelpOutline.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/chronicle/ChronicleCamera.kt:402:56 'val Icons.Outlined.RotateLeft: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.RotateLeft.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/chronicle/ChronicleCamera.kt:414:56 'val Icons.Outlined.RotateRight: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.RotateRight.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/flow/FlowScreen.kt:225:43 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/shell/inventory/BadgesScreen.kt:520:1039 'val Icons.Outlined.ArrowForward: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.ArrowForward.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/shell/rooms/blue/LandEnvironmentDrawing.kt:34:17 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/shell/rooms/blue/LandEnvironmentDrawing.kt:92:60 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/shell/rooms/blue/LandEnvironmentDrawing.kt:92:136 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/shell/rooms/blue/LandEnvironmentDrawing.kt:122:57 'fun quadraticBezierTo(x1: Float, y1: Float, x2: Float, y2: Float): Unit' is deprecated. Use quadraticTo() for consistency with cubicTo().
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/shell/rooms/lookout/LookoutRoomScreen.kt:233:62 'val Icons.Outlined.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.ArrowBack.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/shell/rooms/lookout/LookoutRoomScreen.kt:646:33 'fun Modifier.menuAnchor(): Modifier' is deprecated. Use overload that takes ExposedDropdownMenuAnchorType and enabled parameters.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/shell/rooms/stillwater/StillwaterRoomScreen.kt:72:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/story/header/EmptySagasState.kt:52:46 'val Icons.Outlined.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.MenuBook.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/story/header/PeriodAndDateNavigator.kt:189:49 'val Icons.Filled.ArrowForwardIos: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowForwardIos.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/story/header/StoryHeaderScrollableWithStickyTabs.kt:170:55 'val Icons.Outlined.MenuBook: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.MenuBook.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/story/pulse/PulseScreen.kt:121:43 'val Icons.Filled.ArrowBack: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowBack.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/story/saga/SagaJourneyRow.kt:169:49 'val Icons.Filled.ArrowForwardIos: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.ArrowForwardIos.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/screen/story/saga/SagaPulseSection.kt:97:43 'val Icons.Filled.KeyboardArrowRight: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.KeyboardArrowRight.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/service/AliveFlowServiceController.kt:11:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/ui/service/SurgeHapticsManager.kt:14:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/utils/localization/AppLanguage.kt:8:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/utils/user/UserPrefs.kt:24:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/IdeaGroveViewModel.kt:52:9 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/IdeaGroveViewModel.kt:53:9 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/StoryViewModel.kt:64:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/StoryViewModel.kt:65:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/StoryViewModel.kt:472:47 Unchecked cast of 'Any?' to 'List<ChronicleSummary>'.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/StoryViewModel.kt:478:40 Unchecked cast of 'Any?' to 'List<SessionEntity>'.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/StoryViewModel.kt:484:46 Unchecked cast of 'Any?' to 'List<FlowHealthSnapshotEntity>'.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/StoryViewModel.kt:485:38 Unchecked cast of 'Any?' to 'List<PulseEntity>'.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/StoryViewModel.kt:491:35 Unchecked cast of 'Any?' to 'List<TagEntity>'.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/StoryViewModel.kt:492:44 Unchecked cast of 'Any?' to 'Set<Long>'.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/StoryViewModel.kt:500:43 Unchecked cast of 'Any?' to 'Map<Long, ArcMetadata>'.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/shell/LookoutViewModel.kt:166:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/shell/ShellViewModel.kt:85:25 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+w: file:///Users/rajaskharkar/Documents/software/android/Scyra/Skillz/android/app/src/main/java/com/kingkharnivore/skillz/viewmodel/shell/ShellViewModel.kt:161:5 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+
+> Task :app:compileScyraDebugJavaWithJavac
+> Task :app:processScyraDebugJavaRes UP-TO-DATE
+> Task :app:mergeScyraDebugJavaResource UP-TO-DATE
+> Task :app:transformScyraDebugClassesWithAsm
+> Task :app:bundleScyraDebugClassesToCompileJar
+> Task :app:bundleScyraDebugClassesToRuntimeJar
+> Task :app:dexBuilderScyraDebug
+> Task :app:mergeProjectDexScyraDebug
+> Task :app:kspScyraDebugUnitTestKotlin
+> Task :app:packageScyraDebug
+> Task :app:createScyraDebugApkListingFileRedirect
+> Task :app:assembleScyraDebug
+> Task :app:compileScyraDebugUnitTestKotlin
+> Task :app:processScyraDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:compileScyraDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:transformScyraDebugUnitTestClassesWithAsm
+> Task :app:testScyraDebugUnitTest
+
+BUILD SUCCESSFUL in 52s
+48 actionable tasks: 24 executed, 24 up-to-date

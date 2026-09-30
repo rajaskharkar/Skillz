@@ -6,6 +6,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -53,6 +55,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.localizedCreatureCount
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
@@ -62,7 +65,7 @@ import com.kingkharnivore.skillz.ui.screen.shell.TheBlueZoneId
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellMetricPill
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun BeyondBlueEncounterSheet(
     pearlBalance: Int,
@@ -87,7 +90,7 @@ fun BeyondBlueEncounterSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     val creatureListState = rememberLazyListState()
     val creatureDetailState = rememberLazyListState()
-    val confirmTarget = confirmTargetId?.let { CreatureCatalog.get(it) }
+    val confirmTarget = confirmTargetId?.let { CreatureCatalog.get(it) }?.takeIf { it.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.BEYOND_BLUE && it.isAvailable }
 
     val tradeStacks = remember(activeAnimalInstances) {
         activeAnimalInstances
@@ -159,7 +162,7 @@ fun BeyondBlueEncounterSheet(
                     Text(stringResource(R.string.beyond_blue_zone_encounters, zoneTitle(selectedZone)))
                     Text(zoneSubtitle(selectedZone))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                        TheBlueZoneId.entries.forEach { zone ->
+                        TheBlueZoneId.entries.filter { it.realm == initialZone.realm }.forEach { zone ->
                             FilterChip(selected = selectedZone == zone, onClick = { selectedZone = zone }, label = { Text(zoneRailLabel(zone)) })
                         }
                     }
@@ -169,9 +172,26 @@ fun BeyondBlueEncounterSheet(
             if (confirmTarget == null) {
                 val selectedCreatureZone = selectedZone.toCreatureZone()
                 items(
-                    items = CreatureCatalog.beyondBlue.filter { it.zone == selectedCreatureZone },
+                    items = (if (selectedZone.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND)
+                        com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.main else CreatureCatalog.beyondBlue)
+                        .filter { it.zone == selectedCreatureZone },
                     key = { target -> target.creatureId }
                 ) { target ->
+                        if (target.sourceType != com.kingkharnivore.skillz.utils.shell.CreatureSourceType.BEYOND_BLUE) {
+                            ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                                Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    ShellObjectIcon(target.staticIconKey, Modifier.size(46.dp))
+                                    Text(stringResource(target.titleRes), fontWeight = FontWeight.Bold)
+                                    if (target.sourceType == com.kingkharnivore.skillz.utils.shell.CreatureSourceType.ARC_EARNED) {
+                                        Text(stringResource(R.string.land_arc_requirement, requireNotNull(target.arcFlowRequirement)))
+                                        Text(stringResource(R.string.land_not_for_sale), style = MaterialTheme.typography.labelMedium)
+                                    } else {
+                                        Text(stringResource(R.string.collection_land_stillwater))
+                                        Text(stringResource(R.string.land_acquisition_unavailable), style = MaterialTheme.typography.labelMedium)
+                                    }
+                                }
+                            }
+                        } else {
                         val targetName = target.titleRes.takeIf { it != 0 }?.let { stringResource(it) }
                             ?: stringResource(R.string.badge_creature_fallback)
                         val requirement = target.requirementMinutes ?: 0
@@ -186,12 +206,13 @@ fun BeyondBlueEncounterSheet(
                                 ShellObjectIcon(target.staticIconKey, Modifier.size(46.dp))
                                 Text(targetName, fontWeight = FontWeight.Bold)
                                 Text(zoneTitle(theBlueZoneFor(target.zone)), style = MaterialTheme.typography.labelMedium)
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     ShellMetricPill(Icons.Outlined.Diamond, stringResource(R.string.beyond_blue_or_pearls, price))
                                     ShellMetricPill(Icons.Outlined.Route, formatMinutesCompact(requirement))
                                     ShellMetricPill(Icons.Outlined.WaterDrop, if (canAfford) stringResource(R.string.beyond_blue_ready_to_buy) else stringResource(R.string.beyond_blue_need_more_pearls, (price - pearlBalance).coerceAtLeast(0)))
                                 }
                             }
+                        }
                         }
                 }
             } else {
@@ -208,8 +229,8 @@ fun BeyondBlueEncounterSheet(
                             ShellObjectIcon(target.staticIconKey, Modifier.size(56.dp))
                             Text(name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                             Text(zoneTitle(theBlueZoneFor(target.zone)), color = MaterialTheme.colorScheme.primary)
-                            Text(stringResource(R.string.beyond_blue_life_waiting_depth))
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(if(target.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND) stringResource(R.string.land_life_waiting) else stringResource(R.string.beyond_blue_life_waiting_depth))
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 ShellMetricPill(Icons.Outlined.Route, formatMinutesCompact(requirement))
                                 ShellMetricPill(Icons.Outlined.Diamond, stringResource(R.string.beyond_blue_or_pearls, pearlOnlyPrice))
                             }
@@ -309,7 +330,7 @@ fun BeyondBlueEncounterSheet(
                                     ) {
                                         Icon(Icons.Default.Remove, stringResource(R.string.beyond_blue_remove_one, findName(stack.findId)), Modifier.size(20.dp))
                                     }
-                                    Text(selected.toString(), Modifier.widthIn(min = 24.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                    Text(localizedCreatureCount(selected), Modifier.widthIn(min = 24.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                                     FilledTonalIconButton(
                                         onClick = { selectedCounts = selectedCounts + (stack.key to (selected + 1).coerceAtMost(stack.instances.size)) },
                                         enabled = selected < stack.instances.size,
