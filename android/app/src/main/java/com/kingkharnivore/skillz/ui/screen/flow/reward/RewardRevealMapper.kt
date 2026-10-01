@@ -88,7 +88,10 @@ fun buildSessionRewardCards(
             add(text.baseFlow(reward.baseScyraPoints))
             val totalTimeBonuses = reward.tenMinuteBonuses * 5 + reward.thirtyMinuteBonuses * 15 + reward.sixtyMinuteBonuses * 50
             if (totalTimeBonuses > 0) add(text.timeBonuses(totalTimeBonuses))
-            if (reward.surgePoints > 0) add(text.surge(reward.surgePoints))
+            // The stored Surge score includes the minute-based Flow score, but not time
+            // bonuses. Show only its extra points; leave awarded totals and stored data intact.
+            val surgeBonusPoints = (reward.surgePoints - reward.minutes).coerceAtLeast(0)
+            if (surgeBonusPoints > 0) add(text.surge(surgeBonusPoints))
             if (reward.arcBonusPoints > 0) add(text.arcBonus(reward.arcBonusPoints))
             reward.arcMultiplierUsed?.let { add(text.arcMultiplier(it)) }
             add(text.swipeFlowHint())

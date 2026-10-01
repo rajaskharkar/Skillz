@@ -659,6 +659,7 @@
     <string name="story_helpers_saga_subtitle_week_past">त्या आठवड्याची नोंद</string>
     <string name="story_helpers_saga_subtitle_month_current">या महिन्याची नोंद</string>
     <string name="story_helpers_saga_subtitle_month_past">त्या महिन्याची नोंद</string>
+    <string name="surge_pill_target_duration">· %1$d मिनिटे</string>
     <string name="arc_pill_title">आर्क</string>
     <string name="arc_pill_flow_label">फ्लो</string>
     <string name="arc_pill_pending">प्रलंबित</string>

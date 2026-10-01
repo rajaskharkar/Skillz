@@ -1,0 +1,22 @@
+[
+  {
+    "stage": "running",
+    "timer": "-03:27",
+    "overtimeSeconds": 207
+  },
+  {
+    "stage": "ticker advanced",
+    "timer": "-03:31",
+    "overtimeSeconds": 211
+  },
+  {
+    "stage": "background return",
+    "timer": "-03:37",
+    "overtimeSeconds": 217
+  },
+  {
+    "stage": "process recreation",
+    "timer": "-03:47",
+    "overtimeSeconds": 227
+  }
+]

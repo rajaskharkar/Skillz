@@ -7,6 +7,7 @@ import com.kingkharnivore.skillz.model.state.flow.ArcSummaryUiModel
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 import com.kingkharnivore.skillz.model.state.flow.RewardRevealAnimationStyle
 import com.kingkharnivore.skillz.model.state.flow.RewardRevealCardType
+import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -14,6 +15,79 @@ import org.junit.Test
 
 class RewardRevealMapperTest {
     private val text = FakeRewardRevealTextProvider()
+
+    @Test
+    fun fourMinuteSurgeEndedAtThreeMinutesTenSecondsShowsOnlyOneBonusPoint() {
+        val reward = surgeReward(targetMs = 240_000L, elapsedMs = 190_000L, finalPoints = 4)
+        val card = scoreCard(reward)
+
+        assertEquals(4, reward.surgePoints)
+        assertEquals("4 Scyra Points", card.title)
+        assertEquals("4 Scyra Points", card.amountText)
+        assertTrue(card.body!!.lines().contains("Base Flow 3"))
+        assertTrue(card.body!!.lines().contains("Surge +1"))
+        assertFalse(card.body!!.contains("Surge +4"))
+        assertTrue(card.contentDescription.contains("Surge +1"))
+        assertFalse(card.contentDescription.contains("Surge +4"))
+    }
+
+    @Test
+    fun surgeBonusSubtractsBaseMinutesWithoutSubtractingTimeBonusesAgain() {
+        val reward = surgeReward(targetMs = 1_800_000L, elapsedMs = 1_800_000L, finalPoints = 55)
+        val card = scoreCard(reward)
+
+        assertEquals(41, reward.surgePoints)
+        assertEquals(55, reward.baseScyraPoints)
+        assertTrue(card.body!!.lines().contains("Surge +11"))
+        assertTrue(card.body!!.lines().contains("Time bonuses +25"))
+        assertEquals("55 Scyra Points", card.title)
+    }
+
+    @Test
+    fun noExtraSurgePointsOmitsBonusInsteadOfShowingBaseOrNegativePoints() {
+        listOf(0, 3, 4).forEach { grossSurgePoints ->
+            val reward = surgeReward(targetMs = 240_000L, elapsedMs = 300_000L, finalPoints = 5)
+                .copy(surgePoints = grossSurgePoints)
+            val card = scoreCard(reward)
+
+            assertFalse(card.body!!.contains("Surge +"))
+            assertFalse(card.contentDescription.contains("Surge +"))
+            assertEquals("5 Scyra Points", card.title)
+        }
+    }
+
+    @Test
+    fun surgeDisplayDoesNotTreatArcOrMovementPointsAsSurgeBonus() {
+        val reward = surgeReward(targetMs = 240_000L, elapsedMs = 190_000L, finalPoints = 16)
+            .copy(movementPoints = 7L, arcBonusPoints = 6, arcMultiplierUsed = 1.6)
+        val card = scoreCard(reward)
+
+        assertTrue(card.body!!.lines().contains("Surge +1"))
+        assertTrue(card.body!!.lines().contains("Arc bonus +6"))
+        assertEquals("16 Scyra Points", card.title)
+    }
+
+    private fun surgeReward(targetMs: Long, elapsedMs: Long, finalPoints: Int): FlowRewardUiModel {
+        val breakdown = ScoreCalculator.breakdownFromDuration(elapsedMs)
+        return FlowRewardUiModel(
+            minutes = breakdown.minutes,
+            baseScyraPoints = breakdown.totalPoints,
+            tenMinuteBonuses = breakdown.tenMinuteBonuses,
+            thirtyMinuteBonuses = breakdown.thirtyMinuteBonuses,
+            sixtyMinuteBonuses = breakdown.sixtyMinuteBonuses,
+            finalScyraPoints = finalPoints,
+            surgePoints = ScoreCalculator.surgePoints(targetMs, elapsedMs)
+        )
+    }
+
+    private fun scoreCard(reward: FlowRewardUiModel) = buildSessionRewardCards(
+        reward = reward,
+        calmMode = false,
+        text = text,
+        findTitle = ::findTitle,
+        badgeTitle = ::badgeTitle,
+        discoveryTitle = ::discoveryTitle
+    ).first()
 
     @Test
     fun regularFlowUnifiesScyraPointsAndPearls() {
