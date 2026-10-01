@@ -15,7 +15,10 @@ interface ArcContinuationStore {
 }
 
 /** Owns the persisted transition between active and recently-ended Arc state. */
-class ArcContinuationLifecycle(private val store: ArcContinuationStore) {
+class ArcContinuationLifecycle(
+    private val store: ArcContinuationStore,
+    private val firstFlowStartedAtMs: suspend (Long) -> Long? = { null }
+) {
     suspend fun completeArc(finalState: ArcRuntimeState, flowEndTimeMs: Long) {
         store.saveRecentlyEnded(
             state = finalState.copy(lastSessionEndTimeMs = flowEndTimeMs),
@@ -37,7 +40,13 @@ class ArcContinuationLifecycle(private val store: ArcContinuationStore) {
             return null
         }
 
-        val started = if (isSoftFlow) resolved.resetMultiplierForSoftFlow() else resolved
+        // A new Flow gets a fresh allowance; resuming an existing Flow never uses this path.
+        val freshFlow = resolved.copy(
+            pauseUsedMs = 0L,
+            pauseStartedAtMs = null,
+            startedAtMs = resolved.startedAtMs ?: firstFlowStartedAtMs(resolved.arcId) ?: flowStartTimeMs
+        )
+        val started = if (isSoftFlow) freshFlow.resetMultiplierForSoftFlow() else freshFlow
         store.saveActive(started)
         store.clearRecentlyEnded()
         return started

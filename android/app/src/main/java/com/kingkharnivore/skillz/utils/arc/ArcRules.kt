@@ -6,7 +6,10 @@ object ArcRules {
     const val STEP = 0.1
     const val START_MULTIPLIER = 1.3
 
-    const val PAUSE_BUDGET_EARLY_MS = 2 * 60_000L   // until flow 3
-    const val PAUSE_BUDGET_LATE_MS  = 5 * 60_000L   // flow 3+
-    const val PAUSE_BUDGET_ULTRA_MS = 10 * 60_000L // flow 10+
+    const val FRESH_PAUSE_WINDOW_MS = 3 * 60 * 60_000L
+    const val LONG_PAUSE_THRESHOLD_MS = 24 * 60 * 60_000L
+    const val EXTENDED_PAUSE_THRESHOLD_MS = 72 * 60 * 60_000L
+    const val PAUSE_BUDGET_DEFAULT_MS = 5 * 60_000L
+    const val PAUSE_BUDGET_LONG_MS = 30 * 60_000L
+    const val PAUSE_BUDGET_EXTENDED_MS = 60 * 60_000L
 }
