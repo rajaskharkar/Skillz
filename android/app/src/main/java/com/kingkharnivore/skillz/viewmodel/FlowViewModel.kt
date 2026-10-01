@@ -152,7 +152,9 @@ class FlowViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val flowStartMutex = Mutex()
-    private val arcContinuationLifecycle = ArcContinuationLifecycle(arcPrefs)
+    private val arcContinuationLifecycle = ArcContinuationLifecycle(arcPrefs) { arcId ->
+        sessionRepository.getSessionsForArc(arcId).minOfOrNull { it.startTime }
+    }
     private val arcFlowStartCoordinator = ArcFlowStartCoordinator(arcContinuationLifecycle, serializeStart = { landArcFinalizer.startFlow(it) })
 
     private val plannedArcTitleOverride: String? =
@@ -530,7 +532,13 @@ class FlowViewModel @Inject constructor(
             val plannedHandoff = arcPrefs.loadPlannedFlowHandoff()
 
             if (ongoing?.arcId != null) {
-                arcState = ArcPauseTiming.restore(arcPrefs.load(), ongoing)
+                val savedArc = arcPrefs.load()
+                val firstFlowStartedAt = if (savedArc?.arcId == ongoing.arcId && savedArc.startedAtMs != null) {
+                    savedArc.startedAtMs
+                } else {
+                    sessionRepository.getSessionsForArc(ongoing.arcId).minOfOrNull { it.startTime }
+                }
+                arcState = ArcPauseTiming.restore(savedArc, ongoing, firstFlowStartedAt)
                 arcPrefs.save(arcState!!)
             } else if (activePlannedRun != null && isPlannedArcLaunch()) {
                 arcState = arcPrefs.load()
@@ -953,13 +961,7 @@ class FlowViewModel @Inject constructor(
         activeIntervalStartMs = null
         baseStartTimeMs = null
 
-        arcState = arcState?.let { s ->
-            if (s.pauseStartedAtMs == null) {
-                s.copy(pauseStartedAtMs = now)
-            } else {
-                s
-            }
-        }
+        arcState = arcState?.let { ArcPauseTiming.beginPause(it, now) }
 
         arcState?.let { s ->
             viewModelScope.launch { arcPrefs.save(s) }
@@ -1537,7 +1539,8 @@ class FlowViewModel @Inject constructor(
                     multiplier = ArcRules.START_MULTIPLIER,
                     progressMs = 0L,
                     lastSessionEndTimeMs = sessionEnd,
-                    sessionCountInArc = 1
+                    sessionCountInArc = 1,
+                    startedAtMs = sessionStart
                 )
                 arcPrefs.save(arcState!!)
                 syncArcUi()

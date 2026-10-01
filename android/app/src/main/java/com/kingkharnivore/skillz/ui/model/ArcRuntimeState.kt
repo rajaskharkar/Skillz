@@ -8,7 +8,9 @@ data class ArcRuntimeState(
     val lastSessionEndTimeMs: Long,
     val sessionCountInArc: Int,
     val pauseUsedMs: Long = 0L,
-    val pauseStartedAtMs: Long? = null
+    val pauseStartedAtMs: Long? = null,
+    /** Wall-clock start of the first Flow, preserved across all continuations. */
+    val startedAtMs: Long? = null
 ) {
     companion object {
         const val BASE_MULTIPLIER = 1.0
