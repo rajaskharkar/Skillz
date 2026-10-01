@@ -21,6 +21,92 @@ class SkillzMigrationTest {
         SkillzDatabase::class.java
     )
 
+    @Test fun migration41To42PreservesEveryExistingColumnAcrossAllTables() {
+        val before = helper.createDatabase(TEST_DB, 41)
+        val tables = before.query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' " +
+                "AND name NOT IN ('room_master_table', 'android_metadata') ORDER BY name"
+        ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.getString(0)) } }
+        assertEquals(42, tables.size)
+
+        // Seed every table, including Chronicle/media, rewards, plans, and the ongoing Flow.
+        // Use matching keys and defer FK checks until all referenced records exist.
+        before.beginTransaction()
+        try {
+            before.execSQL("PRAGMA defer_foreign_keys = ON")
+            tables.forEach { table ->
+                val values = before.query("PRAGMA table_info(`$table`)").use { cursor ->
+                    buildList<Any?> {
+                        while (cursor.moveToNext()) {
+                            val type = cursor.getString(cursor.getColumnIndexOrThrow("type"))
+                            val required = cursor.getInt(cursor.getColumnIndexOrThrow("notnull")) != 0 ||
+                                cursor.getInt(cursor.getColumnIndexOrThrow("pk")) != 0
+                            add(if (!required) null else when (type) {
+                                "INTEGER" -> 1L
+                                "REAL" -> 1.25
+                                else -> "Preserved history 🌀"
+                            })
+                        }
+                    }
+                }
+                before.execSQL(
+                    "INSERT INTO `$table` VALUES (${values.joinToString { "?" }})",
+                    values.toTypedArray()
+                )
+            }
+            before.setTransactionSuccessful()
+        } finally {
+            before.endTransaction()
+        }
+        val snapshots = tables.associateWith { table ->
+            before.query("SELECT * FROM `$table`").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                cursor.columnNames.toList() to List(cursor.columnCount) { column ->
+                    if (cursor.isNull(column)) null else cursor.getString(column)
+                }
+            }
+        }
+        before.close()
+
+        val after = helper.runMigrationsAndValidate(TEST_DB, 42, true, SkillzDatabaseMigrations.MIGRATION_41_42)
+        snapshots.forEach { (table, snapshot) ->
+            val (columns, values) = snapshot
+            after.query("SELECT ${columns.joinToString { "`$it`" }} FROM `$table`").use { cursor ->
+                assertTrue("Missing record in $table", cursor.moveToFirst())
+                val migratedValues = List(cursor.columnCount) { column ->
+                    if (cursor.isNull(column)) null else cursor.getString(column)
+                }
+                assertEquals("Changed existing data in $table", values, migratedValues)
+                assertTrue("Unexpected extra record in $table", !cursor.moveToNext())
+            }
+        }
+        after.query("PRAGMA foreign_key_check").use { assertTrue(!it.moveToFirst()) }
+        after.close()
+    }
+
+    @Test fun migration41To42PreservesFlowsAndBackfillsAvailableActiveIntervals() {
+        helper.createDatabase(TEST_DB, 41).apply {
+            execSQL("INSERT INTO tags (id,name,createdAt) VALUES (1,'Journey',1)")
+            execSQL("INSERT INTO sessions (id,title,description,tagId,startTime,endTime,durationMs,surgePlannedMs,surgePoints,scyraPoints,isSoftMode,arcId,arcIndex,arcMultiplierUsed,arcBonusPoints,createdAt) VALUES (1,'Flow','',1,1,20,10,NULL,0,1,0,42,1,1.0,0,20),(2,'Legacy','',1,20,30,10,NULL,0,1,0,42,2,1.0,0,30)")
+            execSQL("""INSERT INTO flow_health_snapshots
+                (sessionId,healthEnabledAtStart,permissionGrantedAtStart,status,steps,rawMovementPoints,
+                finalMovementScyraContribution,finalMovementPearlContribution,firstCheckedAtMs,lastCheckedAtMs,
+                capturedAtMs,expiresAtMs,checkCount,flowStartTimeMs,flowEndTimeMs,activeIntervalJson,sourceLabel,updatedAfterSync)
+                VALUES (1,1,0,'NOT_ELIGIBLE',NULL,0,0,0,NULL,NULL,NULL,NULL,0,1,20,'1-6;15-20',NULL,0)""")
+            close()
+        }
+        val db = helper.runMigrationsAndValidate(TEST_DB, 42, true, SkillzDatabaseMigrations.MIGRATION_41_42)
+        db.query("SELECT id,durationMs,activeIntervalJson FROM sessions ORDER BY id").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(10L, c.getLong(1))
+            assertEquals("1-6;15-20", c.getString(2))
+            assertTrue(c.moveToNext())
+            assertEquals(10L, c.getLong(1))
+            assertTrue(c.isNull(2))
+        }
+        db.close()
+    }
+
     @Test fun migration36To37AddsArcMetadataWithoutChangingFlows() {
         helper.createDatabase(TEST_DB, 36).apply {
             execSQL("INSERT INTO tags (id,name,createdAt) VALUES (1,'Journey',1)")

@@ -37,5 +37,6 @@ data class SessionEntity(
     val arcIndex: Int? = null,
     val arcMultiplierUsed: Double? = null,
     val arcBonusPoints: Int = 0,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val activeIntervalJson: String? = null
 )

@@ -42,6 +42,7 @@ import com.kingkharnivore.skillz.ui.model.ArcRuntimeState
 import com.kingkharnivore.skillz.ui.navigation.SkillzDestinations
 import com.kingkharnivore.skillz.ui.service.AliveFlowServiceController
 import com.kingkharnivore.skillz.ui.service.SurgeHapticsManager
+import com.kingkharnivore.skillz.utils.arc.ArcPauseTiming
 import com.kingkharnivore.skillz.utils.arc.ArcPrefs
 import com.kingkharnivore.skillz.utils.arc.ArcContinuationLifecycle
 import com.kingkharnivore.skillz.utils.arc.ArcContinuationResolver
@@ -501,18 +502,7 @@ class FlowViewModel @Inject constructor(
         now: Long,
         s: ArcRuntimeState
     ): Long {
-        val pauseBudget = arcPauseBudgetMs(s)
-
-        val activePauseElapsed = if (s.pauseStartedAtMs != null) {
-            now - s.pauseStartedAtMs
-        } else {
-            0L
-        }
-
-        val totalPauseUsed = s.pauseUsedMs + activePauseElapsed
-        val remaining = pauseBudget - totalPauseUsed
-
-        return remaining.coerceAtLeast(0L)
+        return ArcPauseTiming.remainingMs(s, now)
     }
 
     init {
@@ -539,18 +529,11 @@ class FlowViewModel @Inject constructor(
             val activePlannedRun = activeArcRunRepository.getActiveArcRunOnce()
             val plannedHandoff = arcPrefs.loadPlannedFlowHandoff()
 
-            if (activePlannedRun != null && isPlannedArcLaunch()) {
-                arcState = arcPrefs.load()
-            } else if (ongoing?.arcId != null) {
-                arcState = ArcRuntimeState(
-                    arcId = ongoing.arcId,
-                    isPending = (ongoing.arcSessionCountInArc ?: 0) < 2,
-                    multiplier = ongoing.arcChainBase ?: ArcRules.START_MULTIPLIER,
-                    progressMs = 0L,
-                    lastSessionEndTimeMs = ongoing.arcLastSessionEndTimeMs ?: 0L,
-                    sessionCountInArc = ongoing.arcSessionCountInArc ?: 0
-                )
+            if (ongoing?.arcId != null) {
+                arcState = ArcPauseTiming.restore(arcPrefs.load(), ongoing)
                 arcPrefs.save(arcState!!)
+            } else if (activePlannedRun != null && isPlannedArcLaunch()) {
+                arcState = arcPrefs.load()
             } else {
                 arcState = loadActiveArc(ongoing)
             }
@@ -567,7 +550,7 @@ class FlowViewModel @Inject constructor(
                 arcPrefs.save(arcState!!)
             }
 
-            syncArcUi()
+            // Restore the stopwatch before starting Arc countdown/expiry checks.
 
             if (plannedHandoff == ArcPrefs.PlannedFlowHandoff.BLANK_ARC_CONTINUATION) {
                 activeArcRunRepository.clear()
@@ -739,6 +722,8 @@ class FlowViewModel @Inject constructor(
             }
 
             if (_uiState.value.isSoftMode) enterSoftModePreservingArc(persistSnapshotIfAlreadyApplied = true)
+            expirePausedArcIfNeeded(System.currentTimeMillis())
+            syncArcUi()
         }
     }
 
@@ -905,8 +890,12 @@ class FlowViewModel @Inject constructor(
     private fun concludeArc(reason: String) {
         val s = arcState ?: return
         val arcId = s.arcId
+        arcState = null
+        syncArcUi()
 
         viewModelScope.launch {
+            arcPrefs.clear()
+            saveOngoingNow()
             val arcSessions = sessionRepository.getSessionsForArc(arcId)
             val summary = if (arcSessions.isNotEmpty()) {
                 ArcSummaryUiModel(
@@ -938,20 +927,14 @@ class FlowViewModel @Inject constructor(
                 )
                 if (summary.landRewardsPending) observeFinalLandSummary(arcId)
             }
-
-            arcState = null
-            syncArcUi()
-            arcPrefs.clear()
-            saveOngoing()
         }
     }
 
-    private fun arcPauseBudgetMs(s: ArcRuntimeState): Long {
-        val nextIndex = s.sessionCountInArc + 1
-        return when {
-            nextIndex <= 3 -> ArcRules.PAUSE_BUDGET_EARLY_MS
-            nextIndex >= 10 -> ArcRules.PAUSE_BUDGET_ULTRA_MS
-            else -> ArcRules.PAUSE_BUDGET_LATE_MS
+    private fun expirePausedArcIfNeeded(now: Long) {
+        val state = arcState ?: return
+        if (!_uiState.value.stopwatch.isRunning && state.pauseStartedAtMs != null &&
+            computePauseRemainingMs(now, state) == 0L) {
+            concludeArc("pause_limit")
         }
     }
 
@@ -981,8 +964,6 @@ class FlowViewModel @Inject constructor(
         arcState?.let { s ->
             viewModelScope.launch { arcPrefs.save(s) }
         }
-        syncArcUi()
-
         _uiState.update {
             it.copy(
                 stopwatch = it.stopwatch.copy(
@@ -992,7 +973,7 @@ class FlowViewModel @Inject constructor(
             )
         }
         stopTicker()
-        startArcCountdown()
+        syncArcUi()
         saveOngoing()
     }
 
@@ -1043,24 +1024,17 @@ class FlowViewModel @Inject constructor(
         startArcCountdown()
     }
 
-    private fun applyArcPauseAccountingOnResume(now: Long) {
+    private suspend fun applyArcPauseAccountingOnResume(now: Long) {
         val s = arcState ?: return
-        val started = s.pauseStartedAtMs ?: return
+        if (s.pauseStartedAtMs == null) return
 
-        val pausedDelta = (now - started).coerceAtLeast(0L)
-        val newUsed = s.pauseUsedMs + pausedDelta
-        val budget = arcPauseBudgetMs(s)
-
-        if (newUsed > budget) {
+        if (ArcPauseTiming.remainingMs(s, now) == 0L) {
             concludeArc(reason = "pause_limit")
             return
         }
 
-        arcState = s.copy(
-            pauseUsedMs = newUsed,
-            pauseStartedAtMs = null
-        )
-        viewModelScope.launch { arcPrefs.save(arcState!!) }
+        arcState = ArcPauseTiming.endPause(s, now)
+        arcPrefs.save(arcState!!)
         syncArcUi()
     }
 
@@ -1411,6 +1385,7 @@ class FlowViewModel @Inject constructor(
     }
 
     private suspend fun saveWithArcBehavior(endMode: FlowEndAction) {
+        expirePausedArcIfNeeded(System.currentTimeMillis())
         val completingFlowInstanceId = currentFlowInstanceId
         var committedSessionId: Long? = null
         val state = _uiState.value
@@ -1489,6 +1464,7 @@ class FlowViewModel @Inject constructor(
                     currentFlowInstanceId,
                     SessionEntity(title = title, description = "", tagId = tagId,
                         startTime = sessionStart, endTime = sessionEnd, durationMs = realDurationMs,
+                        activeIntervalJson = activeIntervalJson,
                         surgePlannedMs = state.surgePlannedMs, surgePoints = surgePoints,
                         scyraPoints = beforeArc, isSoftMode = state.isSoftMode)
                 )
@@ -1544,6 +1520,7 @@ class FlowViewModel @Inject constructor(
                         startTime = sessionStart,
                         endTime = sessionEnd,
                         durationMs = realDurationMs,
+                        activeIntervalJson = activeIntervalJson,
                         surgePlannedMs = state.surgePlannedMs,
                         surgePoints = surgePoints,
                         scyraPoints = beforeArc,
@@ -1652,6 +1629,7 @@ class FlowViewModel @Inject constructor(
                 currentFlowInstanceId,
                 SessionEntity(title = title, description = "", tagId = tagId,
                     startTime = sessionStart, endTime = sessionEnd, durationMs = realDurationMs,
+                    activeIntervalJson = activeIntervalJson,
                     surgePlannedMs = state.surgePlannedMs, surgePoints = surgePoints,
                     scyraPoints = finalScyra, isSoftMode = state.isSoftMode)
             )
@@ -1671,7 +1649,8 @@ class FlowViewModel @Inject constructor(
             }
 
             if (isInExistingArc) {
-                val s = localArc!!
+                // Completion ends the pause; between-Flow grace has its own deadline.
+                val s = ArcPauseTiming.endPause(localArc!!, sessionEnd)
 
                 sessionRepository.updateArcFields(
                     sessionId = insertedId,
@@ -1735,6 +1714,7 @@ class FlowViewModel @Inject constructor(
                     startTime = sessionStart,
                     endTime = sessionEnd,
                     durationMs = realDurationMs,
+                    activeIntervalJson = activeIntervalJson,
                     surgePlannedMs = state.surgePlannedMs,
                     surgePoints = surgePoints,
                     scyraPoints = finalScyra,
