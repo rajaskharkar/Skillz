@@ -208,6 +208,7 @@ final class FlowViewModel: ObservableObject {
 
     func resumeFromBackground() {
         refreshElapsed()
+        refreshArcLandRewards()
         if let surgeRuntime {
             self.surgeRuntime = SurgeRuntimeEvaluator.silentCatchUp(
                 runtime: surgeRuntime,
@@ -215,6 +216,23 @@ final class FlowViewModel: ObservableObject {
             )
         }
         if isInFlowMode, isRunning { activateReminder(requestAuthorization: false) }
+    }
+
+    @discardableResult
+    func refreshArcLandRewards() -> Bool {
+        guard !isSaving else { return false }
+        do {
+            let finalized = try repository.finalizeExpiredArcLandRewards(at: now())
+            if var current = reward, let arcID = current.arcSummary?.arcID,
+               current.arcSummary?.landRewardsPending == true || finalized.contains(arcID) {
+                current.arcSummary = try buildArcSummary(arcID: arcID)
+                reward = current
+            }
+            return !finalized.isEmpty
+        } catch {
+            showPersistenceError(error)
+            return false
+        }
     }
 
     func discardDraftIfIdle() {
@@ -843,6 +861,12 @@ final class FlowViewModel: ObservableObject {
                 recentlyEndedArc: recentlyEndedArc,
                 flowStartTime: start
             )
+            do {
+                try repository.reserveArcFlow(arcID: resolved?.id, flowInstanceID: flowInstanceID)
+            } catch {
+                showPersistenceError(error)
+                return false
+            }
             let resumedRecentlyEndedArc = activeArc == nil && resolved != nil
             activeArc = isSoftMode ? resolved?.resettingMultiplierForSoftFlow() : resolved
             recentlyEndedArc = nil
@@ -982,7 +1006,8 @@ final class FlowViewModel: ObservableObject {
     private func concludeExpiredArc() -> Bool {
         guard let arc = activeArc else { return true }
         do {
-            let summary = try ArcConclusionPolicy.conclude(
+            let journal = try repository.fetchArcLandReward(arcID: arc.id)
+            var summary = try ArcConclusionPolicy.conclude(
                 arcID: arc.id,
                 fetchSessions: { try repository.fetchSessions(arcID: arc.id) },
                 fetchShellSummary: { try repository.fetchArcShellRewardSummary(arcID: arc.id) },
@@ -991,6 +1016,7 @@ final class FlowViewModel: ObservableObject {
                 }
             )
             activeArc = nil
+            summary?.landRewardsPending = journal != nil && journal?.finalizedAt == nil
             if let summary {
                 reward = .arcOnly(arcID: arc.id, summary: summary)
             }
@@ -1077,7 +1103,9 @@ final class FlowViewModel: ObservableObject {
             totalFinalPoints: sessions.reduce(0) { $0 + $1.scyraPoints },
             totalArcBonusPoints: sessions.reduce(0) { $0 + $1.arcBonusPoints },
             peakMultiplier: sessions.compactMap(\.arcMultiplierUsed).max() ?? 1,
-            shellSummary: try repository.fetchArcShellRewardSummary(arcID: arcID)
+            shellSummary: try repository.fetchArcShellRewardSummary(arcID: arcID),
+            arcID: arcID,
+            landRewardsPending: try repository.fetchArcLandReward(arcID: arcID).map { $0.finalizedAt == nil } ?? false
         )
     }
 

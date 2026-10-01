@@ -211,7 +211,7 @@ struct MovementFlowParityTests {
             arcMultiplier: 1,
             pearlEligible: true
         )
-        _ = repository.commit(
+        _ = try repository.commit(
             session: session,
             activeArc: nil,
             recentlyEndedArc: nil,

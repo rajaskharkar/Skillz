@@ -145,7 +145,7 @@ struct PulseRepositoryParityTests {
         let arcID = UUID()
         let session = makeSession(flowInstanceID: flowID, arcID: arcID)
 
-        _ = repository.commit(session: session, activeArc: nil, recentlyEndedArc: nil)
+        _ = try repository.commit(session: session, activeArc: nil, recentlyEndedArc: nil)
         let attached = try #require(repository.fetchPulse(id: pulse.id))
 
         #expect(attached.parentSessionID == session.id)
@@ -166,7 +166,7 @@ struct PulseRepositoryParityTests {
             parentFlowInstanceID: flowID,
             createdAt: now.addingTimeInterval(10)
         )
-        _ = repository.commit(session: session, activeArc: nil, recentlyEndedArc: nil)
+        _ = try repository.commit(session: session, activeArc: nil, recentlyEndedArc: nil)
         let standalone = try makePulse(
             repository: repository,
             title: "Standalone",

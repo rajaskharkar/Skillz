@@ -14,9 +14,9 @@ struct StillwaterDomainParityTests {
         #expect(StillwaterCatalog.creatures.count == 32)
         #expect(StillwaterVessel.allCases.allSatisfy { StillwaterCatalog.creatures(for: $0).count == 8 })
         #expect(Set(StillwaterCatalog.creatures.map(\.id)).count == 32)
-        #expect(CreatureCatalog.all.count == 71)
+        #expect(CreatureCatalog.sea.count == 71)
         #expect(CreatureCatalog.flowEarned.count == 4)
-        #expect(CreatureCatalog.beyondBlue.count == 35)
+        #expect(CreatureCatalog.beyondBlue.filter { $0.realm == .sea }.count == 35)
         #expect(CreatureCatalog.stillwaterCreatures.count == 32)
 
         #expect(StillwaterCatalog.rarity(for: 0) == .common)

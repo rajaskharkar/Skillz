@@ -274,6 +274,80 @@ final class ScyraUITests: XCTestCase {
     }
 
     @MainActor
+    func testLandExplorationPurchaseAndRealmBackNavigation() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("--ui-testing-land-exploration")
+        app.launch()
+        app.buttons["Open Shell"].tap()
+        app.buttons["shell-open-the-blue"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["blue-realm-selector"].waitForExistence(timeout: 5))
+        keepScreenshot(app, named: "The Blue - realm chooser")
+        app.buttons["blue-realm-sea"].tap()
+        XCTAssertTrue(app.buttons["the-blue-beyond-sunlitReef"].waitForExistence(timeout: 5))
+        app.buttons["Back to Shell"].tap()
+        XCTAssertTrue(app.buttons["blue-realm-land"].waitForExistence(timeout: 5))
+        app.buttons["blue-realm-land"].tap()
+        XCTAssertTrue(app.buttons["the-blue-beyond-goldenFields"].waitForExistence(timeout: 5))
+        for (title, id) in [("Ancient Woods", "ancientWoods"), ("Open Sands", "openSands"), ("High Peaks", "highPeaks"), ("Great Wild", "greatWild")] {
+            app.buttons["Go to \(title)"].tap()
+            XCTAssertTrue(app.buttons["the-blue-beyond-\(id)"].waitForExistence(timeout: 5))
+        }
+        keepScreenshot(app, named: "Land - Great Wild")
+        app.buttons["the-blue-beyond-greatWild"].tap()
+        XCTAssertTrue(app.buttons["beyond-blue-zone-goldenFields"].waitForExistence(timeout: 5))
+        app.buttons["beyond-blue-zone-goldenFields"].tap()
+        XCTAssertTrue(app.staticTexts["Not for sale"].waitForExistence(timeout: 5))
+        let duck = app.buttons["beyond-blue-target-creature_duck"]
+        for _ in 0..<4 where !duck.isHittable { app.swipeUp() }
+        XCTAssertTrue(duck.isHittable)
+        duck.tap()
+        let purchase = app.buttons["Encounter with Pearls"]
+        for _ in 0..<6 where !purchase.isHittable { app.swipeUp() }
+        XCTAssertTrue(purchase.isEnabled && purchase.isHittable)
+        purchase.tap()
+        XCTAssertTrue(app.buttons["Buy"].waitForExistence(timeout: 5))
+        app.buttons["Buy"].tap()
+        XCTAssertTrue(app.alerts["Creature encountered"].waitForExistence(timeout: 5))
+        app.alerts["Creature encountered"].buttons["Done"].tap()
+        app.buttons["Go to Golden Fields"].tap()
+        XCTAssertTrue(app.buttons["the-blue-creature-creature_duck"].waitForExistence(timeout: 5))
+        keepScreenshot(app, named: "Land - earned and purchased creatures")
+        app.buttons["Back to Shell"].tap()
+        XCTAssertTrue(app.buttons["blue-realm-sea"].waitForExistence(timeout: 5))
+        app.buttons["Back to Shell"].tap()
+        XCTAssertTrue(app.buttons["shell-open-the-blue"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testEmptySeaAndLandCanBrowseBeyondWithoutFabricatedCreatures() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("--ui-testing-empty-shell")
+        app.launch()
+        app.buttons["Open Shell"].tap()
+        app.buttons["shell-open-the-blue"].tap()
+        app.buttons["blue-realm-sea"].tap()
+        let entry = app.buttons["the-blue-beyond-sunlitReef"]
+        XCTAssertTrue(entry.waitForExistence(timeout: 5))
+        entry.tap()
+        XCTAssertTrue(app.buttons["beyond-blue-target-creature_clownfish"].waitForExistence(timeout: 5))
+        app.buttons["Close"].tap()
+        app.buttons["Back to Shell"].tap()
+        app.buttons["blue-realm-land"].tap()
+        XCTAssertTrue(app.staticTexts["Quiet land is waiting here."].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["the-blue-creature-creature_chicken"].exists)
+        app.buttons["the-blue-beyond-goldenFields"].tap()
+        let duck = app.buttons["beyond-blue-target-creature_duck"]
+        for _ in 0..<4 where !duck.isHittable { app.swipeUp() }
+        duck.tap()
+        let purchase = app.buttons["Encounter with Pearls"]
+        for _ in 0..<4 where !purchase.exists { app.swipeUp() }
+        XCTAssertTrue(purchase.exists)
+        XCTAssertFalse(purchase.isEnabled)
+        XCTAssertTrue(app.staticTexts["Need 240 more Pearls, or more creature value."].exists)
+        keepScreenshot(app, named: "Land - insufficient Pearls")
+    }
+
+    @MainActor
     func testShellNavigatesToLookoutAndPresentsObjectiveEditor() throws {
         let app = XCUIApplication()
         app.launch()
@@ -478,6 +552,74 @@ final class ScyraUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Flow details"].waitForExistence(timeout: 5))
         app.buttons["Back to Story"].tap()
         XCTAssertTrue(flowCard.waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testShellNotificationsFocusTargetsFromAlreadyOpenRooms() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("--ui-testing-shell-notifications")
+        app.launch()
+        XCTAssertTrue(app.buttons["Open Shell"].waitForExistence(timeout: 5))
+        app.buttons["Open Shell"].tap()
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Open Chest")).firstMatch.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["shell-chest-screen"].waitForExistence(timeout: 5))
+
+        for (name, speciesID) in [("Minnow", "focus_minnow"), ("Seahorse", "focus_seahorse")] {
+            app.buttons["shell-notifications-button"].tap()
+            let notification = app.buttons.matching(NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label BEGINSWITH %@", "shell-notification-FIND:", name
+            )).firstMatch
+            XCTAssertTrue(notification.waitForExistence(timeout: 5))
+            notification.tap()
+            XCTAssertTrue(app.descendants(matching: .any)["chest-detail-\(speciesID)"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 5))
+            keepScreenshot(app, named: "Notification focus - \(name)")
+            app.buttons["Done"].tap()
+            XCTAssertTrue(app.descendants(matching: .any)["shell-notifications-inlay"].waitForNonExistence(timeout: 5))
+            app.buttons["shell-notifications-button"].tap()
+            XCTAssertFalse(notification.exists, "Only the successfully opened notification should disappear")
+            app.buttons["shell-notifications-button"].tap()
+        }
+
+        app.buttons["Back to Shell"].tap()
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Open Achievements")).firstMatch.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["shell-achievements-screen"].waitForExistence(timeout: 5))
+        for badgeID in ["badge_flow_10_min", "badge_flow_30_min"] {
+            app.buttons["shell-notifications-button"].tap()
+            let notification = app.buttons["shell-notification-BADGE:\(badgeID)"]
+            XCTAssertTrue(notification.waitForExistence(timeout: 5))
+            notification.tap()
+            XCTAssertTrue(app.descendants(matching: .any)["badge-detail-\(badgeID)"].waitForExistence(timeout: 5))
+            app.buttons["Done"].tap()
+            XCTAssertTrue(app.descendants(matching: .any)["shell-notifications-inlay"].waitForNonExistence(timeout: 5))
+        }
+    }
+
+    @MainActor
+    func testExpiredArcLandRewardIsUsableInChest() throws {
+        let app = XCUIApplication()
+        app.launchArguments.append("--ui-testing-land-rewards")
+        app.launch()
+        XCTAssertTrue(app.buttons["Open Shell"].waitForExistence(timeout: 5))
+        app.buttons["Open Shell"].tap()
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Open Chest")).firstMatch.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["shell-chest-screen"].waitForExistence(timeout: 5))
+        app.buttons["shell-notifications-button"].tap()
+        let notification = app.buttons.matching(NSPredicate(
+            format: "identifier BEGINSWITH %@ AND label BEGINSWITH %@", "shell-notification-FIND:", "Chicken"
+        )).firstMatch
+        XCTAssertTrue(notification.waitForExistence(timeout: 10))
+        notification.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["chest-detail-creature_chicken"].waitForExistence(timeout: 5))
+        keepScreenshot(app, named: "Arc Land reward - Chicken")
+        let release = app.buttons["Release for 30 Pearls"].firstMatch
+        XCTAssertTrue(release.waitForExistence(timeout: 5))
+        if !release.isHittable { app.swipeUp() }
+        release.tap()
+        let confirm = app.buttons["Release for 30 Pearls"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        confirm.tap()
+        XCTAssertTrue(app.staticTexts["The Chest is empty."].waitForExistence(timeout: 5))
     }
 
     @MainActor

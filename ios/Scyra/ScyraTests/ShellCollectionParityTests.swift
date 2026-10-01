@@ -99,7 +99,7 @@ struct ShellCreatureUsabilityTests {
 
         #expect(viewModel.placements.single?.instanceID == creature.id)
         #expect(viewModel.firstRestingCreatureInstance(for: creature.findID) == nil)
-        #expect(viewModel.allChestStacks.isEmpty)
+        #expect(viewModel.allChestStacks.single?.instanceIDs == [creature.id])
     }
 }
 
@@ -279,12 +279,12 @@ struct AchievementDashboardParityTests {
 
         #expect(viewModel.openNotification(notification) == .chest)
         #expect(repository.fetchShellNotifications().map(\.id) == [notification.id])
-        viewModel.consumePendingDestination(success: false)
+        viewModel.consumePendingDestination(requestID: try #require(viewModel.pendingNavigation?.id), success: false)
         #expect(repository.fetchShellNotifications().map(\.id) == [notification.id])
         #expect(viewModel.pendingDestination == nil)
 
         #expect(viewModel.openNotification(notification) == .chest)
-        viewModel.consumePendingDestination(success: true)
+        viewModel.consumePendingDestination(requestID: try #require(viewModel.pendingNavigation?.id), success: true)
         #expect(repository.fetchShellNotifications().isEmpty)
         #expect(viewModel.pendingDestination == nil)
     }
@@ -305,9 +305,91 @@ struct AchievementDashboardParityTests {
 
         _ = viewModel.openNotification(notification)
         _ = viewModel.prepareNavigation(.stillwaterVessel(collectionID: "stillwater_fishbowl"))
-        viewModel.consumePendingDestination(success: true)
+        viewModel.consumePendingDestination(requestID: try #require(viewModel.pendingNavigation?.id), success: true)
 
         #expect(repository.fetchShellNotifications().map(\.id) == [notification.id])
+    }
+
+    @Test func staleAndDuplicateConsumptionCannotAcknowledgeAnotherNotification() throws {
+        let repository = InMemoryFlowRepository()
+        _ = try repository.commit(session: collectionSession(flowInstanceID: UUID(), durationMs: 600_000, points: 30), activeArc: nil, recentlyEndedArc: nil)
+        _ = try repository.commit(session: collectionSession(flowInstanceID: UUID(), durationMs: 1_800_000, points: 100), activeArc: nil, recentlyEndedArc: nil)
+        let viewModel = ShellViewModel(repository: repository)
+        let finds = viewModel.notifications.filter { $0.kind == .find }
+        let first = try #require(finds.first)
+        let second = try #require(finds.last)
+        #expect(first.id != second.id)
+
+        _ = viewModel.openNotification(first)
+        let oldRequest = try #require(viewModel.pendingNavigation)
+        _ = viewModel.openNotification(second)
+        let newRequest = try #require(viewModel.pendingNavigation)
+        #expect(newRequest.id != oldRequest.id)
+        #expect(!viewModel.consumePendingDestination(requestID: oldRequest.id, success: true))
+        #expect(viewModel.pendingNavigation == newRequest)
+        #expect(viewModel.consumePendingDestination(requestID: newRequest.id, success: true))
+        #expect(!viewModel.consumePendingDestination(requestID: newRequest.id, success: true))
+        #expect(repository.fetchShellNotifications().contains { $0.id == first.id })
+        #expect(!repository.fetchShellNotifications().contains { $0.id == second.id })
+    }
+
+    @Test func repeatedTargetsHaveFreshRequestsAndLeavingTheRoomCancelsFocus() throws {
+        let viewModel = ShellViewModel(repository: InMemoryFlowRepository())
+        let notification = ShellNotificationItem(id: "FIND:missing", kind: .find, sourceID: "missing", title: "Minnow", detail: "New", occurredAt: .now)
+        _ = viewModel.openNotification(notification)
+        let first = try #require(viewModel.pendingNavigation)
+        _ = viewModel.openNotification(notification)
+        let second = try #require(viewModel.pendingNavigation)
+        #expect(first.id != second.id)
+        viewModel.cancelPendingNavigation(unlessRoom: .chest)
+        #expect(viewModel.pendingNavigation == second)
+        viewModel.cancelPendingNavigation(unlessRoom: .badges)
+        #expect(viewModel.pendingNavigation == nil)
+        #expect(!viewModel.consumePendingDestination(requestID: second.id, success: true))
+
+        viewModel.prepareChestFocus(instanceID: "copy")
+        viewModel.cancelPendingNavigation()
+        #expect(viewModel.pendingNavigation == nil)
+    }
+
+    @Test(arguments: [false, true])
+    func notificationFeedExcludesObjectsAndReleasedCreaturesAndPersistsExactAcknowledgment(swiftData: Bool) throws {
+        let repository: any ScyraRepository = swiftData
+            ? SwiftDataFlowRepository(container: try ScyraPersistenceFactory.makeContainer(inMemory: true))
+            : InMemoryFlowRepository()
+        _ = try repository.commit(session: collectionSession(flowInstanceID: UUID(), durationMs: 600_000, points: 300), activeArc: nil, recentlyEndedArc: nil)
+        _ = try repository.commit(session: collectionSession(flowInstanceID: UUID(), durationMs: 1_800_000, points: 300), activeArc: nil, recentlyEndedArc: nil)
+        let minnow = try #require(repository.fetchShellFindInstances().first { $0.findID == ShellRewardCatalog.focusMinnow })
+        let seahorse = try #require(repository.fetchShellFindInstances().first { $0.findID == ShellRewardCatalog.focusSeahorse })
+        _ = try repository.invitePearlObjectToChest(findID: ShellContentCatalog.focusLamp, at: .now)
+        #expect(try repository.fetchShellNotifications().filter { $0.kind == .find }.count == 2)
+        // Displayed creatures remain active, matching isActiveChestCreature on Android.
+        try repository.placeShellFind(instanceID: minnow.id, roomID: "FOCUS", slotID: "creature_perch_left", at: .now)
+        #expect(try repository.fetchShellNotifications().contains { $0.id == "FIND:\(minnow.id)" })
+        _ = try repository.releaseCreature(instanceID: seahorse.id, at: .now)
+        #expect(try repository.fetchShellNotifications().filter { $0.kind == .find }.map(\.sourceID) == [minnow.id])
+
+        let viewModel = ShellViewModel(repository: repository)
+        let notification = try #require(viewModel.notifications.first { $0.sourceID == minnow.id })
+        _ = viewModel.openNotification(notification)
+        let failedID = try #require(viewModel.pendingNavigation?.id)
+        #expect(!viewModel.consumePendingDestination(requestID: failedID, success: false))
+        #expect(try repository.fetchShellNotifications().contains { $0.id == notification.id })
+        _ = viewModel.openNotification(notification)
+        #expect(viewModel.consumePendingDestination(requestID: try #require(viewModel.pendingNavigation?.id), success: true))
+        #expect(try repository.fetchShellNotifications().allSatisfy { $0.kind == .badge })
+        let refreshed = ShellViewModel(repository: repository)
+        #expect(!refreshed.notifications.contains { $0.id == notification.id })
+        #expect(try repository.fetchShellFindInstances().first { $0.id == minnow.id }?.viewedAt != nil)
+    }
+
+    @Test func notificationMapperUsesViewedEvidenceAndCanonicalFirstEarnedCopy() {
+        let date = Date(timeIntervalSince1970: 100)
+        let viewed = ShellFindInstance(id: "viewed", findID: ShellRewardCatalog.focusMinnow, acquiredAt: date, sourceType: "test", sourceID: nil, currentUpgradeStageID: nil, isNew: true, isArchivedInChest: true, viewedAt: date, animalLevel: 1, lastActivityAt: date)
+        let badge = ShellBadge(badgeID: ShellRewardCatalog.badgeFlow10, count: 1, firstEarnedAt: date, lastEarnedAt: date, isNew: true)
+        let feed = ShellNotificationMapper.notifications(activeFinds: [viewed], badges: [badge])
+        #expect(feed.count == 1)
+        #expect(feed.first?.detail == "Achievement earned")
     }
 
     @Test func collectionActionPolicyMatchesAndroidAcquisitionDestinations() {

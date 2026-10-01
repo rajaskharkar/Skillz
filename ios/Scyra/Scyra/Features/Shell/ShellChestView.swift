@@ -4,8 +4,9 @@ struct ShellChestView: View {
     @ObservedObject var viewModel: ShellViewModel
     let focusInstanceID: String?
     let focusSpeciesID: String?
+    let focusRequestID: UUID?
     let onOpenBlue: () -> Void
-    let onFocusConsumed: (Bool) -> Void
+    let onFocusConsumed: (UUID, Bool) -> Void
     @State private var selectedStack: ChestInventoryStack?
     @State private var pendingReleaseInstanceID: String?
 
@@ -15,12 +16,14 @@ struct ShellChestView: View {
         viewModel: ShellViewModel,
         focusInstanceID: String? = nil,
         focusSpeciesID: String? = nil,
+        focusRequestID: UUID? = nil,
         onOpenBlue: @escaping () -> Void,
-        onFocusConsumed: @escaping (Bool) -> Void = { _ in }
+        onFocusConsumed: @escaping (UUID, Bool) -> Void = { _, _ in }
     ) {
         self.viewModel = viewModel
         self.focusInstanceID = focusInstanceID
         self.focusSpeciesID = focusSpeciesID
+        self.focusRequestID = focusRequestID
         self.onOpenBlue = onOpenBlue
         self.onFocusConsumed = onFocusConsumed
     }
@@ -29,6 +32,9 @@ struct ShellChestView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: ScyraSpacing.lg) {
                 header
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage).font(ScyraTypography.body).foregroundStyle(ScyraColors.error)
+                }
                 if viewModel.allChestStacks.isEmpty {
                     emptyChest
                 } else {
@@ -66,7 +72,9 @@ struct ShellChestView: View {
         ) {
             masteryCelebration
         }
-        .onAppear {
+        .onAppear { viewModel.refresh() }
+        .onChange(of: focusRequestID, initial: true) { _, requestID in
+            guard let requestID else { return }
             viewModel.refresh()
             var focusedStack: ChestInventoryStack?
             if let focusInstanceID {
@@ -76,7 +84,7 @@ struct ShellChestView: View {
             }
             selectedStack = focusedStack
             if focusInstanceID != nil || focusSpeciesID != nil {
-                onFocusConsumed(focusedStack != nil)
+                onFocusConsumed(requestID, focusedStack != nil)
             }
         }
         .accessibilityIdentifier("shell-chest-screen")
@@ -164,7 +172,7 @@ struct ShellChestView: View {
     }
 
     private var canonicalFilters: [ChestFilterOption] {
-        [.all, .closestToMastery, .mastered, .notMastered, .neededForTrackedBadges,
+        [.all, .sea, .land, .closestToMastery, .mastered, .notMastered, .neededForTrackedBadges,
          .sunlitReef, .deeperReef, .openBlue, .greatBlue,
          .fishbowl, .aquarium, .pond, .lake]
     }
@@ -304,6 +312,7 @@ struct ShellChestView: View {
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { selectedStack = nil } } }
         }
         .presentationDetents([.medium, .large])
+        .accessibilityIdentifier("chest-detail-\(stack.findID)")
     }
 
     private var pendingReleaseValue: Int {

@@ -82,6 +82,37 @@ struct HorizonArcPlanDomainParityTests {
 
 @MainActor
 struct HorizonArcPlanRepositoryParityTests {
+    @Test(arguments: [false, true])
+    func planLaunchRestartReplacementAndDeletionPreserveExistingArc(swiftData: Bool) throws {
+        let repository: any ScyraRepository = swiftData
+            ? SwiftDataFlowRepository(container: try ScyraPersistenceFactory.makeContainer(inMemory: true))
+            : InMemoryFlowRepository()
+        let date = Date(timeIntervalSince1970: 200_000)
+        let runtime = ArcRuntimeState(
+            id: UUID(), isPending: false, multiplier: 1.5, progressMs: 12_345,
+            lastSessionEndTime: date, sessionCount: 5, pauseUsedMs: 30_000, pauseStartedAt: date
+        )
+        try repository.saveArcState(active: runtime, recentlyEnded: nil)
+        let first = try repository.createArcPlan(input: makeArcInput(title: "First itinerary"), at: date)
+        let second = try repository.createArcPlan(input: makeArcInput(title: "Second itinerary"), at: date)
+
+        let launch = try repository.beginPlannedArc(id: first.id, restart: false, at: date.addingTimeInterval(10))
+        #expect(launch.runtime == runtime)
+        #expect(try repository.fetchActiveArc() == runtime)
+        _ = try repository.advanceActivePlannedArc(at: date.addingTimeInterval(11))
+        let restart = try repository.beginPlannedArc(id: first.id, restart: true, at: date.addingTimeInterval(12))
+        #expect(restart.runtime == runtime)
+        #expect(restart.run.currentStepIndex == 0)
+        #expect(try repository.fetchArcPlan(id: first.id)?.launchCount == 2)
+
+        let replacement = try repository.beginPlannedArc(id: second.id, restart: false, at: date.addingTimeInterval(13))
+        #expect(replacement.runtime == runtime)
+        #expect(replacement.run.arcPlanID == second.id)
+        try repository.deleteArcPlan(id: second.id)
+        #expect(try repository.fetchActivePlannedArcRun() == nil)
+        #expect(try repository.fetchActiveArc() == runtime)
+    }
+
     @Test func swiftDataRoundTripsOrderedSnapshotsRecurrenceStudioAndLaunchState() throws {
         let repository = SwiftDataFlowRepository(
             container: try ScyraPersistenceFactory.makeContainer(inMemory: true)
@@ -244,6 +275,32 @@ struct HorizonArcPlanRepositoryParityTests {
 
 @MainActor
 struct HorizonArcPlanFlowIntegrationTests {
+    @Test func plannedFlowContinuesExistingArcInsteadOfResettingItsIndexAndMultiplier() throws {
+        let repository = InMemoryFlowRepository()
+        let clock = ArcPlanTestClock(Date(timeIntervalSince1970: 220_000))
+        let runtime = ArcRuntimeState(
+            id: UUID(), isPending: false, multiplier: 1.5, progressMs: 0,
+            lastSessionEndTime: clock.value, sessionCount: 5, pauseUsedMs: 0, pauseStartedAt: clock.value
+        )
+        repository.saveArcState(active: runtime, recentlyEnded: nil)
+        let plan = try repository.createArcPlan(input: makeArcInput(), at: clock.value)
+        let flow = FlowViewModel(repository: repository, now: { clock.value })
+        #expect(flow.prepareFromArcPlan(plan))
+        #expect(flow.activeArc?.id == runtime.id)
+        #expect(flow.activeArc?.sessionCount == 5)
+        flow.enterFlowMode()
+        clock.value = clock.value.addingTimeInterval(60)
+        flow.exitFlowMode()
+        flow.complete(.continueArc)
+
+        let session = try #require(repository.fetchAllSessions().first)
+        #expect(session.arcID == runtime.id)
+        #expect(session.arcIndex == 6)
+        #expect(session.arcMultiplierUsed == 1.5)
+        #expect(repository.fetchActiveArc()?.sessionCount == 6)
+        #expect(repository.fetchActivePlannedArcRun()?.currentStepIndex == 1)
+    }
+
     @Test func plannedArcLaunchPrefillsAndCommitAdvancesBeforeRewardDismissal() throws {
         let repository = InMemoryFlowRepository()
         let clock = ArcPlanTestClock(Date(timeIntervalSince1970: 230_000))

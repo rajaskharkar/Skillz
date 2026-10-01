@@ -42,9 +42,9 @@ struct StoryViewModelParityTests {
         let monday = try context.date(2026, 8, 17, 0)
         let nextMonday = try context.date(2026, 8, 24, 0)
 
-        repository.commit(session: makeSession(title: "Boundary", journey: "Work", createdAt: monday), activeArc: nil, recentlyEndedArc: nil)
-        repository.commit(session: makeSession(title: "Rest", journey: "Life", createdAt: try context.date(2026, 8, 18, 8)), activeArc: nil, recentlyEndedArc: nil)
-        repository.commit(session: makeSession(title: "Excluded", journey: "Work", createdAt: nextMonday), activeArc: nil, recentlyEndedArc: nil)
+        _ = try repository.commit(session: makeSession(title: "Boundary", journey: "Work", createdAt: monday), activeArc: nil, recentlyEndedArc: nil)
+        _ = try repository.commit(session: makeSession(title: "Rest", journey: "Life", createdAt: try context.date(2026, 8, 18, 8)), activeArc: nil, recentlyEndedArc: nil)
+        _ = try repository.commit(session: makeSession(title: "Excluded", journey: "Work", createdAt: nextMonday), activeArc: nil, recentlyEndedArc: nil)
 
         let viewModel = StoryViewModel(repository: repository, now: { now }, calendar: context.calendar)
         #expect(viewModel.visibleSessions.map(\.title) == ["Rest", "Boundary"])
@@ -60,7 +60,7 @@ struct StoryViewModelParityTests {
         let now = try context.date(2026, 8, 19, 12)
         let arcID = UUID()
 
-        repository.commit(
+        _ = try repository.commit(
             session: makeSession(
                 title: "Earlier link",
                 journey: "Scyra",
@@ -74,7 +74,7 @@ struct StoryViewModelParityTests {
             activeArc: nil,
             recentlyEndedArc: nil
         )
-        repository.commit(
+        _ = try repository.commit(
             session: makeSession(
                 title: "Current link",
                 journey: "Scyra",
@@ -110,8 +110,8 @@ struct StoryViewModelParityTests {
         let now = try context.date(2026, 8, 19, 12)
         let date = try context.date(2026, 8, 18, 9)
 
-        repository.commit(session: makeSession(title: "A", journey: "Lower", createdAt: date, score: 10), activeArc: nil, recentlyEndedArc: nil)
-        repository.commit(session: makeSession(title: "B", journey: "Higher", createdAt: date, score: 20), activeArc: nil, recentlyEndedArc: nil)
+        _ = try repository.commit(session: makeSession(title: "A", journey: "Lower", createdAt: date, score: 10), activeArc: nil, recentlyEndedArc: nil)
+        _ = try repository.commit(session: makeSession(title: "B", journey: "Higher", createdAt: date, score: 20), activeArc: nil, recentlyEndedArc: nil)
 
         let viewModel = StoryViewModel(repository: repository, now: { now }, calendar: context.calendar)
         #expect(viewModel.sagas.map(\.journeyName) == ["Higher", "Lower"])

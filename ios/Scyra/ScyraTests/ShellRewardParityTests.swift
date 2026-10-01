@@ -327,7 +327,7 @@ struct ShellRewardTransactionParityTests {
             pauseUsedMs: 0,
             pauseStartedAt: nil
         )
-        _ = repository.commit(session: first, activeArc: activeArc, recentlyEndedArc: nil)
+        _ = try repository.commit(session: first, activeArc: activeArc, recentlyEndedArc: nil)
 
         let clock = ShellRewardTestClock(first.endTime.addingTimeInterval(60))
         let viewModel = FlowViewModel(repository: repository, now: { clock.now })

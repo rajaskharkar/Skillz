@@ -10,6 +10,11 @@ enum ShellRewardKind: String, Codable, Sendable {
 
 enum ShellDepthTier: String, CaseIterable, Codable, Sendable {
     case sunlitReef, deeperReef, openBlue, greatBlue
+    case goldenFields, ancientWoods, openSands, highPeaks, greatWild
+
+    static let seaZones: [Self] = [.sunlitReef, .deeperReef, .openBlue, .greatBlue]
+    static let landZones: [Self] = [.goldenFields, .ancientWoods, .openSands, .highPeaks, .greatWild]
+    var realm: CreatureRealm { Self.seaZones.contains(self) ? .sea : .land }
 
     var title: String {
         switch self {
@@ -17,6 +22,11 @@ enum ShellDepthTier: String, CaseIterable, Codable, Sendable {
         case .deeperReef: "Deeper Reef"
         case .openBlue: "Open Blue"
         case .greatBlue: "Great Blue"
+        case .goldenFields: "Golden Fields"
+        case .ancientWoods: "Ancient Woods"
+        case .openSands: "Open Sands"
+        case .highPeaks: "High Peaks"
+        case .greatWild: "Great Wild"
         }
     }
 }
@@ -98,11 +108,14 @@ enum ShellContentCatalog {
             case .sunlitReef, .deeperReef: [.creaturePerch, .tidepoolEdge]
             case .openBlue: [.currentPath, .centerpiece, .tidepoolEdge]
             case .greatBlue: [.currentPath, .centerpiece]
+            case .goldenFields, .ancientWoods, .openSands, .highPeaks, .greatWild: [.creaturePerch, .tidepoolEdge, .currentPath, .centerpiece]
             }
             let source = switch creature.sourceType {
             case .flowEarned: "Encountered through regular Flow."
             case .beyondBlue: "Encountered beyond The Blue."
             case .stillwater: "Drawn from a quiet vessel in Stillwater."
+            case .arcEarned: "Earned when an Arc closes."
+            case .restorativeLand: "Drawn from a quiet habitat in Stillwater."
             }
             return .init(
                 id: creature.id,
@@ -235,6 +248,7 @@ enum ChestSortOption: String, CaseIterable, Sendable {
 
 enum ChestFilterOption: String, CaseIterable, Sendable {
     case all, creatures, objects, trinkets, closestToMastery, mastered, notMastered
+    case sea, land
     case neededForTrackedBadges
     case sunlitReef, deeperReef, openBlue, greatBlue
     case fishbowl, aquarium, pond, lake
@@ -243,6 +257,8 @@ enum ChestFilterOption: String, CaseIterable, Sendable {
         switch self {
         case .all: "All"
         case .creatures: "Creatures"
+        case .sea: "Sea"
+        case .land: "Land"
         case .objects: "Objects"
         case .trinkets: "Trinkets"
         case .closestToMastery: "Closest to mastery"
@@ -339,6 +355,8 @@ enum ShellInventoryMapper {
         switch filter {
         case .all: true
         case .creatures: value.kind == .animal
+        case .sea: CreatureCatalog.definition(value.findID)?.realm == .sea
+        case .land: CreatureCatalog.definition(value.findID)?.realm == .land
         case .objects: value.kind == .object
         case .trinkets: value.kind == .trinket
         case .closestToMastery: value.kind == .animal && value.level >= 90
@@ -461,6 +479,8 @@ enum AchievementActionPolicy {
         if creature.secretUntilDiscovered && !discoveredSpeciesIDs.contains(speciesID) { return nil }
         if ownedSpeciesIDs.contains(speciesID) { return .chestSpecies(speciesID: speciesID) }
         switch creature.sourceType {
+        case .arcEarned: return .arc
+        case .restorativeLand: return nil // Land habitat routing is a separate vertical slice.
         case .flowEarned:
             return .blueRegion(collectionID: creature.collectionID, speciesID: speciesID)
         case .beyondBlue:
@@ -605,6 +625,32 @@ struct ShellNotificationItem: Identifiable, Equatable, Sendable {
     let title: String
     let detail: String
     let occurredAt: Date
+}
+
+enum ShellNotificationMapper {
+    /// Repositories supply active instances, including displayed creatures. Android's
+    /// notification inlay excludes decorative finds and uses viewedAt for new finds.
+    static func notifications(activeFinds: [ShellFindInstance], badges: [ShellBadge]) -> [ShellNotificationItem] {
+        let finds = activeFinds.compactMap { instance -> ShellNotificationItem? in
+            guard instance.viewedAt == nil,
+                  let definition = ShellContentCatalog.definition(instance.findID),
+                  definition.kind == .animal else { return nil }
+            return .init(
+                id: "FIND:\(instance.id)", kind: .find, sourceID: instance.id,
+                title: definition.title, detail: definition.depth?.title ?? "New Shell find",
+                occurredAt: instance.acquiredAt
+            )
+        }
+        let achievements = badges.filter(\.isNew).map { badge in
+            ShellNotificationItem(
+                id: "BADGE:\(badge.badgeID)", kind: .badge, sourceID: badge.badgeID,
+                title: AchievementCatalog.resolve(badge.badgeID).title,
+                detail: badge.count == 1 ? "Achievement earned" : "Count advanced to \(badge.count)",
+                occurredAt: badge.lastEarnedAt
+            )
+        }
+        return (finds + achievements).sorted { $0.occurredAt > $1.occurredAt }
+    }
 }
 
 struct ShellCollectionBackfillResult: Equatable, Sendable {

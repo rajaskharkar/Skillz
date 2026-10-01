@@ -190,6 +190,8 @@ struct ArcSummary: Equatable, Sendable {
     let totalArcBonusPoints: Int
     let peakMultiplier: Double
     var shellSummary: ShellRewardSummary = .empty
+    var arcID: UUID? = nil
+    var landRewardsPending = false
 }
 
 /// Builds an Arc-only completion from durable history before clearing runtime
@@ -212,7 +214,8 @@ enum ArcConclusionPolicy {
                 totalFinalPoints: sessions.reduce(0) { $0 + $1.scyraPoints },
                 totalArcBonusPoints: sessions.reduce(0) { $0 + $1.arcBonusPoints },
                 peakMultiplier: sessions.compactMap(\.arcMultiplierUsed).max() ?? 1,
-                shellSummary: try fetchShellSummary()
+                shellSummary: try fetchShellSummary(),
+                arcID: arcID
             )
         }
         try persistConclusion()
@@ -237,12 +240,12 @@ struct FlowReward: Identifiable, Equatable, Sendable {
     let arcNextMultiplier: Double?
     let arcDidLevelUp: Bool
     let isSoftSession: Bool
-    let arcSummary: ArcSummary?
+    var arcSummary: ArcSummary?
     var isArcOnlySummary: Bool = false
     var shellReward: ShellSessionReward = .empty
 
     var hasShellReward: Bool {
-        shellReward.pearlsEarned > 0
+        !(arcSummary?.shellSummary.animals.isEmpty ?? true) || shellReward.pearlsEarned > 0
             || shellReward.stillwaterUnits > 0
             || !shellReward.grantedFindIDs.isEmpty
             || !shellReward.discoveryIDs.isEmpty

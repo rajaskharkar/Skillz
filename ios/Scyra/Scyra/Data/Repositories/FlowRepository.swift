@@ -136,8 +136,14 @@ final class SwiftDataFlowRepository: ScyraRepository {
     }
 
     func clearActiveFlow() throws {
-        if let model = try activeFlowModel() { context.delete(model) }
-        try context.save()
+        do {
+            if let model = try activeFlowModel() { context.delete(model) }
+            try clearArcLandReservationForCommit()
+            try context.save()
+        } catch {
+            context.rollback()
+            throw error
+        }
     }
 
     func fetchActiveArc() throws -> ArcRuntimeState? {
@@ -209,6 +215,8 @@ final class SwiftDataFlowRepository: ScyraRepository {
                 try upsertMovement(movement.rebased(to: committed.id))
             }
             if isNewCommit {
+                try recordArcLandRewardForCommit(session: committed)
+                try clearArcLandReservationForCommit()
                 try insertShellRewardsForCommit(session: committed)
                 try processLookoutSessionForCommit(committed)
             }
@@ -652,6 +660,8 @@ final class InMemoryFlowRepository: ScyraRepository {
     var flowPlans: [FlowPlan] = []
     var arcPlans: [ArcPlan] = []
     var activePlannedArcRun: ActivePlannedArcRun?
+    var arcLandRewards: [UUID: ArcLandRewardJournal] = [:]
+    var arcLandReservedArcID: UUID?
 
     init(chronicleFileStore: ChronicleFileStore = ChronicleFileStore(baseURL: ChronicleFileStore.temporaryBaseURL())) {
         self.chronicleFileStore = chronicleFileStore
@@ -676,7 +686,7 @@ final class InMemoryFlowRepository: ScyraRepository {
 
     func fetchActiveFlow() -> ActiveFlowSnapshot? { activeFlow }
     func saveActiveFlow(_ snapshot: ActiveFlowSnapshot) { activeFlow = snapshot }
-    func clearActiveFlow() { activeFlow = nil }
+    func clearActiveFlow() { activeFlow = nil; arcLandReservedArcID = nil }
     func fetchActiveArc() -> ArcRuntimeState? { activeArc }
     func fetchRecentlyEndedArc() -> ArcRuntimeState? { recentlyEndedArc }
 
@@ -692,8 +702,11 @@ final class InMemoryFlowRepository: ScyraRepository {
         movement: FlowMovementCompletion?,
         originPulseID: UUID?,
         plannedArcAction: PlannedArcCompletionAction
-    ) -> FlowSession {
+    ) throws -> FlowSession {
         let existing = sessions.first { $0.flowInstanceID == session.flowInstanceID }
+        if existing == nil, let arcID = session.arcID, arcLandRewards[arcID]?.finalizedAt != nil {
+            throw ArcLandRewardError.finalizedArc
+        }
         let committed = existing ?? session
         if existing == nil {
             sessions.append(session)
@@ -723,6 +736,8 @@ final class InMemoryFlowRepository: ScyraRepository {
             linkCompletedFlow(pulseID: originPulseID, sessionID: committed.id, linkedAt: session.createdAt)
         }
         if existing == nil {
+            recordArcLandRewardForCommitInMemory(session: committed)
+            arcLandReservedArcID = nil
             insertShellRewardsForCommitInMemory(session: committed)
             _ = processLookoutSessionForCommitInMemory(committed)
         }
@@ -735,8 +750,8 @@ final class InMemoryFlowRepository: ScyraRepository {
         recentlyEndedArc: ArcRuntimeState?,
         movement: FlowMovementCompletion?,
         originPulseID: UUID?
-    ) -> FlowSession {
-        commit(
+    ) throws -> FlowSession {
+        try commit(
             session: session,
             activeArc: activeArc,
             recentlyEndedArc: recentlyEndedArc,
@@ -750,8 +765,8 @@ final class InMemoryFlowRepository: ScyraRepository {
         session: FlowSession,
         activeArc: ArcRuntimeState?,
         recentlyEndedArc: ArcRuntimeState?
-    ) -> FlowSession {
-        commit(
+    ) throws -> FlowSession {
+        try commit(
             session: session,
             activeArc: activeArc,
             recentlyEndedArc: recentlyEndedArc,
@@ -766,8 +781,8 @@ final class InMemoryFlowRepository: ScyraRepository {
         activeArc: ArcRuntimeState?,
         recentlyEndedArc: ArcRuntimeState?,
         movement: FlowMovementCompletion?
-    ) -> FlowSession {
-        commit(
+    ) throws -> FlowSession {
+        try commit(
             session: session,
             activeArc: activeArc,
             recentlyEndedArc: recentlyEndedArc,

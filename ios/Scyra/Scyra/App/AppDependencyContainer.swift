@@ -44,12 +44,22 @@ struct AppDependencyContainer {
         }
 
         do {
+            #if DEBUG && targetEnvironment(simulator)
+            let container = try ScyraPersistenceFactory.makeContainer(inMemory: ShellNavigationUITestFixture.isRequested)
+            let fileStore = ShellNavigationUITestFixture.isRequested
+                ? ChronicleFileStore(baseURL: FileManager.default.temporaryDirectory.appending(path: "shell-navigation-ui-fixture"))
+                : ChronicleFileStore()
+            #else
             let container = try ScyraPersistenceFactory.makeContainer()
             let fileStore = ChronicleFileStore()
+            #endif
             let repository = SwiftDataFlowRepository(
                 container: container,
                 chronicleFileStore: fileStore
             )
+            #if DEBUG && targetEnvironment(simulator)
+            try ShellNavigationUITestFixture.seedIfRequested(repository: repository)
+            #endif
             self.repository = repository
             self.chronicleFileStore = fileStore
             self.movementController = movementController ?? MovementController(

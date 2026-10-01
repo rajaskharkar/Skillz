@@ -80,6 +80,7 @@ struct ShellNotificationsInlay: View {
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityLabel("\(notification.title). \(notification.detail)")
+                                .accessibilityIdentifier("shell-notification-\(notification.id)")
                             }
                         }
                         .padding(.horizontal, 12)
@@ -95,6 +96,7 @@ struct ShellNotificationsInlay: View {
             .padding(.horizontal, 12)
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Shell notifications")
+            .accessibilityIdentifier("shell-notifications-inlay")
         }
     }
 }

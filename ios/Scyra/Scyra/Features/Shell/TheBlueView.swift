@@ -24,7 +24,8 @@ struct TheBlueView: View {
     let focusCollectionID: String?
     let focusSpeciesID: String?
     let opensBeyondBlue: Bool
-    let onFocusConsumed: (Bool) -> Void
+    let focusRequestID: UUID?
+    let onFocusConsumed: (UUID, Bool) -> Void
 
     @State private var visibleZone: ShellDepthTier? = .sunlitReef
     @State private var selectedCreatureID: String?
@@ -37,28 +38,43 @@ struct TheBlueView: View {
         focusCollectionID: String? = nil,
         focusSpeciesID: String? = nil,
         opensBeyondBlue: Bool = false,
-        onFocusConsumed: @escaping (Bool) -> Void = { _ in }
+        focusRequestID: UUID? = nil,
+        onFocusConsumed: @escaping (UUID, Bool) -> Void = { _, _ in }
     ) {
         self.viewModel = viewModel
         self.onOpenChest = onOpenChest
         self.focusCollectionID = focusCollectionID
         self.focusSpeciesID = focusSpeciesID
         self.opensBeyondBlue = opensBeyondBlue
+        self.focusRequestID = focusRequestID
         self.onFocusConsumed = onFocusConsumed
     }
 
     var body: some View {
-        Group {
-            if animalGroups.isEmpty {
-                TheBlueEmptyOceanView()
+        ZStack {
+            if viewModel.blueRealm == nil {
+                BlueRealmSelector(onSelect: viewModel.selectBlueRealm)
+            } else if viewModel.blueRealm == .sea, animalGroups.isEmpty {
+                TheBlueEmptyOceanView { beyondBlueZone = .sunlitReef }
             } else {
                 populatedOcean
             }
         }
         .background(ScyraColors.background.ignoresSafeArea())
-        .onAppear {
+        .onAppear { viewModel.refresh() }
+        .onChange(of: viewModel.blueRealm) { _, realm in
+            if realm == nil {
+                selectedCreatureID = nil
+                beyondBlueZone = nil
+                focusedBeyondCreatureID = nil
+            } else if visibleZone?.realm != realm {
+                visibleZone = visibleZones.first
+            }
+        }
+        .onChange(of: focusRequestID, initial: true) { _, requestID in
+            guard let requestID else { return }
             viewModel.refresh()
-            applyInitialFocus()
+            applyFocus(requestID: requestID)
         }
         .sheet(isPresented: creatureSheetPresented) {
             if let group = selectedCreatureGroup {
@@ -124,6 +140,7 @@ struct TheBlueView: View {
         ) {
             TheBlueMasteryCelebration(viewModel: viewModel)
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("the-blue-screen")
     }
 
@@ -131,8 +148,11 @@ struct TheBlueView: View {
         GeometryReader { proxy in
             ScrollView(.vertical) {
                 LazyVStack(spacing: 0) {
-                    ForEach(ShellDepthTier.allCases, id: \.self) { zone in
-                        zonePage(zone, size: proxy.size)
+                    ForEach(visibleZones, id: \.self) { zone in
+                        Group {
+                            if zone.realm == .land { landZonePage(zone) }
+                            else { zonePage(zone, size: proxy.size) }
+                        }
                             .frame(width: proxy.size.width, height: proxy.size.height)
                             .id(zone)
                     }
@@ -144,6 +164,43 @@ struct TheBlueView: View {
             .scrollPosition(id: $visibleZone)
             .overlay(alignment: .trailing) { depthRail }
         }
+    }
+
+    private var visibleZones: [ShellDepthTier] {
+        BlueRealmPolicy.zones(in: viewModel.blueRealm ?? .sea)
+    }
+
+    private func landZonePage(_ zone: ShellDepthTier) -> some View {
+        ZStack {
+            LandEnvironmentView(zone: zone)
+            VStack(alignment: .leading, spacing: 12) {
+                zoneHeader(zone)
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 88))], spacing: 14) {
+                        ForEach(groups(in: zone)) { group in
+                            Button { selectedCreatureID = group.id } label: {
+                                VStack(spacing: 5) {
+                                    ScyraCanonicalIcon(systemName: group.definition.systemImage, size: 44)
+                                        .foregroundStyle(ScyraColors.primary)
+                                    Text(group.definition.displayName).font(ScyraTypography.label)
+                                    Text("×\(group.totalCount) · Lv \(group.highestLevel)").font(ScyraTypography.caption)
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 94)
+                                .padding(6)
+                                .background(ScyraColors.surface.opacity(0.74), in: RoundedRectangle(cornerRadius: 16))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("\(group.definition.displayName). Living here: \(group.totalCount). Level \(group.highestLevel). Opens details.")
+                            .accessibilityIdentifier("the-blue-creature-\(group.id)")
+                        }
+                    }
+                }
+                creatureTray(zone, groups: groups(in: zone))
+            }
+            .padding(.leading, 22).padding(.trailing, 76).padding(.top, 20).padding(.bottom, 24)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("the-blue-zone-\(zone.rawValue)")
     }
 
     private func zonePage(_ zone: ShellDepthTier, size: CGSize) -> some View {
@@ -162,6 +219,7 @@ struct TheBlueView: View {
 
             creatureField(groups, size: size)
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("the-blue-zone-\(zone.rawValue)")
     }
 
@@ -178,6 +236,11 @@ struct TheBlueView: View {
                             .font(ScyraTypography.label)
                             .foregroundStyle(ScyraColors.primary)
                             .padding(.bottom, 4)
+                    }
+                    if zone == .goldenFields {
+                        Text("Land").font(ScyraTypography.screenTitle)
+                        Text("Life encountered through Arcs and Beyond the Blue.")
+                            .font(ScyraTypography.caption).foregroundStyle(ScyraColors.textSecondary)
                     }
                     if let progress = viewModel.progress(for: collectionID(zone)) {
                         Text("\(progress.discovered) of \(progress.total) discovered · \(progress.mastered) mastered")
@@ -205,7 +268,7 @@ struct TheBlueView: View {
                         Text("Encounter Beyond the Blue")
                             .font(ScyraTypography.cardTitle)
                             .foregroundStyle(ScyraColors.primary)
-                        Text("Discover life near this depth.")
+                        Text(zone.realm == .land ? "Discover life in \(zone.title)" : "Discover life near this depth.")
                             .font(ScyraTypography.caption)
                             .foregroundStyle(ScyraColors.textSecondary)
                     }
@@ -261,7 +324,7 @@ struct TheBlueView: View {
             VStack(alignment: .leading, spacing: 7) {
                 Text("\(zone.title) Life").font(ScyraTypography.label)
                 if groups.isEmpty {
-                    Text("Quiet water is waiting here.")
+                    Text(zone.realm == .land ? "Quiet land is waiting here." : "Quiet water is waiting here.")
                         .font(ScyraTypography.caption)
                         .foregroundStyle(ScyraColors.textSecondary)
                 } else {
@@ -293,7 +356,7 @@ struct TheBlueView: View {
 
     private var depthRail: some View {
         VStack(spacing: 12) {
-            ForEach(ShellDepthTier.allCases, id: \.self) { zone in
+            ForEach(visibleZones, id: \.self) { zone in
                 let isActive = visibleZone == zone
                 Button {
                     withAnimation(.easeInOut(duration: 0.35)) { visibleZone = zone }
@@ -323,7 +386,7 @@ struct TheBlueView: View {
     private var animalGroups: [TheBlueAnimalGroup] {
         let displayed = Set(viewModel.placements.map(\.instanceID))
         return Dictionary(
-            grouping: viewModel.instances.filter { CreatureCatalog.definition($0.findID) != nil },
+            grouping: viewModel.instances.filter { CreatureCatalog.definition($0.findID)?.realm == viewModel.blueRealm },
             by: \.findID
         )
         .compactMap { id, instances in
@@ -332,8 +395,8 @@ struct TheBlueView: View {
             }
         }
         .sorted {
-            let leftDepth = ShellDepthTier.allCases.firstIndex(of: $0.definition.zone) ?? 0
-            let rightDepth = ShellDepthTier.allCases.firstIndex(of: $1.definition.zone) ?? 0
+            let leftDepth = visibleZones.firstIndex(of: $0.definition.zone) ?? 0
+            let rightDepth = visibleZones.firstIndex(of: $1.definition.zone) ?? 0
             if leftDepth != rightDepth { return leftDepth < rightDepth }
             return $0.definition.id < $1.definition.id
         }
@@ -345,8 +408,8 @@ struct TheBlueView: View {
         selectedCreatureID.flatMap { id in animalGroups.first { $0.id == id } }
     }
     private var deepestZone: ShellDepthTier {
-        let index = animalGroups.compactMap { ShellDepthTier.allCases.firstIndex(of: $0.definition.zone) }.max() ?? 0
-        return ShellDepthTier.allCases[index]
+        let index = animalGroups.compactMap { ShellDepthTier.seaZones.firstIndex(of: $0.definition.zone) }.max() ?? 0
+        return ShellDepthTier.seaZones[index]
     }
     private var creatureSheetPresented: Binding<Bool> {
         Binding(get: { selectedCreatureID != nil }, set: { if !$0 { selectedCreatureID = nil } })
@@ -355,46 +418,37 @@ struct TheBlueView: View {
         Binding(get: { beyondBlueZone != nil }, set: { if !$0 { beyondBlueZone = nil } })
     }
     private func collectionID(_ zone: ShellDepthTier) -> String {
-        switch zone {
-        case .sunlitReef: "blue_sunlit_reef"
-        case .deeperReef: "blue_deeper_reef"
-        case .openBlue: "blue_open_blue"
-        case .greatBlue: "blue_great_blue"
-        }
+        BlueRealmPolicy.collectionID(for: zone)
     }
-    private func applyInitialFocus() {
+    private func applyFocus(requestID: UUID) {
         guard focusCollectionID != nil || focusSpeciesID != nil else { return }
         let zone = focusSpeciesID.flatMap { CreatureCatalog.definition($0)?.zone }
             ?? focusCollectionID.flatMap(zone(forCollectionID:))
-        if let zone { visibleZone = zone }
+        if let zone {
+            viewModel.selectBlueRealm(zone.realm)
+            visibleZone = zone
+        }
+        var didFocusSpecies = focusSpeciesID == nil
         if opensBeyondBlue, let zone, let focusSpeciesID,
            CreatureCatalog.definition(focusSpeciesID)?.sourceType == .beyondBlue {
             focusedBeyondCreatureID = focusSpeciesID
             beyondBlueZone = zone
+            didFocusSpecies = true
         } else if let focusSpeciesID,
                   animalGroups.contains(where: { $0.id == focusSpeciesID }) {
             selectedCreatureID = focusSpeciesID
+            didFocusSpecies = true
         }
-        onFocusConsumed(zone != nil)
+        onFocusConsumed(requestID, zone != nil && didFocusSpecies)
     }
     private func zone(forCollectionID collectionID: String) -> ShellDepthTier? {
-        ShellDepthTier.allCases.first { collectionID == self.collectionID($0) }
+        BlueRealmPolicy.zone(collectionID: collectionID)
     }
     private func zoneSubtitle(_ zone: ShellDepthTier) -> String {
-        switch zone {
-        case .sunlitReef: "Short regular Flows begin life here."
-        case .deeperReef: "Longer regular Flows bring rarer life into view."
-        case .openBlue: "Hour-long Flows leave wide currents behind."
-        case .greatBlue: "The longest Flows echo in the great deep."
-        }
+        BlueRealmPolicy.subtitle(for: zone)
     }
     private func railTitle(_ zone: ShellDepthTier) -> String {
-        switch zone {
-        case .sunlitReef: "Sunlit"
-        case .deeperReef: "Deeper"
-        case .openBlue: "Open"
-        case .greatBlue: "Great"
-        }
+        BlueRealmPolicy.railTitle(for: zone)
     }
     private func creaturePosition(index: Int, count: Int, size: CGSize) -> CGPoint {
         let columns = max(1, min(3, count))
@@ -434,7 +488,12 @@ private struct TheBlueCreatureDetailSheet: View {
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            ScyraStatPill(label: "Swimming", value: "\(group.totalCount)")
+                            ScyraStatPill(label: group.definition.realm == .land ? "Living here" : "Swimming", value: "\(group.totalCount)")
+                            if let lifetime = viewModel.creatureLifetimeCounts[group.id] {
+                                ScyraStatPill(label: "Lifetime", value: "\(lifetime.encountered)")
+                                if lifetime.released > 0 { ScyraStatPill(label: "Released", value: "\(lifetime.released)") }
+                                if lifetime.traded > 0 { ScyraStatPill(label: "Beyond Blue", value: "\(lifetime.traded)") }
+                            }
                             ScyraStatPill(label: "Highest", value: "Lv \(group.highestLevel)")
                             ScyraStatPill(label: "In Focus", value: "\(group.displayedCount)")
                             ScyraStatPill(label: "In Chest", value: "\(group.restingCount)")
@@ -443,7 +502,7 @@ private struct TheBlueCreatureDetailSheet: View {
 
                     if let minutes = group.definition.flowTimeValueMinutes ?? group.definition.requirementMinutes {
                         ScyraCard {
-                            ScyraCanonicalLabel("Created by Flow", systemImage: "map")
+                            ScyraCanonicalLabel(group.definition.realm == .land ? "Effort value" : "Created by Flow", systemImage: "map")
                                 .font(ScyraTypography.cardTitle)
                             Text("\(minutes) time-minutes each")
                                 .font(ScyraTypography.body).foregroundStyle(ScyraColors.textSecondary)
@@ -553,10 +612,14 @@ private struct TheBlueCreatureDetailSheet: View {
     }
     private var sourceDescription: String {
         switch group.definition.sourceType {
+        case .arcEarned: return "Earned through Arcs · Flows: \(group.definition.arcFlowRequirement ?? 0)"
+        case .restorativeLand: return "Drawn from a quiet habitat."
         case .flowEarned:
             return "Encountered through regular Flows lasting \(group.definition.flowTimeValueMinutes ?? 0) minutes or more."
         case .beyondBlue:
-            return "Encountered beyond The Blue and now swimming in the \(group.definition.zone.title)."
+            return group.definition.realm == .land
+                ? "Encountered beyond The Blue and now living in \(group.definition.zone.title)."
+                : "Encountered beyond The Blue and now swimming in the \(group.definition.zone.title)."
         case .stillwater:
             return "Stillwater exclusive. Drawn from a quiet vessel."
         }
@@ -661,12 +724,12 @@ private struct TheBlueReleaseSheet: View {
 }
 
 private struct BeyondBlueCatalogSheet: View {
-    let zone: ShellDepthTier
+    @State private var zone: ShellDepthTier
     @ObservedObject var viewModel: ShellViewModel
     let onDismiss: () -> Void
 
     @State private var targetID: String?
-    @State private var selectedTradeIDs: Set<String> = []
+    @State private var selectedCounts: [String: Int] = [:]
     @State private var showConfirmation = false
 
     init(
@@ -675,7 +738,7 @@ private struct BeyondBlueCatalogSheet: View {
         initialTargetID: String? = nil,
         onDismiss: @escaping () -> Void
     ) {
-        self.zone = zone
+        _zone = State(initialValue: zone)
         self.viewModel = viewModel
         self.onDismiss = onDismiss
         _targetID = State(initialValue: initialTargetID)
@@ -687,10 +750,32 @@ private struct BeyondBlueCatalogSheet: View {
                 VStack(alignment: .leading, spacing: ScyraSpacing.lg) {
                     Text("Beyond Blue").font(ScyraTypography.screenTitle)
                     Text("\(zone.title) encounters").font(ScyraTypography.cardTitle)
-                    Text("Encounter new life beyond The Blue using creatures, Pearls, or both.")
+                    Text(BlueRealmPolicy.subtitle(for: zone))
                         .font(ScyraTypography.body).foregroundStyle(ScyraColors.textSecondary)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack {
+                            ForEach(BlueRealmPolicy.zones(in: zone.realm), id: \.self) { item in
+                                Button(BlueRealmPolicy.railTitle(for: item)) {
+                                    zone = item
+                                    targetID = nil
+                                    selectedCounts = [:]
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(item == zone ? ScyraColors.primary : ScyraColors.textSecondary)
+                                .accessibilityIdentifier("beyond-blue-zone-\(item.rawValue)")
+                            }
+                        }
+                    }
+                    if let errorMessage = viewModel.errorMessage {
+                        Text(errorMessage).font(ScyraTypography.body).foregroundStyle(ScyraColors.error)
+                    }
                     if let target { targetDetail(target) }
-                    else { ForEach(targets) { targetCard($0) } }
+                    else {
+                        ForEach(targets) { creature in
+                            if creature.sourceType == .arcEarned { arcFlagshipCard(creature) }
+                            else { targetCard(creature) }
+                        }
+                    }
                 }
                 .padding(ScyraSpacing.screenPadding)
             }
@@ -699,7 +784,7 @@ private struct BeyondBlueCatalogSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(target == nil ? "Close" : "Back") {
                         if target == nil { onDismiss() }
-                        else { targetID = nil; selectedTradeIDs = [] }
+                        else { targetID = nil; selectedCounts = [:] }
                     }
                 }
             }
@@ -720,11 +805,7 @@ private struct BeyondBlueCatalogSheet: View {
     }
 
     private var targets: [CreatureDefinition] {
-        CreatureCatalog.beyondBlue.filter { $0.zone == zone }.sorted {
-            let left = $0.requirementMinutes ?? 0
-            let right = $1.requirementMinutes ?? 0
-            return left == right ? $0.id < $1.id : left < right
-        }
+        BlueRealmPolicy.encounters(in: zone)
     }
     private var target: CreatureDefinition? {
         guard let targetID else { return nil }
@@ -737,21 +818,29 @@ private struct BeyondBlueCatalogSheet: View {
         guard let target else { return nil }
         return try? viewModel.quoteBeyondBlue(targetCreatureID: target.id, selectedInstanceIDs: Array(selectedTradeIDs))
     }
-    private var tradableInstances: [ShellFindInstance] {
-        viewModel.instances.filter { CreatureCatalog.definition($0.findID) != nil }.sorted {
-            let left = CreatureCatalog.definition($0.findID)?.displayName ?? $0.findID
-            let right = CreatureCatalog.definition($1.findID)?.displayName ?? $1.findID
-            if left != right { return left < right }
-            if $0.animalLevel != $1.animalLevel { return $0.animalLevel > $1.animalLevel }
-            return $0.id < $1.id
+    private var tradeStacks: [BeyondBlueTradeStack] { BeyondBlueTradeStack.make(from: viewModel.instances) }
+    private var selectedTradeIDs: [String] {
+        BeyondBlueTradeStack.selectedIDs(stacks: tradeStacks, counts: selectedCounts)
+    }
+
+    private func arcFlagshipCard(_ creature: CreatureDefinition) -> some View {
+        ScyraCard(style: .elevated) {
+            VStack(alignment: .leading, spacing: 8) {
+                ScyraCanonicalIcon(systemName: creature.systemImage, size: 46)
+                Text(creature.displayName).font(ScyraTypography.cardTitle)
+                Text("Earned through Arcs · Flows: \(creature.arcFlowRequirement ?? 0)")
+                    .font(ScyraTypography.body)
+                Text("Not for sale").font(ScyraTypography.label)
+            }
         }
+        .accessibilityIdentifier("beyond-blue-arc-\(creature.id)")
     }
 
     private func targetCard(_ creature: CreatureDefinition) -> some View {
         let price = creature.pearlPrice ?? 0
         return Button {
             targetID = creature.id
-            selectedTradeIDs = []
+            selectedCounts = [:]
         } label: {
             ScyraCard(style: .elevated) {
                 HStack(spacing: ScyraSpacing.md) {
@@ -759,7 +848,7 @@ private struct BeyondBlueCatalogSheet: View {
                         .foregroundStyle(ScyraColors.primary)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(creature.displayName).font(ScyraTypography.cardTitle)
-                        Text("Requires \(creature.requirementMinutes ?? 0) time-minutes · or \(price) Pearls")
+                        Text("\(zone.realm == .land ? "Effort value" : "Requires"): \(creature.requirementMinutes ?? 0) minutes · or \(price) Pearls")
                             .font(ScyraTypography.caption).foregroundStyle(ScyraColors.textSecondary)
                         Text(viewModel.pearlBalance >= price ? "Ready to buy" : "Need \(price - viewModel.pearlBalance) more Pearls")
                             .font(ScyraTypography.label)
@@ -782,12 +871,12 @@ private struct BeyondBlueCatalogSheet: View {
                         .foregroundStyle(ScyraColors.primary)
                     VStack(alignment: .leading) {
                         Text(target.displayName).font(ScyraTypography.screenTitle)
-                        Text("Life waiting beyond this depth.")
+                        Text(zone.realm == .land ? "Life waiting beyond this landscape." : "Life waiting beyond this depth.")
                             .font(ScyraTypography.body).foregroundStyle(ScyraColors.textSecondary)
                     }
                 }
                 HStack {
-                    ScyraStatPill(label: "Creature value", value: "\(target.requirementMinutes ?? 0)m")
+                    ScyraStatPill(label: zone.realm == .land ? "Effort value" : "Creature value", value: "\(target.requirementMinutes ?? 0)m")
                     ScyraStatPill(label: "Pearls only", value: "\(target.pearlPrice ?? 0)")
                 }
             }
@@ -811,30 +900,25 @@ private struct BeyondBlueCatalogSheet: View {
             }
 
             Text("Trade creatures to reduce Pearl cost").font(ScyraTypography.cardTitle)
-            if tradableInstances.isEmpty {
+            if tradeStacks.isEmpty {
                 Text("No active creatures are available to trade yet. You can still encounter this creature with Pearls.")
                     .font(ScyraTypography.body).foregroundStyle(ScyraColors.textSecondary)
             } else {
-                ForEach(tradableInstances) { instance in
-                    let definition = CreatureCatalog.definition(instance.findID)
-                    Button {
-                        if selectedTradeIDs.contains(instance.id) { selectedTradeIDs.remove(instance.id) }
-                        else { selectedTradeIDs.insert(instance.id) }
-                    } label: {
-                        HStack {
-                            ScyraCanonicalIcon(systemName: selectedTradeIDs.contains(instance.id) ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(ScyraColors.primary)
-                            VStack(alignment: .leading) {
-                                Text(definition?.displayName ?? instance.findID).font(ScyraTypography.label)
-                                Text("Level \(instance.animalLevel) · \(CreatureEconomy.flowTimeValueMinutes(instance.findID)) time-minutes")
-                                    .font(ScyraTypography.caption).foregroundStyle(ScyraColors.textSecondary)
-                            }
-                            Spacer()
+                ForEach(tradeStacks) { stack in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(stack.creature.displayName).font(ScyraTypography.label)
+                        Text("Level \(stack.level) · \(stack.instances.count) owned · \(stack.valueMinutes) time-minutes each")
+                            .font(ScyraTypography.caption).foregroundStyle(ScyraColors.textSecondary)
+                        Stepper(value: Binding(
+                            get: { min(selectedCounts[stack.id] ?? 0, stack.instances.count) },
+                            set: { selectedCounts[stack.id] = $0 }
+                        ), in: 0...stack.instances.count) {
+                            Text("Selected: \(min(selectedCounts[stack.id] ?? 0, stack.instances.count))")
                         }
-                        .padding(ScyraSpacing.md)
-                        .background(ScyraColors.elevatedSurface, in: RoundedRectangle(cornerRadius: ScyraRadius.card))
+                        .accessibilityIdentifier("beyond-trade-\(stack.id)")
                     }
-                    .buttonStyle(.plain)
+                    .padding(ScyraSpacing.md)
+                    .background(ScyraColors.elevatedSurface, in: RoundedRectangle(cornerRadius: ScyraRadius.card))
                 }
             }
 
@@ -860,7 +944,7 @@ private struct BeyondBlueCatalogSheet: View {
     }
 }
 
-private struct TheBlueOverlaySurface<Content: View>: View {
+struct TheBlueOverlaySurface<Content: View>: View {
     let content: Content
 
     init(@ViewBuilder content: () -> Content) { self.content = content() }
@@ -924,6 +1008,7 @@ private struct TheBlueOceanScene: View {
         case .deeperReef: [ScyraColors.primary.opacity(0.34), Color.blue.opacity(0.20), ScyraColors.backgroundBottom]
         case .openBlue: [Color.blue.opacity(0.34), ScyraColors.primary.opacity(0.20), ScyraColors.backgroundBottom]
         case .greatBlue: [Color.indigo.opacity(0.30), Color.black.opacity(0.18), ScyraColors.backgroundBottom]
+        default: [ScyraColors.background, ScyraColors.backgroundBottom]
         }
     }
 }
@@ -959,6 +1044,7 @@ private struct TheBlueMasteryCelebration: View {
 }
 
 private struct TheBlueEmptyOceanView: View {
+    let onEncounter: () -> Void
     var body: some View {
         ZStack(alignment: .topLeading) {
             TheBlueOceanScene(zone: .sunlitReef, creatureCount: 0)
@@ -976,7 +1062,11 @@ private struct TheBlueEmptyOceanView: View {
             .padding(24)
             .frame(maxWidth: 380, alignment: .leading)
         }
-        .accessibilityLabel("The Blue. Animals encountered through regular Flows swim here. No animals yet.")
+        .overlay(alignment: .bottom) {
+            ScyraButton("Encounter Beyond the Blue", action: onEncounter)
+                .padding(24)
+                .accessibilityIdentifier("the-blue-beyond-sunlitReef")
+        }
     }
 }
 

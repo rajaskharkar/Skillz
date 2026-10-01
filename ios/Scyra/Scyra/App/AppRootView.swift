@@ -64,7 +64,10 @@ struct AppRootView: View {
         RootNavigationShell(
             selectedRoute: navigationModel.selectedRoute,
             onSelectRoute: navigationModel.selectTopLevel,
-            onBackToRoot: navigationModel.backToRouteRoot,
+            onBackToRoot: {
+                if navigationModel.selectedRoute == .shellRoom(.theBlue), shellViewModel.returnToBlueRealmSelector() { return }
+                navigationModel.backToRouteRoot()
+            },
             shellPearlBalance: shellViewModel.pearlBalance,
             shellNotificationCount: shellViewModel.notifications.count,
             onShellNotifications: {
@@ -95,6 +98,12 @@ struct AppRootView: View {
         .tint(ScyraColors.primary)
         .buttonBorderShape(.capsule)
         .task { await refreshMovementAndStory() }
+        .task {
+            while !Task.isCancelled {
+                if scenePhase == .active, flowViewModel.refreshArcLandRewards() { shellViewModel.refresh() }
+                do { try await Task.sleep(for: .seconds(5)) } catch { break }
+            }
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 flowViewModel.resumeFromBackground()
@@ -108,7 +117,13 @@ struct AppRootView: View {
             }
         }
         .onChange(of: navigationModel.selectedRoute) { _, route in
+            if route != .shellRoom(.theBlue) { shellViewModel.selectBlueRealm(nil) }
             if !route.isShellRoute { showsShellNotifications = false }
+            if case .shellRoom(let room) = route {
+                shellViewModel.cancelPendingNavigation(unlessRoom: room)
+            } else {
+                shellViewModel.cancelPendingNavigation()
+            }
         }
     }
 
@@ -247,8 +262,9 @@ struct AppRootView: View {
                     if case .chest(_, let speciesID) = shellViewModel.pendingDestination { return speciesID }
                     return nil
                 }(),
+                focusRequestID: shellViewModel.pendingNavigation?.id,
                 onOpenBlue: { navigationModel.openShellRoom(.theBlue) },
-                onFocusConsumed: shellViewModel.consumePendingDestination
+                onFocusConsumed: consumeShellFocus
             )
         case .shellRoom(.badges):
             ShellAchievementsView(
@@ -265,8 +281,9 @@ struct AppRootView: View {
                     if case .badges(_, _, let speciesID) = shellViewModel.pendingDestination { return speciesID }
                     return nil
                 }(),
+                focusRequestID: shellViewModel.pendingNavigation?.id,
                 onNavigate: handleAchievementAction,
-                onFocusConsumed: shellViewModel.consumePendingDestination
+                onFocusConsumed: consumeShellFocus
             )
         case .shellRoom(.stillwater):
             StillwaterView(
@@ -280,7 +297,8 @@ struct AppRootView: View {
                     if case .stillwater(_, let speciesID) = shellViewModel.pendingDestination { return speciesID }
                     return nil
                 }(),
-                onFocusConsumed: shellViewModel.consumePendingDestination
+                focusRequestID: shellViewModel.pendingNavigation?.id,
+                onFocusConsumed: consumeShellFocus
             )
         case .shellRoom(.theBlue):
             TheBlueView(
@@ -301,7 +319,8 @@ struct AppRootView: View {
                     if case .blue(_, _, let opensBeyondBlue) = shellViewModel.pendingDestination { return opensBeyondBlue }
                     return false
                 }(),
-                onFocusConsumed: shellViewModel.consumePendingDestination
+                focusRequestID: shellViewModel.pendingNavigation?.id,
+                onFocusConsumed: consumeShellFocus
             )
         case .shellRoom(.lookout):
             LookoutView(
@@ -326,8 +345,13 @@ struct AppRootView: View {
     }
 
     private func openShellNotification(_ notification: ShellNotificationItem) {
-        showsShellNotifications = false
         navigationModel.openShellRoom(shellViewModel.openNotification(notification))
+    }
+
+    private func consumeShellFocus(requestID: UUID, success: Bool) {
+        if shellViewModel.consumePendingDestination(requestID: requestID, success: success) {
+            showsShellNotifications = false
+        }
     }
 
     private func handleAchievementAction(_ action: AchievementActionDestination) {

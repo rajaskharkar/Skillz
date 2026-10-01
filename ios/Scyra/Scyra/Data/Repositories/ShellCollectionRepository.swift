@@ -57,22 +57,7 @@ extension SwiftDataFlowRepository {
     }
 
     func fetchShellNotifications() throws -> [ShellNotificationItem] {
-        let finds = try fetchShellFindInstances().filter(\.isNew).compactMap { instance -> ShellNotificationItem? in
-            guard let definition = ShellContentCatalog.definition(instance.findID) else { return nil }
-            return ShellNotificationItem(
-                id: "FIND:\(instance.id)", kind: .find, sourceID: instance.id,
-                title: definition.title, detail: definition.depth?.title ?? "New Shell find", occurredAt: instance.acquiredAt
-            )
-        }
-        let badges = try fetchShellBadges().filter(\.isNew).map { badge in
-            let definition = AchievementCatalog.resolve(badge.badgeID)
-            return ShellNotificationItem(
-                id: "BADGE:\(badge.badgeID)", kind: .badge, sourceID: badge.badgeID,
-                title: definition.title, detail: badge.count == 1 ? "Achievement earned" : "Count advanced to \(badge.count)",
-                occurredAt: badge.lastEarnedAt
-            )
-        }
-        return (finds + badges).sorted { $0.occurredAt > $1.occurredAt }
+        try ShellNotificationMapper.notifications(activeFinds: fetchShellFindInstances(), badges: fetchShellBadges())
     }
 
     func reconcileShellCollections(version: Int = 1, at date: Date = Date()) throws -> ShellCollectionBackfillResult {
@@ -430,15 +415,7 @@ extension InMemoryFlowRepository {
         AchievementDashboardCalculator.calculate(badges: fetchShellBadges(), countFloors: shellBadgeCountFloors, pins: shellBadgePins)
     }
     func fetchShellNotifications() -> [ShellNotificationItem] {
-        let finds = shellFindInstances.filter(\.isNew).compactMap { instance -> ShellNotificationItem? in
-            ShellContentCatalog.definition(instance.findID).map {
-                ShellNotificationItem(id: "FIND:\(instance.id)", kind: .find, sourceID: instance.id, title: $0.title, detail: $0.depth?.title ?? "New Shell find", occurredAt: instance.acquiredAt)
-            }
-        }
-        let badges = fetchShellBadges().filter(\.isNew).map {
-            ShellNotificationItem(id: "BADGE:\($0.badgeID)", kind: .badge, sourceID: $0.badgeID, title: AchievementCatalog.resolve($0.badgeID).title, detail: "Count advanced to \($0.count)", occurredAt: $0.lastEarnedAt)
-        }
-        return (finds + badges).sorted { $0.occurredAt > $1.occurredAt }
+        ShellNotificationMapper.notifications(activeFinds: fetchShellFindInstances(), badges: fetchShellBadges())
     }
 
     func reconcileShellCollections(version: Int = 1, at date: Date = Date()) -> ShellCollectionBackfillResult {

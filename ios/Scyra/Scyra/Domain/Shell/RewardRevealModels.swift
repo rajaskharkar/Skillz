@@ -190,16 +190,21 @@ enum RewardRevealMapper {
         )]
 
         if !arc.shellSummary.animals.isEmpty {
+            let hasLand = arc.shellSummary.animals.contains { CreatureCatalog.definition($0.id)?.realm == .land }
+            let hasSea = arc.shellSummary.animals.contains { CreatureCatalog.definition($0.id)?.realm == .sea }
+            let reason = hasLand
+                ? (hasSea ? "Life earned through Flow duration and completed Arc depth." : "Life earned through completed Arc depth.")
+                : "From Flow milestones across this Arc."
             let lines = arc.shellSummary.animals.map {
-                "\(ShellRewardCatalog.animals[$0.id]?.title ?? "Shell reward recorded") ×\($0.count)"
+                "\(CreatureCatalog.definition($0.id)?.displayName ?? "Shell reward recorded") ×\($0.count)"
             }
             cards.append(RewardRevealCard(
                 id: "arc-animals",
                 type: .arcAnimals,
                 title: "Animals encountered",
-                body: (lines + ["From Flow milestones across this Arc."]).joined(separator: "\n"),
-                systemImage: "fish.fill",
-                destinationHint: "View later in The Blue."
+                body: (lines + [reason]).joined(separator: "\n"),
+                systemImage: hasLand ? "pawprint.fill" : "fish.fill",
+                destinationHint: hasLand ? "View later in The Chest." : "View later in The Blue."
             ))
         }
 
