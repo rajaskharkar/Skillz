@@ -101,7 +101,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
         ChronicleMomentEntity::class,
         ChronicleMediaItemEntity::class
     ],
-    version = 41,
+    version = 42,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {

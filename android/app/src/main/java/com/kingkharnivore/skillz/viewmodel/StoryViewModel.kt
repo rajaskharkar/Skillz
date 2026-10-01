@@ -30,6 +30,8 @@ import com.kingkharnivore.skillz.model.ui.PulseListItemUiModel
 import com.kingkharnivore.skillz.utils.localization.AppLocaleManager
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 import com.kingkharnivore.skillz.utils.time.TimeWindowUtils
+import com.kingkharnivore.skillz.utils.time.TimeWindow
+import com.kingkharnivore.skillz.utils.time.StorySessionWindow
 import com.kingkharnivore.skillz.utils.user.UserPrefs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -507,7 +509,7 @@ class StoryViewModel @Inject constructor(
 
                 val firstRecordedAtMs: Long? =
                     listOfNotNull(
-                        sessions.minOfOrNull { it.createdAt },
+                        sessions.minOfOrNull { it.startTime },
                         pulses.minOfOrNull { it.createdAt }
                     ).minOrNull()
 
@@ -522,13 +524,6 @@ class StoryViewModel @Inject constructor(
                 val effectiveSelectedTagIds: Set<Long> =
                     currentTagIds.filterTo(linkedSetOf()) { (tagUsageCount[it] ?: 0) > 0 }
 
-                val sessionsForTags: List<SessionEntity> =
-                    if (effectiveSelectedTagIds.isEmpty()) {
-                        sessions
-                    } else {
-                        sessions.filter { it.tagId in effectiveSelectedTagIds }
-                    }
-
                 val pulsesForTags: List<PulseEntity> =
                     if (effectiveSelectedTagIds.isEmpty()) {
                         pulses
@@ -541,10 +536,9 @@ class StoryViewModel @Inject constructor(
                 val window = TimeWindowUtils
                     .windowFor(normalizedAnchor, currentPeriod)
 
-                val visibleSessions =
-                    sessionsForTags.filter {
-                        it.createdAt in window.startMs until window.endMs
-                    }
+                val sessionsInWindow = StorySessionWindow.project(sessions, window)
+                val visibleSessions = if (effectiveSelectedTagIds.isEmpty()) sessionsInWindow
+                    else sessionsInWindow.filter { it.tagId in effectiveSelectedTagIds }
 
                 val visiblePulses =
                     pulsesForTags.filter { it.createdAt in window.startMs until window.endMs }
@@ -579,6 +573,7 @@ class StoryViewModel @Inject constructor(
 
                 val chronicleItems = buildChronicleItems(
                     allSessions = sessions,
+                    sessionsInWindow = sessionsInWindow,
                     visibleSessionsInWindow = visibleSessions,
                     allPulses = pulses,
                     visiblePulsesInWindow = visiblePulses,
@@ -597,8 +592,7 @@ class StoryViewModel @Inject constructor(
                         val sevenDaysMs = 7L * 24L * 60L * 60L * 1000L
                         val last7dStart = nowMs - sevenDaysMs
 
-                        sessions.asSequence()
-                            .filter { it.createdAt >= last7dStart }
+                        StorySessionWindow.project(sessions, TimeWindow(last7dStart, nowMs)).asSequence()
                             .groupBy { it.tagId }
                             .map { (tagId, ss) ->
                                 Journey7dStatUiModel(
@@ -624,8 +618,7 @@ class StoryViewModel @Inject constructor(
                     }
 
                 val sagasInView: List<Journey7dStatUiModel> =
-                    sessions.asSequence()
-                        .filter { it.createdAt in window.startMs until window.endMs }
+                    sessionsInWindow.asSequence()
                         .groupBy { it.tagId }
                         .map { (tagId, ss) ->
                             Journey7dStatUiModel(
@@ -646,9 +639,8 @@ class StoryViewModel @Inject constructor(
 
                 val viewJourneysSessions: List<FlowListItemUiModel> =
                     if (viewOpen && viewTagId != null) {
-                        sessions.asSequence()
+                        sessionsInWindow.asSequence()
                             .filter { it.tagId == viewTagId }
-                            .filter { it.createdAt in window.startMs until window.endMs }
                             .sortedByDescending { it.createdAt }
                             .toList()
                             .toUiModels(tags, journeyColors, healthSnapshots)
@@ -834,6 +826,7 @@ class StoryViewModel @Inject constructor(
 
     private fun buildChronicleItems(
         allSessions: List<SessionEntity>,
+        sessionsInWindow: List<SessionEntity>,
         visibleSessionsInWindow: List<SessionEntity>,
         allPulses: List<PulseEntity>,
         visiblePulsesInWindow: List<PulseEntity>,
@@ -856,6 +849,8 @@ class StoryViewModel @Inject constructor(
         val allByArcId = allSessions
             .filter { it.arcId != null }
             .groupBy { it.arcId!! }
+
+        val windowByArcId = sessionsInWindow.filter { it.arcId != null }.groupBy { it.arcId!! }
 
         val visibleByArcId = visibleSessionsInWindow
             .filter { it.arcId != null }
@@ -916,8 +911,9 @@ class StoryViewModel @Inject constructor(
 
             val hiddenFlowsCount = (allArcSessions.size - visibleArcSessions.size)
                 .coerceAtLeast(0)
-            val totalArcDurationMs = allArcSessions.sumOf { it.durationMs }
-            val totalArcScore = allArcSessions.sumOf { it.scyraPoints }
+            val windowArcSessions = windowByArcId[arcId].orEmpty()
+            val totalArcDurationMs = windowArcSessions.sumOf { it.durationMs }
+            val totalArcScore = windowArcSessions.sumOf { it.scyraPoints }
             val peakMultiplier = allArcSessions.maxOfOrNull { it.arcMultiplierUsed ?: 0.0 }
                 ?.takeIf { it > 0.0 }
 
@@ -930,7 +926,7 @@ class StoryViewModel @Inject constructor(
 
             val filteredJourneyDurationMs =
                 if (selectedTagIds.isNotEmpty()) {
-                    allArcSessions
+                    windowArcSessions
                         .filter { it.tagId in selectedTagIds }
                         .sumOf { it.durationMs }
                         .takeIf { it > 0L }
@@ -940,7 +936,7 @@ class StoryViewModel @Inject constructor(
 
             val filteredJourneyPercentOfArc =
                 if (selectedTagIds.isNotEmpty() && totalArcDurationMs > 0L) {
-                    val duration = allArcSessions
+                    val duration = windowArcSessions
                         .filter { it.tagId in selectedTagIds }
                         .sumOf { it.durationMs }
 

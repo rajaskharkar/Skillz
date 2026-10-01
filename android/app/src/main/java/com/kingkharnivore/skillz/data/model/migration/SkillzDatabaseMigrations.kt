@@ -453,6 +453,15 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_41_42 = object : Migration(41, 42) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE sessions ADD COLUMN activeIntervalJson TEXT")
+            // Preserve the exact intervals already recorded for health-enabled Flows.
+            db.execSQL("""UPDATE sessions SET activeIntervalJson =
+                (SELECT activeIntervalJson FROM flow_health_snapshots WHERE sessionId = sessions.id)""")
+        }
+    }
+
     val ALL_MIGRATIONS: Array<Migration> =
         LEGACY_TO_15_MIGRATIONS +
                 MIGRATION_13_14 +
@@ -482,7 +491,8 @@ object SkillzDatabaseMigrations {
                 MIGRATION_37_38 +
                 MIGRATION_38_39 +
                 MIGRATION_39_40 +
-                MIGRATION_40_41
+                MIGRATION_40_41 +
+                MIGRATION_41_42
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(

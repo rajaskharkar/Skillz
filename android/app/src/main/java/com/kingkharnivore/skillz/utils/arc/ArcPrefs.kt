@@ -20,6 +20,8 @@ class ArcPrefs(private val ds: DataStore<Preferences>) : ArcContinuationStore {
     private val K_MULT = doublePreferencesKey("arc_mult")
     private val K_PROGRESS = longPreferencesKey("arc_progress")
     private val K_LAST_END = longPreferencesKey("arc_last_end")
+    private val K_PAUSE_USED = longPreferencesKey("arc_pause_used")
+    private val K_PAUSE_STARTED = longPreferencesKey("arc_pause_started")
     private val K_COUNT = intPreferencesKey("arc_count")
     private val K_PLANNED_HANDOFF = stringPreferencesKey("planned_flow_handoff")
 
@@ -41,7 +43,9 @@ class ArcPrefs(private val ds: DataStore<Preferences>) : ArcContinuationStore {
             multiplier = p[K_MULT] ?: ArcRules.START_MULTIPLIER,
             progressMs = 0L, // strict arcs: no carry/banking
             lastSessionEndTimeMs = p[K_LAST_END] ?: 0L,
-            sessionCountInArc = p[K_COUNT] ?: 0
+            sessionCountInArc = p[K_COUNT] ?: 0,
+            pauseUsedMs = p[K_PAUSE_USED] ?: 0L,
+            pauseStartedAtMs = p[K_PAUSE_STARTED]
         )
     }
 
@@ -55,6 +59,8 @@ class ArcPrefs(private val ds: DataStore<Preferences>) : ArcContinuationStore {
             p[K_PROGRESS] = state.progressMs
             p[K_LAST_END] = state.lastSessionEndTimeMs
             p[K_COUNT] = state.sessionCountInArc
+            p[K_PAUSE_USED] = state.pauseUsedMs
+            state.pauseStartedAtMs?.let { p[K_PAUSE_STARTED] = it } ?: p.remove(K_PAUSE_STARTED)
         }
     }
 
@@ -76,6 +82,8 @@ class ArcPrefs(private val ds: DataStore<Preferences>) : ArcContinuationStore {
             p.remove(K_PROGRESS)
             p.remove(K_LAST_END)
             p.remove(K_COUNT)
+            p.remove(K_PAUSE_USED)
+            p.remove(K_PAUSE_STARTED)
         }
     }
 
