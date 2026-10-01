@@ -101,7 +101,7 @@ struct IdeaGroveRepositoryParityTests {
         #expect(repository.fetchPulse(id: pulse.id)?.groveStatus == .insight)
 
         let session = makeSession(createdAt: createdAt.addingTimeInterval(60))
-        _ = repository.commit(
+        _ = try repository.commit(
             session: session,
             activeArc: nil,
             recentlyEndedArc: nil,

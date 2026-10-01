@@ -38,7 +38,7 @@ enum CreatureShellError: LocalizedError, Equatable {
         case .inactiveCreature: "Only active creatures can be used."
         case .mastered: "Mastered at Level 99."
         case .insufficientPearls(let required, let available):
-            "Level up requires \(required) Pearls. You need \(max(0, required - available)) more."
+            "Requires \(required) Pearls. You need \(max(0, required - available)) more."
         case .invalidEncounter: "Only Beyond Blue creatures can be encountered here."
         case .missingSelection: "A selected creature is no longer available."
         }
@@ -51,6 +51,7 @@ protocol CreatureShellRepository: AnyObject {
     func saveStillwaterPerspective(_ perspective: StillwaterPerspective, at date: Date) throws
     func fetchUnlockedCreatureZones() throws -> Set<ShellDepthTier>
     func fetchCreatureDiscoveries() throws -> [CreatureDiscoveryEvidence]
+    func fetchCreatureLifetimeCounts() throws -> [String: CreatureLifetimeCounts]
     func fetchCreatureMasteries() throws -> [CreatureMasteryEvidence]
     func fetchCreatureCollectionProgress() throws -> [StillwaterCollectionProgress]
     func fetchStillwaterCollectionProgress() throws -> [StillwaterCollectionProgress]
@@ -73,6 +74,12 @@ protocol CreatureShellRepository: AnyObject {
 }
 
 extension SwiftDataFlowRepository {
+    func fetchCreatureLifetimeCounts() throws -> [String: CreatureLifetimeCounts] {
+        let statuses = Dictionary(uniqueKeysWithValues: try context.fetch(FetchDescriptor<CreatureLifecycleModel>()).map {
+            ($0.instanceID, CreatureStatus(rawValue: $0.statusRawValue) ?? .active)
+        })
+        return CreatureLifetimeCounts.project(instances: try historicalCreatureInstances(), statuses: statuses)
+    }
     func fetchStillwaterPerspective() throws -> StillwaterPerspective {
         guard let model = try context.fetch(FetchDescriptor<StillwaterPreferenceModel>()).first else { return .overview }
         return StillwaterPerspective(rawValue: model.perspectiveRawValue) ?? .overview
@@ -546,7 +553,7 @@ extension SwiftDataFlowRepository {
 enum CollectionRosterCatalog {
     static let stillwaterVesselIDs = StillwaterVessel.allCases.map { "stillwater_\($0.rawValue)" }
     static let stillwaterCollectionIDs = ["collection_stillwater"] + stillwaterVesselIDs
-    static let blueZoneIDs = ShellDepthTier.allCases.map { "blue_\($0.rawValue.snakeCasedForCollection)" }
+    static let blueZoneIDs = ShellDepthTier.seaZones.map { "blue_\($0.rawValue.snakeCasedForCollection)" }
     // Android's CollectionCatalog order is the user-facing Badge Book order:
     // Blue regions, Stillwater vessels, then aggregate collections.
     static let allCollectionIDs = blueZoneIDs + stillwaterVesselIDs + [
@@ -556,15 +563,15 @@ enum CollectionRosterCatalog {
     static func roster(for collectionID: String) -> [String] {
         switch collectionID {
         case "collection_stillwater": return CreatureCatalog.stillwaterCreatures.filter(\.participatesInCollector).map(\.id)
-        case "collection_the_blue": return CreatureCatalog.all.filter { $0.sourceType != .stillwater && $0.participatesInCollector }.map(\.id)
-        case "collection_all_waters": return CreatureCatalog.all.filter(\.participatesInCollector).map(\.id)
+        case "collection_the_blue": return CreatureCatalog.sea.filter { $0.sourceType != .stillwater && $0.participatesInCollector }.map(\.id)
+        case "collection_all_waters": return CreatureCatalog.sea.filter(\.participatesInCollector).map(\.id)
         default:
             if collectionID.hasPrefix("stillwater_"),
                let vessel = StillwaterVessel(rawValue: String(collectionID.dropFirst("stillwater_".count))) {
                 return StillwaterCatalog.creatures(for: vessel).map(\.id)
             }
             if collectionID.hasPrefix("blue_"),
-               let zone = ShellDepthTier.allCases.first(where: { "blue_\($0.rawValue.snakeCasedForCollection)" == collectionID }) {
+               let zone = ShellDepthTier.seaZones.first(where: { "blue_\($0.rawValue.snakeCasedForCollection)" == collectionID }) {
                 return CreatureCatalog.all.filter { $0.sourceType != .stillwater && $0.zone == zone && $0.participatesInCollector }.map(\.id)
             }
             return []
@@ -604,6 +611,9 @@ private extension String {
 }
 
 extension InMemoryFlowRepository {
+    func fetchCreatureLifetimeCounts() -> [String: CreatureLifetimeCounts] {
+        CreatureLifetimeCounts.project(instances: shellFindInstances, statuses: shellCreatureStatuses)
+    }
     func fetchStillwaterPerspective() -> StillwaterPerspective { stillwaterPerspective }
 
     func saveStillwaterPerspective(_ perspective: StillwaterPerspective, at date: Date = Date()) {

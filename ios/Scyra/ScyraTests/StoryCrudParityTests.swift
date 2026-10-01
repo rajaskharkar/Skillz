@@ -216,7 +216,7 @@ struct StoryCrudViewModelParityTests {
         #expect(!result.isEmpty)
     }
 
-    @Test func topJourneysUseAndroidSevenDayRankingAndFiveItemLimit() {
+    @Test func topJourneysUseAndroidSevenDayRankingAndFiveItemLimit() throws {
         let now = Date(timeIntervalSince1970: 1_000_000)
         let repository = InMemoryFlowRepository()
         for index in 0..<6 {
@@ -239,7 +239,7 @@ struct StoryCrudViewModelParityTests {
                 arcBonusPoints: 0,
                 createdAt: now.addingTimeInterval(TimeInterval(-index * 60))
             )
-            _ = repository.commit(session: session, activeArc: nil, recentlyEndedArc: nil)
+            _ = try repository.commit(session: session, activeArc: nil, recentlyEndedArc: nil)
         }
         let old = FlowSession(
             id: UUID(), flowInstanceID: UUID(), title: "Old", description: "", journeyName: "Old winner",
@@ -248,7 +248,7 @@ struct StoryCrudViewModelParityTests {
             isSoftMode: false, arcID: nil, arcIndex: nil, arcMultiplierUsed: nil, arcBonusPoints: 0,
             createdAt: now.addingTimeInterval(-900_000)
         )
-        _ = repository.commit(session: old, activeArc: nil, recentlyEndedArc: nil)
+        _ = try repository.commit(session: old, activeArc: nil, recentlyEndedArc: nil)
 
         let viewModel = StoryViewModel(
             repository: repository,
@@ -263,16 +263,16 @@ struct StoryCrudViewModelParityTests {
         #expect(!viewModel.topJourneysLast7Days.map(\.journeyName).contains("Old winner"))
     }
 
-    @Test func storyProjectsSavedArcMetadataAndJourneyDrillDownUsesTheActiveWindow() {
+    @Test func storyProjectsSavedArcMetadataAndJourneyDrillDownUsesTheActiveWindow() throws {
         let now = Date(timeIntervalSince1970: 1_100_000)
         let repository = InMemoryFlowRepository()
         let arcID = UUID()
         let first = session(journey: "Build", createdAt: now.addingTimeInterval(-120), arcID: arcID, arcIndex: 1)
         let second = session(journey: "Build", createdAt: now.addingTimeInterval(-60), arcID: arcID, arcIndex: 2)
         let other = session(journey: "Rest", createdAt: now.addingTimeInterval(-30), arcID: nil, arcIndex: nil)
-        _ = repository.commit(session: first, activeArc: nil, recentlyEndedArc: nil)
-        _ = repository.commit(session: second, activeArc: nil, recentlyEndedArc: nil)
-        _ = repository.commit(session: other, activeArc: nil, recentlyEndedArc: nil)
+        _ = try repository.commit(session: first, activeArc: nil, recentlyEndedArc: nil)
+        _ = try repository.commit(session: second, activeArc: nil, recentlyEndedArc: nil)
+        _ = try repository.commit(session: other, activeArc: nil, recentlyEndedArc: nil)
         let metadata = ArcMetadata(arcID: arcID, title: "Launch Arc", outcome: "Shipped")
         repository.saveArcMetadata(metadata, updatedAt: now)
 

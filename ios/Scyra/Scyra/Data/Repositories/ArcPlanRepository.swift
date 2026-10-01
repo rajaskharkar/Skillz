@@ -71,9 +71,6 @@ extension SwiftDataFlowRepository {
         do {
             if let run = try activePlannedArcRunModel(), run.arcPlanID == id {
                 context.delete(run)
-                if let activeArc = try arcStateModel(slot: ArcPersistenceSlot.active) {
-                    context.delete(activeArc)
-                }
             }
             context.delete(model)
             try context.save()
@@ -127,7 +124,9 @@ extension SwiftDataFlowRepository {
             startedAt: date,
             updatedAt: date
         )
-        let runtime = makePlannedArcRuntime(at: date)
+        // Starting/restarting a plan replaces its itinerary, not the ongoing Arc.
+        // Android's plannedArcRuntimeForLaunch preserves the exact runtime identity.
+        let runtime = try fetchActiveArc() ?? makePlannedArcRuntime(at: date)
 
         do {
             model.launchCount += 1
@@ -363,7 +362,6 @@ extension InMemoryFlowRepository {
         arcPlans.removeAll { $0.id == id }
         if activePlannedArcRun?.arcPlanID == id {
             activePlannedArcRun = nil
-            activeArc = nil
         }
     }
 
@@ -399,7 +397,7 @@ extension InMemoryFlowRepository {
             startedAt: date,
             updatedAt: date
         )
-        let runtime = makeInMemoryPlannedArcRuntime(at: date)
+        let runtime = activeArc ?? makeInMemoryPlannedArcRuntime(at: date)
         arcPlans[index].launchCount += 1
         arcPlans[index].lastLaunchedAt = date
         arcPlans[index].updatedAt = date

@@ -5,7 +5,8 @@ struct StillwaterView: View {
     let onOpenChest: () -> Void
     let focusCollectionID: String?
     let focusSpeciesID: String?
-    let onFocusConsumed: (Bool) -> Void
+    let focusRequestID: UUID?
+    let onFocusConsumed: (UUID, Bool) -> Void
     @State private var focusedVessel: StillwaterVessel?
     @State private var focusedSpeciesID: String?
 
@@ -14,12 +15,14 @@ struct StillwaterView: View {
         onOpenChest: @escaping () -> Void,
         focusCollectionID: String? = nil,
         focusSpeciesID: String? = nil,
-        onFocusConsumed: @escaping (Bool) -> Void = { _ in }
+        focusRequestID: UUID? = nil,
+        onFocusConsumed: @escaping (UUID, Bool) -> Void = { _, _ in }
     ) {
         self.viewModel = viewModel
         self.onOpenChest = onOpenChest
         self.focusCollectionID = focusCollectionID
         self.focusSpeciesID = focusSpeciesID
+        self.focusRequestID = focusRequestID
         self.onFocusConsumed = onFocusConsumed
     }
 
@@ -48,9 +51,11 @@ struct StillwaterView: View {
                 .padding(ScyraSpacing.screenPadding)
             }
             .background(background)
-            .onAppear {
+            .onAppear { viewModel.refresh() }
+            .task(id: focusRequestID) {
+                guard let requestID = focusRequestID else { return }
                 viewModel.refresh()
-                applyInitialFocus(using: proxy)
+                await applyFocus(requestID: requestID, using: proxy)
             }
         }
         .confirmationDialog(
@@ -325,7 +330,8 @@ struct StillwaterView: View {
         return "Draw from \(vessel.title)?"
     }
 
-    private func applyInitialFocus(using proxy: ScrollViewProxy) {
+    @MainActor
+    private func applyFocus(requestID: UUID, using proxy: ScrollViewProxy) async {
         guard focusCollectionID != nil || focusSpeciesID != nil else { return }
         let vessel = focusSpeciesID.flatMap { StillwaterCatalog.byID[$0]?.vessel }
             ?? focusCollectionID.flatMap { id in
@@ -337,16 +343,15 @@ struct StillwaterView: View {
         if let vessel {
             viewModel.selectStillwaterPerspective(.init(vessel: vessel))
         }
-        Task { @MainActor in
-            await Task.yield()
-            withAnimation(.easeInOut(duration: 0.25)) {
-                proxy.scrollTo(
-                    vessel.map { "stillwater-vessel-\($0.rawValue)" } ?? "stillwater-collection-all",
-                    anchor: .center
-                )
-            }
+        await Task.yield()
+        guard !Task.isCancelled else { return }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            proxy.scrollTo(
+                vessel.map { "stillwater-vessel-\($0.rawValue)" } ?? "stillwater-collection-all",
+                anchor: .center
+            )
         }
-        onFocusConsumed(vessel != nil || focusCollectionID == "collection_stillwater")
+        onFocusConsumed(requestID, vessel != nil || focusCollectionID == "collection_stillwater")
     }
 
     private var hasAvailableDraw: Bool {

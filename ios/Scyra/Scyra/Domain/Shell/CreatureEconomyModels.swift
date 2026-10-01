@@ -6,10 +6,37 @@ enum CreatureStatus: String, Codable, CaseIterable, Sendable {
     case usedBeyondBlue = "USED_BEYOND_BLUE"
 }
 
+struct CreatureLifetimeCounts: Equatable, Sendable {
+    var encountered = 0
+    var released = 0
+    var traded = 0
+
+    static func project(instances: [ShellFindInstance], statuses: [String: CreatureStatus]) -> [String: Self] {
+        var result: [String: Self] = [:]
+        for instance in instances where CreatureCatalog.definition(instance.findID) != nil {
+            result[instance.findID, default: .init()].encountered += 1
+            switch statuses[instance.id, default: .active] {
+            case .active: break
+            case .released: result[instance.findID, default: .init()].released += 1
+            case .usedBeyondBlue: result[instance.findID, default: .init()].traded += 1
+            }
+        }
+        return result
+    }
+}
+
 enum CreatureSourceType: String, Codable, Sendable {
     case flowEarned = "FLOW_EARNED"
     case beyondBlue = "BEYOND_BLUE"
     case stillwater = "STILLWATER"
+    case arcEarned = "ARC_EARNED"
+    case restorativeLand = "RESTORATIVE_LAND"
+}
+
+enum CreatureRealm: String, Codable, Sendable { case sea, land }
+
+enum CreatureRequirement: Equatable, Sendable {
+    case flowDuration(Int), effortValue(Int), arcDepth(Int), drops(Int64)
 }
 
 enum CreatureMasteryTier: String, CaseIterable, Sendable {
@@ -29,10 +56,26 @@ struct CreatureDefinition: Identifiable, Equatable, Sendable {
     let participatesInCompletionist: Bool
     let secretUntilDiscovered: Bool
     let rosterVersion: Int
+    var arcFlowRequirement: Int? = nil
+    var restorativeHabitat: LandStillwaterHabitat? = nil
+    var economicValuePearls: Int? = nil
+    var baseGrowthCostPearls: Int? = nil
+
+    var realm: CreatureRealm { zone.realm }
+    var requirement: CreatureRequirement? {
+        switch sourceType {
+        case .flowEarned: flowTimeValueMinutes.map(CreatureRequirement.flowDuration)
+        case .beyondBlue: requirementMinutes.map(CreatureRequirement.effortValue)
+        case .arcEarned: arcFlowRequirement.map(CreatureRequirement.arcDepth)
+        case .stillwater: StillwaterCatalog.byID[id].map { .drops($0.vessel.dropCost) }
+        case .restorativeLand: restorativeHabitat.map { .drops($0.dropCost) }
+        }
+    }
 
     var pearlPrice: Int? { requirementMinutes.map { $0 * 2 } }
     var collectionID: String {
-        sourceType == .stillwater ? "collection_stillwater" : "blue_\(zone.rawValue.snakeCased)"
+        if let restorativeHabitat { return "stillwater_\(restorativeHabitat.rawValue)" }
+        return sourceType == .stillwater ? "collection_stillwater" : "blue_\(zone.rawValue.snakeCased)"
     }
     var primaryProgressCollectionID: String {
         guard sourceType == .stillwater,
@@ -40,6 +83,9 @@ struct CreatureDefinition: Identifiable, Equatable, Sendable {
         return "stillwater_\(vessel.rawValue)"
     }
     var collectionIDs: Set<String> {
+        if realm == .land {
+            return [primaryProgressCollectionID, restorativeHabitat == nil ? "collection_land" : "collection_land_stillwater", "collection_all_land", "collection_living_earth"]
+        }
         if sourceType == .stillwater {
             return [primaryProgressCollectionID, "collection_stillwater", "collection_all_waters"]
         }
@@ -67,6 +113,7 @@ enum CreatureCatalog {
         case .sunlitReef, .deeperReef: "fish.fill"
         case .openBlue: "water.waves"
         case .greatBlue: "drop.triangle.fill"
+        case .goldenFields, .ancientWoods, .openSands, .highPeaks, .greatWild: "pawprint.fill"
         }
     }
 
@@ -123,7 +170,8 @@ enum CreatureCatalog {
               secretUntilDiscovered: false, rosterVersion: 1)
     }
 
-    static let all = blue + stillwater
+    static let sea = blue + stillwater
+    static let all = sea + LandCreatureCatalog.all
     static let byID = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
     static let flowEarned = all.filter { $0.sourceType == .flowEarned }
     static let beyondBlue = all.filter { $0.sourceType == .beyondBlue }
@@ -347,13 +395,14 @@ enum CreatureEconomy {
 
     static func flowTimeValueMinutes(_ creatureID: String) -> Int {
         guard let definition = CreatureCatalog.definition(creatureID) else { return 0 }
-        return definition.flowTimeValueMinutes ?? definition.requirementMinutes ?? 0
+        return definition.flowTimeValueMinutes ?? definition.requirementMinutes ?? definition.economicValuePearls.map { $0 / 2 } ?? 0
     }
 
     static func canonicalPearlValue(_ creatureID: String) -> Int { flowTimeValueMinutes(creatureID) * 2 }
 
     static func baseGrowthCost(_ creatureID: String) -> Int {
-        switch creatureID {
+        if let base = CreatureCatalog.definition(creatureID)?.baseGrowthCostPearls { return base }
+        return switch creatureID {
         case ShellRewardCatalog.focusMinnow: 25
         case ShellRewardCatalog.focusSeahorse: 75
         case ShellRewardCatalog.focusManta: 200
@@ -389,9 +438,11 @@ enum CreatureEconomy {
     static func releaseValuePearls(_ creatureID: String, level: Int = 1) -> Int {
         guard let definition = CreatureCatalog.definition(creatureID) else { return 0 }
         let safe = min(max(level, 1), maxLevel)
-        let normal = Double(canonicalPearlValue(creatureID))
-            + Double(cumulativeGrowthCostPearls(creatureID, level: safe)) * releaseSalvageRate(level: safe)
-        let adjusted = definition.sourceType == .stillwater ? normal * 0.25 : normal
+        // Android truncates recovered growth investment before applying the
+        // restorative-creature discount; rounding the whole amount overpays.
+        let salvage = Int64(Double(cumulativeGrowthCostPearls(creatureID, level: safe)) * releaseSalvageRate(level: safe))
+        let normal = Double(Int64(canonicalPearlValue(creatureID)) + salvage)
+        let adjusted = [.stillwater, .restorativeLand].contains(definition.sourceType) ? normal * 0.25 : normal
         return max(1, Int(adjusted.rounded()))
     }
 

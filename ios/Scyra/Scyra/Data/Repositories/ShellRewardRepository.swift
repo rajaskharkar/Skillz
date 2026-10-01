@@ -3,6 +3,9 @@ import SwiftData
 
 @MainActor
 protocol ShellRewardRepository: AnyObject {
+    func fetchArcLandReward(arcID: UUID) throws -> ArcLandRewardJournal?
+    func reserveArcFlow(arcID: UUID?, flowInstanceID: UUID) throws
+    @discardableResult func finalizeExpiredArcLandRewards(at date: Date) throws -> [UUID]
     func fetchPearlBalance() throws -> Int
     func fetchStillwaterBalance() throws -> Int64
     func fetchStillwaterLifetimeTotal() throws -> Int64

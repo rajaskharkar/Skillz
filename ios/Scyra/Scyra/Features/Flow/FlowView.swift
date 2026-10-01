@@ -781,6 +781,19 @@ private struct FlowRewardSheet: View {
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("reward-stage-title")
 
+            if showsArcSummary, let summary = reward.arcSummary, summary.landRewardsPending {
+                let package = (try? ArcLandRewardPolicy.rewards(flowCount: summary.totalSessions)) ?? []
+                if !package.isEmpty {
+                    Text(package.map { "\(CreatureCatalog.definition($0.id)?.displayName ?? $0.id) ×\($0.count)" }.joined(separator: " + "))
+                        .font(ScyraTypography.cardTitle)
+                    Text("Land rewards arrive after the five-minute Arc continuation window closes.")
+                        .font(ScyraTypography.caption)
+                        .foregroundStyle(ScyraColors.textSecondary)
+                        .padding(.horizontal, ScyraSpacing.lg)
+                        .accessibilityIdentifier("arc-land-rewards-pending")
+                }
+            }
+
             RewardRevealDeckView(
                 cards: visibleCards,
                 onDone: {

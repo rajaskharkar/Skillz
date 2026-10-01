@@ -61,6 +61,7 @@ struct ScyraShellTopBar: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Shell notifications, \(notificationCount) new")
+            .accessibilityIdentifier("shell-notifications-button")
         }
         .padding(.horizontal, 4)
         .frame(height: 64)

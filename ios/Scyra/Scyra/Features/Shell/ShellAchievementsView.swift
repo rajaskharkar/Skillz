@@ -27,8 +27,9 @@ struct ShellAchievementsView: View {
     let focusBadgeID: String?
     let focusCollectionID: String?
     let focusSpeciesID: String?
+    let focusRequestID: UUID?
     let onNavigate: (AchievementActionDestination) -> Void
-    let onFocusConsumed: (Bool) -> Void
+    let onFocusConsumed: (UUID, Bool) -> Void
     @State private var selectedBadge: AchievementProgress?
     @State private var selectedCollection: CollectionDetailSelection?
     @State private var selectedTab: BadgeRoomTab = .showcase
@@ -39,13 +40,15 @@ struct ShellAchievementsView: View {
         focusBadgeID: String? = nil,
         focusCollectionID: String? = nil,
         focusSpeciesID: String? = nil,
+        focusRequestID: UUID? = nil,
         onNavigate: @escaping (AchievementActionDestination) -> Void = { _ in },
-        onFocusConsumed: @escaping (Bool) -> Void = { _ in }
+        onFocusConsumed: @escaping (UUID, Bool) -> Void = { _, _ in }
     ) {
         self.viewModel = viewModel
         self.focusBadgeID = focusBadgeID
         self.focusCollectionID = focusCollectionID
         self.focusSpeciesID = focusSpeciesID
+        self.focusRequestID = focusRequestID
         self.onNavigate = onNavigate
         self.onFocusConsumed = onFocusConsumed
     }
@@ -54,6 +57,9 @@ struct ShellAchievementsView: View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
                 header
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage).font(ScyraTypography.body).foregroundStyle(ScyraColors.error)
+                }
                 Text(summary)
                     .font(.system(size: 16, weight: .medium))
             }
@@ -101,23 +107,22 @@ struct ShellAchievementsView: View {
         } message: {
             Text("The Showcase holds three badges. Choose one to replace.")
         }
-        .onAppear {
+        .onAppear { viewModel.refresh() }
+        .onChange(of: focusRequestID, initial: true) { _, requestID in
+            guard let requestID else { return }
             viewModel.refresh()
             var didConsumeFocus = false
             if let focusBadgeID {
                 selectedTab = .badgeBook
                 selectedBadge = viewModel.achievementDashboard.badges.first { $0.badgeID == focusBadgeID }
-                if selectedBadge != nil {
-                    viewModel.markBadgeViewed(focusBadgeID)
-                    didConsumeFocus = true
-                }
+                didConsumeFocus = selectedBadge != nil
             } else if let focusCollectionID, viewModel.progress(for: focusCollectionID) != nil {
                 selectedTab = .progress
                 selectedCollection = .init(collectionID: focusCollectionID, focusSpeciesID: focusSpeciesID)
                 didConsumeFocus = true
             }
             if focusBadgeID != nil || focusCollectionID != nil {
-                onFocusConsumed(didConsumeFocus)
+                onFocusConsumed(requestID, didConsumeFocus)
             }
         }
         .accessibilityIdentifier("shell-achievements-screen")
@@ -457,6 +462,7 @@ struct ShellAchievementsView: View {
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { selectedBadge = nil } } }
         }
         .presentationDetents([.medium, .large])
+        .accessibilityIdentifier("badge-detail-\(badge.badgeID)")
     }
 
     private func open(_ badge: AchievementProgress) {

@@ -13,6 +13,12 @@ struct ShellNavigationDispatch: Equatable {
     let pending: PendingShellDestination
 }
 
+struct ShellNavigationRequest: Identifiable, Equatable {
+    let id = UUID()
+    let dispatch: ShellNavigationDispatch
+    let notificationID: String?
+}
+
 enum ShellNavigationCoordinator {
     static func destination(for notification: ShellNotificationItem) -> PendingShellDestination {
         switch notification.kind {
@@ -60,6 +66,7 @@ final class ShellViewModel: ObservableObject {
     @Published private(set) var stillwaterProgress: [StillwaterCollectionProgress] = []
     @Published private(set) var creatureCollectionProgress: [StillwaterCollectionProgress] = []
     @Published private(set) var creatureDiscoveries: [CreatureDiscoveryEvidence] = []
+    @Published private(set) var creatureLifetimeCounts: [String: CreatureLifetimeCounts] = [:]
     @Published private(set) var creatureMasteries: [CreatureMasteryEvidence] = []
     @Published private(set) var lastEncounteredCreature: CreatureDefinition?
     @Published private(set) var pendingStillwaterConfirmation: StillwaterVessel?
@@ -71,16 +78,26 @@ final class ShellViewModel: ObservableObject {
     @Published private(set) var placements: [ShellPlacement] = []
     @Published private(set) var achievementDashboard = AchievementDashboard(badges: [], pinned: [], newCount: 0)
     @Published private(set) var notifications: [ShellNotificationItem] = []
-    @Published private(set) var pendingDestination: PendingShellDestination?
+    @Published private(set) var pendingNavigation: ShellNavigationRequest?
     @Published private(set) var pinReplacement: (requested: String, current: [String])?
     @Published private(set) var errorMessage: String?
     @Published var chestSort: ChestSortOption = .level
     @Published var chestFilter: ChestFilterOption = .all
     @Published var achievementCategory: AchievementCategory = .all
     @Published var achievementSort: AchievementSort = .recommended
+    @Published private(set) var blueRealm: CreatureRealm?
+
+    func selectBlueRealm(_ realm: CreatureRealm?) { blueRealm = realm }
+
+    @discardableResult
+    func returnToBlueRealmSelector() -> Bool {
+        guard blueRealm != nil else { return false }
+        blueRealm = nil
+        return true
+    }
 
     private let repository: any ScyraRepository
-    private var pendingNotificationID: String?
+    var pendingDestination: PendingShellDestination? { pendingNavigation?.dispatch.pending }
 
     init(repository: any ScyraRepository) {
         self.repository = repository
@@ -96,12 +113,9 @@ final class ShellViewModel: ObservableObject {
     }
 
     private func chestStacks(filter: ChestFilterOption) -> [ChestInventoryStack] {
-        let placedInstanceIDs = Set(placements.map(\.instanceID))
-        let activeChestCreatures = instances.filter {
-            $0.isArchivedInChest &&
-                !placedInstanceIDs.contains($0.id) &&
-                CreatureCatalog.definition($0.findID) != nil
-        }
+        // Android's Chest is the active collection, not only the resting copies.
+        // Placement does not remove a creature from inventory or notification focus.
+        let activeChestCreatures = instances.filter { CreatureCatalog.definition($0.findID) != nil }
         let mastery = Dictionary(uniqueKeysWithValues: achievementDashboard.badges.compactMap { badge in
             badge.badgeID.hasPrefix("mastery_species_")
                 ? (String(badge.badgeID.dropFirst("mastery_species_".count)), badge.count)
@@ -162,6 +176,7 @@ final class ShellViewModel: ObservableObject {
             stillwaterProgress = try repository.fetchStillwaterCollectionProgress()
             creatureCollectionProgress = try repository.fetchCreatureCollectionProgress()
             creatureDiscoveries = try repository.fetchCreatureDiscoveries()
+            creatureLifetimeCounts = try repository.fetchCreatureLifetimeCounts()
             creatureMasteries = try repository.fetchCreatureMasteries()
             pendingMasteryCelebration = try repository.fetchPendingMasteryCelebration()
             trackedBadgeIDs = try repository.trackedAchievementIDs()
@@ -338,8 +353,7 @@ final class ShellViewModel: ObservableObject {
     @discardableResult
     func openNotification(_ notification: ShellNotificationItem) -> ShellRoomRoute {
         let dispatch = ShellNavigationCoordinator.dispatch(notification)
-        pendingNotificationID = notification.id
-        pendingDestination = dispatch.pending
+        pendingNavigation = .init(dispatch: dispatch, notificationID: notification.id)
         return dispatch.room
     }
 
@@ -347,30 +361,46 @@ final class ShellViewModel: ObservableObject {
         perform { try repository.markAllShellNotificationsViewed(at: Date()) }
     }
 
-    func consumePendingDestination(success: Bool) {
-        let notificationID = pendingNotificationID
-        pendingDestination = nil
-        pendingNotificationID = nil
-        guard success, let notificationID else { return }
+    /// A late result from a superseded room must never acknowledge the current request.
+    @discardableResult
+    func consumePendingDestination(requestID: UUID, success: Bool) -> Bool {
+        guard let request = pendingNavigation, request.id == requestID else { return false }
+        pendingNavigation = nil
+        guard success else { return false }
+        let viewedID: String?
+        if let notificationID = request.notificationID {
+            viewedID = notificationID
+        } else if case .badges(let badgeID?, _, _) = request.dispatch.pending {
+            viewedID = "BADGE:\(badgeID)"
+        } else {
+            viewedID = nil
+        }
+        guard let viewedID else { return true }
         do {
-            try repository.markShellNotificationViewed(id: notificationID, at: Date())
+            try repository.markShellNotificationViewed(id: viewedID, at: Date())
             refresh()
+            return true
         } catch {
             errorMessage = error.localizedDescription
+            return false
         }
     }
 
+    func cancelPendingNavigation(unlessRoom room: ShellRoomRoute? = nil) {
+        if pendingNavigation?.dispatch.room != room { pendingNavigation = nil }
+    }
+
     func prepareChestFocus(instanceID: String?) {
-        pendingNotificationID = nil
-        pendingDestination = .chest(instanceID: instanceID, speciesID: nil)
+        pendingNavigation = instanceID.map {
+            .init(dispatch: .init(room: .chest, pending: .chest(instanceID: $0, speciesID: nil)), notificationID: nil)
+        }
     }
 
     @discardableResult
     func prepareNavigation(_ action: AchievementActionDestination) -> ShellRoomRoute? {
-        pendingNotificationID = nil
-        pendingDestination = nil
+        pendingNavigation = nil
         guard let dispatch = ShellNavigationCoordinator.dispatch(action) else { return nil }
-        pendingDestination = dispatch.pending
+        pendingNavigation = .init(dispatch: dispatch, notificationID: nil)
         return dispatch.room
     }
 

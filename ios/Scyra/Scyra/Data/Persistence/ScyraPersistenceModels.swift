@@ -1207,6 +1207,13 @@ enum ScyraSchemaV6: VersionedSchema {
     ]
 }
 
+enum ScyraSchemaV7: VersionedSchema {
+    static let versionIdentifier = Schema.Version(7, 0, 0)
+    static let models: [any PersistentModel.Type] = ScyraSchemaV6.models + [
+        ArcLandRewardModel.self, ArcLandFlowReservationModel.self
+    ]
+}
+
 enum ScyraMigrationPlan: SchemaMigrationPlan {
     static let schemas: [any VersionedSchema.Type] = [
         ScyraSchemaV1.self,
@@ -1214,20 +1221,22 @@ enum ScyraMigrationPlan: SchemaMigrationPlan {
         ScyraSchemaV3.self,
         ScyraSchemaV4.self,
         ScyraSchemaV5.self,
-        ScyraSchemaV6.self
+        ScyraSchemaV6.self,
+        ScyraSchemaV7.self
     ]
     static let stages: [MigrationStage] = [
         .lightweight(fromVersion: ScyraSchemaV1.self, toVersion: ScyraSchemaV2.self),
         .lightweight(fromVersion: ScyraSchemaV2.self, toVersion: ScyraSchemaV3.self),
         .lightweight(fromVersion: ScyraSchemaV3.self, toVersion: ScyraSchemaV4.self),
         .lightweight(fromVersion: ScyraSchemaV4.self, toVersion: ScyraSchemaV5.self),
-        .lightweight(fromVersion: ScyraSchemaV5.self, toVersion: ScyraSchemaV6.self)
+        .lightweight(fromVersion: ScyraSchemaV5.self, toVersion: ScyraSchemaV6.self),
+        .lightweight(fromVersion: ScyraSchemaV6.self, toVersion: ScyraSchemaV7.self)
     ]
 }
 
 enum ScyraPersistenceFactory {
     static func makeContainer(inMemory: Bool = false) throws -> ModelContainer {
-        let schema = Schema(versionedSchema: ScyraSchemaV6.self)
+        let schema = Schema(versionedSchema: ScyraSchemaV7.self)
         let configuration = ModelConfiguration(
             "Scyra",
             schema: schema,
