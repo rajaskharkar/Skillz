@@ -656,6 +656,7 @@
     <string name="story_helpers_saga_subtitle_week_past">इस सप्ताह का रिकॉर्ड</string>
     <string name="story_helpers_saga_subtitle_month_current">इस महीने का रिकॉर्ड</string>
     <string name="story_helpers_saga_subtitle_month_past">इस महीने का रिकॉर्ड</string>
+    <string name="surge_pill_target_duration">· %1$d मिनट</string>
     <string name="arc_pill_title">आर्क</string>
     <string name="arc_pill_flow_label">फ़्लो</string>
     <string name="arc_pill_pending">प्रतीक्षारत</string>

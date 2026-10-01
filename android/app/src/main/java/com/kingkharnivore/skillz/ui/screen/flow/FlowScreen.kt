@@ -392,7 +392,8 @@ fun FlowScreen(
                         state = stopwatchState,
                         viewModel = viewModel,
                         showScoreUi = uiState.showScoreUi,
-                        calmMode = uiState.calmMode
+                        calmMode = uiState.calmMode,
+                        timerText = uiState.mainTimerText
                     )
                 } else {
                     Text(
@@ -435,7 +436,7 @@ fun FlowScreen(
                         SurgeMiniControl(
                             modifier = Modifier.align(Alignment.CenterEnd),
                             isInFlow = isInFlowState,
-                            elapsedMs = stopwatchState.elapsedMs,
+                            hasReachedTarget = uiState.hasReachedSurgeTarget,
                             locked = locked,
                             isSurgeOn = uiState.isSurgeOn,
                             plannedMs = uiState.surgePlannedMs,
@@ -1115,10 +1116,3 @@ private fun ModeOptionCard(
 private fun FlowRewardUiModel.hasShellReward(): Boolean =
     shellPearlsEarned > 0 || shellStillwaterUnits > 0L ||
         shellGrantedFindIds.isNotEmpty() || shellDiscoveryIds.isNotEmpty() || shellBadgeIds.isNotEmpty()
-
-fun formatMsAsMmSs(ms: Long): String {
-    val totalSeconds = (ms.coerceAtLeast(0L) / 1000L)
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return String.format("%d:%02d", minutes, seconds)
-}

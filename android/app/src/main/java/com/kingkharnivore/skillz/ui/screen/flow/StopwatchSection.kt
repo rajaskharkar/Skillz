@@ -31,41 +31,18 @@ fun StopwatchSection(
     state: StopwatchState,
     viewModel: FlowViewModel,
     showScoreUi: Boolean,
-    calmMode: Boolean
+    calmMode: Boolean,
+    timerText: String
 ) {
     var showResetConfirm by remember { mutableStateOf(false) }
 
-    val titleAlpha = if (calmMode) 0.55f else 1f
-    val timeAlpha = if (calmMode) 0.78f else 1f
-    val titleText = stringResource(
-        if (calmMode) R.string.stopwatch_title_calm
-        else R.string.stopwatch_title_in_flow
-    )
-    val elapsedText = formatElapsed(state.elapsedMs)
-    val timerA11y = stringResource(R.string.stopwatch_timer_a11y, elapsedText)
     val resetText = stringResource(R.string.stopwatch_reset)
 
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = titleText,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = titleAlpha)
-        )
-
-        Text(
-            text = elapsedText,
-            style = if (calmMode) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = timeAlpha),
-            modifier = Modifier
-                .fillMaxWidth()
-                .semantics {
-                    contentDescription = timerA11y
-                }
-        )
+        FlowTimer(timerText = timerText, calmMode = calmMode)
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
@@ -115,12 +92,29 @@ fun StopwatchSection(
     }
 }
 
-private fun formatElapsed(elapsedMs: Long): String {
-    val totalSeconds = elapsedMs / 1000L
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-
-    return if (hours > 0) String.format("%d:%02d:%02d", hours, minutes, seconds)
-    else String.format("%02d:%02d", minutes, seconds)
+/** The same timer presentation is used for elapsed Flow time and signed Surge time. */
+@Composable
+internal fun FlowTimer(timerText: String, calmMode: Boolean) {
+    val timerA11y = stringResource(R.string.stopwatch_timer_a11y, timerText)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = stringResource(
+                if (calmMode) R.string.stopwatch_title_calm else R.string.stopwatch_title_in_flow
+            ),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (calmMode) 0.55f else 1f)
+        )
+        Text(
+            text = timerText,
+            style = if (calmMode) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (calmMode) 0.78f else 1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { contentDescription = timerA11y }
+        )
+    }
 }

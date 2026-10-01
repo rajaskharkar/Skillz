@@ -659,6 +659,7 @@
     <string name="story_helpers_saga_subtitle_week_past">Registro de la semana</string>
     <string name="story_helpers_saga_subtitle_month_current">Registro de este mes</string>
     <string name="story_helpers_saga_subtitle_month_past">Registro del mes</string>
+    <string name="surge_pill_target_duration">· %1$d min</string>
     <string name="arc_pill_title">Arc</string>
     <string name="arc_pill_flow_label">Flow</string>
     <string name="arc_pill_pending">Pendiente</string>

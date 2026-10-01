@@ -28,24 +28,26 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.kingkharnivore.skillz.R
 
 /**
  * Surge (Option A: two-row):
  * - Wrap-content pill so it can truly sit on the right.
  * - Discreet when OFF.
  * - Toggle disabled once Flow is entered OR locked.
- * - Countdown while Flow active.
+ * - Fixed configured duration while Surge is on; the main Flow timer shows the countdown.
  * - Long-press opens dialog.
  */
 @Composable
 fun SurgeMiniControl(
     modifier: Modifier = Modifier,
     isInFlow: Boolean,
-    elapsedMs: Long,
+    hasReachedTarget: Boolean,
     locked: Boolean,
     isSurgeOn: Boolean,
     plannedMs: Long?,
@@ -66,10 +68,6 @@ fun SurgeMiniControl(
 
     val effectiveOn = isSurgeOn || pendingOn
     val toggleEnabled = !isInFlow && !locked
-
-    val planned = plannedMs
-    val remainingMs = if (planned != null) (planned - elapsedMs).coerceAtLeast(0L) else null
-    val completed = isInFlow && planned != null && remainingMs == 0L
 
     LaunchedEffect(effectiveOn, plannedMs, toggleEnabled) {
         if (effectiveOn && toggleEnabled && plannedMs == null) isEditing = true
@@ -102,7 +100,7 @@ fun SurgeMiniControl(
         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (effectiveOn) 0.22f else 0.14f)
     } else {
         when {
-            completed -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+            hasReachedTarget -> MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
             effectiveOn -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f)
             else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.12f)
         }
@@ -148,18 +146,10 @@ fun SurgeMiniControl(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isOff) 0.70f else 1f)
                 )
 
-                Spacer(Modifier.width(10.dp))
-
-                val statusText = when {
-                    completed -> "Complete"
-                    planned != null && elapsedMs > 0L && remainingMs != null -> formatMsAsMmSs(remainingMs)
-                    planned != null -> "${planned / 60_000L} min"
-                    else -> ""
-                }
-
-                if (statusText.isNotBlank()) {
+                if (isSurgeOn && plannedMs != null) {
+                    Spacer(Modifier.width(6.dp))
                     Text(
-                        text = statusText,
+                        text = stringResource(R.string.surge_pill_target_duration, plannedMs / 60_000L),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f)
                     )
