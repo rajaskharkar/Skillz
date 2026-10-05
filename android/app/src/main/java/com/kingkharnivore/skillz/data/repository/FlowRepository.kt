@@ -36,6 +36,7 @@ class FlowRepository @Inject constructor(
           database.withTransaction {
             sessionDao.findCreatedSession(flowInstanceId)?.let { return@withTransaction it }
             val id = sessionDao.insertSession(session)
+            database.powerRewardDao().enqueue(com.kingkharnivore.skillz.data.model.entity.shell.SessionShellRewardEntity(sessionId = id, queuedAt = System.currentTimeMillis()))
             session.arcId?.let { com.kingkharnivore.skillz.utils.arc.ArcLandRewardJournal.record(database, it) }
             chronicleDao.promote(ChronicleOwnerType.ACTIVE_FLOW, flowInstanceId,
                 ChronicleOwnerType.SESSION, id.toString(), System.currentTimeMillis())

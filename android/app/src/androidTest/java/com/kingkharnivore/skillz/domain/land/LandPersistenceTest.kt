@@ -46,7 +46,7 @@ class LandPersistenceTest {
         db.withTransaction {
             repeat(count) { i ->
                 db.sessionDao().insertSession(SessionEntity(title = "Flow", description = "", tagId = 1,
-                    startTime = end+i-1, endTime = end+i, durationMs = 1, isSoftMode = i%2==0,
+                    startTime = end+i-1, endTime = end+i, durationMs = 1, mode = com.kingkharnivore.skillz.model.FlowMode.fromSoft(i%2==0),
                     arcId = id, arcIndex = i+1))
             }
             ArcLandRewardJournal.record(db, id)
@@ -131,7 +131,7 @@ class LandPersistenceTest {
     @Test fun historicalArcWithoutProspectiveJournalIsNotRewarded() = runBlocking {
         db.tagDao().insertTag(TagEntity(id=1,name="Old",createdAt=1))
         repeat(15) { db.sessionDao().insertSession(SessionEntity(title="Old", description="", tagId=1,
-            startTime=1,endTime=2,durationMs=1,isSoftMode=false,arcId=70,arcIndex=it+1)) }
+            startTime=1,endTime=2,durationMs=1,mode=com.kingkharnivore.skillz.model.FlowMode.FLOW,arcId=70,arcIndex=it+1)) }
         finalizer.finalizeExpired(999_999)
         assertTrue(db.shellFindInstanceDao().getAll().isEmpty())
     }

@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.kingkharnivore.skillz.BuildConfig
 import com.kingkharnivore.skillz.utils.shell.ChestSortOption
+import com.kingkharnivore.skillz.utils.shell.ChestFilters
 import com.kingkharnivore.skillz.utils.shell.ChestFilterOption
 import com.kingkharnivore.skillz.domain.achievement.BadgeSort
 import com.kingkharnivore.skillz.domain.achievement.BadgeUiCategory
@@ -31,6 +32,7 @@ class UserPrefs @Inject constructor(
         val KEY_BADGE_CATEGORY = stringPreferencesKey("badge_category")
         val KEY_BADGE_SORT = stringPreferencesKey("badge_sort")
         val KEY_BACKFILL_ACKNOWLEDGED = intPreferencesKey("achievement_backfill_acknowledged")
+        val KEY_CHEST_ENVIRONMENT = stringPreferencesKey("chest_environment")
         val KEY_CHEST_FILTER = stringPreferencesKey("chest_filter")
     }
 
@@ -60,7 +62,9 @@ class UserPrefs @Inject constructor(
         prefs[KEY_BADGE_SORT]?.let { runCatching { BadgeSort.valueOf(it) }.getOrNull() } ?: BadgeSort.RECOMMENDED
     }
     val acknowledgedBackfillVersion: Flow<Int> = context.userPrefsDataStore.data.map { it[KEY_BACKFILL_ACKNOWLEDGED] ?: 0 }
-    val chestFilter: Flow<ChestFilterOption> = context.userPrefsDataStore.data.map { ChestFilterOption.fromKey(it[KEY_CHEST_FILTER]) }
+    val chestFilters: Flow<ChestFilters> = context.userPrefsDataStore.data.map {
+        ChestFilters.fromKeys(it[KEY_CHEST_ENVIRONMENT], it[KEY_CHEST_FILTER])
+    }
 
     suspend fun setShowScoreUi(enabled: Boolean) {
         context.userPrefsDataStore.edit { prefs ->
@@ -92,5 +96,23 @@ class UserPrefs @Inject constructor(
     suspend fun setBadgeCategory(value: BadgeUiCategory) { context.userPrefsDataStore.edit { it[KEY_BADGE_CATEGORY] = value.name } }
     suspend fun setBadgeSort(value: BadgeSort) { context.userPrefsDataStore.edit { it[KEY_BADGE_SORT] = value.name } }
     suspend fun acknowledgeBackfill(version: Int) { context.userPrefsDataStore.edit { it[KEY_BACKFILL_ACKNOWLEDGED] = version } }
-    suspend fun setChestFilter(value: ChestFilterOption) { context.userPrefsDataStore.edit { it[KEY_CHEST_FILTER] = value.key } }
+    suspend fun setChestFilter(value: ChestFilterOption) = updateChestFilters { it.withProgress(value) }
+    suspend fun setChestEnvironment(value: ChestFilterOption) = updateChestFilters { it.withEnvironment(value) }
+    suspend fun clearChestFilters() = updateChestFilters { ChestFilters() }
+
+    private suspend fun updateChestFilters(update: (ChestFilters) -> ChestFilters) {
+        context.userPrefsDataStore.edit { prefs ->
+            updateChestFilterPreferences(prefs, update)
+        }
+    }
+}
+
+/** Shared by DataStore edits; always writes both keys so the legacy dimension cannot be lost. */
+internal fun updateChestFilterPreferences(
+    prefs: androidx.datastore.preferences.core.MutablePreferences,
+    update: (ChestFilters) -> ChestFilters
+) {
+    val filters = update(ChestFilters.fromKeys(prefs[UserPrefs.KEY_CHEST_ENVIRONMENT], prefs[UserPrefs.KEY_CHEST_FILTER]))
+    prefs[UserPrefs.KEY_CHEST_ENVIRONMENT] = filters.environment.key
+    prefs[UserPrefs.KEY_CHEST_FILTER] = filters.progress.key
 }

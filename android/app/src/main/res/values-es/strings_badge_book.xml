@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="book_collections">Colecciones</string>
+    <string name="book_all_badges">Todas las insignias</string>
+    <string name="book_collections_body">Elige una meta. Colecciones ordenadas de menor a mayor esfuerzo estimado.</string>
+    <string name="book_collection_rules">Consigue cada insignia al menos una vez. Una insignia puede contar para varias colecciones. El progreso obtenido se conserva al liberar o intercambiar criaturas.</string>
+    <plurals name="book_member_progress">
+        <item quantity="one">%1$d de %2$d insignia obtenida</item>
+        <item quantity="other">%1$d de %2$d insignias obtenidas</item>
+    </plurals>
+    <string name="book_completion_reward">Recompensa al completar: %1$s</string>
+    <string name="book_collection_award_title">%1$s · Completada</string>
+    <string name="book_collection_award_description">Consigue cada insignia de la colección %1$s al menos una vez.</string>
+    <string name="book_difficulty_start">Primeros pasos</string>
+    <string name="book_difficulty_build">Ampliando tu colección</string>
+    <string name="book_difficulty_long">Objetivo a largo plazo</string>
+    <string name="book_difficulty_ultimate">Reto de maestría</string>
+    <string name="book_collection_first_steps">Primeros pasos</string>
+    <string name="book_collection_flow">Encuentra tu Flow</string>
+    <string name="book_collection_growing">Un círculo que crece</string>
+    <string name="book_collection_sea">Descubrimientos del mar</string>
+    <string name="book_collection_land">Descubrimientos de la tierra</string>
+    <string name="book_collection_red">A través de las eras</string>
+    <string name="book_collection_stillwater">Descubrimientos de Stillwater</string>
+    <string name="book_collection_power">El camino de Power</string>
+    <string name="book_collection_specialists">Especialistas en dinosaurios</string>
+    <string name="book_collection_sea_mastery">Maestría del mar</string>
+    <string name="book_collection_land_mastery">Maestría de la tierra</string>
+    <string name="book_collection_red_mastery">Maestría de The Red</string>
+</resources>

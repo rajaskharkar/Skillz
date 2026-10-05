@@ -104,7 +104,7 @@ class LookoutRewardClaimTest {
             durationMs = 60_000,
             surgePoints = 0,
             scyraPoints = 0,
-            isSoftMode = false
+            mode = com.kingkharnivore.skillz.model.FlowMode.FLOW
         ))
         val session = requireNotNull(db.sessionDao().getSessionById(sessionId))
         val processor = ObjectiveCompletionProcessor(
@@ -137,7 +137,7 @@ class LookoutRewardClaimTest {
         listOf(day + 60_000, day + 86_400_000 + 60_000).forEachIndexed { index, end ->
             db.sessionDao().insertSession(SessionEntity(
                 title = "Run", description = "", tagId = 8, startTime = end - 60_000,
-                endTime = end, durationMs = 60_000, isSoftMode = false, createdAt = end + index
+                endTime = end, durationMs = 60_000, mode = com.kingkharnivore.skillz.model.FlowMode.FLOW, createdAt = end + index
             ))
         }
         val processor = ObjectiveCompletionProcessor(
@@ -161,7 +161,7 @@ class LookoutRewardClaimTest {
         repeat(450) { index ->
             val id = db.sessionDao().insertSession(SessionEntity(
                 title = "Flow", description = "", tagId = 9, startTime = index * 2L,
-                endTime = index * 2L + 1, durationMs = 1, isSoftMode = false
+                endTime = index * 2L + 1, durationMs = 1, mode = com.kingkharnivore.skillz.model.FlowMode.FLOW
             ))
             if (index < 10) db.objectiveProcessedSessionDao().markProcessed(
                 ObjectiveProcessedSessionEntity(id, index.toLong())
@@ -225,7 +225,7 @@ class LookoutRewardClaimTest {
         db.tagDao().insertTag(TagEntity(id = 13, name = "Piano", createdAt = start))
         db.tagDao().insertTag(TagEntity(id = 14, name = "Other", createdAt = start))
         db.sessionDao().insertSession(regularSession(14, start + 1, 60))
-        db.sessionDao().insertSession(regularSession(13, start + 2, 60).copy(isSoftMode = true))
+        db.sessionDao().insertSession(regularSession(13, start + 2, 60).copy(mode = com.kingkharnivore.skillz.model.FlowMode.SOFT))
         db.sessionDao().insertSession(regularSession(13, start - 1, 60))
 
         processor().createObjectiveAndReconcile(objective(13, "Piano", start, 60))
@@ -290,7 +290,7 @@ class LookoutRewardClaimTest {
     private fun regularSession(tagId: Long, end: Long, minutes: Long) = SessionEntity(
         title = "Flow", description = "", tagId = tagId,
         startTime = end - minutes * 60_000, endTime = end,
-        durationMs = minutes * 60_000, isSoftMode = false
+        durationMs = minutes * 60_000, mode = com.kingkharnivore.skillz.model.FlowMode.FLOW
     )
 
     private fun completion(id: Long, objectiveId: Long, pearls: Int) = ObjectiveCompletionEntity(

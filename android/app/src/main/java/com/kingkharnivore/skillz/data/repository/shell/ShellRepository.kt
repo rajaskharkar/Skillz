@@ -74,6 +74,27 @@ class ShellRepository @Inject constructor(
     private val objectiveCompletionDao: ObjectiveCompletionDao,
     private val achievementDao: AchievementDao
 ) {
+    fun observeSessions() = sessionDao.getAllSessions()
+    suspend fun reconcilePowerBadges() = db.withTransaction { reconcileAchievementLedger(System.currentTimeMillis(), AchievementReconciliationMode.RUNTIME) }
+
+    fun observePebbleBalance(): Flow<Int> = db.powerRewardDao().observeBalance()
+
+    suspend fun purchaseRedCreature(creatureId: String, transactionId: String): UserShellFindInstanceEntity = db.withTransaction {
+        val definition = com.kingkharnivore.skillz.utils.shell.RedCreatureCatalog.byId[creatureId]
+            ?: error("Unknown Red catalog entry")
+        require(definition.active)
+        val key = "red_purchase:$transactionId"
+        db.powerRewardDao().entry(key)?.let { entry ->
+            val existing = requireNotNull(findInstanceDao.getById(entry.sourceId))
+            require(existing.findId == creatureId)
+            return@withTransaction existing
+        }
+        require(db.powerRewardDao().balance() >= definition.pebbleCost) { "Insufficient Pebbles" }
+        val instance = grantFindCopy(creatureId, "red_purchase", transactionId)
+        db.powerRewardDao().insert(PebbleLedgerEntity(key, -definition.pebbleCost, instance.instanceId, System.currentTimeMillis()))
+        instance
+    }
+
     fun observePearlBalance(): Flow<Int> = pearlLedgerDao.observeBalance()
     fun observeStillwaterTotal(): Flow<Long> = stillwaterLedgerDao.observeTotal()
     fun observeStillwaterLifetimeTotal(): Flow<Long> = stillwaterLedgerDao.observeLifetimeTotal()
@@ -151,7 +172,7 @@ class ShellRepository @Inject constructor(
             pins = achievementDao.getPins(),
             tracking = achievementDao.getTracking(),
             countFloors = achievementDao.getCountFloors(),
-            accessState = accessState
+            accessState = accessState, sessions = sessionDao.completedSessions()
         ).badges.firstOrNull { it.badgeId == badgeId }
         require(dashboardBadge?.canTrack == true) { "This achievement has no current objective to track." }
         val current = achievementDao.getTracking()
@@ -168,7 +189,7 @@ class ShellRepository @Inject constructor(
         earned = badgeDao.getAll(), instances = findInstanceDao.getAll(),
         discoveries = achievementDao.getDiscoveries(), masteries = achievementDao.getMasteries(),
         completions = achievementDao.getCompletions(), pins = achievementDao.getPins(),
-        tracking = achievementDao.getTracking(), countFloors = achievementDao.getCountFloors()
+        tracking = achievementDao.getTracking(), countFloors = achievementDao.getCountFloors(), sessions = sessionDao.completedSessions()
     )
 
     private suspend fun currentCollectionProgress(collectionId: String): CollectionProgress? {
@@ -638,7 +659,7 @@ class ShellRepository @Inject constructor(
                 }
                 val newlyEarned = affectedIds.filter { (badgesBefore[it] ?: 0) == 0 && (badgesAfter[it] ?: 0) > 0 }
                 val newEditionBadges = completionsAfter.filter { it.completionId !in completionsBefore }
-                    .map { "${it.collectionId}_${it.completionType.lowercase()}" }.filter { it !in newlyEarned }
+                    .map { "${it.collectionId}_${it.completionType.lowercase()}" }.filter { it !in newlyEarned && BadgeDefinitionResolver.isUserVisible(it) }
                 val advanced = affectedIds.filter { it !in newlyEarned } + newEditionBadges
                 val milestones = affectedIds.mapNotNull { id ->
                     val badgeDefinition = BadgeDefinitionResolver.resolve(id)
@@ -709,7 +730,8 @@ class ShellRepository @Inject constructor(
 
     /** Reconciles the persistent earned ledger without reducing reliable legacy totals. */
     private suspend fun reconcileAchievementLedger(now: Long, mode: AchievementReconciliationMode) {
-        val discoveries = achievementDao.getDiscoveries().map { it.speciesId }.toSet()
+        val discoveryRows = achievementDao.getDiscoveries()
+        val discoveries = discoveryRows.map { it.speciesId }.toSet()
         val masteries = achievementDao.getMasteries()
         val floorsList = achievementDao.getCountFloors()
         val floors = floorsList.associateBy { it.badgeId }
@@ -725,8 +747,17 @@ class ShellRepository @Inject constructor(
                 mode = mode
             )
         }
+        val completedSessions = sessionDao.completedSessions()
+        com.kingkharnivore.skillz.domain.achievement.RedBadgeCatalog.specs.forEach { spec ->
+            val progress = com.kingkharnivore.skillz.domain.achievement.RedBadgeCatalog.progress(spec, discoveries, evidence.filterValues { it.hasEverBeenMastered }.keys, completedSessions)
+            if (progress >= spec.target) {
+                val timestamp = com.kingkharnivore.skillz.domain.achievement.RedBadgeCatalog.earnedEvidence(
+                    spec, discoveryRows, masteries, completedSessions
+                ) ?: EvidenceTimestamp(now, AchievementTimestampConfidence.UNKNOWN)
+                materializeBadge(spec.id, 1, timestamp, mode = mode)
+            }
+        }
         val uniqueMastered = evidence.values.count { it.hasEverBeenMastered }
-        val discoveryRows = achievementDao.getDiscoveries()
         val stillwaterEvidence = AchievementEvidenceScope.stillwater(discoveryRows, masteries)
         val stillwaterSpeciesIds = stillwaterEvidence.speciesIds
         val stillwaterMasteries = stillwaterEvidence.masteries
@@ -816,6 +847,15 @@ class ShellRepository @Inject constructor(
                 mode = mode
             )
         }
+        // Reuse the shared ledger; membership comes from durable badge/creature/session evidence.
+        val bookBadges = currentDashboard().badges.associateBy { it.badgeId }
+        com.kingkharnivore.skillz.domain.achievement.BadgeBookCollections.newAwards.forEach { collection ->
+            if (com.kingkharnivore.skillz.domain.achievement.BadgeBookCollections.earnedMembers(collection, bookBadges) == collection.memberIds.size) {
+                val timestamp = com.kingkharnivore.skillz.domain.achievement.BadgeBookCollections.completionEvidence(collection, bookBadges)
+                    ?: EvidenceTimestamp(now, AchievementTimestampConfidence.UNKNOWN)
+                materializeBadge(collection.completionBadgeId, 1, timestamp, mode = mode)
+            }
+        }
         cleanupTracking()
         reconcilePins()
     }
@@ -827,6 +867,7 @@ class ShellRepository @Inject constructor(
         latestAdvancedEvidence: EvidenceTimestamp? = firstEarnedEvidence,
         mode: AchievementReconciliationMode
     ) {
+        if (BadgeDefinitionResolver.isObsolete(id)) return
         val current = badgeDao.get(id)
         val candidateConfidence = firstEarnedEvidence?.confidence ?: AchievementTimestampConfidence.UNKNOWN
         if (current == null) {

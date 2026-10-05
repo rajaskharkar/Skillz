@@ -1,6 +1,7 @@
 package com.kingkharnivore.skillz.ui.screen.shell
 
 sealed class ShellDestination {
+    data object TheRed : ShellDestination()
     data object Heart : ShellDestination()
     data object Focus : ShellDestination()
     data object Stillwater : ShellDestination()

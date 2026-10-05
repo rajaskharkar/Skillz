@@ -462,6 +462,69 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_42_44 = object : Migration(42, 44) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Existing isSoftMode columns encode FLOW=0 / SOFT=1 unchanged. POWER=2 is new only.
+            db.execSQL("CREATE TABLE IF NOT EXISTS pebble_ledger (id TEXT NOT NULL PRIMARY KEY, delta INTEGER NOT NULL, sourceId TEXT NOT NULL, createdAt INTEGER NOT NULL)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS session_shell_reward (sessionId INTEGER NOT NULL PRIMARY KEY, completed INTEGER NOT NULL, pearls INTEGER NOT NULL, pebbles INTEGER NOT NULL, queuedAt INTEGER NOT NULL)")
+        }
+    }
+
+    /** Repairs the enum TEXT affinity in an intermediate development build. Released v42
+     * takes the additive 42->44 path and never rebuilds a historical session table. */
+    val MIGRATION_43_44 = object : Migration(43, 44) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            repairPowerModeAffinity(db, "sessions")
+            repairPowerModeAffinity(db, "ongoing_session")
+            db.query("PRAGMA foreign_key_check").use { check(!it.moveToFirst()) { "Power migration foreign key check failed" } }
+        }
+    }
+
+    private fun repairPowerModeAffinity(db: SupportSQLiteDatabase, table: String) {
+        val type = db.query("PRAGMA table_info(`$table`)").use { cursor ->
+            var result = ""
+            while (cursor.moveToNext()) if (cursor.getString(1) == "isSoftMode") result = cursor.getString(2)
+            result
+        }
+        if (type.equals("INTEGER", ignoreCase = true)) return
+        check(type.equals("TEXT", ignoreCase = true)) { "Unexpected Power mode column type" }
+        db.query("SELECT COUNT(*) FROM `$table` WHERE isSoftMode NOT IN ('0','1','2','FLOW','SOFT','POWER')").use {
+            check(it.moveToFirst() && it.getLong(0) == 0L) { "Unknown mode; preserving database without migration" }
+        }
+        val sql = db.query("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", arrayOf(table)).use { it.moveToFirst(); it.getString(0) }
+        val indices = db.query("SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql IS NOT NULL", arrayOf(table)).use { cursor ->
+            buildList { while(cursor.moveToNext()) add(cursor.getString(0)) }
+        }
+        val columns = db.query("PRAGMA table_info(`$table`)").use { cursor -> buildList { while(cursor.moveToNext()) add(cursor.getString(1)) } }
+        val children = if(table == "sessions") listOf("session_creations", "pulse_flow_links", "flow_health_snapshots", "flow_reward_breakdowns") else emptyList()
+        // DROP TABLE fires FK actions even within a transaction. Snapshot every affected child
+        // and the nullable Pulse links first, then restore them before validation/commit.
+        children.forEach { db.execSQL("CREATE TEMP TABLE `power_backup_$it` AS SELECT * FROM `$it`") }
+        children.forEach { db.execSQL("DELETE FROM `$it`") }
+        if(table == "sessions") db.execSQL("CREATE TEMP TABLE power_pulse_links AS SELECT id,parentSessionId FROM pulses")
+        val sequence = if(table == "sessions") db.query("SELECT seq FROM sqlite_sequence WHERE name='sessions'").use { if(it.moveToFirst()) it.getLong(0) else 0L } else 0L
+        val replacement = "${table}_power_repair"
+        val create = sql.replaceFirst(Regex("(?i)CREATE TABLE (IF NOT EXISTS )?[`\"]?" + table + "[`\"]?"), "CREATE TABLE `$replacement`")
+            .replace(Regex("(?i)([`\"]?isSoftMode[`\"]?\\s+)TEXT"), "$1INTEGER")
+        check(create != sql && create.contains("INTEGER"))
+        db.execSQL(create)
+        val names = columns.joinToString(",") { "`$it`" }
+        val values = columns.joinToString(",") { if(it == "isSoftMode") "CASE isSoftMode WHEN 'SOFT' THEN 1 WHEN 'POWER' THEN 2 WHEN 'FLOW' THEN 0 ELSE CAST(isSoftMode AS INTEGER) END" else "`$it`" }
+        db.execSQL("INSERT INTO `$replacement` ($names) SELECT $values FROM `$table`")
+        db.execSQL("DROP TABLE `$table`")
+        db.execSQL("ALTER TABLE `$replacement` RENAME TO `$table`")
+        indices.forEach(db::execSQL)
+        children.forEach {
+            db.execSQL("INSERT INTO `$it` SELECT * FROM `power_backup_$it`")
+            db.execSQL("DROP TABLE `power_backup_$it`")
+        }
+        if(table == "sessions") {
+            db.execSQL("UPDATE pulses SET parentSessionId=(SELECT parentSessionId FROM power_pulse_links WHERE power_pulse_links.id=pulses.id)")
+            db.execSQL("DROP TABLE power_pulse_links")
+            db.execSQL("UPDATE sqlite_sequence SET seq=MAX(seq,?) WHERE name='sessions'", arrayOf(sequence))
+        }
+    }
+
     val ALL_MIGRATIONS: Array<Migration> =
         LEGACY_TO_15_MIGRATIONS +
                 MIGRATION_13_14 +
@@ -492,7 +555,8 @@ object SkillzDatabaseMigrations {
                 MIGRATION_38_39 +
                 MIGRATION_39_40 +
                 MIGRATION_40_41 +
-                MIGRATION_41_42
+                MIGRATION_41_42 +
+                MIGRATION_42_44 + MIGRATION_43_44
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(

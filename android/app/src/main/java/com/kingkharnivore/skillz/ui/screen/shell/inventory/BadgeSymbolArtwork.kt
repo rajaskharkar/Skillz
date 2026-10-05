@@ -27,6 +27,8 @@ import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 internal fun BadgeCoreArtwork(presentation: BadgePresentation, diameter: Dp) {
     Box(Modifier.size(diameter), contentAlignment = Alignment.Center) {
         when {
+            com.kingkharnivore.skillz.domain.achievement.RedBadgeCatalog.byId.containsKey(presentation.badgeId) ->
+                RedBadgeArtwork(presentation.badgeId, Modifier.size(diameter * .72f))
             presentation.motif != null -> {
                 if (presentation.collectionIdentity != null) {
                     CollectionCrest(presentation.collectionIdentity, Modifier.size(diameter * .55f))

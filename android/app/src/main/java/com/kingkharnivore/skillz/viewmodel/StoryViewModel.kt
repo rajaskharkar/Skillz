@@ -788,6 +788,7 @@ class StoryViewModel @Inject constructor(
                 createdAt = session.createdAt,
                 score = session.scyraPoints,
                 isSoftMode = session.isSoftMode,
+                mode = session.mode,
                 isSurge = session.surgePlannedMs != null,
                 surgePoints = session.surgePoints,
                 arcId = session.arcId,

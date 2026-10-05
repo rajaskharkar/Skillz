@@ -132,7 +132,7 @@ class LandBadgeEvidence(
     fun count(spec: LandBadgeSpec): Int = when (spec.metric) {
         LandBadgeMetric.DISCOVERY -> discovered.intersect(landIds).size
         LandBadgeMetric.SEA_DISCOVERY -> discovered.count { CreatureCatalog.get(it)?.realm == CreatureRealm.SEA }
-        LandBadgeMetric.REALMS -> discovered.mapNotNull { CreatureCatalog.get(it)?.realm }.distinct().size
+        LandBadgeMetric.REALMS -> discovered.mapNotNull { CreatureCatalog.get(it)?.realm }.filter { it != CreatureRealm.RED }.distinct().size
         LandBadgeMetric.ZONES -> discovered.filter { it in landIds }.map { CreatureCatalog.require(it).zone }.distinct().size
         LandBadgeMetric.ENCOUNTER -> land.count { it.sourceType == "beyond_blue" }
         LandBadgeMetric.LEVEL -> maxOf(land.maxOfOrNull { it.animalLevel } ?: 0, if (masteryCount > 0) 99 else 0)

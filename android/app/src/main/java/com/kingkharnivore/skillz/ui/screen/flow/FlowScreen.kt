@@ -2,6 +2,15 @@
 
 package com.kingkharnivore.skillz.ui.screen.flow
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.Role
+
+import com.kingkharnivore.skillz.model.FlowMode
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.size
+
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
@@ -9,6 +18,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +37,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -265,7 +276,8 @@ fun FlowScreen(
 
             RitualCard(rotation = 0.08f, corner = 26.dp) {
                 SessionModeSelector(
-                    isSoftMode = uiState.isSoftMode,
+                    mode = uiState.mode,
+                    onPowerSelected = { viewModel.setPowerMode() },
                     isLocked = modeLocked,
                     onFlowSelected = { viewModel.setSoftMode(false) },
                     onSoftSelected = {
@@ -389,6 +401,7 @@ fun FlowScreen(
 
                 if (shouldShowStopwatch) {
                     StopwatchSection(
+                        mode = uiState.mode,
                         state = stopwatchState,
                         viewModel = viewModel,
                         showScoreUi = uiState.showScoreUi,
@@ -420,6 +433,7 @@ fun FlowScreen(
                         text = when {
                             isInFlowState && uiState.isSoftMode -> stringResource(R.string.flow_screen_exit_soft_flow)
                             isInFlowState -> stringResource(R.string.flow_screen_exit_flow)
+                            uiState.mode == FlowMode.POWER -> stringResource(R.string.power_begin)
                             uiState.isSoftMode -> stringResource(R.string.flow_screen_begin_soft_flow)
                             else -> stringResource(R.string.flow_screen_enter_flow)
                         },
@@ -774,6 +788,7 @@ fun FlowScreen(
                 Text(
                     when {
                         showArcSummary && r.arcSummary != null -> stringResource(R.string.flow_screen_arc_reward)
+                        r.mode == FlowMode.POWER -> stringResource(R.string.power_complete)
                         r.isSoftSession -> stringResource(R.string.flow_screen_soft_flow_recorded)
                         else -> stringResource(R.string.flow_screen_you_did_it)
                     }
@@ -954,37 +969,40 @@ fun FlowScreen(
 }
 
 @Composable
-private fun SessionModeSelector(
-    isSoftMode: Boolean,
+internal fun SessionModeSelector(
+    mode: FlowMode,
+    onPowerSelected: () -> Unit,
     isLocked: Boolean,
     onFlowSelected: () -> Unit,
     onSoftSelected: () -> Unit
 ) {
-    val selectedTitle = if (isSoftMode) {
+    val isSoftMode = mode == FlowMode.SOFT
+    val isPower = mode == FlowMode.POWER
+    val selectedTitle = if (isPower) stringResource(R.string.power_title) else if (isSoftMode) {
         stringResource(R.string.flow_screen_soft_short)
     } else {
         stringResource(R.string.flow_card_type_flow)
     }
 
-    val selectedSubtitle = if (isSoftMode) {
+    val selectedSubtitle = if (isPower) stringResource(R.string.power_helper) else if (isSoftMode) {
         stringResource(R.string.flow_screen_mode_soft_subtitle)
     } else {
         stringResource(R.string.flow_screen_mode_flow_subtitle)
     }
 
-    val selectedIcon = if (isSoftMode) {
+    val selectedIcon = if (isPower) Icons.Outlined.FitnessCenter else if (isSoftMode) {
         Icons.Outlined.Spa
     } else {
         Icons.Outlined.AutoAwesome
     }
 
-    val selectedContainer = if (isSoftMode) {
+    val selectedContainer = if (isPower) MaterialTheme.colorScheme.tertiary else if (isSoftMode) {
         MaterialTheme.colorScheme.secondary
     } else {
         MaterialTheme.colorScheme.primary
     }
 
-    val selectedContent = if (isSoftMode) {
+    val selectedContent = if (isPower) MaterialTheme.colorScheme.onTertiary else if (isSoftMode) {
         MaterialTheme.colorScheme.onSecondary
     } else {
         MaterialTheme.colorScheme.onPrimary
@@ -1021,13 +1039,12 @@ private fun SessionModeSelector(
                 )
             } else {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     ModeOptionCard(
-                        modifier = Modifier.weight(1f),
-                        selected = !isSoftMode,
-                        enabled = true,
+                        modifier = Modifier.weight(1f).fillMaxHeight(), compact = true,
+                        selected = mode == FlowMode.FLOW, enabled = true,
                         title = stringResource(R.string.flow_card_type_flow),
                         subtitle = stringResource(R.string.flow_screen_mode_flow_subtitle),
                         icon = Icons.Outlined.AutoAwesome,
@@ -1035,11 +1052,9 @@ private fun SessionModeSelector(
                         selectedContent = MaterialTheme.colorScheme.onPrimary,
                         onClick = onFlowSelected
                     )
-
                     ModeOptionCard(
-                        modifier = Modifier.weight(1f),
-                        selected = isSoftMode,
-                        enabled = true,
+                        modifier = Modifier.weight(1f).fillMaxHeight(), compact = true,
+                        selected = isSoftMode, enabled = true,
                         title = stringResource(R.string.flow_screen_soft_short),
                         subtitle = stringResource(R.string.flow_screen_mode_soft_subtitle),
                         icon = Icons.Outlined.Spa,
@@ -1047,10 +1062,24 @@ private fun SessionModeSelector(
                         selectedContent = MaterialTheme.colorScheme.onSecondary,
                         onClick = onSoftSelected
                     )
+                    ModeOptionCard(
+                        modifier = Modifier.weight(1f).fillMaxHeight(), compact = true,
+                        selected = isPower, enabled = true,
+                        title = stringResource(R.string.power_title),
+                        subtitle = stringResource(R.string.power_mode_subtitle),
+                        icon = Icons.Outlined.FitnessCenter,
+                        selectedContainer = MaterialTheme.colorScheme.tertiary,
+                        selectedContent = MaterialTheme.colorScheme.onTertiary,
+                        onClick = onPowerSelected
+                    )
                 }
             }
         }
 
+        if (isPower && !isLocked) {
+            Text(stringResource(R.string.power_helper), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         if (isLocked) {
             Text(
                 text = stringResource(R.string.flow_screen_mode_locked_body),
@@ -1071,13 +1100,14 @@ private fun ModeOptionCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     selectedContainer: androidx.compose.ui.graphics.Color,
     selectedContent: androidx.compose.ui.graphics.Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    compact: Boolean = false
 ) {
     val container = if (selected) selectedContainer else MaterialTheme.colorScheme.surfaceVariant
     val content = if (selected) selectedContent else MaterialTheme.colorScheme.onSurface
 
     Card(
-        modifier = modifier,
+        modifier = modifier.semantics { this.selected = selected; role = Role.RadioButton },
         onClick = onClick,
         enabled = enabled,
         shape = RoundedCornerShape(20.dp),
@@ -1086,6 +1116,17 @@ private fun ModeOptionCard(
             contentColor = content
         )
     ) {
+        if (compact) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Icon(icon, null, Modifier.size(22.dp))
+                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(subtitle, style = MaterialTheme.typography.labelSmall,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    color = content.copy(alpha = .85f))
+            }
+        } else {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1109,6 +1150,7 @@ private fun ModeOptionCard(
                     color = content.copy(alpha = 0.78f)
                 )
             }
+        }
         }
     }
 }

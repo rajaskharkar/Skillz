@@ -1016,7 +1016,7 @@
     <string name="shell_no_more_forms">This reward is resting in its current form.</string>
     <string name="shell_return_to_chest">Return to The Chest</string>
     <string name="shell_chest_title">The Chest</string>
-    <string name="shell_chest_body">Your creatures from The Blue.</string>
+    <string name="shell_chest_body">Your creatures from Sea, Land and The Red.</string>
     <string name="shell_chest_inventory_stats">%1$d creatures owned · %2$d stacks</string>
     <string name="shell_chest_sort_selected">Sort: %1$s</string>
     <string name="shell_chest_sort_level">Level</string>
@@ -1029,13 +1029,12 @@
     <string name="shell_chest_sort_closest_mastery">Closest to Mastery</string>
     <string name="shell_chest_sort_species_mastery">Species Mastery count</string>
     <string name="shell_chest_empty_title">The Chest is empty.</string>
-    <string name="shell_chest_empty_body">Explore The Blue to encounter your first creature.</string>
+    <string name="shell_chest_empty_body">Explore Sea and Land in The Blue, or discover dinosaurs in The Red. Your creatures gather here.</string>
     <string name="shell_chest_empty_action">Go to The Blue</string>
     <string name="shell_chest_count_badge">x%1$d</string>
     <string name="shell_chest_stack_a11y">%1$s. Level %2$d. Owned: %3$d.</string>
     <string name="shell_chest_detail_level">Level %1$d</string>
     <string name="shell_chest_detail_owned">Owned: %1$d</string>
-    <string name="shell_chest_detail_source">From The Blue</string>
     <string name="shell_filter_all">All</string>
     <string name="shell_filter_animals">Animals</string>
     <string name="shell_filter_creatures">Creatures</string>
@@ -1965,7 +1964,7 @@ You can turn Health back on later.</string>
     <string name="mastery_collection_progress">%1$d of %2$d species mastered</string>
     <string name="mastery_region_complete">Completionist achieved. Every creature in this collection has reached Level 99.</string>
     <plurals name="mastery_species_remaining">
-        <item quantity="one">One species remains.</item>
+        <item quantity="one">%1$d species remains.</item>
         <item quantity="other">%1$d species remain.</item>
     </plurals>
     <string name="mastery_additional">Additional Achievements</string>
@@ -2188,7 +2187,7 @@ You can turn Health back on later.</string>
     <string name="shell_message_grew_chest">Your creature grew inside The Chest.</string>
     <string name="shell_message_grow_failed">Could not grow that creature.</string>
     <string name="shell_message_celebration_failed">Could not close the Mastery summary.</string>
-    <string name="shell_message_released">Released back into The Blue. %1$d Pearls returned. Your lifetime record remains.</string>
+    <string name="shell_message_released">Released. %1$d Pearls returned. Your lifetime record remains.</string>
     <string name="shell_message_release_failed">Could not release those creatures.</string>
     <string name="shell_message_encountered">%1$s entered %2$s.</string>
     <string name="shell_message_encounter_succeeded">Your Beyond the Blue encounter succeeded.</string>
@@ -2353,4 +2352,5 @@ You can turn Health back on later.</string>
     <string name="creature_release_selected_a11y">Selected %1$d of %2$d. Species: %3$s.</string>
     <string name="creature_release_reward_a11y">You will receive %1$d Pearls.</string>
     <string name="creature_release_level_a11y">Level %1$d. Species: %2$s. Owned: %3$d. Selected: %4$d.</string>
+    <string name="badge_one_time_a11y">%1$s badge. %2$s. Remaining: %3$d.%4$s%5$s</string>
 </resources>

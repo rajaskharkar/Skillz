@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.Terrain
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.CenterFocusStrong
@@ -111,7 +112,22 @@ private fun hasAffordablePearlShape(uiState: ShellUiState): Boolean = false
 private fun unseenNotificationCount(uiState: ShellUiState): Int =
     unviewedShellNotifications(uiState).size
 
-internal fun hasAffordableFocusPearlAction(uiState: ShellUiState): Boolean = false
+internal fun hasAffordableFocusPearlAction(uiState: ShellUiState): Boolean {
+    val placements = uiState.focusPlacements.filter { it.roomId == ShellRoomId.FOCUS.name }
+    val displayed = placements.map { it.instanceId }.toSet()
+    val upgrade = uiState.finds.any { instance ->
+        instance.instanceId in displayed &&
+            ShellContentCatalog.nextUpgrade(instance.findId, instance.currentUpgradeStageId)
+                ?.let { it.pearlCost <= uiState.pearlBalance } == true
+    }
+    val occupied = placements.map { it.slotId }.toSet()
+    val purchase = ShellContentCatalog.focusPearlObjects.any { definition ->
+        definition.pearlCost?.let { it <= uiState.pearlBalance } == true && ShellContentCatalog.focusSlots.any { slot ->
+            slot.slotId !in occupied && ShellContentCatalog.isCompatibleWithSlot(slot, definition)
+        }
+    }
+    return upgrade || purchase
+}
 
 
 @Composable
@@ -143,11 +159,14 @@ fun ShellRootScreen(
     viewModel: ShellViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var showRedTrade by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val backDispatcher = androidx.activity.compose.LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val activeFlowMessage = stringResource(R.string.lookout_flow_already_active)
     var destination by remember { mutableStateOf<ShellDestination>(ShellDestination.Heart) }
+    var redSpecies by remember { mutableStateOf<String?>(null) }
     var blueRealm by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<com.kingkharnivore.skillz.utils.shell.CreatureRealm?>(null) }
     var pendingNavigation by remember { mutableStateOf<PendingShellNavigation?>(null) }
     val handledNavigationRequestIds = remember { mutableSetOf<String>() }
@@ -178,6 +197,17 @@ fun ShellRootScreen(
         request: BadgeActionDestination,
         notificationId: String? = null
     ): NavigationConsumptionResult {
+        val targetSpecies = when(request) {
+            is BadgeActionDestination.BlueRegion -> request.speciesId
+            is BadgeActionDestination.ChestSpecies -> request.speciesId
+            is BadgeActionDestination.BeyondBlue -> request.speciesId
+            else -> null
+        }
+        if (targetSpecies in com.kingkharnivore.skillz.utils.shell.RedCreatureCatalog.byId) {
+            redSpecies = targetSpecies
+            destination = ShellDestination.TheRed
+            return NavigationConsumptionResult.Consumed
+        }
         val dispatch = ShellNavigationCoordinator.dispatch(request, notificationId)
         if (dispatch != null) {
             pendingNavigation = dispatch.pending
@@ -195,16 +225,18 @@ fun ShellRootScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
+    val snackbarResources = androidx.compose.ui.platform.LocalResources.current
+    LaunchedEffect(viewModel, snackbarResources) {
         viewModel.events.collect { message ->
             snackbarHostState.showSnackbar(when (message) {
-                is com.kingkharnivore.skillz.viewmodel.shell.UiText.Resource -> context.getString(message.resId, *message.args.toTypedArray())
+                is com.kingkharnivore.skillz.viewmodel.shell.UiText.Resource -> snackbarResources.getString(message.resId, *message.args.toTypedArray())
             })
         }
     }
 
     LaunchedEffect(destination) {
         val room = when (destination) {
+            ShellDestination.TheRed -> ShellRoomId.THE_RED
             ShellDestination.Heart -> ShellRoomId.HEART
             ShellDestination.Focus -> ShellRoomId.FOCUS
             ShellDestination.Stillwater -> ShellRoomId.STILLWATER
@@ -239,7 +271,9 @@ fun ShellRootScreen(
                 notificationCount = notificationCount,
                 blueRealm = blueRealm,
                 onBack = {
-                    if (destination == ShellDestination.TheBluePreview && blueRealm != null) {
+                    if (destination == ShellDestination.TheRed) {
+                        backDispatcher?.onBackPressed()
+                    } else if (destination == ShellDestination.TheBluePreview && blueRealm != null) {
                         blueRealm = null
                     } else if (destination == ShellDestination.Heart) {
                         onBack()
@@ -259,6 +293,9 @@ fun ShellRootScreen(
                 .background(shellBackground())
         ) {
             when (destination) {
+                ShellDestination.TheRed -> com.kingkharnivore.skillz.ui.screen.shell.rooms.red.RedRoute(
+                    onBadges = { destination = ShellDestination.Badges }, onTrade = { showRedTrade = true }, initialCreature = redSpecies,
+                    onCreatureOpened = { redSpecies = null })
                 ShellDestination.Heart -> HeartRoomScreen(
                     uiState = uiState,
                     onNavigate = { destination = it }
@@ -284,6 +321,9 @@ fun ShellRootScreen(
                     onOpenBlue = { destination = ShellDestination.TheBluePreview },
                     onSortOptionSelected = viewModel::setChestSortOption,
                     onFilterSelected = viewModel::setChestFilter,
+                    onEnvironmentSelected = viewModel::setChestEnvironment,
+                    onClearFilters = viewModel::clearChestFilters,
+                    onOpenRed = { destination = ShellDestination.TheRed },
                     focusSpeciesId = (pendingNavigation as? PendingShellNavigation.OpenChestSpecies)?.speciesId,
                     focusRequestId = (pendingNavigation as? PendingShellNavigation.OpenChestSpecies)?.requestId,
                     onFocusResult = ::handleNavigationResult
@@ -347,6 +387,22 @@ fun ShellRootScreen(
             }
         }
 
+        if (showRedTrade) {
+            com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.BeyondBlueEncounterSheet(
+                pearlBalance = uiState.pearlBalance,
+                initialZone = TheBlueZoneId.SUNLIT_REEF,
+                activeAnimalInstances = uiState.finds.filter {
+                    it.creatureStatus == com.kingkharnivore.skillz.utils.shell.CreatureStatus.ACTIVE &&
+                        ShellContentCatalog.find(it.findId)?.kind == com.kingkharnivore.skillz.data.model.shell.ShellRewardKind.ANIMAL
+                },
+                onDismiss = { showRedTrade = false },
+                onEncounter = { target, selected ->
+                    viewModel.encounterBeyondBlue(target, selected)
+                    showRedTrade = false
+                }
+            )
+        }
+
         if (showNotifications) {
             NotificationInlayOverlay(
                 uiState = uiState,
@@ -375,6 +431,7 @@ fun ShellRootScreen(
                 onComplete = { origin ->
                     viewModel.completeCelebration {
                         destination = when (origin) {
+                            "RED" -> ShellDestination.TheRed
                             "BLUE" -> ShellDestination.TheBluePreview
                             "STILLWATER" -> ShellDestination.Stillwater
                             else -> ShellDestination.ShellChest
@@ -394,7 +451,7 @@ fun ShellRootScreen(
 }
 
 @Composable
-private fun HeartRoomScreen(
+internal fun HeartRoomScreen(
     uiState: ShellUiState,
     onNavigate: (ShellDestination) -> Unit
 ) {
@@ -496,17 +553,29 @@ private fun HeartRoomScreen(
                     }
                 )
 
-                RoomOrbitNode(
-                    labelRes = R.string.shell_room_the_blue_title,
-                    icon = Icons.Outlined.FilterVintage,
-                    dormant = false,
-                    hasIndicator = buildTheBlueUiState(uiState.finds, uiState.focusPlacements).newAnimalCount > 0,
+                RoomOrbitPair(
+                    modifier = Modifier.align(Alignment.TopCenter).offset(y = maxHeight * 0.80f),
                     nodeWidth = nodeWidth,
-                    nodeHeight = nodeHeight,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = maxHeight * 0.80f),
-                    onClick = { onNavigate(ShellDestination.TheBluePreview) }
+                    left = {
+                        RoomOrbitNode(
+                            labelRes = R.string.shell_room_the_blue_title,
+                            icon = Icons.Outlined.FilterVintage,
+                            dormant = false,
+                            hasIndicator = buildTheBlueUiState(uiState.finds, uiState.focusPlacements).newAnimalCount > 0,
+                            nodeWidth = nodeWidth, nodeHeight = nodeHeight,
+                            onClick = { onNavigate(ShellDestination.TheBluePreview) }
+                        )
+                    },
+                    right = {
+                        RoomOrbitNode(
+                            labelRes = R.string.red_title,
+                            icon = Icons.Outlined.Terrain,
+                            dormant = false,
+                            hasIndicator = uiState.finds.any { it.isNew && it.findId in com.kingkharnivore.skillz.utils.shell.RedCreatureCatalog.byId },
+                            nodeWidth = nodeWidth, nodeHeight = nodeHeight,
+                            onClick = { onNavigate(ShellDestination.TheRed) }
+                        )
+                    }
                 )
             }
 

@@ -90,6 +90,7 @@ fun FlowCard(
     )
 
     val baseContainer = when {
+        session.mode == com.kingkharnivore.skillz.model.FlowMode.POWER -> MaterialTheme.colorScheme.tertiaryContainer
         isSoft -> MaterialTheme.colorScheme.secondary
         session.isSurge -> lerp(journeyTint, MaterialTheme.colorScheme.surfaceVariant, 0.22f)
         else -> journeyTint
@@ -113,6 +114,7 @@ fun FlowCard(
     }
 
     val labelColor = when {
+        session.mode == com.kingkharnivore.skillz.model.FlowMode.POWER -> MaterialTheme.colorScheme.onTertiaryContainer
         isSoft -> MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.82f)
         else -> lerp(
             MaterialTheme.colorScheme.onSurface,
@@ -122,7 +124,7 @@ fun FlowCard(
     }
 
     val flowTypeLabel = stringResource(
-        if (isSoft) R.string.flow_card_type_soft else R.string.flow_card_type_flow
+        if (session.mode == com.kingkharnivore.skillz.model.FlowMode.POWER) R.string.power_title else if (isSoft) R.string.flow_card_type_soft else R.string.flow_card_type_flow
     )
     val expandedStateLabel = stringResource(R.string.a11y_expanded)
     val collapsedStateLabel = stringResource(R.string.a11y_collapsed)
@@ -263,6 +265,10 @@ fun FlowCard(
                                 color = labelColor
                             )
                         }
+                    }
+
+                    if (session.mode == com.kingkharnivore.skillz.model.FlowMode.POWER) {
+                        Text(flowTypeLabel, style = MaterialTheme.typography.labelMedium, color = labelColor)
                     }
 
                     Spacer(modifier = Modifier.height(6.dp))

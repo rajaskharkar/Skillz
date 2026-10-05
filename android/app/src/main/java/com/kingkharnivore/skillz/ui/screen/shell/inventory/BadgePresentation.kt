@@ -54,6 +54,14 @@ fun resolveBadgePresentation(
             centerLabel = period.take(1)
         )
     }
+    BadgeBookCollections.byAward[badgeId]?.let { collection ->
+        val title = stringResource(collection.titleRes)
+        return BadgePresentation(badgeId, stringResource(R.string.book_collection_award_title, title),
+            stringResource(R.string.book_collection_award_description, title), BadgeArtworkKind.SPECIAL, motif = LandBadgeMotif.CROWN)
+    }
+    RedBadgeCatalog.byId[badgeId]?.let { spec ->
+        return BadgePresentation(badgeId, stringResource(spec.titleRes), stringResource(spec.descriptionRes), BadgeArtworkKind.SPECIAL, motif = LandBadgeMotif.FOOTPRINTS)
+    }
     LandBadgeCatalog.byId[badgeId]?.let { spec ->
         return BadgePresentation(badgeId, stringResource(spec.titleRes), stringResource(spec.descriptionRes),
             BadgeArtworkKind.SPECIAL, centerLabel = when (spec.metric) {
@@ -163,6 +171,10 @@ fun resolveBadgePresentation(
 
 @Composable
 fun collectionDisplayName(collectionId: String): String = stringResource(when (collectionId) {
+    "collection_red" -> R.string.red_title
+    "red_triassic" -> R.string.red_triassic
+    "red_jurassic" -> R.string.red_jurassic
+    "red_cretaceous" -> R.string.red_cretaceous
     "blue_sunlit_reef" -> R.string.collection_sunlit_reef
     "blue_deeper_reef" -> R.string.collection_deeper_reef
     "blue_open_blue" -> R.string.collection_open_blue

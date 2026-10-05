@@ -46,6 +46,7 @@ fun ArcSummaryContent(
         "badge_flow_60_min" to stringResource(R.string.shell_badge_flow_60_title),
         "badge_flow_120_min" to stringResource(R.string.shell_badge_flow_120_title)
     )
+    val powerBadgeTitles = com.kingkharnivore.skillz.domain.achievement.RedBadgeCatalog.specs.associate { it.id to stringResource(it.titleRes) }
     val discoveryTitles = mapOf(
         "discovery_sea_glass_shard" to stringResource(R.string.shell_find_sea_glass_title),
         "discovery_glimmer" to stringResource(R.string.shell_find_glimmer_title),
@@ -60,7 +61,7 @@ fun ArcSummaryContent(
         text = rememberRewardRevealTextProvider(),
         durationText = duration,
         findTitle = { findTitles[it] ?: creatureTitles[it] },
-        badgeTitle = { badgeTitles[it] },
+        badgeTitle = { powerBadgeTitles[it] ?: badgeTitles[it] },
         discoveryTitle = { discoveryTitles[it] }
     )
 

@@ -61,7 +61,7 @@ fun FlowDetailsSheet(
 
     val paneTitleText = stringResource(R.string.flow_details_sheet_pane_title)
     val flowTypeText = stringResource(
-        if (session.isSoftMode) {
+        if (session.mode == com.kingkharnivore.skillz.model.FlowMode.POWER) R.string.power_title else if (session.isSoftMode) {
             R.string.flow_details_type_soft_flow
         } else {
             R.string.flow_details_type_flow
@@ -121,12 +121,12 @@ fun FlowDetailsSheet(
                         contentDescription = flowSummaryA11y
                     },
                 shape = RoundedCornerShape(20.dp),
-                color = if (session.isSoftMode) {
+                color = if (session.mode == com.kingkharnivore.skillz.model.FlowMode.POWER) MaterialTheme.colorScheme.tertiaryContainer else if (session.isSoftMode) {
                     MaterialTheme.colorScheme.secondary
                 } else {
                     MaterialTheme.colorScheme.surfaceVariant
                 },
-                contentColor = if (session.isSoftMode) {
+                contentColor = if (session.mode == com.kingkharnivore.skillz.model.FlowMode.POWER) MaterialTheme.colorScheme.onTertiaryContainer else if (session.isSoftMode) {
                     MaterialTheme.colorScheme.onSecondary
                 } else {
                     MaterialTheme.colorScheme.onSurface

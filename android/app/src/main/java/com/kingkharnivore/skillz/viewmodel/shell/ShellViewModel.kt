@@ -16,6 +16,7 @@ import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.data.repository.shell.ShellRepository
 import com.kingkharnivore.skillz.data.repository.shell.ShellNotificationType
 import com.kingkharnivore.skillz.utils.shell.ChestSortOption
+import com.kingkharnivore.skillz.utils.shell.ChestFilters
 import com.kingkharnivore.skillz.utils.shell.ChestFilterOption
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureDefinition
@@ -76,6 +77,7 @@ data class ShellUiState(
     val masteryCelebration: MasteryCelebrationEventEntity? = null,
     val calmMode: Boolean = false,
     val chestFilter: ChestFilterOption = ChestFilterOption.All,
+    val chestEnvironment: ChestFilterOption = ChestFilterOption.All,
     val pinReplacement: PinReplacementUiState? = null,
     val achievementInitializationState: AchievementInitializationState = AchievementInitializationState.NotStarted
 )
@@ -110,7 +112,7 @@ private data class ShellMemoryAndPreferenceState(
     val badgeSort: BadgeSort,
     val acknowledgedBackfillVersion: Int,
     val calmMode: Boolean,
-    val chestFilter: ChestFilterOption,
+    val chestFilters: ChestFilters,
     val achievements: ShellAchievementState
 )
 
@@ -144,7 +146,7 @@ private data class ShellPreferenceState(
     val badgeSort: BadgeSort,
     val acknowledgedBackfillVersion: Int,
     val calmMode: Boolean,
-    val chestFilter: ChestFilterOption
+    val chestFilters: ChestFilters
 )
 
 sealed interface AchievementInitializationState {
@@ -238,9 +240,9 @@ class ShellViewModel @Inject constructor(
         combine(
             combine(userPrefs.chestSortOption, userPrefs.badgeCategory, userPrefs.badgeSort,
                 userPrefs.acknowledgedBackfillVersion, userPrefs.calmMode) { chest, category, sort, acknowledged, calm ->
-                ShellPreferenceState(chest, category, sort, acknowledged, calm, ChestFilterOption.All)
-            }, userPrefs.chestFilter
-        ) { preferences, filter -> preferences.copy(chestFilter = filter) },
+                ShellPreferenceState(chest, category, sort, acknowledged, calm, ChestFilters())
+            }, userPrefs.chestFilters
+        ) { preferences, filter -> preferences.copy(chestFilters = filter) },
         combine(
             combine(repository.observeBadgePins(), repository.observeBadgeTracking(),
                 repository.observeCreatureDiscoveries(), repository.observeCreatureMasteries()) { pins, tracking, discoveries, masteries ->
@@ -255,7 +257,7 @@ class ShellViewModel @Inject constructor(
             persistence.completions, persistence.backfill, persistence.celebration, persistence.floors) }
     ) { memory, preferences, achievements -> ShellMemoryAndPreferenceState(
         memory, preferences.chestSort, preferences.badgeCategory, preferences.badgeSort,
-        preferences.acknowledgedBackfillVersion, preferences.calmMode, preferences.chestFilter, achievements
+        preferences.acknowledgedBackfillVersion, preferences.calmMode, preferences.chestFilters, achievements
     ) }
 
     private val transientState = combine(
@@ -271,8 +273,9 @@ class ShellViewModel @Inject constructor(
         economy,
         ownership,
         memoryAndPreferences,
-        transientState
-    ) { economy, ownership, memoryAndPreferences, transient ->
+        transientState,
+        repository.observeSessions()
+    ) { economy, ownership, memoryAndPreferences, transient, sessions ->
         ShellUiState(
             pearlBalance = economy.pearlBalance,
             stillwaterClaimableDrops = economy.stillwaterClaimableDrops,
@@ -298,14 +301,15 @@ class ShellViewModel @Inject constructor(
                     unlockedStillwaterVessels = (StillwaterVessel.entries + com.kingkharnivore.skillz.utils.shell.LandStillwaterHabitat.entries).filterTo(mutableSetOf()) {
                         it.zone in deriveUnlockedBlueZonesFromHistoricalFinds(ownership.finds)
                     }
-                )
+                ), sessions = sessions
             ),
             badgeCategory = memoryAndPreferences.badgeCategory,
             badgeSort = memoryAndPreferences.badgeSort,
             backfillSummary = memoryAndPreferences.achievements.backfill?.takeIf { it.version > memoryAndPreferences.acknowledgedBackfillVersion && (it.discoveredCount > 0 || it.masteryCount > 0 || it.completionCount > 0) },
             masteryCelebration = memoryAndPreferences.achievements.celebration,
             calmMode = memoryAndPreferences.calmMode,
-            chestFilter = memoryAndPreferences.chestFilter,
+            chestFilter = memoryAndPreferences.chestFilters.progress,
+            chestEnvironment = memoryAndPreferences.chestFilters.environment,
             pinReplacement = transient.replacement,
             achievementInitializationState = transient.achievementInitialization
         )
@@ -317,6 +321,8 @@ class ShellViewModel @Inject constructor(
             userPrefs.setChestSortOption(option)
         }
     }
+    fun setChestEnvironment(option: ChestFilterOption) = viewModelScope.launch { userPrefs.setChestEnvironment(option) }
+    fun clearChestFilters() = viewModelScope.launch { userPrefs.clearChestFilters() }
     fun setChestFilter(option: ChestFilterOption) = viewModelScope.launch { userPrefs.setChestFilter(option) }
     fun setBadgeCategory(value: BadgeUiCategory) = viewModelScope.launch { userPrefs.setBadgeCategory(value) }
     fun setBadgeSort(value: BadgeSort) = viewModelScope.launch { userPrefs.setBadgeSort(value) }

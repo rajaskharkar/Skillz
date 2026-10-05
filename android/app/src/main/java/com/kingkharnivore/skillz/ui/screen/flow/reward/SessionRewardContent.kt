@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.ui.screen.flow.reward
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,7 +23,8 @@ fun SessionRewardContent(
 ) {
     val text = rememberRewardRevealTextProvider()
     val findTitles = ShellContentCatalog.finds.associate { it.findId to stringResource(it.titleRes) }
-    val badgeTitles = ShellContentCatalog.badges.associate { it.badgeId to stringResource(it.titleRes) }
+    val badgeTitles = ShellContentCatalog.badges.associate { it.badgeId to stringResource(it.titleRes) } +
+        com.kingkharnivore.skillz.domain.achievement.RedBadgeCatalog.specs.associate { it.id to stringResource(it.titleRes) }
     val discoveryTitles = ShellContentCatalog.discoveries.associate { it.discoveryId to stringResource(it.titleRes) }
     val cards = buildSessionRewardCards(
         reward = r,
@@ -33,7 +35,7 @@ fun SessionRewardContent(
         discoveryTitle = { discoveryId -> discoveryTitles[discoveryId] }
     )
     val titleText = stringResource(
-        if (r.surgePoints > 0) R.string.session_reward_title_surge_completed else R.string.session_reward_title_flow_completed
+        if (r.mode == com.kingkharnivore.skillz.model.FlowMode.POWER) R.string.power_complete else if (r.surgePoints > 0) R.string.session_reward_title_surge_completed else R.string.session_reward_title_flow_completed
     )
 
     Column(

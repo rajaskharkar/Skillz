@@ -17,7 +17,7 @@ object CreatureStatus {
     const val USED_BEYOND_BLUE = "USED_BEYOND_BLUE"
 }
 
-enum class CreatureRealm { SEA, LAND }
+enum class CreatureRealm { SEA, LAND, RED }
 
 enum class CreatureZone(val displayName: String, val realm: CreatureRealm = CreatureRealm.SEA) {
     SUNLIT_REEF("Sunlit Reef"),
@@ -28,11 +28,14 @@ enum class CreatureZone(val displayName: String, val realm: CreatureRealm = Crea
     ANCIENT_WOODS("Ancient Woods", CreatureRealm.LAND),
     OPEN_SANDS("Open Sands", CreatureRealm.LAND),
     HIGH_PEAKS("High Peaks", CreatureRealm.LAND),
-    GREAT_WILD("Great Wild", CreatureRealm.LAND)
+    GREAT_WILD("Great Wild", CreatureRealm.LAND),
+    TRIASSIC("Triassic", CreatureRealm.RED),
+    JURASSIC("Jurassic", CreatureRealm.RED),
+    CRETACEOUS("Cretaceous", CreatureRealm.RED)
 
 }
 
-enum class CreatureSourceType { FLOW_EARNED, BEYOND_BLUE, STILLWATER, ARC_EARNED, RESTORATIVE_LAND }
+enum class CreatureSourceType { FLOW_EARNED, BEYOND_BLUE, STILLWATER, ARC_EARNED, RESTORATIVE_LAND, RED_PURCHASE }
 
 enum class CreatureMasteryTier { SEASONED, PROVEN, VETERAN, ASCENDANT, MASTERED }
 
@@ -79,13 +82,15 @@ enum class CreatureRenderFamily(val key: String, val visualCap: Float) {
     TORTOISE("tortoise", 1.45f),
     MARSUPIAL("marsupial", 1.45f),
     MEGAFAUNA("megafauna", 1.45f),
-    SCORPION("scorpion", 1.45f)
+    SCORPION("scorpion", 1.45f),
+    DINOSAUR("dinosaur", 1.45f)
 }
 
 sealed interface CreatureRequirement {
     data class FlowDuration(val minutes: Int) : CreatureRequirement
     data class ArcDepth(val flows: Int) : CreatureRequirement
     data class EffortValue(val minutes: Int) : CreatureRequirement
+    data class Pebbles(val amount: Int) : CreatureRequirement
     data class Drops(val amount: Long) : CreatureRequirement
     data object Unavailable : CreatureRequirement
 }
@@ -112,10 +117,12 @@ data class CreatureDefinition(
     val restorativeHabitat: LandStillwaterHabitat? = null,
     val economicValuePearls: Int? = null,
     // Arc depth is not a duration or a purchase price. Growth has its own Pearl basis.
-    val baseGrowthCostPearls: Int? = null
+    val baseGrowthCostPearls: Int? = null,
+    val pebbleCost: Int? = null
 ) {
     val realm: CreatureRealm get() = zone.realm
     val requirement: CreatureRequirement get() = when (sourceType) {
+        CreatureSourceType.RED_PURCHASE -> CreatureRequirement.Pebbles(requireNotNull(pebbleCost))
         CreatureSourceType.FLOW_EARNED -> CreatureRequirement.FlowDuration(requireNotNull(flowTimeValueMinutes))
         CreatureSourceType.BEYOND_BLUE -> CreatureRequirement.EffortValue(requireNotNull(requirementMinutes))
         CreatureSourceType.ARC_EARNED -> CreatureRequirement.ArcDepth(requireNotNull(arcFlowRequirement))
@@ -123,7 +130,7 @@ data class CreatureDefinition(
         CreatureSourceType.RESTORATIVE_LAND -> CreatureRequirement.Drops(requireNotNull(restorativeHabitat).dropCost)
     }
     val pearlPrice: Int? get() = requirementMinutes?.times(PEARLS_PER_REQUIRED_FLOW_MINUTE)
-    val collectionId: String get() = if (sourceType == CreatureSourceType.RESTORATIVE_LAND) {
+    val collectionId: String get() = if (realm == CreatureRealm.RED) "red_${zone.name.lowercase()}" else if (sourceType == CreatureSourceType.RESTORATIVE_LAND) {
         "stillwater_${requireNotNull(restorativeHabitat).name.lowercase()}"
     } else if (sourceType == CreatureSourceType.STILLWATER) {
         "collection_stillwater"
@@ -134,7 +141,7 @@ data class CreatureDefinition(
         StillwaterCatalog.byId[creatureId]?.vessel?.let { "stillwater_${it.name.lowercase()}" }
             ?: "collection_stillwater"
     } else collectionId
-    val collectionIds: Set<String> get() = if (sourceType == CreatureSourceType.STILLWATER || sourceType == CreatureSourceType.RESTORATIVE_LAND) {
+    val collectionIds: Set<String> get() = if (realm == CreatureRealm.RED) setOf(collectionId, "collection_red") else if (sourceType == CreatureSourceType.STILLWATER || sourceType == CreatureSourceType.RESTORATIVE_LAND) {
         setOf(primaryProgressCollectionId, "collection_stillwater", "collection_all_waters")
     } else setOf(collectionId, "collection_the_blue", "collection_all_waters")
     val titleRes: Int get() = ShellContentCatalog.find(creatureId)?.titleRes ?: 0
@@ -289,7 +296,7 @@ object CreatureCatalog {
         beyond("creature_megalodon", "Megalodon", CreatureZone.GREAT_BLUE, 1200, CreatureRenderFamily.SHARK),
         beyond("creature_kraken", "Kraken", CreatureZone.GREAT_BLUE, 1500, CreatureRenderFamily.GIANT_TENTACLE),
         beyond("creature_leviathan", "Leviathan", CreatureZone.GREAT_BLUE, 1800, CreatureRenderFamily.LEGENDARY)
-    ) + stillwaterDefinitions + LandCreatureCatalog.all
+    ) + stillwaterDefinitions + LandCreatureCatalog.all + RedCreatureCatalog.definitions
 
 
     val byId: Map<String, CreatureDefinition> = all.associateBy { it.creatureId }

@@ -16,7 +16,9 @@ class LandBadgeTest {
     }
 
     @Test fun everySpeciesAndEveryZoneAndVesselHasAchievableCollectionAndMasteryBadges() {
-        assertEquals(185, CreatureCatalog.all.size)
+        assertEquals(185, CreatureCatalog.all.count { it.realm != com.kingkharnivore.skillz.utils.shell.CreatureRealm.RED })
+        assertEquals(69, CreatureCatalog.all.count { it.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.RED })
+        assertEquals(254, CreatureCatalog.all.size)
         val definitions = AchievementBadgeCatalog.definitions
         assertEquals(definitions.size, definitions.map { it.badgeId }.distinct().size)
         CreatureCatalog.all.forEach { c ->
@@ -25,8 +27,19 @@ class LandBadgeTest {
         assertEquals(114, LandCreatureCatalog.all.count { c -> definitions.any { it.speciesId==c.creatureId } })
         CollectionCatalog.collections.forEach { collection ->
             assertTrue(collection.species.isNotEmpty())
-            listOf("collector","curator","completionist").forEach { kind ->
-                assertNotNull(AchievementBadgeCatalog.byId["${collection.collectionId}_$kind"])
+            if (RedBadgeCatalog.isRedCollection(collection.collectionId)) {
+                val roster = collection.species.map { it.creatureId }.toSet()
+                val named = RedBadgeCatalog.specs.filter { it.species == roster && it.target == roster.size }
+                assertEquals("Red uses its specified acquisition/mastery pair", 2, named.size)
+                assertEquals(setOf(false,true), named.map { it.mastery }.toSet())
+                named.forEach { assertNotNull(AchievementBadgeCatalog.byId[it.id]) }
+                listOf("collector","curator","completionist").forEach { kind ->
+                    assertNull(AchievementBadgeCatalog.byId["${collection.collectionId}_$kind"])
+                }
+            } else {
+                listOf("collector","curator","completionist").forEach { kind ->
+                    assertNotNull(AchievementBadgeCatalog.byId["${collection.collectionId}_$kind"])
+                }
             }
         }
         val initial=dashboard()

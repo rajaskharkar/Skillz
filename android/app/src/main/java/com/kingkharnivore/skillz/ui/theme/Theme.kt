@@ -24,8 +24,8 @@ private val LightGryffindorColors = lightColorScheme(
     surface = Color(0xFFE4D8BB),          // darker parchment for cards
     onSurface = GryffindorBlack,
     surfaceVariant = Color(0xFFE4D8BB),
-    tertiary = RoyalAmethyst,
-    onTertiary = GryffindorOffWhite
+    tertiary = PowerRed,
+    onTertiary = GryffindorOffWhite,
 )
 
 private val DarkGryffindorColors = darkColorScheme(
@@ -41,8 +41,8 @@ private val DarkGryffindorColors = darkColorScheme(
     surface = Color(0xFF221C19),         // lighter, warm card surface
     onSurface = Color(0xFFF5F5F5),
     surfaceVariant = Color(0xFF221C19), // readable warm white text
-    tertiary = RoyalAmethyst,
-    onTertiary = Color.White
+    tertiary = PowerRedDark,
+    onTertiary = Color(0xFF5B1118)
 )
 
 

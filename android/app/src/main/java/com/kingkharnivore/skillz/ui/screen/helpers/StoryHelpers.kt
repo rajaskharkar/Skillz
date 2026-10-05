@@ -15,6 +15,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun journeySessionMeta(session: FlowListItemUiModel): String {
     val parts = buildList {
+        if (session.mode == com.kingkharnivore.skillz.model.FlowMode.POWER) add(stringResource(R.string.power_title))
         add(stringResource(R.string.story_helpers_journey_duration, formatDuration(session.durationMs)))
         if (session.isSurge && session.surgePoints > 0) {
             add(stringResource(R.string.story_helpers_journey_surge_bonus, session.surgePoints))

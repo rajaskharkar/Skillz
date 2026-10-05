@@ -1012,7 +1012,7 @@
     <string name="shell_no_more_forms">यह इनाम अपने वर्तमान रूप में विश्राम कर रहा है।</string>
     <string name="shell_return_to_chest">द चेस्ट पर लौटें</string>
     <string name="shell_chest_title">द चेस्ट</string>
-    <string name="shell_chest_body">द शेल के भीतर आपका सब कुछ यहाँ विश्राम करता है जब वह प्रदर्शित नहीं होता।</string>
+    <string name="shell_chest_body">समुद्र, धरती और द रेड के आपके जीव।</string>
     <string name="shell_filter_all">सभी</string>
     <string name="shell_filter_animals">जीव</string>
     <string name="shell_filter_creatures">जीव</string>
@@ -1069,13 +1069,13 @@
     <string name="shell_action_awaken">जगाएँ</string>
     <string name="shell_find_sea_glass_title">सी ग्लास</string>
     <string name="shell_find_sea_glass_description">नियमित प्रयास से आया मुलायम टुकड़ा।</string>
-    <string name="shell_badge_flow_10_title">10-मिनट फ़्लो</string>
+    <string name="shell_badge_flow_10_title">10 मिनट का फ़्लो</string>
     <string name="shell_badge_flow_10_description">हर बार जब नियमित फ़्लो 10 मिनट या अधिक चले, यह मिलता है.</string>
-    <string name="shell_badge_flow_30_title">30-मिनट फ़्लो</string>
+    <string name="shell_badge_flow_30_title">30 मिनट का फ़्लो</string>
     <string name="shell_badge_flow_30_description">हर बार जब नियमित फ़्लो 30 मिनट या अधिक चले, यह मिलता है.</string>
-    <string name="shell_badge_flow_60_title">60-मिनट फ़्लो</string>
+    <string name="shell_badge_flow_60_title">60 मिनट का फ़्लो</string>
     <string name="shell_badge_flow_60_description">हर बार जब नियमित फ़्लो 60 मिनट या अधिक चले, यह मिलता है.</string>
-    <string name="shell_badge_flow_120_title">2-हओउर फ़्लो</string>
+    <string name="shell_badge_flow_120_title">2 घंटे का फ़्लो</string>
     <string name="shell_badge_flow_120_description">हर बार जब नियमित फ़्लो 2 घंटे या अधिक चले, यह मिलता है.</string>
     <string name="shell_badge_discovery_title">बैज जागा</string>
     <string name="shell_badge_discovery_description">हर बार द शेल नई खोज दर्ज करे, यह मिलता है.</string>
@@ -1804,13 +1804,12 @@
     </plurals>
     <string name="shell_chest_inventory_stats">%1$d जीव अपने पास · %2$d स्टैक</string>
     <string name="shell_chest_empty_title">द चेस्ट खाली है.</string>
-    <string name="shell_chest_empty_body">अपना पहला जीव खोजने के लिए द ब्लू की खोज करें।</string>
+    <string name="shell_chest_empty_body">द ब्लू में समुद्र और धरती की सैर करें या द रेड में डायनासोर खोजें। आपके जीव यहाँ इकट्ठे होते हैं।</string>
     <string name="shell_chest_empty_action">द ब्लू जाएँ</string>
     <string name="shell_chest_count_badge">×%1$d</string>
     <string name="shell_chest_stack_a11y">%1$s. लेवल %2$d. अपने पास: %3$d.</string>
     <string name="shell_chest_detail_level">लेवल %1$d</string>
     <string name="shell_chest_detail_owned">अपने पास: %1$d</string>
-    <string name="shell_chest_detail_source">द ब्लू से</string>
     <string name="shell_creature_level_up">लेवल बढ़ाएँ</string>
     <string name="shell_creature_level_up_cost">लेवल बढ़ाने की लागत: %1$d पर्ल्स</string>
     <string name="shell_creature_level_up_unavailable_max">लेवल 99 पर महारत</string>
@@ -2104,7 +2103,7 @@
     <string name="mastery_return_chest">द चेस्ट में लौटें</string>
     <string name="mastery_return_stillwater">स्टिलवॉटर में लौटें</string>
     <plurals name="mastery_species_remaining">
-        <item quantity="one">एक प्रजाति शेष है।</item>
+        <item quantity="one">%1$d प्रजाति शेष है।</item>
         <item quantity="other">शेष प्रजातियाँ: %1$d।</item>
     </plurals>
     <plurals name="mastery_species_support">
@@ -2143,7 +2142,7 @@
     <string name="shell_message_grew_chest">आपका जीव The Chest में विकसित हुआ।</string>
     <string name="shell_message_grow_failed">उस जीव को विकसित नहीं किया जा सका।</string>
     <string name="shell_message_celebration_failed">Mastery सारांश बंद नहीं किया जा सका।</string>
-    <string name="shell_message_released">The Blue में वापस छोड़ा गया। %1$d Pearls लौटे। आपका स्थायी रिकॉर्ड सुरक्षित है।</string>
+    <string name="shell_message_released">मुक्त कर दिया गया। %1$d पर्ल्स लौटे। आपका स्थायी रिकॉर्ड सुरक्षित है।</string>
     <string name="shell_message_release_failed">उन जीवों को छोड़ा नहीं जा सका।</string>
     <string name="shell_message_encountered">%1$s ने %2$s में प्रवेश किया।</string>
     <string name="shell_message_encounter_succeeded">आपका Beyond the Blue सामना सफल रहा।</string>
@@ -2204,40 +2203,40 @@
     <string name="lookout_all_pearls_claimed">सभी मोती दावा किए गए!</string>
     <plurals name="lookout_from_completed_objectives">
         <item quantity="one">%1$d पूरे किए गए लक्ष्य से</item>
-        <item quantity="other">%1$d पूरे किए गए लक्ष्य सेs</item>
+        <item quantity="other">%1$d पूरे किए गए लक्ष्यों से</item>
     </plurals>
     <string name="lookout_no_rewards_waiting">कोई लक्ष्य इनाम प्रतीक्षा में नहीं</string>
     <plurals name="lookout_unclaimed_pearls">
-        <item quantity="one">1 बिना दावा किया मोती</item>
+        <item quantity="one">%1$d बिना दावा किया मोती</item>
         <item quantity="other">%1$d बिना दावा किए मोती</item>
     </plurals>
     <plurals name="lookout_pearls_unclaimed">
-        <item quantity="one">1 मोती बिना दावा किया</item>
+        <item quantity="one">%1$d मोती बिना दावा किया</item>
         <item quantity="other">%1$d मोती बिना दावा किए</item>
     </plurals>
     <plurals name="lookout_pearls_earned">
-        <item quantity="one">1 मोती अर्जित</item>
+        <item quantity="one">%1$d मोती अर्जित</item>
         <item quantity="other">%1$d मोती अर्जित</item>
     </plurals>
     <plurals name="lookout_pearls_claimed">
-        <item quantity="one">1 मोती दावा किया</item>
+        <item quantity="one">%1$d मोती दावा किया</item>
         <item quantity="other">%1$d मोती दावा किए</item>
     </plurals>
     <plurals name="lookout_claim_pearls_accessibility">
-        <item quantity="one">1 मोती का दावा करें</item>
+        <item quantity="one">%1$d मोती का दावा करें</item>
         <item quantity="other">%1$d मोतियों का दावा करें</item>
     </plurals>
     <plurals name="lookout_claim_from_objective_accessibility">
-        <item quantity="one">%2$s लक्ष्य से 1 मोती का दावा करें</item>
+        <item quantity="one">%2$s लक्ष्य से %1$d मोती का दावा करें</item>
         <item quantity="other">%2$s लक्ष्य से %1$d मोतियों का दावा करें</item>
     </plurals>
     <plurals name="lookout_completion_count">
-        <item quantity="one">1 पूर्णता</item>
+        <item quantity="one">%1$d पूर्णता</item>
         <item quantity="other">%1$d पूर्णताएँ</item>
     </plurals>
     <string name="lookout_history_summary_separator">%1$s · %2$s</string>
     <plurals name="lookout_pearls_value">
-        <item quantity="one">1 मोती</item>
+        <item quantity="one">%1$d मोती</item>
         <item quantity="other">%1$d मोती</item>
     </plurals>
     <string name="chronicle_title">Chronicle</string>
@@ -2356,4 +2355,5 @@
     <string name="flow_journey_create_a11y">%1$s जर्नी बनाएँ</string>
     <string name="flow_journey_dropdown_show_a11y">जर्नी के विकल्प दिखाएँ</string>
     <string name="flow_journey_dropdown_hide_a11y">जर्नी के विकल्प छिपाएँ</string>
+    <string name="badge_one_time_a11y">%1$s बैज। %2$s। शेष: %3$d।%4$s%5$s</string>
 </resources>

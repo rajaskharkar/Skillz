@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chest_environment_selected">परिसर: %1$s</string>
+    <string name="chest_environment_all">सर्व परिसर</string>
+    <string name="chest_environment_title">परिसर</string>
+    <string name="chest_progress_selected">प्रगती: %1$s</string>
+    <string name="chest_progress_any">सर्व स्तर</string>
+    <string name="chest_open_red">द रेड शोधा</string>
+    <string name="chest_creature_environment">%1$s · %2$s</string>
+</resources>

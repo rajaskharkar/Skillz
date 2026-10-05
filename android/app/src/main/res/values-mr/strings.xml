@@ -1012,7 +1012,7 @@
     <string name="shell_no_more_forms">हे बक्षीस त्याच्या सध्याच्या रूपात विश्रांती घेत आहे.</string>
     <string name="shell_return_to_chest">द चेस्ट कडे परत</string>
     <string name="shell_chest_title">द चेस्ट</string>
-    <string name="shell_chest_body">द शेल मधील तुमच्या मालकीचे सर्व काही प्रदर्शित नसताना येथे विश्रांती घेते.</string>
+    <string name="shell_chest_body">समुद्र, जमीन आणि द रेडमधील तुमचे जीव.</string>
     <string name="shell_filter_all">सर्व</string>
     <string name="shell_filter_animals">प्राणी</string>
     <string name="shell_filter_creatures">जीव</string>
@@ -1069,13 +1069,13 @@
     <string name="shell_action_awaken">जगाएँ</string>
     <string name="shell_find_sea_glass_title">सी ग्लास</string>
     <string name="shell_find_sea_glass_description">नियमित प्रयत्नांनी आलेला मऊ झालेला तुकडा.</string>
-    <string name="shell_badge_flow_10_title">10-मिनट फ्लो</string>
+    <string name="shell_badge_flow_10_title">10 मिनिटांचा फ्लो</string>
     <string name="shell_badge_flow_10_description">प्रत्येक वेळी नियमित फ्लो 10 मिनिटे किंवा अधिक चालला की मिळते.</string>
-    <string name="shell_badge_flow_30_title">30-मिनट फ्लो</string>
+    <string name="shell_badge_flow_30_title">30 मिनिटांचा फ्लो</string>
     <string name="shell_badge_flow_30_description">प्रत्येक वेळी नियमित फ्लो 30 मिनिटे किंवा अधिक चालला की मिळते.</string>
-    <string name="shell_badge_flow_60_title">60-मिनट फ्लो</string>
+    <string name="shell_badge_flow_60_title">60 मिनिटांचा फ्लो</string>
     <string name="shell_badge_flow_60_description">प्रत्येक वेळी नियमित फ्लो 60 मिनिटे किंवा अधिक चालला की मिळते.</string>
-    <string name="shell_badge_flow_120_title">2-हओउर फ्लो</string>
+    <string name="shell_badge_flow_120_title">2 तासांचा फ्लो</string>
     <string name="shell_badge_flow_120_description">प्रत्येक वेळी नियमित फ्लो 2 तास किंवा अधिक चालला की मिळते.</string>
     <string name="shell_badge_discovery_title">बॅज जागा</string>
     <string name="shell_badge_discovery_description">द शेल प्रत्येक नवीन शोध नोंदवते तेव्हा मिळते.</string>
@@ -1804,13 +1804,12 @@
     </plurals>
     <string name="shell_chest_inventory_stats">%1$d जीव स्वतःकडे · %2$d स्टॅक</string>
     <string name="shell_chest_empty_title">द चेस्ट रिकामे आहे.</string>
-    <string name="shell_chest_empty_body">तुमचा पहिला जीव भेटण्यासाठी द ब्लूचा शोध घ्या.</string>
+    <string name="shell_chest_empty_body">द ब्लूमधील समुद्र आणि जमीन फिरा किंवा द रेडमध्ये डायनासोर शोधा. तुमचे जीव येथे एकत्र येतात.</string>
     <string name="shell_chest_empty_action">द ब्लूमध्ये जा</string>
     <string name="shell_chest_count_badge">×%1$d</string>
     <string name="shell_chest_stack_a11y">%1$s. लेवल %2$d. स्वतःकडे: %3$d.</string>
     <string name="shell_chest_detail_level">पातळी %1$d</string>
     <string name="shell_chest_detail_owned">स्वतःकडे: %1$d</string>
-    <string name="shell_chest_detail_source">द ब्लूमधून</string>
     <string name="shell_creature_level_up">लेवल वाढवा</string>
     <string name="shell_creature_level_up_cost">लेवल वाढवण्याची किंमत: %1$d पर्ल्स</string>
     <string name="shell_creature_level_up_unavailable_max">लेवल 99 वर प्रभुत्व</string>
@@ -2104,7 +2103,7 @@
     <string name="mastery_return_chest">द चेस्टमध्ये परत जा</string>
     <string name="mastery_return_stillwater">स्टिलवॉटरमध्ये परत जा</string>
     <plurals name="mastery_species_remaining">
-        <item quantity="one">एक प्रजाती उरली आहे.</item>
+        <item quantity="one">%1$d प्रजाती उरली आहे.</item>
         <item quantity="other">उरलेल्या प्रजाती: %1$d.</item>
     </plurals>
     <plurals name="mastery_species_support">
@@ -2143,7 +2142,7 @@
     <string name="shell_message_grew_chest">तुमचा प्राणी The Chest मध्ये वाढला.</string>
     <string name="shell_message_grow_failed">त्या प्राण्याला वाढवता आले नाही.</string>
     <string name="shell_message_celebration_failed">Mastery सारांश बंद करता आला नाही.</string>
-    <string name="shell_message_released">The Blue मध्ये परत सोडले. %1$d Pearls परत मिळाले. तुमची कायमची नोंद सुरक्षित आहे.</string>
+    <string name="shell_message_released">मुक्त केले. %1$d पर्ल्स परत मिळाले. तुमची कायमची नोंद सुरक्षित आहे.</string>
     <string name="shell_message_release_failed">ते प्राणी सोडता आले नाहीत.</string>
     <string name="shell_message_encountered">%1$s ने %2$s मध्ये प्रवेश केला.</string>
     <string name="shell_message_encounter_succeeded">तुमची Beyond the Blue भेट यशस्वी झाली.</string>
@@ -2356,4 +2355,5 @@
     <string name="flow_journey_create_a11y">%1$s जर्नी तयार करा</string>
     <string name="flow_journey_dropdown_show_a11y">जर्नीचे पर्याय दाखवा</string>
     <string name="flow_journey_dropdown_hide_a11y">जर्नीचे पर्याय लपवा</string>
+    <string name="badge_one_time_a11y">%1$s बॅज. %2$s. उरलेले: %3$d.%4$s%5$s</string>
 </resources>

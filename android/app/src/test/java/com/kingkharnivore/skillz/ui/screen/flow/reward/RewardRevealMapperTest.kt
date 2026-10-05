@@ -17,6 +17,49 @@ class RewardRevealMapperTest {
     private val text = FakeRewardRevealTextProvider()
 
     @Test
+    fun powerUsesTheSharedDeckWithoutReintroducingFlowMilestoneOrSurgePoints() {
+        val reward = FlowRewardUiModel(minutes=40,mode=com.kingkharnivore.skillz.model.FlowMode.POWER,
+            baseScyraPoints=60,tenMinuteBonuses=3,thirtyMinuteBonuses=1,sixtyMinuteBonuses=0,
+            finalScyraPoints=72,surgePoints=54,arcBonusPoints=12,arcMultiplierUsed=1.2,
+            shellPearlsEarned=72,shellPebblesEarned=72)
+        val cards=buildSessionRewardCards(reward,false,text,::findTitle,::badgeTitle,::discoveryTitle)
+        assertEquals(RewardRevealCardType.SCORE_BREAKDOWN,cards.first().type)
+        assertEquals("power",cards.first().iconKey)
+        assertEquals("72 Scyra Points",cards.first().title)
+        assertFalse(cards.first().body!!.contains("Time bonuses"))
+        assertFalse(cards.first().body!!.contains("Surge +"))
+        assertTrue(cards.first().body!!.contains("Arc bonus +12"))
+        assertEquals(1,cards.count { it.id=="session-pebbles" })
+        assertEquals("pebbles",cards.single { it.id=="session-pebbles" }.iconKey)
+    }
+
+    @Test
+    fun powerMovementIsShownSeparatelyFromTimeAndArc() {
+        val reward = FlowRewardUiModel(minutes=40,mode=com.kingkharnivore.skillz.model.FlowMode.POWER,
+            baseScyraPoints=60,tenMinuteBonuses=0,thirtyMinuteBonuses=0,sixtyMinuteBonuses=0,
+            finalScyraPoints=79,surgePoints=0,arcBonusPoints=12,arcMultiplierUsed=1.2,movementPoints=7,
+            shellPearlsEarned=79,shellPebblesEarned=79)
+        val powerText=object : RewardRevealTextProvider by text {
+            override fun powerMovement(points: Long) = "Movement +$points"
+        }
+        val card=buildSessionRewardCards(reward,false,powerText,::findTitle,::badgeTitle,::discoveryTitle).first()
+        assertEquals("79 Scyra Points",card.title)
+        assertTrue(card.body!!.contains("Movement +7"))
+        assertTrue(card.body!!.contains("Arc bonus +12"))
+    }
+
+    @Test
+    fun mixedArcShowsKnownPebbleCurrencyWithoutClaimingAllPearlsAreMirrored() {
+        val arc=ArcSummaryUiModel(3,60*60_000L,100,12,1.2,
+            ArcShellRewardSummaryUiModel(pearlsCarried=100,pebblesCarried=72))
+        val cards=buildArcSummaryRewardCards(arc,false,text,"60 min")
+        val pebbles=cards.single { it.id=="arc-pebbles" }
+        assertEquals("pebbles",pebbles.iconKey)
+        assertFalse(cards.any { it.id.startsWith("arc-unknown") })
+        assertFalse(pebbles.contentDescription.contains("100"))
+    }
+
+    @Test
     fun fourMinuteSurgeEndedAtThreeMinutesTenSecondsShowsOnlyOneBonusPoint() {
         val reward = surgeReward(targetMs = 240_000L, elapsedMs = 190_000L, finalPoints = 4)
         val card = scoreCard(reward)

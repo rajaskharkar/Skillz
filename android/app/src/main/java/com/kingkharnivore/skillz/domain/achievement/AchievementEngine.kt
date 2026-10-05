@@ -266,7 +266,9 @@ data class AchievementBadgeDefinition(
 
 object AchievementBadgeCatalog {
     val definitions: List<AchievementBadgeDefinition> = buildList {
+        addAll(BadgeBookCollections.newAwards.map { it.definition })
         addAll(LandBadgeCatalog.specs.map { it.definition })
+        addAll(RedBadgeCatalog.specs.map { it.definition })
         CreatureCatalog.all.forEach { creature ->
             add(AchievementBadgeDefinition(
                 "mastery_species_${creature.creatureId}", BadgeFamily.SPECIES_MASTERY,
@@ -289,7 +291,7 @@ object AchievementBadgeCatalog {
         add(AchievementBadgeDefinition("stillwater_variety", BadgeFamily.COLLECTION, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT,
             milestones = boundedMilestones(CreatureCatalog.allStillwater.count { it.isAvailable && it.participatesInCollector }), collectionId = "collection_stillwater"))
         add(AchievementBadgeDefinition("stillwater_mastery", BadgeFamily.MASTERY, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT, collectionId = "collection_stillwater"))
-        CollectionCatalog.collections.forEach { collection ->
+        CollectionCatalog.collections.filterNot { RedBadgeCatalog.isRedCollection(it.collectionId) }.forEach { collection ->
             listOf(BadgeRequirement.COLLECTOR, BadgeRequirement.CURATOR, BadgeRequirement.COMPLETIONIST).forEach { requirement ->
                 val importance = when {
                     collection.collectionId == "collection_all_waters" && requirement == BadgeRequirement.COMPLETIONIST -> 100
@@ -317,7 +319,7 @@ object BadgeDefinitionResolver {
     /** Persisted for migration safety, but belongs to the retired discovery-journal system. */
     private val obsoleteBadgeIds = setOf("badge_discovery")
 
-    fun isObsolete(badgeId: String): Boolean = badgeId in obsoleteBadgeIds
+    fun isObsolete(badgeId: String): Boolean = badgeId in obsoleteBadgeIds || RedBadgeCatalog.isRedundantCollectionBadge(badgeId)
 
     fun isUserVisible(badgeId: String): Boolean = !isObsolete(badgeId) &&
         resolve(badgeId).goalType != BadgeGoalType.HISTORICAL_COUNT_ONLY
@@ -375,7 +377,7 @@ data class CollectionDefinition(val collectionId: String, val rosterVersion: Int
 }
 
 object CollectionCatalog {
-    private val blueRegions = CreatureZone.values().map { zone ->
+    private val blueRegions = CreatureZone.values().filter { it.realm != com.kingkharnivore.skillz.utils.shell.CreatureRealm.RED }.map { zone ->
         CollectionDefinition("blue_${zone.name.lowercase()}", 1, CreatureCatalog.all.filter { it.sourceType !in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND) && it.zone == zone })
     }
     private val stillwaterVessels = StillwaterVessel.values().map { vessel ->
@@ -386,14 +388,15 @@ object CollectionCatalog {
         CollectionDefinition("stillwater_${habitat.name.lowercase()}", 1,
             com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.restorative.filter { it.restorativeHabitat == habitat })
     }
-    val collections = blueRegions + stillwaterVessels + landStillwaterHabitats + listOf(
+    val collections = blueRegions + stillwaterVessels + landStillwaterHabitats + com.kingkharnivore.skillz.utils.shell.RedEra.entries.map { era -> CollectionDefinition("red_${era.name.lowercase()}", 1, com.kingkharnivore.skillz.utils.shell.RedCreatureCatalog.definitions.filter { it.zone == era.zone }) } + listOf(
+        CollectionDefinition("collection_red", 1, com.kingkharnivore.skillz.utils.shell.RedCreatureCatalog.definitions),
         CollectionDefinition("collection_stillwater", 1, CreatureCatalog.allStillwater),
         CollectionDefinition("collection_the_blue", 1, CreatureCatalog.all.filter { it.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA && it.sourceType != CreatureSourceType.STILLWATER }),
         CollectionDefinition("collection_land", 1, com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.main),
         CollectionDefinition("collection_sea_stillwater", 1, CreatureCatalog.stillwater),
         CollectionDefinition("collection_land_stillwater", 1, com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.restorative),
         CollectionDefinition("collection_all_land", 1, com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.all),
-        CollectionDefinition("collection_living_earth", 1, CreatureCatalog.all),
+        CollectionDefinition("collection_living_earth", 1, CreatureCatalog.all.filter { it.realm != com.kingkharnivore.skillz.utils.shell.CreatureRealm.RED }),
         CollectionDefinition("collection_all_waters", 1, CreatureCatalog.all.filter { it.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA })
     )
     val byId = collections.associateBy { it.collectionId }

@@ -1,5 +1,7 @@
 package com.kingkharnivore.skillz.viewmodel
 
+import com.kingkharnivore.skillz.model.FlowMode
+
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -72,6 +74,7 @@ import javax.inject.Inject
 
 private fun FlowRewardUiModel.withShellReward(shellReward: ShellRewardResult): FlowRewardUiModel = copy(
     shellPearlsEarned = shellReward.pearlsEarned,
+    shellPebblesEarned = shellReward.pebblesEarned,
     shellStillwaterUnits = shellReward.stillwaterUnits,
     shellGrantedFindIds = shellReward.grantedFindIds,
     shellDiscoveryIds = shellReward.discoveryIds,
@@ -211,7 +214,7 @@ class FlowViewModel @Inject constructor(
         return state.copy(
             title = prefillTitleOverride ?: state.title,
             tagName = atlasJourneyOverride ?: state.tagName,
-            isSoftMode = if (prefillSoftModeOverride) true else state.isSoftMode,
+            mode = if (prefillSoftModeOverride) FlowMode.SOFT else state.mode,
             isSurgeOn = when {
                 prefillSoftModeOverride -> false
                 prefillSurgeMinutesOverride != null -> true
@@ -343,7 +346,13 @@ class FlowViewModel @Inject constructor(
         }
     }
 
-    fun isModeLocked(): Boolean = _uiState.value.stopwatch.elapsedMs > 0L
+    fun isModeLocked(): Boolean = _uiState.value.isInFlowMode || _uiState.value.stopwatch.isRunning || _uiState.value.stopwatch.elapsedMs > 0L
+
+    fun setPowerMode() {
+        if (isModeLocked()) return
+        _uiState.update { it.copy(mode = FlowMode.POWER) }
+        saveOngoing()
+    }
 
     fun setSoftMode(enabled: Boolean) {
         if (isModeLocked()) return
@@ -355,7 +364,7 @@ class FlowViewModel @Inject constructor(
 
         _uiState.update { current ->
             current.copy(
-                isSoftMode = false
+                mode = FlowMode.FLOW
             )
         }
         saveOngoing()
@@ -379,7 +388,7 @@ class FlowViewModel @Inject constructor(
         }
 
         _uiState.update { current ->
-            current.copy(isSoftMode = true, isSurgeOn = false, surgePlannedMs = null)
+            current.copy(mode = FlowMode.SOFT, isSurgeOn = false, surgePlannedMs = null)
         }
         syncArcUi()
 
@@ -625,7 +634,7 @@ class FlowViewModel @Inject constructor(
                                 description = "",
                                 tagName = "",
                                 isInFlowMode = false,
-                                isSoftMode = false,
+                                mode = FlowMode.FLOW,
                                 isSurgeOn = false,
                                 surgePlannedMs = null,
                                 stopwatch = StopwatchState(
@@ -667,7 +676,7 @@ class FlowViewModel @Inject constructor(
                             description = "",
                             tagName = entity.tagName,
                             isInFlowMode = entity.isInFlowMode,
-                            isSoftMode = entity.isSoftMode,
+                            mode = entity.mode,
                             isSurgeOn = entity.isSurgeOn,
                             surgePlannedMs = entity.surgePlannedMs,
                             plannedArcTitle = restoredPlannedRun?.arcTitle
@@ -1115,7 +1124,7 @@ class FlowViewModel @Inject constructor(
             tagName = state.tagName,
             isInFlowMode = state.isInFlowMode,
             isRunning = state.stopwatch.isRunning,
-            isSoftMode = state.isSoftMode,
+            mode = state.mode,
             baseStartTimeMs = baseStartTimeMs,
             accumulatedBeforeStartMs = accumulatedBeforeStartMs,
             isSurgeOn = state.isSurgeOn,
@@ -1235,7 +1244,7 @@ class FlowViewModel @Inject constructor(
                                 tagName = keepTag,
                                 stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L),
                                 isInFlowMode = false,
-                                isSoftMode = false,
+                                mode = FlowMode.FLOW,
                                 isSurgeOn = false,
                                 surgePlannedMs = null,
                                 isInArc = keepArc != null,
@@ -1369,13 +1378,13 @@ class FlowViewModel @Inject constructor(
         )
         val breakdown = FlowRewardBreakdownEntity(
             sessionId = sessionId,
-            nonMovementPreMultiplierPoints = baseScyra.toLong(),
+            nonMovementPreMultiplierPoints = (if (state.mode == FlowMode.POWER) finalWithoutMovement else baseScyra).toLong(),
             pulseBonusPoints = 0L,
             surgeBonusPoints = 0L,
             otherPreMultiplierBonusPoints = 0L,
             movementPoints = movementRead.movementPoints,
-            preMultiplierTotal = (baseScyra + movementRead.movementPoints).toLong(),
-            arcMultiplier = arcMultiplierUsed ?: 1.0,
+            preMultiplierTotal = (if (state.mode == FlowMode.POWER) finalWithoutMovement else baseScyra) + movementRead.movementPoints,
+            arcMultiplier = if (state.mode == FlowMode.POWER) 1.0 else arcMultiplierUsed ?: 1.0,
             streakMultiplier = 1.0,
             otherMultiplier = 1.0,
             arcBonusPoints = arcBonusPoints.toLong(),
@@ -1442,7 +1451,7 @@ class FlowViewModel @Inject constructor(
                         realDurationMs <= planned
 
             val breakdown = ScoreCalculator.breakdownFromDuration(realDurationMs)
-            val baseScyra = if (isSoft) 0 else breakdown.totalPoints
+            val baseScyra = if (state.mode == FlowMode.POWER) ScoreCalculator.timeScore(realDurationMs, state.mode) else if (isSoft) 0 else breakdown.totalPoints
 
             val movementRead = readMovementForCompletionIfEligible(
                 state = state,
@@ -1468,7 +1477,7 @@ class FlowViewModel @Inject constructor(
                         startTime = sessionStart, endTime = sessionEnd, durationMs = realDurationMs,
                         activeIntervalJson = activeIntervalJson,
                         surgePlannedMs = state.surgePlannedMs, surgePoints = surgePoints,
-                        scyraPoints = beforeArc, isSoftMode = state.isSoftMode)
+                        scyraPoints = beforeArc, mode = state.mode)
                 )
                 committedSessionId = firstSessionId
                 _completionState.value = FlowCompletionState.CoreCommitted(firstSessionId)
@@ -1526,7 +1535,7 @@ class FlowViewModel @Inject constructor(
                         surgePlannedMs = state.surgePlannedMs,
                         surgePoints = surgePoints,
                         scyraPoints = beforeArc,
-                        isSoftMode = state.isSoftMode,
+                        mode = state.mode,
                         arcId = arcId,
                         arcIndex = 1
                     )
@@ -1546,6 +1555,7 @@ class FlowViewModel @Inject constructor(
                 syncArcUi()
 
                 _lastReward.value = FlowRewardUiModel(
+                mode = state.mode,
                     minutes = breakdown.minutes,
                     baseScyraPoints = baseScyra,
                     tenMinuteBonuses = breakdown.tenMinuteBonuses,
@@ -1628,13 +1638,19 @@ class FlowViewModel @Inject constructor(
                 }
             }
 
+            if (state.mode == FlowMode.POWER) {
+                finalWithoutMovement = ScoreCalculator.timeScore(realDurationMs, state.mode, arcMultiplierUsed ?: 1.0)
+                finalScyra = finalWithoutMovement + movementRead.movementPoints.toInt()
+                arcBonusPoints = (finalWithoutMovement - baseScyra).coerceAtLeast(0)
+            }
+
             val insertedId = sessionRepository.addSessionAndPromoteChronicle(
                 currentFlowInstanceId,
                 SessionEntity(title = title, description = "", tagId = tagId,
                     startTime = sessionStart, endTime = sessionEnd, durationMs = realDurationMs,
                     activeIntervalJson = activeIntervalJson,
                     surgePlannedMs = state.surgePlannedMs, surgePoints = surgePoints,
-                    scyraPoints = finalScyra, isSoftMode = state.isSoftMode)
+                    scyraPoints = finalScyra, mode = state.mode)
             )
             committedSessionId = insertedId
             _completionState.value = FlowCompletionState.CoreCommitted(insertedId)
@@ -1721,7 +1737,7 @@ class FlowViewModel @Inject constructor(
                     surgePlannedMs = state.surgePlannedMs,
                     surgePoints = surgePoints,
                     scyraPoints = finalScyra,
-                    isSoftMode = state.isSoftMode,
+                    mode = state.mode,
                     arcId = localArc?.arcId,
                     arcIndex = arcIndex,
                     arcMultiplierUsed = arcMultiplierUsed,
@@ -1731,6 +1747,7 @@ class FlowViewModel @Inject constructor(
             }.getOrDefault(ShellRewardResult())
 
             val baseReward = FlowRewardUiModel(
+                mode = state.mode,
                 minutes = breakdown.minutes,
                 baseScyraPoints = baseScyra,
                 tenMinuteBonuses = breakdown.tenMinuteBonuses,
@@ -1996,7 +2013,7 @@ class FlowViewModel @Inject constructor(
                 tagName = nextTagName,
                 stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L),
                 isInFlowMode = false,
-                isSoftMode = nextStep.isSoftModeSnapshot,
+                mode = FlowMode.fromSoft(nextStep.isSoftModeSnapshot),
                 isSurgeOn = !nextStep.isSoftModeSnapshot && nextStep.launchWithSurgeSnapshot,
                 surgePlannedMs = if (
                     !nextStep.isSoftModeSnapshot &&

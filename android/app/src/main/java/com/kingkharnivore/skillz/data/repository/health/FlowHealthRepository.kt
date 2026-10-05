@@ -61,17 +61,35 @@ class FlowHealthRepository @Inject constructor(
         pearlDelta: Int,
         stablePearlReason: String?
     ) = db.withTransaction {
-        dao.upsertSnapshot(snapshot)
-        dao.upsertRewardBreakdown(breakdown)
-        sessionDao.updateRewardPoints(snapshot.sessionId, finalScyraPoints, arcBonusPoints)
-        if (pearlDelta > 0 && stablePearlReason != null) {
+        val session = sessionDao.getSessionById(snapshot.sessionId) ?: return@withTransaction
+        val power = session.mode == com.kingkharnivore.skillz.model.FlowMode.POWER
+        // Health reads may overlap or return out of order. Power's time/Arc award is
+        // already final; reconcile only the additional movement against the persisted score.
+        if (power && (finalScyraPoints < session.scyraPoints ||
+                breakdown.movementPoints < (dao.getRewardBreakdown(session.id)?.movementPoints ?: 0))) return@withTransaction
+        val actualDelta = if (power) (finalScyraPoints - session.scyraPoints).coerceAtLeast(0) else pearlDelta
+        val preservedArcBonus = if (power) session.arcBonusPoints else arcBonusPoints
+        dao.upsertSnapshot(if (power) snapshot.copy(
+            finalMovementPearlContribution = if (breakdown.pearlEligible) snapshot.finalMovementScyraContribution else 0L
+        ) else snapshot)
+        dao.upsertRewardBreakdown(if (power) breakdown.copy(arcBonusPoints = preservedArcBonus.toLong()) else breakdown)
+        sessionDao.updateRewardPoints(snapshot.sessionId, finalScyraPoints, preservedArcBonus)
+        if (actualDelta > 0 && stablePearlReason != null) {
             val sourceId = snapshot.sessionId.toString()
             val alreadyAwarded = pearlLedgerDao.sourceRewardCount("session", sourceId, stablePearlReason) > 0
             if (!alreadyAwarded) {
+                // If initial rewards are still pending, their authoritative score already
+                // includes this movement. Persist a zero-value receipt so replay cannot
+                // award the delta again after the pending grant finishes.
+                val grantDelta = if (db.powerRewardDao().reward(snapshot.sessionId)?.completed == false) 0 else actualDelta
+                if (grantDelta > 0 && power) {
+                    db.powerRewardDao().insert(com.kingkharnivore.skillz.data.model.entity.shell.PebbleLedgerEntity(
+                        "movement:$sourceId:$stablePearlReason", grantDelta, sourceId, System.currentTimeMillis()))
+                }
                 pearlLedgerDao.insert(
                     PearlLedgerEntity(
                         id = UUID.randomUUID().toString(),
-                        delta = pearlDelta,
+                        delta = grantDelta,
                         reason = stablePearlReason,
                         sourceType = "session",
                         sourceId = sourceId,
