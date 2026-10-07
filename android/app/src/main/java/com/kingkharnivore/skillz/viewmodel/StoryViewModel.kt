@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -107,6 +108,26 @@ class StoryViewModel @Inject constructor(
         com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleReadState(
             ownerType, ownerKey, chronicleRepository, viewModelScope
         )
+
+    fun createChronicleEditor(ownerType: String, ownerKey: String) =
+        ChronicleStateHolder(ownerType, ownerKey, chronicleRepository, viewModelScope)
+
+    suspend fun saveEntryDetails(ownerType: String, id: Long, title: String, tagName: String) {
+        val cleanTitle = title.trim()
+        val cleanTag = tagName.trim()
+        if (ownerType == ChronicleOwnerType.SESSION) {
+            require(cleanTitle.isNotEmpty() && cleanTag.isNotEmpty())
+            val tagId = tagRepository.getOrCreateTagId(cleanTag)
+            sessionRepository.updateSessionDetails(id, cleanTitle, tagId)?.let { removed ->
+                selectedTagIds.update { it - removed }
+            }
+        } else {
+            val tagId = cleanTag.takeIf { it.isNotEmpty() }?.let { tagRepository.getOrCreateTagId(it) }
+            pulseRepository.updatePulseDetails(id, cleanTitle, tagId)?.let { removed ->
+                selectedTagIds.update { it - removed }
+            }
+        }
+    }
 
     private val selectedTagIds = MutableStateFlow<Set<Long>>(emptySet())
     private val showScoreUiFlow = userPrefs.showScoreUi
@@ -236,6 +257,9 @@ class StoryViewModel @Inject constructor(
         setAnchorClamped(todayAnchor, p)
     }
 
+    private val _isPulseSaving = MutableStateFlow(false)
+    val isPulseSaving = _isPulseSaving.asStateFlow()
+
     fun createPulseFromStory(
         title: String,
         tagName: String,
@@ -243,18 +267,16 @@ class StoryViewModel @Inject constructor(
         onSaved: () -> Unit,
         onFailure: () -> Unit = {}
     ) {
+        if (_isPulseSaving.value) return
+        _isPulseSaving.value = true
         viewModelScope.launch {
             val trimmedTitle = title.trim()
             val trimmedTag = tagName.trim()
-
-            if (trimmedTitle.isBlank() && pulseChronicle.state.value.moments.isEmpty()) {
-                uiState.value = uiState.value.copy(
-                    errorMessage = "Add a title or description to save this moment."
-                )
-                return@launch
-            }
-
             runCatching {
+            // Read the durable content: an Add callback can precede the UI's next emission.
+            require(trimmedTitle.isNotBlank() || chronicleRepository.observeContent(
+                ChronicleOwnerType.PULSE_DRAFT, pulseDraftId).first().moments.isNotEmpty())
+
             val tagId = if (trimmedTag.isBlank()) {
                 null
             } else {
@@ -283,38 +305,12 @@ class StoryViewModel @Inject constructor(
                 uiState.value = uiState.value.copy(errorMessage = "Pulse couldn't be saved")
                 onFailure()
             }
+            _isPulseSaving.value = false
         }
     }
 
     fun cancelPulseDraft(onCanceled: () -> Unit) {
         pulseChronicle.discardAndQuiesce(onCanceled)
-    }
-
-    fun updatePulse(
-        pulseId: Long,
-        title: String,
-        tagName: String
-    ) {
-        viewModelScope.launch {
-            val trimmedTitle = title.trim()
-            val trimmedTag = tagName.trim()
-
-            val tagId = if (trimmedTag.isBlank()) {
-                null
-            } else {
-                tagRepository.getOrCreateTagId(trimmedTag)
-            }
-
-            val removedTagId = pulseRepository.updatePulseDetails(
-                pulseId = pulseId,
-                title = trimmedTitle,
-                tagId = tagId
-            )
-
-            if (removedTagId != null) {
-                selectedTagIds.value = selectedTagIds.value - removedTagId
-            }
-        }
     }
 
     fun createPulseForSession(

@@ -8,7 +8,9 @@ object SkillzDestinations {
 
     const val ADD_SKILL_ARG_PREFILL_JOURNEY = "prefillJourney"
     const val ADD_SKILL_ARG_PREFILL_TITLE = "prefillTitle"
+    const val ADD_SKILL_ARG_PREFILL_MODE = "prefillMode"
     const val ADD_SKILL_ARG_PREFILL_SOFT_MODE = "prefillSoftMode"
+    const val ADD_SKILL_ARG_ORIGIN_PLAN_ID = "originPlanId"
     const val ADD_SKILL_ARG_ORIGIN_PULSE_ID = "originPulseId"
 
     const val ADD_SKILL_ARG_PLANNED_ARC_TITLE = "plannedArcTitle"
@@ -18,6 +20,8 @@ object SkillzDestinations {
 
     const val ADD_SKILL_ROUTE =
         "$ADD_SKILL?" +
+                "$ADD_SKILL_ARG_PREFILL_MODE={$ADD_SKILL_ARG_PREFILL_MODE}&" +
+                "$ADD_SKILL_ARG_ORIGIN_PLAN_ID={$ADD_SKILL_ARG_ORIGIN_PLAN_ID}&" +
                 "$ADD_SKILL_ARG_PREFILL_JOURNEY={$ADD_SKILL_ARG_PREFILL_JOURNEY}&" +
                 "$ADD_SKILL_ARG_PREFILL_TITLE={$ADD_SKILL_ARG_PREFILL_TITLE}&" +
                 "$ADD_SKILL_ARG_PREFILL_SOFT_MODE={$ADD_SKILL_ARG_PREFILL_SOFT_MODE}&" +
@@ -29,7 +33,8 @@ object SkillzDestinations {
 
     const val HOME_SCREEN = "home_screen"
     const val SHELL = "shell"
-    const val ADD_PULSE_ROUTE = "add_pulse"
+    const val ADD_PULSE_ROUTE = "add_pulse?fromFlow={fromFlow}"
+    fun addPulseRoute(fromFlow: Boolean = false) = "add_pulse?fromFlow=$fromFlow"
 
     const val PLAN_ARC_ROUTE_BASE = "plan_arc"
     const val PLAN_ARC_ARG_EDIT_ID = "editArcPlanId"
@@ -51,12 +56,16 @@ object SkillzDestinations {
         prefillTitle: String? = null,
         prefillSoftMode: Boolean? = null,
         originPulseId: Long? = null,
+        originPlanId: Long? = null,
         plannedArcTitle: String? = null,
         plannedArcStepIndex: Int? = null,
         plannedArcTotalSteps: Int? = null,
-        prefillSurgeMinutes: Int? = null
+        prefillSurgeMinutes: Int? = null,
+        prefillMode: com.kingkharnivore.skillz.model.FlowMode? = null
     ): String {
         val params = buildList {
+            prefillMode?.let { add("$ADD_SKILL_ARG_PREFILL_MODE=${it.name}") }
+            originPlanId?.let { add("$ADD_SKILL_ARG_ORIGIN_PLAN_ID=$it") }
             prefillJourney
                 ?.takeIf { it.isNotBlank() }
                 ?.let { add("$ADD_SKILL_ARG_PREFILL_JOURNEY=${Uri.encode(it)}") }

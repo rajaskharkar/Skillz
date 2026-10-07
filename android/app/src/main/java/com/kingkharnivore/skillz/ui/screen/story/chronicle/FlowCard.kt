@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
+import com.kingkharnivore.skillz.ui.screen.chronicle.ExpandedChronicle
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.PsychologyAlt
 import androidx.compose.material.icons.outlined.Spa
@@ -215,10 +217,7 @@ fun FlowCard(
             )
         }
         .combinedClickable(
-            onClick = {
-                onToggleExpand()
-                onClick()
-            },
+            onClick = onToggleExpand,
             onLongClick = onLongPress
         )
 
@@ -304,6 +303,9 @@ fun FlowCard(
                     }
 
                     if (isExpanded) {
+                        IconButton(onClick = onLongPress) {
+                            Icon(Icons.Default.Edit, contentDescription = editFlowLabel, tint = contentColor)
+                        }
                         IconButton(
                             onClick = { showDeleteDialog = true }
                         ) {
@@ -321,7 +323,10 @@ fun FlowCard(
             HorizontalDivider(color = contentColor.copy(alpha = 0.10f))
             Spacer(modifier = Modifier.height(10.dp))
 
-            if (session.description.isNotBlank()) {
+            if (isExpanded) {
+                ExpandedChronicle("SESSION", session.sessionId, session.chronicleTexts.joinToString("\n\n").ifBlank { session.description })
+                Spacer(Modifier.height(8.dp))
+            } else if (session.description.isNotBlank() || session.chronicleTexts.isNotEmpty()) {
                 Text(
                     text = session.chronicleTexts.joinToString("\n\n").ifBlank { session.description },
                     style = MaterialTheme.typography.bodyMedium,

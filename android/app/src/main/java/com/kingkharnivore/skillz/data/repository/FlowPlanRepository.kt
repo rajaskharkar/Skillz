@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.data.repository
 
 import com.kingkharnivore.skillz.data.model.dao.FlowPlanDao
 import com.kingkharnivore.skillz.data.model.entity.FlowPlanEntity
+import com.kingkharnivore.skillz.model.FlowMode
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -10,6 +11,8 @@ import javax.inject.Singleton
 class FlowPlanRepository @Inject constructor(
     private val flowPlanDao: FlowPlanDao
 ) {
+
+    fun observeAll() = flowPlanDao.observeAll()
 
     fun getActiveFlowPlans(): Flow<List<FlowPlanEntity>> =
         flowPlanDao.getActiveFlowPlans()
@@ -25,17 +28,21 @@ class FlowPlanRepository @Inject constructor(
         tagId: Long?,
         isSoftMode: Boolean,
         targetMinutes: Int?,
-        launchWithSurge: Boolean
+        launchWithSurge: Boolean,
+        kind: String = com.kingkharnivore.skillz.data.model.entity.HorizonKind.HABIT,
+        mode: FlowMode = FlowMode.fromSoft(isSoftMode)
     ): Long {
         val normalizedTargetMinutes = targetMinutes?.takeIf { it > 0 }
         val normalizedLaunchWithSurge =
-            !isSoftMode && normalizedTargetMinutes != null && launchWithSurge
+            mode != FlowMode.SOFT && normalizedTargetMinutes != null && launchWithSurge
 
         return flowPlanDao.insertFlowPlan(
             FlowPlanEntity(
+                kind = kind,
                 title = title.trim(),
                 tagId = tagId,
-                isSoftMode = isSoftMode,
+                isSoftMode = mode == FlowMode.SOFT,
+                mode = mode,
                 targetMinutes = normalizedTargetMinutes,
                 launchWithSurge = normalizedLaunchWithSurge
             )
@@ -45,15 +52,11 @@ class FlowPlanRepository @Inject constructor(
     suspend fun updateFlowPlan(plan: FlowPlanEntity) {
         val normalizedTargetMinutes = plan.targetMinutes?.takeIf { it > 0 }
         val normalizedLaunchWithSurge =
-            !plan.isSoftMode && normalizedTargetMinutes != null && plan.launchWithSurge
+            plan.mode != FlowMode.SOFT && normalizedTargetMinutes != null && plan.launchWithSurge
 
-        flowPlanDao.updateFlowPlan(
-            plan.copy(
-                targetMinutes = normalizedTargetMinutes,
-                launchWithSurge = normalizedLaunchWithSurge,
-                updatedAt = System.currentTimeMillis()
-            )
-        )
+        check(flowPlanDao.updateDetails(plan.id, plan.title.trim(), plan.tagId, plan.kind,
+            plan.mode == FlowMode.SOFT, plan.mode, normalizedTargetMinutes, normalizedLaunchWithSurge,
+            System.currentTimeMillis()) == 1) { "This activity has already been completed or removed." }
     }
 
     suspend fun setPinned(id: Long, pinned: Boolean) {

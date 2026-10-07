@@ -31,7 +31,8 @@ data class FlowUiState(
     val originPulseJourneyName: String? = null,
     val healthEnabledAtStart: Boolean = false,
     val healthPermissionGrantedAtStart: Boolean = false,
-    val movementBonusEligibleAtStart: Boolean = false
+    val movementBonusEligibleAtStart: Boolean = false,
+    val originPlanId: Long? = null
 ) {
     val isSoftMode: Boolean get() = mode == FlowMode.SOFT
 }

@@ -41,7 +41,8 @@ data class SessionEntity(
     val arcMultiplierUsed: Double? = null,
     val arcBonusPoints: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
-    val activeIntervalJson: String? = null
+    val activeIntervalJson: String? = null,
+    val originPlanId: Long? = null
 ) {
     @get:androidx.room.Ignore
     val isSoftMode: Boolean get() = mode == FlowMode.SOFT

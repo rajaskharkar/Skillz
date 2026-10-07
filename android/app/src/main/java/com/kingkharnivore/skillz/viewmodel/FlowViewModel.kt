@@ -195,6 +195,13 @@ class FlowViewModel @Inject constructor(
             SkillzDestinations.ADD_SKILL_ARG_PREFILL_SOFT_MODE
         ) ?: false
 
+    private val prefillModeOverride = savedStateHandle.get<String>(SkillzDestinations.ADD_SKILL_ARG_PREFILL_MODE)
+        ?.let { runCatching { FlowMode.valueOf(it) }.getOrNull() }
+        ?: if (prefillSoftModeOverride) FlowMode.SOFT else null
+
+    private val originPlanIdOverride = savedStateHandle.get<Long>(SkillzDestinations.ADD_SKILL_ARG_ORIGIN_PLAN_ID)
+        ?.takeIf { it > 0L }
+
     private val originPulseIdOverride: Long? =
         savedStateHandle.get<Long>(SkillzDestinations.ADD_SKILL_ARG_ORIGIN_PULSE_ID)
             ?.takeIf { it > 0L }
@@ -202,8 +209,9 @@ class FlowViewModel @Inject constructor(
     private val hasLaunchOverrides: Boolean =
         !atlasJourneyOverride.isNullOrBlank() ||
                 !prefillTitleOverride.isNullOrBlank() ||
-                prefillSoftModeOverride ||
+                prefillModeOverride != null ||
                 originPulseIdOverride != null ||
+                originPlanIdOverride != null ||
                 !plannedArcTitleOverride.isNullOrBlank() ||
                 plannedArcStepIndexOverride != null ||
                 plannedArcTotalStepsOverride != null ||
@@ -214,20 +222,21 @@ class FlowViewModel @Inject constructor(
         return state.copy(
             title = prefillTitleOverride ?: state.title,
             tagName = atlasJourneyOverride ?: state.tagName,
-            mode = if (prefillSoftModeOverride) FlowMode.SOFT else state.mode,
+            mode = prefillModeOverride ?: state.mode,
             isSurgeOn = when {
-                prefillSoftModeOverride -> false
+                (prefillModeOverride == FlowMode.SOFT) -> false
                 prefillSurgeMinutesOverride != null -> true
                 else -> state.isSurgeOn
             },
             surgePlannedMs = when {
-                prefillSoftModeOverride -> null
+                (prefillModeOverride == FlowMode.SOFT) -> null
                 prefillSurgeMinutesOverride != null -> prefillSurgeMinutesOverride * 60_000L
                 else -> state.surgePlannedMs
             },
             plannedArcTitle = plannedArcTitleOverride ?: state.plannedArcTitle,
             plannedArcStepIndex = plannedArcStepIndexOverride ?: state.plannedArcStepIndex,
             plannedArcTotalSteps = plannedArcTotalStepsOverride ?: state.plannedArcTotalSteps,
+            originPlanId = originPlanIdOverride,
             originPulseId = if (isPulseLaunch) originPulseIdOverride else null,
             originPulseTitle = if (isPulseLaunch) prefillTitleOverride else null,
             originPulseJourneyName = if (isPulseLaunch) atlasJourneyOverride else null
@@ -393,47 +402,6 @@ class FlowViewModel @Inject constructor(
         syncArcUi()
 
         saveOngoingNow()
-    }
-
-    fun recordPulse(
-        title: String,
-        description: String,
-        tagName: String,
-        attachToCurrentFlow: Boolean
-    ) {
-        viewModelScope.launch {
-            val trimmedTitle = title.trim()
-            val trimmedDescription = description.trim()
-            val trimmedTag = tagName.trim()
-
-            if (trimmedTitle.isBlank() && trimmedDescription.isBlank()) {
-                _error.value = "Add a title or description to record this moment"
-                return@launch
-            }
-
-            try {
-                val tagId = if (trimmedTag.isBlank()) {
-                    null
-                } else {
-                    tagRepository.getOrCreateTagId(trimmedTag)
-                }
-
-                val shouldAttach = attachToCurrentFlow && _uiState.value.isInFlowMode
-
-                pulseRepository.addPulse(
-                    title = trimmedTitle,
-                    description = trimmedDescription,
-                    tagId = tagId,
-                    parentSessionId = null,
-                    parentFlowInstanceId = if (shouldAttach) currentFlowInstanceId else null,
-                    arcId = if (shouldAttach) arcState?.arcId else null
-                )
-
-                _error.value = null
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Failed to save pulse"
-            }
-        }
     }
 
     private fun isArcExpired(nowMs: Long, state: ArcRuntimeState): Boolean {
@@ -644,6 +612,7 @@ class FlowViewModel @Inject constructor(
                                 plannedArcTitle = null,
                                 plannedArcStepIndex = null,
                                 plannedArcTotalSteps = null,
+                                originPlanId = null,
                                 originPulseId = null,
                                 originPulseTitle = null,
                                 originPulseJourneyName = null
@@ -685,6 +654,7 @@ class FlowViewModel @Inject constructor(
                                 ?: old.plannedArcStepIndex,
                             plannedArcTotalSteps = restoredPlannedRun?.totalSteps
                                 ?: old.plannedArcTotalSteps,
+                            originPlanId = entity.originPlanId,
                             originPulseId = entity.originPulseId,
                             originPulseTitle = entity.originPulseTitleSnapshot,
                             originPulseJourneyName = entity.originPulseJourneyNameSnapshot,
@@ -710,6 +680,7 @@ class FlowViewModel @Inject constructor(
                         plannedArcTitle = null,
                         plannedArcStepIndex = null,
                         plannedArcTotalSteps = null,
+                        originPlanId = null,
                         originPulseId = null,
                         originPulseTitle = null,
                         originPulseJourneyName = null
@@ -790,6 +761,7 @@ class FlowViewModel @Inject constructor(
                 arcMultiplier = keepArc?.multiplier,
                 arcProgressMs = keepArc?.progressMs ?: 0L,
                 arcNextIndex = keepArc?.let { it.sessionCountInArc + 1 },
+                originPlanId = null,
                 originPulseId = null,
                 originPulseTitle = null,
                 originPulseJourneyName = null
@@ -1134,6 +1106,7 @@ class FlowViewModel @Inject constructor(
             arcChainBase = arc?.multiplier,
             arcSessionCountInArc = arc?.sessionCountInArc,
             arcLastSessionEndTimeMs = arc?.lastSessionEndTimeMs,
+            originPlanId = state.originPlanId,
             originPulseId = state.originPulseId,
             originPulseTitleSnapshot = state.originPulseTitle,
             originPulseJourneyNameSnapshot = state.originPulseJourneyName,
@@ -1257,6 +1230,7 @@ class FlowViewModel @Inject constructor(
                                 plannedArcTitle = null,
                                 plannedArcStepIndex = null,
                                 plannedArcTotalSteps = null,
+                                originPlanId = null,
                                 originPulseId = continuationOrigin?.pulseId,
                                 originPulseTitle = continuationOrigin?.pulseTitle,
                                 originPulseJourneyName = continuationOrigin?.pulseJourneyName
@@ -1411,7 +1385,7 @@ class FlowViewModel @Inject constructor(
         }
 
         val realDurationMs = state.stopwatch.elapsedMs.coerceAtLeast(0L)
-        if (endMode != FlowEndAction.CONTINUE_ARC && isZeroDuration(realDurationMs)) {
+        if ((endMode != FlowEndAction.CONTINUE_ARC || state.originPlanId != null) && isZeroDuration(realDurationMs)) {
             _error.value = "Start the timer before saving."
             _completionState.value = FlowCompletionState.PreCommitFailure
             return
@@ -1473,7 +1447,7 @@ class FlowViewModel @Inject constructor(
             if (!state.isSoftMode && !isInExistingArc && endMode == FlowEndAction.CONTINUE_ARC) {
                 val firstSessionId = sessionRepository.addSessionAndPromoteChronicle(
                     currentFlowInstanceId,
-                    SessionEntity(title = title, description = "", tagId = tagId,
+                    SessionEntity(title = title, description = "", tagId = tagId, originPlanId = state.originPlanId,
                         startTime = sessionStart, endTime = sessionEnd, durationMs = realDurationMs,
                         activeIntervalJson = activeIntervalJson,
                         surgePlannedMs = state.surgePlannedMs, surgePoints = surgePoints,
@@ -1646,7 +1620,7 @@ class FlowViewModel @Inject constructor(
 
             val insertedId = sessionRepository.addSessionAndPromoteChronicle(
                 currentFlowInstanceId,
-                SessionEntity(title = title, description = "", tagId = tagId,
+                SessionEntity(title = title, description = "", tagId = tagId, originPlanId = state.originPlanId,
                     startTime = sessionStart, endTime = sessionEnd, durationMs = realDurationMs,
                     activeIntervalJson = activeIntervalJson,
                     surgePlannedMs = state.surgePlannedMs, surgePoints = surgePoints,
@@ -2013,7 +1987,7 @@ class FlowViewModel @Inject constructor(
                 tagName = nextTagName,
                 stopwatch = StopwatchState(isRunning = false, elapsedMs = 0L),
                 isInFlowMode = false,
-                mode = FlowMode.fromSoft(nextStep.isSoftModeSnapshot),
+                mode = nextStep.mode,
                 isSurgeOn = !nextStep.isSoftModeSnapshot && nextStep.launchWithSurgeSnapshot,
                 surgePlannedMs = if (
                     !nextStep.isSoftModeSnapshot &&
@@ -2034,6 +2008,7 @@ class FlowViewModel @Inject constructor(
                 arcNextIndex = arcState?.let { it.sessionCountInArc + 1 },
                 arcGraceRemainingMs = null,
                 arcPauseRemainingMs = null,
+                originPlanId = null,
                 originPulseId = continuationOrigin?.pulseId,
                 originPulseTitle = continuationOrigin?.pulseTitle,
                 originPulseJourneyName = continuationOrigin?.pulseJourneyName

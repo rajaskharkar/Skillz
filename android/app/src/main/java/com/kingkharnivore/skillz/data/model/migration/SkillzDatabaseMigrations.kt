@@ -462,6 +462,36 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_45_46 = object : Migration(45, 46) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE flow_plans ADD COLUMN mode INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("UPDATE flow_plans SET mode = CASE WHEN isSoftMode = 1 THEN 1 ELSE 0 END")
+            db.execSQL("ALTER TABLE arc_plan_steps ADD COLUMN mode INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("UPDATE arc_plan_steps SET mode = CASE WHEN isSoftModeSnapshot = 1 THEN 1 ELSE 0 END")
+        }
+    }
+
+    val MIGRATION_44_45 = object : Migration(44, 45) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // All existing activities retain their IDs, settings and archive state as Habits.
+            db.execSQL("ALTER TABLE flow_plans ADD COLUMN kind TEXT NOT NULL DEFAULT 'HABIT'")
+            db.execSQL("ALTER TABLE flow_plans ADD COLUMN completedAt INTEGER")
+            db.execSQL("ALTER TABLE ongoing_session ADD COLUMN originPlanId INTEGER")
+            db.execSQL("ALTER TABLE sessions ADD COLUMN originPlanId INTEGER")
+            db.execSQL("""CREATE TABLE IF NOT EXISTS horizon_memories (
+                flowInstanceId TEXT NOT NULL PRIMARY KEY, sourcePlanId INTEGER NOT NULL,
+                kind TEXT NOT NULL, activityTitle TEXT NOT NULL, sessionId INTEGER,
+                title TEXT NOT NULL, tagName TEXT NOT NULL, mode INTEGER NOT NULL,
+                durationMs INTEGER NOT NULL, score INTEGER NOT NULL, surgePoints INTEGER NOT NULL,
+                surgePlannedMs INTEGER, arcId INTEGER, arcMultiplier REAL, completedAt INTEGER NOT NULL,
+                FOREIGN KEY(sessionId) REFERENCES sessions(id) ON UPDATE NO ACTION ON DELETE SET NULL)""")
+            db.execSQL("CREATE UNIQUE INDEX index_horizon_memories_sessionId ON horizon_memories(sessionId)")
+            db.execSQL("CREATE INDEX index_horizon_memories_sourcePlanId ON horizon_memories(sourcePlanId)")
+            db.execSQL("CREATE INDEX index_horizon_memories_completedAt ON horizon_memories(completedAt)")
+            // Do not infer completions from launches or remove legacy planned Arcs / active runs.
+        }
+    }
+
     val MIGRATION_42_44 = object : Migration(42, 44) {
         override fun migrate(db: SupportSQLiteDatabase) {
             // Existing isSoftMode columns encode FLOW=0 / SOFT=1 unchanged. POWER=2 is new only.
@@ -556,7 +586,7 @@ object SkillzDatabaseMigrations {
                 MIGRATION_39_40 +
                 MIGRATION_40_41 +
                 MIGRATION_41_42 +
-                MIGRATION_42_44 + MIGRATION_43_44
+                MIGRATION_42_44 + MIGRATION_43_44 + MIGRATION_44_45 + MIGRATION_45_46
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(
