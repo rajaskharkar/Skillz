@@ -39,6 +39,9 @@ interface SessionDao {
     )
     fun getAllSessions(): Flow<List<SessionEntity>>
 
+    @Query("UPDATE sessions SET title = :title, tagId = :tagId WHERE id = :sessionId")
+    suspend fun updateDetails(sessionId: Long, title: String, tagId: Long)
+
     @Query("DELETE FROM sessions WHERE id = :sessionId")
     suspend fun deleteSessionById(sessionId: Long)
 

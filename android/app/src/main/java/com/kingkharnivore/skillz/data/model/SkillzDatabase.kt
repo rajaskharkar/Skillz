@@ -70,6 +70,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
         PulseCreationEntity::class,
         OngoingSessionEntity::class,
         FlowPlanEntity::class,
+        com.kingkharnivore.skillz.data.model.entity.HorizonMemoryEntity::class,
         ArcPlanEntity::class,
         ArcPlanStepEntity::class,
         ActiveArcRunEntity::class,
@@ -104,7 +105,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
         ChronicleMomentEntity::class,
         ChronicleMediaItemEntity::class
     ],
-    version = 44,
+    version = 46,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
@@ -115,6 +116,7 @@ abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
     abstract fun pulseDao(): PulseDao
     abstract fun ideaGroveDao(): IdeaGroveDao
     abstract fun ongoingSessionDao(): OngoingSessionDao
+    abstract fun horizonMemoryDao(): com.kingkharnivore.skillz.data.model.dao.HorizonMemoryDao
     abstract fun flowPlanDao(): FlowPlanDao
     abstract fun arcPlanDao(): ArcPlanDao
     abstract fun activeArcRunDao(): ActiveArcRunDao

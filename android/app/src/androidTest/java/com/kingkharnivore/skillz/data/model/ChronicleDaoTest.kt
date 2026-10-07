@@ -24,6 +24,44 @@ class ChronicleDaoTest {
     @Before fun open() { db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), SkillzDatabase::class.java).build() }
     @After fun close() = db.close()
 
+    @Test fun softFlowPulsePersistsBeforeAndAfterCompletion() = runBlocking {
+        val chronicles = ChronicleRepository(db, db.chronicleDao())
+        val pulses = PulseRepository(db.pulseDao(), db.sessionDao(), db.tagDao(), db, db.chronicleDao(), chronicles)
+        val flows = FlowRepository(db.sessionDao(), db.tagDao(), db.pulseDao(), db.arcMetadataDao(), db, db.chronicleDao(), chronicles)
+        val tagId = db.tagDao().insertTag(TagEntity(name = "Outdoors"))
+        chronicles.addText(ChronicleOwnerType.PULSE_DRAFT, "soft-pulse", "Captured during a soft flow")
+        val pulseId = pulses.addPulseAndPromoteDraft("soft-pulse", PulseEntity(
+            title = "A thought on the walk", description = "", parentFlowInstanceId = "soft-flow"))
+        assertEquals("soft-flow", pulses.getPulseById(pulseId)!!.parentFlowInstanceId)
+        assertEquals("Captured during a soft flow", chronicles.observeContent("PULSE", pulseId.toString()).first().moments
+            .filterIsInstance<com.kingkharnivore.skillz.model.ui.ChronicleMomentUi.Text>().single().text)
+        val sessionId = flows.addSessionAndPromoteChronicle("soft-flow", SessionEntity(
+            title = "Evening walk", description = "", tagId = tagId, startTime = 1, endTime = 101,
+            durationMs = 100, mode = com.kingkharnivore.skillz.model.FlowMode.SOFT))
+        val persisted = pulses.getPulseById(pulseId)!!
+        assertEquals(sessionId, persisted.parentSessionId)
+        assertEquals(null, persisted.parentFlowInstanceId)
+        assertEquals(pulseId, pulses.getPulsesForSession(sessionId).single().id)
+    }
+
+    @Test fun editingCompletedFlowPreservesHistoryAndAcceptsNewChronicleMedia() = runBlocking {
+        val chronicles = ChronicleRepository(db, db.chronicleDao())
+        val flows = FlowRepository(db.sessionDao(), db.tagDao(), db.pulseDao(), db.arcMetadataDao(), db, db.chronicleDao(), chronicles)
+        val oldTag = db.tagDao().insertTag(TagEntity(name = "Old journey"))
+        val newTag = db.tagDao().insertTag(TagEntity(name = "Photography"))
+        val original = SessionEntity(title = "Old title", description = "", tagId = oldTag,
+            startTime = 1, endTime = 101, durationMs = 100, scyraPoints = 42)
+        val id = flows.addSessionAndPromoteChronicle("finished-flow", original)
+        assertEquals(oldTag, flows.updateSessionDetails(id, "Photo walk", newTag))
+        assertEquals(original.copy(id = id, title = "Photo walk", tagId = newTag), flows.getSessionById(id))
+        chronicles.addText("SESSION", id.toString(), "Added after completion")
+        val chronicle = db.chronicleDao().find("SESSION", id.toString())!!
+        db.chronicleDao().insertMoment(ChronicleMomentEntity("later-photo", chronicle.id, "MEDIA", 1, createdAt = 1000, updatedAt = 1000))
+        db.chronicleDao().insertMedia(listOf(ChronicleMediaItemEntity("later-image", "later-photo", 0, "photo.jpg", "image/jpeg", createdAt = 1000)))
+        assertEquals(2, chronicles.observeContent("SESSION", id.toString()).first().moments.size)
+        assertEquals(42, flows.getSessionById(id)!!.scyraPoints)
+    }
+
     @Test fun reorderValidatesAndUpdatePreservesChildren() = runBlocking {
         val dao = db.chronicleDao(); val now = 1L
         dao.insertChronicle(ChronicleEntity("c", "SESSION", "1", "", now, now))

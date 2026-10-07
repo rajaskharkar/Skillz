@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
+import com.kingkharnivore.skillz.ui.screen.chronicle.ExpandedChronicle
 import androidx.compose.material.icons.outlined.PsychologyAlt
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -243,6 +245,9 @@ fun PulseCard(
                 }
 
                 if (isExpanded) {
+                    IconButton(onClick = onLongPress) {
+                        Icon(Icons.Default.Edit, contentDescription = editEntryLabel, tint = contentColor)
+                    }
                     IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
@@ -257,6 +262,9 @@ fun PulseCard(
             HorizontalDivider(color = contentColor.copy(alpha = 0.14f))
             Spacer(Modifier.height(10.dp))
 
+            if (isExpanded) {
+                ExpandedChronicle("PULSE", pulse.pulseId, pulse.chronicleTexts.joinToString("\n\n").ifBlank { pulse.description })
+            } else {
             Text(
                 text = pulse.chronicleTexts.joinToString("\n\n").ifBlank { pulse.description },
                 style = MaterialTheme.typography.bodyMedium,
@@ -264,6 +272,7 @@ fun PulseCard(
                 maxLines = if (isExpanded) Int.MAX_VALUE else 2,
                 overflow = if (isExpanded) TextOverflow.Visible else TextOverflow.Ellipsis
             )
+            }
 
             Spacer(Modifier.height(8.dp))
 

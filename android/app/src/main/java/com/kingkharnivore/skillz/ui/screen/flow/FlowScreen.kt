@@ -120,6 +120,7 @@ internal fun canContinueArc(title: String, journey: String, isSaving: Boolean): 
 @Composable
 fun FlowScreen(
     viewModel: FlowViewModel,
+    onRecordPulse: () -> Unit,
     onDone: () -> Unit,
     onCancel: () -> Unit,
     onOpenShell: (ShellNavigationMode) -> Unit = {}
@@ -136,7 +137,6 @@ fun FlowScreen(
     var showSurgeDialog by remember { mutableStateOf(false) }
     var showEndDialog by remember { mutableStateOf(false) }
     var showPointsDialog by remember { mutableStateOf(false) }
-    var showPulseDialog by remember { mutableStateOf(false) }
     var showSoftArcConfirmDialog by remember { mutableStateOf(false) }
     var showArcIdeaContinuationDialog by remember { mutableStateOf(false) }
     var pendingChronicleEnd by remember { mutableStateOf<FlowEndAction?>(null) }
@@ -144,10 +144,6 @@ fun FlowScreen(
     var surgeMinutesInput by remember { mutableStateOf("") }
     var surgeMinutesInline by rememberSaveable { mutableStateOf("") }
 
-    var pulseTitle by rememberSaveable { mutableStateOf("") }
-    var pulseDescription by rememberSaveable { mutableStateOf("") }
-    var pulseTagName by rememberSaveable { mutableStateOf("") }
-    var attachPulseToCurrentFlow by rememberSaveable { mutableStateOf(true) }
 
     val stopwatchState = uiState.stopwatch
     val isInFlowState = uiState.isInFlowMode
@@ -505,13 +501,7 @@ fun FlowScreen(
                 if (isInFlowState) {
                     Spacer(Modifier.height(10.dp))
                     OutlinedButton(
-                        onClick = {
-                            pulseTitle = ""
-                            pulseDescription = ""
-                            pulseTagName = ""
-                            attachPulseToCurrentFlow = true
-                            showPulseDialog = true
-                        },
+                        onClick = onRecordPulse,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(18.dp)
                     ) {
@@ -646,109 +636,6 @@ fun FlowScreen(
             dismissButton = {
                 TextButton(onClick = { showSoftArcConfirmDialog = false }) {
                     Text(stringResource(R.string.flow_screen_stay_in_flow))
-                }
-            }
-        )
-    }
-
-    if (showPulseDialog) {
-        AlertDialog(
-            onDismissRequest = { showPulseDialog = false },
-            title = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(stringResource(R.string.story_fab_record_pulse))
-                    if (isInFlowState && uiState.title.isNotBlank()) {
-                        Text(
-                            text = stringResource(R.string.flow_screen_current_flow_value, uiState.title),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        value = pulseTitle,
-                        onValueChange = { pulseTitle = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text(stringResource(R.string.flow_screen_pulse_title_label)) },
-                        placeholder = { Text(stringResource(R.string.flow_screen_pulse_title_placeholder)) },
-                        singleLine = true
-                    )
-
-                    JourneyLean(
-                        tags = tags,
-                        tagName = pulseTagName,
-                        onTagClicked = { tag -> pulseTagName = tag.name },
-                        onTagNameChange = { pulseTagName = it }
-                    )
-
-                    OutlinedTextField(
-                        value = pulseDescription,
-                        onValueChange = { pulseDescription = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 4,
-                        maxLines = 8,
-                        label = { Text(stringResource(R.string.flow_screen_pulse_description_label)) },
-                        placeholder = { Text(stringResource(R.string.flow_screen_pulse_description_placeholder)) }
-                    )
-
-                    if (isInFlowState) {
-                        HorizontalDivider()
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .selectable(
-                                    selected = attachPulseToCurrentFlow,
-                                    onClick = { attachPulseToCurrentFlow = !attachPulseToCurrentFlow }
-                                )
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = stringResource(R.string.pulse_screen_attach_to_current_flow),
-                                    style = MaterialTheme.typography.titleSmall
-                                )
-                                Spacer(Modifier.height(2.dp))
-                                Text(
-                                    text = if (attachPulseToCurrentFlow) {
-                                        stringResource(R.string.pulse_screen_attach_enabled)
-                                    } else {
-                                        stringResource(R.string.pulse_screen_attach_disabled)
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                                )
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            Switch(
-                                checked = attachPulseToCurrentFlow,
-                                onCheckedChange = { attachPulseToCurrentFlow = it }
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    enabled = pulseTitle.isNotBlank() || pulseDescription.isNotBlank(),
-                    onClick = {
-                        viewModel.recordPulse(
-                            title = pulseTitle,
-                            description = pulseDescription,
-                            tagName = pulseTagName,
-                            attachToCurrentFlow = attachPulseToCurrentFlow
-                        )
-                        showPulseDialog = false
-                    }
-                ) { Text(stringResource(R.string.common_save)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showPulseDialog = false }) {
-                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )

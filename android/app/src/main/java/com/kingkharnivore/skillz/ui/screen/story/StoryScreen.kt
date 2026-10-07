@@ -76,14 +76,10 @@ class SessionEditState(
 }
 
 class PulseEditState(
-    val editingPulse: MutableState<PulseListItemUiModel?>,
-    val editTitle: MutableState<String>,
-    val editTagName: MutableState<String>
+    val editingPulse: MutableState<PulseListItemUiModel?>
 ) {
     fun startEditing(pulse: PulseListItemUiModel) {
         editingPulse.value = pulse
-        editTitle.value = pulse.title
-        editTagName.value = pulse.tagName
     }
 
     fun stopEditing() {
@@ -94,9 +90,7 @@ class PulseEditState(
 @Composable
 fun rememberPulseEditState(): PulseEditState {
     val editingPulse = remember { mutableStateOf<PulseListItemUiModel?>(null) }
-    val editTitle = remember { mutableStateOf("") }
-    val editTagName = remember { mutableStateOf("") }
-    return remember { PulseEditState(editingPulse, editTitle, editTagName) }
+    return remember { PulseEditState(editingPulse) }
 }
 
 @Composable
@@ -118,6 +112,9 @@ fun StoryScreen(
         }
     }
 
+    androidx.compose.runtime.CompositionLocalProvider(
+        com.kingkharnivore.skillz.ui.screen.chronicle.LocalChronicleReaderFactory provides remember(viewModel) { viewModel::createHistoricalChronicle }
+    ) {
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing
             .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
@@ -152,11 +149,11 @@ fun StoryScreen(
                 onSessionClick = onSessionClick,
                 onDeleteSession = viewModel::deleteSession,
                 onDeletePulse = viewModel::deletePulse,
-                onUpdatePulse = viewModel::updatePulse,
                 onCreatePulseForSession = viewModel::createPulseForSession,
                 onOpenViewJourneys = viewModel::openViewJourneys,
                 onEditArc = viewModel::openArcEditor,
-                createHistoricalChronicle = viewModel::createHistoricalChronicle
+                createChronicleEditor = viewModel::createChronicleEditor,
+                onSaveEntry = viewModel::saveEntryDetails
             )
 
             ArcDetailsSheet(arcEditorState, viewModel::updateArcEditor, viewModel::requestCloseArcEditor,
@@ -170,6 +167,7 @@ fun StoryScreen(
             )
         }
     }
+}
 }
 
 @Composable

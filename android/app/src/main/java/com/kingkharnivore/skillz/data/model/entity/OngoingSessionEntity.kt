@@ -35,7 +35,8 @@ data class OngoingSessionEntity(
     val healthEnabledAtStart: Boolean = false,
     val healthPermissionGrantedAtStart: Boolean = false,
     val movementBonusEligibleAtStart: Boolean = false,
-    val activeIntervalJson: String? = null
+    val activeIntervalJson: String? = null,
+    val originPlanId: Long? = null
 ) {
     @get:androidx.room.Ignore
     val isSoftMode: Boolean get() = mode == FlowMode.SOFT
