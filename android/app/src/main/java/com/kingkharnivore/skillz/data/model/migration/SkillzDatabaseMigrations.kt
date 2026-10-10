@@ -555,6 +555,21 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    /** Additive: Drops, creatures, advanced states, badge ledgers and historical rooms stay intact. */
+    val MIGRATION_46_47 = object : Migration(46, 47) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS green_specimen (id TEXT NOT NULL PRIMARY KEY, speciesId TEXT NOT NULL, level INTEGER NOT NULL, plantedAt INTEGER NOT NULL, fullyGrownAt INTEGER, masteredAt INTEGER, lastWateredAt INTEGER, positionKey TEXT NOT NULL, createdOrder INTEGER NOT NULL, investedDrops INTEGER NOT NULL)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_green_specimen_speciesId ON green_specimen(speciesId)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_green_specimen_createdOrder ON green_specimen(createdOrder)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS green_badge_award (id TEXT NOT NULL PRIMARY KEY, awardedAt INTEGER NOT NULL, catalogueVersion INTEGER NOT NULL)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS green_action (id TEXT NOT NULL PRIMARY KEY, kind TEXT NOT NULL, targetId TEXT NOT NULL, specimenId TEXT NOT NULL, oldLevel INTEGER NOT NULL, newLevel INTEGER NOT NULL, cost INTEGER NOT NULL, balanceAfter INTEGER NOT NULL, occurredAt INTEGER NOT NULL)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS green_event (id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, occurredAt INTEGER NOT NULL, speciesId TEXT, environmentId TEXT, tier INTEGER, oldLevel INTEGER, newLevel INTEGER, growthStage TEXT, dropCost INTEGER, balanceAfter INTEGER)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_green_event_name ON green_event(name)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_green_event_occurredAt ON green_event(occurredAt)")
+            // Catalogue membership is static. Keeping creature IDs means no copying, resets or merging.
+        }
+    }
+
     val ALL_MIGRATIONS: Array<Migration> =
         LEGACY_TO_15_MIGRATIONS +
                 MIGRATION_13_14 +
@@ -586,7 +601,7 @@ object SkillzDatabaseMigrations {
                 MIGRATION_39_40 +
                 MIGRATION_40_41 +
                 MIGRATION_41_42 +
-                MIGRATION_42_44 + MIGRATION_43_44 + MIGRATION_44_45 + MIGRATION_45_46
+                MIGRATION_42_44 + MIGRATION_43_44 + MIGRATION_44_45 + MIGRATION_45_46 + MIGRATION_46_47
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(

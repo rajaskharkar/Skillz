@@ -390,6 +390,34 @@ class SkillzMigrationTest {
         )
     }
 
+    @Test fun everyPreExportVersionCanUpgradeToGreenWithoutLosingExistingDrops() {
+        (1..30).forEach { version ->
+            val name = "$TEST_DB-green-$version"
+            createLegacyDatabase(name, version).apply {
+                if (version <= 12) {
+                    execSQL("CREATE TABLE skills (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, createdAt INTEGER NOT NULL)")
+                    execSQL("INSERT INTO skills VALUES (1, 'Preserved', 10)")
+                } else {
+                    createVersion13CoreTables()
+                    var current = 13
+                    while (current < version) {
+                        val migration = SkillzDatabaseMigrations.ALL_MIGRATIONS.first { it.startVersion == current && it.endVersion <= version }
+                        migration.migrate(this)
+                        current = migration.endVersion
+                    }
+                    if (version >= 14) execSQL("INSERT INTO stillwater_ledger VALUES ('preserve',98765,'soft_flow','old',100)")
+                }
+                close()
+            }
+            helper.runMigrationsAndValidate(name, 47, true, *SkillzDatabaseMigrations.ALL_MIGRATIONS).use { db ->
+                assertTrue(db.tableExists("green_specimen"))
+                if (version >= 14) db.query("SELECT SUM(units) FROM stillwater_ledger").use {
+                    assertTrue(it.moveToFirst()); assertEquals(98765L, it.getLong(0))
+                }
+            }
+        }
+    }
+
     private fun assertAchievementMigrationChain(startVersion: Int) {
         helper.createDatabase("$TEST_DB-$startVersion", startVersion).close()
         val db = helper.runMigrationsAndValidate(
@@ -539,7 +567,7 @@ class SkillzMigrationTest {
 
     private companion object {
         const val TEST_DB = "skillz-migration-test"
-        const val CURRENT_VERSION = 40
+        const val CURRENT_VERSION = 47
 
         val SHELL_TABLES = listOf(
             "pearl_ledger",

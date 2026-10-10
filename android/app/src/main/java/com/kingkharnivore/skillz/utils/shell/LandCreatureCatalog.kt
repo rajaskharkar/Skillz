@@ -13,7 +13,7 @@ enum class LandStillwaterHabitat(
     SANCTUARY("Sanctuary", CreatureZone.GREAT_WILD, 75_000L, 5)
 }
 
-/** Locked September 2026 Land roster. Restorative habitats share the Stillwater draw economy. */
+/** Land roster, including preserved heritage species now available in The Blue. */
 object LandCreatureCatalog {
     val mainZones = listOf(CreatureZone.GOLDEN_FIELDS, CreatureZone.ANCIENT_WOODS, CreatureZone.OPEN_SANDS, CreatureZone.HIGH_PEAKS, CreatureZone.GREAT_WILD)
     // Arc flagships share the premium growth tier of their zone: Horse, Black Bear,
@@ -143,8 +143,8 @@ object LandCreatureCatalog {
         family: CreatureRenderFamily, minutes: Int? = null, flows: Int? = null,
         available: Boolean = true, habitat: LandStillwaterHabitat? = null,
         growthBasePearls: Int? = null) = CreatureDefinition(
-        creatureId = id, displayName = name, zone = zone, sourceType = source,
-        requirementMinutes = minutes, arcFlowRequirement = flows, restorativeHabitat = habitat,
+        creatureId = id, displayName = name, zone = zone, sourceType = if (habitat != null) CreatureSourceType.BEYOND_BLUE else source,
+        requirementMinutes = minutes ?: habitat?.let { (it.dropCost / 60L).toInt() }, arcFlowRequirement = flows, restorativeHabitat = habitat,
         baseGrowthCostPearls = growthBasePearls,
         // Economic value is separate from acquisition requirements: Arc depth is never minutes.
         economicValuePearls = when (id) {

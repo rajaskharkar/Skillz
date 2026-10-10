@@ -74,10 +74,11 @@ fun BadgesScreen(
     onRetryInitialization: () -> Unit = {},
     pendingNavigation: PendingShellNavigation? = null,
     onNavigationResult: (String, NavigationConsumptionResult) -> Unit = { _, _ -> },
-    initialTab: BadgesTab = BadgesTab.SHOWCASE
+    initialTab: BadgesTab = BadgesTab.SHOWCASE,
+    initialBrowseCollections: Boolean = true
 ) {
     val dashboard = uiState.badgeDashboard
-    var browseCollections by rememberSaveable { mutableStateOf(true) }
+    var browseCollections by rememberSaveable { mutableStateOf(initialBrowseCollections) }
     var query by rememberSaveable { mutableStateOf("") }
     var earnedCategory by rememberSaveable { mutableStateOf(BadgeUiCategory.ALL) }
     var earnedSort by rememberSaveable { mutableStateOf(BadgeSort.ALPHABETICAL) }
@@ -105,6 +106,7 @@ fun BadgesScreen(
         badge.badgeId to (creature?.titleRes?.takeIf { it != 0 }?.let { stringResource(it) }.orEmpty())
     }
     val categoryLabels = mapOf(
+        BadgeUiCategory.GREEN to stringResource(R.string.green_title),
         BadgeUiCategory.ALL to stringResource(R.string.badge_category_all), BadgeUiCategory.FLOW to stringResource(R.string.badge_category_flow),
         BadgeUiCategory.ARC to stringResource(R.string.badge_category_arc), BadgeUiCategory.CREATURES to stringResource(R.string.badge_category_creatures),
         BadgeUiCategory.MASTERY to stringResource(R.string.badge_category_mastery), BadgeUiCategory.COLLECTIONS to stringResource(R.string.badge_category_collections),
@@ -264,7 +266,8 @@ fun BadgesScreen(
                 badgeGalleryRows(visibleEarnedBadges, galleryColumns, "earned", framed = false, onOpen = ::openBadge)
             }
             BadgesTab.BADGE_BOOK -> {
-                if (!browseCollections) item("book-title") { SectionTitle(stringResource(R.string.badges_book_title), stringResource(R.string.badges_book_body)) }
+                if (!browseCollections) item("book-title") { SectionTitle(stringResource(R.string.badges_book_title),
+                    stringResource(if (category == BadgeUiCategory.GREEN) R.string.green_badges_explainer else R.string.badges_book_body)) }
                 item("book-browse") {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilterChip(browseCollections, { browseCollections = true }, label = { Text(stringResource(R.string.book_collections)) })
@@ -632,6 +635,7 @@ internal fun collectionSpeciesDestination(action: CollectionSpeciesAction): Badg
     BadgeDisabledReason.UNSUPPORTED_DESTINATION -> R.string.badge_disabled_historical
 })
 @Composable private fun badgeActionLabel(action: BadgeActionDestination): String = stringResource(when (action) {
+    is BadgeActionDestination.Green -> R.string.green_view_plant
     is BadgeActionDestination.ChestSpecies -> if (action.speciesId in com.kingkharnivore.skillz.utils.shell.RedCreatureCatalog.byId) R.string.red_badge_open_creature else R.string.badge_action_view_chest
     is BadgeActionDestination.BlueRegion -> R.string.badge_action_open_blue
     is BadgeActionDestination.StillwaterVessel -> R.string.badge_action_open_stillwater
@@ -659,7 +663,7 @@ private fun navigateFor(
     BadgeActionDestination.Flow -> openFlow()
     BadgeActionDestination.Arc -> openArc()
     is BadgeActionDestination.ChestSpecies, is BadgeActionDestination.BlueRegion,
-    is BadgeActionDestination.StillwaterVessel, is BadgeActionDestination.BeyondBlue -> navigate(badge.action)
+    is BadgeActionDestination.Green, is BadgeActionDestination.StillwaterVessel, is BadgeActionDestination.BeyondBlue -> navigate(badge.action)
     is BadgeActionDestination.CollectionDetails -> showCollection(badge.action.collectionId)
     BadgeActionDestination.MovementInfo -> navigate(badge.action)
     is BadgeActionDestination.BadgeDetails -> showDetails()
@@ -669,6 +673,7 @@ private fun navigateFor(
 internal fun badgeObjectiveProgressText(badgeId: String, progress: Int, target: Int, remaining: Int): String {
     val spec = RedBadgeCatalog.byId[badgeId]
     return when {
+        badgeId in com.kingkharnivore.skillz.domain.green.GreenBadgeEvaluator.byId -> stringResource(R.string.green_badge_progress_units, progress, target, remaining)
         badgeId in setOf("power_pressure", "power_bedrock", "power_unyielding") ->
             stringResource(R.string.power_badge_time_progress, progress / 60, progress % 60, target / 60)
         spec?.species?.isNotEmpty() == true -> pluralStringResource(

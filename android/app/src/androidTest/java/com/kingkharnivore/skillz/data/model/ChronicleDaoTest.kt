@@ -149,6 +149,32 @@ class ChronicleDaoTest {
         assertEquals("mine", updated.transcript)
     }
 
+    @Test fun committedDraftStaysClearedWhenRoomDeliversMomentAndDraftSnapshots() = runBlocking {
+        val repository = ChronicleRepository(db, db.chronicleDao())
+        val holder = ChronicleStateHolder(ChronicleOwnerType.SESSION, "saved-drafts", repository, this)
+        try {
+            repeat(3) { index ->
+                val text = "Saved moment $index"
+                holder.setDraft(text)
+                val committed = kotlinx.coroutines.CompletableDeferred<Unit>()
+                holder.add { committed.complete(Unit) }
+                // The IME can move the cursor while the pending Add write is completing.
+                holder.setDraft(androidx.compose.ui.text.input.TextFieldValue(text, androidx.compose.ui.text.TextRange.Zero))
+                withTimeout(5_000) { committed.await() }
+                val observed = withTimeout(5_000) {
+                    holder.state.first { it.contentMoments.size == index + 1 && !it.isCommitting }
+                }
+                assertEquals("", observed.draft)
+                val owner = db.chronicleDao().find(ChronicleOwnerType.SESSION, "saved-drafts")!!
+                assertEquals("", owner.draftText)
+                assertEquals(index + 1, db.chronicleDao().moments(owner.id).size)
+            }
+            val ready = kotlinx.coroutines.CompletableDeferred<Unit>()
+            holder.quiesce { ready.complete(Unit) }
+            withTimeout(5_000) { ready.await() }
+        } finally { holder.close() }
+    }
+
     @Test fun pendingMomentRemovalIsUndoableBeforeDatabaseDeletion() = runBlocking {
         val repository = ChronicleRepository(db, db.chronicleDao())
         repository.addText(ChronicleOwnerType.ACTIVE_FLOW, "undo-flow", "Keep me")

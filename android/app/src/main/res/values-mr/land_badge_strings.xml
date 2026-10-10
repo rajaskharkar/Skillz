@@ -33,42 +33,38 @@
     <string name="badge_land_returning_title">पुन्हा रानाकडे</string>
     <string name="badge_land_returning_description">5, 10, 25, 50 आणि 100 आर्क अंतिमरीत्या पूर्ण करा; प्रत्येकातून भूमीवरील बक्षीस मिळालेले असावे.</string>
     <string name="badge_land_stillwater_first_title">शांत सोबत</string>
-    <string name="badge_land_stillwater_first_description">स्टिलवॉटरमधून भूमीवरील तुमचा पहिला विसाव्याचा जीव मिळवा.</string>
+
     <string name="badge_land_five_habitats_title">पाच शांत ठिकाणे</string>
-    <string name="badge_land_five_habitats_description">कुरण, वनातील माळ, मरूद्यान, घळ आणि अभयारण्य येथून प्रत्येकी किमान एकदा जीव मिळवा.</string>
+
     <string name="badge_land_stillwater_variety_title">विसाव्यातील विविधता</string>
     <string name="badge_land_stillwater_variety_description">भूमीवरील स्टिलवॉटरच्या 5, 10, 25, 40 आणि 51 वेगवेगळ्या प्रजाती शोधा.</string>
-    <string name="badge_land_rare_first_title">दुर्मीळ पाहुणा</string>
-    <string name="badge_land_rare_first_description">स्टिलवॉटरमधून भूमीवरील दुर्मीळ श्रेणीचा जीव मिळवा.</string>
-    <string name="badge_land_mythic_first_title">पौराणिक आगमन</string>
-    <string name="badge_land_mythic_first_description">स्टिलवॉटरमधून भूमीवरील पौराणिक श्रेणीचा जीव मिळवा.</string>
+
     <string name="badge_land_release_first_title">मोकळेपणाने फिरायला</string>
     <string name="badge_land_release_first_description">भूमीवरील एक जीव मुक्त करा. तुमच्या शोधाची आणि प्रभुत्वाची कायमची नोंद सुरक्षित राहील.</string>
     <string name="badge_land_trade_first_title">आणखी एक प्रवास</string>
     <string name="badge_land_trade_first_description">द ब्लूच्या पलीकडील भेटीमध्ये भूमीवरील एक जीव योगदान म्हणून द्या. तुमची कायमची प्रभुत्व नोंद सुरक्षित राहील.</string>
     <string name="badge_keeper_of_the_land_title">भूमीचा रक्षक</string>
-    <string name="badge_keeper_of_the_land_description">भूमीवरील पाचही प्रदेशांतील सर्व 63 मुख्य प्रजाती शोधा.</string>
+    <string name="badge_keeper_of_the_land_description">भूमीच्या पाचही प्रदेशांतील सर्व प्रजाती शोधा.</string>
     <string name="badge_one_from_every_land_title">प्रत्येक अधिवासातून एक</string>
-    <string name="badge_one_from_every_land_description">भूमीवरील प्रत्येक प्रदेशातील किमान एका मुख्य जीवावर आणि प्रत्येक भूमीच्या स्टिलवॉटर पात्रातील एका जीवावर प्रभुत्व मिळवा.</string>
+
     <string name="badge_land_mastery_circle_title">भूमीचे प्रभुत्व मंडळ</string>
     <string name="badge_land_mastery_circle_description">पातळी 99 गाठलेल्या भूमीवरील प्रत्येक स्वतंत्र जीवाची गणना होते; यात मुक्त केलेले आणि योगदान दिलेले जीवही येतात.</string>
     <string name="badge_land_mastery_variety_title">भूमीच्या प्रभुत्वातील विविधता</string>
     <string name="badge_land_mastery_variety_description">भूमीवरील 1, 5, 10, 25, 50, 100 आणि 114 वेगवेगळ्या प्रजातींवर प्रभुत्व मिळवा.</string>
     <string name="badge_sea_variety_title">समुद्रातील विविधता</string>
-    <string name="badge_sea_variety_description">समुद्राच्या स्टिलवॉटरसह समुद्रातील 1, 5, 10, 25, 50 आणि 71 वेगवेगळ्या प्रजाती शोधा.</string>
+
     <string name="badge_land_pasture_first_title">कुरणातील शोध</string>
-    <string name="badge_land_pasture_first_description">कुरणातून तुमचा पहिला जीव मिळवा.</string>
+
     <string name="badge_land_glade_first_title">वनातील माळेचा शोध</string>
-    <string name="badge_land_glade_first_description">वनातील माळेतून तुमचा पहिला जीव मिळवा.</string>
+
     <string name="badge_land_oasis_first_title">मरूद्यानातील शोध</string>
-    <string name="badge_land_oasis_first_description">मरूद्यानातून तुमचा पहिला जीव मिळवा.</string>
+
     <string name="badge_land_ravine_first_title">घळीतील शोध</string>
-    <string name="badge_land_ravine_first_description">घळीतून तुमचा पहिला जीव मिळवा.</string>
+
     <string name="badge_land_sanctuary_first_title">अभयारण्यातील शोध</string>
-    <string name="badge_land_sanctuary_first_description">अभयारण्यातून तुमचा पहिला जीव मिळवा.</string>
+
     <string name="collection_land">भूमी</string>
-    <string name="collection_sea_stillwater">समुद्राचे स्टिलवॉटर</string>
-    <string name="collection_land_stillwater">भूमीचे स्टिलवॉटर</string>
+
     <string name="collection_all_land">भूमी आणि तिचे अधिवास</string>
     <string name="collection_living_earth">सजीव पृथ्वी</string>
     <string name="level99_preview_completes_realm">यामुळे हा संग्रह पूर्ण होईल: %1$s.</string>

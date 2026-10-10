@@ -28,7 +28,7 @@ data class LandBadgeSpec(
     }
     val action: BadgeActionDestination get() = when (metric) {
         LandBadgeMetric.ARC_DEPTH, LandBadgeMetric.TIGERS, LandBadgeMetric.ARCS, LandBadgeMetric.FLAGSHIPS -> BadgeActionDestination.Arc
-        LandBadgeMetric.VESSEL -> BadgeActionDestination.StillwaterVessel("stillwater_${requireNotNull(habitat).name.lowercase()}")
+        LandBadgeMetric.VESSEL -> BadgeActionDestination.BlueRegion("blue_${requireNotNull(habitat).zone.name.lowercase()}")
         LandBadgeMetric.DRAWS, LandBadgeMetric.HABITATS, LandBadgeMetric.RESTORATIVE, LandBadgeMetric.RARE, LandBadgeMetric.MYTHIC -> BadgeActionDestination.CollectionDetails("collection_land_stillwater")
         LandBadgeMetric.ENCOUNTER, LandBadgeMetric.TRADE -> BadgeActionDestination.BeyondBlue("blue_golden_fields", "creature_duck")
         LandBadgeMetric.REALMS -> BadgeActionDestination.CollectionDetails("collection_living_earth")
@@ -39,7 +39,7 @@ data class LandBadgeSpec(
 }
 
 object LandBadgeCatalog {
-    val specs = listOf(
+    private val historicalSpecs = listOf(
         LandBadgeSpec("land_first", R.string.badge_land_first_title, R.string.badge_land_first_description,
             LandBadgeMetric.DISCOVERY, listOf(1), LandBadgeMotif.FOOTPRINTS),
         LandBadgeSpec("living_earth_first", R.string.badge_living_earth_first_title, R.string.badge_living_earth_first_description,
@@ -85,9 +85,9 @@ object LandBadgeCatalog {
         LandBadgeSpec("land_trade_first", R.string.badge_land_trade_first_title, R.string.badge_land_trade_first_description,
             LandBadgeMetric.TRADE, listOf(1), LandBadgeMotif.TRADE),
         LandBadgeSpec("keeper_of_the_land", R.string.badge_keeper_of_the_land_title, R.string.badge_keeper_of_the_land_description,
-            LandBadgeMetric.MAIN, listOf(63), LandBadgeMotif.LANDSCAPE),
+            LandBadgeMetric.MAIN, listOf(LandCreatureCatalog.all.count { it.isAvailable && it.participatesInCollector }), LandBadgeMotif.LANDSCAPE),
         LandBadgeSpec("one_from_every_land", R.string.badge_one_from_every_land_title, R.string.badge_one_from_every_land_description,
-            LandBadgeMetric.MASTERED_COLLECTIONS, listOf(10), LandBadgeMotif.CROWN),
+            LandBadgeMetric.MASTERED_COLLECTIONS, listOf(LandCreatureCatalog.mainZones.size), LandBadgeMotif.CROWN),
         LandBadgeSpec("land_mastery_circle", R.string.badge_land_mastery_circle_title, R.string.badge_land_mastery_circle_description,
             LandBadgeMetric.MASTERY, listOf(1, 5, 10, 25, 50, 100, 250, 500, 1000), LandBadgeMotif.CROWN),
         LandBadgeSpec("land_mastery_variety", R.string.badge_land_mastery_variety_title, R.string.badge_land_mastery_variety_description,
@@ -105,6 +105,7 @@ object LandBadgeCatalog {
         LandBadgeSpec("land_sanctuary_first", R.string.badge_land_sanctuary_first_title, R.string.badge_land_sanctuary_first_description,
             LandBadgeMetric.VESSEL, listOf(1), LandBadgeMotif.DROPLEAF, LandStillwaterHabitat.SANCTUARY),
     )
+    val specs = historicalSpecs.filterNot { RetiredStillwaterBadges.isBadge(it.id) }
     val byId = specs.associateBy { it.id }
 }
 
@@ -122,9 +123,9 @@ class LandBadgeEvidence(
     private val discovered = discoveredIds + copies.map { it.findId }
     private val land = copies.filter { CreatureCatalog.get(it.findId)?.realm == CreatureRealm.LAND }
     private val landIds = LandCreatureCatalog.all.filter { it.isAvailable }.map { it.creatureId }.toSet()
-    private val mainIds = LandCreatureCatalog.main.map { it.creatureId }.toSet()
+    private val mainIds = LandCreatureCatalog.all.filter { it.isAvailable && it.participatesInCollector }.map { it.creatureId }.toSet()
     private val restorativeIds = LandCreatureCatalog.restorative.map { it.creatureId }.toSet()
-    private val draws = land.filter { it.sourceType == "stillwater" && it.findId in restorativeIds }
+    private val draws = land.filter { it.findId in restorativeIds }
     private val arcs = land.filter { it.sourceType == "arc" && it.sourceId != null && CreatureCatalog.get(it.findId)?.sourceType == CreatureSourceType.ARC_EARNED }.groupBy { it.sourceId }
     private val mastered = mastery.filterValues { it.hasEverBeenMastered }.keys
     private val masteryCount = mastery.filterKeys { it in landIds }.values.sumOf { it.effectiveLifetimeCount }
@@ -146,14 +147,13 @@ class LandBadgeEvidence(
         LandBadgeMetric.HABITATS -> draws.mapNotNull { CreatureCatalog.get(it.findId)?.restorativeHabitat }.distinct().size
         LandBadgeMetric.VESSEL -> draws.count { CreatureCatalog.get(it.findId)?.restorativeHabitat == spec.habitat }
         LandBadgeMetric.RESTORATIVE -> discovered.intersect(restorativeIds).size
-        LandBadgeMetric.RARE -> draws.count { LandStillwaterCatalog.rarityById[it.findId] == StillwaterRarity.RARE }
-        LandBadgeMetric.MYTHIC -> draws.count { LandStillwaterCatalog.rarityById[it.findId] == StillwaterRarity.MYTHIC }
+        LandBadgeMetric.RARE -> draws.count { it.findId in setOf("creature_kangaroo", "creature_okapi", "creature_serval", "creature_wolverine", "creature_rhinoceros") }
+        LandBadgeMetric.MYTHIC -> draws.count { it.findId in setOf("creature_peacock", "creature_panda", "creature_addax", "creature_takin", "creature_elephant") }
         LandBadgeMetric.RELEASE -> land.count { it.creatureStatus == CreatureStatus.RELEASED }
         LandBadgeMetric.TRADE -> land.count { it.creatureStatus == CreatureStatus.USED_BEYOND_BLUE }
         LandBadgeMetric.MAIN -> discovered.intersect(mainIds).size
         LandBadgeMetric.MASTERED_COLLECTIONS -> CollectionCatalog.collections.count { collection ->
-            (collection.collectionId in LandCreatureCatalog.mainZones.map { "blue_${it.name.lowercase()}" } ||
-                collection.collectionId in LandStillwaterHabitat.entries.map { "stillwater_${it.name.lowercase()}" }) &&
+            collection.collectionId in LandCreatureCatalog.mainZones.map { "blue_${it.name.lowercase()}" } &&
                 collection.species.any { it.creatureId in mastered }
         }
     }

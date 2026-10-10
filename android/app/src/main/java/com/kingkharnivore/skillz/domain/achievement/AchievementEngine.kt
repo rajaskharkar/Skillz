@@ -1,5 +1,7 @@
 package com.kingkharnivore.skillz.domain.achievement
 
+import com.kingkharnivore.skillz.domain.green.achievementDefinition
+
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureDefinition
 import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
@@ -269,6 +271,8 @@ object AchievementBadgeCatalog {
         addAll(BadgeBookCollections.newAwards.map { it.definition })
         addAll(LandBadgeCatalog.specs.map { it.definition })
         addAll(RedBadgeCatalog.specs.map { it.definition })
+        addAll(CreatureGrowthBadges.specs.map { it.definition })
+        addAll(com.kingkharnivore.skillz.domain.green.GreenBadgeEvaluator.definitions.map { it.achievementDefinition() })
         CreatureCatalog.all.forEach { creature ->
             add(AchievementBadgeDefinition(
                 "mastery_species_${creature.creatureId}", BadgeFamily.SPECIES_MASTERY,
@@ -287,15 +291,11 @@ object AchievementBadgeCatalog {
             milestones = boundedMilestones(CreatureCatalog.all.count { it.isAvailable && it.participatesInCompletionist })))
         add(AchievementBadgeDefinition("variety_collector", BadgeFamily.COLLECTION, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT,
             milestones = boundedMilestones(CreatureCatalog.all.count { it.isAvailable && it.participatesInCollector })))
-        add(AchievementBadgeDefinition("stillwater_first_catch", BadgeFamily.COLLECTION, BadgeCountType.ONE_TIME, BadgeRequirement.EXACT_COUNT, collectionId = "collection_stillwater"))
-        add(AchievementBadgeDefinition("stillwater_variety", BadgeFamily.COLLECTION, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT,
-            milestones = boundedMilestones(CreatureCatalog.allStillwater.count { it.isAvailable && it.participatesInCollector }), collectionId = "collection_stillwater"))
-        add(AchievementBadgeDefinition("stillwater_mastery", BadgeFamily.MASTERY, BadgeCountType.REPEATABLE, BadgeRequirement.EXACT_COUNT, collectionId = "collection_stillwater"))
         CollectionCatalog.collections.filterNot { RedBadgeCatalog.isRedCollection(it.collectionId) }.forEach { collection ->
             listOf(BadgeRequirement.COLLECTOR, BadgeRequirement.CURATOR, BadgeRequirement.COMPLETIONIST).forEach { requirement ->
                 val importance = when {
                     collection.collectionId == "collection_all_waters" && requirement == BadgeRequirement.COMPLETIONIST -> 100
-                    collection.collectionId in setOf("collection_the_blue", "collection_stillwater") && requirement == BadgeRequirement.COMPLETIONIST -> 80
+                    collection.collectionId == "collection_the_blue" && requirement == BadgeRequirement.COMPLETIONIST -> 80
                     requirement == BadgeRequirement.COMPLETIONIST -> 60
                     requirement == BadgeRequirement.CURATOR -> 40
                     else -> 30
@@ -319,7 +319,7 @@ object BadgeDefinitionResolver {
     /** Persisted for migration safety, but belongs to the retired discovery-journal system. */
     private val obsoleteBadgeIds = setOf("badge_discovery")
 
-    fun isObsolete(badgeId: String): Boolean = badgeId in obsoleteBadgeIds || RedBadgeCatalog.isRedundantCollectionBadge(badgeId)
+    fun isObsolete(badgeId: String): Boolean = badgeId in obsoleteBadgeIds || RetiredStillwaterBadges.isBadge(badgeId) || RedBadgeCatalog.isRedundantCollectionBadge(badgeId)
 
     fun isUserVisible(badgeId: String): Boolean = !isObsolete(badgeId) &&
         resolve(badgeId).goalType != BadgeGoalType.HISTORICAL_COUNT_ONLY
@@ -378,27 +378,18 @@ data class CollectionDefinition(val collectionId: String, val rosterVersion: Int
 
 object CollectionCatalog {
     private val blueRegions = CreatureZone.values().filter { it.realm != com.kingkharnivore.skillz.utils.shell.CreatureRealm.RED }.map { zone ->
-        CollectionDefinition("blue_${zone.name.lowercase()}", 1, CreatureCatalog.all.filter { it.sourceType !in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND) && it.zone == zone })
+        CollectionDefinition("blue_${zone.name.lowercase()}", 2, CreatureCatalog.all.filter { it.zone == zone })
     }
-    private val stillwaterVessels = StillwaterVessel.values().map { vessel ->
-        val ids = StillwaterCatalog.creaturesFor(vessel).map { it.creatureId }.toSet()
-        CollectionDefinition("stillwater_${vessel.name.lowercase()}", 1, CreatureCatalog.stillwater.filter { it.creatureId in ids })
-    }
-    private val landStillwaterHabitats = com.kingkharnivore.skillz.utils.shell.LandStillwaterHabitat.entries.map { habitat ->
-        CollectionDefinition("stillwater_${habitat.name.lowercase()}", 1,
-            com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.restorative.filter { it.restorativeHabitat == habitat })
-    }
-    val collections = blueRegions + stillwaterVessels + landStillwaterHabitats + com.kingkharnivore.skillz.utils.shell.RedEra.entries.map { era -> CollectionDefinition("red_${era.name.lowercase()}", 1, com.kingkharnivore.skillz.utils.shell.RedCreatureCatalog.definitions.filter { it.zone == era.zone }) } + listOf(
+    val collections = blueRegions + com.kingkharnivore.skillz.utils.shell.RedEra.entries.map { era -> CollectionDefinition("red_${era.name.lowercase()}", 1, com.kingkharnivore.skillz.utils.shell.RedCreatureCatalog.definitions.filter { it.zone == era.zone }) } + listOf(
         CollectionDefinition("collection_red", 1, com.kingkharnivore.skillz.utils.shell.RedCreatureCatalog.definitions),
-        CollectionDefinition("collection_stillwater", 1, CreatureCatalog.allStillwater),
-        CollectionDefinition("collection_the_blue", 1, CreatureCatalog.all.filter { it.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA && it.sourceType != CreatureSourceType.STILLWATER }),
-        CollectionDefinition("collection_land", 1, com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.main),
-        CollectionDefinition("collection_sea_stillwater", 1, CreatureCatalog.stillwater),
-        CollectionDefinition("collection_land_stillwater", 1, com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.restorative),
+        CollectionDefinition("collection_the_blue", 2, CreatureCatalog.all.filter { it.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA }),
+        CollectionDefinition("collection_land", 2, com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.all),
         CollectionDefinition("collection_all_land", 1, com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.all),
         CollectionDefinition("collection_living_earth", 1, CreatureCatalog.all.filter { it.realm != com.kingkharnivore.skillz.utils.shell.CreatureRealm.RED }),
         CollectionDefinition("collection_all_waters", 1, CreatureCatalog.all.filter { it.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA })
     )
+    val seaRegions = blueRegions.filter { it.species.any { species -> species.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA } }
+    val landRegions = blueRegions.filter { it.species.any { species -> species.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND } }
     val byId = collections.associateBy { it.collectionId }
 }
 

@@ -68,7 +68,7 @@ fun PathsScreen(viewModel: PathsViewModel, onOpenFlowPlan: (FlowPlanListItemUiMo
             onDelete = viewModel::delete, onPlanArc = onPlanArc, onOpenArc = onOpenArc,
             onDeleteArc = viewModel::deleteArcPlan, onOpenSuggestedRoute = onOpenSuggestedRoute,
             onSection = { section = it },
-            onDeleteMemory = viewModel::deleteMemory,
+            onRemoveMemory = viewModel::removeMemory,
             onPlanAgain = { viewModel.planAgain(it) {} })
     }
     if (showEditor) ActivityEditor(edited, state.selectedPrimaryTab, state.tags, state.isSaving,
@@ -89,7 +89,7 @@ internal fun HorizonContent(state: PathsUiState, showDreams: Boolean, onToggleDr
     onArchive: (Long, Boolean) -> Unit, onDelete: (Long) -> Unit,
     onPlanArc: () -> Unit, onOpenArc: (Long) -> Unit, onDeleteArc: (Long) -> Unit,
     onOpenSuggestedRoute: (String) -> Unit, onSection: (HorizonSection) -> Unit,
-    onDeleteMemory: (MemoryFlowUi) -> Unit = {},
+    onRemoveMemory: (MemoryFlowUi) -> Unit = {},
     onPlanAgain: (MemoryGroupUi) -> Unit) {
     val kind = if (state.selectedPrimaryTab == PathsPrimaryTab.PLANS) HorizonKind.PLAN else HorizonKind.HABIT
     val activities = state.flowPlans.filter { it.kind == kind }
@@ -154,7 +154,7 @@ internal fun HorizonContent(state: PathsUiState, showDreams: Boolean, onToggleDr
             state.selectedPrimaryTab == PathsPrimaryTab.MEMORIES -> {
                 item { Text(stringResource(R.string.horizon_memories_hint), style = MaterialTheme.typography.bodyMedium) }
                 if (state.memories.isEmpty()) item { HorizonEmpty(R.string.horizon_empty_memories, R.string.horizon_empty_memories_body) }
-                items(state.memories, key = { it.key }) { memory -> MemoryCard(memory, onDeleteMemory, onPlanAgain) }
+                items(state.memories, key = { it.key }) { memory -> MemoryCard(memory, onRemoveMemory, onPlanAgain) }
             }
             else -> {
                 item { Text(stringResource(if (kind == HorizonKind.HABIT) R.string.horizon_habits_hint else R.string.horizon_plans_hint),
@@ -245,7 +245,7 @@ private fun ActivityCard(activity: FlowPlanListItemUiModel, inProgress: Boolean,
 }
 
 @Composable
-internal fun MemoryCard(memory: MemoryGroupUi, onDeleteMemory: (MemoryFlowUi) -> Unit = {},
+internal fun MemoryCard(memory: MemoryGroupUi, onRemoveMemory: (MemoryFlowUi) -> Unit = {},
     onPlanAgain: (MemoryGroupUi) -> Unit) {
     var showJourney by rememberSaveable(memory.key) { mutableStateOf(false) }
     var expandedFlows by rememberSaveable(memory.key) { mutableStateOf(listOf<String>()) }
@@ -268,7 +268,7 @@ internal fun MemoryCard(memory: MemoryGroupUi, onDeleteMemory: (MemoryFlowUi) ->
                 key(flow.receipt.flowInstanceId) {
                     if (index > 0) HorizontalDivider()
                     MemoryFlowDetails(flow, expanded = flow.receipt.flowInstanceId in expandedFlows,
-                        onToggle = { toggle(flow) }, onDelete = { onDeleteMemory(flow) })
+                        onToggle = { toggle(flow) }, onDelete = { onRemoveMemory(flow) })
                 }
             }
             if (memory.kind == HorizonKind.HABIT && memory.flows.size > 1) TextButton(onClick = { showJourney = !showJourney }) {
@@ -313,14 +313,14 @@ private fun MemoryFlowDetails(flow: MemoryFlowUi, expanded: Boolean, onToggle: (
             if (session != null) ExpandedChronicle("SESSION", session.id, session.description)
             else Text(stringResource(R.string.horizon_flow_removed), style = MaterialTheme.typography.bodySmall)
             IconButton(onClick = { deleting = true }, modifier = Modifier.align(Alignment.End)) {
-                Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.flow_card_delete_flow))
+                Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.horizon_remove_memory))
             }
         }
     }
     if (deleting) AlertDialog(onDismissRequest = { deleting = false },
-        title = { Text(stringResource(R.string.flow_card_delete_dialog_title)) },
-        text = { Text(stringResource(R.string.horizon_delete_memory_body)) },
-        confirmButton = { TextButton(onClick = { deleting = false; onDelete() }) { Text(stringResource(R.string.common_delete)) } },
+        title = { Text(stringResource(R.string.horizon_remove_memory_title)) },
+        text = { Text(stringResource(R.string.horizon_remove_memory_body)) },
+        confirmButton = { TextButton(onClick = { deleting = false; onDelete() }) { Text(stringResource(R.string.horizon_remove_memory)) } },
         dismissButton = { TextButton(onClick = { deleting = false }) { Text(stringResource(R.string.common_cancel)) } })
 }
 

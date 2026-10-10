@@ -79,10 +79,11 @@ class StoryChronicleEditingTest {
     @Test fun completedEntryEditorSavesMetadataAndNewChronicleText() {
         var saved: List<String>? = null
         var closed = false
+        lateinit var editor: ChronicleStateHolder
         compose.setContent {
             SkillzTheme(darkTheme = false, dynamicColor = false) {
                 StoryEntryEditSheet("SESSION", 303, "Old title", "Old journey",
-                    createEditor = { type, key -> ChronicleStateHolder(type, key, repository, scope) },
+                    createEditor = { type, key -> ChronicleStateHolder(type, key, repository, scope).also { editor = it } },
                     onSave = { _, _, title, tag -> saved = listOf(title, tag) }, onClose = { closed = true })
             }
         }
@@ -92,7 +93,15 @@ class StoryChronicleEditingTest {
         compose.onAllNodes(hasSetTextAction()).onFirst().performTextInput("Added after the flow ended")
         compose.onNodeWithText("Add", useUnmergedTree = true).performScrollTo().performClick()
         compose.waitUntil(5000) { runBlocking { db.chronicleDao().find("SESSION", "303")?.let { db.chronicleDao().moments(it.id).size == 1 } == true } }
-        compose.onNodeWithText("Save", useUnmergedTree = true).performClick()
+        // Room can expose the new moment before the editor has finished clearing its draft.
+        // Saving that intermediate state correctly opens the unfinished-draft warning.
+        compose.waitUntil(5000) {
+            editor.state.value.draft.isBlank() && !editor.state.value.isCommitting
+        }
+        // The soft keyboard animates the sheet bounds; activate the accessible
+        // enabled Save action without a stale tap coordinate.
+        compose.onNodeWithText("Save").assertIsDisplayed().assertIsEnabled()
+            .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { it() }
         compose.waitUntil(5000) { closed }
         assertEquals(listOf("Evening walk", "Outdoors"), saved)
         assertEquals("Added after the flow ended", runBlocking {

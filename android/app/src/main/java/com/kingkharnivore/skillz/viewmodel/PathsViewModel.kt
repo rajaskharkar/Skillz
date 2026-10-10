@@ -102,7 +102,9 @@ class PathsViewModel @Inject constructor(
         check(aliveFlowRepository.getOngoingSession().first()?.originPlanId != id) { "Finish or leave the current Flow before deleting this activity." }
         flowPlanRepository.deleteFlowPlanById(id)
     }
-    fun deleteMemory(flow: MemoryFlowUi) = mutate { flowRepository.deleteMemory(flow.receipt.flowInstanceId) }
+    fun removeMemory(flow: MemoryFlowUi) = mutate {
+        flowRepository.removeMemoryFromActivity(flow.receipt.flowInstanceId, flow.receipt.sourcePlanId)
+    }
     fun launched(id: Long) = mutate { flowPlanRepository.markLaunched(id) }
     fun planAgain(memory: MemoryGroupUi, onSaved: () -> Unit) {
         if (saving.value) return

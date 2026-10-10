@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="growth_hello">A Little Progress</string>
+    <string name="growth_companion">Growing Together</string>
+    <string name="growth_stride">Finding a Rhythm</string>
+    <string name="growth_bond">A Lasting Bond</string>
+    <string name="growth_flourishing">Coming Into Your Own</string>
+    <string name="growth_horizon">A Wider Horizon</string>
+    <string name="growth_trio">A Little Community</string>
+    <string name="growth_mosaic">Living Mosaic</string>
+    <string name="growth_ensemble">Thriving Ensemble</string>
+    <string name="growth_pair">Side by Side</string>
+    <string name="growth_neighbours">Good Neighbours</string>
+    <string name="growth_atlas">A Living Atlas</string>
+    <string name="growth_small_world">A Small World</string>
+    <string name="growth_established_world">A World Taking Shape</string>
+    <string name="growth_theme_beginning">First Chapter</string>
+    <string name="growth_theme_developing">The Story Grows</string>
+    <string name="growth_forms">A Study in Shapes</string>
+    <string name="growth_small_ritual">A Small Ritual</string>
+    <string name="growth_steady_care">Steady Care</string>
+    <string name="growth_scope_sea">The Blue · Sea</string>
+    <string name="growth_scope_land">The Blue · Land</string>
+    <string name="growth_scope_red">The Red</string>
+    <string name="growth_book_green_early">Green Beginnings</string>
+    <string name="growth_book_green_mid">A Garden Taking Shape</string>
+    <string name="growth_book_sea_early">First Ripples</string>
+    <string name="growth_book_sea_mid">A Sea of Companions</string>
+    <string name="growth_book_land_early">Little Footprints</string>
+    <string name="growth_book_land_mid">A Landscape of Friends</string>
+    <string name="growth_book_red_early">Dawn Companions</string>
+    <string name="growth_book_red_mid">An Era Taking Shape</string>
+    <string name="growth_green_single_goal">Grow %1$s to Level %2$d.</string>
+    <plurals name="growth_green_subset_goal">
+        <item quantity="one">Grow %1$d species from this set to Level %2$d.\n%3$s</item>
+        <item quantity="other">Grow %1$d different species from this set to Level %2$d.\n%3$s</item>
+    </plurals>
+    <string name="growth_green_one_plant">Grow one plant to Level %1$d.</string>
+    <plurals name="growth_green_forms_goal">
+        <item quantity="one">Grow %1$d botanical form to Level %2$d.</item>
+        <item quantity="other">Grow %1$d different botanical forms to Level %2$d.</item>
+    </plurals>
+    <string name="growth_one_goal">Raise one creature to Level %1$d.</string>
+    <plurals name="growth_species_goal">
+        <item quantity="one">Raise %1$d species to Level %2$d.</item>
+        <item quantity="other">Raise %1$d different species to Level %2$d.</item>
+    </plurals>
+    <plurals name="growth_pair_goal">
+        <item quantity="one">Raise %1$d creature of one species to Level %2$d.</item>
+        <item quantity="other">Raise %1$d separate creatures of one species to Level %2$d.</item>
+    </plurals>
+    <plurals name="growth_habitats_goal">
+        <item quantity="one">Raise at least one species to Level %2$d in %1$d habitat or era.</item>
+        <item quantity="other">Raise at least one species to Level %2$d in each of %1$d different habitats or eras.</item>
+    </plurals>
+    <string name="growth_scoped_goal">%1$s: %2$s</string>
+</resources>

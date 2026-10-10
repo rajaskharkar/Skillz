@@ -914,8 +914,7 @@
     <string name="shell_room_heart_description">A glowing chamber where Scyra rests inside The Shell.</string>
     <string name="shell_room_focus_title">Focus Room</string>
     <string name="shell_room_focus_description">A calm study where regular Flows become displayed creatures.</string>
-    <string name="shell_room_stillwater_title">Stillwater Room</string>
-    <string name="shell_room_stillwater_description">A quiet room where Soft Flows gather as calm water.</string>
+
     <string name="shell_room_voyage_title">Voyage Hall</string>
     <string name="shell_room_voyage_description">Quiet routes waiting for future Arcs.</string>
     <string name="shell_room_the_blue_title">The Blue</string>
@@ -1015,7 +1014,7 @@ Piedritas — 60 Pearls</string>
     <string name="shell_no_more_forms">Esta recompensa descansa en su forma actual.</string>
     <string name="shell_return_to_chest">Volver a The Chest</string>
     <string name="shell_chest_title">The Chest</string>
-    <string name="shell_chest_body">Tus criaturas del mar, la tierra y The Red.</string>
+    <string name="shell_chest_body">Tus criaturas y plantas, reunidas en un solo lugar.</string>
     <string name="shell_filter_all">Todo</string>
     <string name="shell_filter_animals">Animales</string>
     <string name="shell_filter_creatures">Criaturas</string>
@@ -1185,14 +1184,14 @@ Piedritas — 60 Pearls</string>
     <string name="reward_card_badge_reason_120">Se obtiene cada vez que un Flow regular dura 2 horas o más.</string>
     <string name="reward_card_badge_reason_discovery">Registros actualizados desde este Flow.</string>
     <string name="reward_card_the_blue_hint">Ver más tarde en The Blue.</string>
-    <string name="reward_card_stillwater_hint">Ver en Stillwater Room.</string>
+
     <string name="reward_card_shell_hint">Ver dentro de The Shell.</string>
     <string name="reward_card_pearl_basin_hint">Da forma a The Shell con Pearls.</string>
     <string name="reward_card_shell_chest_hint">Descansando en The Chest.</string>
     <string name="reward_card_badges_hint">Registrado en Badges.</string>
     <string name="reward_card_shell_recorded_title">Recompensa de Shell registrada</string>
     <string name="reward_card_shell_recorded_body">Registrada dentro de The Shell.</string>
-    <string name="reward_card_stillwater_added_title">Stillwater añadido</string>
+
     <string name="reward_card_arc_complete_title">Arc completo</string>
     <string name="reward_card_arc_flows">%1$d Flows</string>
     <string name="reward_card_arc_total_duration">%1$s en total</string>
@@ -1320,8 +1319,7 @@ Piedritas — 60 Pearls</string>
     <string name="session_reward_enter_shell">Entrar en The Shell</string>
     <string name="session_reward_shell_pearls">Pearls</string>
     <string name="session_reward_shell_pearls_value">+%1$d Pearls</string>
-    <string name="session_reward_shell_stillwater">Stillwater</string>
-    <string name="session_reward_shell_stillwater_units">%1$d unidades de Stillwater</string>
+
     <string name="session_reward_shell_find">Shell reward</string>
     <string name="session_reward_shell_badges">Badges updated</string>
     <string name="session_reward_shell_badges_value">%1$d badge updates</string>
@@ -1820,11 +1818,11 @@ Puedes volver a activar Health más tarde.</string>
         <item quantity="one">%1$d Movement Point</item>
         <item quantity="other">%1$d Movement Points</item>
     </plurals>
-    <string name="flow_complete_soft_added_to_stillwater">Añadido a Stillwater.</string>
+
     <string name="flow_complete_soft_drops_gained">+%1$d Drops</string>
-    <string name="flow_complete_soft_explainer">Usa Drops en Stillwater para extraer criaturas exclusivas de vasijas tranquilas.</string>
+
     <string name="flow_complete_soft_title">Soft Flow completado</string>
-    <string name="reward_card_stillwater_quiet_minutes">%1$d minutos tranquilos llevados a Stillwater.</string>
+
     <string name="shell_chest_count_badge">x%1$d</string>
     <string name="shell_chest_detail_level">Nivel %1$d</string>
     <string name="shell_chest_detail_owned">En propiedad: %1$d</string>
@@ -1833,46 +1831,12 @@ Puedes volver a activar Health más tarde.</string>
     <string name="shell_chest_empty_title">The Chest está vacío.</string>
     <string name="shell_chest_inventory_stats">%1$d criaturas en propiedad · %2$d grupos</string>
     <string name="shell_chest_stack_a11y">%1$s. Level %2$d. En propiedad: %3$d.</string>
-    <string name="shell_find_stillwater_creature_description">Criatura exclusiva de Stillwater.</string>
+
     <string name="shell_notifications_inlay_empty_body">Ya estás al día.</string>
     <string name="shell_notifications_inlay_empty_title">No hay notificaciones nuevas</string>
     <string name="shell_notifications_mark_notification_viewed_a11y">Marcar notificación como vista</string>
     <string name="shell_notifications_mark_viewed">Visto</string>
-    <string name="shell_stillwater_added_to_chest">Añadido a The Chest.</string>
-    <string name="shell_stillwater_aquarium_category">Level 2 · Stillwater tipo arrecife</string>
-    <string name="shell_stillwater_aquarium_reward">Criatura colorida tipo arrecife</string>
-    <string name="shell_stillwater_aquarium_title">Acuario</string>
-    <string name="shell_stillwater_body">Los Soft Flow reúnen Drops. Úsalos en vasijas tranquilas para extraer criaturas exclusivas de Stillwater.</string>
-    <string name="shell_stillwater_confirm_draw_body">Usa %1$d Drops para extraer una criatura de esta vasija.</string>
-    <string name="shell_stillwater_confirm_draw_title">¿Extraer de %1$s?</string>
-    <string name="shell_stillwater_creature_found">Algo salió a la superficie.</string>
-    <string name="shell_stillwater_done">Listo</string>
-    <string name="shell_stillwater_draw">Extraer</string>
-    <string name="shell_stillwater_draw_from">Extraer de %1$s</string>
-    <string name="shell_stillwater_draw_prompt">Elige una vasija. Algo tranquilo puede salir a la superficie.</string>
-    <string name="shell_stillwater_drops_available">%1$d Drops disponibles</string>
-    <string name="shell_stillwater_exclusive">Exclusivo de Stillwater</string>
-    <string name="shell_stillwater_explainer">Cada vasija contiene sus propias criaturas de Stillwater. Las vasijas grandes requieren más Drops y revelan vida más rara.</string>
-    <string name="shell_stillwater_filling">Llenando</string>
-    <string name="shell_stillwater_fishbowl_category">Level 1 · Stillwater poco profundo</string>
-    <string name="shell_stillwater_fishbowl_reward">Criatura pequeña de aguas poco profundas</string>
-    <string name="shell_stillwater_fishbowl_title">Pecera</string>
-    <string name="shell_stillwater_keep_filling">Seguir llenando</string>
-    <string name="shell_stillwater_lake_category">Level 4 · Stillwater oscuro</string>
-    <string name="shell_stillwater_lake_reward">Criatura rara de aguas oscuras</string>
-    <string name="shell_stillwater_lake_title">Lago</string>
-    <string name="shell_stillwater_lifetime_drops">%1$d Drops reunidos en total</string>
-    <string name="shell_stillwater_locked">Bloqueado</string>
-    <string name="shell_stillwater_more_needed">Faltan %1$d Drops</string>
-    <string name="shell_stillwater_pond_category">Level 3 · Stillwater amplio</string>
-    <string name="shell_stillwater_pond_reward">Criatura grande de aguas abiertas</string>
-    <string name="shell_stillwater_pond_title">Estanque</string>
-    <string name="shell_stillwater_progress">%1$d / %2$d Drops</string>
-    <string name="shell_stillwater_reach_depth_first">Avanza más en Mar para desbloquear este recipiente.</string>
-    <string name="shell_stillwater_ready">Listo</string>
-    <string name="shell_stillwater_ready_to_draw">Listo para extraer</string>
-    <string name="shell_stillwater_soft_flows_gather_drops">Los Soft Flow reúnen Drops.</string>
-    <string name="shell_stillwater_vessel_cost">%1$d Drops</string>
+
     <string name="shell_find_stillwater_amberjack_title">Amberjack</string>
     <string name="shell_find_stillwater_anemone_title">Anemone</string>
     <string name="shell_find_stillwater_barnacle_title">Barnacle</string>
@@ -1920,9 +1884,9 @@ Puedes volver a activar Health más tarde.</string>
     <string name="badges_within_reach_title">Al alcance</string>
     <string name="badges_within_reach_body">Hasta tres objetivos no seguidos que Scyra recomienda como próximos pasos útiles.</string>
     <string name="badge_across_depths">Por las profundidades</string>
-    <string name="badge_across_depths_description">Descubre una especie principal de Mar en cada una de sus cuatro regiones.</string>
+    <string name="badge_across_depths_description">Descubre una especie en cada una de las cuatro regiones del Mar.</string>
     <string name="badge_action_open_blue">Abrir zona</string>
-    <string name="badge_action_open_stillwater">Visitar recipiente de Stillwater</string>
+
     <string name="badge_action_view_chest">Ver en The Chest</string>
     <string name="badge_category_all">Todas</string>
     <string name="badge_category_arc">Arc</string>
@@ -1932,7 +1896,7 @@ Puedes volver a activar Health más tarde.</string>
     <string name="badge_category_mastery">Dominio</string>
     <string name="badge_category_movement">Movimiento</string>
     <string name="badge_category_special">Especiales</string>
-    <string name="badge_category_stillwater">Stillwater</string>
+
     <string name="badge_category_surge">Surge</string>
     <string name="badge_collector_description">Descubre todas las especies participantes de %1$s.</string>
     <string name="badge_collector_title">Coleccionista: %1$s</string>
@@ -1950,10 +1914,10 @@ Puedes volver a activar Health más tarde.</string>
     <string name="badge_disabled_no_next">Has completado todos los hitos disponibles.</string>
     <string name="badge_disabled_not_owned">Obtén esta criatura para iniciar su objetivo de dominio.</string>
     <string name="badge_disabled_region_locked">Esta zona aún no se ha desbloqueado.</string>
-    <string name="badge_disabled_vessel_locked">Este recipiente de Stillwater aún no se ha desbloqueado.</string>
+
     <string name="badge_earned">Obtenida</string>
     <string name="badge_every_water">Una de cada agua</string>
-    <string name="badge_every_water_description">Domina al menos una criatura participante de cada región de Mar y de cada recipiente de Stillwater de Mar.</string>
+
     <string name="badge_exact_count">Recuento exacto: %1$s</string>
     <string name="badge_first_earned">Primera obtención: %1$s</string>
     <string name="badge_earned_date_estimated">Fecha estimada de obtención: %1$s</string>
@@ -1995,15 +1959,12 @@ Puedes volver a activar Health más tarde.</string>
     <string name="badge_state_collector">Coleccionista conseguido</string>
     <string name="badge_state_completionist">Completista conseguido</string>
     <string name="badge_state_curator">Curador conseguido</string>
-    <string name="badge_stillwater_first_catch">Primera criatura de Stillwater</string>
-    <string name="badge_stillwater_mastery">Dominio de Stillwater</string>
-    <string name="badge_stillwater_progress_description">Registra el progreso fiable de descubrimiento y dominio en Stillwater.</string>
-    <string name="badge_stillwater_variety">Variedad de Stillwater</string>
+
     <string name="badge_tracked_a11y">En seguimiento.</string>
     <string name="badge_unpin">Desfijar</string>
     <string name="badge_updated">Actualizada</string>
     <string name="badge_variety_collector">Coleccionista de variedad</string>
-    <string name="badge_variety_collector_description">Especies distintas descubiertas en Mar, Tierra y Stillwater.</string>
+
     <string name="badges_backfill_body">Reconocimos %1$d descubrimientos de criaturas, %2$d dominios y %3$d colecciones completadas a partir de tu progreso existente.</string>
     <string name="badges_backfill_title">Tu colección de insignias ha crecido</string>
     <string name="badges_book_body">Objetivos de progreso obtenidos y bloqueados.</string>
@@ -2039,17 +2000,17 @@ Puedes volver a activar Health más tarde.</string>
     <string name="chest_filter_mastered">Dominadas</string>
     <string name="chest_filter_not_mastered">Sin dominar</string>
     <string name="collection_all_waters">Mar y sus aguas</string>
-    <string name="collection_aquarium">Stillwater · Acuario</string>
+
     <string name="collection_deeper_reef">Arrecife Profundo</string>
     <string name="collection_detail_summary">Descubiertas: %1$d · En posesión: %2$d · Dominadas: %3$d de %4$d</string>
     <string name="collection_discovered_progress">Descubiertas: %1$d de %2$d</string>
-    <string name="collection_fishbowl">Stillwater · Pecera</string>
+
     <string name="collection_great_blue">Great Blue</string>
-    <string name="collection_lake">Stillwater · Lago</string>
+
     <string name="collection_mastered_progress">Dominadas: %1$d de %2$d</string>
     <string name="collection_open_blue">Open Blue</string>
     <string name="collection_owned_progress">En posesión: %1$d de %2$d</string>
-    <string name="collection_pond">Stillwater · Estanque</string>
+
     <string name="collection_secret_species">Especie secreta</string>
     <string name="collection_species_discovered_not_owned">Descubierta anteriormente · En posesión: 0</string>
     <string name="collection_species_mastered">Dominada · En posesión: %1$d</string>
@@ -2057,7 +2018,7 @@ Puedes volver a activar Health más tarde.</string>
     <string name="collection_species_open_action">Abrir acción de progreso</string>
     <string name="collection_species_owned">En posesión: %1$d · Nivel máximo: %2$d · Niveles restantes: %3$d</string>
     <string name="collection_species_undiscovered">Sin descubrir</string>
-    <string name="collection_stillwater">Stillwater</string>
+
     <string name="collection_sunlit_reef">Arrecife Iluminado</string>
     <string name="collection_the_blue">Mar</string>
     <string name="collection_unknown">Colección</string>
@@ -2065,18 +2026,18 @@ Puedes volver a activar Health más tarde.</string>
     <string name="level99_preview_completes_all">Esto completará Mar y sus aguas.</string>
     <string name="level99_preview_completes_blue">Esto completará Mar.</string>
     <string name="level99_preview_completes_region">Esto completará el objetivo regional de Completista.</string>
-    <string name="level99_preview_completes_stillwater">Esto completa el dominio de todo Stillwater.</string>
+
     <string name="level99_preview_first_species">Será el primer dominio de esta especie.</string>
     <string name="level99_preview_milestone">Se alcanzará el hito de dominio de especie ×%1$d.</string>
     <string name="level99_preview_region">Dominio regional tras la mejora: %1$d de %2$d</string>
     <string name="level99_preview_restores_roster">Esto restablece la finalización de la lista actual de la colección.</string>
-    <string name="level99_preview_restores_stillwater">Esto restablece la finalización de todo Stillwater para la lista actual.</string>
+
     <string name="level99_preview_species_count">Recuento de dominio de especie resultante: %1$d</string>
-    <string name="level99_preview_stillwater">Stillwater completo: %1$d de %2$d especies dominadas</string>
+
     <string name="mastery_achieved">Dominio alcanzado</string>
     <string name="mastery_additional">Hazañas adicionales</string>
     <string name="mastery_all_progress">All Waters: %1$d of %2$d mastered</string>
-    <string name="mastery_all_waters_complete">Every creature across The Blue and Stillwater has reached Mastery.</string>
+
     <string name="mastery_blue_complete">Every creature in The Blue has reached Level 99.</string>
     <string name="mastery_blue_progress">The Blue: %1$d of %2$d mastered</string>
     <string name="mastery_calm_mode">Modo tranquilo: presentación suave</string>
@@ -2104,7 +2065,7 @@ Puedes volver a activar Health más tarde.</string>
     <string name="mastery_replace_pin_title">¿Reemplazar una insignia de la vitrina?</string>
     <string name="mastery_return_blue">Volver a The Blue</string>
     <string name="mastery_return_chest">Volver a The Chest</string>
-    <string name="mastery_return_stillwater">Volver a Stillwater</string>
+
     <plurals name="mastery_species_remaining">
         <item quantity="one">Queda %1$d especie.</item>
         <item quantity="other">Quedan %1$d especies.</item>
@@ -2114,7 +2075,7 @@ Puedes volver a activar Health más tarde.</string>
         <item quantity="other">Criaturas de la especie %2$s que completaron su viaje: %1$d.</item>
     </plurals>
     <string name="mastery_species_title">Dominio: %1$s</string>
-    <string name="mastery_stillwater_progress">Stillwater: %1$d de %2$d especies dominadas</string>
+
     <string name="mastery_summary_species">Recuento de dominio de especie: %1$d</string>
     <string name="mastery_summary_total">Total de dominios: %1$d · Especies distintas: %2$d</string>
     <string name="mastery_unknown_creature">Criatura</string>
@@ -2128,8 +2089,7 @@ Puedes volver a activar Health más tarde.</string>
     <string name="shell_message_track_failed">No se pudo iniciar el seguimiento de esta insignia.</string>
     <string name="shell_notification_fallback_body">Te espera una nueva recompensa en The Shell.</string>
     <string name="shell_notification_fallback_title">Nueva recompensa de The Shell</string>
-    <string name="stillwater_collection_progress_title">Progreso de la colección</string>
-    <string name="stillwater_named_collection_progress">Progreso de %1$s</string>
+
     <string name="the_blue_collection_progress">Descubiertas: %1$d de %2$d · Dominadas: %3$d</string>
     <string name="shell_message_placed">Colocado en la Sala de concentración.</string>
     <string name="shell_message_display_failed">No se pudo mostrar esa recompensa.</string>
@@ -2150,9 +2110,9 @@ Puedes volver a activar Health más tarde.</string>
     <string name="shell_message_encountered">%1$s entró en %2$s.</string>
     <string name="shell_message_encounter_succeeded">Tu encuentro de Beyond the Blue se completó correctamente.</string>
     <string name="shell_message_encounter_failed">No se pudo encontrar esa criatura.</string>
-    <string name="shell_message_vessel_locked">Avanza más en Mar para desbloquear este recipiente.</string>
+
     <string name="shell_message_drops_insufficient">Aún no hay suficientes Drops.</string>
-    <string name="shell_message_stillwater_failed">No se pudo extraer de Stillwater.</string>
+
     <string name="badges_tab_showcase">Expositor</string>
     <string name="badges_tab_book">Libro de insignias</string>
     <string name="badges_tab_reach">Al alcance</string>
@@ -2414,5 +2374,7 @@ Puedes volver a activar Health más tarde.</string>
     <plurals name="horizon_completion_count"><item quantity="one">%1$d vez completado</item><item quantity="other">%1$d veces completado</item></plurals>
     <string name="horizon_planned_arcs">Arcs planificados</string>
     <string name="horizon_power_flow">Flow de potencia</string>
-    <string name="horizon_delete_memory_body">Esto eliminará permanentemente este Flow y sus crónicas de Historia y Recuerdos. Se conservará tu hábito o plan.</string>
+    <string name="horizon_remove_memory">Quitar de Recuerdos</string>
+    <string name="horizon_remove_memory_title">¿Quitar este recuerdo?</string>
+    <string name="horizon_remove_memory_body">Esto quita el Flow solo de los Recuerdos de esta actividad. Se conservarán su entrada en Historia, sus crónicas, la actividad registrada y las recompensas.</string>
 </resources>
