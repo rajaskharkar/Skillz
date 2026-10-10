@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 
 object ShellRewardEventTypes {
     const val PEARLS_CARRIED = "PEARLS_CARRIED"
+    const val PEBBLES_CARRIED = "PEBBLES_CARRIED"
     const val STILLWATER_ADDED = "STILLWATER_ADDED"
     const val ANIMAL_GRANTED = "ANIMAL_GRANTED"
     const val OBJECT_GRANTED = "OBJECT_GRANTED"

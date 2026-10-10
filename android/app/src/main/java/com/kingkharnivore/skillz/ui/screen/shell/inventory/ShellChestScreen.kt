@@ -1,5 +1,14 @@
 package com.kingkharnivore.skillz.ui.screen.shell.inventory
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.platform.testTag
+import com.kingkharnivore.skillz.utils.shell.ChestFilters
+import com.kingkharnivore.skillz.utils.shell.environmentOf
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,9 +69,6 @@ import com.kingkharnivore.skillz.utils.shell.CreatureMasteryTier
 import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
 import com.kingkharnivore.skillz.utils.shell.ChestSortOption
 import com.kingkharnivore.skillz.utils.shell.ChestFilterOption
-import com.kingkharnivore.skillz.utils.shell.StillwaterCatalog
-import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
-import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 import com.kingkharnivore.skillz.ui.screen.shell.ux.RoomHeader
 import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraParchmentSheet
@@ -90,6 +96,7 @@ internal data class ChestInventoryStackUiModel(
     val speciesMasteryCount: Int = 0
 )
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ShellChestScreen(
     uiState: ShellUiState,
@@ -100,14 +107,23 @@ fun ShellChestScreen(
     onFilterSelected: (ChestFilterOption) -> Unit,
     focusSpeciesId: String? = null,
     focusRequestId: String? = null,
-    onFocusResult: (String, NavigationConsumptionResult) -> Unit = { _, _ -> }
+    onFocusResult: (String, NavigationConsumptionResult) -> Unit = { _, _ -> },
+    onEnvironmentSelected: (ChestFilterOption) -> Unit = onFilterSelected,
+    onClearFilters: () -> Unit = { onEnvironmentSelected(ChestFilterOption.All); onFilterSelected(ChestFilterOption.All) },
+    onOpenRed: () -> Unit = {},
+    greenState: com.kingkharnivore.skillz.viewmodel.green.GreenUiState = com.kingkharnivore.skillz.viewmodel.green.GreenUiState(),
+    onWaterPlant: (String, Int, String) -> Unit = { _, _, _ -> },
+    onDismissGreenFeedback: () -> Unit = {}, onOpenGreen: () -> Unit = {},
+    showPlantsInitially: Boolean = false, focusPlantSpeciesId: String? = null, focusPlantSpecimenId: String? = null
+
 ) {
+    var showPlants by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(showPlantsInitially) }
     var selectedStack by remember { mutableStateOf<ChestInventoryStackUiModel?>(null) }
     val masteryCounts = uiState.badgeDashboard?.badges?.mapNotNull { badge ->
         BadgeDefinitionResolver.resolve(badge.badgeId).speciesId?.let { it to badge.count }
     }?.toMap().orEmpty()
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val resources = androidx.compose.ui.platform.LocalContext.current.resources
+    val resources = androidx.compose.ui.platform.LocalResources.current
     val locale = configuration.locales[0]
     val creatureNames = remember(configuration) {
         CreatureCatalog.all.associate { it.creatureId to resources.getString(it.titleRes) }
@@ -115,33 +131,12 @@ fun ShellChestScreen(
     val allStacks = remember(uiState.finds, uiState.chestSortOption, masteryCounts, creatureNames, locale) {
         buildChestInventoryStacks(uiState.finds, uiState.chestSortOption, masteryCounts, creatureNames, locale)
     }
-    val neededForTrackedBadges = uiState.badgeDashboard?.badges?.filter { it.tracked }
-        ?.flatMap { badge ->
-            val definition = BadgeDefinitionResolver.resolve(badge.badgeId)
-            definition.speciesId?.let { listOf(it) } ?: when (definition.requirement) {
-                BadgeRequirement.COMPLETIONIST -> badge.collectionProgress?.missingMasteredSpeciesIds.orEmpty().toList()
-                BadgeRequirement.CURATOR -> badge.collectionProgress?.speciesStates.orEmpty().filter { it.ownedCount == 0 }.map { it.speciesId }
-                BadgeRequirement.COLLECTOR, BadgeRequirement.EXACT_COUNT -> emptyList()
-            }
-        }?.toSet().orEmpty()
-    val stacks = remember(allStacks, uiState.chestFilter, neededForTrackedBadges) {
-        allStacks.filter { stack -> when (uiState.chestFilter) {
-            ChestFilterOption.All -> true
-            ChestFilterOption.Sea -> CreatureCatalog.get(stack.creatureId)?.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA
-            ChestFilterOption.Land -> CreatureCatalog.get(stack.creatureId)?.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND
-            ChestFilterOption.ClosestToMastery -> stack.level >= 90
-            ChestFilterOption.Mastered -> stack.level >= 99
-            ChestFilterOption.NotMastered -> stack.level < 99
-            ChestFilterOption.NeededForTrackedBadges -> stack.creatureId in neededForTrackedBadges
-            ChestFilterOption.SunlitReef -> CreatureCatalog.get(stack.creatureId)?.zone == CreatureZone.SUNLIT_REEF
-            ChestFilterOption.DeeperReef -> CreatureCatalog.get(stack.creatureId)?.zone == CreatureZone.DEEPER_REEF
-            ChestFilterOption.OpenBlue -> CreatureCatalog.get(stack.creatureId)?.zone == CreatureZone.OPEN_BLUE
-            ChestFilterOption.GreatBlue -> CreatureCatalog.get(stack.creatureId)?.zone == CreatureZone.GREAT_BLUE
-            ChestFilterOption.Fishbowl -> StillwaterCatalog.byId[stack.creatureId]?.vessel == StillwaterVessel.FISHBOWL
-            ChestFilterOption.Aquarium -> StillwaterCatalog.byId[stack.creatureId]?.vessel == StillwaterVessel.AQUARIUM
-            ChestFilterOption.Pond -> StillwaterCatalog.byId[stack.creatureId]?.vessel == StillwaterVessel.POND
-            ChestFilterOption.Lake -> StillwaterCatalog.byId[stack.creatureId]?.vessel == StillwaterVessel.LAKE
-        } }
+    val neededForTrackedBadges = speciesNeededForTrackedBadges(uiState.badgeDashboard?.badges.orEmpty())
+    val filters = ChestFilters.fromKeys(
+        uiState.chestEnvironment.takeUnless { it == ChestFilterOption.All }?.key, uiState.chestFilter.key
+    )
+    val stacks = remember(allStacks, filters, neededForTrackedBadges) {
+        filterChestInventoryStacks(allStacks, filters, neededForTrackedBadges)
     }
     val totalCreatureCount = stacks.sumOf { it.count }
     LaunchedEffect(focusSpeciesId, allStacks) {
@@ -158,6 +153,19 @@ fun ShellChestScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         RoomHeader(title = R.string.shell_chest_title, body = R.string.shell_chest_body)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(!showPlants, { showPlants = false }, { Text(stringResource(R.string.green_chest_creatures)) },
+                colors = com.kingkharnivore.skillz.ui.screen.shell.rooms.green.greenPrimarySelectionColors())
+            FilterChip(showPlants, { showPlants = true }, { Text(stringResource(R.string.green_chest_plants)) },
+                colors = com.kingkharnivore.skillz.ui.screen.shell.rooms.green.greenPrimarySelectionColors())
+        }
+        if (showPlants) {
+            androidx.compose.runtime.CompositionLocalProvider(com.kingkharnivore.skillz.ui.screen.shell.rooms.green.LocalGreenCalmMode provides uiState.calmMode) {
+                com.kingkharnivore.skillz.ui.screen.shell.rooms.green.GreenCollectionScreen(greenState, onWaterPlant,
+                    onDismissGreenFeedback, onOpenGreen, focusPlantSpeciesId, focusPlantSpecimenId)
+            }
+            return@Column
+        }
         if (allStacks.isNotEmpty()) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -167,25 +175,24 @@ fun ShellChestScreen(
                     text = stringResource(R.string.shell_chest_inventory_stats, totalCreatureCount, stacks.size),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth()
+                                        modifier = Modifier.fillMaxWidth()
                 )
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ChestEnvironmentControl(filters.environment, onEnvironmentSelected)
+                    ChestFilterControl(filters.progress, onFilterSelected)
                     ChestSortControl(selected = uiState.chestSortOption, onSelected = onSortOptionSelected)
-                    ChestFilterControl(uiState.chestFilter, onFilterSelected)
                 }
             }
         }
 
         if (stacks.isEmpty()) {
-            if (allStacks.isEmpty()) EmptyChestState(onOpenBlue = onOpenBlue, modifier = Modifier.weight(1f))
-            else FilteredChestEmptyState({ onFilterSelected(ChestFilterOption.All) }, Modifier.weight(1f),
-                uiState.chestFilter == ChestFilterOption.NeededForTrackedBadges)
+            if (allStacks.isEmpty()) EmptyChestState(onOpenBlue = onOpenBlue, onOpenRed = onOpenRed, modifier = Modifier.weight(1f))
+            else FilteredChestEmptyState(onClearFilters, Modifier.weight(1f),
+                filters.progress == ChestFilterOption.NeededForTrackedBadges)
         } else {
             LazyVerticalGrid(
                 modifier = Modifier.weight(1f),
-                columns = GridCells.Adaptive(104.dp),
+                columns = GridCells.Adaptive(112.dp * androidx.compose.ui.platform.LocalDensity.current.fontScale),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -203,7 +210,11 @@ fun ShellChestScreen(
     }
 
     selectedStack?.let { selected ->
-        val stack = stacks.firstOrNull { it.creatureId == selected.creatureId && it.level == selected.level } ?: selected
+        val stack = allStacks.firstOrNull { it.creatureId == selected.creatureId && it.level == selected.level }
+        if (stack == null) {
+            LaunchedEffect(selected) { selectedStack = null }
+            return@let
+        }
         ChestStackDetailSheet(
             stack = stack,
             onDismiss = { selectedStack = null },
@@ -222,9 +233,64 @@ fun ShellChestScreen(
     }
 }
 
+internal fun filterChestInventoryStacks(
+    stacks: List<ChestInventoryStackUiModel>, filters: ChestFilters, neededSpecies: Set<String> = emptySet()
+): List<ChestInventoryStackUiModel> = stacks.filter { stack ->
+    val creature = CreatureCatalog.get(stack.creatureId) ?: return@filter false
+    filters.environment.matchesEnvironment(creature) && when (filters.progress) {
+        ChestFilterOption.ClosestToMastery -> stack.level in 90..98
+        ChestFilterOption.Mastered -> stack.level >= CreatureEconomy.MAX_CREATURE_LEVEL
+        ChestFilterOption.NotMastered -> stack.level < CreatureEconomy.MAX_CREATURE_LEVEL
+        ChestFilterOption.NeededForTrackedBadges -> stack.level < CreatureEconomy.MAX_CREATURE_LEVEL && stack.creatureId in neededSpecies
+        else -> true
+    }
+}
+
 @Composable private fun ChestFilterControl(selected: ChestFilterOption, onSelected: (ChestFilterOption) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    Box { FilterChip(selected = selected != ChestFilterOption.All, onClick = { expanded = true }, label = { Text(stringResource(selected.labelRes)) }); DropdownMenu(expanded, { expanded = false }) { ChestFilterOption.entries.forEach { option -> DropdownMenuItem(text = { Text(stringResource(option.labelRes)) }, onClick = { expanded = false; onSelected(option) }) } } }
+    Box {
+        FilterChip(selected = selected != ChestFilterOption.All, onClick = { expanded = true },
+            modifier = Modifier.testTag("chest-progress"),
+            label = { Text(stringResource(R.string.chest_progress_selected, stringResource(if (selected == ChestFilterOption.All) R.string.chest_progress_any else selected.labelRes))) })
+        DropdownMenu(expanded, { expanded = false }) {
+            ChestFilterOption.entries.filter { it == ChestFilterOption.All || it.isProgress }.forEach { option ->
+                DropdownMenuItem(text = { Text(stringResource(if (option == ChestFilterOption.All) R.string.chest_progress_any else option.labelRes)) },
+                    leadingIcon = { if (option == selected) Icon(Icons.Default.Check, null) },
+                    onClick = { expanded = false; onSelected(option) })
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable private fun ChestEnvironmentControl(selected: ChestFilterOption, onSelected: (ChestFilterOption) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    FilterChip(selected = selected != ChestFilterOption.All, onClick = { expanded = true },
+        modifier = Modifier.testTag("chest-environment"),
+        label = { Text(stringResource(R.string.chest_environment_selected, stringResource(if (selected == ChestFilterOption.All) R.string.chest_environment_all else selected.labelRes))) })
+    if (expanded) ScyraParchmentSheet(onDismissRequest = { expanded = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.chest_environment_title), style = MaterialTheme.typography.titleLarge)
+            EnvironmentOption(ChestFilterOption.All, selected) { expanded = false; onSelected(it) }
+            listOf(
+                ChestFilterOption.Sea to listOf(ChestFilterOption.SunlitReef, ChestFilterOption.DeeperReef, ChestFilterOption.OpenBlue, ChestFilterOption.GreatBlue, ChestFilterOption.Fishbowl, ChestFilterOption.Aquarium, ChestFilterOption.Pond, ChestFilterOption.Lake),
+                ChestFilterOption.Land to listOf(ChestFilterOption.GoldenFields, ChestFilterOption.AncientWoods, ChestFilterOption.OpenSands, ChestFilterOption.HighPeaks, ChestFilterOption.GreatWild, ChestFilterOption.Pasture, ChestFilterOption.Glade, ChestFilterOption.Oasis, ChestFilterOption.Ravine, ChestFilterOption.Sanctuary),
+                ChestFilterOption.Red to listOf(ChestFilterOption.Triassic, ChestFilterOption.Jurassic, ChestFilterOption.Cretaceous)
+            ).forEach { (realm, environments) ->
+                Text(stringResource(realm.labelRes), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    (listOf(realm) + environments).forEach { option -> EnvironmentOption(option, selected) { expanded = false; onSelected(it) } }
+                }
+            }
+        }
+    }
+}
+
+@Composable private fun EnvironmentOption(option: ChestFilterOption, selected: ChestFilterOption, onSelected: (ChestFilterOption) -> Unit) {
+    FilterChip(selected = selected == option, onClick = { onSelected(option) },
+        modifier = Modifier.testTag("chest-environment-${option.key}"),
+        leadingIcon = if (option == selected) ({ Icon(Icons.Default.Check, null, Modifier.size(18.dp)) }) else null,
+        label = { Text(stringResource(if (option == ChestFilterOption.All) R.string.chest_environment_all else option.labelRes)) })
 }
 
 @Composable private fun FilteredChestEmptyState(onClear: () -> Unit, modifier: Modifier = Modifier, tracked: Boolean = false) {
@@ -239,6 +305,7 @@ private val ChestFilterOption.labelRes: Int get() = when(this) {
     ChestFilterOption.All -> R.string.chest_filter_all
     ChestFilterOption.Sea -> R.string.land_realm_sea
     ChestFilterOption.Land -> R.string.land_realm_land
+    ChestFilterOption.Red -> R.string.red_title
     ChestFilterOption.ClosestToMastery -> R.string.chest_filter_closest
     ChestFilterOption.Mastered -> R.string.chest_filter_mastered
     ChestFilterOption.NotMastered -> R.string.chest_filter_not_mastered
@@ -251,6 +318,19 @@ private val ChestFilterOption.labelRes: Int get() = when(this) {
     ChestFilterOption.Aquarium -> R.string.collection_aquarium
     ChestFilterOption.Pond -> R.string.collection_pond
     ChestFilterOption.Lake -> R.string.collection_lake
+    ChestFilterOption.GoldenFields -> R.string.land_zone_golden_fields
+    ChestFilterOption.AncientWoods -> R.string.land_zone_ancient_woods
+    ChestFilterOption.OpenSands -> R.string.land_zone_open_sands
+    ChestFilterOption.HighPeaks -> R.string.land_zone_high_peaks
+    ChestFilterOption.GreatWild -> R.string.land_zone_great_wild
+    ChestFilterOption.Pasture -> R.string.land_zone_pasture
+    ChestFilterOption.Glade -> R.string.land_zone_glade
+    ChestFilterOption.Oasis -> R.string.land_zone_oasis
+    ChestFilterOption.Ravine -> R.string.land_zone_ravine
+    ChestFilterOption.Sanctuary -> R.string.land_zone_sanctuary
+    ChestFilterOption.Triassic -> R.string.red_triassic
+    ChestFilterOption.Jurassic -> R.string.red_jurassic
+    ChestFilterOption.Cretaceous -> R.string.red_cretaceous
 }
 
 internal fun buildChestInventoryStacks(
@@ -278,7 +358,7 @@ internal fun buildChestInventoryStacks(
                 newestAcquiredAtMs = creaturesAtLevel.maxOfOrNull { it.acquiredAt } ?: 0L,
                 oldestAcquiredAtMs = creaturesAtLevel.minOfOrNull { it.acquiredAt } ?: 0L,
                 recentActivityAtMs = creaturesAtLevel.maxOfOrNull { instance ->
-                    maxOf(instance.acquiredAt, instance.lastActivityAt)
+                    maxOf(instance.acquiredAt, instance.lastActivityAt, instance.viewedAt?.takeIf { it > 0 } ?: 0L)
                 } ?: 0L,
                 speciesMasteryCount = masteryCounts[key.first] ?: 0
             )
@@ -388,7 +468,7 @@ private val ChestSortOption.labelRes: Int
     }
 
 @Composable
-private fun EmptyChestState(onOpenBlue: () -> Unit, modifier: Modifier = Modifier) {
+private fun EmptyChestState(onOpenBlue: () -> Unit, onOpenRed: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -410,6 +490,7 @@ private fun EmptyChestState(onOpenBlue: () -> Unit, modifier: Modifier = Modifie
         Button(onClick = onOpenBlue) {
             Text(stringResource(R.string.shell_chest_empty_action))
         }
+        OutlinedButton(onClick = onOpenRed) { Text(stringResource(R.string.chest_open_red)) }
     }
 }
 
@@ -424,28 +505,23 @@ private fun ChestInventoryTile(stack: ChestInventoryStackUiModel, onClick: () ->
     ElevatedCard(
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
         modifier = Modifier
-            .size(104.dp)
+            .fillMaxWidth()
             .clickable(onClick = onClick)
             .semantics {
                 contentDescription = description
                 role = Role.Button
             }
     ) {
-        Box(Modifier.fillMaxSize().padding(8.dp)) {
-            if (shouldShowChestCountBadge(stack.count)) {
-                ChestBadge(
-                    text = stringResource(R.string.shell_chest_count_badge, stack.count),
-                    modifier = Modifier.align(Alignment.TopEnd)
-                )
+        Column(Modifier.fillMaxWidth().padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Box(Modifier.fillMaxWidth().heightIn(min = 60.dp)) {
+                ShellObjectIcon(stack.iconKey, Modifier.size(54.dp).align(Alignment.Center))
+                if (shouldShowChestCountBadge(stack.count)) ChestBadge(
+                    stringResource(R.string.shell_chest_count_badge, stack.count), Modifier.align(Alignment.TopEnd))
             }
-            ShellObjectIcon(
-                iconKey = stack.iconKey,
-                modifier = Modifier.size(54.dp).align(Alignment.Center)
-            )
-            ChestBadge(
-                text = stringResource(R.string.shell_creature_level_short, stack.level),
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
+            Text(stack.creatureName, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center,
+                minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            ChestBadge(stringResource(R.string.shell_creature_level_short, stack.level))
         }
     }
 }
@@ -520,9 +596,9 @@ private fun ChestStackDetailSheet(
             levelUpCost
         )
     }
-    ScyraParchmentSheet(onDismissRequest = onDismiss) {
+    ScyraParchmentSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.verticalScroll(rememberScrollState()).padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             ShellObjectIcon(stack.iconKey, Modifier.size(64.dp))
@@ -541,7 +617,15 @@ private fun ChestStackDetailSheet(
                 )
             }
             Text(stringResource(R.string.shell_chest_detail_owned, stack.count))
-            Text(stringResource(R.string.shell_chest_detail_source), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            CreatureCatalog.get(stack.creatureId)?.let { creature ->
+                val realm = when (creature.realm) {
+                    com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA -> R.string.land_realm_sea
+                    com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND -> R.string.land_realm_land
+                    com.kingkharnivore.skillz.utils.shell.CreatureRealm.RED -> R.string.red_title
+                }
+                Text(stringResource(R.string.chest_creature_environment, stringResource(realm), stringResource(environmentOf(creature).labelRes)),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
 
             Text(
                 text = stringResource(R.string.shell_creature_level_up),
@@ -662,7 +746,7 @@ private fun ChestLevelUpConfirmationDialog(
         containerColor = MaterialTheme.colorScheme.surface,
         title = { Text(stringResource(R.string.shell_creature_level_up_confirm_title, stack.creatureName)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.shell_creature_level_up_confirm_body, stack.level, stack.creatureName))
                 Text(stringResource(R.string.shell_creature_level_up_confirm_cost, cost), fontWeight = FontWeight.SemiBold)
                 if (preview != null) {
@@ -720,13 +804,13 @@ private fun ChestReleaseConfirmationDialog(
         containerColor = MaterialTheme.colorScheme.surface,
         title = { Text(stringResource(R.string.shell_creature_release_confirm_title, stack.creatureName)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(body)
                 Text(stringResource(R.string.shell_creature_release_confirm_reward, rewardPearls), fontWeight = FontWeight.SemiBold)
             }
         },
         confirmButton = {
-            Button(onClick = onConfirm) { Text(stringResource(R.string.shell_creature_release_action)) }
+            Button(onClick = onConfirm, modifier = Modifier.testTag("chest-confirm-release")) { Text(stringResource(R.string.shell_creature_release_action)) }
         },
         dismissButton = {
             OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
@@ -771,4 +855,40 @@ fun ShellMetricPill(icon: ImageVector, text: String, modifier: Modifier = Modifi
             Text(text, style = MaterialTheme.typography.labelSmall)
         }
     }
+}
+
+/** Shared Chest filter includes the exact outstanding rosters of named Red mastery badges. */
+internal fun speciesNeededForTrackedBadges(badges: List<com.kingkharnivore.skillz.domain.achievement.BadgeProgressModel>): Set<String> {
+    val mastered = badges.filter { it.count > 0 }.mapNotNull { BadgeDefinitionResolver.resolve(it.badgeId).speciesId }.toSet()
+    val trackedMembers = badges.filter { it.tracked && !it.terminal }.flatMap {
+        com.kingkharnivore.skillz.domain.achievement.BadgeBookCollections.byAward[it.badgeId]?.memberIds.orEmpty()
+    }.toSet()
+    return badges.filter { (it.tracked || it.badgeId in trackedMembers) && !it.terminal }.flatMap { badge ->
+        val definition = BadgeDefinitionResolver.resolve(badge.badgeId)
+        val red = com.kingkharnivore.skillz.domain.achievement.RedBadgeCatalog.byId[badge.badgeId]
+        val land = com.kingkharnivore.skillz.domain.achievement.LandBadgeCatalog.byId[badge.badgeId]
+        val landSpecies = com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.all.filter { it.isAvailable }.map { it.creatureId }.toSet()
+        if (badge.badgeId in com.kingkharnivore.skillz.domain.achievement.CreatureGrowthBadges.byId)
+            com.kingkharnivore.skillz.domain.achievement.CreatureGrowthBadges.byId.getValue(badge.badgeId).species.toList()
+        else if (land != null) when (land.metric) {
+            com.kingkharnivore.skillz.domain.achievement.LandBadgeMetric.LEVEL,
+            com.kingkharnivore.skillz.domain.achievement.LandBadgeMetric.MASTERY -> landSpecies.toList()
+            com.kingkharnivore.skillz.domain.achievement.LandBadgeMetric.MASTERED_SPECIES -> (landSpecies - mastered).toList()
+            com.kingkharnivore.skillz.domain.achievement.LandBadgeMetric.MASTERED_COLLECTIONS ->
+                com.kingkharnivore.skillz.domain.achievement.CollectionCatalog.collections
+                    .filter { it.collectionId.startsWith("blue_") || it.collectionId.startsWith("stillwater_") }
+                    .filter { it.species.any { species -> species.creatureId in landSpecies } && it.species.none { species -> species.creatureId in mastered } }
+                    .flatMap { it.species.map { species -> species.creatureId } }
+            else -> emptyList()
+        }
+        else if (red?.mastery == true) (red.species - mastered).toList()
+        else if (badge.badgeId in setOf("mastery_first", "mastery_circle", "mastery_variety", "stillwater_mastery"))
+            CreatureCatalog.all.filter { it.isAvailable && (badge.badgeId != "stillwater_mastery" || it.isHeritageSpecies) }
+                .filter { badge.badgeId != "mastery_variety" || it.creatureId !in mastered }.map { it.creatureId }
+        else definition.speciesId?.let { listOf(it) } ?: when (definition.requirement) {
+            BadgeRequirement.COMPLETIONIST -> badge.collectionProgress?.missingMasteredSpeciesIds.orEmpty().toList()
+            BadgeRequirement.CURATOR -> badge.collectionProgress?.speciesStates.orEmpty().filter { it.ownedCount == 0 }.map { it.speciesId }
+            BadgeRequirement.COLLECTOR, BadgeRequirement.EXACT_COUNT -> emptyList()
+        }
+    }.toSet()
 }

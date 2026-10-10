@@ -83,7 +83,7 @@ class ShellRewardEventRecorderTest {
         endTime = 1L,
         durationMs = 600_000L,
         scyraPoints = 100,
-        isSoftMode = isSoftMode,
+        mode = com.kingkharnivore.skillz.model.FlowMode.fromSoft(isSoftMode),
         arcId = arcId
     )
 

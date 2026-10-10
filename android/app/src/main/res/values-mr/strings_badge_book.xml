@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="book_collections">संग्रह</string>
+    <string name="book_all_badges">सर्व बॅज</string>
+    <string name="book_collections_body">ध्येय निवडा. अंदाजित प्रयत्नांनुसार संग्रह सोप्यापासून कठीणपर्यंत दिले आहेत.</string>
+    <string name="book_collection_rules">संग्रहातील प्रत्येक बॅज किमान एकदा मिळवा. एक बॅज अनेक संग्रहांमध्ये मोजला जाऊ शकतो. जीवांना मुक्त केल्यानंतर किंवा त्यांची देवाणघेवाण केल्यानंतरही मिळवलेली प्रगती कायम राहते.</string>
+    <plurals name="book_member_progress">
+        <item quantity="one">%2$d पैकी %1$d बॅज मिळाला</item>
+        <item quantity="other">%2$d पैकी %1$d बॅज मिळाले</item>
+    </plurals>
+    <string name="book_completion_reward">पूर्ण केल्यावर: %1$s</string>
+    <string name="book_collection_award_title">%1$s · पूर्ण</string>
+    <string name="book_collection_award_description">%1$s संग्रहातील प्रत्येक बॅज किमान एकदा मिळवा.</string>
+    <string name="book_difficulty_start">सुरुवात</string>
+    <string name="book_difficulty_build">संग्रहाचा विस्तार</string>
+    <string name="book_difficulty_long">दीर्घकालीन ध्येय</string>
+    <string name="book_difficulty_ultimate">प्रावीण्याचे आव्हान</string>
+    <string name="book_collection_first_steps">पहिली पावले</string>
+    <string name="book_collection_flow">तुमचा फ्लो शोधा</string>
+    <string name="book_collection_growing">वाढते वर्तुळ</string>
+    <string name="book_collection_sea">समुद्रातील शोध</string>
+    <string name="book_collection_land">जमिनीवरील शोध</string>
+    <string name="book_collection_red">युगांचा प्रवास</string>
+
+    <string name="book_collection_power">पावरचा मार्ग</string>
+    <string name="book_collection_specialists">डायनासोर तज्ज्ञ</string>
+    <string name="book_collection_sea_mastery">समुद्रातील प्रावीण्य</string>
+    <string name="book_collection_land_mastery">जमिनीवरील प्रावीण्य</string>
+    <string name="book_collection_red_mastery">द रेडमधील प्रावीण्य</string>
+</resources>

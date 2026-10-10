@@ -8,5 +8,6 @@ data class PlanArcFlowPickerItemUiModel(
     val isSoftMode: Boolean,
     val targetMinutes: Int?,
     val launchWithSurge: Boolean,
-    val pinned: Boolean
+    val pinned: Boolean,
+    val mode: com.kingkharnivore.skillz.model.FlowMode = com.kingkharnivore.skillz.model.FlowMode.fromSoft(isSoftMode)
 )

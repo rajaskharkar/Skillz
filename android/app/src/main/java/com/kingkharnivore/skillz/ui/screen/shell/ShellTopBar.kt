@@ -46,9 +46,10 @@ fun ShellTopBar(
     val scheme = MaterialTheme.colorScheme
 
     val title = when (destination) {
+        ShellDestination.TheRed -> stringResource(R.string.red_title)
         ShellDestination.Heart -> stringResource(R.string.shell_title)
         ShellDestination.Focus -> stringResource(R.string.shell_room_focus_title)
-        ShellDestination.Stillwater -> stringResource(R.string.shell_room_stillwater_title)
+        ShellDestination.TheGreen -> stringResource(R.string.shell_room_stillwater_title)
         ShellDestination.ShellChest -> stringResource(R.string.shell_chest_title)
         ShellDestination.Badges -> stringResource(R.string.shell_badges_title)
         ShellDestination.VoyagePreview -> stringResource(R.string.shell_room_voyage_title)

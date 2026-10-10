@@ -136,8 +136,7 @@
     <string name="land_no_longer_living">Not currently living here. Lifetime record remains.</string>
     <string name="land_effort_value">Effort value</string>
     <string name="land_zone_waiting">Quiet land is waiting here.</string>
-    <string name="land_stillwater_reward">Draw a creature to live in %1$s.</string>
-    <string name="land_stillwater_category">Level %1$d · %2$s Stillwater</string>
+
     <string name="land_realm_subtitle">One living Earth</string>
     <string name="land_realm_land_description">Golden fields, ancient woods, and the great wild.\nLife earned through the depth of your Arcs.</string>
     <string name="land_realm_sea_description">From the sunlit reef to the great blue.\nLife earned through the duration of your Flows.</string>

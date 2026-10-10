@@ -24,6 +24,7 @@ class SkillzApplication : Application() {
     lateinit var userPrefs: UserPrefs
 
     @Inject lateinit var objectiveCompletionProcessor: ObjectiveCompletionProcessor
+    @Inject lateinit var shellRewardOrchestrator: com.kingkharnivore.skillz.utils.shell.ShellRewardOrchestrator
     @Inject lateinit var landArcFinalizer: com.kingkharnivore.skillz.utils.arc.ArcLandRewardFinalizer
     @Inject lateinit var chronicleRepository: ChronicleRepository
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -38,6 +39,8 @@ class SkillzApplication : Application() {
         launchObjectiveReconciliation("startup")
         applicationScope.launch {
             while (true) {
+                runCatching { shellRewardOrchestrator.retryPending() }
+                    .onFailure { Log.e("ShellRewards", "Rewards will retry", it) }
                 runCatching { landArcFinalizer.finalizeExpired() }
                     .onFailure { Log.e("ArcLandRewards", "Finalization will retry", it) }
                 kotlinx.coroutines.delay(15_000L)

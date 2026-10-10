@@ -173,7 +173,7 @@ fun BeyondBlueEncounterSheet(
                 val selectedCreatureZone = selectedZone.toCreatureZone()
                 items(
                     items = (if (selectedZone.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND)
-                        com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.main else CreatureCatalog.beyondBlue)
+                        com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.all else CreatureCatalog.beyondBlue)
                         .filter { it.zone == selectedCreatureZone },
                     key = { target -> target.creatureId }
                 ) { target ->

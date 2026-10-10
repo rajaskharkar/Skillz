@@ -1,9 +1,11 @@
 package com.kingkharnivore.skillz.ui.screen.shell.inventory
 
+import com.kingkharnivore.skillz.domain.green.*
 import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
@@ -35,6 +37,40 @@ fun resolveBadgePresentation(
     badgeId: String,
     objectiveMetadata: ObjectiveBadgePresentationMetadata? = null
 ): BadgePresentation {
+    GreenBadgeEvaluator.byId[badgeId]?.let { badge ->
+        val names = badge.requiredSpecies.mapNotNull(GreenCatalogue.byId::get).map { stringResource(it.nameRes) }.joinToString(", ")
+        val tier = stringResource(when (badge.requiredLevel) { 99 -> R.string.green_mastery_badge; 90 -> R.string.green_flourish; 15 -> R.string.green_stage_seedling; 45 -> R.string.green_stage_rooted; 60 -> R.string.green_stage_thriving; else -> R.string.green_catalogue })
+        val subject = badge.speciesId?.let(GreenCatalogue.byId::get)?.let { stringResource(it.nameRes) }
+            ?: stringResource(badge.environment?.nameRes ?: R.string.green_title)
+        val title = badge.titleRes?.let { titleRes ->
+            if (badge.themeKey != null) stringResource(R.string.green_badge_set_title, stringResource(titleRes), tier) else stringResource(titleRes)
+        } ?: stringResource(R.string.green_badge_title, subject, tier)
+        val description = when (badge.metric) {
+            GreenBadgeMetric.SPECIES -> when {
+                badge.requiredSpecies.size == 1 -> stringResource(R.string.growth_green_single_goal, names, badge.requiredLevel)
+                badge.target < badge.requiredSpecies.size -> pluralStringResource(R.plurals.growth_green_subset_goal, badge.target, badge.target, badge.requiredLevel, names)
+                else -> stringResource(R.string.green_badge_species_goal, badge.requiredLevel, names)
+            }
+            GreenBadgeMetric.SPECIMENS -> if (badge.target == 1) stringResource(R.string.growth_green_one_plant, badge.requiredLevel)
+                else stringResource(R.string.green_badge_specimens_goal, badge.requiredLevel, badge.target)
+            GreenBadgeMetric.WATERINGS -> stringResource(R.string.green_badge_waterings_goal, badge.target)
+            GreenBadgeMetric.ENVIRONMENTS -> stringResource(R.string.green_badge_environments_goal, badge.requiredLevel, badge.copiesPerSpecies, badge.target)
+            GreenBadgeMetric.ARCHETYPES -> if (badge.target == 8) stringResource(R.string.green_badge_archetypes_goal, badge.requiredLevel)
+                else pluralStringResource(R.plurals.growth_green_forms_goal, badge.target, badge.target, badge.requiredLevel)
+            GreenBadgeMetric.SAME_SPECIES_COPIES -> stringResource(R.string.green_badge_copies_goal, badge.requiredLevel, badge.target)
+            GreenBadgeMetric.SPECIES_FAMILIES -> stringResource(R.string.green_badge_families_goal, badge.copiesPerSpecies, badge.requiredLevel, badge.target)
+        }
+        return BadgePresentation(badgeId, title, description, BadgeArtworkKind.SPECIAL,
+            centerLabel = if (badge.requiredLevel > 1) badge.requiredLevel.toString() else null,
+            motif = when {
+                badge.metric == GreenBadgeMetric.WATERINGS -> LandBadgeMotif.DROPLEAF
+                badge.metric == GreenBadgeMetric.ENVIRONMENTS -> LandBadgeMotif.LANDSCAPE
+                badge.metric == GreenBadgeMetric.SAME_SPECIES_COPIES || badge.metric == GreenBadgeMetric.SPECIES_FAMILIES -> LandBadgeMotif.ROOTS
+                badge.requiredLevel == 99 -> LandBadgeMotif.CROWN
+                badge.requiredLevel >= 30 -> LandBadgeMotif.GROWTH
+                else -> LandBadgeMotif.LEAF
+            })
+    }
     ObjectiveBadgeIdentity.fromBadgeId(badgeId)?.let { identity ->
         val period = when (identity.periodType) {
             "daily" -> stringResource(R.string.lookout_period_daily)
@@ -53,6 +89,34 @@ fun resolveBadgePresentation(
             artworkKind = BadgeArtworkKind.OBJECTIVE,
             centerLabel = period.take(1)
         )
+    }
+    BadgeBookCollections.byAward[badgeId]?.let { collection ->
+        val title = stringResource(collection.titleRes)
+        return BadgePresentation(badgeId, stringResource(R.string.book_collection_award_title, title),
+            stringResource(R.string.book_collection_award_description, title), BadgeArtworkKind.SPECIAL, motif = LandBadgeMotif.CROWN)
+    }
+    CreatureGrowthBadges.byId[badgeId]?.let { spec ->
+        val scope = spec.themeTitleRes?.let { stringResource(it) } ?: spec.collectionId?.let { collectionDisplayName(it) }
+            ?: stringResource(when (spec.realm) {
+                com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA -> R.string.growth_scope_sea
+                com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND -> R.string.growth_scope_land
+                com.kingkharnivore.skillz.utils.shell.CreatureRealm.RED -> R.string.growth_scope_red
+            })
+        val criteria = when (spec.metric) {
+            CreatureGrowthMetric.SPECIES -> if (spec.target == 1) stringResource(R.string.growth_one_goal, spec.level)
+                else pluralStringResource(R.plurals.growth_species_goal, spec.target, spec.target, spec.level)
+            CreatureGrowthMetric.SAME_SPECIES_COPIES -> pluralStringResource(R.plurals.growth_pair_goal, spec.target, spec.target, spec.level)
+            CreatureGrowthMetric.HABITATS -> pluralStringResource(R.plurals.growth_habitats_goal, spec.target, spec.target, spec.level)
+        }
+        val names = if (spec.themeTitleRes != null) spec.species.mapNotNull { CreatureCatalog.get(it)?.titleRes }
+            .map { stringResource(it) }.joinToString(", ") else ""
+        return BadgePresentation(badgeId, stringResource(R.string.green_badge_set_title, scope, stringResource(spec.titleRes)),
+            stringResource(R.string.growth_scoped_goal, scope, criteria) + if (names.isNotBlank()) "\n$names" else "",
+            BadgeArtworkKind.SPECIAL, centerLabel = spec.level.toString(),
+            motif = if (spec.metric == CreatureGrowthMetric.HABITATS) LandBadgeMotif.LANDSCAPE else LandBadgeMotif.GROWTH)
+    }
+    RedBadgeCatalog.byId[badgeId]?.let { spec ->
+        return BadgePresentation(badgeId, stringResource(spec.titleRes), stringResource(spec.descriptionRes), BadgeArtworkKind.SPECIAL, motif = LandBadgeMotif.FOOTPRINTS)
     }
     LandBadgeCatalog.byId[badgeId]?.let { spec ->
         return BadgePresentation(badgeId, stringResource(spec.titleRes), stringResource(spec.descriptionRes),
@@ -163,6 +227,10 @@ fun resolveBadgePresentation(
 
 @Composable
 fun collectionDisplayName(collectionId: String): String = stringResource(when (collectionId) {
+    "collection_red" -> R.string.red_title
+    "red_triassic" -> R.string.red_triassic
+    "red_jurassic" -> R.string.red_jurassic
+    "red_cretaceous" -> R.string.red_cretaceous
     "blue_sunlit_reef" -> R.string.collection_sunlit_reef
     "blue_deeper_reef" -> R.string.collection_deeper_reef
     "blue_open_blue" -> R.string.collection_open_blue

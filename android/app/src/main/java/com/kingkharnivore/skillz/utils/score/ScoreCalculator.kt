@@ -8,6 +8,10 @@ object ScoreCalculator {
 
     private const val MILLIS_PER_MINUTE = 60_000L
 
+    /** Power rounds once, after the mode and the resolved Arc multiplier. */
+    fun timeScore(durationMs: Long, mode: com.kingkharnivore.skillz.model.FlowMode, arcMultiplier: Double = 1.0): Int =
+        ((durationMs.coerceAtLeast(0L) / MILLIS_PER_MINUTE) * mode.timeMultiplier * arcMultiplier).roundToInt()
+
     fun breakdownFromDuration(durationMs: Long): ScoreBreakdown {
         val minutes = (durationMs / MILLIS_PER_MINUTE)
             .coerceAtLeast(0L)

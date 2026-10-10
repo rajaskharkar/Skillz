@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="growth_hello">Un pequeño avance</string>
+    <string name="growth_companion">Creciendo juntos</string>
+    <string name="growth_stride">A buen ritmo</string>
+    <string name="growth_bond">Un vínculo duradero</string>
+    <string name="growth_flourishing">Cobrando fuerza</string>
+    <string name="growth_horizon">Un horizonte más amplio</string>
+    <string name="growth_trio">Una pequeña comunidad</string>
+    <string name="growth_mosaic">Mosaico vivo</string>
+    <string name="growth_ensemble">Conjunto floreciente</string>
+    <string name="growth_pair">Lado a lado</string>
+    <string name="growth_neighbours">Buenos vecinos</string>
+    <string name="growth_atlas">Un atlas vivo</string>
+    <string name="growth_small_world">Un pequeño mundo</string>
+    <string name="growth_established_world">Un mundo que toma forma</string>
+    <string name="growth_theme_beginning">Primer capítulo</string>
+    <string name="growth_theme_developing">La historia crece</string>
+    <string name="growth_forms">Un estudio de formas</string>
+    <string name="growth_small_ritual">Un pequeño ritual</string>
+    <string name="growth_steady_care">Cuidado constante</string>
+    <string name="growth_scope_sea">The Blue · Mar</string>
+    <string name="growth_scope_land">The Blue · Tierra</string>
+    <string name="growth_scope_red">The Red</string>
+    <string name="growth_book_green_early">Comienzos verdes</string>
+    <string name="growth_book_green_mid">Un jardín que toma forma</string>
+    <string name="growth_book_sea_early">Primeras ondas</string>
+    <string name="growth_book_sea_mid">Un mar de compañeros</string>
+    <string name="growth_book_land_early">Pequeñas huellas</string>
+    <string name="growth_book_land_mid">Un paisaje de amigos</string>
+    <string name="growth_book_red_early">Compañeros del alba</string>
+    <string name="growth_book_red_mid">Una era que toma forma</string>
+    <string name="growth_green_single_goal">Haz crecer %1$s hasta el nivel %2$d.</string>
+    <plurals name="growth_green_subset_goal">
+        <item quantity="one">Haz crecer %1$d especie de este conjunto hasta el nivel %2$d.\n%3$s</item>
+        <item quantity="many">Haz crecer %1$d especies distintas de este conjunto hasta el nivel %2$d.\n%3$s</item>
+        <item quantity="other">Haz crecer %1$d especies distintas de este conjunto hasta el nivel %2$d.\n%3$s</item>
+    </plurals>
+    <string name="growth_green_one_plant">Haz crecer una planta hasta el nivel %1$d.</string>
+    <plurals name="growth_green_forms_goal">
+        <item quantity="one">Haz crecer %1$d forma botánica hasta el nivel %2$d.</item>
+        <item quantity="many">Haz crecer %1$d formas botánicas distintas hasta el nivel %2$d.</item>
+        <item quantity="other">Haz crecer %1$d formas botánicas distintas hasta el nivel %2$d.</item>
+    </plurals>
+    <string name="growth_one_goal">Cría una criatura hasta el nivel %1$d.</string>
+    <plurals name="growth_species_goal">
+        <item quantity="one">Cría %1$d especie hasta el nivel %2$d.</item>
+        <item quantity="many">Cría %1$d especies distintas hasta el nivel %2$d.</item>
+        <item quantity="other">Cría %1$d especies distintas hasta el nivel %2$d.</item>
+    </plurals>
+    <plurals name="growth_pair_goal">
+        <item quantity="one">Cría %1$d criatura de una especie hasta el nivel %2$d.</item>
+        <item quantity="many">Cría %1$d criaturas de una misma especie hasta el nivel %2$d.</item>
+        <item quantity="other">Cría %1$d criaturas de una misma especie hasta el nivel %2$d.</item>
+    </plurals>
+    <plurals name="growth_habitats_goal">
+        <item quantity="one">Cría al menos una especie hasta el nivel %2$d en %1$d hábitat o era.</item>
+        <item quantity="many">Cría al menos una especie hasta el nivel %2$d en cada uno de %1$d hábitats o eras distintos.</item>
+        <item quantity="other">Cría al menos una especie hasta el nivel %2$d en cada uno de %1$d hábitats o eras distintos.</item>
+    </plurals>
+    <string name="growth_scoped_goal">%1$s: %2$s</string>
+</resources>

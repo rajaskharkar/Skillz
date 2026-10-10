@@ -33,42 +33,38 @@
     <string name="badge_land_returning_title">वन्य प्रकृति में वापसी</string>
     <string name="badge_land_returning_description">5, 10, 25, 50 और 100 आर्क अंतिम रूप से पूरे करें, जिनमें से प्रत्येक से धरती का पुरस्कार मिले।</string>
     <string name="badge_land_stillwater_first_title">शांत संगत</string>
-    <string name="badge_land_stillwater_first_description">स्टिलवॉटर से धरती का अपना पहला जीव प्राप्त करें।</string>
+
     <string name="badge_land_five_habitats_title">पाँच शांत स्थान</string>
-    <string name="badge_land_five_habitats_description">चरागाह, वन प्रांगण, नखलिस्तान, तंग घाटी और अभयारण्य से कम से कम एक-एक बार जीव प्राप्त करें।</string>
+
     <string name="badge_land_stillwater_variety_title">शांति में विविधता</string>
     <string name="badge_land_stillwater_variety_description">धरती की 5, 10, 25, 40 और 51 अलग-अलग स्टिलवॉटर प्रजातियाँ खोजें।</string>
-    <string name="badge_land_rare_first_title">दुर्लभ आगंतुक</string>
-    <string name="badge_land_rare_first_description">स्टिलवॉटर से धरती का दुर्लभ श्रेणी का जीव प्राप्त करें।</string>
-    <string name="badge_land_mythic_first_title">पौराणिक आगमन</string>
-    <string name="badge_land_mythic_first_description">स्टिलवॉटर से धरती का पौराणिक श्रेणी का जीव प्राप्त करें।</string>
+
     <string name="badge_land_release_first_title">विचरने की आज़ादी</string>
     <string name="badge_land_release_first_description">धरती का एक जीव छोड़ें। आपकी स्थायी खोज और महारत के रिकॉर्ड सुरक्षित रहेंगे।</string>
     <string name="badge_land_trade_first_title">एक और यात्रा</string>
     <string name="badge_land_trade_first_description">द ब्लू के पार मुलाक़ात में धरती के एक जीव का योगदान दें। आपकी स्थायी महारत सुरक्षित रहेगी।</string>
     <string name="badge_keeper_of_the_land_title">धरती का रखवाला</string>
-    <string name="badge_keeper_of_the_land_description">धरती के पाँचों क्षेत्रों की सभी 63 मुख्य प्रजातियाँ खोजें।</string>
+    <string name="badge_keeper_of_the_land_description">धरती के पाँचों क्षेत्रों की सभी प्रजातियाँ खोजें।</string>
     <string name="badge_one_from_every_land_title">हर आवास से एक</string>
-    <string name="badge_one_from_every_land_description">धरती के हर क्षेत्र के कम से कम एक मुख्य जीव और धरती के हर स्टिलवॉटर पात्र के एक जीव को महारत तक पहुँचाएँ।</string>
+
     <string name="badge_land_mastery_circle_title">धरती का महारत मंडल</string>
     <string name="badge_land_mastery_circle_description">लेवल 99 तक पहुँचे धरती के हर जीव की अलग गिनती होती है, जिसमें छोड़े गए और योगदान में दिए गए जीव भी शामिल हैं।</string>
     <string name="badge_land_mastery_variety_title">धरती की महारत में विविधता</string>
     <string name="badge_land_mastery_variety_description">धरती की 1, 5, 10, 25, 50, 100 और 114 अलग-अलग प्रजातियों पर महारत हासिल करें।</string>
     <string name="badge_sea_variety_title">समुद्र की विविधता</string>
-    <string name="badge_sea_variety_description">समुद्र की 1, 5, 10, 25, 50 और 71 अलग-अलग प्रजातियाँ खोजें, जिसमें समुद्र के स्टिलवॉटर जीव भी शामिल हैं।</string>
+
     <string name="badge_land_pasture_first_title">चरागाह की खोज</string>
-    <string name="badge_land_pasture_first_description">चरागाह से अपना पहला जीव प्राप्त करें।</string>
+
     <string name="badge_land_glade_first_title">वन प्रांगण की खोज</string>
-    <string name="badge_land_glade_first_description">वन प्रांगण से अपना पहला जीव प्राप्त करें।</string>
+
     <string name="badge_land_oasis_first_title">नखलिस्तान की खोज</string>
-    <string name="badge_land_oasis_first_description">नखलिस्तान से अपना पहला जीव प्राप्त करें।</string>
+
     <string name="badge_land_ravine_first_title">तंग घाटी की खोज</string>
-    <string name="badge_land_ravine_first_description">तंग घाटी से अपना पहला जीव प्राप्त करें।</string>
+
     <string name="badge_land_sanctuary_first_title">अभयारण्य की खोज</string>
-    <string name="badge_land_sanctuary_first_description">अभयारण्य से अपना पहला जीव प्राप्त करें।</string>
+
     <string name="collection_land">धरती</string>
-    <string name="collection_sea_stillwater">समुद्र का स्टिलवॉटर</string>
-    <string name="collection_land_stillwater">धरती का स्टिलवॉटर</string>
+
     <string name="collection_all_land">धरती और उसके आवास</string>
     <string name="collection_living_earth">जीवंत पृथ्वी</string>
     <string name="level99_preview_completes_realm">इससे यह संग्रह पूरा होगा: %1$s।</string>

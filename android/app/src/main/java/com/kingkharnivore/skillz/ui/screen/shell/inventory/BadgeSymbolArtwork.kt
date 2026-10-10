@@ -26,7 +26,13 @@ import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 @Composable
 internal fun BadgeCoreArtwork(presentation: BadgePresentation, diameter: Dp) {
     Box(Modifier.size(diameter), contentAlignment = Alignment.Center) {
+        val plant = com.kingkharnivore.skillz.domain.green.GreenBadgeEvaluator.byId[presentation.badgeId]?.speciesId
+            ?.let(com.kingkharnivore.skillz.domain.green.GreenCatalogue.byId::get)
         when {
+            plant != null -> com.kingkharnivore.skillz.ui.screen.shell.rooms.green.PlantArtwork(
+                plant, 99, presentation.title, Modifier.size(diameter * .85f))
+            com.kingkharnivore.skillz.domain.achievement.RedBadgeCatalog.byId.containsKey(presentation.badgeId) ->
+                RedBadgeArtwork(presentation.badgeId, Modifier.size(diameter * .72f))
             presentation.motif != null -> {
                 if (presentation.collectionIdentity != null) {
                     CollectionCrest(presentation.collectionIdentity, Modifier.size(diameter * .55f))

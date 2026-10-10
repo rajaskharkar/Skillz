@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="book_collections">संग्रह</string>
+    <string name="book_all_badges">सभी बैज</string>
+    <string name="book_collections_body">अपना लक्ष्य चुनें। संग्रह अनुमानित मेहनत के अनुसार आसान से कठिन क्रम में हैं।</string>
+    <string name="book_collection_rules">संग्रह का हर बैज कम से कम एक बार पाएँ। एक बैज कई संग्रहों में गिना जा सकता है। जीवों को मुक्त करने या बदलने के बाद भी अर्जित प्रगति बनी रहती है।</string>
+    <plurals name="book_member_progress">
+        <item quantity="one">%2$d में से %1$d बैज अर्जित</item>
+        <item quantity="other">%2$d में से %1$d बैज अर्जित</item>
+    </plurals>
+    <string name="book_completion_reward">पूरा करने पर: %1$s</string>
+    <string name="book_collection_award_title">%1$s · पूर्ण</string>
+    <string name="book_collection_award_description">%1$s संग्रह का हर बैज कम से कम एक बार पाएँ।</string>
+    <string name="book_difficulty_start">शुरुआत</string>
+    <string name="book_difficulty_build">संग्रह का विस्तार</string>
+    <string name="book_difficulty_long">दीर्घकालीन लक्ष्य</string>
+    <string name="book_difficulty_ultimate">महारत की चुनौती</string>
+    <string name="book_collection_first_steps">पहले कदम</string>
+    <string name="book_collection_flow">अपना फ़्लो पाएँ</string>
+    <string name="book_collection_growing">बढ़ता दायरा</string>
+    <string name="book_collection_sea">समुद्र की खोज</string>
+    <string name="book_collection_land">धरती की खोज</string>
+    <string name="book_collection_red">युगों की यात्रा</string>
+
+    <string name="book_collection_power">पावर का पथ</string>
+    <string name="book_collection_specialists">डायनासोर विशेषज्ञ</string>
+    <string name="book_collection_sea_mastery">समुद्र में महारत</string>
+    <string name="book_collection_land_mastery">धरती पर महारत</string>
+    <string name="book_collection_red_mastery">द रेड में महारत</string>
+</resources>

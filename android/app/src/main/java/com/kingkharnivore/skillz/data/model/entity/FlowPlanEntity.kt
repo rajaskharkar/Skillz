@@ -29,5 +29,10 @@ data class FlowPlanEntity(
     val launchCount: Int = 0,
     val lastLaunchedAt: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    @androidx.room.ColumnInfo(defaultValue = "'HABIT'")
+    val kind: String = HorizonKind.HABIT,
+    val completedAt: Long? = null,
+    @androidx.room.ColumnInfo(defaultValue = "0")
+    val mode: com.kingkharnivore.skillz.model.FlowMode = com.kingkharnivore.skillz.model.FlowMode.fromSoft(isSoftMode)
 )

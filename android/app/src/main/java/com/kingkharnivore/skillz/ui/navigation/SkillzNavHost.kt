@@ -17,17 +17,18 @@ import com.kingkharnivore.skillz.ui.screen.HelpSection
 import com.kingkharnivore.skillz.ui.screen.SkillzHomeScreen
 import com.kingkharnivore.skillz.ui.screen.flow.FlowScreen
 import com.kingkharnivore.skillz.ui.screen.flow.ShellNavigationMode
-import com.kingkharnivore.skillz.ui.screen.paths.arc.ArcDetailScreen
 import com.kingkharnivore.skillz.ui.screen.shell.ShellRootScreen
+import com.kingkharnivore.skillz.ui.screen.story.pulse.PulseScreen
+import com.kingkharnivore.skillz.viewmodel.FlowViewModel
+import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsViewModel
+import com.kingkharnivore.skillz.viewmodel.StoryViewModel
+
+import com.kingkharnivore.skillz.ui.screen.paths.arc.ArcDetailScreen
 import com.kingkharnivore.skillz.ui.screen.paths.arc.PlanArcScreen
 import com.kingkharnivore.skillz.ui.screen.paths.suggested.SuggestedRouteDetailScreen
 import com.kingkharnivore.skillz.ui.screen.paths.suggested.SuggestedRoutesCatalog
-import com.kingkharnivore.skillz.ui.screen.story.pulse.PulseScreen
 import com.kingkharnivore.skillz.viewmodel.ArcDetailViewModel
-import com.kingkharnivore.skillz.viewmodel.FlowViewModel
-import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsViewModel
 import com.kingkharnivore.skillz.viewmodel.PlanArcViewModel
-import com.kingkharnivore.skillz.viewmodel.StoryViewModel
 import com.kingkharnivore.skillz.viewmodel.SuggestedRouteDetailViewModel
 
 @Composable
@@ -35,6 +36,7 @@ fun SkillzNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val focusVm: FlowViewModel = hiltViewModel()
     val storyViewModel: StoryViewModel = hiltViewModel()
     val ongoing by focusVm.ongoingSession.collectAsState()
@@ -53,30 +55,23 @@ fun SkillzNavHost(
                     navController.navigate(SkillzDestinations.addSkillRoute())
                 },
                 onAddPulseClick = {
-                    navController.navigate(SkillzDestinations.ADD_PULSE_ROUTE)
+                    navController.navigate(SkillzDestinations.addPulseRoute())
                 },
-                onOpenPlannedFlow = { title, tagName, isSoftMode ->
+                onOpenPlannedFlow = { plan ->
                     navController.navigate(
                         SkillzDestinations.addSkillRoute(
-                            prefillJourney = tagName,
-                            prefillTitle = title,
-                            prefillSoftMode = isSoftMode
+                            prefillJourney = plan.tagName.takeIf { it.isNotBlank() },
+                            prefillTitle = plan.title,
+                            prefillSoftMode = plan.isSoftMode,
+                            prefillMode = plan.mode,
+                            prefillSurgeMinutes = plan.targetMinutes.takeIf { plan.launchWithSurge },
+                            originPlanId = plan.id
                         )
                     )
                 },
-                onPlanArcClick = {
-                    navController.navigate(SkillzDestinations.planArcRoute())
-                },
-                onOpenArc = { arcPlanId ->
-                    navController.navigate(
-                        SkillzDestinations.arcDetailRoute(arcPlanId)
-                    )
-                },
-                onOpenSuggestedRoute = { routeId ->
-                    navController.navigate(
-                        SkillzDestinations.suggestedRouteDetailRoute(routeId)
-                    )
-                },
+                onPlanArc = { navController.navigate(SkillzDestinations.planArcRoute()) },
+                onOpenArc = { navController.navigate(SkillzDestinations.arcDetailRoute(it)) },
+                onOpenSuggestedRoute = { navController.navigate(SkillzDestinations.suggestedRouteDetailRoute(it)) },
                 onGoToActiveSession = {
                     navController.navigate(SkillzDestinations.addSkillRoute())
                 },
@@ -88,6 +83,8 @@ fun SkillzNavHost(
         composable(
             route = SkillzDestinations.ADD_SKILL_ROUTE,
             arguments = listOf(
+                navArgument(SkillzDestinations.ADD_SKILL_ARG_PREFILL_MODE) { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument(SkillzDestinations.ADD_SKILL_ARG_ORIGIN_PLAN_ID) { type = NavType.LongType; defaultValue = -1L },
                 navArgument(SkillzDestinations.ADD_SKILL_ARG_PREFILL_JOURNEY) {
                     type = NavType.StringType
                     nullable = true
@@ -132,6 +129,7 @@ fun SkillzNavHost(
 
             FlowScreen(
                 viewModel = addSessionViewModel,
+                onRecordPulse = { navController.navigate(SkillzDestinations.addPulseRoute(fromFlow = true)) },
                 onDone = { popToHome(navController) },
                 onCancel = { popToHome(navController) },
                 onOpenShell = { mode ->
@@ -171,6 +169,7 @@ fun SkillzNavHost(
                             prefillJourney = payload.tagName,
                             prefillTitle = payload.title,
                             prefillSoftMode = payload.isSoftMode,
+                            prefillMode = payload.mode,
                             plannedArcTitle = payload.plannedArcTitle,
                             plannedArcStepIndex = payload.plannedArcStepIndex,
                             plannedArcTotalSteps = payload.plannedArcTotalSteps,
@@ -260,12 +259,18 @@ fun SkillzNavHost(
             )
         }
 
-        composable(SkillzDestinations.ADD_PULSE_ROUTE) {
+        composable(SkillzDestinations.ADD_PULSE_ROUTE,
+            arguments = listOf(navArgument("fromFlow") { type = NavType.BoolType; defaultValue = false })
+        ) { entry ->
             val pulseViewModel: StoryViewModel = hiltViewModel()
             PulseScreen(
                 viewModel = pulseViewModel,
                 isFlowStateActive = isFocusModeOn,
-                onDone = { popToHome(navController) },
+                attachToFlowByDefault = entry.arguments?.getBoolean("fromFlow") == true,
+                onDone = {
+                    android.widget.Toast.makeText(context, com.kingkharnivore.skillz.R.string.pulse_saved, android.widget.Toast.LENGTH_SHORT).show()
+                    navController.popBackStack()
+                },
                 onCancel = { navController.popBackStack() }
             )
         }

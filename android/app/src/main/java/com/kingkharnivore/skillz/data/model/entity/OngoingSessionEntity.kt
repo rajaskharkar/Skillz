@@ -1,5 +1,7 @@
 package com.kingkharnivore.skillz.data.model.entity
 
+import com.kingkharnivore.skillz.model.FlowMode
+
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -12,7 +14,8 @@ data class OngoingSessionEntity(
     val tagName: String,
     val isInFlowMode: Boolean,
     val isRunning: Boolean,
-    val isSoftMode: Boolean = false,
+    @androidx.room.ColumnInfo(name = "isSoftMode")
+    val mode: FlowMode = FlowMode.FLOW,
     val baseStartTimeMs: Long?,
     val accumulatedBeforeStartMs: Long,
     val isSurgeOn: Boolean = false,
@@ -32,5 +35,9 @@ data class OngoingSessionEntity(
     val healthEnabledAtStart: Boolean = false,
     val healthPermissionGrantedAtStart: Boolean = false,
     val movementBonusEligibleAtStart: Boolean = false,
-    val activeIntervalJson: String? = null
-)
+    val activeIntervalJson: String? = null,
+    val originPlanId: Long? = null
+) {
+    @get:androidx.room.Ignore
+    val isSoftMode: Boolean get() = mode == FlowMode.SOFT
+}

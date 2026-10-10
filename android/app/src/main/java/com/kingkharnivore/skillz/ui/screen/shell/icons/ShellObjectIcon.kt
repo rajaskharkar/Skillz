@@ -25,6 +25,10 @@ fun ShellObjectIcon(
     iconKey: String,
     modifier: Modifier = Modifier
 ) {
+    if (iconKey in com.kingkharnivore.skillz.utils.shell.RedCreatureCatalog.byId || iconKey == "red_silhouette") {
+        com.kingkharnivore.skillz.ui.screen.shell.rooms.red.RedDinosaurIcon(if(iconKey == "red_silhouette") "triassic_saturnalia" else iconKey, modifier)
+        return
+    }
     val scheme = MaterialTheme.colorScheme
     val isCreature = iconKey.contains("creature", ignoreCase = true) ||
             listOf("minnow", "seahorse", "manta", "whale", "octopus", "jellyfish", "turtle", "shark", "dolphin", "squid", "starfish", "urchin", "eel", "fish", "seal", "otter", "penguin", "orca", "kraken", "leviathan").any { iconKey.contains(it, ignoreCase = true) }

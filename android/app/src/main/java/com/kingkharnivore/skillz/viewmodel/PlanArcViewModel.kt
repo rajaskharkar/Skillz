@@ -497,6 +497,7 @@ class PlanArcViewModel @Inject constructor(
                             titleSnapshot = flow.title,
                             tagIdSnapshot = flow.tagId,
                             isSoftModeSnapshot = flow.isSoftMode,
+                            mode = flow.mode,
                             targetMinutesSnapshot = targetMinutes,
                             launchWithSurgeSnapshot = launchWithSurge,
                             linkState = ArcPlanStepEntity.LINK_STATE_LINKED
@@ -573,6 +574,7 @@ class PlanArcViewModel @Inject constructor(
                 tagId = plan.tagId,
                 tagName = plan.tagId?.let { tagNameById[it] }.orEmpty(),
                 isSoftMode = plan.isSoftMode,
+                mode = plan.mode,
                 targetMinutes = plan.targetMinutes,
                 launchWithSurge = plan.launchWithSurge,
                 pinned = plan.pinned

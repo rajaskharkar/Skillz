@@ -1,5 +1,7 @@
 package com.kingkharnivore.skillz.model.state.flow
 
+import com.kingkharnivore.skillz.model.FlowMode
+
 import com.kingkharnivore.skillz.BuildConfig
 
 data class FlowUiState(
@@ -8,7 +10,7 @@ data class FlowUiState(
     val tagName: String = "",
     val stopwatch: StopwatchState = StopwatchState(),
     val isInFlowMode: Boolean = false,
-    val isSoftMode: Boolean = false,
+    val mode: FlowMode = FlowMode.FLOW,
     val isSurgeOn: Boolean = false,
     val surgePlannedMs: Long? = null,
     val showScoreUi: Boolean = BuildConfig.SHOW_SCORE,
@@ -29,5 +31,8 @@ data class FlowUiState(
     val originPulseJourneyName: String? = null,
     val healthEnabledAtStart: Boolean = false,
     val healthPermissionGrantedAtStart: Boolean = false,
-    val movementBonusEligibleAtStart: Boolean = false
-)
+    val movementBonusEligibleAtStart: Boolean = false,
+    val originPlanId: Long? = null
+) {
+    val isSoftMode: Boolean get() = mode == FlowMode.SOFT
+}

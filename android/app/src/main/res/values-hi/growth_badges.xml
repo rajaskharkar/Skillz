@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="growth_hello">थोड़ी प्रगति</string>
+    <string name="growth_companion">साथ बढ़ते हुए</string>
+    <string name="growth_stride">लय मिल गई</string>
+    <string name="growth_bond">अटूट साथ</string>
+    <string name="growth_flourishing">निखरते हुए</string>
+    <string name="growth_horizon">विस्तृत क्षितिज</string>
+    <string name="growth_trio">छोटा समुदाय</string>
+    <string name="growth_mosaic">जीवंत विविधता</string>
+    <string name="growth_ensemble">फलता-फूलता समूह</string>
+    <string name="growth_pair">साथ-साथ</string>
+    <string name="growth_neighbours">अच्छे पड़ोसी</string>
+    <string name="growth_atlas">जीवंत मानचित्र</string>
+    <string name="growth_small_world">छोटी सी दुनिया</string>
+    <string name="growth_established_world">आकार लेती दुनिया</string>
+    <string name="growth_theme_beginning">पहला अध्याय</string>
+    <string name="growth_theme_developing">कहानी आगे बढ़ी</string>
+    <string name="growth_forms">आकारों की खोज</string>
+    <string name="growth_small_ritual">छोटी सी आदत</string>
+    <string name="growth_steady_care">नियमित देखभाल</string>
+    <string name="growth_scope_sea">The Blue · समुद्र</string>
+    <string name="growth_scope_land">The Blue · भूमि</string>
+    <string name="growth_scope_red">The Red</string>
+    <string name="growth_book_green_early">हरित शुरुआत</string>
+    <string name="growth_book_green_mid">आकार लेता बगीचा</string>
+    <string name="growth_book_sea_early">पहली लहरें</string>
+    <string name="growth_book_sea_mid">साथियों का सागर</string>
+    <string name="growth_book_land_early">नन्हे पदचिह्न</string>
+    <string name="growth_book_land_mid">दोस्तों की धरती</string>
+    <string name="growth_book_red_early">भोर के साथी</string>
+    <string name="growth_book_red_mid">आकार लेता युग</string>
+    <string name="growth_green_single_goal">%1$s को स्तर %2$d तक बढ़ाएँ।</string>
+    <plurals name="growth_green_subset_goal">
+        <item quantity="one">इस समूह की %1$d प्रजाति को स्तर %2$d तक बढ़ाएँ।\n%3$s</item>
+        <item quantity="other">इस समूह की %1$d अलग प्रजातियों को स्तर %2$d तक बढ़ाएँ।\n%3$s</item>
+    </plurals>
+    <string name="growth_green_one_plant">एक पौधे को स्तर %1$d तक बढ़ाएँ।</string>
+    <plurals name="growth_green_forms_goal">
+        <item quantity="one">%1$d वनस्पति रूप को स्तर %2$d तक बढ़ाएँ।</item>
+        <item quantity="other">%1$d अलग वनस्पति रूपों को स्तर %2$d तक बढ़ाएँ।</item>
+    </plurals>
+    <string name="growth_one_goal">एक जीव को स्तर %1$d तक बढ़ाएँ।</string>
+    <plurals name="growth_species_goal">
+        <item quantity="one">%1$d प्रजाति को स्तर %2$d तक बढ़ाएँ।</item>
+        <item quantity="other">%1$d अलग प्रजातियों को स्तर %2$d तक बढ़ाएँ।</item>
+    </plurals>
+    <plurals name="growth_pair_goal">
+        <item quantity="one">एक प्रजाति के %1$d जीव को स्तर %2$d तक बढ़ाएँ।</item>
+        <item quantity="other">एक प्रजाति के %1$d अलग जीवों को स्तर %2$d तक बढ़ाएँ।</item>
+    </plurals>
+    <plurals name="growth_habitats_goal">
+        <item quantity="one">%1$d आवास या युग में कम से कम एक प्रजाति को स्तर %2$d तक बढ़ाएँ।</item>
+        <item quantity="other">%1$d अलग आवासों या युगों में से प्रत्येक की कम से कम एक प्रजाति को स्तर %2$d तक बढ़ाएँ।</item>
+    </plurals>
+    <string name="growth_scoped_goal">%1$s: %2$s</string>
+</resources>

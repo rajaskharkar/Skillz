@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="book_collections">Collections</string>
+    <string name="book_all_badges">All badges</string>
+    <string name="book_collections_body">Choose a goal. Collections run from easier to harder, by estimated effort.</string>
+    <string name="book_collection_rules">Earn every member badge at least once. A badge can count toward several collections. Earned progress remains after releasing or trading creatures.</string>
+    <plurals name="book_member_progress">
+        <item quantity="one">%1$d / %2$d badge earned</item>
+        <item quantity="other">%1$d / %2$d badges earned</item>
+    </plurals>
+    <string name="book_completion_reward">Completion reward: %1$s</string>
+    <string name="book_collection_award_title">%1$s · Complete</string>
+    <string name="book_collection_award_description">Earn every badge in the %1$s collection at least once.</string>
+    <string name="book_difficulty_start">Getting started</string>
+    <string name="book_difficulty_build">Building your collection</string>
+    <string name="book_difficulty_long">Long-term pursuit</string>
+    <string name="book_difficulty_ultimate">Mastery challenge</string>
+    <string name="book_collection_first_steps">First steps</string>
+    <string name="book_collection_flow">Finding your Flow</string>
+    <string name="book_collection_growing">A growing circle</string>
+    <string name="book_collection_sea">Sea discoveries</string>
+    <string name="book_collection_land">Land discoveries</string>
+    <string name="book_collection_red">Across the ages</string>
+    <string name="book_collection_stillwater">Blue heritage discoveries</string>
+    <string name="book_collection_power">The Power path</string>
+    <string name="book_collection_specialists">Dinosaur specialists</string>
+    <string name="book_collection_sea_mastery">Master of the Sea</string>
+    <string name="book_collection_land_mastery">Master of the Land</string>
+    <string name="book_collection_red_mastery">Master of The Red</string>
+</resources>

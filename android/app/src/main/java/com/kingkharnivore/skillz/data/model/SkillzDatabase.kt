@@ -56,8 +56,15 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeTrackingEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.MasteryCelebrationEventEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
 
+@androidx.room.TypeConverters(com.kingkharnivore.skillz.model.FlowModeConverter::class)
 @Database(
     entities = [
+        com.kingkharnivore.skillz.data.model.entity.green.PlantSpecimenEntity::class,
+        com.kingkharnivore.skillz.data.model.entity.green.GreenBadgeAwardEntity::class,
+        com.kingkharnivore.skillz.data.model.entity.green.GreenActionEntity::class,
+        com.kingkharnivore.skillz.data.model.entity.green.GreenEventEntity::class,
+        com.kingkharnivore.skillz.data.model.entity.shell.PebbleLedgerEntity::class,
+        com.kingkharnivore.skillz.data.model.entity.shell.SessionShellRewardEntity::class,
         com.kingkharnivore.skillz.data.model.entity.ArcLandRewardEntity::class,
         TagEntity::class,
         SessionEntity::class,
@@ -67,6 +74,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
         PulseCreationEntity::class,
         OngoingSessionEntity::class,
         FlowPlanEntity::class,
+        com.kingkharnivore.skillz.data.model.entity.HorizonMemoryEntity::class,
         ArcPlanEntity::class,
         ArcPlanStepEntity::class,
         ActiveArcRunEntity::class,
@@ -101,16 +109,19 @@ import com.kingkharnivore.skillz.data.model.entity.shell.BadgeCountFloorEntity
         ChronicleMomentEntity::class,
         ChronicleMediaItemEntity::class
     ],
-    version = 42,
+    version = 47,
     exportSchema = true
 )
 abstract class SkillzDatabase : RoomDatabase(), ShellDaoProvider {
+    abstract fun greenDao(): com.kingkharnivore.skillz.data.model.dao.green.GreenDao
     abstract fun arcLandRewardDao(): com.kingkharnivore.skillz.data.model.dao.ArcLandRewardDao
+    abstract fun powerRewardDao(): com.kingkharnivore.skillz.data.model.dao.shell.PowerRewardDao
     abstract fun tagDao(): TagDao
     abstract fun sessionDao(): SessionDao
     abstract fun pulseDao(): PulseDao
     abstract fun ideaGroveDao(): IdeaGroveDao
     abstract fun ongoingSessionDao(): OngoingSessionDao
+    abstract fun horizonMemoryDao(): com.kingkharnivore.skillz.data.model.dao.HorizonMemoryDao
     abstract fun flowPlanDao(): FlowPlanDao
     abstract fun arcPlanDao(): ArcPlanDao
     abstract fun activeArcRunDao(): ActiveArcRunDao

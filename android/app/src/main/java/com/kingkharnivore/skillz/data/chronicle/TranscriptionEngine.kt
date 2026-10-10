@@ -148,6 +148,7 @@ class MlKitTranscriptionEngine @Inject constructor(
         }
     }
 
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private suspend fun transcribeWithAndroid(file: File, onPartial: (String) -> Unit): String = coroutineScope {
         check(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
         check(AndroidSpeechRecognizer.isRecognitionAvailable(context)) {

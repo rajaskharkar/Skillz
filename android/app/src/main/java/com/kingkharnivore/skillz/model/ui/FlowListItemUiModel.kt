@@ -14,6 +14,7 @@ data class FlowListItemUiModel(
     val createdAt: Long,
     val score: Int,
     val isSoftMode: Boolean = false,
+    val mode: com.kingkharnivore.skillz.model.FlowMode = com.kingkharnivore.skillz.model.FlowMode.fromSoft(isSoftMode),
     val isSurge: Boolean,
     val surgePoints: Int,
     val arcId: Long? = null,

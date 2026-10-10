@@ -4,18 +4,29 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Update
 import com.kingkharnivore.skillz.data.model.entity.FlowPlanEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FlowPlanDao {
 
+    @Query("SELECT * FROM flow_plans ORDER BY pinned DESC, updatedAt DESC, id DESC")
+    fun observeAll(): Flow<List<FlowPlanEntity>>
+
+    @Query("UPDATE flow_plans SET completedAt = :at WHERE id = :id AND kind = 'PLAN' AND completedAt IS NULL")
+    suspend fun markCompleted(id: Long, at: Long)
+
+    @Query("SELECT COUNT(*) FROM flow_plans WHERE tagId = :tagId")
+    suspend fun countForTag(tagId: Long): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFlowPlan(plan: FlowPlanEntity): Long
 
-    @Update
-    suspend fun updateFlowPlan(plan: FlowPlanEntity)
+    @Query("""UPDATE flow_plans SET title=:title, tagId=:tagId, kind=:kind,
+        isSoftMode=:soft, mode=:mode, targetMinutes=:minutes, launchWithSurge=:surge, updatedAt=:at
+        WHERE id=:id AND completedAt IS NULL""")
+    suspend fun updateDetails(id: Long, title: String, tagId: Long?, kind: String,
+        soft: Boolean, mode: com.kingkharnivore.skillz.model.FlowMode, minutes: Int?, surge: Boolean, at: Long): Int
 
     @Query("SELECT * FROM flow_plans WHERE id = :id LIMIT 1")
     suspend fun getFlowPlanById(id: Long): FlowPlanEntity?
@@ -23,7 +34,7 @@ interface FlowPlanDao {
     @Query(
         """
         SELECT * FROM flow_plans
-        WHERE archived = 0
+        WHERE archived = 0 AND completedAt IS NULL
         ORDER BY pinned DESC, updatedAt DESC, title COLLATE NOCASE ASC
         """
     )

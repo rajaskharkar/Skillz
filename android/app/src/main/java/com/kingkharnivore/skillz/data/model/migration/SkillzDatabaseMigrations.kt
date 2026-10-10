@@ -462,6 +462,114 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_45_46 = object : Migration(45, 46) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE flow_plans ADD COLUMN mode INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("UPDATE flow_plans SET mode = CASE WHEN isSoftMode = 1 THEN 1 ELSE 0 END")
+            db.execSQL("ALTER TABLE arc_plan_steps ADD COLUMN mode INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("UPDATE arc_plan_steps SET mode = CASE WHEN isSoftModeSnapshot = 1 THEN 1 ELSE 0 END")
+        }
+    }
+
+    val MIGRATION_44_45 = object : Migration(44, 45) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // All existing activities retain their IDs, settings and archive state as Habits.
+            db.execSQL("ALTER TABLE flow_plans ADD COLUMN kind TEXT NOT NULL DEFAULT 'HABIT'")
+            db.execSQL("ALTER TABLE flow_plans ADD COLUMN completedAt INTEGER")
+            db.execSQL("ALTER TABLE ongoing_session ADD COLUMN originPlanId INTEGER")
+            db.execSQL("ALTER TABLE sessions ADD COLUMN originPlanId INTEGER")
+            db.execSQL("""CREATE TABLE IF NOT EXISTS horizon_memories (
+                flowInstanceId TEXT NOT NULL PRIMARY KEY, sourcePlanId INTEGER NOT NULL,
+                kind TEXT NOT NULL, activityTitle TEXT NOT NULL, sessionId INTEGER,
+                title TEXT NOT NULL, tagName TEXT NOT NULL, mode INTEGER NOT NULL,
+                durationMs INTEGER NOT NULL, score INTEGER NOT NULL, surgePoints INTEGER NOT NULL,
+                surgePlannedMs INTEGER, arcId INTEGER, arcMultiplier REAL, completedAt INTEGER NOT NULL,
+                FOREIGN KEY(sessionId) REFERENCES sessions(id) ON UPDATE NO ACTION ON DELETE SET NULL)""")
+            db.execSQL("CREATE UNIQUE INDEX index_horizon_memories_sessionId ON horizon_memories(sessionId)")
+            db.execSQL("CREATE INDEX index_horizon_memories_sourcePlanId ON horizon_memories(sourcePlanId)")
+            db.execSQL("CREATE INDEX index_horizon_memories_completedAt ON horizon_memories(completedAt)")
+            // Do not infer completions from launches or remove legacy planned Arcs / active runs.
+        }
+    }
+
+    val MIGRATION_42_44 = object : Migration(42, 44) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Existing isSoftMode columns encode FLOW=0 / SOFT=1 unchanged. POWER=2 is new only.
+            db.execSQL("CREATE TABLE IF NOT EXISTS pebble_ledger (id TEXT NOT NULL PRIMARY KEY, delta INTEGER NOT NULL, sourceId TEXT NOT NULL, createdAt INTEGER NOT NULL)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS session_shell_reward (sessionId INTEGER NOT NULL PRIMARY KEY, completed INTEGER NOT NULL, pearls INTEGER NOT NULL, pebbles INTEGER NOT NULL, queuedAt INTEGER NOT NULL)")
+        }
+    }
+
+    /** Repairs the enum TEXT affinity in an intermediate development build. Released v42
+     * takes the additive 42->44 path and never rebuilds a historical session table. */
+    val MIGRATION_43_44 = object : Migration(43, 44) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            repairPowerModeAffinity(db, "sessions")
+            repairPowerModeAffinity(db, "ongoing_session")
+            db.query("PRAGMA foreign_key_check").use { check(!it.moveToFirst()) { "Power migration foreign key check failed" } }
+        }
+    }
+
+    private fun repairPowerModeAffinity(db: SupportSQLiteDatabase, table: String) {
+        val type = db.query("PRAGMA table_info(`$table`)").use { cursor ->
+            var result = ""
+            while (cursor.moveToNext()) if (cursor.getString(1) == "isSoftMode") result = cursor.getString(2)
+            result
+        }
+        if (type.equals("INTEGER", ignoreCase = true)) return
+        check(type.equals("TEXT", ignoreCase = true)) { "Unexpected Power mode column type" }
+        db.query("SELECT COUNT(*) FROM `$table` WHERE isSoftMode NOT IN ('0','1','2','FLOW','SOFT','POWER')").use {
+            check(it.moveToFirst() && it.getLong(0) == 0L) { "Unknown mode; preserving database without migration" }
+        }
+        val sql = db.query("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", arrayOf(table)).use { it.moveToFirst(); it.getString(0) }
+        val indices = db.query("SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql IS NOT NULL", arrayOf(table)).use { cursor ->
+            buildList { while(cursor.moveToNext()) add(cursor.getString(0)) }
+        }
+        val columns = db.query("PRAGMA table_info(`$table`)").use { cursor -> buildList { while(cursor.moveToNext()) add(cursor.getString(1)) } }
+        val children = if(table == "sessions") listOf("session_creations", "pulse_flow_links", "flow_health_snapshots", "flow_reward_breakdowns") else emptyList()
+        // DROP TABLE fires FK actions even within a transaction. Snapshot every affected child
+        // and the nullable Pulse links first, then restore them before validation/commit.
+        children.forEach { db.execSQL("CREATE TEMP TABLE `power_backup_$it` AS SELECT * FROM `$it`") }
+        children.forEach { db.execSQL("DELETE FROM `$it`") }
+        if(table == "sessions") db.execSQL("CREATE TEMP TABLE power_pulse_links AS SELECT id,parentSessionId FROM pulses")
+        val sequence = if(table == "sessions") db.query("SELECT seq FROM sqlite_sequence WHERE name='sessions'").use { if(it.moveToFirst()) it.getLong(0) else 0L } else 0L
+        val replacement = "${table}_power_repair"
+        val create = sql.replaceFirst(Regex("(?i)CREATE TABLE (IF NOT EXISTS )?[`\"]?" + table + "[`\"]?"), "CREATE TABLE `$replacement`")
+            .replace(Regex("(?i)([`\"]?isSoftMode[`\"]?\\s+)TEXT"), "$1INTEGER")
+        check(create != sql && create.contains("INTEGER"))
+        db.execSQL(create)
+        val names = columns.joinToString(",") { "`$it`" }
+        val values = columns.joinToString(",") { if(it == "isSoftMode") "CASE isSoftMode WHEN 'SOFT' THEN 1 WHEN 'POWER' THEN 2 WHEN 'FLOW' THEN 0 ELSE CAST(isSoftMode AS INTEGER) END" else "`$it`" }
+        db.execSQL("INSERT INTO `$replacement` ($names) SELECT $values FROM `$table`")
+        db.execSQL("DROP TABLE `$table`")
+        db.execSQL("ALTER TABLE `$replacement` RENAME TO `$table`")
+        indices.forEach(db::execSQL)
+        children.forEach {
+            db.execSQL("INSERT INTO `$it` SELECT * FROM `power_backup_$it`")
+            db.execSQL("DROP TABLE `power_backup_$it`")
+        }
+        if(table == "sessions") {
+            db.execSQL("UPDATE pulses SET parentSessionId=(SELECT parentSessionId FROM power_pulse_links WHERE power_pulse_links.id=pulses.id)")
+            db.execSQL("DROP TABLE power_pulse_links")
+            db.execSQL("UPDATE sqlite_sequence SET seq=MAX(seq,?) WHERE name='sessions'", arrayOf(sequence))
+        }
+    }
+
+    /** Additive: Drops, creatures, advanced states, badge ledgers and historical rooms stay intact. */
+    val MIGRATION_46_47 = object : Migration(46, 47) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS green_specimen (id TEXT NOT NULL PRIMARY KEY, speciesId TEXT NOT NULL, level INTEGER NOT NULL, plantedAt INTEGER NOT NULL, fullyGrownAt INTEGER, masteredAt INTEGER, lastWateredAt INTEGER, positionKey TEXT NOT NULL, createdOrder INTEGER NOT NULL, investedDrops INTEGER NOT NULL)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_green_specimen_speciesId ON green_specimen(speciesId)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_green_specimen_createdOrder ON green_specimen(createdOrder)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS green_badge_award (id TEXT NOT NULL PRIMARY KEY, awardedAt INTEGER NOT NULL, catalogueVersion INTEGER NOT NULL)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS green_action (id TEXT NOT NULL PRIMARY KEY, kind TEXT NOT NULL, targetId TEXT NOT NULL, specimenId TEXT NOT NULL, oldLevel INTEGER NOT NULL, newLevel INTEGER NOT NULL, cost INTEGER NOT NULL, balanceAfter INTEGER NOT NULL, occurredAt INTEGER NOT NULL)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS green_event (id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, occurredAt INTEGER NOT NULL, speciesId TEXT, environmentId TEXT, tier INTEGER, oldLevel INTEGER, newLevel INTEGER, growthStage TEXT, dropCost INTEGER, balanceAfter INTEGER)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_green_event_name ON green_event(name)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_green_event_occurredAt ON green_event(occurredAt)")
+            // Catalogue membership is static. Keeping creature IDs means no copying, resets or merging.
+        }
+    }
+
     val ALL_MIGRATIONS: Array<Migration> =
         LEGACY_TO_15_MIGRATIONS +
                 MIGRATION_13_14 +
@@ -492,7 +600,8 @@ object SkillzDatabaseMigrations {
                 MIGRATION_38_39 +
                 MIGRATION_39_40 +
                 MIGRATION_40_41 +
-                MIGRATION_41_42
+                MIGRATION_41_42 +
+                MIGRATION_42_44 + MIGRATION_43_44 + MIGRATION_44_45 + MIGRATION_45_46 + MIGRATION_46_47
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(

@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SessionDao {
+    @Query("SELECT * FROM sessions WHERE durationMs > 0 ORDER BY endTime, id")
+    suspend fun completedSessions(): List<SessionEntity>
+
     @Query("SELECT sessionId FROM session_creations WHERE flowInstanceId=:flowInstanceId LIMIT 1")
     suspend fun findCreatedSession(flowInstanceId: String): Long?
 
@@ -35,6 +38,9 @@ interface SessionDao {
         """
     )
     fun getAllSessions(): Flow<List<SessionEntity>>
+
+    @Query("UPDATE sessions SET title = :title, tagId = :tagId WHERE id = :sessionId")
+    suspend fun updateDetails(sessionId: Long, title: String, tagId: Long)
 
     @Query("DELETE FROM sessions WHERE id = :sessionId")
     suspend fun deleteSessionById(sessionId: Long)
@@ -96,12 +102,12 @@ interface SessionDao {
     @Query("UPDATE sessions SET scyraPoints = :finalScyraPoints, arcBonusPoints = :arcBonusPoints WHERE id = :sessionId")
     suspend fun updateRewardPoints(sessionId: Long, finalScyraPoints: Int, arcBonusPoints: Int)
 
-    @Query("SELECT COUNT(*) FROM sessions WHERE isSoftMode = 0")
+    @Query("SELECT COUNT(*) FROM sessions WHERE isSoftMode != 1")
     suspend fun getRegularSessionCount(): Int
 
-    @Query("SELECT endTime FROM sessions WHERE isSoftMode = 0 AND endTime < :endTime ORDER BY endTime DESC LIMIT 1")
+    @Query("SELECT endTime FROM sessions WHERE isSoftMode != 1 AND endTime < :endTime ORDER BY endTime DESC LIMIT 1")
     suspend fun getLastRegularSessionEndBefore(endTime: Long): Long?
 
-    @Query("SELECT * FROM sessions WHERE tagId = :tagId AND isSoftMode = 0 AND endTime >= :startMs AND endTime < :endMs AND (endTime < :asOfMs OR (endTime = :asOfMs AND id <= :asOfId)) ORDER BY endTime, id")
+    @Query("SELECT * FROM sessions WHERE tagId = :tagId AND isSoftMode != 1 AND endTime >= :startMs AND endTime < :endMs AND (endTime < :asOfMs OR (endTime = :asOfMs AND id <= :asOfId)) ORDER BY endTime, id")
     suspend fun getRegularSessionsForObjectiveWindow(tagId: Long, startMs: Long, endMs: Long, asOfMs: Long, asOfId: Long): List<SessionEntity>
 }
