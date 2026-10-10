@@ -110,9 +110,14 @@ fun ShellChestScreen(
     onFocusResult: (String, NavigationConsumptionResult) -> Unit = { _, _ -> },
     onEnvironmentSelected: (ChestFilterOption) -> Unit = onFilterSelected,
     onClearFilters: () -> Unit = { onEnvironmentSelected(ChestFilterOption.All); onFilterSelected(ChestFilterOption.All) },
-    onOpenRed: () -> Unit = {}
+    onOpenRed: () -> Unit = {},
+    greenState: com.kingkharnivore.skillz.viewmodel.green.GreenUiState = com.kingkharnivore.skillz.viewmodel.green.GreenUiState(),
+    onWaterPlant: (String, Int, String) -> Unit = { _, _, _ -> },
+    onDismissGreenFeedback: () -> Unit = {}, onOpenGreen: () -> Unit = {},
+    showPlantsInitially: Boolean = false, focusPlantSpeciesId: String? = null, focusPlantSpecimenId: String? = null
 
 ) {
+    var showPlants by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(showPlantsInitially) }
     var selectedStack by remember { mutableStateOf<ChestInventoryStackUiModel?>(null) }
     val masteryCounts = uiState.badgeDashboard?.badges?.mapNotNull { badge ->
         BadgeDefinitionResolver.resolve(badge.badgeId).speciesId?.let { it to badge.count }
@@ -148,6 +153,19 @@ fun ShellChestScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         RoomHeader(title = R.string.shell_chest_title, body = R.string.shell_chest_body)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(!showPlants, { showPlants = false }, { Text(stringResource(R.string.green_chest_creatures)) },
+                colors = com.kingkharnivore.skillz.ui.screen.shell.rooms.green.greenPrimarySelectionColors())
+            FilterChip(showPlants, { showPlants = true }, { Text(stringResource(R.string.green_chest_plants)) },
+                colors = com.kingkharnivore.skillz.ui.screen.shell.rooms.green.greenPrimarySelectionColors())
+        }
+        if (showPlants) {
+            androidx.compose.runtime.CompositionLocalProvider(com.kingkharnivore.skillz.ui.screen.shell.rooms.green.LocalGreenCalmMode provides uiState.calmMode) {
+                com.kingkharnivore.skillz.ui.screen.shell.rooms.green.GreenCollectionScreen(greenState, onWaterPlant,
+                    onDismissGreenFeedback, onOpenGreen, focusPlantSpeciesId, focusPlantSpecimenId)
+            }
+            return@Column
+        }
         if (allStacks.isNotEmpty()) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -850,7 +868,9 @@ internal fun speciesNeededForTrackedBadges(badges: List<com.kingkharnivore.skill
         val red = com.kingkharnivore.skillz.domain.achievement.RedBadgeCatalog.byId[badge.badgeId]
         val land = com.kingkharnivore.skillz.domain.achievement.LandBadgeCatalog.byId[badge.badgeId]
         val landSpecies = com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.all.filter { it.isAvailable }.map { it.creatureId }.toSet()
-        if (land != null) when (land.metric) {
+        if (badge.badgeId in com.kingkharnivore.skillz.domain.achievement.CreatureGrowthBadges.byId)
+            com.kingkharnivore.skillz.domain.achievement.CreatureGrowthBadges.byId.getValue(badge.badgeId).species.toList()
+        else if (land != null) when (land.metric) {
             com.kingkharnivore.skillz.domain.achievement.LandBadgeMetric.LEVEL,
             com.kingkharnivore.skillz.domain.achievement.LandBadgeMetric.MASTERY -> landSpecies.toList()
             com.kingkharnivore.skillz.domain.achievement.LandBadgeMetric.MASTERED_SPECIES -> (landSpecies - mastered).toList()
@@ -863,7 +883,7 @@ internal fun speciesNeededForTrackedBadges(badges: List<com.kingkharnivore.skill
         }
         else if (red?.mastery == true) (red.species - mastered).toList()
         else if (badge.badgeId in setOf("mastery_first", "mastery_circle", "mastery_variety", "stillwater_mastery"))
-            CreatureCatalog.all.filter { it.isAvailable && (badge.badgeId != "stillwater_mastery" || it.sourceType in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND)) }
+            CreatureCatalog.all.filter { it.isAvailable && (badge.badgeId != "stillwater_mastery" || it.isHeritageSpecies) }
                 .filter { badge.badgeId != "mastery_variety" || it.creatureId !in mastered }.map { it.creatureId }
         else definition.speciesId?.let { listOf(it) } ?: when (definition.requirement) {
             BadgeRequirement.COMPLETIONIST -> badge.collectionProgress?.missingMasteredSpeciesIds.orEmpty().toList()

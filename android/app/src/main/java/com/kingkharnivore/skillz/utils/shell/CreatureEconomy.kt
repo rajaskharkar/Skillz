@@ -120,6 +120,7 @@ data class CreatureDefinition(
     val baseGrowthCostPearls: Int? = null,
     val pebbleCost: Int? = null
 ) {
+    val isHeritageSpecies: Boolean get() = creatureId.startsWith("stillwater_") || restorativeHabitat != null
     val realm: CreatureRealm get() = zone.realm
     val requirement: CreatureRequirement get() = when (sourceType) {
         CreatureSourceType.RED_PURCHASE -> CreatureRequirement.Pebbles(requireNotNull(pebbleCost))
@@ -179,7 +180,7 @@ object CreatureCatalog {
             creatureId = entry.creatureId,
             displayName = entry.displayName,
             zone = entry.vessel.zone,
-            sourceType = CreatureSourceType.STILLWATER,
+            sourceType = CreatureSourceType.BEYOND_BLUE,
             requirementMinutes = (entry.vessel.dropCost / 60L).toInt(),
             staticIconKey = "creature_icon_${entry.creatureId}",
             animatedRendererKey = "creature_renderer_${entry.creatureId}",
@@ -302,9 +303,9 @@ object CreatureCatalog {
     val byId: Map<String, CreatureDefinition> = all.associateBy { it.creatureId }
     val flowEarned: List<CreatureDefinition> = all.filter { it.sourceType == CreatureSourceType.FLOW_EARNED }
     val beyondBlue: List<CreatureDefinition> = all.filter { it.sourceType == CreatureSourceType.BEYOND_BLUE }
-    val stillwater: List<CreatureDefinition> = all.filter { it.sourceType == CreatureSourceType.STILLWATER }
+    val stillwater: List<CreatureDefinition> = all.filter { it.creatureId.startsWith("stillwater_") }
     val allStillwater: List<CreatureDefinition> = all.filter {
-        it.sourceType in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND)
+        it.isHeritageSpecies
     }
 
     fun get(creatureId: String): CreatureDefinition? = byId[creatureId]
@@ -411,7 +412,7 @@ object CreatureEconomy {
         val upgradeInvestment = cumulativeGrowthCostPearls(creatureId, safeLevel)
         val salvageRate = releaseSalvageRate(safeLevel)
         val normalValue = base.toLong() + (upgradeInvestment * salvageRate).toLong()
-        val adjustedValue = if (definition.sourceType in setOf(CreatureSourceType.STILLWATER, CreatureSourceType.RESTORATIVE_LAND)) {
+        val adjustedValue = if (definition.isHeritageSpecies) {
             (normalValue * STILLWATER_RELEASE_VALUE_MULTIPLIER).roundToInt().coerceAtLeast(1).toLong()
         } else {
             normalValue

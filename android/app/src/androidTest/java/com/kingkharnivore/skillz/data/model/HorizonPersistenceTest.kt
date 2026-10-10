@@ -42,22 +42,54 @@ class HorizonPersistenceTest {
         }
     }
 
-    @Test fun deletingMemoryRemovesStoryChroniclesAndCountButKeepsHabit() = runBlocking {
+    @Test fun removingMemoryChangesOnlyThatHabitReceiptAndPreservesEveryOtherTable() = runBlocking {
         val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title="Walk", tagId=1))
+        val otherHabit = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title="Read", tagId=1))
         flows.addSessionAndPromoteChronicle("older", session(plan))
+        flows.addSessionAndPromoteChronicle("other-habit", session(otherHabit))
         chronicles.addText("ACTIVE_FLOW", "newer", "A walk to remember")
-        val id = flows.addSessionAndPromoteChronicle("newer", session(plan, 120_000))
-        flows.deleteMemory("newer")
-        flows.deleteMemory("newer") // Double taps / retries are harmless.
-        assertNull(db.sessionDao().getSessionById(id))
-        assertNull(db.chronicleDao().find("SESSION", id.toString()))
+        db.pulseDao().insertPulse(PulseEntity(title="Notice the trees", description="Keep this thought", tagId=1, parentFlowInstanceId="newer"))
+        val saved = session(plan, 120_000).copy(arcId=9, arcIndex=1)
+        val id = flows.addSessionAndPromoteChronicle("newer", saved)
+        db.arcMetadataDao().upsert(ArcMetadataEntity(9,"Walking arc","Keep the arc",null,null,null,1,1))
+        db.stillwaterLedgerDao().insert(com.kingkharnivore.skillz.data.model.entity.shell.StillwaterLedgerEntity("memory-drops",250,"soft_flow",id.toString(),1))
+        val before = snapshotOutsideMemories()
+        val otherReceipt = db.horizonMemoryDao().getByFlowInstanceId("other-habit")
+        // A stale or mismatched activity cannot remove another activity's memory.
+        flows.removeMemoryFromActivity("newer", otherHabit)
+        assertNotNull(db.horizonMemoryDao().getByFlowInstanceId("newer"))
+        flows.removeMemoryFromActivity("newer", plan)
+        flows.removeMemoryFromActivity("newer", plan) // Repeated removal is harmless.
+        assertEquals(before, snapshotOutsideMemories())
+        assertEquals(otherReceipt, db.horizonMemoryDao().getByFlowInstanceId("other-habit"))
+        assertEquals("A walk to remember", db.chronicleDao().moments(db.chronicleDao().find("SESSION", id.toString())!!.id).single().text)
+        assertEquals(id, flows.findCreatedSession("newer"))
+        // Retrying a completed save must neither recreate the memory nor duplicate the Flow/rewards.
+        assertEquals(id, flows.addSessionAndPromoteChronicle("newer", saved))
+        assertNull(db.horizonMemoryDao().getByFlowInstanceId("newer"))
         val groups = groupHorizonMemories(db.horizonMemoryDao().observeAll().first(), db.sessionDao().getAllSessions().first(), mapOf(1L to "Outdoors"))
-        assertEquals(1, groups.single().flows.size)
-        assertEquals("older", groups.single().latest.receipt.flowInstanceId)
-        flows.deleteMemory("older")
-        assertTrue(db.horizonMemoryDao().observeAll().first().isEmpty())
-        assertEquals(plan, db.flowPlanDao().getActiveFlowPlans().first().single().id)
-        assertEquals(1L, db.tagDao().getAllTagsSnapshot().single().id)
+        assertEquals(listOf("older"), groups.single { it.sourcePlanId == plan }.flows.map { it.receipt.flowInstanceId })
+        flows.removeMemoryFromActivity("older", plan)
+        assertEquals(listOf(otherReceipt), db.horizonMemoryDao().observeAll().first())
+        assertEquals(before, snapshotOutsideMemories())
+    }
+
+    private fun snapshotOutsideMemories(): Map<String, List<List<String?>>> {
+        val sqlite = db.openHelper.readableDatabase
+        val tables = sqlite.query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('room_master_table','android_metadata','horizon_memories')").use { cursor ->
+            buildList { while (cursor.moveToNext()) add(cursor.getString(0)) }
+        }
+        return tables.associateWith { table ->
+            sqlite.query("SELECT * FROM \"$table\"").use { cursor ->
+                buildList { while (cursor.moveToNext()) add(List(cursor.columnCount) { column ->
+                    when (cursor.getType(column)) {
+                        android.database.Cursor.FIELD_TYPE_NULL -> null
+                        android.database.Cursor.FIELD_TYPE_BLOB -> android.util.Base64.encodeToString(cursor.getBlob(column), android.util.Base64.NO_WRAP)
+                        else -> cursor.getString(column)
+                    }
+                }) }.sortedBy { it.toString() }
+            }
+        }
     }
 
     @Test fun deletingDetachedPlanMemoryKeepsPlanCompleted() = runBlocking {
@@ -65,21 +97,21 @@ class HorizonPersistenceTest {
         val id = flows.addSessionAndPromoteChronicle("done", session(plan))
         flows.deleteSession(id)
         assertNull(db.horizonMemoryDao().observeAll().first().single().sessionId)
-        flows.deleteMemory("done")
+        flows.removeMemoryFromActivity("done", plan)
         assertTrue(db.horizonMemoryDao().observeAll().first().isEmpty())
         assertNotNull(db.flowPlanDao().getFlowPlanById(plan)!!.completedAt)
         assertTrue(db.flowPlanDao().getActiveFlowPlans().first().isEmpty())
     }
 
-    @Test fun memoryDeletionRollsBackIfStoryDeletionFails() = runBlocking {
+    @Test fun memoryRemovalNeverAttemptsToDeleteStory() = runBlocking {
         val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title="Walk", tagId=1))
         chronicles.addText("ACTIVE_FLOW", "kept", "Keep this chronicle")
         val id = flows.addSessionAndPromoteChronicle("kept", session(plan))
         db.openHelper.writableDatabase.execSQL("CREATE TRIGGER fail_delete BEFORE DELETE ON sessions BEGIN SELECT RAISE(ABORT,'test failure'); END")
-        try { flows.deleteMemory("kept"); fail("Expected failure") } catch (_: android.database.sqlite.SQLiteException) { }
+        flows.removeMemoryFromActivity("kept", plan)
         assertNotNull(db.sessionDao().getSessionById(id))
         assertNotNull(db.chronicleDao().find("SESSION", id.toString()))
-        assertEquals("kept", db.horizonMemoryDao().observeAll().first().single().flowInstanceId)
+        assertTrue(db.horizonMemoryDao().observeAll().first().isEmpty())
     }
 
     @Test fun powerPlansRetainTheirModeThroughEditingArcSnapshotsAndCompletion() = runBlocking {

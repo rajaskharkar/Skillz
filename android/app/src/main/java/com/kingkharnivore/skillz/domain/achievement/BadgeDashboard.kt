@@ -1,5 +1,7 @@
 package com.kingkharnivore.skillz.domain.achievement
 
+import com.kingkharnivore.skillz.domain.green.dashboardModel
+
 import com.kingkharnivore.skillz.data.model.entity.shell.*
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureStatus
@@ -8,7 +10,7 @@ import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
 import com.kingkharnivore.skillz.utils.shell.StillwaterContainer
 import com.kingkharnivore.skillz.utils.shell.LandStillwaterHabitat
 
-enum class BadgeUiCategory { ALL, FLOW, ARC, CREATURES, MASTERY, COLLECTIONS, STILLWATER, MOVEMENT, SURGE, OBJECTIVES, SPECIAL }
+enum class BadgeUiCategory { ALL, FLOW, ARC, CREATURES, MASTERY, COLLECTIONS, STILLWATER, MOVEMENT, SURGE, OBJECTIVES, SPECIAL, GREEN }
 enum class BadgeSort { RECOMMENDED, RECENTLY_EARNED, RECENTLY_ADVANCED, HIGHEST_COUNT, CLOSEST_MILESTONE, ALPHABETICAL }
 enum class BadgeDisabledReason { COMPLETE, NO_NEXT_MILESTONE, CREATURE_NOT_OWNED, REGION_LOCKED, VESSEL_LOCKED, EMPTY_ROSTER, UNSUPPORTED_DESTINATION }
 data class AchievementAccessState(
@@ -16,6 +18,7 @@ data class AchievementAccessState(
     val unlockedStillwaterVessels: Set<StillwaterContainer> = (StillwaterVessel.entries + LandStillwaterHabitat.entries).toSet()
 )
 sealed interface BadgeActionDestination {
+    data class Green(val environmentId: String? = null, val speciesId: String? = null, val plantSeed: Boolean = false, val specimenId: String? = null) : BadgeActionDestination
     data object Flow : BadgeActionDestination
     data object Arc : BadgeActionDestination
     data object MovementInfo : BadgeActionDestination
@@ -110,7 +113,9 @@ object BadgeDashboardCalculator {
         tracking: List<BadgeTrackingEntity>,
         countFloors: List<BadgeCountFloorEntity> = emptyList(),
         accessState: AchievementAccessState = AchievementAccessState(),
-        sessions: List<com.kingkharnivore.skillz.data.model.entity.SessionEntity> = emptyList()
+        sessions: List<com.kingkharnivore.skillz.data.model.entity.SessionEntity> = emptyList(),
+        greenPlants: List<com.kingkharnivore.skillz.data.model.entity.green.PlantSpecimenEntity> = emptyList(),
+        greenAwards: List<com.kingkharnivore.skillz.data.model.entity.green.GreenBadgeAwardEntity> = emptyList()
     ): BadgeDashboard {
         val earnedById = earned.associateBy { it.badgeId }
         val pinOrder = pins.associate { it.badgeId to it.pinOrder }
@@ -121,11 +126,11 @@ object BadgeDashboardCalculator {
             .groupBy({ it.findId }, { it.animalLevel })
         val masteryEvidence = MasteryEvidenceCalculator.bySpecies(masteries, countFloors, activeLevels)
         val mastered = masteryEvidence.filterValues { it.hasEverBeenMastered }.keys
+        val growthEvidence = CreatureGrowthBadges.evidence(instances, masteries, masteryEvidence.mapValues { it.value.effectiveLifetimeCount })
         val landEvidence = LandBadgeEvidence(instances, discovered, masteryEvidence)
         val seaRegionIds = com.kingkharnivore.skillz.utils.shell.CreatureZone.entries
             .filter { it.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA }
             .map { "blue_${it.name.lowercase()}" }.toSet()
-        val seaVesselIds = StillwaterVessel.entries.map { "stillwater_${it.name.lowercase()}" }.toSet()
         val eligibleMasterySpecies = CreatureCatalog.all.filter { it.isAvailable && it.participatesInCompletionist }.mapTo(mutableSetOf()) { it.creatureId }
         val eligibleCollectorSpecies = CreatureCatalog.all.filter { it.isAvailable && it.participatesInCollector }.mapTo(mutableSetOf()) { it.creatureId }
         val eligibleStillwaterSpecies = CreatureCatalog.allStillwater.filter { it.isAvailable && it.participatesInCollector }.mapTo(mutableSetOf()) { it.creatureId }
@@ -154,15 +159,20 @@ object BadgeDashboardCalculator {
             .filter { BadgeVisibilityEvaluator.isVisible(it, visibilityContext) }
         val baseBadges = definitions.filterNot { it.badgeId in BadgeBookCollections.byAward }.map { definition ->
             val stored = earnedById[definition.badgeId]
+            com.kingkharnivore.skillz.domain.green.GreenBadgeEvaluator.byId[definition.badgeId]?.let { green ->
+                return@map green.dashboardModel(greenPlants, greenAwards.firstOrNull { it.id == green.id }, stored,
+                    pinOrder[green.id], green.id in tracked)
+            }
             val landSpec = LandBadgeCatalog.byId[definition.badgeId]
             val redSpec = RedBadgeCatalog.byId[definition.badgeId]
+            val growthSpec = CreatureGrowthBadges.byId[definition.badgeId]
             val collection = definition.collectionId?.let(collectionById::get)
             val historicalCompletion = definition.collectionId?.let { collectionId ->
                 completions.filter { it.collectionId == collectionId && it.completionType == definition.requirement.name }
                     .minWithOrNull(compareBy<CollectionCompletionEntity> { it.completedAt == null }.thenBy { it.completedAt })
             }
             val speciesLevels = definition.speciesId?.let { activeLevels[it].orEmpty() }.orEmpty()
-            val currentVerified = redSpec?.let { RedBadgeCatalog.progress(it, discovered + instances.map { c -> c.findId }, mastered, sessions) } ?: landSpec?.let(landEvidence::count) ?: when (definition.requirement) {
+            val currentVerified = growthSpec?.let { CreatureGrowthBadges.progress(it, growthEvidence) } ?: redSpec?.let { RedBadgeCatalog.progress(it, discovered + instances.map { c -> c.findId }, mastered, sessions) } ?: landSpec?.let(landEvidence::count) ?: when (definition.requirement) {
                 BadgeRequirement.COLLECTOR -> if (collection?.collectorEarned == true) 1 else 0
                 BadgeRequirement.CURATOR -> if (collection?.curatorEarned == true) 1 else 0
                 BadgeRequirement.COMPLETIONIST -> if (collection?.completionistEarned == true) 1 else 0
@@ -174,14 +184,14 @@ object BadgeDashboardCalculator {
                     )
                     "mastery_variety" -> mastered.intersect(eligibleMasterySpecies).size
                     "variety_collector" -> discovered.intersect(eligibleCollectorSpecies).size
-                    "stillwater_first_catch" -> if (discovered.any { CreatureCatalog.get(it)?.sourceType in setOf(com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER, com.kingkharnivore.skillz.utils.shell.CreatureSourceType.RESTORATIVE_LAND) }) 1 else 0
+                    "stillwater_first_catch" -> if (discovered.any { CreatureCatalog.get(it)?.isHeritageSpecies == true }) 1 else 0
                     "stillwater_variety" -> discovered.intersect(eligibleStillwaterSpecies).size
                     "stillwater_mastery" -> maxOf(
-                        masteryEvidence.values.filter { CreatureCatalog.get(it.speciesId)?.sourceType in setOf(com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER, com.kingkharnivore.skillz.utils.shell.CreatureSourceType.RESTORATIVE_LAND) }.sumOf { it.effectiveLifetimeCount },
-                        MasteryEvidenceCalculator.effectiveCount(masteries.count { CreatureCatalog.get(it.speciesId)?.sourceType in setOf(com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER, com.kingkharnivore.skillz.utils.shell.CreatureSourceType.RESTORATIVE_LAND) }, floors["stillwater_mastery"])
+                        masteryEvidence.values.filter { CreatureCatalog.get(it.speciesId)?.isHeritageSpecies == true }.sumOf { it.effectiveLifetimeCount },
+                        MasteryEvidenceCalculator.effectiveCount(masteries.count { CreatureCatalog.get(it.speciesId)?.isHeritageSpecies == true }, floors["stillwater_mastery"])
                     )
                     "across_the_depths" -> if (CollectionCatalog.collections.filter { it.collectionId in seaRegionIds }.all { (collectionById[it.collectionId]?.discoveredSpeciesCount ?: 0) > 0 }) 1 else 0
-                    "one_from_every_water" -> if (CollectionCatalog.collections.filter { it.collectionId in seaRegionIds || it.collectionId in seaVesselIds }.all { collection ->
+                    "one_from_every_water" -> if (CollectionCatalog.collections.filter { it.collectionId in seaRegionIds }.all { collection ->
                         collection.eligibleRoster(BadgeRequirement.COMPLETIONIST).any { masteryEvidence[it]?.hasEverBeenMastered == true }
                     }) 1 else 0
                     "keeper_of_the_blue" -> if (CollectionCatalog.collections.filter { it.collectionId in seaRegionIds }.all { collectionById[it.collectionId]?.collectorEarned == true }) 1 else 0
@@ -193,11 +203,11 @@ object BadgeDashboardCalculator {
                 "mastery_variety" -> mastered.size
                 "variety_collector" -> discovered.size
                 "stillwater_variety" -> discovered.count {
-                    CreatureCatalog.get(it)?.sourceType in setOf(com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER, com.kingkharnivore.skillz.utils.shell.CreatureSourceType.RESTORATIVE_LAND)
+                    CreatureCatalog.get(it)?.isHeritageSpecies == true
                 }
                 else -> currentVerified
             }
-            val lifetimeCount = if ((landSpec != null || redSpec != null) && definition.countType == BadgeCountType.ONE_TIME) {
+            val lifetimeCount = if ((landSpec != null || redSpec != null || growthSpec != null) && definition.countType == BadgeCountType.ONE_TIME) {
                 maxOf(if (currentVerified >= definition.milestones.first()) 1 else 0, stored?.count ?: 0)
             } else if (boundedRosterBadge || definition.badgeId == "mastery_circle" || definition.speciesId != null || definition.badgeId == "stillwater_mastery") {
                 maxOf(historicalVerified, stored?.count ?: 0)
@@ -210,7 +220,7 @@ object BadgeDashboardCalculator {
                 BadgeRequirement.COMPLETIONIST -> collection?.totalCompletionistSpecies ?: 1
                 BadgeRequirement.EXACT_COUNT -> if (definition.goalType == BadgeGoalType.HISTORICAL_COUNT_ONLY) 0
                     else MilestoneEngine.evaluate(currentVerified, thresholds = definition.milestones).nextThreshold
-                        ?: if (landSpec != null || redSpec != null) definition.milestones.last() else currentVerified.coerceAtLeast(1)
+                        ?: if (landSpec != null || redSpec != null || growthSpec != null) definition.milestones.last() else currentVerified.coerceAtLeast(1)
             }
             val progress = when (definition.requirement) {
                 BadgeRequirement.COLLECTOR -> collection?.discoveredSpeciesCount ?: 0
@@ -232,7 +242,7 @@ object BadgeDashboardCalculator {
             }
             val everEarned = (stored?.count ?: 0) > 0 || historicalCompletion != null || evidenceProvesCurrentCompletion
             val terminal = definition.countType == BadgeCountType.ONE_TIME && everEarned && !currentRosterIncomplete
-            val milestoneCount = if (boundedRosterBadge || landSpec != null) currentVerified else lifetimeCount
+            val milestoneCount = if (boundedRosterBadge || landSpec != null || growthSpec != null) currentVerified else lifetimeCount
             val hasNextMilestone = definition.countType == BadgeCountType.REPEATABLE &&
                 definition.milestones.any { it > milestoneCount }
             val nonEmptyRoster = collection == null || when (definition.requirement) {
@@ -243,7 +253,7 @@ object BadgeDashboardCalculator {
             val ownsSpecies = definition.speciesId == null || speciesLevels.isNotEmpty()
             // Named Red objectives use the existing species route, which Shell opens in The Red.
             // For mastery, prefer the closest owned candidate before offering a new acquisition.
-            val destination = redSpec?.takeIf { it.species.isNotEmpty() }?.let { spec ->
+            val destination = growthSpec?.let { BadgeActionDestination.ChestSpecies(CreatureGrowthBadges.nextSpecies(it, growthEvidence)) } ?: redSpec?.takeIf { it.species.isNotEmpty() }?.let { spec ->
                 val completed = if (spec.mastery) mastered else discovered + instances.map { it.findId }
                 val missing = spec.species.filter { it !in completed }
                 val next = if (spec.mastery) missing.maxByOrNull { activeLevels[it]?.maxOrNull() ?: 0 }
@@ -293,7 +303,6 @@ object BadgeDashboardCalculator {
             val region = collectionById.getValue(creature.primaryProgressCollectionId)
             val blue = collectionById.getValue(if (creature.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND) "collection_land" else "collection_the_blue")
             val all = collectionById.getValue(if (creature.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND) "collection_all_land" else "collection_all_waters")
-            val stillwater = collectionById.getValue("collection_stillwater")
             val currentSpeciesCount = badges.firstOrNull { it.badgeId == "mastery_species_${creature.creatureId}" }?.count ?: 0
             val addsUnique = creature.creatureId !in mastered
             val afterCount = currentSpeciesCount + 1
@@ -309,14 +318,13 @@ object BadgeDashboardCalculator {
                 all.completionistEarned && !all.currentRosterCompletionistComplete && all.missingMasteredSpeciesIds == setOf(creature.creatureId),
                 BadgeDefinitionResolver.resolve("mastery_species_${creature.creatureId}")
                     .milestones.filter { it == afterCount },
-                if (creature.sourceType in setOf(com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER, com.kingkharnivore.skillz.utils.shell.CreatureSourceType.RESTORATIVE_LAND)) stillwater.masteredSpeciesCount + if (addsUnique && creature.creatureId in stillwater.missingMasteredSpeciesIds) 1 else 0 else null,
-                if (creature.sourceType in setOf(com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER, com.kingkharnivore.skillz.utils.shell.CreatureSourceType.RESTORATIVE_LAND)) stillwater.totalCompletionistSpecies else null,
-                creature.sourceType in setOf(com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER, com.kingkharnivore.skillz.utils.shell.CreatureSourceType.RESTORATIVE_LAND) && !stillwater.completionistEarned && stillwater.missingMasteredSpeciesIds == setOf(creature.creatureId),
-                creature.sourceType in setOf(com.kingkharnivore.skillz.utils.shell.CreatureSourceType.STILLWATER, com.kingkharnivore.skillz.utils.shell.CreatureSourceType.RESTORATIVE_LAND) && stillwater.completionistEarned && !stillwater.currentRosterCompletionistComplete && stillwater.missingMasteredSpeciesIds == setOf(creature.creatureId))
+                null, null, false, false)
         }
         return BadgeDashboard(badges, collectionProgress, badges.count { it.earned },
-            badges.firstOrNull { it.badgeId == "mastery_circle" }?.count ?: masteries.size,
-            completions.filter { it.completionType == BadgeRequirement.COMPLETIONIST.name }.map { it.collectionId }.distinct().size,
+            (badges.firstOrNull { it.badgeId == "mastery_circle" }?.count ?: masteries.size) + greenPlants.count { it.level == 99 },
+            completions.filter { it.completionType == BadgeRequirement.COMPLETIONIST.name && !RetiredStillwaterBadges.isCollection(it.collectionId) }.map { it.collectionId }.distinct().size +
+                badges.count { it.earned && com.kingkharnivore.skillz.domain.green.GreenBadgeEvaluator.byId[it.badgeId]?.let { definition ->
+                    definition.speciesId == null && definition.id.startsWith("green_v1_") && definition.requiredLevel == 99 } == true },
             RecommendationEngine.recommend(badges), previewBySpecies)
     }
 
@@ -329,7 +337,7 @@ object BadgeDashboardCalculator {
     ): SpecialBadgeProgress? {
         val blue = CollectionCatalog.collections.filter { it.collectionId.startsWith("blue_") && it.species.any { species -> species.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA } }
         val waters = CollectionCatalog.collections.filter {
-            (it.collectionId.startsWith("blue_") || it.collectionId.startsWith("stillwater_")) &&
+            it.collectionId.startsWith("blue_") &&
                 it.species.any { species -> species.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA }
         }
         return when (badgeId) {
@@ -346,7 +354,7 @@ object BadgeDashboardCalculator {
         }
     }
 
-    private fun category(def: AchievementBadgeDefinition) = RedBadgeCatalog.byId[def.badgeId]?.let {
+    private fun category(def: AchievementBadgeDefinition) = if (def.badgeId in CreatureGrowthBadges.byId) BadgeUiCategory.COLLECTIONS else RedBadgeCatalog.byId[def.badgeId]?.let {
         when { it.id.startsWith("power_") -> BadgeUiCategory.FLOW; it.mastery -> BadgeUiCategory.MASTERY; else -> BadgeUiCategory.COLLECTIONS }
     } ?: LandBadgeCatalog.byId[def.badgeId]?.category ?: when {
         def.speciesId != null -> BadgeUiCategory.MASTERY

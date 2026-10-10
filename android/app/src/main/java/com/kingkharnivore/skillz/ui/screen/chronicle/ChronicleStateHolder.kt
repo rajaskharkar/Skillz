@@ -318,6 +318,11 @@ class ChronicleStateHolder(
     }
     fun setDraft(value: TextFieldValue) {
         if (!acceptingMutations) return
+        // Cursor/IME composition updates do not create a new text draft or a write.
+        if (value.text == _state.value.draft) {
+            _state.update { it.copy(draftField = value) }
+            return
+        }
         ++draftGeneration
         _state.update { it.copy(draft = value.text, draftField = value, hasError = false) }
         draftJob?.cancel()
@@ -342,7 +347,9 @@ class ChronicleStateHolder(
                 repository.addText(ownerType, ownerKey, captured)
             }.onSuccess {
                 if (draftGeneration == capturedGeneration) {
-                    syncedGeneration = capturedGeneration
+                    // Clearing is a new local value. A delayed snapshot of the old
+                    // draft must not restore it before Room observes the committed clear.
+                    ++draftGeneration
                     _state.update { state -> state.copy(draft = "", draftField = TextFieldValue()) }
                 }
                 onSuccess?.invoke()

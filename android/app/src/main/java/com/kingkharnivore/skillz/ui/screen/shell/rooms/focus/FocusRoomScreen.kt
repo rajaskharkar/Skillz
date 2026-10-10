@@ -708,7 +708,7 @@ private fun FocusRoomPhilosophyCard() {
             )
 
             Text(
-                text = "Focus Room is here to help you settle. These exercises do not affect Scyra Points, Pearls, creatures, Stillwater, or stats.",
+                text = androidx.compose.ui.res.stringResource(com.kingkharnivore.skillz.R.string.green_focus_help),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.82f)
             )

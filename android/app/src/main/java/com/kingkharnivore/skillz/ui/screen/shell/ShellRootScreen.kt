@@ -95,7 +95,6 @@ import com.kingkharnivore.skillz.ui.screen.shell.rooms.blue.TheBlueRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.focus.FocusRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.ideagrove.IdeaGroveRoute
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.lookout.LookoutRoomScreen
-import com.kingkharnivore.skillz.ui.screen.shell.rooms.stillwater.StillwaterRoomScreen
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.voyage.VoyageHallScreen
 import com.kingkharnivore.skillz.ui.screen.shell.ux.activeChestCreatureCount
 import com.kingkharnivore.skillz.ui.screen.shell.ux.activeChestCreatures
@@ -159,6 +158,14 @@ fun ShellRootScreen(
     viewModel: ShellViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val greenViewModel: com.kingkharnivore.skillz.viewmodel.green.GreenViewModel = hiltViewModel()
+    val greenState by greenViewModel.state.collectAsStateWithLifecycle()
+    var greenSeedId by remember { mutableStateOf<String?>(null) }
+    var greenEnvironment by remember { mutableStateOf(com.kingkharnivore.skillz.domain.green.GreenEnvironment.GARDEN) }
+    var greenBadgesRequested by remember { mutableStateOf(false) }
+    var chestPlants by remember { mutableStateOf(false) }
+    var chestPlantFocus by remember { mutableStateOf<String?>(null) }
+    var chestSpecimenFocus by remember { mutableStateOf<String?>(null) }
     var showRedTrade by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val backDispatcher = androidx.activity.compose.LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
@@ -166,6 +173,11 @@ fun ShellRootScreen(
     val scope = rememberCoroutineScope()
     val activeFlowMessage = stringResource(R.string.lookout_flow_already_active)
     var destination by remember { mutableStateOf<ShellDestination>(ShellDestination.Heart) }
+    LaunchedEffect(destination) {
+        if (destination != ShellDestination.TheGreen) greenSeedId = null
+        if (destination != ShellDestination.Badges) greenBadgesRequested = false
+        if (destination != ShellDestination.ShellChest) { chestPlants = false; chestPlantFocus = null; chestSpecimenFocus = null }
+    }
     var redSpecies by remember { mutableStateOf<String?>(null) }
     var blueRealm by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<com.kingkharnivore.skillz.utils.shell.CreatureRealm?>(null) }
     var pendingNavigation by remember { mutableStateOf<PendingShellNavigation?>(null) }
@@ -197,6 +209,17 @@ fun ShellRootScreen(
         request: BadgeActionDestination,
         notificationId: String? = null
     ): NavigationConsumptionResult {
+        if (request is BadgeActionDestination.Green) {
+            val species = request.speciesId?.let(com.kingkharnivore.skillz.domain.green.GreenCatalogue.byId::get)
+            if (!request.plantSeed && greenState.specimens.any { it.speciesId == request.speciesId }) {
+                chestPlants = true; chestPlantFocus = request.speciesId; chestSpecimenFocus = request.specimenId; destination = ShellDestination.ShellChest
+            } else {
+                greenEnvironment = species?.environment ?: com.kingkharnivore.skillz.domain.green.GreenEnvironment.entries.firstOrNull { it.id == request.environmentId }
+                    ?: com.kingkharnivore.skillz.domain.green.GreenEnvironment.GARDEN
+                greenSeedId = species?.id; destination = ShellDestination.TheGreen
+            }
+            return NavigationConsumptionResult.Consumed
+        }
         val targetSpecies = when(request) {
             is BadgeActionDestination.BlueRegion -> request.speciesId
             is BadgeActionDestination.ChestSpecies -> request.speciesId
@@ -239,7 +262,7 @@ fun ShellRootScreen(
             ShellDestination.TheRed -> ShellRoomId.THE_RED
             ShellDestination.Heart -> ShellRoomId.HEART
             ShellDestination.Focus -> ShellRoomId.FOCUS
-            ShellDestination.Stillwater -> ShellRoomId.STILLWATER
+            ShellDestination.TheGreen -> ShellRoomId.THE_GREEN
             ShellDestination.VoyagePreview -> ShellRoomId.VOYAGE
             ShellDestination.TheBluePreview -> ShellRoomId.THE_BLUE
             ShellDestination.IdeaGrovePreview -> ShellRoomId.IDEA_GROVE
@@ -303,16 +326,12 @@ fun ShellRootScreen(
 
                 ShellDestination.Focus -> FocusRoomScreen()
 
-                ShellDestination.Stillwater -> StillwaterRoomScreen(
-                    uiState = uiState,
-                    onDrawFromStillwater = viewModel::onDrawFromStillwater,
-                    onConfirmStillwaterDraw = viewModel::onConfirmStillwaterDraw,
-                    onDismissStillwaterReveal = viewModel::onDismissStillwaterReveal,
-                    onDismissStillwaterDrawConfirmation = viewModel::onDismissStillwaterDrawConfirmation,
-                    onNavigate = { dispatchBadgeDestination(it) },
-                    focusRequest = pendingNavigation as? PendingShellNavigation.OpenStillwaterSpecies,
-                    onFocusResult = ::handleNavigationResult
-                )
+                ShellDestination.TheGreen -> androidx.compose.runtime.key(greenSeedId, greenEnvironment) {
+                    com.kingkharnivore.skillz.ui.screen.shell.rooms.green.GreenRoute(calmMode = uiState.calmMode,
+                        viewModel = greenViewModel, initialEnvironment = greenEnvironment, initialSeedId = greenSeedId,
+                        onOpenChest = { chestPlants = true; destination = ShellDestination.ShellChest },
+                        onOpenBadges = { greenBadgesRequested = true; viewModel.setBadgeCategory(com.kingkharnivore.skillz.domain.achievement.BadgeUiCategory.GREEN); destination = ShellDestination.Badges })
+                }
 
                 ShellDestination.ShellChest -> ShellChestScreen(
                     uiState = uiState,
@@ -324,12 +343,19 @@ fun ShellRootScreen(
                     onEnvironmentSelected = viewModel::setChestEnvironment,
                     onClearFilters = viewModel::clearChestFilters,
                     onOpenRed = { destination = ShellDestination.TheRed },
+                    greenState = greenState, onWaterPlant = greenViewModel::water,
+                    onDismissGreenFeedback = { greenViewModel.dismissFeedback(greenState.feedbackId) },
+                    onOpenGreen = { greenSeedId = null; destination = ShellDestination.TheGreen },
+                    showPlantsInitially = chestPlants, focusPlantSpeciesId = chestPlantFocus, focusPlantSpecimenId = chestSpecimenFocus,
                     focusSpeciesId = (pendingNavigation as? PendingShellNavigation.OpenChestSpecies)?.speciesId,
                     focusRequestId = (pendingNavigation as? PendingShellNavigation.OpenChestSpecies)?.requestId,
                     onFocusResult = ::handleNavigationResult
                 )
 
                 ShellDestination.Badges -> BadgesScreen(
+                    initialBrowseCollections = !greenBadgesRequested,
+                    initialTab = if (greenBadgesRequested)
+                        com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgesTab.BADGE_BOOK else com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgesTab.SHOWCASE,
                     uiState = uiState,
                     onPin = viewModel::pinBadge,
                     onDismissPinReplacement = viewModel::dismissPinReplacement,
@@ -433,7 +459,7 @@ fun ShellRootScreen(
                         destination = when (origin) {
                             "RED" -> ShellDestination.TheRed
                             "BLUE" -> ShellDestination.TheBluePreview
-                            "STILLWATER" -> ShellDestination.Stillwater
+                            "STILLWATER" -> ShellDestination.TheBluePreview
                             else -> ShellDestination.ShellChest
                         }
                     }
@@ -548,7 +574,7 @@ internal fun HeartRoomScreen(
                             dormant = false,
                             nodeWidth = nodeWidth,
                             nodeHeight = nodeHeight,
-                            onClick = { onNavigate(ShellDestination.Stillwater) }
+                            onClick = { onNavigate(ShellDestination.TheGreen) }
                         )
                     }
                 )

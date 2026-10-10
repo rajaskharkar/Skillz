@@ -30,10 +30,10 @@ class ShellNavigationCoordinatorTest {
         assertEquals("blue_great_blue", blue.collectionId)
         assertEquals("whale", blue.speciesId)
         val stillwater = ShellNavigationCoordinator.dispatch(
-            BadgeActionDestination.StillwaterVessel("stillwater_lake", "koi")
-        )?.pending as PendingShellNavigation.OpenStillwaterSpecies
-        assertEquals("stillwater_lake", stillwater.collectionId)
-        assertEquals("koi", stillwater.speciesId)
+            BadgeActionDestination.StillwaterVessel("stillwater_lake", "stillwater_coelacanth")
+        )?.pending as PendingShellNavigation.OpenBlueSpecies
+        assertEquals("blue_great_blue", stillwater.collectionId)
+        assertEquals("stillwater_coelacanth", stillwater.speciesId)
         val beyond = ShellNavigationCoordinator.dispatch(
             BadgeActionDestination.BeyondBlue("blue_great_blue", "anglerfish")
         )?.pending as PendingShellNavigation.OpenBeyondBlue

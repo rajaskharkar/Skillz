@@ -3,7 +3,7 @@ package com.kingkharnivore.skillz.data.model.shell
 import androidx.annotation.StringRes
 import com.kingkharnivore.skillz.R
 
-enum class ShellRoomId { HEART, FOCUS, STILLWATER, VOYAGE, THE_BLUE, IDEA_GROVE, LOOKOUT, THE_RED }
+enum class ShellRoomId { HEART, FOCUS, THE_GREEN, VOYAGE, THE_BLUE, IDEA_GROVE, LOOKOUT, THE_RED }
 
 data class ShellRoomDefinition(
     val roomId: ShellRoomId,
@@ -103,7 +103,7 @@ object ShellContentCatalog {
     val rooms = listOf(
         ShellRoomDefinition(ShellRoomId.HEART, R.string.shell_room_heart_title, R.string.shell_room_heart_description, "shell_heart", null, null),
         ShellRoomDefinition(ShellRoomId.FOCUS, R.string.shell_room_focus_title, R.string.shell_room_focus_description, "shell_focus", null, "focus_v1"),
-        ShellRoomDefinition(ShellRoomId.STILLWATER, R.string.shell_room_stillwater_title, R.string.shell_room_stillwater_description, "shell_stillwater", null, null),
+        ShellRoomDefinition(ShellRoomId.THE_GREEN, R.string.shell_room_stillwater_title, R.string.shell_room_stillwater_description, "shell_stillwater", null, null),
         ShellRoomDefinition(ShellRoomId.VOYAGE, R.string.shell_room_voyage_title, R.string.shell_room_voyage_description, "shell_voyage", null, null),
         ShellRoomDefinition(ShellRoomId.THE_BLUE, R.string.shell_room_the_blue_title, R.string.shell_room_the_blue_description, "shell_the_blue", null, null),
         ShellRoomDefinition(ShellRoomId.IDEA_GROVE, R.string.shell_room_idea_title, R.string.shell_room_idea_description, "shell_idea", null, null),

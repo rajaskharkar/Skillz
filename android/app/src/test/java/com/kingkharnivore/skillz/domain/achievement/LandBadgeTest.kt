@@ -15,7 +15,7 @@ class LandBadgeTest {
         (0 until reward.quantity).map { copy(reward.creatureId,"arc",id,suffix=it.toString()) }
     }
 
-    @Test fun everySpeciesAndEveryZoneAndVesselHasAchievableCollectionAndMasteryBadges() {
+    @Test fun everySpeciesAndEveryRegionHasAchievableCollectionAndMasteryBadges() {
         assertEquals(185, CreatureCatalog.all.count { it.realm != com.kingkharnivore.skillz.utils.shell.CreatureRealm.RED })
         assertEquals(69, CreatureCatalog.all.count { it.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.RED })
         assertEquals(254, CreatureCatalog.all.size)
@@ -46,14 +46,14 @@ class LandBadgeTest {
         assertTrue(initial.badges.filter { LandBadgeCatalog.byId.containsKey(it.badgeId) }.all { !it.earned && it.canTrack })
     }
 
-    @Test fun collectingAndMasteringLandCompletesEveryLandZoneAndVesselWithoutCompletingSea() {
+    @Test fun collectingAndMasteringLandCompletesEveryLandRegionWithoutCompletingSea() {
         val owned = LandCreatureCatalog.all.map { copy(it.creatureId, level = 99) }
         val masteries = owned.map { CreatureMasteryEventEntity("m:${it.instanceId}", it.instanceId, it.findId, 100, "grow:${it.instanceId}") }
         val result = dashboard(owned, masteries = masteries)
         val landCollections = CollectionCatalog.collections.filter { collection ->
             collection.species.all { it.realm == CreatureRealm.LAND }
         }
-        assertEquals(13, landCollections.size) // Five zones, five vessels and three Land aggregates.
+        assertEquals(7, landCollections.size) // Five regions and two Land aggregates.
         landCollections.forEach { collection ->
             listOf("collector", "curator", "completionist").forEach { kind ->
                 assertTrue("${collection.collectionId}_$kind", result.badge("${collection.collectionId}_$kind").earned)
@@ -68,17 +68,17 @@ class LandBadgeTest {
 
     @Test fun mainLandDiscoveryDoesNotCompleteRestorativeCollections() {
         val result = dashboard(LandCreatureCatalog.main.map { copy(it.creatureId) })
-        assertTrue(result.badge("collection_land_collector").earned)
-        assertFalse(result.badge("collection_land_stillwater_collector").earned)
+        assertFalse(result.badge("collection_land_collector").earned)
+        assertTrue(result.badges.none { RetiredStillwaterBadges.isBadge(it.badgeId) })
         assertFalse(result.badge("collection_all_land_collector").earned)
         assertEquals(63, result.badge("collection_all_land_collector").progress)
         assertEquals(114, result.badge("collection_all_land_collector").target)
     }
 
-    @Test fun seaRostersKeepTheirHistoricalIdsAndOriginalScope() {
-        assertEquals(39,CollectionCatalog.byId.getValue("collection_the_blue").species.size)
+    @Test fun blueRostersIncludeHeritageWhileHistoricalIdsRemain() {
+        assertEquals(71,CollectionCatalog.byId.getValue("collection_the_blue").species.size)
         assertEquals(71,CollectionCatalog.byId.getValue("collection_all_waters").species.size)
-        assertEquals(63,CollectionCatalog.byId.getValue("collection_land").species.size)
+        assertEquals(114,CollectionCatalog.byId.getValue("collection_land").species.size)
         assertEquals(114,CollectionCatalog.byId.getValue("collection_all_land").species.size)
         assertEquals(185,CollectionCatalog.byId.getValue("collection_living_earth").species.size)
         val sea=CreatureCatalog.all.filter { it.realm==CreatureRealm.SEA }.map { copy(it.creatureId) }
@@ -133,17 +133,31 @@ class LandBadgeTest {
         assertEquals(a.badges.map { it.badgeId to it.count },b.badges.map { it.badgeId to it.count })
     }
 
-    @Test fun restorativeBadgesRequireActualDrawsAndUseSpeciesRarityAndDestinations() {
+    @Test fun legacyCreaturesUnlockRegularRegionsWithoutRetiredBadges() {
         val creatures=listOf("creature_peacock","creature_panda","creature_addax","creature_takin","creature_elephant")
-        val draws=creatures.map { copy(it,"stillwater") }
-        val result=dashboard(draws)
-        assertTrue(result.badge("land_five_habitats").earned)
-        assertTrue(result.badge("across_the_land").earned)
-        assertTrue(result.badge("land_mythic_first").earned)
-        assertFalse(result.badge("land_rare_first").earned)
-        LandStillwaterHabitat.entries.forEach { assertTrue(result.badge("land_${it.name.lowercase()}_first").earned) }
-        assertFalse(dashboard(creatures.map { copy(it,"debug") }).badge("land_stillwater_first").earned)
-        assertTrue(dashboard(listOf(copy("creature_kangaroo","stillwater"))).badge("land_rare_first").earned)
+        for(source in listOf("stillwater","beyond_blue")) {
+            val copies=creatures.map { copy(it,source,level=99) }
+            val events=copies.map { CreatureMasteryEventEntity("m:${it.instanceId}",it.instanceId,it.findId,100,"grow:${it.instanceId}") }
+            val result=dashboard(copies,masteries=events)
+            assertTrue(result.badge("across_the_land").earned)
+            assertTrue(result.badge("one_from_every_land").earned)
+            assertTrue(result.badges.none { RetiredStillwaterBadges.isBadge(it.badgeId) })
+        }
+        val stored=UserBadgeEntity("stillwater_mastery",7,10,20,false)
+        val result=dashboard(earned=listOf(stored),pins=listOf(BadgePinEntity(stored.badgeId,0,10)))
+        assertTrue(result.badges.none { RetiredStillwaterBadges.isBadge(it.badgeId) })
+        assertTrue(result.collections.none { RetiredStillwaterBadges.isCollection(it.collectionId) })
+        assertTrue(AchievementBadgeCatalog.definitions.none { RetiredStillwaterBadges.isBadge(it.badgeId) })
+        assertTrue(BadgeBookCollections.collections.none { it.memberIds.any(RetiredStillwaterBadges::isBadge) })
+        assertFalse(BadgeDefinitionResolver.isObsolete("mastery_species_stillwater_shrimp"))
+    }
+
+    @Test fun keeperOfTheLandNeedsTheExpandedRosterButKeepsOldAwards() {
+        val oldRoster=LandCreatureCatalog.main.map {copy(it.creatureId)}
+        assertFalse(dashboard(oldRoster).badge("keeper_of_the_land").earned)
+        assertTrue(dashboard(LandCreatureCatalog.all.map {copy(it.creatureId)}).badge("keeper_of_the_land").earned)
+        val oldAward=UserBadgeEntity("keeper_of_the_land",1,10,10,false)
+        assertTrue(dashboard(oldRoster,earned=listOf(oldAward)).badge("keeper_of_the_land").earned)
     }
 
     @Test fun oldEarnedBadgesAndPinsSurviveEvenIfCurrentRosterIsIncomplete() {

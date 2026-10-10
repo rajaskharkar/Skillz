@@ -42,8 +42,13 @@ class HorizonUiTest {
         } }
         compose.onNodeWithText("New flow").assertExists()
         compose.onNodeWithText("Title").performTextInput("Power writing")
-        compose.onNodeWithText("Power Flow").performScrollTo().performClick()
-        compose.onNodeWithText("Save").performScrollTo().performClick()
+        // The IME can keep moving the sheet after scroll-to completes. Exercise the
+        // accessible button action rather than injecting a tap at a moving coordinate.
+        compose.onNodeWithText("Power Flow").performScrollTo().assertIsEnabled()
+            .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { it() }
+        compose.onNodeWithText("Power Flow").assertIsSelected()
+        compose.onNodeWithText("Save").performScrollTo().assertIsDisplayed().assertIsEnabled()
+            .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { it() }
         compose.runOnIdle { assertEquals(FlowMode.POWER,savedMode) }
     }
 
@@ -107,19 +112,21 @@ class HorizonUiTest {
         compose.setContent { SkillzTheme(darkTheme=false,dynamicColor=false) { Surface {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
                 MemoryCard(MemoryGroupUi(1,HorizonKind.HABIT,"Evening walks",listOf(single)),
-                    onDeleteMemory={ deleted=it.receipt.flowInstanceId }, onPlanAgain={})
+                    onRemoveMemory={ deleted=it.receipt.flowInstanceId }, onPlanAgain={})
             }
         } } }
         compose.onNodeWithText("Show Habit Journey").assertDoesNotExist()
         compose.onNodeWithText("The entire chronicle").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Delete flow").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Remove from Memories").assertDoesNotExist()
         compose.onNodeWithText("First walk").performClick()
         compose.onNodeWithText("The entire chronicle").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Delete flow").performClick()
+        compose.onNodeWithContentDescription("Remove from Memories").performClick()
+        compose.onNodeWithText("Remove this memory?").assertIsDisplayed()
+        compose.onNodeWithText("This removes the Flow only from this activity’s Memories. Its Story entry, Chronicles, recorded activity, and rewards will be kept.").assertIsDisplayed()
         compose.onNodeWithText("Cancel").performClick()
         assertEquals(null, deleted)
-        compose.onNodeWithContentDescription("Delete flow").performClick()
-        compose.onNodeWithText("Delete", useUnmergedTree=true).performClick()
+        compose.onNodeWithContentDescription("Remove from Memories").performClick()
+        compose.onNodeWithText("Remove from Memories", useUnmergedTree=true).performClick()
         assertEquals("flow-1", deleted)
     }
 
@@ -129,20 +136,20 @@ class HorizonUiTest {
             SkillzTheme(darkTheme=false,dynamicColor=false) { Surface {
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
                     MemoryCard(MemoryGroupUi(1,HorizonKind.HABIT,"Evening walks",memories),
-                        onDeleteMemory={ removed -> memories = memories.filter { it.receipt.flowInstanceId != removed.receipt.flowInstanceId } },
+                        onRemoveMemory={ removed -> memories = memories.filter { it.receipt.flowInstanceId != removed.receipt.flowInstanceId } },
                         onPlanAgain={})
                 }
             } }
         }
         compose.onNodeWithText("Show Habit Journey").performClick()
         compose.onNodeWithText("First walk").performScrollTo().performClick()
-        compose.onNodeWithContentDescription("Delete flow").performScrollTo().performClick()
-        compose.onNodeWithText("Delete", useUnmergedTree=true).performClick()
+        compose.onNodeWithContentDescription("Remove from Memories").performScrollTo().performClick()
+        compose.onNodeWithText("Remove from Memories", useUnmergedTree=true).performClick()
         compose.onNodeWithText("First walk").assertDoesNotExist()
         compose.onNodeWithText("1 completion").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Hide Habit Journey").assertDoesNotExist()
         compose.onNodeWithText("Show Habit Journey").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Delete flow").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Remove from Memories").assertDoesNotExist()
     }
 
     @Test fun oneTimeMemoryShowsFlowAndOffersPlanAgain() {

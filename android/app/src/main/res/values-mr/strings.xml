@@ -911,8 +911,7 @@
     <string name="shell_room_heart_description">चमकता कक्ष जिथे स्कायरा द शेलमध्ये विश्रांती घेतो.</string>
     <string name="shell_room_focus_title">फोकस रूम</string>
     <string name="shell_room_focus_description">शांत अभ्यासिका जिथे नियमित फ्लो प्रदर्शित जीव बनतात.</string>
-    <string name="shell_room_stillwater_title">स्टिलवॉटर रूम</string>
-    <string name="shell_room_stillwater_description">शांत खोली जिथे सॉफ्ट फ्लो शांत पाण्यासारखे जमा होतात.</string>
+
     <string name="shell_room_voyage_title">व्हॉयेज हॉल</string>
     <string name="shell_room_voyage_description">भविष्यातील आर्क साठी शांत मार्ग वाट पाहत आहेत.</string>
     <string name="shell_room_the_blue_title">द ब्लू</string>
@@ -1012,7 +1011,7 @@
     <string name="shell_no_more_forms">हे बक्षीस त्याच्या सध्याच्या रूपात विश्रांती घेत आहे.</string>
     <string name="shell_return_to_chest">द चेस्ट कडे परत</string>
     <string name="shell_chest_title">द चेस्ट</string>
-    <string name="shell_chest_body">समुद्र, जमीन आणि द रेडमधील तुमचे जीव.</string>
+    <string name="shell_chest_body">तुमचे सर्व जीव आणि रोपे, एकाच ठिकाणी.</string>
     <string name="shell_filter_all">सर्व</string>
     <string name="shell_filter_animals">प्राणी</string>
     <string name="shell_filter_creatures">जीव</string>
@@ -1167,14 +1166,14 @@
     <string name="reward_card_badge_reason_120">प्रत्येक वेळी नियमित फ्लो 2 तास किंवा अधिक चालला की मिळते.</string>
     <string name="reward_card_badge_reason_discovery">या फ्लोमधून नोंदी अपडेट झाल्या.</string>
     <string name="reward_card_the_blue_hint">नंतर द ब्लूमध्ये पाहा.</string>
-    <string name="reward_card_stillwater_hint">स्टिलवॉटर रूममध्ये पाहा.</string>
+
     <string name="reward_card_shell_hint">द शेलमध्ये पाहा.</string>
     <string name="reward_card_pearl_basin_hint">पर्ल्स वापरून द शेल आकारा.</string>
     <string name="reward_card_shell_chest_hint">द चेस्टमध्ये विसावले आहे.</string>
     <string name="reward_card_badges_hint">बॅज मध्ये नोंदले आहे.</string>
     <string name="reward_card_shell_recorded_title">शेल बक्षीस नोंदले</string>
     <string name="reward_card_shell_recorded_body">द शेलमध्ये नोंदले.</string>
-    <string name="reward_card_stillwater_added_title">स्टिलवॉटर जोडले</string>
+
     <string name="reward_card_arc_complete_title">आर्क पूर्ण</string>
     <string name="reward_card_arc_flows">%1$d फ्लो</string>
     <string name="reward_card_arc_total_duration">एकूण %1$s</string>
@@ -1302,8 +1301,7 @@
     <string name="session_reward_enter_shell">द शेलमध्ये जा</string>
     <string name="session_reward_shell_pearls">पर्ल्स</string>
     <string name="session_reward_shell_pearls_value">+%1$d पर्ल्स</string>
-    <string name="session_reward_shell_stillwater">स्टिलवॉटर</string>
-    <string name="session_reward_shell_stillwater_units">%1$d स्टिलवॉटर युनिट</string>
+
     <string name="session_reward_shell_find">शेल रिवॉर्ड</string>
     <string name="session_reward_shell_badges">बॅज अपडेट झाले</string>
     <string name="session_reward_shell_badges_value">%1$d बॅज अपडेट</string>
@@ -1829,47 +1827,10 @@
     <string name="shell_notifications_inlay_empty_title">नवीन सूचना नाहीत</string>
     <string name="shell_notifications_inlay_empty_body">तुम्ही सर्व पाहिले आहे.</string>
     <string name="shell_notifications_mark_notification_viewed_a11y">सूचना पाहिली म्हणून चिन्हांकित करा</string>
-    <string name="shell_stillwater_body">सॉफ्ट फ्लो ड्रॉप्स जमा करतात. शांत पात्रांत खर्च करून स्टिलवॉटर-विशेष जीव मिळवा.</string>
-    <string name="reward_card_stillwater_quiet_minutes">%1$d शांत मिनिटे स्टिलवॉटरमध्ये गेली.</string>
-    <string name="shell_stillwater_drops_available">%1$d ड्रॉप्स उपलब्ध</string>
-    <string name="shell_stillwater_lifetime_drops">आतापर्यंत %1$d ड्रॉप्स जमा</string>
-    <string name="shell_stillwater_ready_to_draw">ड्रॉसाठी तयार</string>
-    <string name="shell_stillwater_soft_flows_gather_drops">सॉफ्ट फ्लो ड्रॉप्स जमा करतात.</string>
-    <string name="shell_stillwater_draw_prompt">एक पात्र निवडा. काहीतरी शांत वर येऊ शकते.</string>
-    <string name="shell_stillwater_fishbowl_title">फ़िशबोल</string>
-    <string name="shell_stillwater_aquarium_title">एक्वेरियम</string>
-    <string name="shell_stillwater_pond_title">पॉन्ड</string>
-    <string name="shell_stillwater_lake_title">लेक</string>
-    <string name="shell_stillwater_fishbowl_reward">लहान उथळ पाण्याचा जीव</string>
-    <string name="shell_stillwater_aquarium_reward">रंगीबेरंगी रीफसारखा जीव</string>
-    <string name="shell_stillwater_pond_reward">मोठा पुन्हाणारा जल-जीव</string>
-    <string name="shell_stillwater_lake_reward">दुर्मिळ गडद पाण्याचा जीव</string>
-    <string name="shell_stillwater_fishbowl_category">लेवल 1 · उथळ स्टिलवॉटर</string>
-    <string name="shell_stillwater_aquarium_category">लेवल 2 · रीफसारखे स्टिलवॉटर</string>
-    <string name="shell_stillwater_pond_category">लेवल 3 · रुंद स्टिलवॉटर</string>
-    <string name="shell_stillwater_lake_category">लेवल 4 · गडद स्टिलवॉटर</string>
-    <string name="shell_stillwater_vessel_cost">%1$d ड्रॉप्स</string>
-    <string name="shell_stillwater_progress">%1$d / %2$d ड्रॉप्स</string>
-    <string name="shell_stillwater_more_needed">आणखी %1$d ड्रॉप्स हवेत</string>
-    <string name="shell_stillwater_ready">तयार</string>
-    <string name="shell_stillwater_filling">भरत आहे</string>
-    <string name="shell_stillwater_locked">लॉक आहे</string>
-    <string name="shell_stillwater_reach_depth_first">हे पात्र उघडण्यासाठी समुद्रात पुढे प्रगती करा.</string>
-    <string name="shell_stillwater_draw">ड्रॉ</string>
-    <string name="shell_stillwater_draw_from">%1$s मधून ड्रॉ</string>
-    <string name="shell_stillwater_keep_filling">भरत ठेवा</string>
-    <string name="shell_stillwater_confirm_draw_title">%1$s मधून ड्रॉ करायचे?</string>
-    <string name="shell_stillwater_confirm_draw_body">या पात्रातून एक जीव मिळवण्यासाठी %1$d ड्रॉप्स खर्च करा.</string>
-    <string name="shell_stillwater_creature_found">काहीतरी वर आले.</string>
-    <string name="shell_stillwater_exclusive">स्टिलवॉटर विशेष</string>
-    <string name="shell_stillwater_added_to_chest">द चेस्टमध्ये जोडले.</string>
-    <string name="shell_stillwater_done">झाले</string>
-    <string name="shell_stillwater_explainer">प्रत्येक पात्रात स्वतःचे स्टिलवॉटर जीव असतात. मोठ्या पात्रांना अधिक ड्रॉप्स लागतात आणि दुर्मिळ जीवन दाखवतात.</string>
+
     <string name="flow_complete_soft_title">सॉफ्ट फ्लो पूर्ण</string>
     <string name="flow_complete_soft_drops_gained">+%1$d ड्रॉप्स</string>
-    <string name="flow_complete_soft_added_to_stillwater">स्टिलवॉटरमध्ये जोडले.</string>
-    <string name="flow_complete_soft_explainer">शांत पात्रांतून विशेष जीव मिळवण्यासाठी ड्रॉप्स स्टिलवॉटरमध्ये खर्च करा.</string>
-    <string name="shell_find_stillwater_creature_description">स्टिलवॉटर विशेष जीव.</string>
+
     <string name="shell_find_stillwater_shrimp_title">श्रिम्प</string>
     <string name="shell_find_stillwater_crab_title">क्रैब</string>
     <string name="shell_find_stillwater_clam_title">क्लैम</string>
@@ -1917,9 +1878,9 @@
     <string name="badges_within_reach_title">आवाक्यात</string>
     <string name="badges_within_reach_body">Scyra उपयुक्त पुढील पावले म्हणून सुचवते अशी जास्तीत जास्त तीन ट्रॅक न केलेली ध्येये.</string>
     <string name="badge_across_depths">खोलींच्या पलीकडे</string>
-    <string name="badge_across_depths_description">समुद्राच्या चारही प्रदेशांत प्रत्येकी एक मुख्य प्रजाती शोधा.</string>
+    <string name="badge_across_depths_description">समुद्राच्या चारही प्रदेशांतील एक प्रजाती शोधा.</string>
     <string name="badge_action_open_blue">प्रदेश उघडा</string>
-    <string name="badge_action_open_stillwater">स्टिलवॉटर पात्राला भेट द्या</string>
+
     <string name="badge_action_view_chest">द चेस्टमध्ये पाहा</string>
     <string name="badge_category_all">सर्व</string>
     <string name="badge_category_arc">आर्क</string>
@@ -1929,7 +1890,7 @@
     <string name="badge_category_mastery">प्रभुत्व</string>
     <string name="badge_category_movement">हालचाल</string>
     <string name="badge_category_special">विशेष</string>
-    <string name="badge_category_stillwater">स्टिलवॉटर</string>
+
     <string name="badge_category_surge">सर्ज</string>
     <string name="badge_collector_description">%1$s मधील प्रत्येक पात्र प्रजाती शोधा.</string>
     <string name="badge_collector_title">%1$s · संग्राहक</string>
@@ -1947,10 +1908,10 @@
     <string name="badge_disabled_no_next">तुम्ही सध्या उपलब्ध सर्व टप्पे पूर्ण केले आहेत.</string>
     <string name="badge_disabled_not_owned">प्रभुत्वाचे उद्दिष्ट सुरू करण्यासाठी हा जीव मिळवा.</string>
     <string name="badge_disabled_region_locked">हा प्रदेश अद्याप उघडलेला नाही.</string>
-    <string name="badge_disabled_vessel_locked">हे स्टिलवॉटर पात्र अद्याप उघडलेले नाही.</string>
+
     <string name="badge_earned">मिळवलेला</string>
     <string name="badge_every_water">प्रत्येक जलाशयातून एक</string>
-    <string name="badge_every_water_description">समुद्राच्या प्रत्येक प्रदेशातील आणि समुद्राच्या प्रत्येक स्टिलवॉटर पात्रातील किमान एका पात्र जीवावर प्रभुत्व मिळवा.</string>
+
     <string name="badge_exact_count">अचूक संख्या: %1$s</string>
     <string name="badge_first_earned">प्रथम मिळवला: %1$s</string>
     <string name="badge_earned_date_estimated">मिळवल्याची अंदाजित तारीख: %1$s</string>
@@ -1992,15 +1953,12 @@
     <string name="badge_state_collector">संग्राहक मिळवला</string>
     <string name="badge_state_completionist">पूर्णत्वसाधक मिळवला</string>
     <string name="badge_state_curator">संग्रहपाल मिळवला</string>
-    <string name="badge_stillwater_first_catch">स्टिलवॉटरमधील पहिला जीव</string>
-    <string name="badge_stillwater_mastery">स्टिलवॉटरवरील प्रभुत्व</string>
-    <string name="badge_stillwater_progress_description">स्टिलवॉटरमधील शोधाची आणि प्रभुत्वाची विश्वासार्ह प्रगती नोंदवतो.</string>
-    <string name="badge_stillwater_variety">स्टिलवॉटरमधील विविधता</string>
+
     <string name="badge_tracked_a11y">मागोवा घेतला जात आहे.</string>
     <string name="badge_unpin">पिन काढा</string>
     <string name="badge_updated">अद्ययावत</string>
     <string name="badge_variety_collector">विविधतेचा संग्राहक</string>
-    <string name="badge_variety_collector_description">समुद्र, भूमी आणि स्टिलवॉटरमध्ये शोधलेल्या वेगवेगळ्या प्रजाती.</string>
+
     <string name="badges_backfill_body">तुमच्या सध्याच्या प्रगतीतून %1$d जीवांचे शोध, %2$d जीवांवरील प्रभुत्व आणि %3$d पूर्ण संग्रह ओळखले गेले.</string>
     <string name="badges_backfill_title">तुमचा बॅज संग्रह वाढला आहे</string>
     <string name="badges_book_body">मिळवलेल्या आणि लॉक असलेल्या उपलब्धींची उद्दिष्टे.</string>
@@ -2036,17 +1994,17 @@
     <string name="chest_filter_mastered">प्रभुत्व मिळवलेले</string>
     <string name="chest_filter_not_mastered">अद्याप प्रभुत्व नाही</string>
     <string name="collection_all_waters">समुद्र आणि त्याचे जलाशय</string>
-    <string name="collection_aquarium">स्टिलवॉटर · एक्वेरियम</string>
+
     <string name="collection_deeper_reef">डीपर रीफ</string>
     <string name="collection_detail_summary">शोधलेले: %1$d · तुमच्याकडे: %2$d · प्रभुत्व: %4$d पैकी %3$d</string>
     <string name="collection_discovered_progress">%2$d पैकी %1$d शोधले</string>
-    <string name="collection_fishbowl">स्टिलवॉटर · फ़िशबोल</string>
+
     <string name="collection_great_blue">ग्रेट ब्लू</string>
-    <string name="collection_lake">स्टिलवॉटर · लेक</string>
+
     <string name="collection_mastered_progress">प्रभुत्व: %2$d पैकी %1$d</string>
     <string name="collection_open_blue">ओपन ब्लू</string>
     <string name="collection_owned_progress">सध्या तुमच्याकडे: %2$d पैकी %1$d</string>
-    <string name="collection_pond">स्टिलवॉटर · पॉन्ड</string>
+
     <string name="collection_secret_species">गुप्त प्रजाती</string>
     <string name="collection_species_discovered_not_owned">पूर्वी शोधलेली · सध्या तुमच्याकडे: 0</string>
     <string name="collection_species_mastered">प्रभुत्व मिळवलेले · सध्या तुमच्याकडे: %1$d</string>
@@ -2054,7 +2012,7 @@
     <string name="collection_species_open_action">प्रगतीची पुढची पायरी उघडा</string>
     <string name="collection_species_owned">तुमच्याकडे: %1$d · सर्वोच्च स्तर: %2$d · उरलेले स्तर: %3$d</string>
     <string name="collection_species_undiscovered">अद्याप न शोधलेली</string>
-    <string name="collection_stillwater">स्टिलवॉटर</string>
+
     <string name="collection_sunlit_reef">सनलिट रीफ</string>
     <string name="collection_the_blue">समुद्र</string>
     <string name="collection_unknown">संग्रह</string>
@@ -2062,18 +2020,18 @@
     <string name="level99_preview_completes_all">यामुळे समुद्र आणि त्याच्या जलाशयांचा संग्रह पूर्ण होईल.</string>
     <string name="level99_preview_completes_blue">यामुळे समुद्राचा संग्रह पूर्ण होईल.</string>
     <string name="level99_preview_completes_region">यामुळे प्रदेशाचे पूर्णत्वसाधक उद्दिष्ट पूर्ण होईल.</string>
-    <string name="level99_preview_completes_stillwater">यामुळे संपूर्ण स्टिलवॉटरचे प्रभुत्व पूर्ण होईल.</string>
+
     <string name="level99_preview_first_species">या प्रजातीवरील हे पहिले प्रभुत्व असेल.</string>
     <string name="level99_preview_milestone">प्रजातीवरील प्रभुत्वाचा ×%1$d टप्पा गाठला जाईल.</string>
     <string name="level99_preview_region">वाढीनंतर प्रादेशिक प्रभुत्व: %2$d पैकी %1$d</string>
     <string name="level99_preview_restores_roster">यामुळे संग्रहाची सध्याची यादी पुन्हा पूर्ण होईल.</string>
-    <string name="level99_preview_restores_stillwater">यामुळे सध्याच्या यादीसाठी संपूर्ण स्टिलवॉटर पुन्हा पूर्ण होईल.</string>
+
     <string name="level99_preview_species_count">यानंतर प्रजातीवरील प्रभुत्वाची संख्या: %1$d</string>
-    <string name="level99_preview_stillwater">संपूर्ण स्टिलवॉटर: %2$d पैकी %1$d प्रजातींवर प्रभुत्व</string>
+
     <string name="mastery_achieved">प्रभुत्व मिळवले</string>
     <string name="mastery_additional">अतिरिक्त उपलब्धी</string>
     <string name="mastery_all_progress">All Waters: %1$d of %2$d mastered</string>
-    <string name="mastery_all_waters_complete">Every creature across The Blue and Stillwater has reached Mastery.</string>
+
     <string name="mastery_blue_complete">Every creature in The Blue has reached Level 99.</string>
     <string name="mastery_blue_progress">The Blue: %1$d of %2$d mastered</string>
     <string name="mastery_calm_mode">शांत मोड: सौम्य सादरीकरण</string>
@@ -2101,7 +2059,7 @@
     <string name="mastery_replace_pin_title">प्रदर्शनातील बॅज बदलायचा?</string>
     <string name="mastery_return_blue">द ब्लूमध्ये परत जा</string>
     <string name="mastery_return_chest">द चेस्टमध्ये परत जा</string>
-    <string name="mastery_return_stillwater">स्टिलवॉटरमध्ये परत जा</string>
+
     <plurals name="mastery_species_remaining">
         <item quantity="one">%1$d प्रजाती उरली आहे.</item>
         <item quantity="other">उरलेल्या प्रजाती: %1$d.</item>
@@ -2111,7 +2069,7 @@
         <item quantity="other">प्रवास पूर्ण केलेले %2$s: %1$d.</item>
     </plurals>
     <string name="mastery_species_title">%1$s · प्रभुत्व</string>
-    <string name="mastery_stillwater_progress">स्टिलवॉटर: %2$d पैकी %1$d प्रजातींवर प्रभुत्व</string>
+
     <string name="mastery_summary_species">प्रजातीवरील प्रभुत्वाची संख्या: %1$d</string>
     <string name="mastery_summary_total">एकूण प्रभुत्व: %1$d · वेगवेगळ्या प्रजाती: %2$d</string>
     <string name="mastery_unknown_creature">जीव</string>
@@ -2125,8 +2083,7 @@
     <string name="shell_message_track_failed">या बॅजच्या प्रगतीचा मागोवा सुरू करता आला नाही.</string>
     <string name="shell_notification_fallback_body">द शेलमध्ये एक नवीन बक्षीस तुमची वाट पाहत आहे.</string>
     <string name="shell_notification_fallback_title">द शेलचे नवीन बक्षीस</string>
-    <string name="stillwater_collection_progress_title">संग्रहाची प्रगती</string>
-    <string name="stillwater_named_collection_progress">%1$s: प्रगती</string>
+
     <string name="the_blue_collection_progress">एकूण %2$d पैकी %1$d शोधले · प्रभुत्व मिळवलेले: %3$d</string>
     <string name="shell_message_placed">Focus Room मध्ये ठेवले.</string>
     <string name="shell_message_display_failed">ते बक्षीस दाखवता आले नाही.</string>
@@ -2147,9 +2104,9 @@
     <string name="shell_message_encountered">%1$s ने %2$s मध्ये प्रवेश केला.</string>
     <string name="shell_message_encounter_succeeded">तुमची Beyond the Blue भेट यशस्वी झाली.</string>
     <string name="shell_message_encounter_failed">त्या प्राण्याशी भेट होऊ शकली नाही.</string>
-    <string name="shell_message_vessel_locked">हे पात्र उघडण्यासाठी समुद्रात पुढे प्रगती करा.</string>
+
     <string name="shell_message_drops_insufficient">अजून पुरेसे Drops नाहीत.</string>
-    <string name="shell_message_stillwater_failed">Stillwater मधून काढता आले नाही.</string>
+
     <string name="badges_tab_showcase">शोकेस</string>
     <string name="badges_tab_book">बॅज बुक</string>
     <string name="badges_tab_reach">आवाक्यात</string>
@@ -2402,5 +2359,7 @@
     <plurals name="horizon_completion_count"><item quantity="one">%1$d वेळा पूर्ण</item><item quantity="other">%1$d वेळा पूर्ण</item></plurals>
     <string name="horizon_planned_arcs">नियोजित Arcs</string>
     <string name="horizon_power_flow">पॉवर Flow</string>
-    <string name="horizon_delete_memory_body">यामुळे हा Flow आणि त्याचे Chronicles हे Story आणि Memories मधून कायमचे हटवले जातील. तुमची सवय किंवा योजना कायम राहील.</string>
+    <string name="horizon_remove_memory">Memories मधून काढा</string>
+    <string name="horizon_remove_memory_title">ही आठवण काढायची?</string>
+    <string name="horizon_remove_memory_body">हा Flow फक्त या कृतीच्या Memories मधून काढला जाईल. Story मधील त्याची नोंद, Chronicles, नोंदवलेली कृती आणि बक्षिसे कायम राहतील.</string>
 </resources>

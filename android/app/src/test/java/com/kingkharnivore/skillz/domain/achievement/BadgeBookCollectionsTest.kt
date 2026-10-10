@@ -21,7 +21,7 @@ class BadgeBookCollectionsTest {
         }
         assertTrue(collections.count { "power_spark" in it.memberIds } > 1)
         assertTrue(collections.count { "red_first_footprint" in it.memberIds } > 1)
-        assertEquals(4, BadgeBookCollections.newAwards.size)
+        assertEquals(12, BadgeBookCollections.newAwards.size)
     }
     @Test fun awardsRequireEveryMemberOnceAndDoNotMultiplyWithRepeatCounts() {
         BadgeBookCollections.newAwards.forEach { collection ->
@@ -53,7 +53,7 @@ class BadgeBookCollectionsTest {
         assertNull(BadgeBookCollections.completionEvidence(collection,badges - collection.memberIds.last()))
     }
     @Test fun discoveryAndMasteryRewardsReuseTheEquivalentCreatureRosters() {
-        BadgeBookCollections.collections.filter { !it.createsAward && it.id != "badge_book_flow" }.forEach { group ->
+        BadgeBookCollections.collections.filter { !it.createsAward && it.id != "badge_book_flow" && !it.id.startsWith("badge_book_green_") }.forEach { group ->
             val reward=BadgeDefinitionResolver.resolve(group.completionBadgeId)
             val red=RedBadgeCatalog.byId[group.completionBadgeId]
             val expected=red?.species ?: CollectionCatalog.byId.getValue(requireNotNull(reward.collectionId)).eligibleRoster(reward.requirement)

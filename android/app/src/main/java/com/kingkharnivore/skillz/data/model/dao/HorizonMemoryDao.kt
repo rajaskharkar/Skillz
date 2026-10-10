@@ -11,8 +11,8 @@ interface HorizonMemoryDao {
     @Query("SELECT * FROM horizon_memories WHERE flowInstanceId = :flowInstanceId")
     suspend fun getByFlowInstanceId(flowInstanceId: String): HorizonMemoryEntity?
 
-    @Query("DELETE FROM horizon_memories WHERE flowInstanceId = :flowInstanceId")
-    suspend fun delete(flowInstanceId: String)
+    @Query("DELETE FROM horizon_memories WHERE flowInstanceId = :flowInstanceId AND sourcePlanId = :sourcePlanId")
+    suspend fun removeFromActivity(flowInstanceId: String, sourcePlanId: Long)
 
     @Insert
     suspend fun insert(memory: HorizonMemoryEntity)

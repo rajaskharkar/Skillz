@@ -98,22 +98,9 @@ class FlowRepository @Inject constructor(
         deleteSessionTransactionally(sessionId)
     }
 
-    suspend fun deleteMemory(flowInstanceId: String) {
-        val chronicleId = database.withTransaction {
-            val memory = database.horizonMemoryDao().getByFlowInstanceId(flowInstanceId)
-                ?: return@withTransaction null
-            database.horizonMemoryDao().delete(flowInstanceId)
-            memory.sessionId?.let { sessionId ->
-                val tagId = sessionDao.getSessionById(sessionId)?.tagId
-                val deletedChronicleId = deleteSessionRecords(sessionId)
-                if (tagId != null && sessionDao.getSessionCountForTag(tagId) == 0 &&
-                    pulseDao.getPulseCountForTag(tagId) == 0 && database.flowPlanDao().countForTag(tagId) == 0) {
-                    tagDao.deleteTagById(tagId)
-                }
-                deletedChronicleId
-            }
-        }
-        if (chronicleId != null) chronicleRepository.cleanupDeletedChronicle(chronicleId)
+    /** Removing an activity memory must never delete the saved Flow or its historical evidence. */
+    suspend fun removeMemoryFromActivity(flowInstanceId: String, sourcePlanId: Long) {
+        database.horizonMemoryDao().removeFromActivity(flowInstanceId, sourcePlanId)
     }
 
     private suspend fun deleteSessionTransactionally(sessionId: Long) {

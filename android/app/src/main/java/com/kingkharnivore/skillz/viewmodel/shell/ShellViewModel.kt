@@ -25,7 +25,6 @@ import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.utils.shell.StillwaterVessel
 import com.kingkharnivore.skillz.utils.shell.StillwaterContainer
 import com.kingkharnivore.skillz.utils.user.UserPrefs
-import com.kingkharnivore.skillz.utils.shell.requiresStillwaterConfirmation
 import com.kingkharnivore.skillz.domain.achievement.BadgeDashboard
 import com.kingkharnivore.skillz.domain.achievement.BadgeDashboardCalculator
 import com.kingkharnivore.skillz.domain.achievement.AchievementAccessState
@@ -60,8 +59,6 @@ data class ShellUiState(
     val pearlBalance: Int = 0,
     val stillwaterClaimableDrops: Long = 0,
     val stillwaterLifetimeDrops: Long = 0,
-    val stillwaterRevealCreature: CreatureDefinition? = null,
-    val pendingStillwaterDrawVessel: StillwaterContainer? = null,
     val unlockedBlueZones: Set<CreatureZone> = setOf(CreatureZone.SUNLIT_REEF),
     val finds: List<UserShellFindInstanceEntity> = emptyList(),
     val stacks: List<UserShellFindStackEntity> = emptyList(),
@@ -134,8 +131,6 @@ private data class ShellAchievementPersistence(
 )
 
 private data class ShellTransientState(
-    val reveal: CreatureDefinition?,
-    val vessel: StillwaterContainer?,
     val replacement: PinReplacementUiState?,
     val achievementInitialization: AchievementInitializationState
 )
@@ -213,8 +208,6 @@ class ShellViewModel @Inject constructor(
         }
     }
 
-    private val stillwaterRevealCreature = MutableStateFlow<CreatureDefinition?>(null)
-    private val pendingStillwaterDrawVessel = MutableStateFlow<StillwaterContainer?>(null)
     private val pinReplacement = MutableStateFlow<PinReplacementUiState?>(null)
 
     private val economy = combine(
@@ -261,12 +254,10 @@ class ShellViewModel @Inject constructor(
     ) }
 
     private val transientState = combine(
-        stillwaterRevealCreature,
-        pendingStillwaterDrawVessel,
         pinReplacement,
         _achievementInitialization
-    ) { reveal, vessel, replacement, initialization ->
-        ShellTransientState(reveal, vessel, replacement, initialization)
+    ) { replacement, initialization ->
+        ShellTransientState(replacement, initialization)
     }
 
     val uiState: StateFlow<ShellUiState> = combine(
@@ -274,14 +265,12 @@ class ShellViewModel @Inject constructor(
         ownership,
         memoryAndPreferences,
         transientState,
-        repository.observeSessions()
-    ) { economy, ownership, memoryAndPreferences, transient, sessions ->
+        combine(repository.observeSessions(), repository.observeGreenPlants(), repository.observeGreenAwards()) { sessions, plants, awards -> Triple(sessions, plants, awards) }
+    ) { economy, ownership, memoryAndPreferences, transient, green ->
         ShellUiState(
             pearlBalance = economy.pearlBalance,
             stillwaterClaimableDrops = economy.stillwaterClaimableDrops,
             stillwaterLifetimeDrops = economy.stillwaterLifetimeDrops,
-            stillwaterRevealCreature = transient.reveal,
-            pendingStillwaterDrawVessel = transient.vessel,
             unlockedBlueZones = deriveUnlockedBlueZonesFromHistoricalFinds(ownership.finds),
             finds = ownership.finds,
             stacks = ownership.stacks,
@@ -301,7 +290,7 @@ class ShellViewModel @Inject constructor(
                     unlockedStillwaterVessels = (StillwaterVessel.entries + com.kingkharnivore.skillz.utils.shell.LandStillwaterHabitat.entries).filterTo(mutableSetOf()) {
                         it.zone in deriveUnlockedBlueZonesFromHistoricalFinds(ownership.finds)
                     }
-                ), sessions = sessions
+                ), sessions = green.first, greenPlants = green.second, greenAwards = green.third
             ),
             badgeCategory = memoryAndPreferences.badgeCategory,
             badgeSort = memoryAndPreferences.badgeSort,
@@ -440,48 +429,6 @@ class ShellViewModel @Inject constructor(
         runCatching { repository.encounterBeyondBlue(targetCreatureId, selectedInstanceIds) }
             .onSuccess { _events.emit(UiText.Resource(R.string.shell_message_encounter_succeeded)) }
             .onFailure { _events.emit(UiText.Resource(R.string.shell_message_encounter_failed)) }
-    }
-
-    fun onDrawFromStillwater(vessel: StillwaterContainer) = viewModelScope.launch {
-        val state = uiState.value
-        if (vessel.zone !in state.unlockedBlueZones) {
-            _events.emit(UiText.Resource(R.string.shell_message_vessel_locked))
-            return@launch
-        }
-        if (state.stillwaterClaimableDrops < vessel.dropCost) {
-            _events.emit(UiText.Resource(R.string.shell_message_drops_insufficient))
-            return@launch
-        }
-        if (requiresStillwaterConfirmation(vessel)) {
-            pendingStillwaterDrawVessel.value = vessel
-        } else {
-            drawFromStillwater(vessel)
-        }
-    }
-
-    fun onConfirmStillwaterDraw(vessel: StillwaterContainer) = viewModelScope.launch {
-        pendingStillwaterDrawVessel.value = null
-        drawFromStillwater(vessel)
-    }
-
-    fun onDismissStillwaterReveal() {
-        stillwaterRevealCreature.value = null
-    }
-
-    fun onDismissStillwaterDrawConfirmation() {
-        pendingStillwaterDrawVessel.value = null
-    }
-
-    private suspend fun drawFromStillwater(vessel: StillwaterContainer) {
-        if (vessel.zone !in deriveUnlockedBlueZonesFromHistoricalFinds(uiState.value.finds)) {
-            _events.emit(UiText.Resource(R.string.shell_message_vessel_locked))
-            return
-        }
-        runCatching { repository.drawFromStillwater(vessel, uiState.value.unlockedBlueZones) }
-            .onSuccess { instance ->
-                stillwaterRevealCreature.value = CreatureCatalog.get(instance.findId)
-            }
-            .onFailure { _events.emit(UiText.Resource(R.string.shell_message_stillwater_failed)) }
     }
 
     fun markNotificationViewed(notificationId: String) = viewModelScope.launch {
