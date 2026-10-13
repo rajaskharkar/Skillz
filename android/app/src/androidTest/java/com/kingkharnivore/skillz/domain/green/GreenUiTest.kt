@@ -12,6 +12,38 @@ import org.junit.Assert.*
 
 class GreenUiTest {
     @get:Rule val compose=createComposeRule()
+    @Test fun wateringDoesNotMoveTheDialogOrItsButtonsDuringFeedbackAndGrowth() {
+        val original = GreenPreviewFixtures.specimen(GreenCatalogue.byId.getValue("magnolia"), 89, 1)
+        val state = androidx.compose.runtime.mutableStateOf(GreenUiState(1000000, listOf(original)))
+        compose.setContent { SkillzTheme { Surface {
+            SpecimenDialog(state.value.specimens.single(), state.value,
+                { _, _, _ -> state.value = state.value.copy(busy = true, action = null, messageRes = null) }, {})
+        } } }
+        val initial = compose.onNodeWithTag("green-specimen-dialog").fetchSemanticsNode().boundsInRoot
+        val water = compose.onNodeWithText("Water").fetchSemanticsNode().boundsInRoot
+        fun assertAnchored() {
+            compose.waitForIdle()
+            assertEquals(initial, compose.onNodeWithTag("green-specimen-dialog").fetchSemanticsNode().boundsInRoot)
+            assertEquals(water, compose.onNodeWithText("Water").fetchSemanticsNode().boundsInRoot)
+        }
+        repeat(3) { iteration ->
+            compose.onNodeWithText("Water").performClick()
+            assertAnchored()
+            compose.runOnIdle {
+                val level = 90 + iteration
+                state.value = state.value.copy(busy = false,
+                    specimens = listOf(original.copy(level = level, fullyGrownAt = original.plantedAt + 1,
+                        lastWateredAt = original.plantedAt + iteration + 2)),
+                    action = com.kingkharnivore.skillz.data.model.entity.green.GreenActionEntity(
+                        "water-$level", "plant_watered", original.id, original.id, level - 1, level, 1, 999999, 1))
+            }
+            assertAnchored()
+        }
+        compose.runOnIdle { state.value = state.value.copy(action = null, messageRes = com.kingkharnivore.skillz.R.string.green_error) }
+        compose.onNodeWithText("Growth could not be saved. Please try again.").assertIsDisplayed()
+        assertAnchored()
+    }
+
     @Test fun emptyWorldHasAllSixEnvironmentsAndNoRetiredRoom() {
         compose.setContent { SkillzTheme { Surface { GreenScreen(GreenUiState()) } } }
         compose.onNodeWithText("The Green").assertIsDisplayed()
@@ -125,9 +157,11 @@ class GreenUiTest {
             GreenChestPreviewContent(GreenPreviewFixtures.mixed(GreenEnvironment.GARDEN),onWater={_,old,_->level=old})
         } } }
         compose.onNodeWithText("The Chest").assertIsDisplayed()
-        compose.onNodeWithText("Plants").assertIsSelected()
-        compose.onNodeWithText("Creatures").assertExists()
-        compose.onNodeWithText("Daisy",substring=false).performClick()
+        compose.onNodeWithText("Plants").assertDoesNotExist()
+        compose.onNodeWithText("Creatures").assertDoesNotExist()
+        compose.onNodeWithTag("chest-environment").assertIsDisplayed()
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag("chest-plant:preview-daisy-1"))
+        compose.onNodeWithTag("chest-plant:preview-daisy-1").performClick()
         compose.onAllNodesWithText("Level 1 · Sprout").onLast().assertIsDisplayed()
         compose.onNodeWithText("Water",useUnmergedTree=true).performClick()
         compose.runOnIdle { assertEquals(1,level) }

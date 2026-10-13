@@ -5,6 +5,9 @@ import androidx.test.core.app.ApplicationProvider
 import com.kingkharnivore.skillz.data.model.entity.*
 import com.kingkharnivore.skillz.data.repository.*
 import com.kingkharnivore.skillz.model.FlowMode
+import com.kingkharnivore.skillz.model.state.flow.FlowUiState
+import com.kingkharnivore.skillz.model.state.flow.activityTitleSuggestions
+import com.kingkharnivore.skillz.model.state.flow.withActivityTitle
 import com.kingkharnivore.skillz.viewmodel.groupHorizonMemories
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -26,7 +29,95 @@ class HorizonPersistenceTest {
         title = "An evening walk", description = "", tagId = 1, startTime = end-duration, endTime = end,
         durationMs = duration, mode = FlowMode.SOFT, originPlanId = plan)
 
-    @Test fun changedJourneySavesStoryButDoesNotCreditHabitOrCompletePlan() = runBlocking {
+    @Test fun autocompleteLinksAllHabitAndPlanModesToTheirOwnMemories() = runBlocking {
+        for (kind in listOf(HorizonKind.HABIT, HorizonKind.PLAN)) {
+            for (mode in FlowMode.entries) {
+                val title = "Read $kind $mode"
+                val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = title, tagId = 1, kind = kind, mode = mode))
+                val typed = FlowUiState(title = title)
+                val suggestion = activityTitleSuggestions(db.flowPlanDao().getActiveFlowPlans().first(), db.tagDao().getAllTagsSnapshot(), typed).single()
+                val selected = typed.withActivityTitle(suggestion)
+                assertEquals(mode, selected.mode)
+                assertEquals(kind, selected.originPlanKind)
+                assertEquals(plan, selected.originPlanId)
+                val saved = flows.addSessionAndPromoteChronicle("selected-$kind-$mode", session(selected.originPlanId).copy(title = selected.title, mode = selected.mode))
+                val receipt = db.horizonMemoryDao().getBySessionId(saved)!!
+                assertEquals(plan, receipt.sourcePlanId)
+                assertEquals(kind, receipt.kind)
+                assertEquals(mode, receipt.mode)
+                if (kind == HorizonKind.PLAN) {
+                    assertEquals(plan, flows.planAwaitingCompletion(saved)!!.id)
+                    flows.resolvePlanCompletion(saved, completed = false)
+                    assertNull(db.flowPlanDao().getFlowPlanById(plan)!!.completedAt)
+                } else assertNull(flows.planAwaitingCompletion(saved))
+            }
+        }
+        assertEquals(6, db.horizonMemoryDao().observeAll().first().size)
+    }
+
+    @Test fun noKeepsPlanUnchangedAndRepeatedAttemptsFormOneJourneyUntilYes() = runBlocking {
+        val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Sort photos", kind = HorizonKind.PLAN,
+            tagId = 1, pinned = true, targetMinutes = 25, launchCount = 4))
+        val original = db.flowPlanDao().getFlowPlanById(plan)
+        val first = flows.addSessionAndPromoteChronicle("attempt-1", session(plan))
+        assertEquals(plan, flows.planAwaitingCompletion(first)!!.id)
+        assertEquals(original, db.flowPlanDao().getFlowPlanById(plan))
+        flows.resolvePlanCompletion(first, completed = false)
+        assertEquals(original, db.flowPlanDao().getActiveFlowPlans().first().single())
+        val firstMemory = db.horizonMemoryDao().getBySessionId(first)
+
+        val second = flows.addSessionAndPromoteChronicle("attempt-2", session(plan, 120_000))
+        flows.resolvePlanCompletion(second, completed = false)
+        assertEquals(original, db.flowPlanDao().getFlowPlanById(plan))
+        val third = flows.addSessionAndPromoteChronicle("attempt-3", session(plan, 180_000))
+        flows.resolvePlanCompletion(third, completed = true)
+        flows.resolvePlanCompletion(third, completed = true) // Retrying cannot duplicate or delete history.
+        assertNull(flows.planAwaitingCompletion(third))
+        assertTrue(db.flowPlanDao().getActiveFlowPlans().first().isEmpty())
+        assertEquals(original!!.copy(completedAt = 180_000), db.flowPlanDao().getFlowPlanById(plan))
+        assertEquals(firstMemory, db.horizonMemoryDao().getBySessionId(first))
+        val groups = groupHorizonMemories(db.horizonMemoryDao().observeAll().first(), db.sessionDao().getAllSessions().first(), mapOf(1L to "Outdoors"))
+        assertEquals(1, groups.size)
+        assertEquals(HorizonKind.PLAN, groups.single().kind)
+        assertEquals(listOf(third, second, first), groups.single().flows.map { it.receipt.sessionId })
+
+        FlowPlanRepository(db.flowPlanDao()).reopenPlan(plan)
+        flows.addSessionAndPromoteChronicle("attempt-4", session(plan, 240_000))
+        val resumedGroups = groupHorizonMemories(db.horizonMemoryDao().observeAll().first(), db.sessionDao().getAllSessions().first(), emptyMap())
+        assertEquals(4, resumedGroups.single().flows.size)
+        assertEquals(original, db.flowPlanDao().getFlowPlanById(plan))
+    }
+
+    @Test fun completionQuestionRequiresASuccessfullySavedPlanFlowAndNeverCompletesHabits() = runBlocking {
+        val habit = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Walk"))
+        val habitFlow = flows.addSessionAndPromoteChronicle("habit", session(habit))
+        val standalone = flows.addSessionAndPromoteChronicle("standalone", session(null))
+        val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Read", kind = HorizonKind.PLAN))
+        val zero = flows.addSessionAndPromoteChronicle("zero-plan", session(plan, duration = 0))
+        listOf(habitFlow, standalone, zero, Long.MAX_VALUE).forEach {
+            assertNull(flows.planAwaitingCompletion(it))
+            flows.resolvePlanCompletion(it, completed = true)
+        }
+        assertNull(db.flowPlanDao().getFlowPlanById(habit)!!.completedAt)
+        assertNull(db.flowPlanDao().getFlowPlanById(plan)!!.completedAt)
+    }
+
+    @Test fun failedPlanAnswerKeepsSavedFlowMemoryAndPlanAvailableForRetry() = runBlocking {
+        val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Read", kind = HorizonKind.PLAN))
+        val id = flows.addSessionAndPromoteChronicle("answer-retry", session(plan))
+        val before = snapshotOutsideMemories()
+        val memory = db.horizonMemoryDao().getBySessionId(id)
+        db.openHelper.writableDatabase.execSQL("CREATE TRIGGER fail_plan_answer BEFORE UPDATE OF completedAt ON flow_plans BEGIN SELECT RAISE(ABORT,'test failure'); END")
+        try { flows.resolvePlanCompletion(id, completed = true); fail("Expected failure") }
+        catch (_: android.database.sqlite.SQLiteException) { }
+        assertEquals(before, snapshotOutsideMemories())
+        assertEquals(memory, db.horizonMemoryDao().getBySessionId(id))
+        db.openHelper.writableDatabase.execSQL("DROP TRIGGER fail_plan_answer")
+        flows.resolvePlanCompletion(id, completed = true)
+        assertNotNull(db.flowPlanDao().getFlowPlanById(plan)!!.completedAt)
+    }
+
+    @Test fun changedTagKeepsPlanAttemptButDoesNotCreditHabitOrAutomaticallyCompletePlan() = runBlocking {
         db.tagDao().insertTag(TagEntity(id=2, name="Reading"))
         for (kind in listOf(HorizonKind.HABIT, HorizonKind.PLAN)) {
             val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title="Walk", tagId=1, kind=kind))
@@ -35,10 +126,16 @@ class HorizonPersistenceTest {
             assertEquals(id, flows.addSessionAndPromoteChronicle("changed-$kind", changed))
             assertEquals(2L, db.sessionDao().getSessionById(id)!!.tagId)
             assertNull(db.flowPlanDao().getFlowPlanById(plan)!!.completedAt)
-            assertFalse(db.horizonMemoryDao().observeAll().first().any { it.sourcePlanId == plan })
+            if (kind == HorizonKind.HABIT) {
+                assertNull(db.horizonMemoryDao().getBySessionId(id))
+                assertNull(flows.planAwaitingCompletion(id))
+            } else {
+                assertEquals("Reading", db.horizonMemoryDao().getBySessionId(id)!!.tagName)
+                assertEquals(plan, flows.planAwaitingCompletion(id)!!.id)
+            }
             flows.addSessionAndPromoteChronicle("renamed-$kind", session(plan).copy(title="A different title"))
-            assertEquals("A different title", db.horizonMemoryDao().observeAll().first().single { it.sourcePlanId == plan }.title)
-            if (kind == HorizonKind.PLAN) assertNotNull(db.flowPlanDao().getFlowPlanById(plan)!!.completedAt)
+            assertEquals("A different title", db.horizonMemoryDao().getByFlowInstanceId("renamed-$kind")!!.title)
+            assertNull(db.flowPlanDao().getFlowPlanById(plan)!!.completedAt)
         }
     }
 
@@ -95,6 +192,7 @@ class HorizonPersistenceTest {
     @Test fun deletingDetachedPlanMemoryKeepsPlanCompleted() = runBlocking {
         val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title="Walk", tagId=1, kind=HorizonKind.PLAN))
         val id = flows.addSessionAndPromoteChronicle("done", session(plan))
+        flows.resolvePlanCompletion(id, completed = true)
         flows.deleteSession(id)
         assertNull(db.horizonMemoryDao().observeAll().first().single().sessionId)
         flows.removeMemoryFromActivity("done", plan)
@@ -131,7 +229,8 @@ class HorizonPersistenceTest {
         db.arcPlanDao().insertArcPlanStep(ArcPlanStepEntity(arcPlanId=arc, orderIndex=0,
             sourceFlowPlanId=id, titleSnapshot=stored.title, mode=stored.mode))
         assertEquals(FlowMode.POWER, db.arcPlanDao().getStepsForArcPlanOnce(arc).single().mode)
-        flows.addSessionAndPromoteChronicle("power-plan", session(id).copy(mode=FlowMode.POWER))
+        val savedId = flows.addSessionAndPromoteChronicle("power-plan", session(id).copy(mode=FlowMode.POWER))
+        flows.resolvePlanCompletion(savedId, completed = true)
         assertEquals(FlowMode.POWER, db.horizonMemoryDao().observeAll().first().single().mode)
         assertTrue(db.flowPlanDao().getActiveFlowPlans().first().isEmpty())
         val route = com.kingkharnivore.skillz.ui.navigation.SkillzDestinations.addSkillRoute(originPlanId=id, prefillMode=stored.mode)
@@ -159,6 +258,8 @@ class HorizonPersistenceTest {
         assertTrue(db.horizonMemoryDao().observeAll().first().isEmpty())
         chronicles.addText("ACTIVE_FLOW", "timed", "A complete chronicle")
         val id = flows.addSessionAndPromoteChronicle("timed", session(plan))
+        assertNull(db.flowPlanDao().getFlowPlanById(plan)!!.completedAt)
+        flows.resolvePlanCompletion(id, completed = true)
         flows.updateArcFields(id, 9, 1, 1.2, 2, 12)
         flows.addSessionAndPromoteChronicle("continuation", session(null, 120_000))
         assertTrue(db.flowPlanDao().getActiveFlowPlans().first().isEmpty())
@@ -180,18 +281,18 @@ class HorizonPersistenceTest {
         flows.addSessionAndPromoteChronicle("retry", session(plan))
         assertEquals(1, db.horizonMemoryDao().observeAll().first().size)
     }
-    @Test fun staleEditCannotUndoCompletionAndPlanAgainCreatesIndependentCopy() = runBlocking {
+    @Test fun staleEditCannotUndoCompletionAndPlanAgainReusesJourney() = runBlocking {
         val repo = FlowPlanRepository(db.flowPlanDao())
         val plan = repo.createFlowPlan("Read", 1, false, 25, true, HorizonKind.PLAN)
         val stale = repo.getFlowPlanById(plan)!!
-        flows.addSessionAndPromoteChronicle("completed", session(plan))
+        val savedId = flows.addSessionAndPromoteChronicle("completed", session(plan))
+        flows.resolvePlanCompletion(savedId, completed = true)
         try { repo.updateFlowPlan(stale.copy(title = "Late edit")); fail("Expected stale edit rejection") }
         catch (_: IllegalStateException) { }
-        val copy = repo.createFlowPlan(stale.title, stale.tagId, stale.isSoftMode, stale.targetMinutes, stale.launchWithSurge, HorizonKind.PLAN)
-        assertNotEquals(plan, copy)
-        assertEquals(listOf(copy), db.flowPlanDao().getActiveFlowPlans().first().map { it.id })
+        repo.reopenPlan(plan)
+        assertEquals(listOf(plan), db.flowPlanDao().getActiveFlowPlans().first().map { it.id })
         assertEquals(plan, db.horizonMemoryDao().observeAll().first().single().sourcePlanId)
-        assertEquals(25, repo.getFlowPlanById(copy)!!.targetMinutes)
+        assertEquals(25, repo.getFlowPlanById(plan)!!.targetMinutes)
     }
     @Test fun editedDetailsAndCountsSurviveDeletingTemplateAndStoryFlow() = runBlocking {
         val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Walk", tagId = 1))

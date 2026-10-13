@@ -13,6 +13,7 @@ import javax.inject.Singleton
 sealed interface PlantActionResult {
     data class Success(val action: GreenActionEntity) : PlantActionResult
     data object InsufficientDrops : PlantActionResult
+    data object Released : PlantActionResult
     data object Mastered : PlantActionResult
     data object StaleLevel : PlantActionResult
     data object NotFound : PlantActionResult
@@ -24,7 +25,8 @@ class GreenRepository @Inject constructor(private val db: SkillzDatabase) {
     private val dao get() = db.greenDao()
     private val wallet get() = db.stillwaterLedgerDao()
     fun observeDropBalance() = wallet.observeTotal()
-    fun observeSpecimens() = dao.observeSpecimens()
+    fun observeSpecimens() = dao.observeActiveSpecimens()
+    fun observeLifetimeSpecimens() = dao.observeSpecimens()
     fun observeAwards() = dao.observeAwards()
     fun observeEnvironment(environment: GreenEnvironment) = observeSpecimens().map { plants ->
         plants.filter { GreenCatalogue.byId[it.speciesId]?.environment == environment }
@@ -55,6 +57,7 @@ class GreenRepository @Inject constructor(private val db: SkillzDatabase) {
             return@withTransaction PlantActionResult.Success(it)
         }
         val plant = dao.specimen(specimenId) ?: return@withTransaction PlantActionResult.NotFound
+        if (plant.releasedAt != null) return@withTransaction PlantActionResult.Released
         if (plant.level == 99) return@withTransaction PlantActionResult.Mastered
         if (plant.level != expectedLevel) return@withTransaction PlantActionResult.StaleLevel
         val species = GreenCatalogue.byId[plant.speciesId] ?: return@withTransaction PlantActionResult.NotFound
@@ -68,6 +71,34 @@ class GreenRepository @Inject constructor(private val db: SkillzDatabase) {
             masteredAt = plant.masteredAt ?: time.takeIf { level == 99 }, investedDrops = plant.investedDrops + cost)
         dao.update(grown)
         commit(actionId, "plant_watered", specimenId, species, grown, plant.level, cost, balance, time)
+    }
+
+    /** One transaction archives this exact copy and credits its reward, including across retries. */
+    suspend fun release(specimenId: String, expectedLevel: Int, actionId: String,
+        now: Long = System.currentTimeMillis()): PlantActionResult = db.withTransaction {
+        require(actionId.isNotBlank())
+        dao.action(actionId)?.let {
+            require(it.kind == "plant_released" && it.targetId == specimenId && it.oldLevel == expectedLevel)
+            return@withTransaction PlantActionResult.Success(it)
+        }
+        val plant = dao.specimen(specimenId) ?: return@withTransaction PlantActionResult.NotFound
+        if (plant.releasedAt != null) return@withTransaction PlantActionResult.Released
+        if (plant.level != expectedLevel) return@withTransaction PlantActionResult.StaleLevel
+        val species = GreenCatalogue.byId[plant.speciesId] ?: return@withTransaction PlantActionResult.NotFound
+        val reward = GreenEconomy.releaseReward(plant.investedDrops)
+        val balance = Math.addExact(wallet.getTotal(), reward)
+        val time = maxOf(now, plant.plantedAt, plant.lastWateredAt ?: 0, plant.masteredAt ?: 0)
+        // Materialize legacy earned evidence before changing active ownership.
+        reconcileBadges(time)
+        dao.update(plant.copy(releasedAt = time))
+        wallet.insert(StillwaterLedgerEntity("green:$actionId", reward, "plant_released", plant.id, time))
+        val action = GreenActionEntity(actionId, "plant_released", specimenId, specimenId,
+            plant.level, plant.level, -reward, balance, time)
+        dao.record(action)
+        dao.event(GreenEventEntity("$actionId:plant_released", "plant_released", time, species.id,
+            species.environment.id, species.tier, plant.level, plant.level,
+            PlantGrowthStageResolver.resolve(plant.level).name, -reward, balance))
+        PlantActionResult.Success(action)
     }
 
     private suspend fun commit(id: String, kind: String, target: String, species: PlantSpecies, plant: PlantSpecimenEntity,

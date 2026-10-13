@@ -35,7 +35,7 @@ fun SessionRewardContent(
         discoveryTitle = { discoveryId -> discoveryTitles[discoveryId] }
     )
     val titleText = stringResource(
-        if (r.mode == com.kingkharnivore.skillz.model.FlowMode.POWER) R.string.power_complete else if (r.surgePoints > 0) R.string.session_reward_title_surge_completed else R.string.session_reward_title_flow_completed
+        if (r.surgePoints > 0) R.string.session_reward_title_surge_completed else R.string.session_reward_title_flow_completed
     )
 
     Column(

@@ -2334,7 +2334,7 @@
     <string name="horizon_empty_memories">आठवणींची सुरुवात Flow ने होते</string>
     <string name="horizon_empty_memories_body">सवय किंवा योजना पूर्ण केल्यावर तिच्या Flow चे तपशील येथे दिसतील.</string>
     <string name="horizon_habits_hint">पुन्हा पुन्हा करा. प्रत्येक Flow नंतर सवयी येथेच राहतील.</string>
-    <string name="horizon_plans_hint">एकदाच करायच्या कृती. Flow पूर्ण केल्यावर योजना आठवणींमध्ये जाईल.</string>
+    <string name="horizon_plans_hint">एका योजनेवर अनेक Flow मध्ये काम करा. प्रत्येक Flow नंतर योजना पूर्ण झाली का ते निवडा. तुमची प्रगती आठवणींमध्ये राहील.</string>
     <string name="horizon_empty_habits">तुम्हाला पुन्हा पुन्हा काय करायला आवडेल?</string>
     <string name="horizon_empty_plans">तुम्हाला काय पूर्ण करायचे आहे?</string>
     <string name="horizon_empty_habits_body">नियमित करायच्या कृतीसाठी सवय तयार करा.</string>
@@ -2362,4 +2362,9 @@
     <string name="horizon_remove_memory">Memories मधून काढा</string>
     <string name="horizon_remove_memory_title">ही आठवण काढायची?</string>
     <string name="horizon_remove_memory_body">हा Flow फक्त या कृतीच्या Memories मधून काढला जाईल. Story मधील त्याची नोंद, Chronicles, नोंदवलेली कृती आणि बक्षिसे कायम राहतील.</string>
+    <string name="flow_plan_completion_question">ही योजना यशस्वीपणे पूर्ण झाली का?</string>
+    <string name="flow_plan_completion_yes">होय, ही योजना पूर्ण झाली आहे</string>
+    <string name="flow_plan_completion_no">नाही, मला यावर आणखी काम करायचे आहे</string>
+    <string name="horizon_show_plan_journey">योजनेचा प्रवास दाखवा</string>
+    <string name="horizon_hide_plan_journey">योजनेचा प्रवास लपवा</string>
 </resources>

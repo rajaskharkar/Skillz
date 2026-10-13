@@ -8,6 +8,8 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.Role
 
 import com.kingkharnivore.skillz.model.FlowMode
+import com.kingkharnivore.skillz.model.state.flow.ActivityTitleSuggestion
+import com.kingkharnivore.skillz.model.state.flow.requiresSoftArcConfirmation
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.size
 
@@ -129,7 +131,11 @@ fun FlowScreen(
     val isSaving by viewModel.isSaving.collectAsState()
     val error by viewModel.error.collectAsState()
     val tags by viewModel.suggestedTags.collectAsState()
+    val suggestedActivities by viewModel.suggestedActivities.collectAsState()
     val reward by viewModel.lastReward.collectAsState()
+    val pendingPlanCompletion by viewModel.pendingPlanCompletion.collectAsState()
+    val isAnsweringPlanCompletion by viewModel.isAnsweringPlanCompletion.collectAsState()
+    val planCompletionError by viewModel.planCompletionError.collectAsState()
     val exitAfterReward by viewModel.exitAfterReward.collectAsState()
     val awaitingNextFlow by viewModel.awaitingNextFlowAfterContinue.collectAsState()
     val pendingArcIdeaContinuation by viewModel.pendingArcIdeaContinuation.collectAsState()
@@ -138,6 +144,7 @@ fun FlowScreen(
     var showEndDialog by remember { mutableStateOf(false) }
     var showPointsDialog by remember { mutableStateOf(false) }
     var showSoftArcConfirmDialog by remember { mutableStateOf(false) }
+    var pendingSoftActivity by remember { mutableStateOf<ActivityTitleSuggestion?>(null) }
     var showArcIdeaContinuationDialog by remember { mutableStateOf(false) }
     var pendingChronicleEnd by remember { mutableStateOf<FlowEndAction?>(null) }
 
@@ -179,7 +186,15 @@ fun FlowScreen(
         if (reward != null) showPointsDialog = true
     }
 
-    val isRecoveringTerminalExit = shouldRecoverTerminalExit(
+    if (pendingPlanCompletion != null) {
+        PlanCompletionDialog(
+            saving = isSaving || isAnsweringPlanCompletion,
+            error = planCompletionError,
+            onAnswer = viewModel::answerPlanCompletion
+        )
+    }
+
+    val isRecoveringTerminalExit = pendingPlanCompletion == null && shouldRecoverTerminalExit(
         exitAfterReward = exitAfterReward,
         hasReward = reward != null
     )
@@ -266,7 +281,16 @@ fun FlowScreen(
             RitualCard(rotation = -0.20f, corner = 30.dp) {
                 GrandTitleField(
                     value = uiState.title,
-                    onValueChange = viewModel::onTitleChange
+                    onValueChange = viewModel::onTitleChange,
+                    activitySuggestions = suggestedActivities,
+                    onActivitySelected = { activity ->
+                        if (activity.mode == FlowMode.SOFT && uiState.requiresSoftArcConfirmation()) {
+                            pendingSoftActivity = activity
+                            showSoftArcConfirmDialog = true
+                        } else {
+                            viewModel.onActivityTitleSelected(activity)
+                        }
+                    }
                 )
             }
 
@@ -277,7 +301,8 @@ fun FlowScreen(
                     isLocked = modeLocked,
                     onFlowSelected = { viewModel.setSoftMode(false) },
                     onSoftSelected = {
-                        if (!uiState.isSoftMode && uiState.isInArc && !modeLocked) {
+                        if (uiState.requiresSoftArcConfirmation()) {
+                            pendingSoftActivity = null
                             showSoftArcConfirmDialog = true
                         } else {
                             viewModel.setSoftMode(true)
@@ -429,7 +454,6 @@ fun FlowScreen(
                         text = when {
                             isInFlowState && uiState.isSoftMode -> stringResource(R.string.flow_screen_exit_soft_flow)
                             isInFlowState -> stringResource(R.string.flow_screen_exit_flow)
-                            uiState.mode == FlowMode.POWER -> stringResource(R.string.power_begin)
                             uiState.isSoftMode -> stringResource(R.string.flow_screen_begin_soft_flow)
                             else -> stringResource(R.string.flow_screen_enter_flow)
                         },
@@ -557,7 +581,7 @@ fun FlowScreen(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(18.dp)
                     ) {
-                        Text(stringResource(R.string.flow_screen_continue_arc))
+                        Text(stringResource(if (isSaving) R.string.flow_screen_saving else R.string.flow_screen_continue_arc))
                     }
 
                     val isArcActuallyCompletable = isArcLinked
@@ -620,7 +644,7 @@ fun FlowScreen(
 
     if (showSoftArcConfirmDialog) {
         AlertDialog(
-            onDismissRequest = { showSoftArcConfirmDialog = false },
+            onDismissRequest = { showSoftArcConfirmDialog = false; pendingSoftActivity = null },
             title = { Text(stringResource(R.string.flow_screen_soft_confirm_title)) },
             text = {
                 Text(stringResource(R.string.flow_screen_soft_confirm_body))
@@ -629,12 +653,15 @@ fun FlowScreen(
                 TextButton(
                     onClick = {
                         showSoftArcConfirmDialog = false
-                        viewModel.setSoftModeAndResetArcMultiplier()
+                        val activity = pendingSoftActivity
+                        pendingSoftActivity = null
+                        if (activity != null) viewModel.onActivityTitleSelected(activity)
+                        else viewModel.setSoftModeAndResetArcMultiplier()
                     }
                 ) { Text(stringResource(R.string.flow_screen_enter_soft)) }
             },
             dismissButton = {
-                TextButton(onClick = { showSoftArcConfirmDialog = false }) {
+                TextButton(onClick = { showSoftArcConfirmDialog = false; pendingSoftActivity = null }) {
                     Text(stringResource(R.string.flow_screen_stay_in_flow))
                 }
             }
@@ -665,7 +692,7 @@ fun FlowScreen(
         )
     }
 
-    if (showPointsDialog && reward != null) {
+    if (showPointsDialog && reward != null && pendingPlanCompletion == null && !isSaving) {
         val r = reward!!
         var showArcSummary by remember(r) { mutableStateOf(r.isArcOnlySummary) }
 
@@ -675,7 +702,6 @@ fun FlowScreen(
                 Text(
                     when {
                         showArcSummary && r.arcSummary != null -> stringResource(R.string.flow_screen_arc_reward)
-                        r.mode == FlowMode.POWER -> stringResource(R.string.power_complete)
                         r.isSoftSession -> stringResource(R.string.flow_screen_soft_flow_recorded)
                         else -> stringResource(R.string.flow_screen_you_did_it)
                     }

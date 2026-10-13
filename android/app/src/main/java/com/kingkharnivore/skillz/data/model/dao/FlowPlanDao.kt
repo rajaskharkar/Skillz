@@ -16,6 +16,9 @@ interface FlowPlanDao {
     @Query("UPDATE flow_plans SET completedAt = :at WHERE id = :id AND kind = 'PLAN' AND completedAt IS NULL")
     suspend fun markCompleted(id: Long, at: Long)
 
+    @Query("UPDATE flow_plans SET completedAt = NULL, archived = 0 WHERE id = :id AND kind = 'PLAN'")
+    suspend fun reopenPlan(id: Long)
+
     @Query("SELECT COUNT(*) FROM flow_plans WHERE tagId = :tagId")
     suspend fun countForTag(tagId: Long): Int
 

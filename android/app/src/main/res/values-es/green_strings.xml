@@ -123,4 +123,11 @@
     <string name="green_next_plot">Siguiente parcela</string>
     <string name="green_plot_position">Parcela %1$d / %2$d</string>
     <string name="green_not_planted">Aún sin plantar</string>
+    <string name="chest_mixed_inventory_stats">%1$d criaturas · %2$d plantas</string>
+    <string name="green_release">Liberar</string>
+    <string name="green_release_title">¿Liberar %1$s?</string>
+    <string name="green_release_body">Recibirás %1$d Gotas: el 75%% de la inversión en la semilla y el riego de esta planta, redondeado a la Gota más cercana. Solo esta planta se retira de The Green y del Cofre. La maestría, las insignias y el historial acumulado se conservan.</string>
+    <string name="green_release_cancel">Conservar planta</string>
+    <string name="green_released">Planta liberada. Se añadieron %1$d Gotas.</string>
+    <string name="green_already_released">Esta planta ya fue liberada.</string>
 </resources>

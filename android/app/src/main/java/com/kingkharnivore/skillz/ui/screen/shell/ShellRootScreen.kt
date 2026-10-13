@@ -343,7 +343,7 @@ fun ShellRootScreen(
                     onEnvironmentSelected = viewModel::setChestEnvironment,
                     onClearFilters = viewModel::clearChestFilters,
                     onOpenRed = { destination = ShellDestination.TheRed },
-                    greenState = greenState, onWaterPlant = greenViewModel::water,
+                    greenState = greenState, onWaterPlant = greenViewModel::water, onReleasePlant = greenViewModel::release,
                     onDismissGreenFeedback = { greenViewModel.dismissFeedback(greenState.feedbackId) },
                     onOpenGreen = { greenSeedId = null; destination = ShellDestination.TheGreen },
                     showPlantsInitially = chestPlants, focusPlantSpeciesId = chestPlantFocus, focusPlantSpecimenId = chestSpecimenFocus,

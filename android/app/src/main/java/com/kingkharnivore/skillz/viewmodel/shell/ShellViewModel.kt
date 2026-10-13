@@ -47,6 +47,11 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -221,6 +226,7 @@ class ShellViewModel @Inject constructor(
         repository.observeStacks(),
         repository.observePlacements(ShellRoomId.FOCUS)
     ) { finds, stacks, placements -> ShellOwnershipState(finds, stacks, placements) }
+        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
     private val memory = combine(
         repository.observeEarnedBadges(),
@@ -251,7 +257,7 @@ class ShellViewModel @Inject constructor(
     ) { memory, preferences, achievements -> ShellMemoryAndPreferenceState(
         memory, preferences.chestSort, preferences.badgeCategory, preferences.badgeSort,
         preferences.acknowledgedBackfillVersion, preferences.calmMode, preferences.chestFilters, achievements
-    ) }
+    ) }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
     private val transientState = combine(
         pinReplacement,
@@ -260,13 +266,37 @@ class ShellViewModel @Inject constructor(
         ShellTransientState(replacement, initialization)
     }
 
+    // Only achievement inputs invalidate the dashboard; balances, filters and dialog state do not.
+    // Room emits after growth transactions, so keep this CPU work away from the UI/snackbar thread.
+    private val badgeDashboard = combine(
+        ownership.map { it.finds }.distinctUntilChanged(),
+        memoryAndPreferences.map { it.memory.badges to it.achievements.copy(backfill = null, celebration = null) }
+            .distinctUntilChanged(),
+        combine(repository.observeSessions(), repository.observeGreenPlants(), repository.observeGreenAwards()) { sessions, plants, awards -> Triple(sessions, plants, awards) }.distinctUntilChanged()
+    ) { finds, achievementInput, green ->
+        val unlockedZones = deriveUnlockedBlueZonesFromHistoricalFinds(finds)
+        BadgeDashboardCalculator.calculate(
+            achievementInput.first, finds,
+            achievementInput.second.discoveries, achievementInput.second.masteries,
+            achievementInput.second.completions,
+            achievementInput.second.pins, achievementInput.second.tracking,
+            achievementInput.second.countFloors,
+            AchievementAccessState(
+                unlockedBlueZones = unlockedZones,
+                unlockedStillwaterVessels = (StillwaterVessel.entries + com.kingkharnivore.skillz.utils.shell.LandStillwaterHabitat.entries).filterTo(mutableSetOf()) {
+                    it.zone in unlockedZones
+                }
+            ), sessions = green.first, greenPlants = green.second, greenAwards = green.third
+        )
+    }.flowOn(Dispatchers.Default)
+
     val uiState: StateFlow<ShellUiState> = combine(
         economy,
         ownership,
         memoryAndPreferences,
         transientState,
-        combine(repository.observeSessions(), repository.observeGreenPlants(), repository.observeGreenAwards()) { sessions, plants, awards -> Triple(sessions, plants, awards) }
-    ) { economy, ownership, memoryAndPreferences, transient, green ->
+        badgeDashboard
+    ) { economy, ownership, memoryAndPreferences, transient, dashboard ->
         ShellUiState(
             pearlBalance = economy.pearlBalance,
             stillwaterClaimableDrops = economy.stillwaterClaimableDrops,
@@ -279,19 +309,7 @@ class ShellViewModel @Inject constructor(
             discoveries = memoryAndPreferences.memory.discoveries,
             objectiveCompletions = memoryAndPreferences.memory.objectiveCompletions,
             chestSortOption = memoryAndPreferences.chestSortOption,
-            badgeDashboard = BadgeDashboardCalculator.calculate(
-                memoryAndPreferences.memory.badges, ownership.finds,
-                memoryAndPreferences.achievements.discoveries, memoryAndPreferences.achievements.masteries,
-                memoryAndPreferences.achievements.completions,
-                memoryAndPreferences.achievements.pins, memoryAndPreferences.achievements.tracking,
-                memoryAndPreferences.achievements.countFloors,
-                AchievementAccessState(
-                    unlockedBlueZones = deriveUnlockedBlueZonesFromHistoricalFinds(ownership.finds),
-                    unlockedStillwaterVessels = (StillwaterVessel.entries + com.kingkharnivore.skillz.utils.shell.LandStillwaterHabitat.entries).filterTo(mutableSetOf()) {
-                        it.zone in deriveUnlockedBlueZonesFromHistoricalFinds(ownership.finds)
-                    }
-                ), sessions = green.first, greenPlants = green.second, greenAwards = green.third
-            ),
+            badgeDashboard = dashboard,
             badgeCategory = memoryAndPreferences.badgeCategory,
             badgeSort = memoryAndPreferences.badgeSort,
             backfillSummary = memoryAndPreferences.achievements.backfill?.takeIf { it.version > memoryAndPreferences.acknowledgedBackfillVersion && (it.discoveredCount > 0 || it.masteryCount > 0 || it.completionCount > 0) },

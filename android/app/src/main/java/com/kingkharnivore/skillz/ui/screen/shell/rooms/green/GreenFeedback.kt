@@ -17,6 +17,9 @@ import com.kingkharnivore.skillz.viewmodel.green.GreenUiState
 @Composable
 internal fun greenFeedbackText(state: GreenUiState, specimenId: String? = null): String? {
     state.messageRes?.let { return stringResource(it) }
+    state.action?.takeIf { it.kind == "plant_released" && (specimenId == null || it.specimenId == specimenId) }?.let {
+        return stringResource(R.string.green_released, -it.cost)
+    }
     val action = state.action?.takeIf { it.newLevel != 99 && (specimenId == null || it.specimenId == specimenId) } ?: return null
     val species = state.specimens.firstOrNull { it.id == action.specimenId }?.speciesId?.let(GreenCatalogue.byId::get) ?: return null
     val name = stringResource(species.nameRes)

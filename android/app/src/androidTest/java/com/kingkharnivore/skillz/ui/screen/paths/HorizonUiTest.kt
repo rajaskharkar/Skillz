@@ -164,4 +164,20 @@ class HorizonUiTest {
         compose.onNodeWithText("Plan again").performScrollTo().performClick()
         assertEquals(true,planned)
     }
+
+    @Test fun planJourneyShowsEarlierAttemptsAndCanCollapseAgain() {
+        compose.setContent { SkillzTheme(darkTheme=false,dynamicColor=false) { Surface {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+                MemoryCard(MemoryGroupUi(1, HorizonKind.PLAN, "Sort photos", listOf(
+                    flow(2, "Finished sorting", HorizonKind.PLAN), flow(1, "Started sorting", HorizonKind.PLAN)
+                ))) {}
+            }
+        } } }
+        compose.onNodeWithText("Finished sorting").assertIsDisplayed()
+        compose.onNodeWithText("Started sorting").assertDoesNotExist()
+        compose.onNodeWithText("Show Plan Journey").performScrollTo().performClick()
+        compose.onNodeWithText("Started sorting").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Hide Plan Journey").performScrollTo().performClick()
+        compose.onNodeWithText("Started sorting").assertDoesNotExist()
+    }
 }

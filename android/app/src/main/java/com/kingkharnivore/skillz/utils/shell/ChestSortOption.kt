@@ -17,14 +17,16 @@ enum class ChestSortOption(val key: String) {
 }
 
 enum class ChestFilterOption(val key: String) {
-    All("all"), Sea("sea"), Land("land"), Red("red"), ClosestToMastery("closest"), Mastered("mastered"), NotMastered("not_mastered"),
+    All("all"), Sea("sea"), Land("land"), Red("red"), Green("green"), ClosestToMastery("closest"), Mastered("mastered"), NotMastered("not_mastered"),
     NeededForTrackedBadges("needed_for_tracked_badges"),
     SunlitReef("sunlit_reef"), DeeperReef("deeper_reef"), OpenBlue("open_blue"), GreatBlue("great_blue"),
     Fishbowl("fishbowl"), Aquarium("aquarium"), Pond("pond"), Lake("lake"),
     GoldenFields("golden_fields"), AncientWoods("ancient_woods"), OpenSands("open_sands"),
     HighPeaks("high_peaks"), GreatWild("great_wild"),
     Pasture("pasture"), Glade("glade"), Oasis("oasis"), Ravine("ravine"), Sanctuary("sanctuary"),
-    Triassic("triassic"), Jurassic("jurassic"), Cretaceous("cretaceous");
+    Triassic("triassic"), Jurassic("jurassic"), Cretaceous("cretaceous"),
+    Garden("garden"), Woodlands("woodlands"), Rainforest("rainforest"),
+    Wetlands("wetlands"), Drylands("drylands"), Highlands("highlands");
 
     val isProgress: Boolean get() = this in listOf(ClosestToMastery, Mastered, NotMastered, NeededForTrackedBadges)
 
@@ -35,6 +37,9 @@ enum class ChestFilterOption(val key: String) {
         Red -> creature.realm == CreatureRealm.RED
         else -> this == environmentOf(creature)
     }
+    fun matchesEnvironment(plant: com.kingkharnivore.skillz.domain.green.PlantSpecies): Boolean =
+        this == All || this == Green || key == plant.environment.id
+
     companion object { fun fromKey(key: String?) = when (key) {
         "tracked_collector", "tracked_mastery", "tracked_completionist" -> NeededForTrackedBadges
         else -> entries.firstOrNull { it.key == key } ?: All

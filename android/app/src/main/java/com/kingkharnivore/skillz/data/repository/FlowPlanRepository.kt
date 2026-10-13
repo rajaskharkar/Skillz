@@ -71,6 +71,8 @@ class FlowPlanRepository @Inject constructor(
         flowPlanDao.markLaunched(id = id)
     }
 
+    suspend fun reopenPlan(id: Long) = flowPlanDao.reopenPlan(id)
+
     suspend fun deleteFlowPlanById(id: Long) {
         flowPlanDao.deleteFlowPlanById(id)
     }

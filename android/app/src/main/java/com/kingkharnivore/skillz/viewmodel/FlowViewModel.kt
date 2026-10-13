@@ -12,6 +12,7 @@ import com.kingkharnivore.skillz.data.repository.ActiveArcRunRepository
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
 import com.kingkharnivore.skillz.data.repository.ArcPlanRepository
 import com.kingkharnivore.skillz.data.repository.FlowRepository
+import com.kingkharnivore.skillz.data.repository.FlowPlanRepository
 import java.time.Instant
 import com.kingkharnivore.skillz.utils.health.MovementBonusEligibilityPolicy
 import com.kingkharnivore.skillz.utils.health.MovementBonusEligibilityInput
@@ -39,6 +40,12 @@ import com.kingkharnivore.skillz.utils.shell.ShellRewardResult
 import com.kingkharnivore.skillz.model.state.flow.ArcSummaryUiModel
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 import com.kingkharnivore.skillz.model.state.flow.FlowUiState
+import com.kingkharnivore.skillz.model.state.flow.ActivityTitleSuggestion
+import com.kingkharnivore.skillz.model.state.flow.activityTitleSuggestions
+import com.kingkharnivore.skillz.model.state.flow.withActivityTitle
+import com.kingkharnivore.skillz.model.state.flow.withEditedTitle
+import com.kingkharnivore.skillz.model.state.flow.withEditedTagName
+import com.kingkharnivore.skillz.model.state.flow.withResetStopwatch
 import com.kingkharnivore.skillz.model.state.flow.StopwatchState
 import com.kingkharnivore.skillz.ui.model.ArcRuntimeState
 import com.kingkharnivore.skillz.ui.navigation.SkillzDestinations
@@ -132,6 +139,7 @@ data class PendingArcIdeaContinuation(
 class FlowViewModel @Inject constructor(
     private val tagRepository: JourneyRepository,
     private val sessionRepository: FlowRepository,
+    private val flowPlanRepository: FlowPlanRepository,
     private val pulseRepository: PulseRepository,
     private val ideaGroveRepository: IdeaGroveRepository,
     private val focusSessionRepository: AliveFlowRepository,
@@ -151,7 +159,7 @@ class FlowViewModel @Inject constructor(
     private val movementBonusCalculator: MovementBonusCalculator,
     private val movementBonusEligibilityPolicy: MovementBonusEligibilityPolicy,
     private val chronicleRepository: ChronicleRepository,
-    savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val flowStartMutex = Mutex()
@@ -201,6 +209,7 @@ class FlowViewModel @Inject constructor(
 
     private val originPlanIdOverride = savedStateHandle.get<Long>(SkillzDestinations.ADD_SKILL_ARG_ORIGIN_PLAN_ID)
         ?.takeIf { it > 0L }
+    private var originPlanKindOverride: String? = null
 
     private val originPulseIdOverride: Long? =
         savedStateHandle.get<Long>(SkillzDestinations.ADD_SKILL_ARG_ORIGIN_PULSE_ID)
@@ -237,6 +246,7 @@ class FlowViewModel @Inject constructor(
             plannedArcStepIndex = plannedArcStepIndexOverride ?: state.plannedArcStepIndex,
             plannedArcTotalSteps = plannedArcTotalStepsOverride ?: state.plannedArcTotalSteps,
             originPlanId = originPlanIdOverride,
+            originPlanKind = originPlanKindOverride,
             originPulseId = if (isPulseLaunch) originPulseIdOverride else null,
             originPulseTitle = if (isPulseLaunch) prefillTitleOverride else null,
             originPulseJourneyName = if (isPulseLaunch) atlasJourneyOverride else null
@@ -269,6 +279,35 @@ class FlowViewModel @Inject constructor(
     private val _lastReward = MutableStateFlow<FlowRewardUiModel?>(null)
     val lastReward: StateFlow<FlowRewardUiModel?> = _lastReward.asStateFlow()
 
+    val pendingPlanCompletion = savedStateHandle.getStateFlow<Long?>("pendingPlanCompletionSession", null)
+    private val _isAnsweringPlanCompletion = MutableStateFlow(false)
+    val isAnsweringPlanCompletion = _isAnsweringPlanCompletion.asStateFlow()
+    private val _planCompletionError = MutableStateFlow<String?>(null)
+    val planCompletionError = _planCompletionError.asStateFlow()
+
+    private suspend fun queuePlanCompletionQuestion(sessionId: Long) {
+        if (sessionRepository.planAwaitingCompletion(sessionId) != null) {
+            savedStateHandle["pendingPlanCompletionSession"] = sessionId
+        }
+    }
+
+    fun answerPlanCompletion(completed: Boolean) {
+        val sessionId = pendingPlanCompletion.value ?: return
+        if (_isAnsweringPlanCompletion.value || _isSaving.value) return
+        _isAnsweringPlanCompletion.value = true
+        _planCompletionError.value = null
+        viewModelScope.launch {
+            try {
+                sessionRepository.resolvePlanCompletion(sessionId, completed)
+                savedStateHandle["pendingPlanCompletionSession"] = null
+            } catch (e: Exception) {
+                _planCompletionError.value = e.message ?: "Unable to update Plan. Please try again."
+            } finally {
+                _isAnsweringPlanCompletion.value = false
+            }
+        }
+    }
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
@@ -283,6 +322,14 @@ class FlowViewModel @Inject constructor(
     val tags: StateFlow<List<TagEntity>> =
         tagRepository.getAllTags()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val suggestedActivities: StateFlow<List<ActivityTitleSuggestion>> = combine(
+        flowPlanRepository.getActiveFlowPlans(),
+        tagRepository.getAllTags(),
+        uiState
+    ) { plans, tags, state ->
+        activityTitleSuggestions(plans, tags, state)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val suggestedTags = combine(
         tagRepository.getAllTags(),
@@ -355,7 +402,7 @@ class FlowViewModel @Inject constructor(
         }
     }
 
-    fun isModeLocked(): Boolean = _uiState.value.isInFlowMode || _uiState.value.stopwatch.isRunning || _uiState.value.stopwatch.elapsedMs > 0L
+    fun isModeLocked(): Boolean = _uiState.value.isModeLocked
 
     fun setPowerMode() {
         if (isModeLocked()) return
@@ -498,6 +545,7 @@ class FlowViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            originPlanKindOverride = originPlanIdOverride?.let { flowPlanRepository.getFlowPlanById(it)?.kind }
             val storedOngoing = focusSessionRepository.getOngoingSession().firstOrNull()
             val ongoing = if (isAbandonedPulseOriginDraft(storedOngoing)) {
                 clearOngoing()
@@ -613,6 +661,7 @@ class FlowViewModel @Inject constructor(
                                 plannedArcStepIndex = null,
                                 plannedArcTotalSteps = null,
                                 originPlanId = null,
+                                originPlanKind = null,
                                 originPulseId = null,
                                 originPulseTitle = null,
                                 originPulseJourneyName = null
@@ -639,6 +688,7 @@ class FlowViewModel @Inject constructor(
                         accumulatedBeforeStartMs
                     }
 
+                    val restoredOriginKind = entity.originPlanId?.let { flowPlanRepository.getFlowPlanById(it)?.kind }
                     _uiState.update { old ->
                         old.copy(
                             title = entity.title,
@@ -655,6 +705,7 @@ class FlowViewModel @Inject constructor(
                             plannedArcTotalSteps = restoredPlannedRun?.totalSteps
                                 ?: old.plannedArcTotalSteps,
                             originPlanId = entity.originPlanId,
+                            originPlanKind = restoredOriginKind,
                             originPulseId = entity.originPulseId,
                             originPulseTitle = entity.originPulseTitleSnapshot,
                             originPulseJourneyName = entity.originPulseJourneyNameSnapshot,
@@ -681,6 +732,7 @@ class FlowViewModel @Inject constructor(
                         plannedArcStepIndex = null,
                         plannedArcTotalSteps = null,
                         originPlanId = null,
+                        originPlanKind = null,
                         originPulseId = null,
                         originPulseTitle = null,
                         originPulseJourneyName = null
@@ -720,12 +772,22 @@ class FlowViewModel @Inject constructor(
     }
 
     fun onTitleChange(newTitle: String) {
-        _uiState.update { it.copy(title = newTitle) }
+        _uiState.update { it.withEditedTitle(newTitle) }
         saveOngoing()
     }
 
+    fun onActivityTitleSelected(activity: ActivityTitleSuggestion) {
+        if (_isSaving.value) return
+        val current = suggestedActivities.value.firstOrNull { it.id == activity.id } ?: return
+        _uiState.update { it.withActivityTitle(current) }
+        viewModelScope.launch {
+            if (_uiState.value.isSoftMode) enterSoftModePreservingArc(persistSnapshotIfAlreadyApplied = true)
+            else saveOngoingNow()
+        }
+    }
+
     fun onTagNameChange(newTagName: String) {
-        _uiState.update { it.copy(tagName = newTagName) }
+        _uiState.update { it.withEditedTagName(newTagName) }
         saveOngoing()
     }
 
@@ -762,6 +824,7 @@ class FlowViewModel @Inject constructor(
                 arcProgressMs = keepArc?.progressMs ?: 0L,
                 arcNextIndex = keepArc?.let { it.sessionCountInArc + 1 },
                 originPlanId = null,
+                originPlanKind = null,
                 originPulseId = null,
                 originPulseTitle = null,
                 originPulseJourneyName = null
@@ -1026,14 +1089,7 @@ class FlowViewModel @Inject constructor(
         accumulatedBeforeStartMs = 0L
         activeIntervals.clear()
         activeIntervalStartMs = null
-        _uiState.update {
-            it.copy(
-                stopwatch = StopwatchState(
-                    isRunning = false,
-                    elapsedMs = 0L
-                )
-            )
-        }
+        _uiState.update { it.withResetStopwatch() }
         stopTicker()
         saveOngoing()
     }
@@ -1231,6 +1287,7 @@ class FlowViewModel @Inject constructor(
                                 plannedArcStepIndex = null,
                                 plannedArcTotalSteps = null,
                                 originPlanId = null,
+                                originPlanKind = null,
                                 originPulseId = continuationOrigin?.pulseId,
                                 originPulseTitle = continuationOrigin?.pulseTitle,
                                 originPulseJourneyName = continuationOrigin?.pulseJourneyName
@@ -1455,6 +1512,7 @@ class FlowViewModel @Inject constructor(
                 )
                 committedSessionId = firstSessionId
                 _completionState.value = FlowCompletionState.CoreCommitted(firstSessionId)
+                queuePlanCompletionQuestion(firstSessionId)
 
                 val arcId = System.currentTimeMillis()
 
@@ -1628,6 +1686,7 @@ class FlowViewModel @Inject constructor(
             )
             committedSessionId = insertedId
             _completionState.value = FlowCompletionState.CoreCommitted(insertedId)
+            queuePlanCompletionQuestion(insertedId)
 
             pulseRepository.attachLivePulsesToSession(
                 flowInstanceId = currentFlowInstanceId,
@@ -2009,6 +2068,7 @@ class FlowViewModel @Inject constructor(
                 arcGraceRemainingMs = null,
                 arcPauseRemainingMs = null,
                 originPlanId = null,
+                originPlanKind = null,
                 originPulseId = continuationOrigin?.pulseId,
                 originPulseTitle = continuationOrigin?.pulseTitle,
                 originPulseJourneyName = continuationOrigin?.pulseJourneyName

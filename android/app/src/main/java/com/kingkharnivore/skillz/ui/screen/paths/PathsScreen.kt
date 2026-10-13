@@ -261,7 +261,7 @@ internal fun MemoryCard(memory: MemoryGroupUi, onRemoveMemory: (MemoryFlowUi) ->
                 Text(stringResource(if (memory.kind == HorizonKind.HABIT) R.string.horizon_habit else R.string.horizon_plan),
                     style = MaterialTheme.typography.labelMedium)
             }
-            if (memory.kind == HorizonKind.HABIT) Text(pluralStringResource(R.plurals.horizon_completion_count, memory.flows.size, memory.flows.size),
+            Text(pluralStringResource(R.plurals.horizon_completion_count, memory.flows.size, memory.flows.size),
                 color = flowCardAccent(memory.latest.session?.mode ?: memory.latest.receipt.mode), style = MaterialTheme.typography.labelLarge)
             val visibleFlows = if (showJourney) memory.flows else listOf(memory.latest)
             visibleFlows.forEachIndexed { index, flow ->
@@ -271,10 +271,23 @@ internal fun MemoryCard(memory: MemoryGroupUi, onRemoveMemory: (MemoryFlowUi) ->
                         onToggle = { toggle(flow) }, onDelete = { onRemoveMemory(flow) })
                 }
             }
-            if (memory.kind == HorizonKind.HABIT && memory.flows.size > 1) TextButton(onClick = { showJourney = !showJourney }) {
-                Text(stringResource(if (showJourney) R.string.horizon_hide_flows else R.string.horizon_show_flows))
+            val actionColors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = LocalContentColor.current
+            )
+            if (memory.flows.size > 1) Button(
+                onClick = { showJourney = !showJourney },
+                colors = actionColors
+            ) {
+                Text(stringResource(if (showJourney && memory.kind == HorizonKind.PLAN) R.string.horizon_hide_plan_journey
+                    else if (showJourney) R.string.horizon_hide_flows
+                    else if (memory.kind == HorizonKind.PLAN) R.string.horizon_show_plan_journey
+                    else R.string.horizon_show_flows))
             }
-            if (memory.kind == HorizonKind.PLAN) OutlinedButton(onClick = { onPlanAgain(memory) }) {
+            if (memory.kind == HorizonKind.PLAN) Button(
+                onClick = { onPlanAgain(memory) },
+                colors = actionColors
+            ) {
                 Text(stringResource(R.string.horizon_plan_again))
             }
         }

@@ -47,7 +47,7 @@ fun GreenBadgeDefinition.dashboardModel(
             .sortedByDescending { qualified[it] ?: 0 }
         else -> requiredSpecies.toList()
     }.let { if (speciesId != null) listOf(speciesId) else it }
-    val growing = eligiblePlants.filter { it.speciesId in candidates && it.level <
+    val growing = eligiblePlants.filter { it.releasedAt == null && it.speciesId in candidates && it.level <
         (if (metric == GreenBadgeMetric.WATERINGS) 99 else requiredLevel) }.maxByOrNull { it.level }
     val targetId = growing?.speciesId ?: candidates.firstOrNull() ?: requiredSpecies.firstOrNull()
     val seed = growing == null

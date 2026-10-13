@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -64,6 +65,7 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
@@ -226,6 +228,7 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                     Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(22.dp)) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             TextField(value = state.editingField, onValueChange = holder::editText,
+                                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                                 enabled = state.microphone !is ChronicleMicrophoneState.Dictating,
                                 modifier = Modifier.fillMaxWidth(), colors = chronicleTextFieldColors())
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -373,6 +376,7 @@ fun ChroniclePage(holder: ChronicleStateHolder, modifier: Modifier = Modifier) {
                     val micGestureVisible = micEnabled ||
                         state.microphone is ChronicleMicrophoneState.RecordingVoice
                     TextField(value = state.draftField, onValueChange = holder::setDraft,
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                         enabled = !state.hasActiveEditor && !state.isCommitting &&
                             state.microphone !is ChronicleMicrophoneState.Dictating,
                         placeholder = { Text(stringResource(R.string.chronicle_write_placeholder)) },
@@ -728,6 +732,7 @@ private fun ChronicleTranscriptEditor(
             TextField(
                 value = value,
                 onValueChange = onValueChange,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth(),
                 colors = chronicleTextFieldColors(),

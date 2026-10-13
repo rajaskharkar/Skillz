@@ -12,6 +12,39 @@ import org.junit.Assert.*
 
 class GreenMigrationTest {
     @get:Rule val helper=MigrationTestHelper(InstrumentationRegistry.getInstrumentation(),SkillzDatabase::class.java)
+    @Test fun releaseMigrationPreservesEveryExistingRowAndStartsEveryPlantAsActive() {
+        val name = "green-release-migration"
+        fun snapshot(db: androidx.sqlite.db.SupportSQLiteDatabase, table: String, columns: String = "*") =
+            db.query("SELECT $columns FROM `$table` ORDER BY rowid").use { cursor ->
+                buildList { while (cursor.moveToNext()) add((0 until cursor.columnCount).map { if (cursor.isNull(it)) null else cursor.getString(it) }) }
+            }
+        val oldColumns = mutableMapOf<String, String>()
+        val before = helper.createDatabase(name, 47).use { db ->
+            db.execSQL("INSERT INTO green_specimen VALUES ('one','daisy',99,100,190,199,199,'garden:1',1,242450)")
+            db.execSQL("INSERT INTO green_specimen VALUES ('two','daisy',2,200,NULL,NULL,201,'garden:2',2,2100)")
+            db.execSQL("INSERT INTO green_badge_award VALUES ('green_v1_species_daisy_mastery',199,1)")
+            db.execSQL("INSERT INTO green_action VALUES ('water','plant_watered','one','one',98,99,7200,100000,199)")
+            db.execSQL("INSERT INTO stillwater_ledger VALUES ('balance',100000,'soft_flow','flow',100)")
+            db.execSQL("INSERT INTO user_badge VALUES ('green_v1_species_daisy_mastery',1,199,199,0,200,'EXACT')")
+            db.execSQL("INSERT INTO badge_pin VALUES ('green_v1_species_daisy_mastery',0,200)")
+            val tables = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('room_master_table','android_metadata')").use { cursor ->
+                buildList { while (cursor.moveToNext()) add(cursor.getString(0)) }
+            }
+            tables.associateWith { table ->
+                db.query("SELECT * FROM `$table` LIMIT 0").use { oldColumns[table] = it.columnNames.joinToString(",") { column -> "`$column`" } }
+                snapshot(db, table)
+            }
+        }
+        helper.runMigrationsAndValidate(name, 48, true, SkillzDatabaseMigrations.MIGRATION_47_48).use { db ->
+            before.forEach { (table, rows) -> assertEquals(table, rows, snapshot(db, table, oldColumns.getValue(table))) }
+            db.query("SELECT COUNT(*) FROM green_specimen WHERE releasedAt IS NULL").use { assertTrue(it.moveToFirst()); assertEquals(2, it.getInt(0)) }
+        }
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val reopened = Room.databaseBuilder(context, SkillzDatabase::class.java, name).build()
+        try { assertTrue(reopened.openHelper.writableDatabase.isOpen) } finally { reopened.close() }
+        context.deleteDatabase(name)
+    }
+
     @Test fun everyExportedProductionSchemaPreservesDropsCopiesLevelsAndHistory() {
         // v31 is the oldest exported schema. Earlier upgrades share the existing legacy rebuild path.
         (31..46).forEach { version ->
