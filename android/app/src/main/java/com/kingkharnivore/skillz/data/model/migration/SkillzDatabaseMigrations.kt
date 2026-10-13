@@ -570,6 +570,13 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    /** Keep every existing plant and ledger row; release only changes active ownership. */
+    val MIGRATION_47_48 = object : Migration(47, 48) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE green_specimen ADD COLUMN releasedAt INTEGER")
+        }
+    }
+
     val ALL_MIGRATIONS: Array<Migration> =
         LEGACY_TO_15_MIGRATIONS +
                 MIGRATION_13_14 +
@@ -601,7 +608,7 @@ object SkillzDatabaseMigrations {
                 MIGRATION_39_40 +
                 MIGRATION_40_41 +
                 MIGRATION_41_42 +
-                MIGRATION_42_44 + MIGRATION_43_44 + MIGRATION_44_45 + MIGRATION_45_46 + MIGRATION_46_47
+                MIGRATION_42_44 + MIGRATION_43_44 + MIGRATION_44_45 + MIGRATION_45_46 + MIGRATION_46_47 + MIGRATION_47_48
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(

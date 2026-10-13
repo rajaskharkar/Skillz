@@ -123,4 +123,11 @@
     <string name="green_next_plot">पुढील वाफा</string>
     <string name="green_plot_position">वाफा %1$d / %2$d</string>
     <string name="green_not_planted">अजून लावलेले नाही</string>
+    <string name="chest_mixed_inventory_stats">%1$d जीव · %2$d रोपे</string>
+    <string name="green_release">मुक्त करा</string>
+    <string name="green_release_title">%1$s मुक्त करायचे?</string>
+    <string name="green_release_body">तुम्हाला %1$d थेंब मिळतील: या रोपाच्या बियाणे आणि पाणी देण्यावरील खर्चाच्या 75%%, जवळच्या पूर्ण थेंबापर्यंत पूर्णांकित। फक्त हे रोप द ग्रीन आणि पेटीतून काढले जाईल। मिळवलेले प्रभुत्व, बॅज आणि आजीवन इतिहास जतन राहतील।</string>
+    <string name="green_release_cancel">रोप ठेवा</string>
+    <string name="green_released">रोप मुक्त केले। %1$d थेंब जोडले।</string>
+    <string name="green_already_released">हे रोप आधीच मुक्त केले आहे।</string>
 </resources>

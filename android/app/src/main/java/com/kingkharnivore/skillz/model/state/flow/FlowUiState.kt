@@ -32,7 +32,10 @@ data class FlowUiState(
     val healthEnabledAtStart: Boolean = false,
     val healthPermissionGrantedAtStart: Boolean = false,
     val movementBonusEligibleAtStart: Boolean = false,
-    val originPlanId: Long? = null
+    val originPlanId: Long? = null,
+    // Derived from the linked activity when restoring a draft; no database column is needed.
+    val originPlanKind: String? = null
 ) {
     val isSoftMode: Boolean get() = mode == FlowMode.SOFT
+    val isModeLocked: Boolean get() = isInFlowMode || stopwatch.isRunning || stopwatch.elapsedMs > 0L
 }

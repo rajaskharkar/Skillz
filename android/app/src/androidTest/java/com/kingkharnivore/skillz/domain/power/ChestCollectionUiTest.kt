@@ -32,6 +32,55 @@ class ChestCollectionUiTest {
             SkillzTheme(dynamicColor=false) { content() }
         }
     }
+    @Test fun plantsUseTheExistingEnvironmentFilterAlongsideCreatures() {
+        val state = mutableStateOf(ShellUiState(finds = listOf(find("triassic_saturnalia"))))
+        val plants = com.kingkharnivore.skillz.domain.green.GreenEnvironment.entries.mapIndexed { index, env ->
+            com.kingkharnivore.skillz.ui.screen.shell.rooms.green.GreenPreviewFixtures.specimen(
+                com.kingkharnivore.skillz.domain.green.GreenCatalogue.inEnvironment(env).first(), 1, (index + 1).toLong())
+        }
+        compose.setContent { Theme { ShellChestScreen(state.value, { _, _ -> }, { _, _ -> }, {}, {}, {},
+            onEnvironmentSelected = { state.value = state.value.copy(chestEnvironment = it) },
+            greenState = com.kingkharnivore.skillz.viewmodel.green.GreenUiState(specimens = plants)) } }
+        compose.onNodeWithContentDescription("Saturnalia", substring = true).assertExists()
+        compose.onNodeWithTag("chest-plant:${plants.first().id}").assertExists()
+        compose.onNodeWithText(context.getString(R.string.green_chest_creatures)).assertDoesNotExist()
+        compose.onNodeWithText(context.getString(R.string.green_chest_plants)).assertDoesNotExist()
+        compose.onNodeWithTag("chest-environment").performClick()
+        compose.onNodeWithTag("chest-environment-green").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Saturnalia", substring = true).assertDoesNotExist()
+        plants.forEach { plant ->
+            val species = com.kingkharnivore.skillz.domain.green.GreenCatalogue.byId.getValue(plant.speciesId)
+            compose.onNodeWithTag("chest-environment").performClick()
+            compose.onNodeWithTag("chest-environment-${species.environment.id}").performScrollTo().performClick()
+            compose.onNodeWithTag("chest-plant:${plant.id}").assertIsDisplayed()
+            plants.filter { it.id != plant.id }.forEach {
+                compose.onNodeWithTag("chest-plant:${it.id}").assertDoesNotExist()
+            }
+        }
+    }
+
+    @Test fun unifiedChestDeepLinkWatersExactCopyAndReturnsFromMastery() {
+        val species = com.kingkharnivore.skillz.domain.green.GreenCatalogue.byId.getValue("daisy")
+        val first = com.kingkharnivore.skillz.ui.screen.shell.rooms.green.GreenPreviewFixtures.specimen(species, 98, 1)
+        val selected = com.kingkharnivore.skillz.ui.screen.shell.rooms.green.GreenPreviewFixtures.specimen(species, 98, 2)
+        val green = mutableStateOf(com.kingkharnivore.skillz.viewmodel.green.GreenUiState(100000, listOf(first, selected)))
+        compose.setContent { Theme { ShellChestScreen(ShellUiState(), { _, _ -> }, { _, _ -> }, {}, {}, {},
+            greenState = green.value, focusPlantSpeciesId = "daisy", focusPlantSpecimenId = selected.id,
+            onWaterPlant = { id, level, token ->
+                assertEquals(selected.id, id)
+                assertEquals(98, level)
+                green.value = green.value.copy(specimens = listOf(first, selected.copy(level = 99)),
+                    action = com.kingkharnivore.skillz.data.model.entity.green.GreenActionEntity(
+                        token, "plant_watered", id, id, 98, 99, 1, 99999, 1))
+            }, onDismissGreenFeedback = { green.value = green.value.copy(action = null) }) } }
+        compose.onNodeWithText("Water").performClick()
+        repeat(2) { compose.onNodeWithText("Continue").performClick() }
+        compose.onNodeWithText("Return to The Chest").performClick()
+        compose.onNodeWithText("Close").assertDoesNotExist()
+        compose.onNodeWithTag("chest-plant:${first.id}").assertIsDisplayed()
+        compose.onNodeWithTag("chest-plant:${selected.id}").assertIsDisplayed()
+    }
+
     @Test fun environmentSelectionPreservesProgressAndClearResetsBoth() {
         val state=mutableStateOf(ShellUiState(finds=listOf(find("triassic_saturnalia"),find("creature_chicken",99)),chestFilter=ChestFilterOption.NotMastered))
         compose.setContent { Theme { ShellChestScreen(state.value,{_,_->},{_,_->},{},{},{state.value=state.value.copy(chestFilter=it)},

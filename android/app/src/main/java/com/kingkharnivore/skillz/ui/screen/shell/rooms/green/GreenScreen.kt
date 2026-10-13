@@ -50,7 +50,7 @@ fun GreenRoute(calmMode: Boolean = false, viewModel: GreenViewModel = hiltViewMo
         GreenScreen(state, viewModel::plant, viewModel::water, { viewModel.dismissFeedback(state.feedbackId) }, viewModel::view,
             initialEnvironment = initialEnvironment, initialSeedId = initialSeedId,
             initialSection = if (initialSeedId == null) GreenSection.WORLD else GreenSection.CATALOGUE,
-            onOpenChest = onOpenChest, onOpenBadges = onOpenBadges)
+            onOpenChest = onOpenChest, onOpenBadges = onOpenBadges, onRelease = viewModel::release)
     }
 }
 
@@ -70,7 +70,8 @@ fun GreenScreen(
     initialEnvironment: GreenEnvironment = GreenEnvironment.GARDEN,
     initialSpecimenId: String? = null,
     initialSeedId: String? = null,
-    onOpenChest: () -> Unit = {}, onOpenBadges: () -> Unit = {}
+    onOpenChest: () -> Unit = {}, onOpenBadges: () -> Unit = {},
+    onRelease: ((String, Int, String) -> Unit)? = null
 ) {
     var section by rememberSaveable { mutableStateOf(initialSection) }
     var environment by rememberSaveable { mutableStateOf(initialEnvironment) }
@@ -89,11 +90,11 @@ fun GreenScreen(
     LaunchedEffect(seedId) {
         seedId?.let(GreenCatalogue.byId::get)?.let { latestOnView("plant_seed_viewed", it.environment, it.id) }
     }
-    val mastery = state.action?.takeIf { it.newLevel == 99 }?.let { action ->
+    val mastery = state.action?.takeIf { it.kind == "plant_watered" && it.newLevel == 99 }?.let { action ->
         state.specimens.firstOrNull { it.id == action.specimenId }
     }
     val feedback = greenFeedbackText(state)
-    val modalVisible = seedId != null || specimenId != null || help || mastery != null
+    val modalVisible = seedId != null || state.specimens.any { it.id == specimenId } || help || mastery != null
     LaunchedEffect(state.action?.id, state.specimens.any { it.id == state.action?.specimenId }) {
         val action = state.action ?: return@LaunchedEffect
         if (action.kind == "plant_seed_planted" && state.specimens.any { it.id == action.specimenId }) {
@@ -168,7 +169,7 @@ fun GreenScreen(
         }, dismissButton = { TextButton(onClick = { seedId = null; onDismissFeedback() }, enabled = !state.busy) { Text(stringResource(R.string.green_close)) } })
     } }
     if (mastery == null) specimenId?.let { id -> state.specimens.firstOrNull { it.id == id }?.let { plant ->
-        SpecimenDialog(plant, state, onWater, { specimenId = null; onDismissFeedback() })
+        SpecimenDialog(plant, state, onWater, { specimenId = null; onDismissFeedback() }, onRelease)
     } }
     if (help) AlertDialog(onDismissRequest = { help = false }, title = { Text(stringResource(R.string.green_help_title)) }, text = {
         Text(stringResource(R.string.green_help_body), Modifier.verticalScroll(rememberScrollState()))
@@ -208,20 +209,44 @@ internal fun SpecimenCard(plant: PlantSpecimenEntity, onClick: () -> Unit) {
 }
 
 @Composable
-internal fun SpecimenDialog(plant: PlantSpecimenEntity, state: GreenUiState, onWater: (String, Int, String) -> Unit, onClose: () -> Unit) {
+internal fun SpecimenDialog(plant: PlantSpecimenEntity, state: GreenUiState, onWater: (String, Int, String) -> Unit,
+    onClose: () -> Unit, onRelease: ((String, Int, String) -> Unit)? = null) {
     val species = GreenCatalogue.byId[plant.speciesId] ?: return
+    var confirmRelease by rememberSaveable(plant.id, plant.level) { mutableStateOf(false) }
+    val releaseToken = rememberSaveable(plant.id, plant.level) { UUID.randomUUID().toString() }
+    if (confirmRelease && onRelease != null) {
+        AlertDialog(onDismissRequest = { if (!state.busy) confirmRelease = false },
+            modifier = Modifier.testTag("green-release-confirmation"),
+            title = { Text(stringResource(R.string.green_release_title, stringResource(species.nameRes))) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.green_release_body, GreenEconomy.releaseReward(plant.investedDrops)))
+                    if (state.messageRes != null) GreenFeedbackMessage(state, plant.id)
+                }
+            },
+            confirmButton = { Button(enabled = !state.busy,
+                modifier = Modifier.testTag("green-confirm-release"),
+                onClick = { onRelease(plant.id, plant.level, releaseToken) }) { Text(stringResource(R.string.green_release)) } },
+            dismissButton = { TextButton(enabled = !state.busy, onClick = { confirmRelease = false }) {
+                Text(stringResource(R.string.green_release_cancel))
+            } })
+        return
+    }
     val stage = PlantGrowthStageResolver.resolve(plant.level)
     val token = remember(plant.id, plant.level) { UUID.randomUUID().toString() }
     val calmMode = LocalGreenCalmMode.current
     var wet by remember { mutableStateOf(false) }
     LaunchedEffect(plant.lastWateredAt) { if (plant.lastWateredAt != null && !calmMode) { wet = true; delay(650); wet = false } }
     val soil by animateColorAsState(if(wet) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh, label = "water")
-    AlertDialog(onDismissRequest = onClose, title = { Text(stringResource(species.nameRes)) }, text = {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    // Keep the centered dialog anchored while feedback, dates and growth stages change.
+    val contentHeight = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.55f).dp
+    AlertDialog(onDismissRequest = onClose, modifier = Modifier.testTag("green-specimen-dialog"),
+        title = { Text(stringResource(species.nameRes)) }, text = {
+        Column(Modifier.height(contentHeight), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             GreenFeedbackMessage(state, plant.id)
-            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 PlantArtwork(species, plant.level, stringResource(R.string.green_plant_description, stringResource(species.nameRes), plant.level, stringResource(stage.nameRes)),
-                    Modifier.fillMaxWidth().height(if(species.landmark && plant.level >= 90) 230.dp else 180.dp).clip(RoundedCornerShape(20.dp)).background(soil))
+                    Modifier.fillMaxWidth().height(if(species.landmark) 230.dp else 180.dp).clip(RoundedCornerShape(20.dp)).background(soil))
                 Text(stringResource(R.string.green_level_stage, plant.level, stringResource(stage.nameRes)), Modifier.semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.titleMedium)
                 if (plant.level == 99) Text(stringResource(R.string.green_stage_fully_grown))
                 PlantGrowthStageResolver.nextVisibleGrowth(plant.level)?.let { Text(stringResource(R.string.green_next_growth, it)) }
@@ -241,7 +266,13 @@ internal fun SpecimenDialog(plant: PlantSpecimenEntity, state: GreenUiState, onW
     }, confirmButton = {
         if(plant.level < 99) Button(enabled = !state.busy && state.drops >= GreenEconomy.waterCost(species.tier, plant.level),
             onClick = { onWater(plant.id, plant.level, token) }) { Text(stringResource(R.string.green_water)) }
-    }, dismissButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.green_close)) } })
+    }, dismissButton = {
+        Row {
+            if (onRelease != null) TextButton(enabled = !state.busy, onClick = { confirmRelease = true },
+                modifier = Modifier.testTag("green-release")) { Text(stringResource(R.string.green_release)) }
+            TextButton(onClick = onClose) { Text(stringResource(R.string.green_close)) }
+        }
+    })
 }
 
 @Composable
@@ -266,9 +297,9 @@ internal fun MasteryDialog(plant: PlantSpecimenEntity, state: GreenUiState, onCl
             if(page == 2) {
                 val definition = GreenBadgeEvaluator.byId.getValue("green_v1_species_${species.id}_mastery")
                 com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgeMedallion(
-                    definition.dashboardModel(state.specimens, state.awards.firstOrNull { it.id == definition.id }, null, null, false),
+                    definition.dashboardModel((state.lifetimeSpecimens + state.specimens).associateBy { it.id }.values.toList(), state.awards.firstOrNull { it.id == definition.id }, null, null, false),
                     com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgeMedallionSize.Large)
-                Text(stringResource(R.string.green_species_mastery_count, stringResource(species.nameRes), state.specimens.count { it.speciesId == species.id && it.level == 99 }))
+                Text(stringResource(R.string.green_species_mastery_count, stringResource(species.nameRes), (state.lifetimeSpecimens + state.specimens).associateBy { it.id }.values.count { it.speciesId == species.id && it.level == 99 }))
             }
         }
     }, confirmButton = { Button(onClick = { if(page < 2) page++ else onClose() }) { Text(stringResource(if(page < 2) R.string.green_continue else returnLabel)) } })

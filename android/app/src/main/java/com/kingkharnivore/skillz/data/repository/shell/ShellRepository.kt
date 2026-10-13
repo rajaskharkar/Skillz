@@ -25,6 +25,7 @@ import com.kingkharnivore.skillz.domain.achievement.CelebrationLifecycle
 import com.kingkharnivore.skillz.domain.achievement.CelebrationStage
 import com.kingkharnivore.skillz.domain.achievement.BadgeCountType
 import com.kingkharnivore.skillz.domain.achievement.BadgeDefinitionResolver
+import com.kingkharnivore.skillz.domain.achievement.BadgeProgressModel
 import com.kingkharnivore.skillz.domain.achievement.BadgeDashboardCalculator
 import com.kingkharnivore.skillz.domain.achievement.BadgeVisibilityContext
 import com.kingkharnivore.skillz.domain.achievement.BadgeVisibilityEvaluator
@@ -266,7 +267,25 @@ class ShellRepository @Inject constructor(
     suspend fun grantFindCopy(
         findId: String, sourceType: String, sourceId: String?
     ): UserShellFindInstanceEntity = db.withTransaction {
+        grantFindCopies(listOf(findId), sourceType, sourceId).single()
+    }
+
+    /** Grant a reward batch and reconcile its final ownership once, in the same transaction. */
+    suspend fun grantFindCopies(
+        findIds: List<String>, sourceType: String, sourceId: String?
+    ): List<UserShellFindInstanceEntity> = db.withTransaction {
         val now = System.currentTimeMillis()
+        val granted = findIds.map { insertFindCopy(it, sourceType, sourceId, now) }
+        if (findIds.any { CreatureCatalog.get(it) != null }) {
+            persistCurrentCollectionCompletions(now)
+            reconcileAchievementLedger(now, AchievementReconciliationMode.RUNTIME)
+        }
+        granted
+    }
+
+    private suspend fun insertFindCopy(
+        findId: String, sourceType: String, sourceId: String?, now: Long
+    ): UserShellFindInstanceEntity {
         val firstStage = ShellContentCatalog.upgradesFor(findId).firstOrNull()?.upgradeStageId
         val entity = UserShellFindInstanceEntity(
             instanceId = UUID.randomUUID().toString(),
@@ -289,10 +308,8 @@ class ShellRepository @Inject constructor(
             achievementDao.recordDiscovery(
                 CreatureDiscoveryEntity(findId, now, sourceType, entity.instanceId, now)
             )
-            persistCurrentCollectionCompletions(now)
-            reconcileAchievementLedger(now, AchievementReconciliationMode.RUNTIME)
         }
-        entity
+        return entity
     }
 
     suspend fun grantFindOnce(
@@ -846,8 +863,10 @@ class ShellRepository @Inject constructor(
                 materializeBadge(collection.completionBadgeId, 1, timestamp, mode = mode)
             }
         }
-        cleanupTracking()
-        reconcilePins()
+        // The dashboard already derives newly completed book awards. Reuse its evidence;
+        // tracking/pin cleanup reads the updated ledger for acknowledgement and visibility.
+        cleanupTracking(bookBadges)
+        reconcilePins(bookBadges)
     }
 
     private suspend fun materializeBadge(
@@ -891,19 +910,12 @@ class ShellRepository @Inject constructor(
         }
     }
 
-    private suspend fun cleanupTracking() {
+    private suspend fun cleanupTracking(evidence: Map<String, BadgeProgressModel>? = null) {
+        val tracking = achievementDao.getTracking()
+        if (tracking.isEmpty()) return
         val earned = badgeDao.getAll().associateBy { it.badgeId }
-        val dashboard = BadgeDashboardCalculator.calculate(
-            earned = earned.values.toList(),
-            instances = findInstanceDao.getAll(),
-            discoveries = achievementDao.getDiscoveries(),
-            masteries = achievementDao.getMasteries(),
-            completions = achievementDao.getCompletions(),
-            pins = achievementDao.getPins(),
-            tracking = achievementDao.getTracking(),
-            countFloors = achievementDao.getCountFloors(), greenPlants = db.greenDao().specimens(), greenAwards = db.greenDao().awards()
-        ).badges.associateBy { it.badgeId }
-        achievementDao.getTracking().forEach { tracked ->
+        val dashboard = evidence ?: currentDashboard().badges.associateBy { it.badgeId }
+        tracking.forEach { tracked ->
             if (com.kingkharnivore.skillz.domain.achievement.RetiredStillwaterBadges.isBadge(tracked.badgeId)) return@forEach
             val earnedBadge = earned[tracked.badgeId]
             val model = dashboard[tracked.badgeId]
@@ -914,11 +926,13 @@ class ShellRepository @Inject constructor(
         }
     }
 
-    private suspend fun reconcilePins() {
+    private suspend fun reconcilePins(evidence: Map<String, BadgeProgressModel>? = null) {
+        val pins = achievementDao.getPins()
+        if (pins.isEmpty()) return
         val earned = badgeDao.getAll().associateBy { it.badgeId }
-        val dashboard = currentDashboard().badges.associateBy { it.badgeId }
+        val dashboard = evidence ?: currentDashboard().badges.associateBy { it.badgeId }
         val visibilityContext = currentBadgeVisibilityContext(earned.keys + dashboard.filterValues { it.everEarned }.keys)
-        achievementDao.getPins().forEach { pin ->
+        pins.forEach { pin ->
             if (com.kingkharnivore.skillz.domain.achievement.RetiredStillwaterBadges.isBadge(pin.badgeId)) return@forEach
             val definition = BadgeDefinitionResolver.resolve(pin.badgeId)
             val valid = BadgeVisibilityEvaluator.isVisible(definition, visibilityContext) && definition.pinnable &&

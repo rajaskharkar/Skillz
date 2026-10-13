@@ -2349,7 +2349,7 @@ Puedes volver a activar Health más tarde.</string>
     <string name="horizon_empty_memories">Los recuerdos empiezan con un Flow</string>
     <string name="horizon_empty_memories_body">Completa un hábito o plan para guardar aquí los detalles de su Flow.</string>
     <string name="horizon_habits_hint">Vuelve cuando quieras. Los hábitos permanecen aquí después de cada Flow.</string>
-    <string name="horizon_plans_hint">Intenciones para una vez. Completa un Flow para pasar un plan a Recuerdos.</string>
+    <string name="horizon_plans_hint">Trabaja en un plan a lo largo de varios Flows. Después de cada Flow, decide si el plan está completo. Tu progreso se guarda en Recuerdos.</string>
     <string name="horizon_empty_habits">¿A qué te gustaría volver?</string>
     <string name="horizon_empty_plans">¿Qué te gustaría terminar?</string>
     <string name="horizon_empty_habits_body">Crea un hábito para algo que quieras hacer con frecuencia.</string>
@@ -2377,4 +2377,9 @@ Puedes volver a activar Health más tarde.</string>
     <string name="horizon_remove_memory">Quitar de Recuerdos</string>
     <string name="horizon_remove_memory_title">¿Quitar este recuerdo?</string>
     <string name="horizon_remove_memory_body">Esto quita el Flow solo de los Recuerdos de esta actividad. Se conservarán su entrada en Historia, sus crónicas, la actividad registrada y las recompensas.</string>
+    <string name="flow_plan_completion_question">¿Se completó este plan con éxito?</string>
+    <string name="flow_plan_completion_yes">Sí, este plan está completo</string>
+    <string name="flow_plan_completion_no">No, necesito seguir trabajando en él</string>
+    <string name="horizon_show_plan_journey">Mostrar recorrido del plan</string>
+    <string name="horizon_hide_plan_journey">Ocultar recorrido del plan</string>
 </resources>

@@ -15,7 +15,8 @@ data class PlantSpecimenEntity(
     val lastWateredAt: Long? = null,
     val positionKey: String,
     val createdOrder: Long,
-    val investedDrops: Long
+    val investedDrops: Long,
+    val releasedAt: Long? = null
 ) {
     init {
         require(level in 1..99)

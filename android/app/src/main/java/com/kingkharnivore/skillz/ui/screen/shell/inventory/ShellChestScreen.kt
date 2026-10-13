@@ -40,6 +40,11 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.kingkharnivore.skillz.data.model.entity.green.PlantSpecimenEntity
+import com.kingkharnivore.skillz.domain.green.*
+import com.kingkharnivore.skillz.ui.screen.shell.rooms.green.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -93,7 +98,8 @@ internal data class ChestInventoryStackUiModel(
     val newestAcquiredAtMs: Long = 0L,
     val oldestAcquiredAtMs: Long = 0L,
     val recentActivityAtMs: Long = 0L,
-    val speciesMasteryCount: Int = 0
+    val speciesMasteryCount: Int = 0,
+    val releaseSortValue: Long = totalValuePearls.toLong()
 )
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -114,14 +120,17 @@ fun ShellChestScreen(
     greenState: com.kingkharnivore.skillz.viewmodel.green.GreenUiState = com.kingkharnivore.skillz.viewmodel.green.GreenUiState(),
     onWaterPlant: (String, Int, String) -> Unit = { _, _, _ -> },
     onDismissGreenFeedback: () -> Unit = {}, onOpenGreen: () -> Unit = {},
-    showPlantsInitially: Boolean = false, focusPlantSpeciesId: String? = null, focusPlantSpecimenId: String? = null
+    showPlantsInitially: Boolean = false, focusPlantSpeciesId: String? = null, focusPlantSpecimenId: String? = null,
+    onReleasePlant: ((String, Int, String) -> Unit)? = null
 
 ) {
-    var showPlants by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(showPlantsInitially) }
+    var selectedPlantId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedStack by remember { mutableStateOf<ChestInventoryStackUiModel?>(null) }
-    val masteryCounts = uiState.badgeDashboard?.badges?.mapNotNull { badge ->
-        BadgeDefinitionResolver.resolve(badge.badgeId).speciesId?.let { it to badge.count }
-    }?.toMap().orEmpty()
+    val masteryCounts = remember(uiState.badgeDashboard) {
+        uiState.badgeDashboard?.badges?.mapNotNull { badge ->
+            BadgeDefinitionResolver.resolve(badge.badgeId).speciesId?.let { it to badge.count }
+        }?.toMap().orEmpty()
+    }
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val resources = androidx.compose.ui.platform.LocalResources.current
     val locale = configuration.locales[0]
@@ -131,14 +140,41 @@ fun ShellChestScreen(
     val allStacks = remember(uiState.finds, uiState.chestSortOption, masteryCounts, creatureNames, locale) {
         buildChestInventoryStacks(uiState.finds, uiState.chestSortOption, masteryCounts, creatureNames, locale)
     }
-    val neededForTrackedBadges = speciesNeededForTrackedBadges(uiState.badgeDashboard?.badges.orEmpty())
+    val neededForTrackedBadges = remember(uiState.badgeDashboard) {
+        speciesNeededForTrackedBadges(uiState.badgeDashboard?.badges.orEmpty())
+    }
+    val plantNames = remember(configuration) {
+        GreenCatalogue.species.associate { it.id to resources.getString(it.nameRes) }
+    }
     val filters = ChestFilters.fromKeys(
         uiState.chestEnvironment.takeUnless { it == ChestFilterOption.All }?.key, uiState.chestFilter.key
     )
     val stacks = remember(allStacks, filters, neededForTrackedBadges) {
         filterChestInventoryStacks(allStacks, filters, neededForTrackedBadges)
     }
+    val plants = remember(greenState.specimens, greenState.lifetimeSpecimens, filters, uiState.badgeDashboard) {
+        filterChestPlants(greenState.specimens, filters, uiState.badgeDashboard?.badges.orEmpty(), greenState.lifetimeSpecimens)
+    }
+    val entries = remember(stacks, plants, greenState.lifetimeSpecimens, plantNames, uiState.chestSortOption, locale) {
+        buildChestEntries(stacks, plants, greenState.lifetimeSpecimens, plantNames, uiState.chestSortOption, locale)
+    }
     val totalCreatureCount = stacks.sumOf { it.count }
+    LaunchedEffect(showPlantsInitially, focusPlantSpeciesId, focusPlantSpecimenId) {
+        if (showPlantsInitially || focusPlantSpeciesId != null || focusPlantSpecimenId != null) {
+            onEnvironmentSelected(GreenCatalogue.byId[focusPlantSpeciesId]?.environment?.let {
+                ChestFilterOption.fromKey(it.id)
+            } ?: ChestFilterOption.Green)
+        }
+    }
+    var plantFocused by rememberSaveable(focusPlantSpeciesId, focusPlantSpecimenId) { mutableStateOf(false) }
+    LaunchedEffect(focusPlantSpeciesId, focusPlantSpecimenId, greenState.specimens) {
+        if (!plantFocused) {
+            val exact = greenState.specimens.firstOrNull { it.id == focusPlantSpecimenId }
+            val plant = exact ?: greenState.specimens.filter { it.speciesId == focusPlantSpeciesId }
+                .maxWithOrNull(compareBy<PlantSpecimenEntity> { it.level < 99 }.thenBy { it.level })
+            if (plant != null) { selectedPlantId = plant.id; plantFocused = true }
+        }
+    }
     LaunchedEffect(focusSpeciesId, allStacks) {
         focusSpeciesId?.let { id ->
             allStacks.filter { it.creatureId == id }.maxWithOrNull(
@@ -153,30 +189,26 @@ fun ShellChestScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         RoomHeader(title = R.string.shell_chest_title, body = R.string.shell_chest_body)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(!showPlants, { showPlants = false }, { Text(stringResource(R.string.green_chest_creatures)) },
-                colors = com.kingkharnivore.skillz.ui.screen.shell.rooms.green.greenPrimarySelectionColors())
-            FilterChip(showPlants, { showPlants = true }, { Text(stringResource(R.string.green_chest_plants)) },
-                colors = com.kingkharnivore.skillz.ui.screen.shell.rooms.green.greenPrimarySelectionColors())
-        }
-        if (showPlants) {
-            androidx.compose.runtime.CompositionLocalProvider(com.kingkharnivore.skillz.ui.screen.shell.rooms.green.LocalGreenCalmMode provides uiState.calmMode) {
-                com.kingkharnivore.skillz.ui.screen.shell.rooms.green.GreenCollectionScreen(greenState, onWaterPlant,
-                    onDismissGreenFeedback, onOpenGreen, focusPlantSpeciesId, focusPlantSpecimenId)
+        if (greenState.action?.kind == "plant_released") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { GreenFeedbackMessage(greenState) }
+                TextButton(onClick = onDismissGreenFeedback) { Text(stringResource(R.string.green_close)) }
             }
-            return@Column
         }
-        if (allStacks.isNotEmpty()) {
+        if (allStacks.isNotEmpty() || greenState.specimens.isNotEmpty()) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.shell_chest_inventory_stats, totalCreatureCount, stacks.size),
+                    text = if (greenState.specimens.isEmpty()) stringResource(R.string.shell_chest_inventory_stats, totalCreatureCount, stacks.size)
+                        else stringResource(R.string.chest_mixed_inventory_stats, totalCreatureCount, plants.size),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.fillMaxWidth()
                 )
+                if (plants.isNotEmpty()) Text(stringResource(R.string.green_drop_balance, greenState.drops),
+                    style = MaterialTheme.typography.labelLarge)
                 FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ChestEnvironmentControl(filters.environment, onEnvironmentSelected)
                     ChestFilterControl(filters.progress, onFilterSelected)
@@ -185,8 +217,8 @@ fun ShellChestScreen(
             }
         }
 
-        if (stacks.isEmpty()) {
-            if (allStacks.isEmpty()) EmptyChestState(onOpenBlue = onOpenBlue, onOpenRed = onOpenRed, modifier = Modifier.weight(1f))
+        if (entries.isEmpty()) {
+            if (allStacks.isEmpty() && greenState.specimens.isEmpty()) EmptyChestState(onOpenBlue = onOpenBlue, onOpenRed = onOpenRed, onOpenGreen = onOpenGreen, modifier = Modifier.weight(1f))
             else FilteredChestEmptyState(onClearFilters, Modifier.weight(1f),
                 filters.progress == ChestFilterOption.NeededForTrackedBadges)
         } else {
@@ -197,15 +229,28 @@ fun ShellChestScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(
-                    items = stacks,
-                    key = { stack -> "${stack.creatureId}-${stack.level}" }
-                ) { stack ->
-                    ChestInventoryTile(
-                        stack = stack,
-                        onClick = { selectedStack = stack }
-                    )
+                    items = entries,
+                    key = { it.key }
+                ) { entry ->
+                    if (entry.plant != null) {
+                        CompositionLocalProvider(LocalGreenCalmMode provides uiState.calmMode) {
+                            ChestPlantTile(entry.plant) { selectedPlantId = entry.plant.id }
+                        }
+                    } else ChestInventoryTile(entry.sortValues) { selectedStack = entry.sortValues }
                 }
             }
+        }
+    }
+
+    CompositionLocalProvider(LocalGreenCalmMode provides uiState.calmMode) {
+        val mastery = greenState.action?.takeIf { it.kind == "plant_watered" && it.newLevel == 99 }?.let { action ->
+            greenState.specimens.firstOrNull { it.id == action.specimenId }
+        }
+        if (mastery == null) greenState.specimens.firstOrNull { it.id == selectedPlantId }?.let { plant ->
+            SpecimenDialog(plant, greenState, onWaterPlant, { selectedPlantId = null; onDismissGreenFeedback() }, onReleasePlant)
+        }
+        mastery?.let { plant ->
+            MasteryDialog(plant, greenState, { selectedPlantId = null; onDismissGreenFeedback() }, R.string.green_return_chest)
         }
     }
 
@@ -275,7 +320,8 @@ internal fun filterChestInventoryStacks(
             listOf(
                 ChestFilterOption.Sea to listOf(ChestFilterOption.SunlitReef, ChestFilterOption.DeeperReef, ChestFilterOption.OpenBlue, ChestFilterOption.GreatBlue, ChestFilterOption.Fishbowl, ChestFilterOption.Aquarium, ChestFilterOption.Pond, ChestFilterOption.Lake),
                 ChestFilterOption.Land to listOf(ChestFilterOption.GoldenFields, ChestFilterOption.AncientWoods, ChestFilterOption.OpenSands, ChestFilterOption.HighPeaks, ChestFilterOption.GreatWild, ChestFilterOption.Pasture, ChestFilterOption.Glade, ChestFilterOption.Oasis, ChestFilterOption.Ravine, ChestFilterOption.Sanctuary),
-                ChestFilterOption.Red to listOf(ChestFilterOption.Triassic, ChestFilterOption.Jurassic, ChestFilterOption.Cretaceous)
+                ChestFilterOption.Red to listOf(ChestFilterOption.Triassic, ChestFilterOption.Jurassic, ChestFilterOption.Cretaceous),
+                ChestFilterOption.Green to listOf(ChestFilterOption.Garden, ChestFilterOption.Woodlands, ChestFilterOption.Rainforest, ChestFilterOption.Wetlands, ChestFilterOption.Drylands, ChestFilterOption.Highlands)
             ).forEach { (realm, environments) ->
                 Text(stringResource(realm.labelRes), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -306,6 +352,13 @@ private val ChestFilterOption.labelRes: Int get() = when(this) {
     ChestFilterOption.Sea -> R.string.land_realm_sea
     ChestFilterOption.Land -> R.string.land_realm_land
     ChestFilterOption.Red -> R.string.red_title
+    ChestFilterOption.Green -> R.string.green_title
+    ChestFilterOption.Garden -> R.string.green_environment_garden
+    ChestFilterOption.Woodlands -> R.string.green_environment_woodlands
+    ChestFilterOption.Rainforest -> R.string.green_environment_rainforest
+    ChestFilterOption.Wetlands -> R.string.green_environment_wetlands
+    ChestFilterOption.Drylands -> R.string.green_environment_drylands
+    ChestFilterOption.Highlands -> R.string.green_environment_highlands
     ChestFilterOption.ClosestToMastery -> R.string.chest_filter_closest
     ChestFilterOption.Mastered -> R.string.chest_filter_mastered
     ChestFilterOption.NotMastered -> R.string.chest_filter_not_mastered
@@ -371,7 +424,7 @@ internal fun sortChestInventoryStacks(
     locale: java.util.Locale = java.util.Locale.getDefault()
 ): List<ChestInventoryStackUiModel> = stacks.sortedWith(chestStackComparator(sortOption, locale))
 
-private fun chestStackComparator(sortOption: ChestSortOption, locale: java.util.Locale): Comparator<ChestInventoryStackUiModel> {
+internal fun chestStackComparator(sortOption: ChestSortOption, locale: java.util.Locale): Comparator<ChestInventoryStackUiModel> {
     val collator = Collator.getInstance(locale)
     val localizedName = Comparator<ChestInventoryStackUiModel> { left, right ->
         collator.compare(left.creatureName, right.creatureName)
@@ -392,7 +445,7 @@ private fun chestStackComparator(sortOption: ChestSortOption, locale: java.util.
         ChestSortOption.OldestArrival -> compareBy<ChestInventoryStackUiModel> { it.oldestAcquiredAtMs }
             .then(levelNameTieBreakers)
         ChestSortOption.Alphabetical -> nameLevelTieBreakers
-        ChestSortOption.Value -> compareByDescending<ChestInventoryStackUiModel> { it.totalValuePearls }
+        ChestSortOption.Value -> compareByDescending<ChestInventoryStackUiModel> { it.releaseSortValue }
             .then(nameLevelTieBreakers)
         ChestSortOption.Count -> compareByDescending<ChestInventoryStackUiModel> { it.count }
             .then(nameLevelTieBreakers)
@@ -468,7 +521,7 @@ private val ChestSortOption.labelRes: Int
     }
 
 @Composable
-private fun EmptyChestState(onOpenBlue: () -> Unit, onOpenRed: () -> Unit, modifier: Modifier = Modifier) {
+private fun EmptyChestState(onOpenBlue: () -> Unit, onOpenRed: () -> Unit, onOpenGreen: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -491,6 +544,7 @@ private fun EmptyChestState(onOpenBlue: () -> Unit, onOpenRed: () -> Unit, modif
             Text(stringResource(R.string.shell_chest_empty_action))
         }
         OutlinedButton(onClick = onOpenRed) { Text(stringResource(R.string.chest_open_red)) }
+        OutlinedButton(onClick = onOpenGreen) { Text(stringResource(R.string.green_open_room)) }
     }
 }
 
@@ -527,7 +581,7 @@ private fun ChestInventoryTile(stack: ChestInventoryStackUiModel, onClick: () ->
 }
 
 @Composable
-private fun ChestBadge(text: String, modifier: Modifier = Modifier) {
+internal fun ChestBadge(text: String, modifier: Modifier = Modifier) {
     Surface(
         shape = RoundedCornerShape(999.dp),
         color = MaterialTheme.colorScheme.primary,

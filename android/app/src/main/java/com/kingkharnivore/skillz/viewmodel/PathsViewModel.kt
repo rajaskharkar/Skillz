@@ -112,6 +112,13 @@ class PathsViewModel @Inject constructor(
         mutate {
         try {
         val old = flowPlanRepository.getFlowPlanById(memory.sourcePlanId)
+        if (old?.kind == HorizonKind.PLAN) {
+            // Reuse the same identity so another attempt extends this Plan Journey.
+            flowPlanRepository.reopenPlan(old.id)
+            onPrimaryTabSelected(PathsPrimaryTab.PLANS)
+            onSaved()
+            return@mutate
+        }
         val receipt = memory.latest.receipt
         val tagId = (old?.tagId) ?: receipt.tagName.takeIf(String::isNotBlank)?.let { journeyRepository.getOrCreateTagId(it) }
         flowPlanRepository.createFlowPlan(old?.title ?: memory.title, tagId, old?.isSoftMode ?: (receipt.mode == com.kingkharnivore.skillz.model.FlowMode.SOFT),

@@ -7,6 +7,8 @@ import com.kingkharnivore.skillz.data.model.dao.ArcMetadataDao
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import androidx.room.withTransaction
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
+import com.kingkharnivore.skillz.data.model.entity.FlowPlanEntity
+import com.kingkharnivore.skillz.data.model.entity.HorizonKind
 import com.kingkharnivore.skillz.data.model.dao.ChronicleDao
 import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
 import com.kingkharnivore.skillz.data.model.entity.SessionCreationEntity
@@ -44,9 +46,9 @@ class FlowRepository @Inject constructor(
             session.originPlanId?.let { sourceId ->
                 val plan = database.flowPlanDao().getFlowPlanById(sourceId)
                 // A timer must have accumulated time. Opening / zero-time Continue Arc is not completion.
-                // Untagged templates allow choosing a journey at launch. Tagged templates require the same journey.
-                if (plan != null && (plan.tagId == null || plan.tagId == session.tagId) && session.durationMs > 0 &&
-                    (plan.kind == com.kingkharnivore.skillz.data.model.entity.HorizonKind.HABIT || plan.completedAt == null)) {
+                // Habits retain their tag requirement. Plan attempts stay linked even if the user changes the tag.
+                if (plan != null && (plan.kind == HorizonKind.PLAN || plan.tagId == null || plan.tagId == session.tagId) && session.durationMs > 0 &&
+                    (plan.kind == HorizonKind.HABIT || plan.completedAt == null)) {
                     val tagName = database.tagDao().getAllTagsSnapshot().firstOrNull { it.id == session.tagId }?.name.orEmpty()
                     database.horizonMemoryDao().insert(com.kingkharnivore.skillz.data.model.entity.HorizonMemoryEntity(
                         flowInstanceId = flowInstanceId, sourcePlanId = sourceId, kind = plan.kind,
@@ -55,13 +57,28 @@ class FlowRepository @Inject constructor(
                         surgePoints = session.surgePoints, surgePlannedMs = session.surgePlannedMs,
                         arcId = session.arcId, arcMultiplier = session.arcMultiplierUsed, completedAt = session.endTime
                     ))
-                    database.flowPlanDao().markCompleted(sourceId, session.endTime)
                 }
             }
             sessionDao.insertCreation(SessionCreationEntity(flowInstanceId, id, System.currentTimeMillis()))
             id
           }
         }
+
+    suspend fun planAwaitingCompletion(sessionId: Long): FlowPlanEntity? {
+        val memory = database.horizonMemoryDao().getBySessionId(sessionId) ?: return null
+        if (memory.kind != HorizonKind.PLAN) return null
+        return database.flowPlanDao().getFlowPlanById(memory.sourcePlanId)?.takeIf {
+            it.kind == HorizonKind.PLAN && it.completedAt == null
+        }
+    }
+
+    /** Only an explicit Yes completes a Plan; both answers retain the Flow and its memory. */
+    suspend fun resolvePlanCompletion(sessionId: Long, completed: Boolean) = database.withTransaction {
+        if (!completed) return@withTransaction
+        val plan = planAwaitingCompletion(sessionId) ?: return@withTransaction
+        val memory = database.horizonMemoryDao().getBySessionId(sessionId) ?: return@withTransaction
+        database.flowPlanDao().markCompleted(plan.id, memory.completedAt)
+    }
 
     suspend fun updateSessionDetails(sessionId: Long, title: String, tagId: Long): Long? =
         database.withTransaction {

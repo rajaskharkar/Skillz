@@ -123,4 +123,11 @@
     <string name="green_next_plot">Next plot</string>
     <string name="green_plot_position">Plot %1$d / %2$d</string>
     <string name="green_not_planted">Not planted yet</string>
+    <string name="chest_mixed_inventory_stats">%1$d creatures · %2$d plants</string>
+    <string name="green_release">Release</string>
+    <string name="green_release_title">Release %1$s?</string>
+    <string name="green_release_body">You will receive %1$d Drops: 75%% of this plant’s seed purchase and watering investment, rounded to the nearest Drop. Only this plant is removed from The Green and The Chest. Earned mastery, badges, and lifetime history are kept.</string>
+    <string name="green_release_cancel">Keep Plant</string>
+    <string name="green_released">Plant released. %1$d Drops added.</string>
+    <string name="green_already_released">This plant has already been released.</string>
 </resources>

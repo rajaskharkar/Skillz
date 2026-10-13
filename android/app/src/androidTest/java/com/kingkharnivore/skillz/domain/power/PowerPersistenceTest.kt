@@ -27,8 +27,13 @@ class PowerPersistenceTest {
     private lateinit var db: SkillzDatabase
     private lateinit var shell: ShellRepository
     private lateinit var rewards: ShellRewardOrchestrator
+    private val historyReads = java.util.concurrent.atomic.AtomicInteger()
     private fun open() {
-        db = Room.databaseBuilder(context,SkillzDatabase::class.java,name).build()
+        db = Room.databaseBuilder(context,SkillzDatabase::class.java,name)
+            .setQueryCallback({ sql, _ ->
+                if (sql == "SELECT * FROM sessions WHERE durationMs > 0 ORDER BY endTime, id") historyReads.incrementAndGet()
+            }, java.util.concurrent.Executor { it.run() })
+            .build()
         shell = ShellRepository(db,db.sessionDao(),db.pearlLedgerDao(),db.shellFindInstanceDao(),db.shellFindStackDao(),db.shellPlacementDao(),db.shellFindUpgradeDao(),db.userBadgeDao(),db.userDiscoveryDao(),db.stillwaterLedgerDao(),db.stillwaterPreferenceDao(),db.userShellRoomStateDao(),db.objectiveCompletionDao(),db.achievementDao())
         val lookout = LookoutRepository(db,db.objectiveDao(),db.objectiveCompletionDao(),db.objectiveSkippedCycleDao(),db.pearlLedgerDao(),db.userBadgeDao())
         rewards = ShellRewardOrchestrator(db,shell,ShellRewardEventRecorder(db.shellRewardEventDao()),ObjectiveCompletionProcessor(db,db.sessionDao(),db.objectiveProcessedSessionDao(),lookout,ObjectiveProgressCalculator()))
@@ -59,12 +64,52 @@ class PowerPersistenceTest {
         assertEquals(before,db.powerRewardDao().balance())
         assertEquals(1,db.userBadgeDao().get("power_spark")?.count)
     }
+    @Test fun multiCreatureRewardReconcilesOnceAndKeepsRewardsOnReplay() = runBlocking {
+        val duration = 180 * 60_000L
+        val flow = SessionEntity(title = "Long Flow", description = "", tagId = 1,
+            startTime = 1, endTime = duration + 1, durationMs = duration,
+            scyraPoints = 1000, mode = FlowMode.POWER).let { it.copy(id = db.sessionDao().insertSession(it)) }
+        listOf("land_first", "red_first_footprint").forEach { id ->
+            db.userBadgeDao().upsert(UserBadgeEntity(id, 1, 1, 1, false, viewedAt = 1))
+        }
+        db.achievementDao().insertTracking(BadgeTrackingEntity("book_first_steps_complete", 1))
+        db.achievementDao().insertPin(BadgePinEntity("red_first_footprint", 0, 1))
+        historyReads.set(0)
+        val reward = rewards.onSessionCompleted(flow)
+        // A full history read for badges and one for the dashboard, regardless of reward count.
+        assertTrue("Completion reread lifetime sessions ${historyReads.get()} times", historyReads.get() <= 2)
+        val expected = listOf("focus_whale", "focus_whale", "focus_manta").groupingBy { it }.eachCount()
+        assertEquals(expected, reward.grantedFindIds.groupingBy { it }.eachCount())
+        assertEquals(expected, db.shellFindInstanceDao().getAll().groupingBy { it.findId }.eachCount())
+        assertEquals(1000, shell.getPearlBalance())
+        assertEquals(1000, db.powerRewardDao().balance())
+        assertTrue("power_spark" in reward.badgeIds)
+        assertEquals(1, db.userBadgeDao().get("badge_flow_120_min")?.count)
+        assertEquals(1, db.userBadgeDao().get("book_first_steps_complete")?.count)
+        assertTrue(db.achievementDao().getTracking().any { it.badgeId == "book_first_steps_complete" })
+        assertTrue(db.achievementDao().getPins().any { it.badgeId == "red_first_footprint" })
+        val earned = db.userBadgeDao().getAll().toSet()
+        val discoveries = db.achievementDao().getDiscoveries().toSet()
+        db.close(); open()
+        historyReads.set(0)
+        val replay = rewards.onSessionCompleted(flow)
+        assertEquals(0, historyReads.get())
+        assertEquals(expected, replay.grantedFindIds.groupingBy { it }.eachCount())
+        assertEquals(3, db.shellFindInstanceDao().getAll().size)
+        assertEquals(earned, db.userBadgeDao().getAll().toSet())
+        assertEquals(discoveries, db.achievementDao().getDiscoveries().toSet())
+        assertEquals(1000, shell.getPearlBalance())
+        assertEquals(1000, db.powerRewardDao().balance())
+    }
+
     @Test fun rewardFailureRollsBackCurrencyAndRetriesDurably() = runBlocking {
         val s = session(FlowMode.POWER,57)
         db.powerRewardDao().enqueue(SessionShellRewardEntity(sessionId=s.id,queuedAt=1))
         db.openHelper.writableDatabase.execSQL("CREATE TRIGGER fail_pebble BEFORE INSERT ON pebble_ledger BEGIN SELECT RAISE(ABORT, 'simulated'); END")
         assertTrue(runCatching { rewards.onSessionCompleted(s) }.isFailure)
         assertEquals(0,shell.getPearlBalance())
+        assertTrue(db.shellFindInstanceDao().getAll().isEmpty())
+        assertTrue(db.achievementDao().getDiscoveries().isEmpty())
         assertNotNull(db.sessionDao().getSessionById(s.id))
         assertFalse(db.powerRewardDao().reward(s.id)!!.completed)
         db.openHelper.writableDatabase.execSQL("DROP TRIGGER fail_pebble")

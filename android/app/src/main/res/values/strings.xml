@@ -2342,7 +2342,11 @@ You can turn Health back on later.</string>
     <string name="horizon_empty_memories">Memories begin with a Flow</string>
     <string name="horizon_empty_memories_body">Complete a Habit or Plan to keep its Flow details here.</string>
     <string name="horizon_habits_hint">Return as often as you like. Habits stay here after each Flow.</string>
-    <string name="horizon_plans_hint">One-time intentions. Complete a Flow to move a Plan into Memories.</string>
+    <string name="horizon_plans_hint">Work on a Plan across Flows. After each Flow, choose whether the Plan is complete. Your progress stays in Memories.</string>
+    <string name="flow_plan_completion_question">Was this Plan successfully completed?</string>
+    <string name="flow_plan_completion_yes">Yes, this Plan is complete</string>
+    <string name="flow_plan_completion_no">No, I need to work on this some more</string>
+    <string name="horizon_show_plan_journey">Show Plan Journey</string>
     <string name="horizon_empty_habits">What would you like to return to?</string>
     <string name="horizon_empty_plans">What would you like to get done?</string>
     <string name="horizon_empty_habits_body">Create a Habit for something you want to do regularly.</string>
@@ -2370,4 +2374,5 @@ You can turn Health back on later.</string>
     <string name="horizon_remove_memory">Remove from Memories</string>
     <string name="horizon_remove_memory_title">Remove this memory?</string>
     <string name="horizon_remove_memory_body">This removes the Flow only from this activity’s Memories. Its Story entry, Chronicles, recorded activity, and rewards will be kept.</string>
+    <string name="horizon_hide_plan_journey">Hide Plan Journey</string>
 </resources>

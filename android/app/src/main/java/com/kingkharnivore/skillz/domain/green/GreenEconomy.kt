@@ -19,6 +19,12 @@ object GreenEconomy {
         val raw = tier(tier).waterBase * (1 + 0.035 * (currentLevel - 1).toDouble().pow(1.35))
         return floor(raw / 50.0 + 0.5).toLong() * 50L
     }
+    /** 75% of actual seed + watering investment, rounded half up to a whole Drop. */
+    fun releaseReward(investedDrops: Long): Long {
+        require(investedDrops >= 0)
+        return (investedDrops / 4) * 3 + ((investedDrops % 4) * 3 + 2) / 4
+    }
+
     fun totalCost(tier: Int, targetLevel: Int): Long {
         require(targetLevel in 1..99)
         return seedCost(tier) + (1 until targetLevel).sumOf { waterCost(tier, it) }

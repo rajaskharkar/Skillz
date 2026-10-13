@@ -5,6 +5,21 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class GreenDomainTest {
+    @Test fun releaseReturns75PercentOfActualInvestmentRoundedToWholeDrops() {
+        assertEquals(1350L, GreenEconomy.releaseReward(1800))
+        assertEquals(1575L, GreenEconomy.releaseReward(2100))
+        assertEquals(181838L, GreenEconomy.releaseReward(242450))
+        (1..10).forEach { tier -> (1..99).forEach { level ->
+            val investment = GreenEconomy.totalCost(tier, level)
+            val expected = java.math.BigDecimal.valueOf(investment).multiply(java.math.BigDecimal("0.75"))
+                .setScale(0, java.math.RoundingMode.HALF_UP).longValueExact()
+            assertEquals(expected, GreenEconomy.releaseReward(investment))
+        } }
+        assertThrows(IllegalArgumentException::class.java) { GreenEconomy.releaseReward(-1) }
+        assertEquals(6917529027641081855L, GreenEconomy.releaseReward(Long.MAX_VALUE))
+        assertEquals(listOf(0L, 1L, 2L, 2L, 3L), (0L..4L).map(GreenEconomy::releaseReward))
+    }
+
     @Test fun catalogueHasEveryExplicitTierAndSevenStableAssets() {
         assertEquals(6, GreenEnvironment.entries.size)
         assertEquals(60, GreenCatalogue.species.size)

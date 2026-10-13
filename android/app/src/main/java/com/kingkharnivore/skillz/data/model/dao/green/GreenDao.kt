@@ -6,6 +6,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GreenDao {
+    @Query("SELECT * FROM green_specimen WHERE releasedAt IS NULL ORDER BY createdOrder")
+    fun observeActiveSpecimens(): Flow<List<PlantSpecimenEntity>>
+    // Lifetime evidence includes released plants; never delete it when ownership ends.
     @Query("SELECT * FROM green_specimen ORDER BY createdOrder")
     fun observeSpecimens(): Flow<List<PlantSpecimenEntity>>
     @Query("SELECT * FROM green_specimen ORDER BY createdOrder")

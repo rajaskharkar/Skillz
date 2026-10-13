@@ -18,7 +18,8 @@ import com.kingkharnivore.skillz.viewmodel.green.GreenUiState
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GreenCollectionScreen(state: GreenUiState, onWater: (String, Int, String) -> Unit,
-    onDismissFeedback: () -> Unit, onOpenGreen: () -> Unit, focusSpeciesId: String? = null, focusSpecimenId: String? = null) {
+    onDismissFeedback: () -> Unit, onOpenGreen: () -> Unit, focusSpeciesId: String? = null, focusSpecimenId: String? = null,
+    onRelease: ((String, Int, String) -> Unit)? = null) {
     var environment by rememberSaveable { mutableStateOf(GreenCatalogue.byId[focusSpeciesId]?.environment ?: GreenEnvironment.GARDEN) }
     var specimenId by rememberSaveable { mutableStateOf<String?>(null) }
     val plants = state.specimens.filter { GreenCatalogue.byId[it.speciesId]?.environment == environment }
@@ -34,11 +35,11 @@ fun GreenCollectionScreen(state: GreenUiState, onWater: (String, Int, String) ->
         }
     }
     val snackbar = remember { SnackbarHostState() }
-    val mastery = state.action?.takeIf { it.newLevel == 99 }?.let { action ->
+    val mastery = state.action?.takeIf { it.kind == "plant_watered" && it.newLevel == 99 }?.let { action ->
         state.specimens.firstOrNull { it.id == action.specimenId }
     }
     val feedback = greenFeedbackText(state)
-    val modalVisible = specimenId != null || mastery != null
+    val modalVisible = state.specimens.any { it.id == specimenId } || mastery != null
     LaunchedEffect(state.feedbackId, state.action?.id, state.messageRes, feedback, modalVisible) {
         if (!modalVisible && feedback != null) { snackbar.showSnackbar(feedback); onDismissFeedback() }
     }
@@ -60,7 +61,7 @@ fun GreenCollectionScreen(state: GreenUiState, onWater: (String, Int, String) ->
         }
     }
     if (mastery == null) state.specimens.firstOrNull { it.id == specimenId }?.let { plant ->
-        SpecimenDialog(plant, state, onWater) { specimenId = null; onDismissFeedback() }
+        SpecimenDialog(plant, state, onWater, { specimenId = null; onDismissFeedback() }, onRelease)
     }
     mastery?.let { plant ->
         MasteryDialog(plant, state, { specimenId = null; onDismissFeedback() }, R.string.green_return_chest)

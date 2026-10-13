@@ -91,13 +91,6 @@ class ShellRewardOrchestrator @Inject constructor(
             if (!shellRepository.addPearls(session.scyraPoints, "flow_reward", "session", sourceId)) {
                 ShellRewardResult()
             } else {
-                CreatureEconomy.creaturesForRegularFlowMinutes(minutes).forEach { reward ->
-                    repeat(reward.quantity) {
-                        val granted = shellRepository.grantFindCopy(reward.creatureId, "session", sourceId)
-                        grantedFinds += granted.findId
-                    }
-                }
-
                 if (minutes >= 10) {
                     shellRepository.incrementBadge("badge_flow_10_min")
                     badges += "badge_flow_10_min"
@@ -115,13 +108,17 @@ class ShellRewardOrchestrator @Inject constructor(
                     badges += "badge_flow_120_min"
                 }
 
+                // Include this Flow's milestone badges when reconciling badge-book collections.
+                val findIds = ShellRewardPolicy.milestoneFindsForMinutes(minutes)
+                grantedFinds += shellRepository.grantFindCopies(findIds, "session", sourceId).map { it.findId }
                 ShellRewardResult(session.scyraPoints, 0, grantedFinds, badges, discoveries)
             }
         }
         // Mirror the actual authoritative Pearl grant, never a separate duration formula.
         val pebbles = if (session.mode == FlowMode.POWER) result.pearlsEarned else 0
         if (pebbles > 0) ledger.insert(PebbleLedgerEntity("power:${session.id}", pebbles, session.id.toString(), System.currentTimeMillis()))
-        shellRepository.reconcilePowerBadges()
+        // A creature batch already reconciled session and collection badges atomically.
+        if (result.grantedFindIds.isEmpty()) shellRepository.reconcilePowerBadges()
         val newPowerBadges = db.userBadgeDao().getAll().filter {
             it.badgeId.startsWith("power_") && it.count > 0 && it.badgeId !in powerBadgesBefore
         }.map { it.badgeId }

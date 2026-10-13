@@ -2334,7 +2334,7 @@
     <string name="horizon_empty_memories">यादें एक Flow से शुरू होती हैं</string>
     <string name="horizon_empty_memories_body">किसी आदत या योजना को पूरा करें और उसके Flow का विवरण यहाँ पाएँ।</string>
     <string name="horizon_habits_hint">बार-बार लौटें। हर Flow के बाद आदतें यहीं रहेंगी।</string>
-    <string name="horizon_plans_hint">एक बार की गतिविधियाँ। Flow पूरा करने पर योजना यादों में चली जाएगी।</string>
+    <string name="horizon_plans_hint">एक योजना पर कई Flow में काम करें। हर Flow के बाद चुनें कि योजना पूरी हुई या नहीं। आपकी प्रगति यादों में रहेगी।</string>
     <string name="horizon_empty_habits">आप क्या बार-बार करना चाहेंगे?</string>
     <string name="horizon_empty_plans">आप क्या पूरा करना चाहेंगे?</string>
     <string name="horizon_empty_habits_body">नियमित रूप से करने वाली गतिविधि के लिए आदत बनाएँ।</string>
@@ -2362,4 +2362,9 @@
     <string name="horizon_remove_memory">Memories से हटाएँ</string>
     <string name="horizon_remove_memory_title">यह याद हटाएँ?</string>
     <string name="horizon_remove_memory_body">यह Flow केवल इस गतिविधि की Memories से हटेगा। Story में उसकी प्रविष्टि, Chronicles, दर्ज गतिविधि और पुरस्कार सुरक्षित रहेंगे।</string>
+    <string name="flow_plan_completion_question">क्या यह योजना सफलतापूर्वक पूरी हुई?</string>
+    <string name="flow_plan_completion_yes">हाँ, यह योजना पूरी हो गई है</string>
+    <string name="flow_plan_completion_no">नहीं, मुझे इस पर और काम करना है</string>
+    <string name="horizon_show_plan_journey">योजना की यात्रा दिखाएँ</string>
+    <string name="horizon_hide_plan_journey">योजना की यात्रा छिपाएँ</string>
 </resources>

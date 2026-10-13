@@ -8,6 +8,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface HorizonMemoryDao {
+    @Query("SELECT * FROM horizon_memories WHERE sessionId = :sessionId")
+    suspend fun getBySessionId(sessionId: Long): HorizonMemoryEntity?
+
     @Query("SELECT * FROM horizon_memories WHERE flowInstanceId = :flowInstanceId")
     suspend fun getByFlowInstanceId(flowInstanceId: String): HorizonMemoryEntity?
 

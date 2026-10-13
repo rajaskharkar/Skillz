@@ -123,4 +123,11 @@
     <string name="green_next_plot">अगली क्यारी</string>
     <string name="green_plot_position">क्यारी %1$d / %2$d</string>
     <string name="green_not_planted">अभी लगाया नहीं गया</string>
+    <string name="chest_mixed_inventory_stats">%1$d जीव · %2$d पौधे</string>
+    <string name="green_release">मुक्त करें</string>
+    <string name="green_release_title">%1$s को मुक्त करें?</string>
+    <string name="green_release_body">आपको %1$d बूँदें मिलेंगी: इस पौधे के बीज और सिंचाई पर खर्च का 75%%, निकटतम पूरी बूँद तक पूर्णांकित। केवल यह पौधा द ग्रीन और संदूक से हटेगा। अर्जित महारत, बैज और आजीवन इतिहास सुरक्षित रहेंगे।</string>
+    <string name="green_release_cancel">पौधा रखें</string>
+    <string name="green_released">पौधा मुक्त किया गया। %1$d बूँदें जोड़ी गईं।</string>
+    <string name="green_already_released">यह पौधा पहले ही मुक्त किया जा चुका है।</string>
 </resources>
