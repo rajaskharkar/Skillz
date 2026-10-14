@@ -77,6 +77,12 @@ interface ObjectiveCompletionDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertCompletion(entity: ObjectiveCompletionEntity): Long
 
+    @Query("SELECT * FROM objective_completions WHERE pearlsClaimed = 0 AND (:badgeKey IS NULL OR badgeKey = :badgeKey)")
+    suspend fun getUnclaimedCompletions(badgeKey: String? = null): List<ObjectiveCompletionEntity>
+
+    @Query("SELECT * FROM objective_completions WHERE objectiveId = :objectiveId")
+    suspend fun getCompletionsForObjective(objectiveId: Long): List<ObjectiveCompletionEntity>
+
     @Query("SELECT * FROM objective_completions WHERE id = :id LIMIT 1")
     suspend fun getCompletionById(id: Long): ObjectiveCompletionEntity?
 
@@ -110,7 +116,7 @@ interface ObjectiveSkippedCycleDao {
 
 @Dao
 interface ObjectiveProcessedSessionDao {
-    @Query("SELECT s.* FROM sessions s LEFT JOIN objective_processed_session p ON p.sessionId = s.id WHERE s.isSoftMode != 1 AND p.sessionId IS NULL ORDER BY s.endTime, s.id LIMIT :limit")
+    @Query("SELECT s.* FROM sessions s LEFT JOIN objective_processed_session p ON p.sessionId = s.id WHERE p.sessionId IS NULL ORDER BY s.endTime, s.id LIMIT :limit")
     suspend fun getUnprocessedRegularSessions(limit: Int): List<SessionEntity>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)

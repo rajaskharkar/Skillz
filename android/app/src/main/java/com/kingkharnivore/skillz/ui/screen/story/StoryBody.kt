@@ -39,7 +39,14 @@ fun StoryBody(
     onOpenViewJourneys: (Long) -> Unit,
     onEditArc: (Long) -> Unit,
     createChronicleEditor: (String, String) -> com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleStateHolder,
-    onSaveEntry: suspend (String, Long, String, String) -> Unit
+    onSaveEntry: suspend (String, Long, String, String) -> Unit,
+    objectives: List<com.kingkharnivore.skillz.viewmodel.shell.ObjectiveCardUiState> = emptyList(),
+    onObjectiveFlow: (String, com.kingkharnivore.skillz.model.FlowMode) -> Unit = { _, _ -> },
+    onObjectiveClaim: (Long) -> Unit = {},
+    onPulseFlow: (Long) -> Unit = {},
+    onPulseShow: (Long) -> Unit = {},
+    sagaFlowEnabled: Boolean = true,
+    claimEnabled: Boolean = true
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         when {
@@ -71,7 +78,9 @@ fun StoryBody(
                     } else null,
                     onEditArc = onEditArc,
                     createChronicleEditor = createChronicleEditor,
-                    onSaveEntry = onSaveEntry
+                    onSaveEntry = onSaveEntry,
+                    objectives = objectives, onObjectiveFlow = onObjectiveFlow, onObjectiveClaim = onObjectiveClaim,
+                    onPulseFlow = onPulseFlow, onPulseShow = onPulseShow, sagaFlowEnabled = sagaFlowEnabled, claimEnabled = claimEnabled
                 )
             }
         }

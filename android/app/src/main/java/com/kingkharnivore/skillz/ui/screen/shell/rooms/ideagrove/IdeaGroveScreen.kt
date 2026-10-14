@@ -376,7 +376,7 @@ private fun IdeaPulseCard(
 }
 
 @Composable
-private fun IdeaFlowHistorySection(flows: List<IdeaGroveFlowUiModel>) {
+internal fun IdeaFlowHistorySection(flows: List<IdeaGroveFlowUiModel>) {
     var showAll by remember { mutableStateOf(false) }
     val visible = if (showAll || flows.size <= 5) flows else flows.take(5)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

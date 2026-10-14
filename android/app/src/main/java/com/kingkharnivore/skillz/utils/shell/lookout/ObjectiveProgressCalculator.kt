@@ -6,6 +6,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.ObjectivePeriodTypes
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveSkippedCycleEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveTypes
 import com.kingkharnivore.skillz.domain.lookout.ObjectiveBadgeIdentity
+import com.kingkharnivore.skillz.model.FlowMode
 import java.time.Instant
 import java.time.ZoneId
 import javax.inject.Inject
@@ -31,7 +32,7 @@ enum class ObjectiveKind(val storageValue: String, val label: String) {
     }
 }
 
-enum class ObjectiveCardState { Upcoming, InProgress, Completed }
+enum class ObjectiveCardState { Upcoming, InProgress, Completed, Expired, Skipped }
 
 data class ObjectiveSourceFlow(
     val id: Long,
@@ -39,11 +40,17 @@ data class ObjectiveSourceFlow(
     val startTimeMs: Long,
     val endTimeMs: Long,
     val durationMs: Long,
-    val isSoftMode: Boolean
+    val isSoftMode: Boolean,
+    val mode: FlowMode = FlowMode.fromSoft(isSoftMode)
 )
 
 data class ObjectiveWindow(val startMs: Long, val endMs: Long)
-data class ObjectiveCompletionEvidence(val achievedDurationMs: Long, val completedAtMs: Long)
+data class ObjectiveCompletionEvidence(
+    val achievedDurationMs: Long,
+    val completedAtMs: Long,
+    val startedAtMs: Long,
+    val sourceSessionId: Long
+)
 
 data class ObjectiveCardModel(
     val objective: ObjectiveEntity,
@@ -107,7 +114,9 @@ class ObjectiveProgressCalculator @Inject constructor() {
 
             if (completion == null && nowMs >= window.startMs && progressMs >= objective.targetDurationMs) {
                 val achievedAtCompletionMs = achievedDurationAtFirstCompletion(objective, flows, window)
-                grants += buildGrant(objective, kind, window, achievedAtCompletionMs, nowMs, effectiveCurrentStreak)
+                val evidence = completionEvidence(objective, flows, window)!!
+                grants += buildGrant(objective, kind, window, achievedAtCompletionMs, evidence.completedAtMs, effectiveCurrentStreak,
+                    evidence.startedAtMs, evidence.sourceSessionId, zoneId)
                 grantsCurrentCycle = true
             }
 
@@ -129,7 +138,9 @@ class ObjectiveProgressCalculator @Inject constructor() {
                             var grantsFallbackCycle = false
                             if (currentCompletion == null && currentProgress >= objective.targetDurationMs) {
                                 val achievedAtCompletionMs = achievedDurationAtFirstCompletion(objective, flows, currentWindow)
-                                grants += buildGrant(objective, kind, currentWindow, achievedAtCompletionMs, nowMs, currentEffectiveStreak)
+                                val evidence = completionEvidence(objective, flows, currentWindow)!!
+                                grants += buildGrant(objective, kind, currentWindow, achievedAtCompletionMs, evidence.completedAtMs, currentEffectiveStreak,
+                                    evidence.startedAtMs, evidence.sourceSessionId, zoneId)
                                 grantsFallbackCycle = true
                             }
                             cards += ObjectiveCardModel(
@@ -176,6 +187,13 @@ class ObjectiveProgressCalculator @Inject constructor() {
         return ObjectiveWindow(start.toInstant().toEpochMilli(), end.toInstant().toEpochMilli())
     }
 
+    fun targetAtMs(objective: ObjectiveEntity, window: ObjectiveWindow, zoneId: ZoneId): Long? {
+        val minute = objective.targetMinuteOfDay ?: return null
+        return Instant.ofEpochMilli(window.startMs).atZone(zoneId).toLocalDate()
+            .plusDays(objective.targetDayOffset.toLong()).atTime(minute / 60, minute % 60)
+            .atZone(zoneId).toInstant().toEpochMilli()
+    }
+
     fun objectiveBadgeKey(journeyId: Long, period: ObjectivePeriod): String =
         ObjectiveBadgeIdentity.badgeId(journeyId, period.storageValue)
 
@@ -192,24 +210,19 @@ class ObjectiveProgressCalculator @Inject constructor() {
     }
 
     private fun windowForCycleContaining(objective: ObjectiveEntity, period: ObjectivePeriod, now: Instant, zoneId: ZoneId): ObjectiveWindow {
-        var window = initialWindow(objective.startAtMs, period, objective.weeklyBoundaryDay, zoneId)
-        val nowMs = now.toEpochMilli()
-        while (nowMs >= window.endMs) {
-            val nextStart = Instant.ofEpochMilli(window.endMs).atZone(zoneId)
-            val nextEnd = when (period) {
-                ObjectivePeriod.Daily -> nextStart.plusDays(1)
-                ObjectivePeriod.Weekly -> nextStart.plusDays(7)
-                ObjectivePeriod.Monthly -> nextStart.plusDays(30)
-            }
-            window = ObjectiveWindow(nextStart.toInstant().toEpochMilli(), nextEnd.toInstant().toEpochMilli())
-        }
-        return window
+        val initial = initialWindow(objective.startAtMs, period, objective.weeklyBoundaryDay, zoneId)
+        val firstDay = Instant.ofEpochMilli(initial.startMs).atZone(zoneId).toLocalDate()
+        val daysPerCycle = when (period) { ObjectivePeriod.Daily -> 1L; ObjectivePeriod.Weekly -> 7L; ObjectivePeriod.Monthly -> 30L }
+        val elapsedDays = java.time.temporal.ChronoUnit.DAYS.between(firstDay, now.atZone(zoneId).toLocalDate()).coerceAtLeast(0)
+        val cycleStart = firstDay.plusDays(elapsedDays / daysPerCycle * daysPerCycle).atStartOfDay(zoneId)
+        return ObjectiveWindow(cycleStart.toInstant().toEpochMilli(), cycleStart.plusDays(daysPerCycle).toInstant().toEpochMilli())
     }
 
     fun eligibleFlowsFor(objective: ObjectiveEntity, flows: List<ObjectiveSourceFlow>, window: ObjectiveWindow): List<ObjectiveSourceFlow> =
         flows.asSequence()
             .filter { it.journeyId == objective.journeyId }
-            .filterNot { it.isSoftMode }
+            .filter { it.mode == objective.flowMode }
+            .filter { it.startTimeMs >= objective.createdAt }
             .filter { it.endTimeMs in window.startMs until window.endMs }
             .sortedWith(compareBy<ObjectiveSourceFlow> { it.endTimeMs }.thenBy { it.id })
             .toList()
@@ -220,10 +233,12 @@ class ObjectiveProgressCalculator @Inject constructor() {
         window: ObjectiveWindow
     ): ObjectiveCompletionEvidence? {
         var total = 0L
+        var startedAt = Long.MAX_VALUE
         eligibleFlowsFor(objective, flows, window).forEach { flow ->
+            if (flow.durationMs > 0) startedAt = minOf(startedAt, flow.startTimeMs)
             total += flow.durationMs.coerceAtLeast(0L)
             if (total >= objective.targetDurationMs) {
-                return ObjectiveCompletionEvidence(total, flow.endTimeMs)
+                return ObjectiveCompletionEvidence(total, flow.endTimeMs, startedAt, flow.id)
             }
         }
         return null
@@ -243,13 +258,25 @@ class ObjectiveProgressCalculator @Inject constructor() {
         window: ObjectiveWindow,
         achievedMs: Long,
         nowMs: Long,
-        effectiveCurrentStreak: Int
+        effectiveCurrentStreak: Int,
+        startedAtMs: Long? = null,
+        sourceSessionId: Long? = null,
+        zoneId: ZoneId = ZoneId.systemDefault()
     ): ObjectiveCompletionGrant {
         val period = ObjectivePeriod.fromStorage(objective.periodType)
         val base = floor(achievedMs / MILLIS_PER_MINUTE.toDouble()).toInt().coerceAtLeast(1)
         val streakBefore = if (kind == ObjectiveKind.Recurring) effectiveCurrentStreak else 0
         val multiplier = if (kind == ObjectiveKind.Recurring) 1.0 + streakBefore * 0.1 else 1.0
-        val finalPearls = floor(base * multiplier).toInt()
+        val targetAt = targetAtMs(objective, window, zoneId)
+        // A session may finish after the target. Only its start determines eligibility.
+        // Use the same creation boundary as progress and completion eligibility.
+        val onTime = targetAt != null && startedAtMs != null &&
+            startedAtMs >= maxOf(window.startMs, objective.createdAt) && startedAtMs < targetAt
+        val timingMultiplier = if (onTime) 2 else 1
+        val finalPearls = if (objective.flowMode == FlowMode.SOFT) 0 else floor(base * multiplier).toInt() * timingMultiplier
+        val drops = if (objective.flowMode == FlowMode.SOFT) floor(achievedMs / 1000.0 * multiplier).toLong() * timingMultiplier else 0L
+        val pebbles = if (objective.flowMode == FlowMode.POWER) finalPearls else 0
+        val points = if (objective.flowMode != FlowMode.SOFT) finalPearls else 0
         val newStreak = if (kind == ObjectiveKind.Recurring) effectiveCurrentStreak + 1 else null
         val badgeKey = objectiveBadgeKey(objective.journeyId, period)
         val completion = ObjectiveCompletionEntity(
@@ -268,7 +295,13 @@ class ObjectiveProgressCalculator @Inject constructor() {
             streakMultiplier = multiplier,
             finalRewardPearls = finalPearls,
             badgeKey = badgeKey,
-            badgeLabelSnapshot = "${objective.journeyNameSnapshot} ${period.label} Objective"
+            badgeLabelSnapshot = "${objective.journeyNameSnapshot} ${period.label} Objective",
+            flowMode = objective.flowMode,
+            startedBeforeTarget = onTime,
+            finalRewardDrops = drops,
+            finalRewardPebbles = pebbles,
+            finalRewardPoints = points,
+            sourceSessionId = sourceSessionId
         )
         return ObjectiveCompletionGrant(
             completion = completion,

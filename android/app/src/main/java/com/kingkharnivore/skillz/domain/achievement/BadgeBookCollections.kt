@@ -62,7 +62,13 @@ object BadgeBookCollections {
     }).plus(com.kingkharnivore.skillz.domain.green.GreenBadgeEvaluator.themes.map { theme ->
         BadgeBookCollection("badge_book_green_${theme.key}", theme.titleRes, 75,
             listOf("green_v2_${theme.key}_seedling", "green_v2_${theme.key}_rooted", "green_v2_${theme.key}_flourish", "green_v2_${theme.key}_mastery"), "green_v2_${theme.key}_mastery")
-    }).sortedBy { it.difficulty }
+    }).map { collection ->
+        // Preserve previously issued book awards; give formerly shared rewards their own identity.
+        if (collection.createsAward) collection else collection.copy(
+            completionBadgeId = "book_${collection.id.removePrefix("badge_book_")}_complete",
+            createsAward = true
+        )
+    }.sortedBy { it.difficulty }
     val byId = collections.associateBy { it.id }
     val newAwards = collections.filter { it.createsAward }
     val byAward = newAwards.associateBy { it.completionBadgeId }
@@ -76,8 +82,9 @@ object BadgeBookCollections {
         val ledger = stored.associateBy { it.badgeId }
         return newAwards.map { collection ->
             val old = ledger[collection.completionBadgeId]
-            val progress = earnedMembers(collection, badges)
-            val earned = progress == collection.memberIds.size || (old?.count ?: 0) > 0
+            val memberProgress = earnedMembers(collection, badges)
+            val earned = memberProgress == collection.memberIds.size || (old?.count ?: 0) > 0
+            val progress = if (earned) collection.memberIds.size else memberProgress
             BadgeProgressModel(collection.completionBadgeId, if (earned) 1 else 0, earned, BadgeUiCategory.COLLECTIONS,
                 progress, collection.memberIds.size, (collection.memberIds.size - progress).coerceAtLeast(0),
                 MilestoneEngine.evaluate(progress, thresholds = listOf(collection.memberIds.size)),

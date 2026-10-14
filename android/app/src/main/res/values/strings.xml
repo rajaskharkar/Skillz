@@ -1674,7 +1674,7 @@
     <string name="lookout_selected_date">Selected: %1$s</string>
     <string name="lookout_objective_period">Objective period</string>
     <string name="lookout_objective_type">Objective type</string>
-    <string name="lookout_target_time">Target time</string>
+    <string name="lookout_target_time">Target duration</string>
     <string name="lookout_hours">Hours</string>
     <string name="lookout_minutes">Minutes</string>
     <string name="lookout_monthly_helper">Monthly Objectives run for 30 days.</string>
@@ -1686,7 +1686,7 @@
         <item quantity="one">From %1$d completed Objective</item>
         <item quantity="other">From %1$d completed Objectives</item>
     </plurals>
-    <string name="lookout_all_pearls_claimed">All Pearls Claimed!</string>
+    <string name="lookout_all_pearls_claimed">All Rewards Claimed!</string>
     <string name="lookout_no_rewards_waiting">No Objective rewards waiting</string>
     <string name="badge_category_objectives">Objectives</string>
     <string name="badge_objective_title">%1$s · %2$s Objective</string>
@@ -2061,8 +2061,8 @@ You can turn Health back on later.</string>
     <string name="level99_preview_completes_stillwater">This completes overall Blue heritage Mastery.</string>
     <string name="level99_preview_restores_stillwater">This restores overall Blue heritage completion for the current roster.</string>
     <plurals name="badges_summary">
-        <item quantity="one">%1$d earned · %2$d Masteries · %3$d Completionist collection</item>
-        <item quantity="other">%1$d earned · %2$d Masteries · %3$d Completionist collections</item>
+        <item quantity="one">%1$d earned · %2$d Masteries · %3$d completed collection</item>
+        <item quantity="other">%1$d earned · %2$d Masteries · %3$d completed collections</item>
     </plurals>
     <string name="badges_search">Search badges</string>
     <string name="badges_empty_slot">Empty slot</string>
@@ -2071,9 +2071,9 @@ You can turn Health back on later.</string>
     <string name="badges_showcase_title">Your Showcase</string>
     <string name="badges_showcase_body">Pin as many achievements as you like.</string>
     <string name="badges_tracked_title">Tracked Badges</string>
-    <string name="badges_tracked_body">Badges you have chosen to follow. Scyra records all badge progress automatically.</string>
-    <string name="badges_no_tracked_title">No tracked badges</string>
-    <string name="badges_no_tracked_body">Track a badge to keep its progress and next step here.</string>
+    <string name="badges_tracked_body">Badges and collections you have chosen to follow. Scyra records all progress automatically.</string>
+    <string name="badges_no_tracked_title">Nothing tracked yet</string>
+    <string name="badges_no_tracked_body">Track a badge or collection to keep its progress and next step here.</string>
     <string name="badges_within_reach_title">Within Reach</string>
     <string name="badges_within_reach_body">Up to three untracked goals Scyra recommends as useful next steps.</string>
     <string name="badges_recent_title">Recently Earned and Updated</string>
@@ -2375,4 +2375,41 @@ You can turn Health back on later.</string>
     <string name="horizon_remove_memory_title">Remove this memory?</string>
     <string name="horizon_remove_memory_body">This removes the Flow only from this activity’s Memories. Its Story entry, Chronicles, recorded activity, and rewards will be kept.</string>
     <string name="horizon_hide_plan_journey">Hide Plan Journey</string>
+    <string name="lookout_flow_type">Flow type</string>
+    <string name="lookout_flow_regular">Regular Flow</string>
+    <string name="lookout_flow_soft">Soft Flow</string>
+    <string name="lookout_flow_power">Power Flow</string>
+    <string name="lookout_optional_target">Set a target time (optional)</string>
+    <string name="lookout_target_clock">Target time: %1$s</string>
+    <string name="lookout_target_day">Day of cycle (1–%1$d)</string>
+    <string name="lookout_target_helper" formatted="false">Start before this time, then complete your Objective to earn 2× rewards. Soft Flows earn Drops; Power Flows also earn Pebbles. Your +10% streak progression still applies. Change reminder timing in Help. Android may delay delivery.</string>
+    <string name="lookout_validation_target_day">Choose a target day within this Objective’s cycle.</string>
+    <string name="lookout_start_before_target">Start before %1$s for 2× rewards</string>
+    <string name="lookout_early_start_earned">2× early-start rewards earned · Target %1$s</string>
+    <string name="lookout_target_missed">Standard rewards · Target %1$s</string>
+    <string name="lookout_rewards_claimed">Rewards claimed</string>
+    <string name="lookout_claim_rewards">Claim Objective rewards</string>
+    <string name="lookout_rewards_waiting">Rewards ready to claim</string>
+    <string name="lookout_points_value">%1$d Scyra Points</string>
+    <string name="lookout_drops_value">%1$d Drops</string>
+    <string name="lookout_pebbles_value">%1$d Pebbles</string>
+    <string name="lookout_reminder_channel">Objective reminders</string>
+    <string name="lookout_reminder_title">Your Objective target is coming up</string>
+    <string name="lookout_reminder_body">Start %1$s before %2$s to earn 2× rewards when you complete it.</string>
+    <string name="lookout_early_start_pending">Started early · 2× rewards on completion · Target %1$s</string>
+    <string name="lookout_enable_precise_reminders">Enable precise reminders</string>
+    <string name="saga_objectives_title">Objectives</string>
+    <string name="saga_pulse_show">Show</string>
+    <string name="saga_objective_expired">Objective period ended</string>
+    <string name="saga_objective_skipped">Skipped this cycle</string>
+    <string name="saga_objective_double_reward">2× early-start rewards</string>
+    <string name="help_objective_reminder_title">Objective reminders</string>
+    <string name="help_reminder_at_target">At the target time</string>
+    <string name="help_reminder_minutes_before">%1$d minutes before the target</string>
+    <string name="help_objective_reminder_body">Choose how many minutes before an Objective’s target time you want a reminder. Use 0 for the target time. This applies to all timed Objectives and updates existing reminders.</string>
+    <string name="help_reminder_minutes_label">Minutes before target</string>
+    <string name="help_reminder_save_error">Could not update reminders. Please try again.</string>
+    <string name="lookout_reminder_due_body">It is time for %1$s.</string>
+    <string name="lookout_claim_failed">Could not claim rewards. Please try again.</string>
+    <string name="lookout_cycle_dates">Cycle: %1$s – %2$s</string>
 </resources>

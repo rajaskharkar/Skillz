@@ -79,7 +79,7 @@ fun GreenBadgePreviewContent(state: GreenUiState, onNavigate: (com.kingkharnivor
             badgeSort = com.kingkharnivore.skillz.domain.achievement.BadgeSort.ALPHABETICAL),
         onPin = { _, _ -> }, onDismissPinReplacement = {}, onUnpin = {}, onTrack = {}, onUntrack = {},
         onCategory = {}, onSort = {}, onBadgeViewed = {}, onAcknowledgeBackfill = {}, onNavigate = onNavigate,
-        onOpenFlow = {}, onOpenArc = {}, initialTab = com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgesTab.BADGE_BOOK, initialBrowseCollections = false)
+        onOpenFlow = {}, onOpenArc = {}, initialTab = com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgesTab.BADGE_BOOK, initialBookSection = com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgeBookSection.ALL_BADGES)
 }
 
 /** Ten adult forms per environment for botanical review, using the production artwork. */
@@ -133,7 +133,7 @@ fun GrowthBadgePreviewContent(collections: Boolean = false) {
         onPin = { _, _ -> }, onDismissPinReplacement = {}, onUnpin = {}, onTrack = {}, onUntrack = {},
         onCategory = {}, onSort = {}, onBadgeViewed = {}, onAcknowledgeBackfill = {}, onNavigate = {},
         onOpenFlow = {}, onOpenArc = {}, initialTab = com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgesTab.BADGE_BOOK,
-        initialBrowseCollections = collections)
+        initialBookSection = if (collections) com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgeBookSection.COLLECTIONS else com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgeBookSection.ALL_BADGES)
 }
 @Preview(name="Growth collections before Level 90", widthDp=400, heightDp=850)
 @Composable private fun GrowthCollectionsPreview() { SkillzTheme { Surface { GrowthBadgePreviewContent(true) } } }

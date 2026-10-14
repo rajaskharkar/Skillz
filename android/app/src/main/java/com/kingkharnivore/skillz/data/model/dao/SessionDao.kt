@@ -108,6 +108,6 @@ interface SessionDao {
     @Query("SELECT endTime FROM sessions WHERE isSoftMode != 1 AND endTime < :endTime ORDER BY endTime DESC LIMIT 1")
     suspend fun getLastRegularSessionEndBefore(endTime: Long): Long?
 
-    @Query("SELECT * FROM sessions WHERE tagId = :tagId AND isSoftMode != 1 AND endTime >= :startMs AND endTime < :endMs AND (endTime < :asOfMs OR (endTime = :asOfMs AND id <= :asOfId)) ORDER BY endTime, id")
+    @Query("SELECT * FROM sessions WHERE tagId = :tagId AND endTime >= :startMs AND endTime < :endMs AND (endTime < :asOfMs OR (endTime = :asOfMs AND id <= :asOfId)) ORDER BY endTime, id")
     suspend fun getRegularSessionsForObjectiveWindow(tagId: Long, startMs: Long, endMs: Long, asOfMs: Long, asOfId: Long): List<SessionEntity>
 }

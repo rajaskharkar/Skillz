@@ -47,6 +47,8 @@ fun SkillzHomeScreen(
     healthViewModel: HealthSettingsViewModel = hiltViewModel(),
     onAddSessionClick: () -> Unit,
     onAddPulseClick: () -> Unit,
+    onLaunchPulseFlow: (Long, String, String?) -> Unit = { _, _, _ -> },
+    onLaunchObjectiveFlow: (String, com.kingkharnivore.skillz.model.FlowMode) -> Unit = { _, _ -> },
     onOpenPlannedFlow: (com.kingkharnivore.skillz.model.ui.FlowPlanListItemUiModel) -> Unit,
     onPlanArc: () -> Unit,
     onOpenArc: (Long) -> Unit,
@@ -137,7 +139,8 @@ fun SkillzHomeScreen(
                             onAddPulseClick = onAddPulseClick,
                             onSessionClick = onSessionClick,
                             onGoToActiveSession = onGoToActiveSession,
-                            isFlowStateActive = isFlowModeOn
+                            isFlowStateActive = isFlowModeOn,
+                            onLaunchPulseFlow = onLaunchPulseFlow, onLaunchObjectiveFlow = onLaunchObjectiveFlow
                         )
 
                         PAGE_PATHS -> PathsScreen(

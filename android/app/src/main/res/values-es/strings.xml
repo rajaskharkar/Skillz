@@ -1878,9 +1878,9 @@ Puedes volver a activar Health más tarde.</string>
     <string name="chest_filter_needed_tracked">Necesario para insignias seguidas</string>
     <string name="chest_filter_tracked_empty">Ninguna de tus insignias seguidas necesita actualmente criaturas de The Chest.</string>
     <string name="badges_tracked_title">Insignias seguidas</string>
-    <string name="badges_tracked_body">Insignias que has elegido seguir. Scyra registra automáticamente todo el progreso.</string>
-    <string name="badges_no_tracked_title">No hay insignias seguidas</string>
-    <string name="badges_no_tracked_body">Sigue una insignia para mantener aquí su progreso y el siguiente paso.</string>
+    <string name="badges_tracked_body">Insignias y colecciones que has elegido seguir. Scyra registra todo el progreso automáticamente.</string>
+    <string name="badges_no_tracked_title">Aún no sigues nada</string>
+    <string name="badges_no_tracked_body">Sigue una insignia o colección para mantener aquí su progreso y el siguiente paso.</string>
     <string name="badges_within_reach_title">Al alcance</string>
     <string name="badges_within_reach_body">Hasta tres objetivos no seguidos que Scyra recomienda como próximos pasos útiles.</string>
     <string name="badge_across_depths">Por las profundidades</string>
@@ -1987,8 +1987,8 @@ Puedes volver a activar Health más tarde.</string>
     <string name="badges_showcase_title">Tu vitrina</string>
     <string name="badges_sort_selected">Orden: %1$s</string>
     <plurals name="badges_summary">
-        <item quantity="one">Obtenidas: %1$d · Dominios: %2$d · Colecciones completistas: %3$d</item>
-        <item quantity="other">Obtenidas: %1$d · Dominios: %2$d · Colecciones completistas: %3$d</item>
+        <item quantity="one">Obtenidas: %1$d · Dominios: %2$d · Colecciones completadas: %3$d</item>
+        <item quantity="other">Obtenidas: %1$d · Dominios: %2$d · Colecciones completadas: %3$d</item>
     </plurals>
     <string name="badges_view_new">Ver nuevas insignias</string>
     <string name="badges_yours_count">Insignias distintas mostradas: %1$d</string>
@@ -2163,7 +2163,7 @@ Puedes volver a activar Health más tarde.</string>
     <string name="badge_objective_fallback_description">Completed Objetivo %1$ss in The Lookout.</string>
     <string name="badge_objective_fallback_title">Objetivo %1$s</string>
     <string name="badge_objective_title">%1$s · Objetivo %2$s</string>
-    <string name="lookout_all_pearls_claimed">¡Todas las Perlas reclamadas!</string>
+    <string name="lookout_all_pearls_claimed">¡Todas las recompensas reclamadas!</string>
     <plurals name="lookout_from_completed_objectives">
         <item quantity="one">De %1$d Objetivo completado</item>
         <item quantity="other">De %1$d Objetivo completados</item>
@@ -2382,4 +2382,41 @@ Puedes volver a activar Health más tarde.</string>
     <string name="flow_plan_completion_no">No, necesito seguir trabajando en él</string>
     <string name="horizon_show_plan_journey">Mostrar recorrido del plan</string>
     <string name="horizon_hide_plan_journey">Ocultar recorrido del plan</string>
+    <string name="lookout_flow_type">Tipo de Flow</string>
+    <string name="lookout_flow_regular">Flow regular</string>
+    <string name="lookout_flow_soft">Soft Flow</string>
+    <string name="lookout_flow_power">Power Flow</string>
+    <string name="lookout_optional_target">Fijar una hora objetivo (opcional)</string>
+    <string name="lookout_target_clock">Hora objetivo: %1$s</string>
+    <string name="lookout_target_day">Día del ciclo (1–%1$d)</string>
+    <string name="lookout_target_helper" formatted="false">Empieza antes de esta hora y completa tu Objetivo para obtener el doble de recompensas. Los Soft Flows otorgan Gotas; los Power Flows también otorgan Guijarros. Se mantiene el aumento del 10% por racha. Cambia la antelación del recordatorio en Ayuda. Android puede retrasarlo.</string>
+    <string name="lookout_validation_target_day">Elige un día objetivo dentro del ciclo.</string>
+    <string name="lookout_start_before_target">Empieza antes de %1$s para obtener el doble de recompensas</string>
+    <string name="lookout_early_start_earned">Doble recompensa por empezar a tiempo · Objetivo %1$s</string>
+    <string name="lookout_target_missed">Recompensas normales · Objetivo %1$s</string>
+    <string name="lookout_rewards_claimed">Recompensas reclamadas</string>
+    <string name="lookout_claim_rewards">Reclamar recompensas del Objetivo</string>
+    <string name="lookout_rewards_waiting">Recompensas listas para reclamar</string>
+    <string name="lookout_points_value">%1$d Puntos Scyra</string>
+    <string name="lookout_drops_value">%1$d Gotas</string>
+    <string name="lookout_pebbles_value">%1$d Guijarros</string>
+    <string name="lookout_reminder_channel">Recordatorios de Objetivos</string>
+    <string name="lookout_reminder_title">Se acerca la hora de tu Objetivo</string>
+    <string name="lookout_reminder_body">Empieza %1$s antes de %2$s para obtener el doble de recompensas al completarlo.</string>
+    <string name="lookout_early_start_pending">Inicio a tiempo · Doble recompensa al completar · Objetivo %1$s</string>
+    <string name="lookout_enable_precise_reminders">Activar recordatorios precisos</string>
+    <string name="saga_objectives_title">Objetivos</string>
+    <string name="saga_pulse_show">Mostrar</string>
+    <string name="saga_objective_expired">El período del Objetivo terminó</string>
+    <string name="saga_objective_skipped">Omitido en este ciclo</string>
+    <string name="saga_objective_double_reward">Doble recompensa por empezar a tiempo</string>
+    <string name="help_objective_reminder_title">Recordatorios de Objetivos</string>
+    <string name="help_reminder_at_target">A la hora objetivo</string>
+    <string name="help_reminder_minutes_before">%1$d minutos antes del objetivo</string>
+    <string name="help_objective_reminder_body">Elige cuántos minutos antes de la hora objetivo quieres recibir un recordatorio. Usa 0 para la hora objetivo. Se aplica a todos los Objetivos con horario y actualiza los recordatorios existentes.</string>
+    <string name="help_reminder_minutes_label">Minutos antes del objetivo</string>
+    <string name="help_reminder_save_error">No se pudieron actualizar los recordatorios. Inténtalo de nuevo.</string>
+    <string name="lookout_reminder_due_body">Es la hora de %1$s.</string>
+    <string name="lookout_claim_failed">No se pudieron reclamar las recompensas. Inténtalo de nuevo.</string>
+    <string name="lookout_cycle_dates">Ciclo: %1$s – %2$s</string>
 </resources>

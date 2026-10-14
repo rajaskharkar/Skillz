@@ -11,6 +11,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,7 +40,10 @@ import com.kingkharnivore.skillz.model.ui.PulseListItemUiModel
 
 @Composable
 fun SagaPulseSection(
-    pulses: List<PulseListItemUiModel>
+    pulses: List<PulseListItemUiModel>,
+    onFlow: (Long) -> Unit = {},
+    onShow: (Long) -> Unit = {},
+    flowEnabled: Boolean = true
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
 
@@ -138,9 +144,7 @@ fun SagaPulseSection(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clearAndSetSemantics {
-                                    contentDescription = pulseA11y
-                                },
+                                .semantics { contentDescription = pulseA11y },
                             shape = RoundedCornerShape(18.dp),
                             color = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
@@ -166,6 +170,17 @@ fun SagaPulseSection(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f)
                                 )
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(onClick = { onFlow(pulse.pulseId) }, enabled = flowEnabled,
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface)) {
+                                        Text(stringResource(R.string.lookout_start_flow))
+                                    }
+                                    OutlinedButton(onClick = { onShow(pulse.pulseId) },
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onPrimary)) {
+                                        Text(stringResource(R.string.saga_pulse_show))
+                                    }
+                                }
+
                             }
                         }
                     }

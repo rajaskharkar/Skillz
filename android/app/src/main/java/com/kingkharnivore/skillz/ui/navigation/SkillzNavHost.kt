@@ -19,6 +19,7 @@ import com.kingkharnivore.skillz.ui.screen.flow.FlowScreen
 import com.kingkharnivore.skillz.ui.screen.flow.ShellNavigationMode
 import com.kingkharnivore.skillz.ui.screen.shell.ShellRootScreen
 import com.kingkharnivore.skillz.ui.screen.story.pulse.PulseScreen
+import com.kingkharnivore.skillz.viewmodel.isMeaningfulActiveFlow
 import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 import com.kingkharnivore.skillz.viewmodel.health.HealthSettingsViewModel
 import com.kingkharnivore.skillz.viewmodel.StoryViewModel
@@ -56,6 +57,14 @@ fun SkillzNavHost(
                 },
                 onAddPulseClick = {
                     navController.navigate(SkillzDestinations.addPulseRoute())
+                },
+                onLaunchPulseFlow = { pulseId, title, journey ->
+                    if (!ongoing.isMeaningfulActiveFlow()) navController.navigate(SkillzDestinations.addSkillRoute(
+                        prefillJourney = journey, prefillTitle = title, originPulseId = pulseId
+                    ))
+                },
+                onLaunchObjectiveFlow = { journey, mode ->
+                    if (!ongoing.isMeaningfulActiveFlow()) navController.navigate(SkillzDestinations.addSkillRoute(prefillJourney = journey, prefillMode = mode))
                 },
                 onOpenPlannedFlow = { plan ->
                     navController.navigate(
@@ -241,6 +250,9 @@ fun SkillzNavHost(
                 isFlowActive = hasOngoingFlow,
                 onLaunchFlowForJourney = { journeyName ->
                     navController.navigate(SkillzDestinations.addSkillRoute(prefillJourney = journeyName))
+                },
+                onLaunchObjectiveFlow = { journeyName, mode ->
+                    navController.navigate(SkillzDestinations.addSkillRoute(prefillJourney = journeyName, prefillMode = mode))
                 },
                 onLaunchFlowFromPulse = { pulseId, title, journeyName ->
                     navController.navigate(

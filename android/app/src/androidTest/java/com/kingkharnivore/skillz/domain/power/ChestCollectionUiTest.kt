@@ -7,6 +7,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
@@ -121,6 +122,7 @@ class ChestCollectionUiTest {
     @Test fun bookCollectionsOpenMembersAndRetainAllBadgesBrowsing() {
         val dashboard=BadgeDashboardCalculator.calculate(emptyList(),emptyList(),emptyList(),emptyList(),emptyList(),emptyList(),emptyList())
         compose.setContent { Theme { BadgesScreen(ShellUiState(badgeDashboard=dashboard),{_,_->},{},{},{},{},{},{},{},{},{},{},{},initialTab=BadgesTab.BADGE_BOOK) } }
+        compose.onNodeWithTag("book-section-collections").performScrollTo().performClick()
         compose.onNodeWithTag("badge_book_first_steps").performScrollTo().performClick()
         compose.onNodeWithTag("book-member-badge_flow_10_min").assertIsDisplayed().performClick()
         compose.onNodeWithText(context.getString(R.string.shell_badge_flow_10_title)).assertIsDisplayed()
@@ -128,4 +130,64 @@ class ChestCollectionUiTest {
         compose.onNodeWithText(context.getString(R.string.book_all_badges)).performScrollTo().performClick()
         compose.onNodeWithText(context.getString(R.string.badges_search)).performScrollTo().assertIsDisplayed()
     }
+    @Test fun trackedSectionIsDefaultAndTracksCollectionsSeparatelyFromAllBadges() {
+        val tracking = mutableStateOf(emptyList<com.kingkharnivore.skillz.data.model.entity.shell.BadgeTrackingEntity>())
+        compose.setContent { Theme {
+            val dashboard = BadgeDashboardCalculator.calculate(emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), tracking.value)
+            BadgesScreen(ShellUiState(badgeDashboard = dashboard), { _, _ -> }, {}, {},
+                { id -> tracking.value = tracking.value + com.kingkharnivore.skillz.data.model.entity.shell.BadgeTrackingEntity(id, 1) },
+                { id -> tracking.value = tracking.value.filterNot { it.badgeId == id } }, {}, {}, {}, {}, {}, {}, {}, initialTab = BadgesTab.BADGE_BOOK)
+        } }
+        compose.onNodeWithTag("book-section-tracked").assertIsSelected()
+        val tabBottom = compose.onNodeWithContentDescription(context.getString(R.string.badges_tab_book), substring = true).getUnclippedBoundsInRoot().bottom
+        val sectionTop = compose.onNodeWithTag("book-section-tracked").getUnclippedBoundsInRoot().top
+        assertTrue("Tracked content must start below the tabs, without a large empty gap", sectionTop - tabBottom < 80.dp)
+        compose.onNodeWithText(context.getString(R.string.badges_no_tracked_title)).assertIsDisplayed()
+        compose.onNodeWithTag("book-section-collections").performClick()
+        compose.onNodeWithTag("track-badge_book_first_steps").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(listOf("book_first_steps_complete"), tracking.value.map { it.badgeId }) }
+        compose.onNodeWithTag("book-section-tracked").performScrollTo().performClick()
+        compose.onNodeWithTag("badge_book_first_steps").assertIsDisplayed()
+        capture("tracked-collection")
+        compose.onNodeWithTag("track-badge_book_first_steps").performClick()
+        compose.onNodeWithText(context.getString(R.string.badges_no_tracked_title)).assertIsDisplayed()
+        compose.onNodeWithTag("book-section-all").performClick()
+        compose.onNodeWithText(context.getString(R.string.badges_search)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.badges_no_tracked_title)).assertDoesNotExist()
+        compose.onNodeWithContentDescription(context.getString(R.string.badges_tab_showcase), substring = true).performClick()
+        compose.onNodeWithContentDescription(context.getString(R.string.badges_tab_book), substring = true).performClick()
+        compose.onNodeWithTag("book-section-tracked").assertIsSelected()
+    }
+
+    @Test fun completedCollectionBadgeCanBeViewedAndPinnedInShowcase() {
+        val collection = BadgeBookCollections.byId.getValue("badge_book_first_steps")
+        val earned = collection.memberIds.map { com.kingkharnivore.skillz.data.model.entity.shell.UserBadgeEntity(it, 1, 100, 100, false) }
+        val pins = mutableStateOf(emptyList<com.kingkharnivore.skillz.data.model.entity.shell.BadgePinEntity>())
+        compose.setContent { Theme {
+            val dashboard = BadgeDashboardCalculator.calculate(earned, emptyList(), emptyList(), emptyList(), emptyList(), pins.value, emptyList())
+            BadgesScreen(ShellUiState(badgeDashboard = dashboard),
+                { id, _ -> pins.value = listOf(com.kingkharnivore.skillz.data.model.entity.shell.BadgePinEntity(id, 0, 1)) }, {},
+                { id -> pins.value = pins.value.filterNot { it.badgeId == id } }, {}, {}, {}, {}, {}, {}, {}, {}, {},
+                initialTab = BadgesTab.BADGE_BOOK, initialBookSection = BadgeBookSection.COLLECTIONS)
+        } }
+        compose.onNodeWithTag("badge_book_first_steps").performScrollTo().performClick()
+        val title = context.getString(R.string.book_collection_award_title, context.getString(collection.titleRes))
+        compose.onNodeWithText(context.getString(R.string.book_view_collection_badge, title)).performScrollTo().performClick()
+        compose.onNodeWithText(context.getString(R.string.badge_pin)).performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(collection.completionBadgeId, pins.value.single().badgeId) }
+        capture("collection-badge")
+        androidx.test.espresso.Espresso.pressBack()
+        compose.onNodeWithContentDescription(context.getString(R.string.badges_tab_showcase), substring = true).performClick()
+        compose.onAllNodesWithText(title).onFirst().assertIsDisplayed()
+        capture("collection-showcase")
+    }
+
+    private fun capture(name: String) {
+        compose.waitForIdle()
+        val target = InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir("badge-collection-tracking")!!.apply { mkdirs() }
+        java.io.File(target, "$name.png").outputStream().use { output ->
+            requireNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output)
+        }
+    }
+
 }

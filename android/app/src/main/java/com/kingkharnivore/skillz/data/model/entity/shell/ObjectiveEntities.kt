@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.data.model.entity.shell
 
+import com.kingkharnivore.skillz.model.FlowMode
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
@@ -43,7 +44,12 @@ data class ObjectiveEntity(
     @ColumnInfo(defaultValue = "0")
     val isArchived: Boolean = false,
     val createdAt: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
+    @ColumnInfo(defaultValue = "0")
+    val flowMode: FlowMode = FlowMode.FLOW,
+    val targetMinuteOfDay: Int? = null,
+    @ColumnInfo(defaultValue = "0")
+    val targetDayOffset: Int = 0
 )
 
 @Entity(
@@ -79,7 +85,18 @@ data class ObjectiveCompletionEntity(
     val pearlsClaimed: Boolean = false,
     val pearlsClaimedAt: Long? = null,
     @ColumnInfo(defaultValue = "1")
-    val badgeGranted: Boolean = true
+    val badgeGranted: Boolean = true,
+    @ColumnInfo(defaultValue = "0")
+    val flowMode: FlowMode = FlowMode.FLOW,
+    @ColumnInfo(defaultValue = "0")
+    val startedBeforeTarget: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val finalRewardDrops: Long = 0,
+    @ColumnInfo(defaultValue = "0")
+    val finalRewardPebbles: Int = 0,
+    @ColumnInfo(defaultValue = "0")
+    val finalRewardPoints: Int = 0,
+    val sourceSessionId: Long? = null
 )
 
 @Entity(

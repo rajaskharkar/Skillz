@@ -21,7 +21,8 @@ class BadgeBookCollectionsTest {
         }
         assertTrue(collections.count { "power_spark" in it.memberIds } > 1)
         assertTrue(collections.count { "red_first_footprint" in it.memberIds } > 1)
-        assertEquals(12, BadgeBookCollections.newAwards.size)
+        assertEquals(collections.size, BadgeBookCollections.newAwards.size)
+        assertEquals(collections.size, collections.map { it.completionBadgeId }.distinct().size)
     }
     @Test fun awardsRequireEveryMemberOnceAndDoNotMultiplyWithRepeatCounts() {
         BadgeBookCollections.newAwards.forEach { collection ->
@@ -43,6 +44,8 @@ class BadgeBookCollectionsTest {
         val badge=dashboard(listOf(UserBadgeEntity(collection.completionBadgeId,1,100,100,false))).badges.first { it.badgeId == collection.completionBadgeId }
         assertTrue(badge.earned)
         assertEquals(100L,badge.firstEarnedAt)
+        assertEquals(collection.memberIds.size,badge.progress)
+        assertEquals(0,badge.remaining)
         assertEquals(1,badge.count)
     }
     @Test fun timestampUsesLastFirstAwardAndDoesNotInventHistoricalDates() {
@@ -52,19 +55,12 @@ class BadgeBookCollectionsTest {
         assertEquals(103L, BadgeBookCollections.completionEvidence(collection,badges)?.timestamp)
         assertNull(BadgeBookCollections.completionEvidence(collection,badges - collection.memberIds.last()))
     }
-    @Test fun discoveryAndMasteryRewardsReuseTheEquivalentCreatureRosters() {
-        BadgeBookCollections.collections.filter { !it.createsAward && it.id != "badge_book_flow" && !it.id.startsWith("badge_book_green_") }.forEach { group ->
-            val reward=BadgeDefinitionResolver.resolve(group.completionBadgeId)
-            val red=RedBadgeCatalog.byId[group.completionBadgeId]
-            val expected=red?.species ?: CollectionCatalog.byId.getValue(requireNotNull(reward.collectionId)).eligibleRoster(reward.requirement)
-            val actual=group.memberIds.flatMap { id ->
-                val spec=RedBadgeCatalog.byId[id]
-                if(spec != null) spec.species else {
-                    val member=BadgeDefinitionResolver.resolve(id)
-                    CollectionCatalog.byId.getValue(requireNotNull(member.collectionId)).eligibleRoster(member.requirement)
-                }
-            }.toSet()
-            assertEquals(expected.toSet(),actual,group.id)
-        }
+    @Test fun sharedBadgesRemainIndependentOfCollectionCompletion() {
+        val collection = BadgeBookCollections.byId.getValue("badge_book_flow")
+        assertEquals("book_flow_complete", collection.completionBadgeId)
+        val badges = dashboard(listOf(UserBadgeEntity("badge_flow_120_min", 1, 100, 100, false))).badges.associateBy { it.badgeId }
+        assertTrue(badges.getValue("badge_flow_120_min").earned)
+        assertFalse(badges.getValue(collection.completionBadgeId).earned)
+        assertTrue(badges.getValue(collection.completionBadgeId).pinnable)
     }
 }
