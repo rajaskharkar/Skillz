@@ -27,4 +27,9 @@
     <string name="book_collection_sea_mastery">समुद्र में महारत</string>
     <string name="book_collection_land_mastery">धरती पर महारत</string>
     <string name="book_collection_red_mastery">द रेड में महारत</string>
+    <string name="book_track_collection">संग्रह ट्रैक करें</string>
+    <string name="book_untrack_collection">संग्रह ट्रैक करना बंद करें</string>
+    <string name="book_collection_completed">संग्रह पूरा हुआ</string>
+    <string name="book_view_collection_badge">संग्रह का बैज देखें: %1$s</string>
+    <string name="book_open_collection">संग्रह खोलें</string>
 </resources>

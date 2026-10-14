@@ -23,6 +23,7 @@ class SkillzApplication : Application() {
     @Inject
     lateinit var userPrefs: UserPrefs
 
+    @Inject lateinit var objectiveReminderScheduler: com.kingkharnivore.skillz.domain.lookout.ObjectiveReminderScheduler
     @Inject lateinit var objectiveCompletionProcessor: ObjectiveCompletionProcessor
     @Inject lateinit var shellRewardOrchestrator: com.kingkharnivore.skillz.utils.shell.ShellRewardOrchestrator
     @Inject lateinit var landArcFinalizer: com.kingkharnivore.skillz.utils.arc.ArcLandRewardFinalizer
@@ -62,7 +63,10 @@ class SkillzApplication : Application() {
 
     private fun launchObjectiveReconciliation(trigger: String) {
         applicationScope.launch {
-            runCatching { objectiveCompletionProcessor.reconcileUnprocessedSessions() }
+            runCatching {
+                objectiveCompletionProcessor.reconcileUnprocessedSessions()
+                objectiveReminderScheduler.rescheduleAll()
+            }
                 .onFailure { error -> Log.e("ObjectiveReconciliation", "$trigger reconciliation failed", error) }
         }
     }

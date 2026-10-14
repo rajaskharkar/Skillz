@@ -21,6 +21,28 @@ class SkillzMigrationTest {
         SkillzDatabase::class.java
     )
 
+    @Test fun migration48To49PreservesObjectiveRewardsAndDefaultsToUntimedRegularFlow() {
+        val name = "objective-target-migration"
+        helper.createDatabase(name, 48).apply {
+            execSQL("INSERT INTO objectives (id,journeyId,journeyNameSnapshot,periodType,objectiveType,targetDurationMs,startAtMs,weeklyBoundaryDay,currentStreak,maxStreak,totalCompletions,isArchived,createdAt,updatedAt) VALUES (1,1,'Practice','daily','recurring',60000,1,NULL,3,4,8,0,1,1)")
+            execSQL("INSERT INTO objective_completions (id,objectiveId,journeyId,journeyNameSnapshot,periodType,objectiveType,periodStartMs,periodEndMs,completedAt,achievedDurationMs,targetDurationMs,baseRewardPearls,streakBeforeCompletion,streakMultiplier,finalRewardPearls,badgeKey,badgeLabelSnapshot,pearlsGranted,pearlsClaimed,pearlsClaimedAt,badgeGranted) VALUES (1,1,1,'Practice','daily','recurring',1,100,50,60000,60000,10,3,1.3,13,'badge','Daily',0,0,NULL,1)")
+            close()
+        }
+        helper.runMigrationsAndValidate(name, 49, true, SkillzDatabaseMigrations.MIGRATION_48_49).apply {
+            query("SELECT currentStreak,flowMode,targetMinuteOfDay,targetDayOffset FROM objectives").use {
+                assertTrue(it.moveToFirst())
+                assertEquals(3, it.getInt(0)); assertEquals(0, it.getInt(1))
+                assertTrue(it.isNull(2)); assertEquals(0, it.getInt(3))
+            }
+            query("SELECT finalRewardPearls,pearlsClaimed,finalRewardDrops,finalRewardPebbles,finalRewardPoints FROM objective_completions").use {
+                assertTrue(it.moveToFirst())
+                assertEquals(13, it.getInt(0)); assertEquals(0, it.getInt(1))
+                assertEquals(0, it.getInt(2)); assertEquals(0, it.getInt(3)); assertEquals(0, it.getInt(4))
+            }
+            close()
+        }
+    }
+
     @Test fun migration41To42PreservesEveryExistingColumnAcrossAllTables() {
         val before = helper.createDatabase(TEST_DB, 41)
         val tables = before.query(

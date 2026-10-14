@@ -324,7 +324,8 @@ object BadgeDashboardCalculator {
             (badges.firstOrNull { it.badgeId == "mastery_circle" }?.count ?: masteries.size) + greenPlants.count { it.level == 99 },
             completions.filter { it.completionType == BadgeRequirement.COMPLETIONIST.name && !RetiredStillwaterBadges.isCollection(it.collectionId) }.map { it.collectionId }.distinct().size +
                 badges.count { it.earned && com.kingkharnivore.skillz.domain.green.GreenBadgeEvaluator.byId[it.badgeId]?.let { definition ->
-                    definition.speciesId == null && definition.id.startsWith("green_v1_") && definition.requiredLevel == 99 } == true },
+                    definition.speciesId == null && definition.id.startsWith("green_v1_") && definition.requiredLevel == 99 } == true } +
+                badges.count { it.earned && it.badgeId in BadgeBookCollections.byAward },
             RecommendationEngine.recommend(badges), previewBySpecies)
     }
 

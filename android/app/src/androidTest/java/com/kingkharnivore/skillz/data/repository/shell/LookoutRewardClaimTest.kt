@@ -11,9 +11,14 @@ import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.entity.TagEntity
 import com.kingkharnivore.skillz.domain.lookout.ObjectiveCompletionProcessor
 import com.kingkharnivore.skillz.utils.shell.lookout.ObjectiveProgressCalculator
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineStart
 import java.time.LocalDate
 import java.time.ZoneId
 import org.junit.After
@@ -180,7 +185,7 @@ class LookoutRewardClaimTest {
         assertEquals(450, db.objectiveProcessedSessionDao().processedCount())
     }
 
-    @Test fun processedFlowCompletesObjectiveCreatedLaterWithoutChangingJournal() = runBlocking {
+    @Test fun processedFlowDoesNotCompleteObjectiveCreatedLater() = runBlocking {
         val start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         db.tagDao().insertTag(TagEntity(id = 11, name = "Piano", createdAt = start))
         val crossingTime = start + 1
@@ -194,11 +199,8 @@ class LookoutRewardClaimTest {
         )
         assertEquals(false, processor.reconcileNewObjective(objectiveId))
 
-        val completion = db.objectiveCompletionDao().getCompletions().single()
-        assertEquals(crossingTime, completion.completedAt)
-        assertEquals(60, completion.finalRewardPearls)
-        assertEquals(false, completion.pearlsClaimed)
-        assertEquals(1, db.userBadgeDao().get(completion.badgeKey)?.count)
+        assertEquals(0, db.objectiveCompletionDao().getCompletions().size)
+        assertEquals(null, db.userBadgeDao().get("objective_badge_11_daily"))
         assertEquals(1, db.objectiveProcessedSessionDao().processedCount())
         val persistedObjective = requireNotNull(db.objectiveDao().getObjective(objectiveId))
         assertEquals(true, persistedObjective.updatedAt >= persistedObjective.createdAt)
@@ -207,14 +209,14 @@ class LookoutRewardClaimTest {
     @Test fun partialProcessedProgressCompletesOnceAfterLaterRegularFlow() = runBlocking {
         val start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         db.tagDao().insertTag(TagEntity(id = 12, name = "Piano", createdAt = start))
-        val firstId = db.sessionDao().insertSession(regularSession(12, start + 1, 30))
+        val firstId = db.sessionDao().insertSession(regularSession(12, start + 30 * 60_000 + 1, 30))
         db.objectiveProcessedSessionDao().markProcessed(ObjectiveProcessedSessionEntity(firstId, start + 2_000_000))
         val processor = processor()
         processor.createObjectiveAndReconcile(objective(12, "Piano", start, 60))
         assertEquals(0, db.objectiveCompletionDao().getCompletions().size)
         assertEquals(null, db.userBadgeDao().get("objective_badge_12_daily"))
 
-        db.sessionDao().insertSession(regularSession(12, start + 2, 30))
+        db.sessionDao().insertSession(regularSession(12, start + 60 * 60_000 + 2, 30))
         assertEquals(1, processor.reconcileUnprocessedSessions())
         assertEquals(1, db.objectiveCompletionDao().getCompletions().size)
         assertEquals(1, db.userBadgeDao().get("objective_badge_12_daily")?.count)
@@ -236,7 +238,7 @@ class LookoutRewardClaimTest {
         val start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         db.tagDao().insertTag(TagEntity(id = 15, name = "Archive", createdAt = start))
         val objectiveId = repository.insertObjective(objective(15, "Archive", start, 60))
-        db.sessionDao().insertSession(regularSession(15, start + 1, 60))
+        db.sessionDao().insertSession(regularSession(15, start + 60 * 60_000 + 1, 60))
         val processor = processor()
 
         assertEquals(true, processor.archiveObjectiveSafely(objectiveId))
@@ -254,7 +256,7 @@ class LookoutRewardClaimTest {
         val start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         db.tagDao().insertTag(TagEntity(id = 16, name = "Partial", createdAt = start))
         val objectiveId = repository.insertObjective(objective(16, "Partial", start, 60))
-        db.sessionDao().insertSession(regularSession(16, start + 1, 30))
+        db.sessionDao().insertSession(regularSession(16, start + 30 * 60_000 + 1, 30))
 
         assertEquals(true, processor().archiveObjectiveSafely(objectiveId))
         assertEquals(0, db.objectiveCompletionDao().getCompletions().size)
@@ -274,6 +276,119 @@ class LookoutRewardClaimTest {
         ).awaitAll()
         assertEquals(20, processed.sum())
         assertEquals(20, db.objectiveProcessedSessionDao().processedCount())
+    }
+
+    @Test fun mixedRewardsClaimAtomicallyAndCannotBeClaimedTwice() = runBlocking {
+        db.objectiveCompletionDao().insertCompletion(completion(1, 10, 30).copy(finalRewardPoints = 30))
+        db.objectiveCompletionDao().insertCompletion(completion(2, 20, 0).copy(
+            flowMode = com.kingkharnivore.skillz.model.FlowMode.SOFT, finalRewardDrops = 3600
+        ))
+        db.objectiveCompletionDao().insertCompletion(completion(3, 30, 60).copy(
+            flowMode = com.kingkharnivore.skillz.model.FlowMode.POWER, finalRewardPebbles = 60
+        ))
+        repository.claimAllObjectiveRewards()
+        assertEquals(90, db.pearlLedgerDao().getBalance())
+        assertEquals(3600L, db.stillwaterLedgerDao().getTotal())
+        assertEquals(60, db.powerRewardDao().entry("objective:3")?.delta)
+        assertEquals(0, repository.claimAllObjectiveRewards())
+        assertEquals(0, repository.claimObjectivePearls(2))
+        assertEquals(3600L, db.stillwaterLedgerDao().getTotal())
+        assertEquals(3, db.objectiveCompletionDao().getCompletions().count { it.pearlsClaimed })
+    }
+
+    @Test fun softAndPowerSessionsMaterializeOnlyMatchingObjectives() = runBlocking {
+        val start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        db.tagDao().insertTag(TagEntity(id = 18, name = "Modes", createdAt = start))
+        com.kingkharnivore.skillz.model.FlowMode.entries.forEach { mode ->
+            repository.insertObjective(objective(18, "Modes", start, 1).copy(flowMode = mode))
+        }
+        listOf(com.kingkharnivore.skillz.model.FlowMode.SOFT, com.kingkharnivore.skillz.model.FlowMode.POWER).forEach { mode ->
+            db.sessionDao().insertSession(regularSession(18, start + 120_000, 1).copy(mode = mode))
+        }
+        assertEquals(2, processor().reconcileUnprocessedSessions())
+        val rewards = db.objectiveCompletionDao().getCompletions()
+        assertEquals(2, rewards.size)
+        assertEquals(60L, rewards.single { it.flowMode == com.kingkharnivore.skillz.model.FlowMode.SOFT }.finalRewardDrops)
+        assertEquals(1, rewards.single { it.flowMode == com.kingkharnivore.skillz.model.FlowMode.POWER }.finalRewardPebbles)
+    }
+
+    @Test fun claimedPointsAppearInHistoryWithoutChangingRawSessionRewards() = runBlocking {
+        db.tagDao().insertTag(TagEntity(id = 19, name = "Points", createdAt = 1))
+        val sessionId = db.sessionDao().insertSession(regularSession(19, 120_000, 1).copy(scyraPoints = 5))
+        db.objectiveCompletionDao().insertCompletion(completion(1, 19, 2).copy(finalRewardPoints = 2, sourceSessionId = sessionId))
+        val chronicles = com.kingkharnivore.skillz.data.repository.ChronicleRepository(db, db.chronicleDao())
+        val flows = com.kingkharnivore.skillz.data.repository.FlowRepository(
+            db.sessionDao(), db.tagDao(), db.pulseDao(), db.arcMetadataDao(), db, db.chronicleDao(), chronicles
+        )
+        assertEquals(5, flows.getAllSessions().first().single().scyraPoints)
+        repository.claimObjectivePearls(1)
+        assertEquals(7, flows.getAllSessions().first().single().scyraPoints)
+        assertEquals(5, db.sessionDao().getSessionById(sessionId)?.scyraPoints)
+        // A delayed Health adjustment updates the underlying Flow while preserving the claimed bonus.
+        db.sessionDao().updateRewardPoints(sessionId, 8, 0)
+        assertEquals(10, flows.getAllSessions().first().single().scyraPoints)
+        assertEquals(0, repository.claimAllObjectiveRewards())
+        assertEquals(10, flows.getSessionsForTag(19).first().single().scyraPoints)
+    }
+
+    @Test fun newObjectiveIgnoresOldFlowAndAwardsEarlyBonusFromNewFlow() = runBlocking {
+        val zone = ZoneId.systemDefault()
+        val start = LocalDate.of(2026, 1, 1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val minute = 60_000L
+        db.tagDao().insertTag(TagEntity(id = 20, name = "New goal", createdAt = start))
+        // Started before creation but finished afterwards: none of it counts.
+        db.sessionDao().insertSession(regularSession(20, start + (7 * 60 + 25) * minute, 30))
+        val objectiveId = processor().createObjectiveAndReconcile(objective(20, "New goal", start, 60).copy(
+            objectiveType = "one_time", createdAt = start + 7 * 60 * minute, targetMinuteOfDay = 9 * 60
+        ))
+        db.sessionDao().insertSession(regularSession(20, start + (9 * 60 + 15) * minute, 30))
+        processor().reconcileUnprocessedSessions()
+        assertEquals(0, db.objectiveCompletionDao().getCompletions().size)
+        db.sessionDao().insertSession(regularSession(20, start + 10 * 60 * minute, 30))
+        processor().reconcileUnprocessedSessions()
+        val reward = db.objectiveCompletionDao().getCompletions().single()
+        assertEquals(objectiveId, reward.objectiveId)
+        assertEquals(60 * minute, reward.achievedDurationMs)
+        assertEquals(true, reward.startedBeforeTarget)
+        assertEquals(120, reward.finalRewardPearls)
+        assertEquals(240, repository.claimObjectivePearls(reward.id))
+        assertEquals(0, repository.claimObjectivePearls(reward.id))
+    }
+
+    @Test fun failedClaimRollsBackReportsFailureAndCanBeRetried() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        db.objectiveCompletionDao().insertCompletion(completion(1, 10, 17).copy(streakMultiplier = 1.2))
+        db.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_objective_credit BEFORE INSERT ON pearl_ledger BEGIN SELECT RAISE(ABORT, 'Injected claim failure'); END")
+        val chronicles = com.kingkharnivore.skillz.data.repository.ChronicleRepository(db, db.chronicleDao())
+        val flows = com.kingkharnivore.skillz.data.repository.FlowRepository(
+            db.sessionDao(), db.tagDao(), db.pulseDao(), db.arcMetadataDao(), db, db.chronicleDao(), chronicles
+        )
+        val store = androidx.lifecycle.ViewModelStore()
+        val vm = withContext(Dispatchers.Main) {
+            com.kingkharnivore.skillz.viewmodel.shell.LookoutViewModel(
+                context, flows, com.kingkharnivore.skillz.data.repository.JourneyRepository(db.tagDao()),
+                repository, ObjectiveProgressCalculator(), processor(),
+                com.kingkharnivore.skillz.domain.lookout.ObjectiveReminderScheduler(
+                    context, db, ObjectiveProgressCalculator(), com.kingkharnivore.skillz.utils.user.UserPrefs(context)
+                )
+            ).also { store.put("lookout", it) }
+        }
+        try {
+            withTimeout(10_000) { vm.uiState.first { !it.isLoading } }
+            val error = async(start = CoroutineStart.UNDISPATCHED) { withTimeout(10_000) { vm.events.first() } }
+            withContext(Dispatchers.Main) { vm.claimReward(1) }.join()
+            assertEquals(context.getString(com.kingkharnivore.skillz.R.string.lookout_claim_failed), error.await())
+            assertEquals(false, db.objectiveCompletionDao().getCompletionById(1)?.pearlsClaimed)
+            assertEquals(0, db.pearlLedgerDao().getBalance())
+            assertEquals(false, vm.uiState.value.claimInProgress)
+            assertEquals(null, vm.uiState.value.rewardDialog)
+            db.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_objective_credit")
+            withContext(Dispatchers.Main) { vm.claimReward(1) }.join()
+            assertEquals(true, db.objectiveCompletionDao().getCompletionById(1)?.pearlsClaimed)
+            assertEquals(17, db.pearlLedgerDao().getBalance())
+            assertEquals(context.getString(com.kingkharnivore.skillz.R.string.lookout_rewards_claimed), vm.uiState.value.rewardDialog?.title)
+            assertEquals(context.getString(com.kingkharnivore.skillz.R.string.lookout_streak_bonus_percent, 20), vm.uiState.value.rewardDialog?.streakBonus)
+        } finally { withContext(Dispatchers.Main) { store.clear() } }
     }
 
     private fun processor() = ObjectiveCompletionProcessor(

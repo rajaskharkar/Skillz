@@ -89,9 +89,11 @@ fun HelpScreen(
     onToggleCalmMode: (Boolean) -> Unit,
     onSetAppLanguage: (String?) -> Unit,
     modifier: Modifier = Modifier,
-    initialSection: HelpSection = HelpSection.OVERVIEW
+    initialSection: HelpSection = HelpSection.OVERVIEW,
+    reminderViewModel: com.kingkharnivore.skillz.viewmodel.shell.ObjectiveReminderSettingsViewModel = androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel()
 ) {
     val pages = helpPages()
+    val reminderMinutes by reminderViewModel.minutes.collectAsState()
 
     val titleText = stringResource(R.string.help_screen_title)
     val keepScoreTitle = stringResource(R.string.help_pref_keep_score_title)
@@ -154,6 +156,8 @@ fun HelpScreen(
             checked = uiState.calmMode,
             onCheckedChange = onToggleCalmMode
         )
+
+        ObjectiveReminderPreference(reminderMinutes, reminderViewModel::save)
 
         LanguagePreferenceRow(
             selectedLanguageTag = selectedLanguageTag,

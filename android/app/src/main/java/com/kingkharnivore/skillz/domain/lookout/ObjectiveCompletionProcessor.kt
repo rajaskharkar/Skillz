@@ -61,7 +61,6 @@ class ObjectiveCompletionProcessor @Inject constructor(
     }
 
     suspend fun processCompletedSession(savedSession: SessionEntity) {
-        if (savedSession.isSoftMode) return
         reconcileUnprocessedSessions()
     }
 
@@ -121,7 +120,7 @@ class ObjectiveCompletionProcessor @Inject constructor(
                         window,
                         evidence.achievedDurationMs,
                         evidence.completedAtMs,
-                        streakBefore
+                        streakBefore, evidence.startedAtMs, evidence.sourceSessionId, zoneId
                     )
                     if (lookoutRepository.applyCompletionGrant(grant.completion, null, null, null)) {
                         completions += grant.completion
@@ -171,7 +170,8 @@ class ObjectiveCompletionProcessor @Inject constructor(
         )
         val grant = calculator.buildGrant(
             objective, ObjectiveKind.fromStorage(objective.objectiveType), window,
-            evidence.achievedDurationMs, evidence.completedAtMs, streakBefore
+            evidence.achievedDurationMs, evidence.completedAtMs, streakBefore,
+            evidence.startedAtMs, evidence.sourceSessionId, zoneId
         )
         if (!lookoutRepository.applyCompletionGrant(grant.completion, null, null, null)) return false
         completions += grant.completion
@@ -185,6 +185,6 @@ class ObjectiveCompletionProcessor @Inject constructor(
     }
 
     private fun SessionEntity.toObjectiveSourceFlow() = ObjectiveSourceFlow(
-        id, tagId, startTime, endTime, durationMs, isSoftMode
+        id, tagId, startTime, endTime, durationMs, isSoftMode, mode
     )
 }

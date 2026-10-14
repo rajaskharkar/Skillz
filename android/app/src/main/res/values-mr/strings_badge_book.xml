@@ -27,4 +27,9 @@
     <string name="book_collection_sea_mastery">समुद्रातील प्रावीण्य</string>
     <string name="book_collection_land_mastery">जमिनीवरील प्रावीण्य</string>
     <string name="book_collection_red_mastery">द रेडमधील प्रावीण्य</string>
+    <string name="book_track_collection">संग्रह ट्रॅक करा</string>
+    <string name="book_untrack_collection">संग्रह ट्रॅक करणे थांबवा</string>
+    <string name="book_collection_completed">संग्रह पूर्ण झाला</string>
+    <string name="book_view_collection_badge">संग्रहाचा बॅज पहा: %1$s</string>
+    <string name="book_open_collection">संग्रह उघडा</string>
 </resources>

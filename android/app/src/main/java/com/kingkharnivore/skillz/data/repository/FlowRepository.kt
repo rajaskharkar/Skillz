@@ -13,6 +13,7 @@ import com.kingkharnivore.skillz.data.model.dao.ChronicleDao
 import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
 import com.kingkharnivore.skillz.data.model.entity.SessionCreationEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 
 class FlowRepository @Inject constructor(
@@ -28,10 +29,17 @@ class FlowRepository @Inject constructor(
         sessionDao.findCreatedSession(flowInstanceId)
 
     fun getAllSessions(): Flow<List<SessionEntity>> =
-        sessionDao.getAllSessions()
+        withObjectivePoints(sessionDao.getAllSessions())
 
     fun getSessionsForTag(tagId: Long): Flow<List<SessionEntity>> =
-        sessionDao.getSessionsForTag(tagId)
+        withObjectivePoints(sessionDao.getSessionsForTag(tagId))
+
+    private fun withObjectivePoints(sessions: Flow<List<SessionEntity>>): Flow<List<SessionEntity>> =
+        combine(sessions, database.objectiveCompletionDao().observeCompletions()) { rows, completions ->
+            val points = completions.filter { it.pearlsClaimed && it.sourceSessionId != null }
+                .groupBy { it.sourceSessionId }.mapValues { (_, rewards) -> rewards.sumOf { it.finalRewardPoints } }
+            rows.map { it.copy(scyraPoints = it.scyraPoints + (points[it.id] ?: 0)) }
+        }
 
     suspend fun addSessionAndPromoteChronicle(flowInstanceId: String, session: SessionEntity): Long =
         chronicleRepository.finalizeOwner(ChronicleOwnerType.ACTIVE_FLOW, flowInstanceId) {

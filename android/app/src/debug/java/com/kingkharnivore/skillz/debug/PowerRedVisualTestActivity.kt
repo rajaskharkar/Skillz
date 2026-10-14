@@ -134,7 +134,7 @@ class PowerRedVisualTestActivity : ComponentActivity() {
                                 val group=BadgeBookCollections.collections.first()
                                 val ids=when(scenario) { "book-empty" -> emptyList(); "book-complete" -> group.memberIds; else -> group.memberIds.take(2) }
                                 val dashboard=remember { BadgeDashboardCalculator.calculate(ids.map { UserBadgeEntity(it,1,1790874000000,1790874000000,false) },emptyList(),emptyList(),emptyList(),emptyList(),emptyList(),emptyList()) }
-                                if(scenario=="book-detail") BadgeBookCollectionSheet(group,dashboard.badges,{},{})
+                                if(scenario=="book-detail") BadgeBookCollectionSheet(group,dashboard.badges,{},openBadge={})
                                 else BadgesScreen(com.kingkharnivore.skillz.viewmodel.shell.ShellUiState(badgeDashboard=dashboard),
                                     {_,_->},{},{},{},{},{},{},{},{},{},{},{},initialTab=BadgesTab.BADGE_BOOK)
                             }

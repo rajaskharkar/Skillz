@@ -27,4 +27,9 @@
     <string name="book_collection_sea_mastery">Maestría del mar</string>
     <string name="book_collection_land_mastery">Maestría de la tierra</string>
     <string name="book_collection_red_mastery">Maestría de The Red</string>
+    <string name="book_track_collection">Seguir colección</string>
+    <string name="book_untrack_collection">Dejar de seguir colección</string>
+    <string name="book_collection_completed">Colección completa</string>
+    <string name="book_view_collection_badge">Ver insignia de colección: %1$s</string>
+    <string name="book_open_collection">Abrir colección</string>
 </resources>

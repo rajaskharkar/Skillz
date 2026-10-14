@@ -27,4 +27,9 @@
     <string name="book_collection_sea_mastery">Master of the Sea</string>
     <string name="book_collection_land_mastery">Master of the Land</string>
     <string name="book_collection_red_mastery">Master of The Red</string>
+    <string name="book_track_collection">Track collection</string>
+    <string name="book_untrack_collection">Untrack collection</string>
+    <string name="book_collection_completed">Collection complete</string>
+    <string name="book_view_collection_badge">View collection badge: %1$s</string>
+    <string name="book_open_collection">Open collection</string>
 </resources>

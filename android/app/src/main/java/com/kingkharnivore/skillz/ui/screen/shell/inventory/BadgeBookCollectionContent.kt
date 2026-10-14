@@ -17,9 +17,10 @@ import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.domain.achievement.*
 import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraParchmentSheet
 
-@Composable internal fun BadgeBookCollectionCard(collection: BadgeBookCollection, badges: List<BadgeProgressModel>, onOpen: () -> Unit) {
+@Composable internal fun BadgeBookCollectionCard(collection: BadgeBookCollection, badges: List<BadgeProgressModel>, onToggleTracking: () -> Unit = {}, onOpen: () -> Unit) {
     val byId = badges.associateBy { it.badgeId }
-    val earned = BadgeBookCollections.earnedMembers(collection, byId)
+    val award = byId[collection.completionBadgeId]
+    val earned = if (award?.everEarned == true) collection.memberIds.size else BadgeBookCollections.earnedMembers(collection, byId)
     ElevatedCard(Modifier.fillMaxWidth().testTag(collection.id).clickable(onClick = onOpen), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -38,24 +39,27 @@ import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraParchmentSheet
             LinearProgressIndicator(progress = { earned.toFloat() / collection.memberIds.size }, modifier = Modifier.fillMaxWidth())
             Text(stringResource(R.string.book_completion_reward, resolveBadgePresentation(collection.completionBadgeId).title),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (award?.everEarned == true) Text(stringResource(R.string.book_collection_completed), color = MaterialTheme.colorScheme.primary)
+            CollectionTrackingButton(collection.id, award, onToggleTracking)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable internal fun BadgeBookCollectionSheet(collection: BadgeBookCollection, badges: List<BadgeProgressModel>, dismiss: () -> Unit, openBadge: (BadgeProgressModel) -> Unit) {
+@Composable internal fun BadgeBookCollectionSheet(collection: BadgeBookCollection, badges: List<BadgeProgressModel>, dismiss: () -> Unit, onToggleTracking: () -> Unit = {}, openBadge: (BadgeProgressModel) -> Unit) {
     val byId = badges.associateBy { it.badgeId }
     ScyraParchmentSheet(onDismissRequest = dismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         LazyColumn(Modifier.fillMaxWidth().testTag("book-collection-members"), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 Text(stringResource(collection.titleRes), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text(stringResource(R.string.book_collection_rules), modifier = Modifier.padding(top = 8.dp))
-                Text(pluralStringResource(R.plurals.book_member_progress, collection.memberIds.size, BadgeBookCollections.earnedMembers(collection, byId), collection.memberIds.size), modifier = Modifier.padding(top = 8.dp))
+                Text(pluralStringResource(R.plurals.book_member_progress, collection.memberIds.size, (if (byId[collection.completionBadgeId]?.everEarned == true) collection.memberIds.size else BadgeBookCollections.earnedMembers(collection, byId)), collection.memberIds.size), modifier = Modifier.padding(top = 8.dp))
+                CollectionTrackingButton(collection.id, byId[collection.completionBadgeId], onToggleTracking)
             }
             item {
                 byId[collection.completionBadgeId]?.let { award ->
                     OutlinedButton(onClick = { openBadge(award) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.book_completion_reward, resolveBadgePresentation(award.badgeId).title))
+                        Text(stringResource(if (award.everEarned) R.string.book_view_collection_badge else R.string.book_completion_reward, resolveBadgePresentation(award.badgeId).title))
                     }
                 }
             }
@@ -72,6 +76,14 @@ import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraParchmentSheet
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable private fun CollectionTrackingButton(collectionId: String, award: BadgeProgressModel?, onToggle: () -> Unit) {
+    if (award != null && (award.tracked || award.canTrack)) {
+        OutlinedButton(onClick = onToggle, modifier = Modifier.testTag("track-$collectionId")) {
+            Text(stringResource(if (award.tracked) R.string.book_untrack_collection else R.string.book_track_collection))
         }
     }
 }

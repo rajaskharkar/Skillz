@@ -1872,9 +1872,9 @@
     <string name="chest_filter_needed_tracked">ट्रैक किए गए बैज के लिए आवश्यक</string>
     <string name="chest_filter_tracked_empty">आपके किसी ट्रैक किए गए बैज को अभी The Chest की किसी जीव की आवश्यकता नहीं है।</string>
     <string name="badges_tracked_title">ट्रैक किए गए बैज</string>
-    <string name="badges_tracked_body">वे बैज जिन्हें आपने फ़ॉलो करना चुना है। Scyra सभी बैज की प्रगति अपने आप दर्ज करता है।</string>
-    <string name="badges_no_tracked_title">कोई ट्रैक किया गया बैज नहीं</string>
-    <string name="badges_no_tracked_body">किसी बैज की प्रगति और अगला कदम यहाँ रखने के लिए उसे ट्रैक करें।</string>
+    <string name="badges_tracked_body">आपके चुने हुए बैज और संग्रह। Scyra सभी प्रगति अपने आप दर्ज करता है।</string>
+    <string name="badges_no_tracked_title">अभी कुछ ट्रैक नहीं किया गया</string>
+    <string name="badges_no_tracked_body">बैज या संग्रह की प्रगति और अगला कदम यहाँ रखने के लिए उसे ट्रैक करें।</string>
     <string name="badges_within_reach_title">पहुंच के भीतर</string>
     <string name="badges_within_reach_body">अधिकतम तीन बिना ट्रैक किए लक्ष्य जिन्हें Scyra उपयोगी अगले कदम मानता है।</string>
     <string name="badge_across_depths">गहराइयों के पार</string>
@@ -1981,8 +1981,8 @@
     <string name="badges_showcase_title">आपकी प्रदर्शनी</string>
     <string name="badges_sort_selected">क्रम: %1$s</string>
     <plurals name="badges_summary">
-        <item quantity="one">अर्जित: %1$d · महारत: %2$d · पूर्णतावादी संग्रह: %3$d</item>
-        <item quantity="other">अर्जित: %1$d · महारत: %2$d · पूर्णतावादी संग्रह: %3$d</item>
+        <item quantity="one">अर्जित: %1$d · महारत: %2$d · पूरे संग्रह: %3$d</item>
+        <item quantity="other">अर्जित: %1$d · महारत: %2$d · पूरे संग्रह: %3$d</item>
     </plurals>
     <string name="badges_view_new">नए बैज देखें</string>
     <string name="badges_yours_count">दिखाए गए अलग-अलग बैज: %1$d</string>
@@ -2157,7 +2157,7 @@
     <string name="badge_objective_fallback_description">Completed %1$s लक्ष्यs in The Lookout.</string>
     <string name="badge_objective_fallback_title">%1$s लक्ष्य</string>
     <string name="badge_objective_title">%1$s · %2$s लक्ष्य</string>
-    <string name="lookout_all_pearls_claimed">सभी मोती दावा किए गए!</string>
+    <string name="lookout_all_pearls_claimed">सभी पुरस्कार प्राप्त कर लिए गए!</string>
     <plurals name="lookout_from_completed_objectives">
         <item quantity="one">%1$d पूरे किए गए लक्ष्य से</item>
         <item quantity="other">%1$d पूरे किए गए लक्ष्यों से</item>
@@ -2367,4 +2367,41 @@
     <string name="flow_plan_completion_no">नहीं, मुझे इस पर और काम करना है</string>
     <string name="horizon_show_plan_journey">योजना की यात्रा दिखाएँ</string>
     <string name="horizon_hide_plan_journey">योजना की यात्रा छिपाएँ</string>
+    <string name="lookout_flow_type">Flow का प्रकार</string>
+    <string name="lookout_flow_regular">नियमित Flow</string>
+    <string name="lookout_flow_soft">Soft Flow</string>
+    <string name="lookout_flow_power">Power Flow</string>
+    <string name="lookout_optional_target">लक्ष्य समय चुनें (वैकल्पिक)</string>
+    <string name="lookout_target_clock">लक्ष्य समय: %1$s</string>
+    <string name="lookout_target_day">चक्र का दिन (1–%1$d)</string>
+    <string name="lookout_target_helper" formatted="false">इस समय से पहले शुरू करें और अपना उद्देश्य पूरा करके 2× पुरस्कार पाएँ। Soft Flows से बूँदें मिलती हैं; Power Flows से कंकड़ भी मिलते हैं। लगातार पूरे किए गए चक्रों की +10% वृद्धि बनी रहेगी। सहायता में रिमाइंडर का समय बदलें। Android के कारण देरी हो सकती है।</string>
+    <string name="lookout_validation_target_day">इस उद्देश्य के चक्र के भीतर लक्ष्य का दिन चुनें।</string>
+    <string name="lookout_start_before_target">2× पुरस्कार के लिए %1$s से पहले शुरू करें</string>
+    <string name="lookout_early_start_earned">समय पर शुरू करने के 2× पुरस्कार मिले · लक्ष्य %1$s</string>
+    <string name="lookout_target_missed">सामान्य पुरस्कार · लक्ष्य %1$s</string>
+    <string name="lookout_rewards_claimed">पुरस्कार प्राप्त किए गए</string>
+    <string name="lookout_claim_rewards">उद्देश्य के पुरस्कार प्राप्त करें</string>
+    <string name="lookout_rewards_waiting">पुरस्कार प्राप्त करने के लिए तैयार</string>
+    <string name="lookout_points_value">%1$d Scyra अंक</string>
+    <string name="lookout_drops_value">%1$d बूँदें</string>
+    <string name="lookout_pebbles_value">%1$d कंकड़</string>
+    <string name="lookout_reminder_channel">उद्देश्य के रिमाइंडर</string>
+    <string name="lookout_reminder_title">आपके उद्देश्य का लक्ष्य समय आने वाला है</string>
+    <string name="lookout_reminder_body">पूरा करने पर 2× पुरस्कार पाने के लिए %1$s को %2$s से पहले शुरू करें।</string>
+    <string name="lookout_early_start_pending">समय पर शुरुआत · पूरा करने पर 2× पुरस्कार · लक्ष्य %1$s</string>
+    <string name="lookout_enable_precise_reminders">सटीक समय पर रिमाइंडर चालू करें</string>
+    <string name="saga_objectives_title">उद्देश्य</string>
+    <string name="saga_pulse_show">दिखाएँ</string>
+    <string name="saga_objective_expired">उद्देश्य की अवधि समाप्त</string>
+    <string name="saga_objective_skipped">यह चक्र छोड़ा गया</string>
+    <string name="saga_objective_double_reward">समय पर शुरू करने के 2× पुरस्कार</string>
+    <string name="help_objective_reminder_title">उद्देश्य के रिमाइंडर</string>
+    <string name="help_reminder_at_target">लक्ष्य समय पर</string>
+    <string name="help_reminder_minutes_before">लक्ष्य से %1$d मिनट पहले</string>
+    <string name="help_objective_reminder_body">चुनें कि उद्देश्य के लक्ष्य समय से कितने मिनट पहले रिमाइंडर चाहिए। लक्ष्य समय पर रिमाइंडर के लिए 0 चुनें। यह सभी समयबद्ध उद्देश्यों पर लागू होगा और मौजूदा रिमाइंडर अपडेट करेगा।</string>
+    <string name="help_reminder_minutes_label">लक्ष्य से पहले मिनट</string>
+    <string name="help_reminder_save_error">रिमाइंडर अपडेट नहीं हुए। कृपया फिर कोशिश करें।</string>
+    <string name="lookout_reminder_due_body">%1$s का समय हो गया है।</string>
+    <string name="lookout_claim_failed">इनाम प्राप्त नहीं हो सके। कृपया फिर से प्रयास करें।</string>
+    <string name="lookout_cycle_dates">चक्र: %1$s – %2$s</string>
 </resources>

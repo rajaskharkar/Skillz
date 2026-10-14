@@ -26,6 +26,7 @@ class UserPrefs @Inject constructor(
 ) {
     companion object {
         val KEY_SHOW_SCORE_UI = booleanPreferencesKey("show_score_ui")
+        val KEY_OBJECTIVE_REMINDER_MINUTES = intPreferencesKey("objective_reminder_minutes")
         val KEY_CALM_MODE = booleanPreferencesKey("calm_mode")
         val KEY_APP_LANGUAGE_TAG = stringPreferencesKey("app_language_tag")
         val KEY_CHEST_SORT_OPTION = stringPreferencesKey("chest_sort_option")
@@ -34,6 +35,15 @@ class UserPrefs @Inject constructor(
         val KEY_BACKFILL_ACKNOWLEDGED = intPreferencesKey("achievement_backfill_acknowledged")
         val KEY_CHEST_ENVIRONMENT = stringPreferencesKey("chest_environment")
         val KEY_CHEST_FILTER = stringPreferencesKey("chest_filter")
+    }
+
+    val objectiveReminderMinutes: Flow<Int> = context.userPrefsDataStore.data.map {
+        (it[KEY_OBJECTIVE_REMINDER_MINUTES] ?: 30).coerceAtLeast(0)
+    }
+
+    suspend fun setObjectiveReminderMinutes(minutes: Int) {
+        require(minutes >= 0)
+        context.userPrefsDataStore.edit { it[KEY_OBJECTIVE_REMINDER_MINUTES] = minutes }
     }
 
     val showScoreUi: Flow<Boolean> =

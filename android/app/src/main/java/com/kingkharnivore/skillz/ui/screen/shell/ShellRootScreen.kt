@@ -151,6 +151,7 @@ fun ShellRootScreen(
     modifier: Modifier = Modifier,
     isFlowActive: Boolean = false,
     onLaunchFlowForJourney: (String) -> Unit = {},
+    onLaunchObjectiveFlow: (String, com.kingkharnivore.skillz.model.FlowMode) -> Unit = { _, _ -> },
     onLaunchFlowFromPulse: (Long, String, String?) -> Unit = { _, _, _ -> },
     onOpenActiveFlow: () -> Unit = {},
     onPlanArc: () -> Unit = {},
@@ -353,7 +354,7 @@ fun ShellRootScreen(
                 )
 
                 ShellDestination.Badges -> BadgesScreen(
-                    initialBrowseCollections = !greenBadgesRequested,
+                    initialBookSection = if (greenBadgesRequested) com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgeBookSection.ALL_BADGES else com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgeBookSection.TRACKED,
                     initialTab = if (greenBadgesRequested)
                         com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgesTab.BADGE_BOOK else com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgesTab.SHOWCASE,
                     uiState = uiState,
@@ -402,11 +403,11 @@ fun ShellRootScreen(
                 )
 
                 ShellDestination.LookoutPreview -> LookoutRoomScreen(
-                    onLaunchFlowForJourney = { journeyName ->
+                    onLaunchFlowForJourney = { journeyName, mode ->
                         if (isFlowActive) {
                             scope.launch { snackbarHostState.showSnackbar(activeFlowMessage) }
                         } else {
-                            onLaunchFlowForJourney(journeyName)
+                            onLaunchObjectiveFlow(journeyName, mode)
                         }
                     }
                 )

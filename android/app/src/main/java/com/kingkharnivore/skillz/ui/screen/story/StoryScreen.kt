@@ -100,11 +100,39 @@ fun StoryScreen(
     onAddPulseClick: () -> Unit,
     onSessionClick: (Long) -> Unit,
     onGoToActiveSession: () -> Unit,
-    isFlowStateActive: Boolean
+    isFlowStateActive: Boolean,
+    onLaunchPulseFlow: (Long, String, String?) -> Unit = { _, _, _ -> },
+    onLaunchObjectiveFlow: (String, com.kingkharnivore.skillz.model.FlowMode) -> Unit = { _, _ -> },
+    lookoutViewModel: com.kingkharnivore.skillz.viewmodel.shell.LookoutViewModel = androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel(),
+    groveViewModel: com.kingkharnivore.skillz.viewmodel.IdeaGroveViewModel = androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val arcEditorState by viewModel.arcEditorState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val objectives by lookoutViewModel.uiState.collectAsStateWithLifecycle()
+    val grove by groveViewModel.uiState.collectAsStateWithLifecycle()
+    val shownPulse = remember { mutableStateOf<Long?>(null) }
+    val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
+    val resources = androidx.compose.ui.platform.LocalResources.current
+    LaunchedEffect(lookoutViewModel) { lookoutViewModel.events.collect { snackbar.showSnackbar(it) } }
+    LaunchedEffect(objectives.errorMessage) { objectives.errorMessage?.let { snackbar.showSnackbar(it) } }
+    LaunchedEffect(groveViewModel, resources, onLaunchPulseFlow) {
+        groveViewModel.events.collect { event ->
+            when (event) {
+                is com.kingkharnivore.skillz.viewmodel.IdeaGroveEvent.NavigateToFlow -> onLaunchPulseFlow(event.pulseId, event.title, event.journeyName)
+                com.kingkharnivore.skillz.viewmodel.IdeaGroveEvent.NavigateToCurrentFlow -> onGoToActiveSession()
+                is com.kingkharnivore.skillz.viewmodel.IdeaGroveEvent.ShowSnackbar -> snackbar.showSnackbar(resources.getString(event.messageRes))
+            }
+        }
+    }
+    shownPulse.value?.let { id ->
+        val pulse = (grove.aliveItems + grove.completedItems).firstOrNull { it.pulseId == id }
+        SagaPulseHistorySheet(pulse, onDismiss = { shownPulse.value = null })
+    }
+    objectives.rewardDialog?.let {
+        com.kingkharnivore.skillz.ui.screen.shell.rooms.lookout.RewardDialog(it, lookoutViewModel::dismissReward)
+    }
+
 
     LaunchedEffect(uiState.chronicleItems.size) {
         if (uiState.chronicleItems.isNotEmpty()) {
@@ -116,6 +144,7 @@ fun StoryScreen(
         com.kingkharnivore.skillz.ui.screen.chronicle.LocalChronicleReaderFactory provides remember(viewModel) { viewModel::createHistoricalChronicle }
     ) {
     Scaffold(
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbar) },
         contentWindowInsets = WindowInsets.safeDrawing
             .only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
         floatingActionButton = {
@@ -153,7 +182,14 @@ fun StoryScreen(
                 onOpenViewJourneys = viewModel::openViewJourneys,
                 onEditArc = viewModel::openArcEditor,
                 createChronicleEditor = viewModel::createChronicleEditor,
-                onSaveEntry = viewModel::saveEntryDetails
+                onSaveEntry = viewModel::saveEntryDetails,
+                objectives = objectives.sagaObjectives,
+                onObjectiveFlow = { journey, mode -> if (!grove.isLoading && !grove.isFlowRunning) onLaunchObjectiveFlow(journey, mode) },
+                onObjectiveClaim = lookoutViewModel::claimReward,
+                onPulseFlow = groveViewModel::onFlowClicked,
+                onPulseShow = { shownPulse.value = it },
+                sagaFlowEnabled = !grove.isLoading && !grove.isFlowRunning,
+                claimEnabled = !objectives.claimInProgress
             )
 
             ArcDetailsSheet(arcEditorState, viewModel::updateArcEditor, viewModel::requestCloseArcEditor,

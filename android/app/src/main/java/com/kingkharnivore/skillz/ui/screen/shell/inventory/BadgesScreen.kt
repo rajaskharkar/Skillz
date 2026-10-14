@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalDensity
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
@@ -50,6 +51,8 @@ import java.text.NumberFormat
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.CompositionLocalProvider
+
+enum class BadgeBookSection { TRACKED, COLLECTIONS, ALL_BADGES }
 
 enum class BadgesTab { SHOWCASE, BADGE_BOOK, WITHIN_REACH, PROGRESS;
     val showsBadgeBookControls: Boolean get() = this == BADGE_BOOK
@@ -75,10 +78,10 @@ fun BadgesScreen(
     pendingNavigation: PendingShellNavigation? = null,
     onNavigationResult: (String, NavigationConsumptionResult) -> Unit = { _, _ -> },
     initialTab: BadgesTab = BadgesTab.SHOWCASE,
-    initialBrowseCollections: Boolean = true
+    initialBookSection: BadgeBookSection = BadgeBookSection.TRACKED
 ) {
     val dashboard = uiState.badgeDashboard
-    var browseCollections by rememberSaveable { mutableStateOf(initialBrowseCollections) }
+    var bookSection by rememberSaveable { mutableStateOf(initialBookSection) }
     var query by rememberSaveable { mutableStateOf("") }
     var earnedCategory by rememberSaveable { mutableStateOf(BadgeUiCategory.ALL) }
     var earnedSort by rememberSaveable { mutableStateOf(BadgeSort.ALPHABETICAL) }
@@ -153,7 +156,13 @@ fun BadgesScreen(
     val tabs = BadgesTab.entries
     val pagerState = rememberPagerState(initialPage = selectedTab.ordinal, pageCount = { tabs.size })
     val tabScope = rememberCoroutineScope()
-    LaunchedEffect(pagerState.currentPage) { selectedTab = tabs[pagerState.currentPage] }
+    LaunchedEffect(pagerState.currentPage) {
+        val nextTab = tabs[pagerState.currentPage]
+        if (nextTab == BadgesTab.BADGE_BOOK && selectedTab != nextTab && pendingNavigation == null) {
+            bookSection = BadgeBookSection.TRACKED
+        }
+        selectedTab = nextTab
+    }
     val tabLabels = mapOf(
         BadgesTab.SHOWCASE to stringResource(R.string.badges_tab_showcase),
         BadgesTab.BADGE_BOOK to stringResource(R.string.badges_tab_book),
@@ -164,6 +173,7 @@ fun BadgesScreen(
     val bookListState = rememberLazyListState()
     val reachListState = rememberLazyListState()
     val progressListState = rememberLazyListState()
+    LaunchedEffect(bookSection) { bookListState.scrollToItem(0) }
     val tabListStates = listOf(showcaseListState, bookListState, reachListState, progressListState)
     LaunchedEffect(pendingNavigation, dashboard, uiState.achievementInitializationState) {
         when (val request = pendingNavigation) {
@@ -179,6 +189,7 @@ fun BadgesScreen(
                         requested.everEarned || requested.recentlyUpdated -> BadgesTab.PROGRESS
                         else -> BadgesTab.BADGE_BOOK
                     }
+                    if (targetTab == BadgesTab.BADGE_BOOK) bookSection = if (requested.tracked) BadgeBookSection.TRACKED else BadgeBookSection.ALL_BADGES
                     selectedTab = targetTab
                     pagerState.scrollToPage(targetTab.ordinal)
                     detailsBadgeId = requested.badgeId
@@ -196,7 +207,7 @@ fun BadgesScreen(
                     ) onNavigationResult(request.requestId, NavigationConsumptionResult.Failed(NavigationFailureReason.COLLECTION_NOT_FOUND))
                 } else {
                     selectedTab = if (bookCollection != null) BadgesTab.BADGE_BOOK else BadgesTab.PROGRESS
-                    if (bookCollection != null) browseCollections = true
+                    if (bookCollection != null) bookSection = BadgeBookSection.COLLECTIONS
                     pagerState.scrollToPage(selectedTab.ordinal)
                     collectionDetailsId = request.collectionId
                     withFrameNanos { }
@@ -238,7 +249,7 @@ fun BadgesScreen(
         BoxWithConstraints(Modifier.weight(1f)) {
         val galleryColumns = ((maxWidth - 32.dp) / (120.dp * LocalDensity.current.fontScale)).toInt().coerceIn(1, 5)
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
-        LazyColumn(state = tabListStates[page], contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        LazyColumn(modifier = Modifier.fillMaxSize(), state = tabListStates[page], contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         when (tabs[page]) {
             BadgesTab.SHOWCASE -> {
                 item("showcase-title") { SectionTitle(stringResource(R.string.badges_showcase_title), stringResource(R.string.badges_showcase_body)) }
@@ -266,18 +277,20 @@ fun BadgesScreen(
                 badgeGalleryRows(visibleEarnedBadges, galleryColumns, "earned", framed = false, onOpen = ::openBadge)
             }
             BadgesTab.BADGE_BOOK -> {
-                if (!browseCollections) item("book-title") { SectionTitle(stringResource(R.string.badges_book_title),
+                if (bookSection == BadgeBookSection.ALL_BADGES) item("book-title") { SectionTitle(stringResource(R.string.badges_book_title),
                     stringResource(if (category == BadgeUiCategory.GREEN) R.string.green_badges_explainer else R.string.badges_book_body)) }
                 item("book-browse") {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(browseCollections, { browseCollections = true }, label = { Text(stringResource(R.string.book_collections)) })
-                        FilterChip(!browseCollections, { browseCollections = false }, label = { Text(stringResource(R.string.book_all_badges)) })
+                        FilterChip(bookSection == BadgeBookSection.TRACKED, { bookSection = BadgeBookSection.TRACKED }, label = { Text(stringResource(R.string.badges_tracked_title)) }, modifier = Modifier.testTag("book-section-tracked"))
+                        FilterChip(bookSection == BadgeBookSection.COLLECTIONS, { bookSection = BadgeBookSection.COLLECTIONS }, label = { Text(stringResource(R.string.book_collections)) }, modifier = Modifier.testTag("book-section-collections"))
+                        FilterChip(bookSection == BadgeBookSection.ALL_BADGES, { bookSection = BadgeBookSection.ALL_BADGES }, label = { Text(stringResource(R.string.book_all_badges)) }, modifier = Modifier.testTag("book-section-all"))
                     }
                 }
-                if (!browseCollections) {
+                if (bookSection == BadgeBookSection.TRACKED) {
                     item("tracked-title") { SectionTitle(stringResource(R.string.badges_tracked_title), stringResource(R.string.badges_tracked_body)) }
-                    val trackedBadges = dashboard.badges.filter { it.tracked }
-                    if (trackedBadges.isEmpty()) item("no-tracked") {
+                    val trackedBadges = dashboard.badges.filter { it.tracked && it.badgeId !in BadgeBookCollections.byAward }
+                    val trackedCollections = BadgeBookCollections.collections.filter { collection -> dashboard.badges.any { it.badgeId == collection.completionBadgeId && it.tracked } }
+                    if (trackedBadges.isEmpty() && trackedCollections.isEmpty()) item("no-tracked") {
                         OutlinedCard(Modifier.fillMaxWidth(), colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(stringResource(R.string.badges_no_tracked_title), fontWeight = FontWeight.Bold)
@@ -285,19 +298,26 @@ fun BadgesScreen(
                             }
                         }
                     }
+                    items(trackedCollections, key = { "tracked:${it.id}" }) { collection ->
+                        BadgeBookCollectionCard(collection, dashboard.badges,
+                            onToggleTracking = { onUntrack(collection.completionBadgeId) },
+                            onOpen = { collectionDetailsId = collection.id })
+                    }
                     items(trackedBadges, key = { "tracked:${it.badgeId}" }) { badge ->
                         ProgressBadgeRow(badge, { openBadge(badge) }, { onUntrack(badge.badgeId) },
                             { navigateFor(badge, onNavigate, onOpenFlow, onOpenArc, { openBadge(badge) }) { id -> collectionDetailsId = id } })
                     }
-                } else if (dashboard.badges.any { it.tracked }) {
-                    item("book-tracked-shortcut") { TextButton(onClick = { browseCollections = false }) { Text(stringResource(R.string.badges_tracked_title)) } }
                 }
-                if (browseCollections) {
+                if (bookSection == BadgeBookSection.COLLECTIONS) {
                     item("book-collections-intro") { Text(stringResource(R.string.book_collections_body), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     items(BadgeBookCollections.collections, key = { it.id }) { collection ->
-                        BadgeBookCollectionCard(collection, dashboard.badges) { collectionDetailsId = collection.id }
+                        BadgeBookCollectionCard(collection, dashboard.badges,
+                            onToggleTracking = {
+                                if (dashboard.badges.any { it.badgeId == collection.completionBadgeId && it.tracked }) onUntrack(collection.completionBadgeId)
+                                else onTrack(collection.completionBadgeId)
+                            }, onOpen = { collectionDetailsId = collection.id })
                     }
-                } else {
+                } else if (bookSection == BadgeBookSection.ALL_BADGES) {
                     item("book-controls") {
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), singleLine = true,
@@ -362,7 +382,10 @@ fun BadgesScreen(
         )
     }
     bookCollectionDetails?.let { collection ->
-        BadgeBookCollectionSheet(collection, dashboard.badges, { collectionDetailsId = null }) { badge ->
+        BadgeBookCollectionSheet(collection, dashboard.badges, { collectionDetailsId = null }, onToggleTracking = {
+            if (dashboard.badges.any { it.badgeId == collection.completionBadgeId && it.tracked }) onUntrack(collection.completionBadgeId)
+            else onTrack(collection.completionBadgeId)
+        }) { badge ->
             collectionDetailsId = null
             openBadge(badge)
         }
@@ -635,6 +658,7 @@ internal fun collectionSpeciesDestination(action: CollectionSpeciesAction): Badg
     BadgeDisabledReason.UNSUPPORTED_DESTINATION -> R.string.badge_disabled_historical
 })
 @Composable private fun badgeActionLabel(action: BadgeActionDestination): String = stringResource(when (action) {
+    is BadgeActionDestination.CollectionDetails -> R.string.book_open_collection
     is BadgeActionDestination.Green -> R.string.green_view_plant
     is BadgeActionDestination.ChestSpecies -> if (action.speciesId in com.kingkharnivore.skillz.utils.shell.RedCreatureCatalog.byId) R.string.red_badge_open_creature else R.string.badge_action_view_chest
     is BadgeActionDestination.BlueRegion -> R.string.badge_action_open_blue
