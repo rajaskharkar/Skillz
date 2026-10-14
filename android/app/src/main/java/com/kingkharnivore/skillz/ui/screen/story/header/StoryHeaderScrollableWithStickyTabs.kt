@@ -45,6 +45,7 @@ import com.kingkharnivore.skillz.ui.screen.story.chronicle.FlowCard
 import com.kingkharnivore.skillz.ui.screen.story.chronicle.PulseCard
 import com.kingkharnivore.skillz.ui.screen.story.saga.SagaPulseSection
 import com.kingkharnivore.skillz.ui.screen.story.saga.SagasCard
+import com.kingkharnivore.skillz.ui.screen.story.saga.SagaObjectivesCard
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 
 private enum class StoryTab { SAGAS, CHRONICLES }
@@ -197,6 +198,15 @@ fun StoryHeaderScrollableWithStickyTabs(
                             SagaPulseSection(pulses = uiState.sagaPulsesInView, onFlow = onPulseFlow, onShow = onPulseShow, flowEnabled = sagaFlowEnabled)
                         }
 
+                        if (objectives.isNotEmpty()) {
+                            SagaObjectivesCard(
+                                objectives = objectives,
+                                onLaunchFlow = onObjectiveFlow,
+                                onClaim = onObjectiveClaim,
+                                claimEnabled = claimEnabled
+                            )
+                        }
+
                         if (uiState.sagasInView.isEmpty()) {
                             if (uiState.sagaPulsesInView.isEmpty() && objectives.isEmpty()) {
                                 EmptySagasState()
@@ -209,15 +219,6 @@ fun StoryHeaderScrollableWithStickyTabs(
                                 onOpenViewJourneys = onOpenViewJourneys
                             )
                         }
-                    }
-                }
-                if (objectives.isNotEmpty()) {
-                    item { androidx.compose.material3.Text(stringResource(R.string.saga_objectives_title), style = MaterialTheme.typography.titleMedium) }
-                    items(objectives, key = { "objective:${it.objectiveId}:${it.completionId ?: 0}" }) { objective ->
-                        com.kingkharnivore.skillz.ui.screen.shell.rooms.lookout.ObjectiveCard(
-                            objective, onObjectiveClaim, {}, onObjectiveFlow, soft = false,
-                            showRemove = false, flowEnabled = sagaFlowEnabled, claimEnabled = claimEnabled
-                        )
                     }
                 }
             }

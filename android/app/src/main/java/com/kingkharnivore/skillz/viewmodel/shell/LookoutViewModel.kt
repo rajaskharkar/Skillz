@@ -103,7 +103,8 @@ data class ObjectiveCardUiState(
     val state: ObjectiveCardState,
     val flowMode: FlowMode = FlowMode.FLOW,
     val targetLabel: String? = null,
-    val cycleLabel: String? = null
+    val cycleLabel: String? = null,
+    val period: ObjectivePeriod = ObjectivePeriod.Daily
 )
 
 data class CompletedObjectiveHistoryGroupUiState(
@@ -451,6 +452,7 @@ class LookoutViewModel @Inject constructor(
             journeyId = objective.journeyId,
             journeyName = objective.journeyNameSnapshot,
             periodLabel = periodLabel(period),
+            period = period,
             typeLabel = kindLabel(kind),
             progressPercent = progressPercent,
             progressLabel = if (state == ObjectiveCardState.Upcoming) text(R.string.lookout_target_duration, target) else text(R.string.lookout_progress_duration, progress, target),

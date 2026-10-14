@@ -102,7 +102,7 @@ fun StoryScreen(
     onGoToActiveSession: () -> Unit,
     isFlowStateActive: Boolean,
     onLaunchPulseFlow: (Long, String, String?) -> Unit = { _, _, _ -> },
-    onLaunchObjectiveFlow: (String, com.kingkharnivore.skillz.model.FlowMode) -> Unit = { _, _ -> },
+    onLaunchObjectiveFlow: (String, com.kingkharnivore.skillz.model.FlowMode) -> Boolean,
     lookoutViewModel: com.kingkharnivore.skillz.viewmodel.shell.LookoutViewModel = androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel(),
     groveViewModel: com.kingkharnivore.skillz.viewmodel.IdeaGroveViewModel = androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel()
 ) {
@@ -113,6 +113,7 @@ fun StoryScreen(
     val grove by groveViewModel.uiState.collectAsStateWithLifecycle()
     val shownPulse = remember { mutableStateOf<Long?>(null) }
     val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
+    val launchObjectiveFlow = rememberObjectiveFlowLauncher(snackbar, onLaunchObjectiveFlow)
     val resources = androidx.compose.ui.platform.LocalResources.current
     LaunchedEffect(lookoutViewModel) { lookoutViewModel.events.collect { snackbar.showSnackbar(it) } }
     LaunchedEffect(objectives.errorMessage) { objectives.errorMessage?.let { snackbar.showSnackbar(it) } }
@@ -184,7 +185,7 @@ fun StoryScreen(
                 createChronicleEditor = viewModel::createChronicleEditor,
                 onSaveEntry = viewModel::saveEntryDetails,
                 objectives = objectives.sagaObjectives,
-                onObjectiveFlow = { journey, mode -> if (!grove.isLoading && !grove.isFlowRunning) onLaunchObjectiveFlow(journey, mode) },
+                onObjectiveFlow = launchObjectiveFlow,
                 onObjectiveClaim = lookoutViewModel::claimReward,
                 onPulseFlow = groveViewModel::onFlowClicked,
                 onPulseShow = { shownPulse.value = it },

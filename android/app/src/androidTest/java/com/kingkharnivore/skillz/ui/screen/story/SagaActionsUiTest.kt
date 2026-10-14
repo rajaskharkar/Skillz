@@ -1,6 +1,7 @@
 package com.kingkharnivore.skillz.ui.screen.story
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.*
@@ -70,35 +71,113 @@ class SagaActionsUiTest {
         val enabled = mutableStateOf(false)
         var claim: Long? = null
         var mode: com.kingkharnivore.skillz.model.FlowMode? = null
-        compose.setContent { SkillzTheme { Surface {
-            com.kingkharnivore.skillz.ui.screen.story.header.StoryHeaderScrollableWithStickyTabs(
-                uiState = com.kingkharnivore.skillz.model.state.FlowListUiState(isLoading = false),
-                listState = androidx.compose.foundation.lazy.rememberLazyListState(),
-                onTagToggled = {}, onClearAllTags = {}, onPeriodSelected = {}, onPrev = {}, onNext = {}, onToday = {},
-                onOpenViewJourneys = {}, onSessionClick = {}, onDeleteSession = {}, onDeletePulse = {},
-                onCreatePulseForSession = { _, _, _, _ -> }, onAddSessionClick = {}, onEditArc = {},
-                createChronicleEditor = { _, _ -> error("Not used") }, onSaveEntry = { _, _, _, _ -> },
-                objectives = listOf(card.value), onObjectiveClaim = { claim = it },
-                onObjectiveFlow = { _, value -> mode = value }, sagaFlowEnabled = enabled.value
-            )
-        } } }
+        var journey: String? = null
+        compose.setContent { SkillzTheme {
+            val snackbar = androidx.compose.runtime.remember { androidx.compose.material3.SnackbarHostState() }
+            val launch = rememberObjectiveFlowLauncher(snackbar) { name, value ->
+                if (enabled.value) {
+                    journey = name
+                    mode = value
+                    true
+                } else false
+            }
+            androidx.compose.material3.Scaffold(
+                snackbarHost = { androidx.compose.material3.SnackbarHost(snackbar) }
+            ) { padding ->
+                androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.padding(padding)) {
+                    com.kingkharnivore.skillz.ui.screen.story.header.StoryHeaderScrollableWithStickyTabs(
+                        uiState = com.kingkharnivore.skillz.model.state.FlowListUiState(isLoading = false),
+                        listState = androidx.compose.foundation.lazy.rememberLazyListState(),
+                        onTagToggled = {}, onClearAllTags = {}, onPeriodSelected = {}, onPrev = {}, onNext = {}, onToday = {},
+                        onOpenViewJourneys = {}, onSessionClick = {}, onDeleteSession = {}, onDeletePulse = {},
+                        onCreatePulseForSession = { _, _, _, _ -> }, onAddSessionClick = {}, onEditArc = {},
+                        createChronicleEditor = { _, _ -> error("Not used") }, onSaveEntry = { _, _, _, _ -> },
+                        objectives = listOf(card.value), onObjectiveClaim = { claim = it },
+                        onObjectiveFlow = launch, sagaFlowEnabled = enabled.value
+                    )
+                }
+            }
+        } }
         compose.onNodeWithContentDescription(context.getString(R.string.story_tab_sagas)).performClick()
-        compose.onNodeWithTag("story-list").performScrollToNode(hasText(context.getString(R.string.lookout_claim)))
+        compose.onNodeWithTag("story-list").performScrollToNode(hasContentDescription(context.getString(R.string.saga_objectives_expand)))
+        compose.onNodeWithText("Piano objective").assertDoesNotExist()
+        compose.onNodeWithContentDescription(context.getString(R.string.saga_objectives_expand)).performClick()
+        compose.onNodeWithTag("story-list").performScrollToNode(hasContentDescription(context.getString(R.string.lookout_claim)))
         compose.onNodeWithText("Piano objective").assertExists()
-        compose.onNodeWithText("Cycle: Oct 12, 2026 – Oct 12, 2026").assertExists()
+        compose.onNodeWithText("Cycle: Oct 12, 2026 – Oct 12, 2026").assertDoesNotExist()
         compose.onNodeWithText(context.getString(R.string.lookout_flow_soft)).assertExists()
-        compose.onNodeWithText("3,600 Drops").assertIsDisplayed()
+        compose.onNodeWithText("3,600 Drops").assertDoesNotExist()
         screenshot("sagas-objectives")
-        compose.onNodeWithText(context.getString(R.string.lookout_claim)).performClick()
+        compose.onNodeWithContentDescription(context.getString(R.string.lookout_start_flow)).assertIsDisplayed().assertIsEnabled().performClick()
+        compose.onNodeWithText(context.getString(R.string.lookout_flow_already_active)).assertIsDisplayed()
+        compose.runOnIdle { assertNull(mode); assertNull(journey) }
+        compose.onNodeWithContentDescription(context.getString(R.string.lookout_claim)).performClick()
         compose.runOnIdle {
             assertEquals(42L, claim)
             card.value = card.value.copy(state = com.kingkharnivore.skillz.utils.shell.lookout.ObjectiveCardState.InProgress, completionId = null, progressPercent = 50)
         }
-        compose.onNodeWithTag("story-list").performScrollToNode(hasText(context.getString(R.string.lookout_start_flow)))
-        compose.onNodeWithText(context.getString(R.string.lookout_start_flow)).assertIsNotEnabled()
-        compose.runOnIdle { enabled.value = true }
-        compose.onNodeWithText(context.getString(R.string.lookout_start_flow)).performClick()
-        compose.runOnIdle { assertEquals(com.kingkharnivore.skillz.model.FlowMode.SOFT, mode) }
+        compose.onNodeWithTag("story-list").performScrollToNode(hasContentDescription(context.getString(R.string.lookout_start_flow)))
+        compose.onNodeWithContentDescription(context.getString(R.string.lookout_start_flow)).assertIsEnabled().performClick()
+        compose.onNodeWithText(context.getString(R.string.lookout_flow_already_active)).assertIsDisplayed()
+        compose.runOnIdle { assertNull(mode); enabled.value = true }
+        // A completed/claimed, upcoming, expired, or skipped objective still launches its journey.
+        com.kingkharnivore.skillz.utils.shell.lookout.ObjectiveCardState.entries.forEachIndexed { index, state ->
+            val expectedMode = com.kingkharnivore.skillz.model.FlowMode.entries[index % 3]
+            compose.runOnIdle {
+                card.value = card.value.copy(state = state, pearlsClaimed = true, flowMode = expectedMode)
+                mode = null
+                journey = null
+            }
+            compose.onNodeWithContentDescription(context.getString(R.string.lookout_start_flow)).assertIsDisplayed().assertIsEnabled().performClick()
+            compose.runOnIdle {
+                assertEquals(expectedMode, mode)
+                assertEquals("Piano objective", journey)
+            }
+        }
+        compose.onNodeWithTag("story-list").performScrollToNode(hasContentDescription(context.getString(R.string.saga_objectives_collapse)))
+        compose.onNodeWithContentDescription(context.getString(R.string.saga_objectives_collapse)).performClick()
+        compose.onNodeWithText("Piano objective").assertDoesNotExist()
+    }
+
+    @Test fun objectivesExpandInScopeOrderWithoutRewardOrStreakDetails() {
+        val base = com.kingkharnivore.skillz.viewmodel.shell.ObjectiveCardUiState(
+            objectiveId = 1, journeyId = 1, journeyName = "Daily piano", periodLabel = "Daily", typeLabel = "Recurring",
+            progressPercent = 50, progressLabel = "15 min / 30 min", timeLeftLabel = "8h left",
+            estimatedRewardLabel = "3,600 Drops", isRecurring = true, currentStreak = 3, maxStreak = 7,
+            totalCompletions = 12, streakBonusLabel = "+30% streak bonus", rewardPearls = null, completionId = null,
+            pearlsClaimed = false, state = com.kingkharnivore.skillz.utils.shell.lookout.ObjectiveCardState.InProgress
+        )
+        val weekly = base.copy(objectiveId = 2, journeyName = "Weekly reading", periodLabel = "Weekly",
+            period = com.kingkharnivore.skillz.utils.shell.lookout.ObjectivePeriod.Weekly,
+            flowMode = com.kingkharnivore.skillz.model.FlowMode.SOFT)
+        val monthly = base.copy(objectiveId = 3, journeyName = "Monthly training", periodLabel = "Monthly",
+            period = com.kingkharnivore.skillz.utils.shell.lookout.ObjectivePeriod.Monthly,
+            flowMode = com.kingkharnivore.skillz.model.FlowMode.POWER)
+        compose.setContent { SkillzTheme { Surface {
+            com.kingkharnivore.skillz.ui.screen.story.saga.SagaObjectivesCard(
+                listOf(monthly, weekly, base), onLaunchFlow = { _, _ -> }, onClaim = {}
+            )
+        } } }
+        compose.onNodeWithText(context.getString(R.string.saga_objectives_title)).assertIsDisplayed()
+        compose.onNodeWithText("Daily piano").assertDoesNotExist()
+        screenshot("objectives-collapsed")
+        compose.onNodeWithContentDescription(context.getString(R.string.saga_objectives_expand)).performClick()
+        val dailyTop = compose.onNodeWithText("Daily piano").assertIsDisplayed().fetchSemanticsNode().boundsInRoot.top
+        val weeklyTop = compose.onNodeWithText("Weekly reading").assertIsDisplayed().fetchSemanticsNode().boundsInRoot.top
+        val monthlyTop = compose.onNodeWithText("Monthly training").assertIsDisplayed().fetchSemanticsNode().boundsInRoot.top
+        val dailyHeading = compose.onNodeWithText(context.getString(R.string.lookout_period_daily)).assertIsDisplayed().fetchSemanticsNode().boundsInRoot.top
+        val weeklyHeading = compose.onNodeWithText(context.getString(R.string.lookout_period_weekly)).assertIsDisplayed().fetchSemanticsNode().boundsInRoot.top
+        val monthlyHeading = compose.onNodeWithText(context.getString(R.string.lookout_period_monthly)).assertIsDisplayed().fetchSemanticsNode().boundsInRoot.top
+        assertTrue(dailyHeading < dailyTop && dailyTop < weeklyHeading)
+        assertTrue(weeklyHeading < weeklyTop && weeklyTop < monthlyHeading && monthlyHeading < monthlyTop)
+        listOf("Daily objective", "Weekly objective", "Monthly objective").forEach {
+            compose.onNodeWithText(it).assertDoesNotExist()
+        }
+        compose.onNodeWithText("3,600 Drops").assertDoesNotExist()
+        compose.onNodeWithText("+30% streak bonus").assertDoesNotExist()
+        compose.onNodeWithText(context.getString(R.string.lookout_current_streak_value, 3)).assertDoesNotExist()
+        compose.onNodeWithText(context.getString(R.string.lookout_best_streak_value, 7)).assertDoesNotExist()
+        screenshot("objectives-expanded")
     }
 
     @Test fun rewardScreenShowsMixedRewardsAndCloses() {

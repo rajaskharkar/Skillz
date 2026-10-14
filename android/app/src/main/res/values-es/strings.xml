@@ -2406,6 +2406,12 @@ Puedes volver a activar Health más tarde.</string>
     <string name="lookout_early_start_pending">Inicio a tiempo · Doble recompensa al completar · Objetivo %1$s</string>
     <string name="lookout_enable_precise_reminders">Activar recordatorios precisos</string>
     <string name="saga_objectives_title">Objetivos</string>
+    <string name="saga_objectives_subtitle">Diario · Semanal · Mensual</string>
+    <string name="saga_objectives_expand">Expandir objetivos</string>
+    <string name="saga_objectives_collapse">Contraer objetivos</string>
+    <string name="saga_objectives_total">Total</string>
+    <string name="saga_objectives_active">En progreso</string>
+    <string name="saga_objectives_completed">Completados</string>
     <string name="saga_pulse_show">Mostrar</string>
     <string name="saga_objective_expired">El período del Objetivo terminó</string>
     <string name="saga_objective_skipped">Omitido en este ciclo</string>

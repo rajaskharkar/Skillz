@@ -2399,6 +2399,12 @@ You can turn Health back on later.</string>
     <string name="lookout_early_start_pending">Started early · 2× rewards on completion · Target %1$s</string>
     <string name="lookout_enable_precise_reminders">Enable precise reminders</string>
     <string name="saga_objectives_title">Objectives</string>
+    <string name="saga_objectives_subtitle">Daily · Weekly · Monthly</string>
+    <string name="saga_objectives_expand">Expand objectives</string>
+    <string name="saga_objectives_collapse">Collapse objectives</string>
+    <string name="saga_objectives_total">Total</string>
+    <string name="saga_objectives_active">In progress</string>
+    <string name="saga_objectives_completed">Completed</string>
     <string name="saga_pulse_show">Show</string>
     <string name="saga_objective_expired">Objective period ended</string>
     <string name="saga_objective_skipped">Skipped this cycle</string>
