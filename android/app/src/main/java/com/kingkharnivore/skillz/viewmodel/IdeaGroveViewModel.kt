@@ -15,6 +15,7 @@ import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveUiState
 import com.kingkharnivore.skillz.model.state.ideagrove.PendingDeletePulseUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -125,7 +126,7 @@ class IdeaGroveViewModel @Inject constructor(
 
     fun onFlowClicked(pulseId: Long) {
         viewModelScope.launch {
-            if (uiState.value.isFlowRunning) {
+            if (aliveFlowRepository.getOngoingSession().first().isMeaningfulActiveFlow()) {
                 eventsChannel.send(
                     IdeaGroveEvent.ShowSnackbar(
                         messageRes = R.string.idea_grove_flow_already_running,

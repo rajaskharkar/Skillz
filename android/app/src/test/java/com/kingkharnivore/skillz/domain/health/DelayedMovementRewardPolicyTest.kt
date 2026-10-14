@@ -14,7 +14,7 @@ import org.junit.Test
 class DelayedMovementRewardPolicyTest {
     @Test fun noDataAtCompletionLaterStepsAddsPositiveDelta() {
         val result = DelayedMovementRewardPolicy.calculate(
-            steps = 342,
+            steps = 1_342,
             context = StoredMovementRewardContext(
                 nonMovementPreMultiplierPoints = 42,
                 existingMovementPoints = 0,
@@ -38,7 +38,7 @@ class DelayedMovementRewardPolicyTest {
         )
 
         val result = DelayedMovementRewardPolicy.calculate(
-            steps = 200,
+            steps = 800,
             context = StoredMovementRewardContext(
                 nonMovementPreMultiplierPoints = 50,
                 existingMovementPoints = 4,
@@ -81,7 +81,7 @@ class DelayedMovementRewardPolicyTest {
 
     @Test fun storedCompletionMultipliersAreUsedForDelayedDelta() {
         val result = DelayedMovementRewardPolicy.calculate(
-            steps = 100,
+            steps = 400,
             context = StoredMovementRewardContext(
                 nonMovementPreMultiplierPoints = 40,
                 existingMovementPoints = 0,
@@ -133,7 +133,7 @@ class DelayedMovementRewardPolicyTest {
     }
 
     @Test fun highStepCountsRemainUncapped() {
-        assertEquals(400_000, MovementBonusCalculator().calculateMovementPoints(10_000_000))
+        assertEquals(100_000, MovementBonusCalculator().calculateMovementPoints(10_000_000))
     }
 
     @Test fun stablePearlDeltaKeyRepresentsAppliedFinalState() {

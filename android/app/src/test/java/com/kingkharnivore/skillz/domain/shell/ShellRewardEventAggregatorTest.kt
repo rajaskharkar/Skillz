@@ -36,6 +36,19 @@ class ShellRewardEventAggregatorTest {
         assertEquals(42L, summary.stillwaterAdded)
     }
 
+    @Test
+    fun mixedArcKeepsPebblesAsCurrencyInsteadOfUnknownRewards() {
+        val summary=ShellRewardEventAggregator.aggregate(listOf(
+            event(1,ShellRewardEventTypes.PEARLS_CARRIED,null,72),
+            event(1,ShellRewardEventTypes.PEBBLES_CARRIED,null,72),
+            event(2,ShellRewardEventTypes.PEARLS_CARRIED,null,25),
+            event(3,ShellRewardEventTypes.PEBBLES_CARRIED,null,15)))
+        assertEquals(97,summary.pearlsCarried)
+        assertEquals(87,summary.pebblesCarried)
+        assertEquals(emptyList<Any>(),summary.unknownRewards)
+        assertEquals(true,summary.hasVisibleShellRewards)
+    }
+
     private fun event(
         sessionId: Long,
         type: String,

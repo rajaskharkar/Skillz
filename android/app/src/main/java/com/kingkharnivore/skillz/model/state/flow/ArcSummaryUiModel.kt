@@ -20,12 +20,13 @@ data class ArcShellRewardSummaryUiModel(
     val discoveries: List<ArcShellRewardCountUiModel> = emptyList(),
     val unknownRewards: List<ArcShellRewardCountUiModel> = emptyList(),
     val pearlsCarried: Int = 0,
-    val stillwaterAdded: Long = 0L
+    val stillwaterAdded: Long = 0L,
+    val pebblesCarried: Int = 0
 ) {
     val hasVisibleShellRewards: Boolean
         get() = animals.isNotEmpty() || objects.isNotEmpty() || trinkets.isNotEmpty() ||
             badges.isNotEmpty() || discoveries.isNotEmpty() || unknownRewards.isNotEmpty() ||
-            stillwaterAdded > 0L
+            stillwaterAdded > 0L || pebblesCarried > 0
 }
 
 data class ArcShellRewardCountUiModel(

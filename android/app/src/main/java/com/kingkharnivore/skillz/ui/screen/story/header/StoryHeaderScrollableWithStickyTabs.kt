@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.isTraversalGroup
@@ -63,12 +64,19 @@ fun StoryHeaderScrollableWithStickyTabs(
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
     onDeletePulse: (Long) -> Unit,
-    onUpdatePulse: (Long, String, String) -> Unit,
     onCreatePulseForSession: (Long, String, String, String) -> Unit,
     onAddSessionClick: () -> Unit,
     extraTopContent: (@Composable () -> Unit)? = null,
     onEditArc: (Long) -> Unit,
-    createHistoricalChronicle: (String, String) -> com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleReadState
+    createChronicleEditor: (String, String) -> com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleStateHolder,
+    onSaveEntry: suspend (String, Long, String, String) -> Unit,
+    objectives: List<com.kingkharnivore.skillz.viewmodel.shell.ObjectiveCardUiState> = emptyList(),
+    onObjectiveFlow: (String, com.kingkharnivore.skillz.model.FlowMode) -> Unit = { _, _ -> },
+    onObjectiveClaim: (Long) -> Unit = {},
+    onPulseFlow: (Long) -> Unit = {},
+    onPulseShow: (Long) -> Unit = {},
+    sagaFlowEnabled: Boolean = true,
+    claimEnabled: Boolean = true
 ) {
     var tab by rememberSaveable { mutableStateOf(StoryTab.CHRONICLES) }
 
@@ -82,40 +90,35 @@ fun StoryHeaderScrollableWithStickyTabs(
     var expandedPulseIds by rememberSaveable { mutableStateOf(setOf<Long>()) }
 
     val editingFlow = editState.editingSession.value
-    val historicalHolder = editingFlow?.let { flow ->
-        remember(flow.sessionId) { createHistoricalChronicle("SESSION", flow.sessionId.toString()) }
+    if (editingFlow != null) {
+        StoryEntryEditSheet(
+            ownerType = "SESSION", ownerId = editingFlow.sessionId,
+            title = editingFlow.title, tagName = editingFlow.tagName,
+            createEditor = createChronicleEditor, onSave = onSaveEntry,
+            onClose = editState::stopEditing
+        ) {
+            FlowPulseDetails(
+                sessionId = editingFlow.sessionId,
+                childPulses = uiState.pulsesBySessionId[editingFlow.sessionId].orEmpty(),
+                onEditPulse = pulseEditState::startEditing,
+                onDeletePulse = onDeletePulse,
+                onCreatePulse = onCreatePulseForSession
+            )
+        }
     }
-    DisposableEffect(historicalHolder) {
-        onDispose { historicalHolder?.close() }
+    pulseEditState.editingPulse.value?.let { pulse ->
+        StoryEntryEditSheet(
+            ownerType = "PULSE", ownerId = pulse.pulseId,
+            title = pulse.title, tagName = pulse.tagName,
+            createEditor = createChronicleEditor, onSave = onSaveEntry,
+            onClose = pulseEditState::stopEditing
+        )
     }
-    val historicalMoments = historicalHolder?.moments?.collectAsState()?.value.orEmpty()
-    val editingPulse = pulseEditState.editingPulse.value
-    val pulseHistoricalHolder = editingPulse?.let { pulse ->
-        remember(pulse.pulseId) { createHistoricalChronicle("PULSE", pulse.pulseId.toString()) }
-    }
-    DisposableEffect(pulseHistoricalHolder) { onDispose { pulseHistoricalHolder?.close() } }
-    val pulseHistoricalMoments = pulseHistoricalHolder?.moments?.collectAsState()?.value.orEmpty()
-    FlowDetailsSheet(
-        editState = editState,
-        tags = uiState.tags,
-        childPulses = editingFlow?.let { uiState.pulsesBySessionId[it.sessionId].orEmpty() }.orEmpty(),
-        onCreatePulse = onCreatePulseForSession,
-        onDeletePulse = onDeletePulse,
-        onEditPulse = { pulse -> pulseEditState.startEditing(pulse) },
-        chronicleMoments = historicalMoments
-    )
-
-    PulseEditSheet(
-        editState = pulseEditState,
-        tags = uiState.tags,
-        onSave = onUpdatePulse,
-        chronicleMoments = pulseHistoricalMoments
-    )
 
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxSize().testTag("story-list"),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 104.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
@@ -191,11 +194,11 @@ fun StoryHeaderScrollableWithStickyTabs(
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         if (uiState.sagaPulsesInView.isNotEmpty()) {
-                            SagaPulseSection(pulses = uiState.sagaPulsesInView)
+                            SagaPulseSection(pulses = uiState.sagaPulsesInView, onFlow = onPulseFlow, onShow = onPulseShow, flowEnabled = sagaFlowEnabled)
                         }
 
                         if (uiState.sagasInView.isEmpty()) {
-                            if (uiState.sagaPulsesInView.isEmpty()) {
+                            if (uiState.sagaPulsesInView.isEmpty() && objectives.isEmpty()) {
                                 EmptySagasState()
                             }
                         } else {
@@ -206,6 +209,15 @@ fun StoryHeaderScrollableWithStickyTabs(
                                 onOpenViewJourneys = onOpenViewJourneys
                             )
                         }
+                    }
+                }
+                if (objectives.isNotEmpty()) {
+                    item { androidx.compose.material3.Text(stringResource(R.string.saga_objectives_title), style = MaterialTheme.typography.titleMedium) }
+                    items(objectives, key = { "objective:${it.objectiveId}:${it.completionId ?: 0}" }) { objective ->
+                        com.kingkharnivore.skillz.ui.screen.shell.rooms.lookout.ObjectiveCard(
+                            objective, onObjectiveClaim, {}, onObjectiveFlow, soft = false,
+                            showRemove = false, flowEnabled = sagaFlowEnabled, claimEnabled = claimEnabled
+                        )
                     }
                 }
             }

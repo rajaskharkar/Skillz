@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chest_environment_selected">Entorno: %1$s</string>
+    <string name="chest_environment_all">Todos los entornos</string>
+    <string name="chest_environment_title">Entorno</string>
+    <string name="chest_progress_selected">Progreso: %1$s</string>
+    <string name="chest_progress_any">Cualquier progreso</string>
+    <string name="chest_open_red">Explorar The Red</string>
+    <string name="chest_creature_environment">%1$s · %2$s</string>
+</resources>

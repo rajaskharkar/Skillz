@@ -1,9 +1,10 @@
 package com.kingkharnivore.skillz.ui.screen.shell
 
 sealed class ShellDestination {
+    data object TheRed : ShellDestination()
     data object Heart : ShellDestination()
     data object Focus : ShellDestination()
-    data object Stillwater : ShellDestination()
+    data object TheGreen : ShellDestination()
     data object ShellChest : ShellDestination()
     data object Badges : ShellDestination()
     data object VoyagePreview : ShellDestination()

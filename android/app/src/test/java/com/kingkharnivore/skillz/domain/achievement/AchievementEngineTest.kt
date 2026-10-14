@@ -94,8 +94,8 @@ class AchievementEngineTest {
     }
 
     @Test fun historicalCompletionSurvivesRosterExpansion() {
-        val original = CollectionCatalog.byId.getValue("collection_stillwater")
-        val expanded = original.copy(species = original.species + CreatureCatalog.all.first())
+        val expanded = CollectionCatalog.byId.getValue("collection_the_blue")
+        val original = expanded.copy(species = expanded.species.dropLast(1))
         val oldIds = original.species.map { it.creatureId }.toSet()
         val progress = CollectionProgressCalculator.calculate(expanded, oldIds, emptyMap(), oldIds,
             setOf(BadgeRequirement.COLLECTOR, BadgeRequirement.COMPLETIONIST))

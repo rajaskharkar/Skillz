@@ -57,7 +57,7 @@ class LandLocalizationTest {
         val ui=File("app/src/main/java/com/kingkharnivore/skillz/ui/screen")
         listOf("shell/rooms/blue/BlueRealmSelector.kt", "shell/rooms/blue/LandZonePage.kt",
             "shell/rooms/blue/BlueUtils.kt", "shell/rooms/blue/TheBlueDepthRail.kt",
-            "shell/rooms/blue/BeyondBlueEncounterSheet.kt", "shell/rooms/stillwater/StillwaterRoomScreen.kt",
+            "shell/rooms/blue/BeyondBlueEncounterSheet.kt", "shell/rooms/green/GreenScreen.kt",
             "flow/reward/ArcSummaryContent.kt").forEach { path ->
             assertFalse("English catalog label in $path", File(ui,path).readText().contains(".displayName"))
         }

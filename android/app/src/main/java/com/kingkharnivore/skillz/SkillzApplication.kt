@@ -23,7 +23,9 @@ class SkillzApplication : Application() {
     @Inject
     lateinit var userPrefs: UserPrefs
 
+    @Inject lateinit var objectiveReminderScheduler: com.kingkharnivore.skillz.domain.lookout.ObjectiveReminderScheduler
     @Inject lateinit var objectiveCompletionProcessor: ObjectiveCompletionProcessor
+    @Inject lateinit var shellRewardOrchestrator: com.kingkharnivore.skillz.utils.shell.ShellRewardOrchestrator
     @Inject lateinit var landArcFinalizer: com.kingkharnivore.skillz.utils.arc.ArcLandRewardFinalizer
     @Inject lateinit var chronicleRepository: ChronicleRepository
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -38,6 +40,8 @@ class SkillzApplication : Application() {
         launchObjectiveReconciliation("startup")
         applicationScope.launch {
             while (true) {
+                runCatching { shellRewardOrchestrator.retryPending() }
+                    .onFailure { Log.e("ShellRewards", "Rewards will retry", it) }
                 runCatching { landArcFinalizer.finalizeExpired() }
                     .onFailure { Log.e("ArcLandRewards", "Finalization will retry", it) }
                 kotlinx.coroutines.delay(15_000L)
@@ -59,7 +63,10 @@ class SkillzApplication : Application() {
 
     private fun launchObjectiveReconciliation(trigger: String) {
         applicationScope.launch {
-            runCatching { objectiveCompletionProcessor.reconcileUnprocessedSessions() }
+            runCatching {
+                objectiveCompletionProcessor.reconcileUnprocessedSessions()
+                objectiveReminderScheduler.rescheduleAll()
+            }
                 .onFailure { error -> Log.e("ObjectiveReconciliation", "$trigger reconciliation failed", error) }
         }
     }

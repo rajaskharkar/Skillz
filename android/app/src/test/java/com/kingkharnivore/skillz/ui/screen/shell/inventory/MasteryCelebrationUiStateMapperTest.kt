@@ -94,12 +94,13 @@ class MasteryCelebrationUiStateMapperTest {
         assertEquals(listOf("mastery_species_creature_tiger"), state.newlyEarnedBadgeIds)
     }
 
-    @Test fun restorativeLandMasteryKeepsVesselAndSharedStillwaterProgress() {
+    @Test fun historicalRestorativeMasteryKeepsSpeciesAwardWithoutRetiredCollectionPresentation() {
         val state = MasteryCelebrationUiStateMapper.map(event(
             speciesId = "creature_peacock", regionId = "stillwater_pasture",
             newlyEarned = "mastery_species_creature_peacock"
         ).copy(sourceId = "RESTORATIVE_LAND", stillwaterMastered = 1))
-        assertEquals(listOf("stillwater_pasture", "collection_stillwater"), state.collections.map { it.collectionId })
+        assertTrue(state.collections.isEmpty())
+        assertEquals(listOf("mastery_species_creature_peacock"), state.newlyEarnedBadgeIds)
     }
 
     @Test fun noAchievementsProducesNoPlaceholderState() {
@@ -137,7 +138,7 @@ class MasteryCelebrationUiStateMapperTest {
         regionalTotal = completionistTotal(regionId), regionalMastered = regionMastered,
         regionalCollectorEarned = false, regionalCompletionistEarned = false,
         blueMastered = blueMastered, blueTotal = completionistTotal("collection_the_blue"),
-        stillwaterMastered = 0, stillwaterTotal = completionistTotal("collection_stillwater"),
+        stillwaterMastered = 0, stillwaterTotal = 83,
         allWatersMastered = allMastered, allWatersTotal = completionistTotal("collection_all_waters"),
         newlyEarnedBadgeIds = newlyEarned, advancedBadgeIds = "",
         milestonesReached = milestones, originDestination = "BLUE", createdAt = 1L,
@@ -146,5 +147,5 @@ class MasteryCelebrationUiStateMapperTest {
     )
 
     private fun completionistTotal(collectionId: String): Int =
-        CollectionCatalog.byId.getValue(collectionId).eligibleRoster(BadgeRequirement.COMPLETIONIST).size
+        CollectionCatalog.byId[collectionId]?.eligibleRoster(BadgeRequirement.COMPLETIONIST)?.size ?: 0
 }

@@ -16,8 +16,8 @@ class LandCatalogTest {
             val creature = CreatureCatalog.require(values[0])
             assertEquals(values[1], creature.displayName)
             assertEquals(values[2], creature.zone.name)
-            assertEquals(values[3], creature.sourceType.name)
-            assertEquals(values[4].toIntOrNull(), creature.pearlPrice)
+            assertEquals(if (values[3] == "RESTORATIVE_LAND") "BEYOND_BLUE" else values[3], creature.sourceType.name)
+            assertEquals(if (values[3] == "RESTORATIVE_LAND") (creature.restorativeHabitat!!.dropCost / 60L).toInt() * 2 else values[4].toIntOrNull(), creature.pearlPrice)
             assertEquals(values[5].toIntOrNull(), creature.arcFlowRequirement)
             assertEquals(CreatureRealm.LAND, creature.realm)
             assertNotNull(ShellContentCatalog.find(creature.creatureId))
@@ -28,16 +28,16 @@ class LandCatalogTest {
         assertEquals(58, LandCreatureCatalog.main.count { it.sourceType == CreatureSourceType.BEYOND_BLUE })
     }
 
-    @Test fun identitiesAreGloballyUniqueAndRestorativeUsesDrops() {
+    @Test fun identitiesAreGloballyUniqueAndHeritageUsesBlueEncounters() {
         assertEquals(CreatureCatalog.all.size, CreatureCatalog.all.map { it.creatureId }.toSet().size)
         assertEquals(114, LandCreatureCatalog.all.map { it.displayName.lowercase() }.toSet().size)
         LandCreatureCatalog.restorative.forEach {
             assertTrue(it.isAvailable)
             assertEquals(it.restorativeHabitat!!.zone, it.zone)
-            assertNull(it.pearlPrice)
-            assertNull(it.requirementMinutes)
+            assertEquals((it.restorativeHabitat!!.dropCost / 60L).toInt() * 2, it.pearlPrice)
+            assertEquals((it.restorativeHabitat!!.dropCost / 60L).toInt(), it.requirementMinutes)
             assertNull(it.arcFlowRequirement)
-            assertEquals(CreatureRequirement.Drops(it.restorativeHabitat!!.dropCost), it.requirement)
+            assertEquals(CreatureRequirement.EffortValue((it.restorativeHabitat!!.dropCost / 60L).toInt()), it.requirement)
         }
     }
 

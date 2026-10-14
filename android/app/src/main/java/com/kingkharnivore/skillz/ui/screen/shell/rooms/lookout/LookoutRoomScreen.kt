@@ -6,6 +6,17 @@
 
 package com.kingkharnivore.skillz.ui.screen.shell.rooms.lookout
 
+import android.Manifest
+import android.app.TimePickerDialog
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.Switch
+import com.kingkharnivore.skillz.model.FlowMode
+import java.time.LocalTime
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -112,12 +123,15 @@ import kotlinx.coroutines.launch
 @Composable
 fun LookoutRoomScreen(
     modifier: Modifier = Modifier,
-    onLaunchFlowForJourney: (String) -> Unit = {},
+    onLaunchFlowForJourney: (String, FlowMode) -> Unit = { _, _ -> },
     viewModel: LookoutViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState(pageCount = { ObjectivePeriod.entries.size })
     val scope = rememberCoroutineScope()
+    val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
+    LaunchedEffect(viewModel) { viewModel.events.collect { snackbar.showSnackbar(it) } }
+    LaunchedEffect(uiState.errorMessage) { uiState.errorMessage?.let { snackbar.showSnackbar(it) } }
 
     LaunchedEffect(uiState.selectedPeriod) {
         val page = ObjectivePeriod.entries.indexOf(uiState.selectedPeriod)
@@ -174,6 +188,7 @@ fun LookoutRoomScreen(
                 }
             }
         }
+        androidx.compose.material3.SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
 
     uiState.setObjectiveDialog?.let { dialog ->
@@ -296,17 +311,17 @@ private fun LookoutRewardStatus(
     isClaiming: Boolean,
     onClaim: () -> Unit
 ) {
-    val claimDescription = pluralStringResource(R.plurals.lookout_claim_pearls_accessibility, pearls, pearls)
+    val claimDescription = stringResource(R.string.lookout_claim_rewards)
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        if (pearls > 0) ShellPearlMiniIcon(Modifier.size(22.dp))
+        if (pearls > 0) Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         else Icon(Icons.Outlined.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         Column(Modifier.weight(1f)) {
             Text(
-                if (pearls > 0) pluralStringResource(R.plurals.lookout_unclaimed_pearls, pearls, pearls)
+                if (pearls > 0) stringResource(R.string.lookout_rewards_waiting)
                 else stringResource(R.string.lookout_all_pearls_claimed),
                 fontWeight = FontWeight.Bold
             )
@@ -366,7 +381,7 @@ private fun ObjectivePeriodPage(
     state: ObjectivePeriodUiState,
     onClaimClick: (Long) -> Unit,
     onRemoveClick: (Long) -> Unit,
-    onLaunchFlow: (String) -> Unit
+    onLaunchFlow: (String, FlowMode) -> Unit
 ) {
     LazyColumn(contentPadding = PaddingValues(bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
@@ -388,7 +403,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.section(
     cards: List<ObjectiveCardUiState>,
     onClaimClick: (Long) -> Unit,
     onRemoveClick: (Long) -> Unit,
-    onLaunchFlow: (String) -> Unit,
+    onLaunchFlow: (String, FlowMode) -> Unit,
     soft: Boolean = false
 ) {
     item { Text(stringResource(stringResourceId), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp)) }
@@ -398,14 +413,19 @@ private fun androidx.compose.foundation.lazy.LazyListScope.section(
 }
 
 @Composable
-private fun ObjectiveCard(card: ObjectiveCardUiState, onClaimClick: (Long) -> Unit, onRemoveClick: (Long) -> Unit, onLaunchFlow: (String) -> Unit, soft: Boolean) {
+internal fun ObjectiveCard(card: ObjectiveCardUiState, onClaimClick: (Long) -> Unit, onRemoveClick: (Long) -> Unit, onLaunchFlow: (String, FlowMode) -> Unit, soft: Boolean, showRemove: Boolean = true, flowEnabled: Boolean = true, claimEnabled: Boolean = true) {
     val completed = card.state == ObjectiveCardState.Completed
     val removeDescription = stringResource(R.string.lookout_remove_objective)
-    val brush = if (completed) {
-        Brush.linearGradient(listOf(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.95f), MaterialTheme.colorScheme.surface))
-    } else {
-        Brush.linearGradient(listOf(MaterialTheme.colorScheme.surface.copy(alpha = if (soft) 0.74f else 0.96f), MaterialTheme.colorScheme.primaryContainer.copy(alpha = if (soft) 0.18f else 0.28f)))
+    val modeColor = when (card.flowMode) {
+        FlowMode.FLOW -> MaterialTheme.colorScheme.primaryContainer
+        FlowMode.SOFT -> Color(0xFF417B64)
+        FlowMode.POWER -> Color(0xFFAE484D)
     }
+    val brush = Brush.linearGradient(listOf(
+        MaterialTheme.colorScheme.surface,
+        modeColor.copy(alpha = if (soft) 0.22f else 0.42f)
+    ))
+
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -423,10 +443,13 @@ private fun ObjectiveCard(card: ObjectiveCardUiState, onClaimClick: (Long) -> Un
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    IconButton(onClick = { onRemoveClick(card.objectiveId) }) {
+                    if (showRemove) IconButton(onClick = { onRemoveClick(card.objectiveId) }) {
                         Icon(Icons.Outlined.DeleteOutline, contentDescription = removeDescription)
                     }
                 }
+                Text(flowModeLabel(card.flowMode), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                card.cycleLabel?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                card.targetLabel?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(card.progressLabel, fontWeight = FontWeight.SemiBold)
                     Text(stringResource(R.string.lookout_percent, card.progressPercent), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
@@ -444,7 +467,7 @@ private fun ObjectiveCard(card: ObjectiveCardUiState, onClaimClick: (Long) -> Un
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Surface(shape = RoundedCornerShape(999.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)) {
                         Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            ShellPearlMiniIcon(Modifier.size(16.dp))
+                            if (card.flowMode == FlowMode.FLOW) ShellPearlMiniIcon(Modifier.size(16.dp))
                             Text(card.estimatedRewardLabel)
                         }
                     }
@@ -452,7 +475,7 @@ private fun ObjectiveCard(card: ObjectiveCardUiState, onClaimClick: (Long) -> Un
                 }
                 when (card.state) {
                     ObjectiveCardState.InProgress -> {
-                        OutlinedButton(onClick = { onLaunchFlow(card.journeyName) }) {
+                        OutlinedButton(onClick = { onLaunchFlow(card.journeyName, card.flowMode) }, enabled = flowEnabled) {
                             Icon(Icons.Outlined.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                             Text(stringResource(R.string.lookout_start_flow))
                         }
@@ -460,17 +483,17 @@ private fun ObjectiveCard(card: ObjectiveCardUiState, onClaimClick: (Long) -> Un
                     ObjectiveCardState.Completed -> {
                         if (card.pearlsClaimed) {
                             Text(
-                                pluralStringResource(R.plurals.lookout_pearls_claimed, card.rewardPearls ?: 0, card.rewardPearls ?: 0),
+                                stringResource(R.string.lookout_rewards_claimed),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.SemiBold
                             )
                         } else {
-                            Button(onClick = { card.completionId?.let(onClaimClick) }) {
+                            Button(onClick = { card.completionId?.let(onClaimClick) }, enabled = claimEnabled) {
                                 Text(stringResource(R.string.lookout_claim))
                             }
                         }
                     }
-                    ObjectiveCardState.Upcoming -> Unit
+                    ObjectiveCardState.Upcoming, ObjectiveCardState.Expired, ObjectiveCardState.Skipped -> Unit
                 }
             }
         }
@@ -521,11 +544,7 @@ private fun CompletedHistoryView(
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(group.journeyName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         group.rows.forEach { row ->
-                            val claimDescription = pluralStringResource(
-                                R.plurals.lookout_claim_from_objective_accessibility,
-                                row.unclaimedPearls, row.unclaimedPearls,
-                                group.journeyName
-                            )
+                            val claimDescription = stringResource(R.string.lookout_claim_rewards)
                             Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                                 Text(row.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                                 Text(row.summary, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -533,7 +552,7 @@ private fun CompletedHistoryView(
                                 if (row.unclaimedPearls > 0) {
                                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                         Text(
-                                            pluralStringResource(R.plurals.lookout_pearls_unclaimed, row.unclaimedPearls, row.unclaimedPearls),
+                                            row.unclaimedRewardLabel,
                                             modifier = Modifier.weight(1f),
                                             fontWeight = FontWeight.SemiBold
                                         )
@@ -570,6 +589,8 @@ private fun SetObjectiveDialog(
     onDismiss: () -> Unit,
     onSave: () -> Unit
 ) {
+    val context = LocalContext.current
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { onSave() }
     Dialog(onDismissRequest = onDismiss) {
         ElevatedCard(shape = RoundedCornerShape(28.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface), modifier = Modifier.widthIn(max = 560.dp)) {
             Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -587,11 +608,12 @@ private fun SetObjectiveDialog(
                 ChoiceRow(ObjectivePeriod.entries, dialog.period, { periodLabel(it) }) { period ->
                     onChange { d ->
                         if (d.targetWasEdited) {
-                            d.copy(period = period)
+                            d.copy(period = period, targetDayText = "1")
                         } else {
                             val defaults = defaultTargetDurationFor(period)
                             d.copy(
                                 period = period,
+                                targetDayText = "1",
                                 targetHoursText = defaults.first,
                                 targetMinutesText = defaults.second
                             )
@@ -600,16 +622,66 @@ private fun SetObjectiveDialog(
                 }
                 Text(stringResource(R.string.lookout_objective_type), fontWeight = FontWeight.SemiBold)
                 ChoiceRow(ObjectiveKind.entries, dialog.kind, { kindLabel(it) }) { onChange { d -> d.copy(kind = it) } }
+                Text(stringResource(R.string.lookout_flow_type), fontWeight = FontWeight.SemiBold)
+                ChoiceRow(FlowMode.entries, dialog.flowMode, { flowModeLabel(it) }) { onChange { d -> d.copy(flowMode = it) } }
                 TargetTimeField(dialog, onChange)
+                ObjectiveTargetSelector(dialog, onChange)
                 if (dialog.period == ObjectivePeriod.Monthly) Text(stringResource(R.string.lookout_monthly_helper), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (dialog.kind == ObjectiveKind.Recurring) Text(stringResource(R.string.lookout_recurring_helper), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 dialog.validationMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold) }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
                     Spacer(Modifier.size(8.dp))
-                    Button(onClick = onSave) { Text(stringResource(R.string.lookout_save_objective)) }
+                    Button(onClick = {
+                        if (dialog.targetMinuteOfDay != null && Build.VERSION.SDK_INT >= 33 &&
+                            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else onSave()
+                    }) { Text(stringResource(R.string.lookout_save_objective)) }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun flowModeLabel(mode: FlowMode): String = stringResource(when (mode) {
+    FlowMode.FLOW -> R.string.lookout_flow_regular
+    FlowMode.SOFT -> R.string.lookout_flow_soft
+    FlowMode.POWER -> R.string.lookout_flow_power
+})
+
+@Composable
+internal fun ObjectiveTargetSelector(dialog: SetObjectiveDialogState, onChange: ((SetObjectiveDialogState) -> SetObjectiveDialogState) -> Unit) {
+    val context = LocalContext.current
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(R.string.lookout_optional_target), Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+        Switch(checked = dialog.targetMinuteOfDay != null, onCheckedChange = { enabled ->
+            onChange { it.copy(targetMinuteOfDay = if (enabled) 9 * 60 else null) }
+        })
+    }
+    dialog.targetMinuteOfDay?.let { minute ->
+        if (dialog.period != ObjectivePeriod.Daily) {
+            OutlinedTextField(
+                value = dialog.targetDayText,
+                onValueChange = { value -> if (value.length <= 2 && value.all(Char::isDigit)) onChange { it.copy(targetDayText = value) } },
+                label = { Text(stringResource(R.string.lookout_target_day, if (dialog.period == ObjectivePeriod.Weekly) 7 else 30)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        OutlinedButton(onClick = {
+            TimePickerDialog(context, { _, hour, minutes -> onChange { it.copy(targetMinuteOfDay = hour * 60 + minutes) } },
+                minute / 60, minute % 60, android.text.format.DateFormat.is24HourFormat(context)).show()
+        }) {
+            Text(stringResource(R.string.lookout_target_clock, DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).format(LocalTime.of(minute / 60, minute % 60))))
+        }
+        Text(stringResource(R.string.lookout_target_helper), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (Build.VERSION.SDK_INT >= 31 && !context.getSystemService(android.app.AlarmManager::class.java).canScheduleExactAlarms()) {
+            OutlinedButton(onClick = {
+                context.startActivity(android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                    android.net.Uri.parse("package:${context.packageName}")))
+            }) { Text(stringResource(R.string.lookout_enable_precise_reminders)) }
         }
     }
 }
@@ -773,12 +845,12 @@ private fun ChoiceButton(selected: Boolean, label: String, onClick: () -> Unit) 
 }
 
 @Composable
-private fun RewardDialog(state: ObjectiveRewardDialogState, onDismiss: () -> Unit) {
+internal fun RewardDialog(state: ObjectiveRewardDialogState, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         ElevatedCard(shape = RoundedCornerShape(30.dp), colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.padding(24.dp).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.size(72.dp)) {
-                    Box(contentAlignment = Alignment.Center) { ShellPearlMiniIcon(Modifier.size(38.dp)) }
+                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.CheckCircle, null, Modifier.size(38.dp)) }
                 }
                 Text(state.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text(state.body, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)

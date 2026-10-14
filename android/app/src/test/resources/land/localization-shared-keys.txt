@@ -2,8 +2,6 @@ the_blue_header_a11y
 shell_preview_the_blue
 shell_chest_empty_body
 beyond_blue_title
-shell_stillwater_reach_depth_first
-shell_message_vessel_locked
 badge_variety_collector_description
 badge_across_depths_description
 badge_every_water_description
@@ -157,7 +155,6 @@ mastery_pin_badge
 mastery_continue
 mastery_return_chest
 mastery_return_blue
-mastery_return_stillwater
 mastery_replace_pin_title
 mastery_calm_mode
 mastery_milestone_reached
@@ -166,7 +163,6 @@ mastery_new_milestones
 mastery_celebration_a11y
 mastery_region_remains_complete
 mastery_pin_selected
-mastery_stillwater_progress
 mastery_completion_restored
 mastery_date_exact
 mastery_date_estimated
@@ -218,7 +214,6 @@ badges_no_recommendations
 shell_chest_sort_closest_mastery
 shell_chest_sort_species_mastery
 shell_creature_view_requirements
-stillwater_named_collection_progress
 reward_card_arc_animals_title
 reward_card_arc_badges_title
 reward_card_arc_shell_shaped_body
@@ -254,7 +249,6 @@ shell_room_the_blue_empty_body
 shell_room_the_blue_empty_title
 shell_whisper_chest_waiting
 shell_whisper_empty_focus
-stillwater_collection_progress_title
 the_blue_beyond_blue_chip
 the_blue_collection_progress
 the_blue_stat_row

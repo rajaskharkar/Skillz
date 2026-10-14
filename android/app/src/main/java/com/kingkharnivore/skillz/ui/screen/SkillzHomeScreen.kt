@@ -47,8 +47,10 @@ fun SkillzHomeScreen(
     healthViewModel: HealthSettingsViewModel = hiltViewModel(),
     onAddSessionClick: () -> Unit,
     onAddPulseClick: () -> Unit,
-    onOpenPlannedFlow: (title: String, tagName: String?, isSoftMode: Boolean) -> Unit,
-    onPlanArcClick: () -> Unit,
+    onLaunchPulseFlow: (Long, String, String?) -> Unit = { _, _, _ -> },
+    onLaunchObjectiveFlow: (String, com.kingkharnivore.skillz.model.FlowMode) -> Unit = { _, _ -> },
+    onOpenPlannedFlow: (com.kingkharnivore.skillz.model.ui.FlowPlanListItemUiModel) -> Unit,
+    onPlanArc: () -> Unit,
     onOpenArc: (Long) -> Unit,
     onOpenSuggestedRoute: (String) -> Unit,
     onGoToActiveSession: () -> Unit,
@@ -137,16 +139,17 @@ fun SkillzHomeScreen(
                             onAddPulseClick = onAddPulseClick,
                             onSessionClick = onSessionClick,
                             onGoToActiveSession = onGoToActiveSession,
-                            isFlowStateActive = isFlowModeOn
+                            isFlowStateActive = isFlowModeOn,
+                            onLaunchPulseFlow = onLaunchPulseFlow, onLaunchObjectiveFlow = onLaunchObjectiveFlow
                         )
 
                         PAGE_PATHS -> PathsScreen(
                             viewModel = pathsViewModel,
-                            onPlanFlowClick = { },
-                            onPlanArcClick = onPlanArcClick,
-                            onOpenFlowPlan = onOpenPlannedFlow,
+                            onPlanArc = onPlanArc,
+                            onOpenArc = onOpenArc,
                             onOpenSuggestedRoute = onOpenSuggestedRoute,
-                            onOpenArc = onOpenArc
+                            onResumeFlow = onGoToActiveSession,
+                            onOpenFlowPlan = onOpenPlannedFlow
                         )
 
                         PAGE_NOTEPAD -> NotepadScreen(

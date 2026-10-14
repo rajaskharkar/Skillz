@@ -46,7 +46,7 @@ class LandPersistenceTest {
         db.withTransaction {
             repeat(count) { i ->
                 db.sessionDao().insertSession(SessionEntity(title = "Flow", description = "", tagId = 1,
-                    startTime = end+i-1, endTime = end+i, durationMs = 1, isSoftMode = i%2==0,
+                    startTime = end+i-1, endTime = end+i, durationMs = 1, mode = com.kingkharnivore.skillz.model.FlowMode.fromSoft(i%2==0),
                     arcId = id, arcIndex = i+1))
             }
             ArcLandRewardJournal.record(db, id)
@@ -131,7 +131,7 @@ class LandPersistenceTest {
     @Test fun historicalArcWithoutProspectiveJournalIsNotRewarded() = runBlocking {
         db.tagDao().insertTag(TagEntity(id=1,name="Old",createdAt=1))
         repeat(15) { db.sessionDao().insertSession(SessionEntity(title="Old", description="", tagId=1,
-            startTime=1,endTime=2,durationMs=1,isSoftMode=false,arcId=70,arcIndex=it+1)) }
+            startTime=1,endTime=2,durationMs=1,mode=com.kingkharnivore.skillz.model.FlowMode.FLOW,arcId=70,arcIndex=it+1)) }
         finalizer.finalizeExpired(999_999)
         assertTrue(db.shellFindInstanceDao().getAll().isEmpty())
     }
@@ -149,57 +149,22 @@ class LandPersistenceTest {
         val second = shell.encounterBeyondBlue("creature_duck", emptyList())
         shell.encounterBeyondBlue("creature_turkey", listOf(second.instanceId))
         assertEquals(CreatureStatus.USED_BEYOND_BLUE, db.shellFindInstanceDao().getById(second.instanceId)?.creatureStatus)
-        for(id in listOf("creature_chicken","creature_deer","creature_camel","creature_moose","creature_tiger","creature_peacock")) {
+        for(id in listOf("creature_chicken","creature_deer","creature_camel","creature_moose","creature_tiger")) {
             try { shell.encounterBeyondBlue(id,emptyList()); fail("Purchased $id") } catch (_:IllegalArgumentException) { }
         }
     }
-    @Test fun landStillwaterSpendsSharedDropsAndPersistsIndependentCreaturesInTheirWorldZones() = runBlocking {
-        shell.addStillwater(250_000, "test", "restorative-funds")
-        val zones = CreatureZone.entries.toSet()
-        val instances = LandStillwaterHabitat.entries.map { habitat ->
-            val before = db.stillwaterLedgerDao().getTotal()
-            val instance = shell.drawFromStillwater(habitat, zones)
-            assertEquals(before - habitat.dropCost, db.stillwaterLedgerDao().getTotal())
-            assertEquals(habitat, CreatureCatalog.require(instance.findId).restorativeHabitat)
-            assertEquals(habitat.zone, CreatureCatalog.require(instance.findId).zone)
-            assertEquals(CreatureStatus.ACTIVE, instance.creatureStatus)
-            instance
-        }
-        val sea = shell.drawFromStillwater(StillwaterVessel.FISHBOWL, zones)
-        assertEquals(CreatureSourceType.STILLWATER, CreatureCatalog.require(sea.findId).sourceType)
-        assertEquals(15_000L, db.stillwaterLedgerDao().getTotal())
-        db.close(); open()
-        assertEquals(6, db.shellFindInstanceDao().getAll().size)
-        assertEquals(15_000L, db.stillwaterLedgerDao().getTotal())
-        val released = instances.first()
-        val payout = CreatureEconomy.releaseValuePearls(released.findId)
-        shell.releaseCreature(released.instanceId)
-        assertEquals(payout, shell.getPearlBalance())
-        assertEquals(CreatureStatus.RELEASED, db.shellFindInstanceDao().getById(released.instanceId)?.creatureStatus)
-    }
 
-    @Test fun concurrentLandDrawsCannotOverspendOrGrantAnUnpaidCreature() = runBlocking {
-        val habitat = LandStillwaterHabitat.PASTURE
-        shell.addStillwater(habitat.dropCost, "test", "single-draw-funds")
-        val results = coroutineScope {
-            List(4) { async(Dispatchers.IO) { runCatching { shell.drawFromStillwater(habitat, setOf(habitat.zone)) } } }.awaitAll()
-        }
-        assertEquals(1, results.count { it.isSuccess })
-        assertEquals(0L, db.stillwaterLedgerDao().getTotal())
-        assertEquals(1, db.shellFindInstanceDao().getAll().size)
-        shell.addStillwater(habitat.dropCost, "test", "locked-draw-funds")
-        try { shell.drawFromStillwater(habitat, emptySet()); fail("Drew from locked habitat") }
-        catch (_: IllegalArgumentException) { }
-        assertEquals(habitat.dropCost, db.stillwaterLedgerDao().getTotal())
-        assertEquals(1, db.shellFindInstanceDao().getAll().size)
-    }
+
+
 
     @Test fun showcaseAcceptsMoreThanThreePinsAndKeepsOrderAcrossReloadAndUnpin() = runBlocking {
         shell.addPearls(5_000, "test", "test", "badge-pins")
         shell.encounterBeyondBlue("creature_duck", emptyList())
         shell.addStillwater(15_000, "test", "badge-pins-drops")
-        shell.drawFromStillwater(LandStillwaterHabitat.PASTURE, CreatureZone.entries.toSet())
-        val ids = listOf("land_first", "land_encounter_first", "land_stillwater_first", "land_pasture_first", "stillwater_first_catch")
+        val legacy = listOf("creature_peacock", "creature_panda", "creature_addax", "creature_takin", "creature_elephant")
+            .map { shell.grantFindCopy(it, "stillwater", "historical") }
+        shell.releaseCreature(legacy.first().instanceId)
+        val ids = listOf("land_first", "land_encounter_first", "land_variety", "across_the_land", "land_release_first")
         ids.forEach { assertEquals(ShellRepository.PinResult.Pinned, shell.pinBadge(it)) }
         assertEquals(ShellRepository.PinResult.AlreadyPinned, shell.pinBadge(ids.first()))
         assertEquals(ids, db.achievementDao().getPins().map { it.badgeId })
@@ -218,22 +183,58 @@ class LandPersistenceTest {
     @Test fun landBadgesUseExistingTrackingAndPinsAndSurviveReleaseAndReload() = runBlocking {
         shell.trackBadge("land_variety")
         shell.addStillwater(15_000, "test", "badge-draw")
-        val creature = shell.drawFromStillwater(LandStillwaterHabitat.PASTURE, CreatureZone.entries.toSet())
+        val creature = shell.grantFindCopy("creature_peacock", "stillwater", "pasture")
         assertEquals(ShellRepository.PinResult.Pinned, shell.pinBadge("land_first"))
-        assertEquals(ShellRepository.PinResult.Pinned, shell.pinBadge("land_stillwater_first"))
         shell.releaseCreature(creature.instanceId)
+        assertEquals(ShellRepository.PinResult.Pinned, shell.pinBadge("land_release_first"))
         db.close(); open()
         val dashboard = com.kingkharnivore.skillz.domain.achievement.BadgeDashboardCalculator.calculate(
             db.userBadgeDao().getAll(), db.shellFindInstanceDao().getAll(),
             db.achievementDao().getDiscoveries(), db.achievementDao().getMasteries(),
             db.achievementDao().getCompletions(), db.achievementDao().getPins(), db.achievementDao().getTracking())
         assertTrue(dashboard.badges.single { it.badgeId == "land_first" }.earned)
-        assertTrue(dashboard.badges.single { it.badgeId == "land_stillwater_first" }.earned)
         assertTrue(dashboard.badges.single { it.badgeId == "land_release_first" }.earned)
         assertFalse(dashboard.badges.single { it.badgeId == "land_variety" }.earned)
         assertEquals(1, dashboard.badges.single { it.badgeId == "land_variety" }.progress)
-        assertEquals(setOf("land_first","land_stillwater_first"), db.achievementDao().getPins().map { it.badgeId }.toSet())
+        assertEquals(setOf("land_first","land_release_first"), db.achievementDao().getPins().map { it.badgeId }.toSet())
         assertTrue(db.achievementDao().getTracking().any { it.badgeId == "land_variety" })
+    }
+
+    @Test fun retiredStillwaterAwardsAndPreferencesRemainStoredButNeverSurfaceOrAdvance() = runBlocking {
+        val award = com.kingkharnivore.skillz.data.model.entity.shell.UserBadgeEntity("stillwater_mastery", 7, 10, 20, false, viewedAt = 30)
+        val pin = com.kingkharnivore.skillz.data.model.entity.shell.BadgePinEntity(award.badgeId, 0, 40)
+        val tracking = com.kingkharnivore.skillz.data.model.entity.shell.BadgeTrackingEntity("stillwater_variety", 50)
+        db.userBadgeDao().upsert(award)
+        db.achievementDao().insertPin(pin)
+        db.achievementDao().insertTracking(tracking)
+        shell.grantFindCopy("stillwater_shrimp", "stillwater", "historical")
+        shell.grantFindCopy("creature_peacock", "stillwater", "historical")
+        shell.pinBadge("land_first")
+        shell.reconcilePowerBadges()
+        assertEquals(award, db.userBadgeDao().get(award.badgeId))
+        assertEquals(pin, db.achievementDao().getPins().single { it.badgeId == pin.badgeId })
+        assertTrue(db.achievementDao().getTracking().contains(tracking))
+        assertFalse(db.userBadgeDao().getAll().any { it.badgeId == "stillwater_first_catch" || it.badgeId == "land_stillwater_first" })
+        val dashboard = com.kingkharnivore.skillz.domain.achievement.BadgeDashboardCalculator.calculate(
+            db.userBadgeDao().getAll(), db.shellFindInstanceDao().getAll(), db.achievementDao().getDiscoveries(),
+            db.achievementDao().getMasteries(), db.achievementDao().getCompletions(), db.achievementDao().getPins(), db.achievementDao().getTracking())
+        assertTrue(dashboard.badges.none { com.kingkharnivore.skillz.domain.achievement.RetiredStillwaterBadges.isBadge(it.badgeId) })
+        assertTrue(dashboard.collections.none { com.kingkharnivore.skillz.domain.achievement.RetiredStillwaterBadges.isCollection(it.collectionId) })
+    }
+
+    @Test fun seaRegionAwardsUseMovedCreaturesWithoutRequiringAnyLandRegion() = runBlocking {
+        listOf("stillwater_shrimp", "stillwater_goby", "stillwater_mahi", "stillwater_coelacanth").forEach { species ->
+            val copy = shell.grantFindCopy(species, "stillwater", "historical")
+            db.shellFindInstanceDao().updateAnimalLevel(copy.instanceId, 99)
+            db.achievementDao().recordMastery(com.kingkharnivore.skillz.data.model.entity.shell.CreatureMasteryEventEntity(
+                "mastery:${copy.instanceId}", copy.instanceId, species, 100, "historical:${copy.instanceId}"))
+        }
+        shell.reconcilePowerBadges()
+        assertEquals(1, db.userBadgeDao().get("across_the_depths")?.count)
+        assertEquals(1, db.userBadgeDao().get("one_from_every_water")?.count)
+        assertNull(db.userBadgeDao().get("across_the_land"))
+        assertNull(db.userBadgeDao().get("stillwater_mastery"))
+        assertEquals(4, db.shellFindInstanceDao().getAll().size)
     }
 
 }

@@ -82,15 +82,15 @@ fun IdeaGroveRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val context = LocalContext.current
-    LaunchedEffect(viewModel, context) {
+    val resources = androidx.compose.ui.platform.LocalResources.current
+    LaunchedEffect(viewModel, resources) {
         viewModel.events.collect { event ->
             when (event) {
                 is IdeaGroveEvent.NavigateToFlow -> onNavigateToFlow(event.pulseId, event.title, event.journeyName)
                 IdeaGroveEvent.NavigateToCurrentFlow -> onNavigateToCurrentFlow()
                 is IdeaGroveEvent.ShowSnackbar -> onSnackbar(
-                    context.getString(event.messageRes),
-                    event.actionLabelRes?.let(context::getString)
+                    resources.getString(event.messageRes),
+                    event.actionLabelRes?.let(resources::getString)
                 )
             }
         }
@@ -376,7 +376,7 @@ private fun IdeaPulseCard(
 }
 
 @Composable
-private fun IdeaFlowHistorySection(flows: List<IdeaGroveFlowUiModel>) {
+internal fun IdeaFlowHistorySection(flows: List<IdeaGroveFlowUiModel>) {
     var showAll by remember { mutableStateOf(false) }
     val visible = if (showAll || flows.size <= 5) flows else flows.take(5)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

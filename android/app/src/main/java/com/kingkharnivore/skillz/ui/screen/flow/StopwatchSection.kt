@@ -29,6 +29,7 @@ import com.kingkharnivore.skillz.viewmodel.FlowViewModel
 @Composable
 fun StopwatchSection(
     state: StopwatchState,
+    mode: com.kingkharnivore.skillz.model.FlowMode = com.kingkharnivore.skillz.model.FlowMode.FLOW,
     viewModel: FlowViewModel,
     showScoreUi: Boolean,
     calmMode: Boolean,
@@ -42,7 +43,7 @@ fun StopwatchSection(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        FlowTimer(timerText = timerText, calmMode = calmMode)
+        FlowTimer(timerText = timerText, calmMode = calmMode, mode = mode)
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
@@ -94,7 +95,7 @@ fun StopwatchSection(
 
 /** The same timer presentation is used for elapsed Flow time and signed Surge time. */
 @Composable
-internal fun FlowTimer(timerText: String, calmMode: Boolean) {
+internal fun FlowTimer(timerText: String, calmMode: Boolean, mode: com.kingkharnivore.skillz.model.FlowMode = com.kingkharnivore.skillz.model.FlowMode.FLOW) {
     val timerA11y = stringResource(R.string.stopwatch_timer_a11y, timerText)
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -102,7 +103,7 @@ internal fun FlowTimer(timerText: String, calmMode: Boolean) {
     ) {
         Text(
             text = stringResource(
-                if (calmMode) R.string.stopwatch_title_calm else R.string.stopwatch_title_in_flow
+                if (mode == com.kingkharnivore.skillz.model.FlowMode.POWER) R.string.power_title else if (calmMode) R.string.stopwatch_title_calm else R.string.stopwatch_title_in_flow
             ),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (calmMode) 0.55f else 1f)
@@ -111,7 +112,7 @@ internal fun FlowTimer(timerText: String, calmMode: Boolean) {
             text = timerText,
             style = if (calmMode) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (calmMode) 0.78f else 1f),
+            color = if (mode == com.kingkharnivore.skillz.model.FlowMode.POWER) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface.copy(alpha = if (calmMode) 0.78f else 1f),
             modifier = Modifier
                 .fillMaxWidth()
                 .semantics { contentDescription = timerA11y }

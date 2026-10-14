@@ -35,11 +35,18 @@ fun StoryBody(
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
     onDeletePulse: (Long) -> Unit,
-    onUpdatePulse: (Long, String, String) -> Unit,
     onCreatePulseForSession: (Long, String, String, String) -> Unit,
     onOpenViewJourneys: (Long) -> Unit,
     onEditArc: (Long) -> Unit,
-    createHistoricalChronicle: (String, String) -> com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleReadState
+    createChronicleEditor: (String, String) -> com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleStateHolder,
+    onSaveEntry: suspend (String, Long, String, String) -> Unit,
+    objectives: List<com.kingkharnivore.skillz.viewmodel.shell.ObjectiveCardUiState> = emptyList(),
+    onObjectiveFlow: (String, com.kingkharnivore.skillz.model.FlowMode) -> Unit = { _, _ -> },
+    onObjectiveClaim: (Long) -> Unit = {},
+    onPulseFlow: (Long) -> Unit = {},
+    onPulseShow: (Long) -> Unit = {},
+    sagaFlowEnabled: Boolean = true,
+    claimEnabled: Boolean = true
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         when {
@@ -64,14 +71,16 @@ fun StoryBody(
                     onSessionClick = onSessionClick,
                     onDeleteSession = onDeleteSession,
                     onDeletePulse = onDeletePulse,
-                    onUpdatePulse = onUpdatePulse,
                     onCreatePulseForSession = onCreatePulseForSession,
                     onAddSessionClick = onAddSessionClick,
                     extraTopContent = if (isFlowStateActive) {
                         { FlowModeHeroCard(onGoToActiveSession = onGoToActiveSession) }
                     } else null,
                     onEditArc = onEditArc,
-                    createHistoricalChronicle = createHistoricalChronicle
+                    createChronicleEditor = createChronicleEditor,
+                    onSaveEntry = onSaveEntry,
+                    objectives = objectives, onObjectiveFlow = onObjectiveFlow, onObjectiveClaim = onObjectiveClaim,
+                    onPulseFlow = onPulseFlow, onPulseShow = onPulseShow, sagaFlowEnabled = sagaFlowEnabled, claimEnabled = claimEnabled
                 )
             }
         }

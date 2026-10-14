@@ -74,12 +74,6 @@ sealed interface PendingShellNavigation {
         override val notificationId: String? = null,
         override val requestId: String = UUID.randomUUID().toString()
     ) : PendingShellNavigation
-    data class OpenStillwaterSpecies(
-        val collectionId: String,
-        val speciesId: String?,
-        override val notificationId: String? = null,
-        override val requestId: String = UUID.randomUUID().toString()
-    ) : PendingShellNavigation
     data class OpenBeyondBlue(
         val collectionId: String,
         val speciesId: String,
@@ -110,13 +104,15 @@ object ShellNavigationCoordinator {
             PendingShellNavigation.OpenBlueSpecies(action.collectionId, action.speciesId, notificationId)
         )
         is BadgeActionDestination.StillwaterVessel -> NavigationDispatch(
-            ShellDestination.Stillwater,
-            PendingShellNavigation.OpenStillwaterSpecies(action.collectionId, action.speciesId, notificationId)
+            ShellDestination.TheBluePreview,
+            PendingShellNavigation.OpenBlueSpecies(
+                action.speciesId?.let { com.kingkharnivore.skillz.utils.shell.CreatureCatalog.get(it)?.collectionId }
+                    ?: "blue_sunlit_reef", action.speciesId, notificationId)
         )
         is BadgeActionDestination.BeyondBlue -> NavigationDispatch(
             ShellDestination.TheBluePreview,
             PendingShellNavigation.OpenBeyondBlue(action.collectionId, action.speciesId, notificationId)
         )
-        BadgeActionDestination.Flow, BadgeActionDestination.Arc, BadgeActionDestination.MovementInfo -> null
+        is BadgeActionDestination.Green, BadgeActionDestination.Flow, BadgeActionDestination.Arc, BadgeActionDestination.MovementInfo -> null
     }
 }

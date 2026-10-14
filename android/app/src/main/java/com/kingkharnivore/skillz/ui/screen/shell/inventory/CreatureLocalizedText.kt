@@ -12,6 +12,7 @@ import java.text.NumberFormat
 /** Both Chest and scene dialogs must describe the same realm completion. */
 internal fun creatureCompletionCollectionId(realm: CreatureRealm, includesHabitats: Boolean): String =
     when (realm) {
+        CreatureRealm.RED -> "collection_red"
         CreatureRealm.LAND -> if (includesHabitats) "collection_all_land" else "collection_land"
         CreatureRealm.SEA -> if (includesHabitats) "collection_all_waters" else "collection_the_blue"
     }

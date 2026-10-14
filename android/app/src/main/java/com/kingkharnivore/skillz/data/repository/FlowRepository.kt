@@ -7,10 +7,13 @@ import com.kingkharnivore.skillz.data.model.dao.ArcMetadataDao
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import androidx.room.withTransaction
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
+import com.kingkharnivore.skillz.data.model.entity.FlowPlanEntity
+import com.kingkharnivore.skillz.data.model.entity.HorizonKind
 import com.kingkharnivore.skillz.data.model.dao.ChronicleDao
 import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
 import com.kingkharnivore.skillz.data.model.entity.SessionCreationEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 
 class FlowRepository @Inject constructor(
@@ -26,22 +29,77 @@ class FlowRepository @Inject constructor(
         sessionDao.findCreatedSession(flowInstanceId)
 
     fun getAllSessions(): Flow<List<SessionEntity>> =
-        sessionDao.getAllSessions()
+        withObjectivePoints(sessionDao.getAllSessions())
 
     fun getSessionsForTag(tagId: Long): Flow<List<SessionEntity>> =
-        sessionDao.getSessionsForTag(tagId)
+        withObjectivePoints(sessionDao.getSessionsForTag(tagId))
+
+    private fun withObjectivePoints(sessions: Flow<List<SessionEntity>>): Flow<List<SessionEntity>> =
+        combine(sessions, database.objectiveCompletionDao().observeCompletions()) { rows, completions ->
+            val points = completions.filter { it.pearlsClaimed && it.sourceSessionId != null }
+                .groupBy { it.sourceSessionId }.mapValues { (_, rewards) -> rewards.sumOf { it.finalRewardPoints } }
+            rows.map { it.copy(scyraPoints = it.scyraPoints + (points[it.id] ?: 0)) }
+        }
 
     suspend fun addSessionAndPromoteChronicle(flowInstanceId: String, session: SessionEntity): Long =
         chronicleRepository.finalizeOwner(ChronicleOwnerType.ACTIVE_FLOW, flowInstanceId) {
           database.withTransaction {
             sessionDao.findCreatedSession(flowInstanceId)?.let { return@withTransaction it }
             val id = sessionDao.insertSession(session)
+            database.powerRewardDao().enqueue(com.kingkharnivore.skillz.data.model.entity.shell.SessionShellRewardEntity(sessionId = id, queuedAt = System.currentTimeMillis()))
             session.arcId?.let { com.kingkharnivore.skillz.utils.arc.ArcLandRewardJournal.record(database, it) }
+            pulseDao.attachLivePulsesToSession(flowInstanceId, id, session.arcId)
             chronicleDao.promote(ChronicleOwnerType.ACTIVE_FLOW, flowInstanceId,
                 ChronicleOwnerType.SESSION, id.toString(), System.currentTimeMillis())
+            session.originPlanId?.let { sourceId ->
+                val plan = database.flowPlanDao().getFlowPlanById(sourceId)
+                // A timer must have accumulated time. Opening / zero-time Continue Arc is not completion.
+                // Habits retain their tag requirement. Plan attempts stay linked even if the user changes the tag.
+                if (plan != null && (plan.kind == HorizonKind.PLAN || plan.tagId == null || plan.tagId == session.tagId) && session.durationMs > 0 &&
+                    (plan.kind == HorizonKind.HABIT || plan.completedAt == null)) {
+                    val tagName = database.tagDao().getAllTagsSnapshot().firstOrNull { it.id == session.tagId }?.name.orEmpty()
+                    database.horizonMemoryDao().insert(com.kingkharnivore.skillz.data.model.entity.HorizonMemoryEntity(
+                        flowInstanceId = flowInstanceId, sourcePlanId = sourceId, kind = plan.kind,
+                        activityTitle = plan.title, sessionId = id, title = session.title, tagName = tagName,
+                        mode = session.mode, durationMs = session.durationMs, score = session.scyraPoints,
+                        surgePoints = session.surgePoints, surgePlannedMs = session.surgePlannedMs,
+                        arcId = session.arcId, arcMultiplier = session.arcMultiplierUsed, completedAt = session.endTime
+                    ))
+                }
+            }
             sessionDao.insertCreation(SessionCreationEntity(flowInstanceId, id, System.currentTimeMillis()))
             id
           }
+        }
+
+    suspend fun planAwaitingCompletion(sessionId: Long): FlowPlanEntity? {
+        val memory = database.horizonMemoryDao().getBySessionId(sessionId) ?: return null
+        if (memory.kind != HorizonKind.PLAN) return null
+        return database.flowPlanDao().getFlowPlanById(memory.sourcePlanId)?.takeIf {
+            it.kind == HorizonKind.PLAN && it.completedAt == null
+        }
+    }
+
+    /** Only an explicit Yes completes a Plan; both answers retain the Flow and its memory. */
+    suspend fun resolvePlanCompletion(sessionId: Long, completed: Boolean) = database.withTransaction {
+        if (!completed) return@withTransaction
+        val plan = planAwaitingCompletion(sessionId) ?: return@withTransaction
+        val memory = database.horizonMemoryDao().getBySessionId(sessionId) ?: return@withTransaction
+        database.flowPlanDao().markCompleted(plan.id, memory.completedAt)
+    }
+
+    suspend fun updateSessionDetails(sessionId: Long, title: String, tagId: Long): Long? =
+        database.withTransaction {
+            val existing = checkNotNull(sessionDao.getSessionById(sessionId))
+            sessionDao.updateDetails(sessionId, title, tagId)
+            val tagName = tagDao.getAllTagsSnapshot().firstOrNull { it.id == tagId }?.name.orEmpty()
+            database.horizonMemoryDao().updateDetails(sessionId, title, tagName)
+            val oldTagId = existing.tagId
+            if (oldTagId != tagId && sessionDao.getSessionCountForTag(oldTagId) == 0 &&
+                pulseDao.getPulseCountForTag(oldTagId) == 0 && database.flowPlanDao().countForTag(oldTagId) == 0) {
+                tagDao.deleteTagById(oldTagId)
+                oldTagId
+            } else null
         }
 
     suspend fun deleteSessionAndCleanupTag(sessionId: Long): Long? {
@@ -53,7 +111,7 @@ class FlowRepository @Inject constructor(
         val remainingSessions = sessionDao.getSessionCountForTag(tagId)
         val remainingPulses = pulseDao.getPulseCountForTag(tagId)
 
-        return if (remainingSessions == 0 && remainingPulses == 0) {
+        return if (remainingSessions == 0 && remainingPulses == 0 && database.flowPlanDao().countForTag(tagId) == 0) {
             tagDao.deleteTagById(tagId)
             tagId
         } else {
@@ -65,18 +123,27 @@ class FlowRepository @Inject constructor(
         deleteSessionTransactionally(sessionId)
     }
 
+    /** Removing an activity memory must never delete the saved Flow or its historical evidence. */
+    suspend fun removeMemoryFromActivity(flowInstanceId: String, sourcePlanId: Long) {
+        database.horizonMemoryDao().removeFromActivity(flowInstanceId, sourcePlanId)
+    }
+
     private suspend fun deleteSessionTransactionally(sessionId: Long) {
-        val chronicleId = chronicleDao.find(ChronicleOwnerType.SESSION, sessionId.toString())?.id
-        database.withTransaction {
-            val arcId = sessionDao.getSessionById(sessionId)?.arcId
-            chronicleDao.delete(ChronicleOwnerType.SESSION, sessionId.toString())
-            pulseDao.detachPulsesFromSession(sessionId)
-            sessionDao.deleteSessionById(sessionId)
-            if (arcId != null && sessionDao.getSessionCountForArc(arcId) == 0) {
-                arcMetadataDao.delete(arcId)
-            }
-        }
+        val chronicleId = database.withTransaction { deleteSessionRecords(sessionId) }
         if (chronicleId != null) chronicleRepository.cleanupDeletedChronicle(chronicleId)
+    }
+
+    // Call inside a transaction; clean up media only after that transaction commits.
+    private suspend fun deleteSessionRecords(sessionId: Long): String? {
+        val chronicleId = chronicleDao.find(ChronicleOwnerType.SESSION, sessionId.toString())?.id
+        val arcId = sessionDao.getSessionById(sessionId)?.arcId
+        chronicleDao.delete(ChronicleOwnerType.SESSION, sessionId.toString())
+        pulseDao.detachPulsesFromSession(sessionId)
+        sessionDao.deleteSessionById(sessionId)
+        if (arcId != null && sessionDao.getSessionCountForArc(arcId) == 0) {
+            arcMetadataDao.delete(arcId)
+        }
+        return chronicleId
     }
 
     suspend fun updateArcFields(
@@ -95,6 +162,7 @@ class FlowRepository @Inject constructor(
             arcBonusPoints = arcBonusPoints,
             finalScyraPoints = finalScyraPoints
         )
+        database.horizonMemoryDao().updateArc(sessionId, arcId, arcMultiplierUsed, finalScyraPoints)
         com.kingkharnivore.skillz.utils.arc.ArcLandRewardJournal.record(database, arcId)
     }
 

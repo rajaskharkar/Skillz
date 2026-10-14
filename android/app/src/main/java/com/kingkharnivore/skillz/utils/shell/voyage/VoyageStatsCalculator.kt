@@ -46,7 +46,8 @@ class VoyageStatsCalculator @Inject constructor() {
             mostTimeInMonth = bestPeriodByDuration(eligible.groupByPeriod { Period.month(it.completedDate) }),
             mostArcsInDay = mostArcsByPeriod(arcSummaries.values, zoneId) { Period.day(it) },
             mostArcsInWeek = mostArcsByPeriod(arcSummaries.values, zoneId) { Period.week(it) },
-            hasEligibleFlows = eligible.isNotEmpty() || arcSummaries.isNotEmpty()
+            hasEligibleFlows = eligible.isNotEmpty() || arcSummaries.isNotEmpty(),
+            power = PowerVoyageCalculator.calculate(sessions, now, zoneId)
         )
     }
 
@@ -137,11 +138,11 @@ class VoyageStatsCalculator @Inject constructor() {
     }
 
     private fun longestArcByTime(arcs: Collection<VoyageArcSummary>): ArcRecord? = arcs
-        .maxWithOrNull(compareBy<VoyageArcSummary> { it.totalDurationMs }.thenBy { it.latestFlowEndMillis }.thenByDescending { -it.arcId })
+        .maxWithOrNull(compareBy<VoyageArcSummary> { it.totalDurationMs }.thenBy { it.latestFlowEndMillis }.thenByDescending { it.arcId })
         ?.toArcRecord()
 
     private fun mostChainedFlowsInArc(arcs: Collection<VoyageArcSummary>): ArcRecord? = arcs
-        .maxWithOrNull(compareBy<VoyageArcSummary> { it.flowCount }.thenBy { it.latestFlowEndMillis }.thenByDescending { -it.arcId })
+        .maxWithOrNull(compareBy<VoyageArcSummary> { it.flowCount }.thenBy { it.latestFlowEndMillis }.thenByDescending { it.arcId })
         ?.toArcRecord()
 
     private fun highestArcMultiplier(arcs: Collection<VoyageArcSummary>): MultiplierRecord? = arcs
@@ -155,7 +156,7 @@ class VoyageStatsCalculator @Inject constructor() {
         .maxWithOrNull(
             compareBy<MultiplierCandidate> { it.multiplier }
                 .thenBy { it.flow.completedAtMillis }
-                .thenByDescending { -it.flow.sessionId }
+                .thenByDescending { it.flow.sessionId }
         )
         ?.let { candidate ->
             MultiplierRecord(
@@ -197,11 +198,11 @@ class VoyageStatsCalculator @Inject constructor() {
     )
 
     private fun bestFlowByPoints(flows: List<EligibleFlow>): VoyageFlowSummary? = flows
-        .maxWithOrNull(compareBy<EligibleFlow> { it.flow.scyraPoints }.thenBy { it.flow.endTime }.thenByDescending { -it.flow.id })
+        .maxWithOrNull(compareBy<EligibleFlow> { it.flow.scyraPoints }.thenBy { it.flow.endTime }.thenByDescending { it.flow.id })
         ?.summary
 
     private fun longestFlow(flows: List<EligibleFlow>): VoyageFlowSummary? = flows
-        .maxWithOrNull(compareBy<EligibleFlow> { it.flow.durationMs }.thenBy { it.flow.endTime }.thenByDescending { -it.flow.id })
+        .maxWithOrNull(compareBy<EligibleFlow> { it.flow.durationMs }.thenBy { it.flow.endTime }.thenByDescending { it.flow.id })
         ?.summary
 
     private fun bestPeriodByPoints(groups: Map<Period, List<EligibleFlow>>): PeriodPointsRecord? = groups

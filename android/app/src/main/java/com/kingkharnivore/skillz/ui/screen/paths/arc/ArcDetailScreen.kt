@@ -645,6 +645,9 @@ private fun ArcStepCard(
                 if (step.isSoftMode) {
                     MiniBadge(text = softText)
                 }
+                if (step.mode == com.kingkharnivore.skillz.model.FlowMode.POWER) {
+                    MiniBadge(text = stringResource(R.string.horizon_power_flow))
+                }
             }
         }
     }

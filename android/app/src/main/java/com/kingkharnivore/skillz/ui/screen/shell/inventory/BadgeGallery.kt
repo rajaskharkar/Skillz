@@ -52,7 +52,7 @@ private fun EarnedBadgeTile(badge: BadgeProgressModel, onOpen: (BadgeProgressMod
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        BadgeMedallion(badge, BadgeMedallionSize.Medium, showCount = true)
+        BadgeMedallion(badge, BadgeMedallionSize.Medium)
         Text(resolveBadgePresentation(badge.badgeId).title,
             style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
     }

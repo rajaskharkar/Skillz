@@ -1115,6 +1115,9 @@ private fun FlowPickerCard(
                 if (flow.isSoftMode) {
                     MiniBadge(text = softText)
                 }
+                if (flow.mode == com.kingkharnivore.skillz.model.FlowMode.POWER) {
+                    MiniBadge(text = stringResource(R.string.horizon_power_flow))
+                }
             }
         }
     }
@@ -1224,6 +1227,9 @@ private fun RouteStepCard(
                 }
                 if (flow.isSoftMode) {
                     MiniBadge(text = softText)
+                }
+                if (flow.mode == com.kingkharnivore.skillz.model.FlowMode.POWER) {
+                    MiniBadge(text = stringResource(R.string.horizon_power_flow))
                 }
             }
 
@@ -1646,6 +1652,9 @@ private fun ReviewStepCard(
                 }
                 if (flow.isSoftMode) {
                     MiniBadge(text = softText)
+                }
+                if (flow.mode == com.kingkharnivore.skillz.model.FlowMode.POWER) {
+                    MiniBadge(text = stringResource(R.string.horizon_power_flow))
                 }
             }
         }

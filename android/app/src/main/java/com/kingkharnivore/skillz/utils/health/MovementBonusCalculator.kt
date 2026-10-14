@@ -1,6 +1,6 @@
 package com.kingkharnivore.skillz.utils.health
 
-import kotlin.math.round
+import kotlin.math.roundToLong
 
 class MovementBonusCalculator {
     fun calculateMovementPoints(steps: Long): Long = steps.coerceAtLeast(0L) / STEPS_PER_POINT
@@ -64,7 +64,7 @@ object MovementRewardRecalculator {
         val preMultiplierTotal = nonMovementPreMultiplierPoints + pulseBonusPoints + surgeBonusPoints +
             otherPreMultiplierBonusPoints + movementPoints
         val multiplier = arcMultiplier * streakMultiplier * otherMultiplier
-        val finalScyraPoints = round(preMultiplierTotal * multiplier).toLong()
+        val finalScyraPoints = (preMultiplierTotal * multiplier).roundToLong()
         val arcBonusPoints = (finalScyraPoints - preMultiplierTotal).coerceAtLeast(0L)
         return FlowRewardBreakdown(
             nonMovementPreMultiplierPoints = nonMovementPreMultiplierPoints,

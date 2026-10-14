@@ -30,7 +30,8 @@ data class ArcDetailStepUiModel(
     val tagName: String,
     val isSoftMode: Boolean,
     val targetMinutes: Int?,
-    val launchWithSurge: Boolean
+    val launchWithSurge: Boolean,
+    val mode: com.kingkharnivore.skillz.model.FlowMode = com.kingkharnivore.skillz.model.FlowMode.fromSoft(isSoftMode)
 )
 
 data class ArcDetailLaunchPayload(
@@ -40,7 +41,8 @@ data class ArcDetailLaunchPayload(
     val plannedArcTitle: String,
     val plannedArcStepIndex: Int,
     val plannedArcTotalSteps: Int,
-    val surgePlannedMinutes: Int?
+    val surgePlannedMinutes: Int?,
+    val mode: com.kingkharnivore.skillz.model.FlowMode = com.kingkharnivore.skillz.model.FlowMode.fromSoft(isSoftMode)
 )
 
 data class ArcDetailUiState(
@@ -150,6 +152,7 @@ class ArcDetailViewModel @Inject constructor(
                     title = step.titleSnapshot,
                     tagName = step.tagIdSnapshot?.let { tagNameById[it] }.orEmpty(),
                     isSoftMode = step.isSoftModeSnapshot,
+                    mode = step.mode,
                     targetMinutes = step.targetMinutesSnapshot,
                     launchWithSurge = step.launchWithSurgeSnapshot
                 )
@@ -221,6 +224,7 @@ class ArcDetailViewModel @Inject constructor(
                         title = targetStep.title,
                         tagName = targetStep.tagName.takeIf { it.isNotBlank() },
                         isSoftMode = targetStep.isSoftMode,
+                        mode = targetStep.mode,
                         plannedArcTitle = state.title,
                         plannedArcStepIndex = targetIndex,
                         plannedArcTotalSteps = state.steps.size,
@@ -267,6 +271,7 @@ class ArcDetailViewModel @Inject constructor(
                         title = first.title,
                         tagName = first.tagName.takeIf { it.isNotBlank() },
                         isSoftMode = first.isSoftMode,
+                        mode = first.mode,
                         plannedArcTitle = state.title,
                         plannedArcStepIndex = 0,
                         plannedArcTotalSteps = state.steps.size,

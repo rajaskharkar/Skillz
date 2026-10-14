@@ -113,7 +113,7 @@ class MasteryCelebrationUiStateMapperInstrumentedTest {
         regionalTotal = completionistTotal(regionId), regionalMastered = regionMastered,
         regionalCollectorEarned = false, regionalCompletionistEarned = false,
         blueMastered = blueMastered, blueTotal = completionistTotal("collection_the_blue"),
-        stillwaterMastered = 0, stillwaterTotal = completionistTotal("collection_stillwater"),
+        stillwaterMastered = 0, stillwaterTotal = 0,
         allWatersMastered = allMastered, allWatersTotal = completionistTotal("collection_all_waters"),
         newlyEarnedBadgeIds = newlyEarned, advancedBadgeIds = "",
         milestonesReached = milestones, originDestination = "BLUE", createdAt = 1L,

@@ -80,7 +80,7 @@ class FlowActiveIntervalTest {
 
         val success = result as MovementReadResult.Success
         assertEquals(200, success.steps)
-        assertEquals(8, MovementBonusCalculator().calculateMovementPoints(success.steps))
+        assertEquals(2, MovementBonusCalculator().calculateMovementPoints(success.steps))
     }
 
     @Test fun restoredRunningFlowDoesNotDoubleCountSavedOpenInterval() {

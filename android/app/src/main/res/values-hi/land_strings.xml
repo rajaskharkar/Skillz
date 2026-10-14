@@ -136,8 +136,7 @@
     <string name="land_no_longer_living">अभी यहाँ नहीं रहता। स्थायी रिकॉर्ड सुरक्षित है।</string>
     <string name="land_effort_value">प्रयास का मूल्य</string>
     <string name="land_zone_waiting">यह शांत धरती जीवन की प्रतीक्षा में है।</string>
-    <string name="land_stillwater_reward">एक जीव प्राप्त करें। उसका आवास: %1$s।</string>
-    <string name="land_stillwater_category">स्तर %1$d · स्टिलवॉटर: %2$s</string>
+
     <string name="land_realm_subtitle">एक जीवंत पृथ्वी</string>
     <string name="land_realm_land_description">सुनहरे मैदान, प्राचीन वन और विशाल वन्य प्रदेश।\nआपके आर्क में गिने गए फ़्लो से मिलने वाला जीवन।</string>
     <string name="land_realm_sea_description">धूप से जगमगाती रीफ़ से विशाल नीले सागर तक।\nआपके फ़्लो की अवधि से मिलने वाला जीवन।</string>

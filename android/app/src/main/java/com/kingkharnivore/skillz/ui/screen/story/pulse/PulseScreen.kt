@@ -75,14 +75,16 @@ import com.kingkharnivore.skillz.viewmodel.TagUiModel
 fun PulseScreen(
     viewModel: StoryViewModel,
     isFlowStateActive: Boolean,
+    attachToFlowByDefault: Boolean = false,
     onDone: () -> Unit,
     onCancel: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isSaving by viewModel.isPulseSaving.collectAsState()
 
     var title by rememberSaveable { mutableStateOf("") }
     var tagName by rememberSaveable { mutableStateOf("") }
-    var attachToCurrentFlow by rememberSaveable { mutableStateOf(isFlowStateActive) }
+    var attachToCurrentFlow by rememberSaveable { mutableStateOf(attachToFlowByDefault) }
 
     val screenTitle = stringResource(R.string.pulse_screen_title)
     val backLabel = stringResource(R.string.common_back)
@@ -94,7 +96,8 @@ fun PulseScreen(
     val attachSwitchLabel = stringResource(R.string.pulse_a11y_attach_switch)
     val pagerState = rememberPagerState(pageCount = { 2 })
     val pagerScope = rememberCoroutineScope()
-    val cancelPulse = { viewModel.cancelPulseDraft(onCancel) }
+    val cancelPulse = { if (!isSaving) viewModel.cancelPulseDraft(onCancel) }
+    androidx.activity.compose.BackHandler(onBack = cancelPulse)
     val chronicleState by viewModel.pulseChronicle.state.collectAsState()
     val chronicleBlocksPager = chronicleState.blocksPager
     val restoredCreatedPulseId by viewModel.restoredCreatedPulseId.collectAsState()
@@ -253,7 +256,7 @@ fun PulseScreen(
                         if (chronicleState.blocksCompletion || chronicleState.draft.isNotBlank()) showDraftPrompt = true
                         else savePulse()
                     },
-                    enabled = title.isNotBlank() || chronicleState.moments.isNotEmpty() || chronicleState.draft.isNotBlank(),
+                    enabled = !isSaving && (title.isNotBlank() || chronicleState.moments.isNotEmpty() || chronicleState.draft.isNotBlank()),
                     modifier = Modifier.weight(1.25f),
                     shape = RoundedCornerShape(18.dp)
                 ) {

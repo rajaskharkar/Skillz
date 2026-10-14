@@ -160,7 +160,7 @@ private object MasteryVisualFixtures {
             blueMastered = fixture.blueMastered,
             blueTotal = completionistTotal("collection_the_blue"),
             stillwaterMastered = 0,
-            stillwaterTotal = completionistTotal("collection_stillwater"),
+            stillwaterTotal = 0,
             allWatersMastered = fixture.allMastered,
             allWatersTotal = completionistTotal("collection_all_waters"),
             newlyEarnedBadgeIds = fixture.newlyEarned,

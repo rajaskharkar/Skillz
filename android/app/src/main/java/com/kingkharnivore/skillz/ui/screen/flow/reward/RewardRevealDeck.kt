@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.EmojiEvents
@@ -166,7 +167,7 @@ private fun RewardRevealCard(
                     Text(
                         text = it,
                         style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.secondary,
+                        color = if(card.iconKey in setOf("power", "pebbles")) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondary,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -182,7 +183,7 @@ private fun RewardRevealCard(
                 Text(
                     text = it,
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = if(card.iconKey in setOf("power", "pebbles")) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -192,7 +193,8 @@ private fun RewardRevealCard(
 
 @Composable
 private fun RewardIcon(card: RewardRevealCardUiModel) {
-    val icon = iconFor(card)
+    val isPower = card.iconKey in setOf("power", "pebbles")
+    val icon = if (card.iconKey == "power") Icons.Outlined.FitnessCenter else iconFor(card)
     val pulse by animateFloatAsState(
         targetValue = when (card.animationStyle) {
             RewardRevealAnimationStyle.NONE -> 1f
@@ -203,19 +205,20 @@ private fun RewardIcon(card: RewardRevealCardUiModel) {
     Surface(
         modifier = Modifier.size(64.dp),
         shape = RoundedCornerShape(22.dp),
-        color = when (card.type) {
+        color = if (isPower) MaterialTheme.colorScheme.tertiary.copy(alpha = .14f) else when (card.type) {
             RewardRevealCardType.SCORE_BREAKDOWN,
             RewardRevealCardType.ARC_SCORE -> MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
             else -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.16f)
         },
-        contentColor = when (card.type) {
+        contentColor = if (isPower) MaterialTheme.colorScheme.tertiary else when (card.type) {
             RewardRevealCardType.SCORE_BREAKDOWN,
             RewardRevealCardType.ARC_SCORE -> MaterialTheme.colorScheme.primary
             else -> MaterialTheme.colorScheme.secondary
         }
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Icon(
+            if (card.iconKey == "pebbles") com.kingkharnivore.skillz.ui.screen.shell.rooms.red.PebbleIcon(Modifier.size(34.dp))
+            else Icon(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier

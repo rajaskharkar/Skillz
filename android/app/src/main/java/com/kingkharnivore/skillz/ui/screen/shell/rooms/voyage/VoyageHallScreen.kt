@@ -199,7 +199,7 @@ private fun VoyageStatsPager(
     onRecordClick: (VoyageRecordDetail) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val pagerState = rememberPagerState(initialPage = 0, pageCount = { 2 })
+    val pagerState = rememberPagerState(initialPage = 0, pageCount = { 3 })
     val scope = rememberCoroutineScope()
     Column(modifier = modifier) {
         VoyagePagerSelector(
@@ -208,7 +208,7 @@ private fun VoyageStatsPager(
         )
         Spacer(Modifier.height(12.dp))
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
-            if (page == 0) CoreStatsPage(stats, onRecordClick) else BonusStatsPage(stats, onRecordClick)
+            when(page) { 0 -> CoreStatsPage(stats, onRecordClick); 1 -> BonusStatsPage(stats, onRecordClick); else -> PowerVoyageContent(stats.power) }
         }
     }
 }
@@ -225,6 +225,7 @@ private fun VoyagePagerSelector(selectedPage: Int, onSelect: (Int) -> Unit) {
     ) {
         VoyageTab(stringResource(R.string.voyage_hall_tab_core_stats), selectedPage == 0, { onSelect(0) }, Modifier.weight(1f))
         VoyageTab(stringResource(R.string.voyage_hall_tab_bonus_stats), selectedPage == 1, { onSelect(1) }, Modifier.weight(1f))
+        VoyageTab(stringResource(R.string.power_title), selectedPage == 2, { onSelect(2) }, Modifier.weight(1f))
     }
 }
 

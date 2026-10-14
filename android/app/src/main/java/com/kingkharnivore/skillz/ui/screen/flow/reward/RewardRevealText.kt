@@ -7,6 +7,12 @@ import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 
 @Composable
 fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
+    val powerTime = stringResource(R.string.power_reward_time)
+    val powerMovement = stringResource(R.string.power_reward_movement)
+    val powerBadgeReasons = com.kingkharnivore.skillz.domain.achievement.RedBadgeCatalog.specs.associate { it.id to stringResource(it.descriptionRes) }
+    val powerCurrencies = stringResource(R.string.power_reward_currencies)
+    val resources = androidx.compose.ui.platform.LocalContext.current.resources
+    val redHint = stringResource(R.string.power_reward_red_hint)
     val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
     val scyraPointsTemplate = stringResource(R.string.reward_card_scyra_points_template)
     val pointsDeltaTemplate = stringResource(R.string.session_reward_points_value)
@@ -77,6 +83,13 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
     val arcShellShapedBody = stringResource(R.string.reward_card_arc_shell_shaped_body)
 
     return object : RewardRevealTextProvider {
+        override fun powerMovement(points: Long) = powerMovement.format(locale, points)
+        override fun powerTime(points: Int) = powerTime.format(locale, points)
+        override fun powerCurrencies(pearls: Int, pebbles: Int) = powerCurrencies.format(locale,
+            resources.getQuantityString(R.plurals.power_pearls_earned, pearls, pearls),
+            resources.getQuantityString(R.plurals.power_pebbles_earned, pebbles, pebbles))
+        override fun pebbles(points: Int) = resources.getQuantityString(R.plurals.power_pebbles_earned, points, points)
+        override fun redHint() = redHint
         override fun scyraPoints(points: Int) = scyraPointsTemplate.format(locale, points)
         override fun pointsDelta(points: Int) = pointsDeltaTemplate.format(locale, points)
         override fun minutes(minutes: Int) = minutesTemplate.format(locale, minutes)
@@ -103,7 +116,7 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         override fun openBlue() = openBlue
         override fun deepOcean() = deepOcean
         override fun animalReason(findId: String) = animalReasons[findId] ?: shellRewardRecordedBody
-        override fun badgeReason(badgeId: String) = badgeReasons[badgeId] ?: shellRewardRecordedBody
+        override fun badgeReason(badgeId: String) = powerBadgeReasons[badgeId] ?: badgeReasons[badgeId] ?: shellRewardRecordedBody
         override fun landArcRewardReason() = landArcRewardReason
         override fun mixedArcRewardReason() = mixedArcRewardReason
         override fun theBlueHint() = theBlueHint

@@ -36,6 +36,7 @@ class ShellRewardEventRecorder @Inject constructor(
             add(ShellRewardEventTypes.STILLWATER_ADDED, null, reward.stillwaterUnits)
         } else {
             add(ShellRewardEventTypes.PEARLS_CARRIED, null, reward.pearlsEarned.toLong())
+            add(ShellRewardEventTypes.PEBBLES_CARRIED, null, reward.pebblesEarned.toLong())
             reward.grantedFindIds.groupingBy { it }.eachCount().forEach { (findId, count) ->
                 val type = when (ShellContentCatalog.find(findId)?.kind) {
                     ShellRewardKind.ANIMAL -> ShellRewardEventTypes.ANIMAL_GRANTED
@@ -78,6 +79,7 @@ object ShellRewardEventAggregator {
 
         val knownTypes = setOf(
             ShellRewardEventTypes.PEARLS_CARRIED,
+            ShellRewardEventTypes.PEBBLES_CARRIED,
             ShellRewardEventTypes.STILLWATER_ADDED,
             ShellRewardEventTypes.ANIMAL_GRANTED,
             ShellRewardEventTypes.OBJECT_GRANTED,
@@ -93,12 +95,13 @@ object ShellRewardEventAggregator {
             badges = countsFor(ShellRewardEventTypes.BADGE_UPDATED),
             discoveries = countsFor(ShellRewardEventTypes.DISCOVERY_RECORDED),
             unknownRewards = events
-                .filter { it.rewardType !in knownTypes || it.rewardId == null && it.rewardType !in setOf(ShellRewardEventTypes.PEARLS_CARRIED, ShellRewardEventTypes.STILLWATER_ADDED) }
+                .filter { it.rewardType !in knownTypes || it.rewardId == null && it.rewardType !in setOf(ShellRewardEventTypes.PEARLS_CARRIED, ShellRewardEventTypes.PEBBLES_CARRIED, ShellRewardEventTypes.STILLWATER_ADDED) }
                 .groupBy { it.rewardId ?: it.rewardType }
                 .map { (id, grouped) -> ArcShellRewardCountUiModel(id, grouped.sumOf { it.quantity }.toInt()) }
                 .filter { it.count > 0 }
                 .sortedBy { it.id },
             pearlsCarried = events.filter { it.rewardType == ShellRewardEventTypes.PEARLS_CARRIED }.sumOf { it.quantity }.toInt(),
+            pebblesCarried = events.filter { it.rewardType == ShellRewardEventTypes.PEBBLES_CARRIED }.sumOf { it.quantity }.toInt(),
             stillwaterAdded = events.filter { it.rewardType == ShellRewardEventTypes.STILLWATER_ADDED }.sumOf { it.quantity }
         )
     }

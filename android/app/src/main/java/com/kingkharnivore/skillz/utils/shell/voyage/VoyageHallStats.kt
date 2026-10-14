@@ -19,7 +19,8 @@ data class VoyageHallStats(
     val mostTimeInMonth: PeriodDurationRecord?,
     val mostArcsInDay: PeriodCountRecord?,
     val mostArcsInWeek: PeriodCountRecord?,
-    val hasEligibleFlows: Boolean
+    val hasEligibleFlows: Boolean,
+    val power: PowerVoyageStats = PowerVoyageStats()
 )
 
 data class VoyageSourceFlow(
@@ -34,7 +35,9 @@ data class VoyageSourceFlow(
     val arcId: Long?,
     val arcIndex: Int?,
     val arcMultiplierUsed: Double?,
-    val arcBonusPoints: Int = 0
+    val arcBonusPoints: Int = 0,
+    val mode: com.kingkharnivore.skillz.model.FlowMode = com.kingkharnivore.skillz.model.FlowMode.fromSoft(isSoftMode),
+    val tagId: Long = 0
 )
 
 data class VoyageFlowSummary(

@@ -56,30 +56,12 @@ class LandVisualTestActivity : ComponentActivity() {
                 var encounterOpen by remember { mutableStateOf(true) }
                 Surface(Modifier.fillMaxSize()) {
                     Scaffold(topBar={ ShellTopBar(
-                        destination=when(scenario) { "habitat" -> ShellDestination.Stillwater; "chest" -> ShellDestination.ShellChest; "badges", "badge-art" -> ShellDestination.Badges; else -> ShellDestination.TheBluePreview },
+                        destination=when(scenario) { "habitat" -> ShellDestination.TheGreen; "chest" -> ShellDestination.ShellChest; "badges", "badge-art" -> ShellDestination.Badges; else -> ShellDestination.TheBluePreview },
                         pearlBalance=state.pearlBalance,pearlBasinHasIndicator=false,notificationCount=0,
                         onBack={realm=null},onNotifications={},blueRealm=realm) }) { padding ->
                         Box(Modifier.fillMaxSize().padding(padding)) {
                             when(scenario) {
                                 "animal-art" -> LandArtworkPreview(zone,intent.getBooleanExtra("restorative",false),intent.getBooleanExtra("animate",false))
-                                "habitat" -> com.kingkharnivore.skillz.ui.screen.shell.rooms.stillwater.StillwaterVesselsScreen(
-                                    uiState=state,
-                                    onDrawFromStillwater={ vessel ->
-                                        if (requiresStillwaterConfirmation(vessel)) state=state.copy(pendingStillwaterDrawVessel=vessel)
-                                        else {
-                                            val creature = LandStillwaterCatalog.roll(vessel as LandStillwaterHabitat)
-                                            state=state.copy(stillwaterClaimableDrops=state.stillwaterClaimableDrops-vessel.dropCost,
-                                                finds=state.finds+instance(creature.creatureId,1,"draw"),stillwaterRevealCreature=creature)
-                                        }
-                                    },
-                                    onConfirmStillwaterDraw={ vessel ->
-                                        val creature = LandStillwaterCatalog.roll(vessel as LandStillwaterHabitat)
-                                        state=state.copy(pendingStillwaterDrawVessel=null,stillwaterClaimableDrops=state.stillwaterClaimableDrops-vessel.dropCost,
-                                            finds=state.finds+instance(creature.creatureId,1,"draw"),stillwaterRevealCreature=creature)
-                                    },
-                                    onDismissStillwaterReveal={state=state.copy(stillwaterRevealCreature=null)},
-                                    onDismissStillwaterDrawConfirmation={state=state.copy(pendingStillwaterDrawVessel=null)},
-                                    onNavigate={},vessels=LandStillwaterHabitat.entries,initialVessel=habitat)
                                 "encounter", "affordable", "unaffordable" -> {
                                     LandZonePage(buildTheBlueUiState(state.finds,emptyList(),CreatureRealm.LAND).zones.first { it.zoneId.creatureZone==zone },{0f},{},{},{})
                                     if (encounterOpen) BeyondBlueEncounterSheet(pearlBalance=state.pearlBalance,initialZone=theBlueZoneFor(zone),

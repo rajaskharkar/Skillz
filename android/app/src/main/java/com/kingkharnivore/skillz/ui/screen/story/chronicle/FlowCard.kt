@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
+import com.kingkharnivore.skillz.ui.screen.chronicle.ExpandedChronicle
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.PsychologyAlt
 import androidx.compose.material.icons.outlined.Spa
@@ -90,6 +92,7 @@ fun FlowCard(
     )
 
     val baseContainer = when {
+        session.mode == com.kingkharnivore.skillz.model.FlowMode.POWER -> MaterialTheme.colorScheme.tertiaryContainer
         isSoft -> MaterialTheme.colorScheme.secondary
         session.isSurge -> lerp(journeyTint, MaterialTheme.colorScheme.surfaceVariant, 0.22f)
         else -> journeyTint
@@ -113,6 +116,7 @@ fun FlowCard(
     }
 
     val labelColor = when {
+        session.mode == com.kingkharnivore.skillz.model.FlowMode.POWER -> MaterialTheme.colorScheme.onTertiaryContainer
         isSoft -> MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.82f)
         else -> lerp(
             MaterialTheme.colorScheme.onSurface,
@@ -122,7 +126,7 @@ fun FlowCard(
     }
 
     val flowTypeLabel = stringResource(
-        if (isSoft) R.string.flow_card_type_soft else R.string.flow_card_type_flow
+        if (session.mode == com.kingkharnivore.skillz.model.FlowMode.POWER) R.string.power_title else if (isSoft) R.string.flow_card_type_soft else R.string.flow_card_type_flow
     )
     val expandedStateLabel = stringResource(R.string.a11y_expanded)
     val collapsedStateLabel = stringResource(R.string.a11y_collapsed)
@@ -213,10 +217,7 @@ fun FlowCard(
             )
         }
         .combinedClickable(
-            onClick = {
-                onToggleExpand()
-                onClick()
-            },
+            onClick = onToggleExpand,
             onLongClick = onLongPress
         )
 
@@ -265,6 +266,10 @@ fun FlowCard(
                         }
                     }
 
+                    if (session.mode == com.kingkharnivore.skillz.model.FlowMode.POWER) {
+                        Text(flowTypeLabel, style = MaterialTheme.typography.labelMedium, color = labelColor)
+                    }
+
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
@@ -298,6 +303,9 @@ fun FlowCard(
                     }
 
                     if (isExpanded) {
+                        IconButton(onClick = onLongPress) {
+                            Icon(Icons.Default.Edit, contentDescription = editFlowLabel, tint = contentColor)
+                        }
                         IconButton(
                             onClick = { showDeleteDialog = true }
                         ) {
@@ -315,7 +323,10 @@ fun FlowCard(
             HorizontalDivider(color = contentColor.copy(alpha = 0.10f))
             Spacer(modifier = Modifier.height(10.dp))
 
-            if (session.description.isNotBlank()) {
+            if (isExpanded) {
+                ExpandedChronicle("SESSION", session.sessionId, session.chronicleTexts.joinToString("\n\n").ifBlank { session.description })
+                Spacer(Modifier.height(8.dp))
+            } else if (session.description.isNotBlank() || session.chronicleTexts.isNotEmpty()) {
                 Text(
                     text = session.chronicleTexts.joinToString("\n\n").ifBlank { session.description },
                     style = MaterialTheme.typography.bodyMedium,

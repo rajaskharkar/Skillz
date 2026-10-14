@@ -125,7 +125,7 @@ class PulseRepository @Inject constructor(
         val remainingSessions = sessionDao.getSessionCountForTag(tagId)
         val remainingPulses = pulseDao.getPulseCountForTag(tagId)
 
-        return if (remainingSessions == 0 && remainingPulses == 0) {
+        return if (remainingSessions == 0 && remainingPulses == 0 && database.flowPlanDao().countForTag(tagId) == 0) {
             tagDao.deleteTagById(tagId)
             tagId
         } else {
@@ -164,7 +164,7 @@ class PulseRepository @Inject constructor(
         val remainingSessions = sessionDao.getSessionCountForTag(tagId)
         val remainingPulses = pulseDao.getPulseCountForTag(tagId)
 
-        return if (remainingSessions == 0 && remainingPulses == 0) {
+        return if (remainingSessions == 0 && remainingPulses == 0 && database.flowPlanDao().countForTag(tagId) == 0) {
             tagDao.deleteTagById(tagId)
             tagId
         } else {

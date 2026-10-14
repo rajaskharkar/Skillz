@@ -12,8 +12,9 @@ import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ObjectiveSkippedCycleEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.PearlLedgerEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserBadgeEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.StillwaterLedgerEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.PebbleLedgerEntity
 import kotlinx.coroutines.flow.Flow
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import com.kingkharnivore.skillz.domain.lookout.RecurringObjectiveStats
@@ -94,25 +95,24 @@ class LookoutRepository @Inject constructor(
         if (completion.pearlsClaimed) return@withTransaction 0
         val now = System.currentTimeMillis()
         if (completionDao.markPearlsClaimed(completion.id, now) != 1) return@withTransaction 0
-        creditClaim(completion.finalRewardPearls, 1, "objective_completion", completion.id.toString(), now)
+        creditClaim(completion, now)
     }
 
     /** Claims every outstanding occurrence for one Objective definition atomically. */
     suspend fun claimAchievementRewards(badgeKey: String): Int = db.withTransaction {
-        val aggregate = completionDao.getUnclaimedAggregateForBadge(badgeKey)
-        if (aggregate.completionCount == 0) return@withTransaction 0
-        val now = System.currentTimeMillis()
-        check(completionDao.markBadgePearlsClaimed(badgeKey, now) == aggregate.completionCount)
-        creditClaim(aggregate.pearlTotal, aggregate.completionCount, "objective_achievement", badgeKey, now)
+        claimCompletions(completionDao.getUnclaimedCompletions(badgeKey))
     }
 
     /** Claims the exact snapshot of all outstanding Objective rewards in one transaction. */
     suspend fun claimAllObjectiveRewards(): Int = db.withTransaction {
-        val aggregate = completionDao.getAllUnclaimedAggregate()
-        if (aggregate.completionCount == 0) return@withTransaction 0
+        claimCompletions(completionDao.getUnclaimedCompletions())
+    }
+
+    private suspend fun claimCompletions(completions: List<ObjectiveCompletionEntity>): Int {
         val now = System.currentTimeMillis()
-        check(completionDao.markAllPearlsClaimed(now) == aggregate.completionCount)
-        creditClaim(aggregate.pearlTotal, aggregate.completionCount, "objective_claim_all", null, now)
+        return completions.sumOf { completion ->
+            if (completionDao.markPearlsClaimed(completion.id, now) == 1) creditClaim(completion, now) else 0
+        }
     }
 
     suspend fun updateRecurringStats(objectiveId: Long, stats: RecurringObjectiveStats, updatedAtMs: Long) {
@@ -135,26 +135,27 @@ class LookoutRepository @Inject constructor(
         )
     }
 
-    private suspend fun creditClaim(
-        total: Int,
-        count: Int,
-        sourceType: String,
-        sourceId: String?,
-        now: Long
-    ): Int {
-        if (total > 0) {
-            pearlLedgerDao.insert(
-                PearlLedgerEntity(
-                    id = UUID.randomUUID().toString(),
-                    delta = total,
-                    reason = "objective_completion_claim",
-                    sourceType = sourceType,
-                    sourceId = sourceId,
-                    createdAt = now,
-                    note = "$count Objective reward(s)"
-                )
-            )
+    private suspend fun creditClaim(completion: ObjectiveCompletionEntity, now: Long): Int {
+        val sourceId = completion.id.toString()
+        if (completion.finalRewardPearls > 0) {
+            pearlLedgerDao.insert(PearlLedgerEntity(
+                id = "objective:$sourceId", delta = completion.finalRewardPearls,
+                reason = "objective_completion_claim", sourceType = "objective_completion",
+                sourceId = sourceId, createdAt = now, note = "Objective reward"
+            ))
         }
-        return total
+        if (completion.finalRewardDrops > 0) {
+            db.stillwaterLedgerDao().insert(StillwaterLedgerEntity(
+                "objective:$sourceId", completion.finalRewardDrops, "objective_completion", sourceId, now
+            ))
+        }
+        if (completion.finalRewardPebbles > 0) {
+            db.powerRewardDao().insert(PebbleLedgerEntity(
+                "objective:$sourceId", completion.finalRewardPebbles, sourceId, now
+            ))
+        }
+        // Points are durable in the completion receipt and become visible when claimed.
+        return (completion.finalRewardPearls.toLong() + completion.finalRewardDrops +
+            completion.finalRewardPebbles + completion.finalRewardPoints).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
     }
 }

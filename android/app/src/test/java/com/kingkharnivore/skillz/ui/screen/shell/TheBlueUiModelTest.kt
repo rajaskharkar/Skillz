@@ -36,7 +36,7 @@ class TheBlueUiModelTest {
         assertEquals(2, tiger.totalCount)
         assertEquals(99, tiger.highestLevel)
         assertEquals(TheBlueZoneId.GOLDEN_FIELDS, zoneForFind("creature_peacock"))
-        assertFalse(isBlueAcquisitionCreature("creature_peacock"))
+        assertTrue(isBlueAcquisitionCreature("creature_peacock"))
         assertEquals(1, buildTheBlueUiState(finds, emptyList()).totalAnimals)
         assertTrue(buildTheBlueUiState(emptyList(), emptyList(), com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND).zones.all { it.animals.isEmpty() })
     }
@@ -90,8 +90,8 @@ class TheBlueUiModelTest {
     }
 
     @Test
-    fun acquisitionPoolExcludesStillwaterButOwnedDisplayIncludesActiveStillwater() {
-        assertFalse(isBlueAcquisitionCreature("stillwater_clam"))
+    fun acquisitionCatalogueAndOwnedDisplayIncludeHeritageSpecies() {
+        assertTrue(isBlueAcquisitionCreature("stillwater_clam"))
         assertTrue(isBlueAcquisitionCreature(ShellContentCatalog.FOCUS_MINNOW))
 
         val state = buildTheBlueUiState(
@@ -109,7 +109,7 @@ class TheBlueUiModelTest {
         assertEquals(1, reefAnimals.single { it.findId == "stillwater_clam" }.totalCount)
         assertEquals(2, reefAnimals.single { it.findId == "stillwater_clam" }.lifetimeEncounteredCount)
         assertEquals(1, reefAnimals.single { it.findId == "stillwater_clam" }.releasedCount)
-        assertEquals(1, state.newAnimalCount)
+        assertEquals(2, state.newAnimalCount)
     }
 
     @Test

@@ -18,5 +18,6 @@ data class ArcPlanStepPreviewUiModel(
     val title: String,
     val targetMinutes: Int?,
     val isSoftMode: Boolean,
-    val launchWithSurge: Boolean
+    val launchWithSurge: Boolean,
+    val mode: com.kingkharnivore.skillz.model.FlowMode = com.kingkharnivore.skillz.model.FlowMode.fromSoft(isSoftMode)
 )

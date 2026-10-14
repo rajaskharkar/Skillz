@@ -36,32 +36,22 @@ internal object MasteryCelebrationUiStateMapper {
         val firstMasteryForSpecies = event.speciesMasteryCount == 1
         val collectionDelta = if (firstMasteryForSpecies) 1 else 0
         val isLand = com.kingkharnivore.skillz.utils.shell.CreatureCatalog.get(event.speciesId)?.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND
-        val sourceCollection = if (event.sourceId in setOf("STILLWATER", "RESTORATIVE_LAND")) {
-            MasteryCollectionChange(
-                "collection_stillwater",
-                countChange(event.stillwaterMastered, collectionDelta),
-                event.stillwaterTotal
-            )
-        } else {
-            MasteryCollectionChange(
-                "collection_the_blue",
-                countChange(event.blueMastered, collectionDelta),
-                event.blueTotal
-            )
-        }
+        val retiredSnapshot = com.kingkharnivore.skillz.domain.achievement.RetiredStillwaterBadges.isCollection(event.regionId)
+        val sourceCollection = MasteryCollectionChange(
+            "collection_the_blue", countChange(event.blueMastered, collectionDelta), event.blueTotal)
         val collectionChanges = listOfNotNull(
             MasteryCollectionChange(
                 event.regionId,
                 countChange(event.regionalMastered, collectionDelta),
                 event.regionalTotal
             ),
-            sourceCollection.takeIf { !isLand || event.sourceId == "RESTORATIVE_LAND" },
+            sourceCollection.takeUnless { isLand || retiredSnapshot },
             MasteryCollectionChange(
                 "collection_all_waters",
                 countChange(event.allWatersMastered, collectionDelta),
                 event.allWatersTotal
-            ).takeUnless { isLand }
-        ).distinctBy { it.collectionId }
+            ).takeUnless { isLand || retiredSnapshot }
+        ).filterNot { com.kingkharnivore.skillz.domain.achievement.RetiredStillwaterBadges.isCollection(it.collectionId) }.distinctBy { it.collectionId }
 
         val earned = event.newlyEarnedBadgeIds.csvValues()
             .filter(BadgeDefinitionResolver::isUserVisible)

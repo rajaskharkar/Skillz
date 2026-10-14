@@ -336,7 +336,7 @@ internal fun formatNotificationDeliveredAt(
     return when {
         deliveredAt.toLocalDate() == nowAtZone.toLocalDate() -> deliveredAt.format(
             DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale)
-        )
+        ).replace('\u202f', ' ').replace('\u00a0', ' ')
         deliveredAt.year == nowAtZone.year -> deliveredAt.format(
             DateTimeFormatter.ofPattern("MMM d", locale)
         )

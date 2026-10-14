@@ -1,5 +1,7 @@
 package com.kingkharnivore.skillz.viewmodel.shell
 
+import com.kingkharnivore.skillz.model.FlowMode
+import com.kingkharnivore.skillz.domain.lookout.ObjectiveReminderScheduler
 import android.content.Context
 import androidx.annotation.StringRes
 import androidx.annotation.PluralsRes
@@ -28,6 +30,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
+import kotlin.math.roundToInt
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -58,6 +61,7 @@ data class LookoutUiState(
     val weekly: ObjectivePeriodUiState = ObjectivePeriodUiState(ObjectivePeriod.Weekly),
     val monthly: ObjectivePeriodUiState = ObjectivePeriodUiState(ObjectivePeriod.Monthly),
     val completedHistory: List<CompletedObjectiveHistoryGroupUiState> = emptyList(),
+    val sagaObjectives: List<ObjectiveCardUiState> = emptyList(),
     val unclaimedPearls: Int = 0,
     val unclaimedObjectiveCount: Int = 0,
     val claimInProgress: Boolean = false,
@@ -96,7 +100,10 @@ data class ObjectiveCardUiState(
     val rewardPearls: Int?,
     val completionId: Long?,
     val pearlsClaimed: Boolean,
-    val state: ObjectiveCardState
+    val state: ObjectiveCardState,
+    val flowMode: FlowMode = FlowMode.FLOW,
+    val targetLabel: String? = null,
+    val cycleLabel: String? = null
 )
 
 data class CompletedObjectiveHistoryGroupUiState(
@@ -112,6 +119,7 @@ data class CompletedObjectiveHistoryRowUiState(
     val summary: String,
     val lastCompletedLabel: String,
     val unclaimedPearls: Int,
+    val unclaimedRewardLabel: String,
     val periodOrder: Int
 )
 
@@ -141,7 +149,10 @@ data class SetObjectiveDialogState(
     val targetHoursText: String = "0",
     val targetMinutesText: String = "30",
     val targetWasEdited: Boolean = false,
-    val validationMessage: String? = null
+    val validationMessage: String? = null,
+    val flowMode: FlowMode = FlowMode.FLOW,
+    val targetMinuteOfDay: Int? = null,
+    val targetDayText: String = "1"
 )
 
 data class ObjectiveRewardDialogState(
@@ -168,7 +179,8 @@ class LookoutViewModel @Inject constructor(
     private val journeyRepository: JourneyRepository,
     private val lookoutRepository: LookoutRepository,
     private val calculator: ObjectiveProgressCalculator,
-    private val objectiveCompletionProcessor: ObjectiveCompletionProcessor
+    private val objectiveCompletionProcessor: ObjectiveCompletionProcessor,
+    private val reminderScheduler: ObjectiveReminderScheduler
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LookoutUiState())
     val uiState: StateFlow<LookoutUiState> = _uiState
@@ -178,6 +190,7 @@ class LookoutViewModel @Inject constructor(
 
     private var latestObjectives: List<ObjectiveEntity> = emptyList()
     private var latestCards: List<ObjectiveCardModel> = emptyList()
+    private var latestFlows: List<ObjectiveSourceFlow> = emptyList()
     private var latestJourneys: List<TagEntity> = emptyList()
     private var refreshJob: Job? = null
     private val nowTick = MutableStateFlow(Instant.now())
@@ -246,11 +259,16 @@ class LookoutViewModel @Inject constructor(
         val journeyIdForDuplicateCheck = matchedJourney?.id ?: dialog.selectedJourneyId
 
         when {
+            dialog.targetMinuteOfDay != null && (dialog.targetDayText.toIntOrNull() !in 1..when (dialog.period) {
+                ObjectivePeriod.Daily -> 1
+                ObjectivePeriod.Weekly -> 7
+                ObjectivePeriod.Monthly -> 30
+            }) -> showDialogValidation(text(R.string.lookout_validation_target_day))
             journeyName.isBlank() -> showDialogValidation(text(R.string.lookout_validation_choose_journey))
             targetHasInvalidNumber || targetHours < 0 || targetMinutes < 0 || totalTargetMinutes <= 0 -> showDialogValidation(text(R.string.lookout_validation_target_time))
             targetMinutes !in 0L..59L -> showDialogValidation(text(R.string.lookout_validation_minutes_range))
             dialog.startDate.isBefore(LocalDate.now()) -> showDialogValidation(text(R.string.lookout_validation_start_date))
-            journeyIdForDuplicateCheck != null && hasDuplicateActiveObjective(journeyIdForDuplicateCheck, dialog.period) -> {
+            journeyIdForDuplicateCheck != null && hasDuplicateActiveObjective(journeyIdForDuplicateCheck, dialog.period, dialog.flowMode) -> {
                 val duplicateJourneyName = matchedJourney?.name ?: journeyName
                 showDialogValidation(text(R.string.lookout_duplicate_objective, periodLabel(dialog.period), duplicateJourneyName))
             }
@@ -260,7 +278,7 @@ class LookoutViewModel @Inject constructor(
                 val zone = ZoneId.systemDefault()
                 val startMs = dialog.startDate.atStartOfDay(zone).toInstant().toEpochMilli()
                 val now = System.currentTimeMillis()
-                objectiveCompletionProcessor.createObjectiveAndReconcile(
+                val objectiveId = objectiveCompletionProcessor.createObjectiveAndReconcile(
                     ObjectiveEntity(
                         journeyId = journeyId,
                         journeyNameSnapshot = journeySnapshot,
@@ -270,16 +288,31 @@ class LookoutViewModel @Inject constructor(
                         startAtMs = startMs,
                         weeklyBoundaryDay = if (dialog.period == ObjectivePeriod.Weekly) dialog.startDate.dayOfWeek.value else null,
                         createdAt = now,
-                        updatedAt = now
+                        updatedAt = now,
+                        flowMode = dialog.flowMode,
+                        targetMinuteOfDay = dialog.targetMinuteOfDay,
+                        targetDayOffset = if (dialog.targetMinuteOfDay != null) (dialog.targetDayText.toIntOrNull() ?: 1) - 1 else 0
                     )
                 )
+                lookoutRepository.getObjective(objectiveId)?.let { reminderScheduler.schedule(it) }
                 _uiState.update { it.copy(setObjectiveDialog = null) }
                 _events.emit(text(R.string.lookout_objective_set, journeySnapshot))
             }
         }
     }
 
-    fun claimReward(completionId: Long) = claim { lookoutRepository.claimObjectivePearls(completionId) }
+    fun claimReward(completionId: Long) = claim {
+        val reward = lookoutRepository.getCompletions().firstOrNull { it.id == completionId } ?: return@claim 0
+        val claimed = lookoutRepository.claimObjectivePearls(completionId)
+        if (claimed > 0) _uiState.update { it.copy(rewardDialog = ObjectiveRewardDialogState(
+            title = text(R.string.lookout_rewards_claimed),
+            body = text(R.string.lookout_objective_complete_body, reward.journeyNameSnapshot, periodLabel(ObjectivePeriod.fromStorage(reward.periodType))),
+            pearls = rewardLabel(reward),
+            streakBonus = if (reward.streakMultiplier > 1) text(R.string.lookout_streak_bonus_percent, ((reward.streakMultiplier - 1) * 100).roundToInt()) else null,
+            currentStreak = if (reward.startedBeforeTarget) text(R.string.saga_objective_double_reward) else null
+        )) }
+        claimed
+    }
 
     fun claimAchievement(achievementKey: String) = claim { lookoutRepository.claimAchievementRewards(achievementKey) }
 
@@ -290,7 +323,12 @@ class LookoutViewModel @Inject constructor(
         _uiState.update { it.copy(claimInProgress = true) }
         try {
             val claimed = block()
-            if (claimed > 0) _events.emit(plural(R.plurals.lookout_pearls_claimed, claimed))
+            if (claimed > 0) _events.emit(text(R.string.lookout_rewards_claimed))
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            android.util.Log.e("Lookout", "Unable to claim Objective rewards", failure)
+            _events.emit(text(R.string.lookout_claim_failed))
         } finally {
             _uiState.update { it.copy(claimInProgress = false) }
         }
@@ -315,18 +353,21 @@ class LookoutViewModel @Inject constructor(
     fun deleteOneTimeObjective() = viewModelScope.launch {
         val dialog = _uiState.value.removeDialog ?: return@launch
         objectiveCompletionProcessor.archiveObjectiveSafely(dialog.objectiveId)
+        reminderScheduler.cancel(dialog.objectiveId)
         _uiState.update { it.copy(removeDialog = null) }
     }
 
     fun stopRecurringObjective() = viewModelScope.launch {
         val dialog = _uiState.value.removeDialog ?: return@launch
         objectiveCompletionProcessor.archiveObjectiveSafely(dialog.objectiveId)
+        reminderScheduler.cancel(dialog.objectiveId)
         _uiState.update { it.copy(removeDialog = null) }
     }
 
     fun skipRecurringCycle() = viewModelScope.launch {
         val dialog = _uiState.value.removeDialog ?: return@launch
         lookoutRepository.skipCycle(dialog.objectiveId, dialog.periodStartMs, dialog.periodEndMs)
+        lookoutRepository.getObjective(dialog.objectiveId)?.let { reminderScheduler.schedule(it) }
         _uiState.update { it.copy(removeDialog = null) }
     }
 
@@ -350,14 +391,18 @@ class LookoutViewModel @Inject constructor(
                 latestObjectives = data.objectives
                 latestJourneys = data.journeys
                 val flows = data.sessions.map { it.toObjectiveSourceFlow() }
+                latestFlows = flows
                 val result = calculator.calculate(data.objectives, flows, data.completions, data.skipped, now, ZoneId.systemDefault())
 
-                Triple(result.cards, data.journeys, data.completions) to (now to rewards)
+                Triple(result.cards to com.kingkharnivore.skillz.domain.lookout.sagaObjectiveCards(
+                    data.objectives, flows, data.completions, data.skipped, now, ZoneId.systemDefault(), calculator
+                ), data.journeys, data.completions) to (now to rewards)
             }.catch { error ->
                 _uiState.update { it.copy(isLoading = false, errorMessage = error.message) }
             }.collect { (payload, timeAndRewards) ->
                 val (now, rewards) = timeAndRewards
-                val (cards, journeys, completions) = payload
+                val (cardLists, journeys, completions) = payload
+                val (cards, sagaCards) = cardLists
                 latestCards = cards
                 _uiState.update { state ->
                     state.copy(
@@ -367,7 +412,8 @@ class LookoutViewModel @Inject constructor(
                         weekly = cards.toPeriodState(ObjectivePeriod.Weekly, now),
                         monthly = cards.toPeriodState(ObjectivePeriod.Monthly, now),
                         completedHistory = completions.toCompletedHistory(),
-                        unclaimedPearls = rewards.first,
+                        sagaObjectives = sagaCards.map { it.toUiState(now) },
+                        unclaimedPearls = completions.filterNot { it.pearlsClaimed }.sumOf { rewardTotal(it) },
                         unclaimedObjectiveCount = rewards.second,
                         errorMessage = null
                     )
@@ -392,9 +438,13 @@ class LookoutViewModel @Inject constructor(
 
     private fun ObjectiveCardModel.toUiState(now: Instant): ObjectiveCardUiState {
         val target = formatDuration(objective.targetDurationMs)
-        val targetPearls = (objective.targetDurationMs / MILLIS_PER_MINUTE).coerceAtLeast(1)
+        val firstStart = calculator.eligibleFlowsFor(objective, latestFlows, window)
+            .filter { it.durationMs > 0 }.minOfOrNull { it.startTimeMs }
+        val estimate = calculator.buildGrant(objective, kind, window, objective.targetDurationMs, now.toEpochMilli(),
+            effectiveCurrentStreak, firstStart ?: now.toEpochMilli())
+        val targetAt = calculator.targetAtMs(objective, window, ZoneId.systemDefault())
         val progress = formatDuration(progressDurationMs)
-        val bonusPct = completion?.let { ((it.streakMultiplier - 1.0) * 100).toInt() } ?: (effectiveCurrentStreak * 10)
+        val bonusPct = completion?.let { ((it.streakMultiplier - 1.0) * 100).roundToInt() } ?: (effectiveCurrentStreak * 10)
         val nowMs = now.toEpochMilli()
         return ObjectiveCardUiState(
             objectiveId = objective.id,
@@ -405,15 +455,17 @@ class LookoutViewModel @Inject constructor(
             progressPercent = progressPercent,
             progressLabel = if (state == ObjectiveCardState.Upcoming) text(R.string.lookout_target_duration, target) else text(R.string.lookout_progress_duration, progress, target),
             timeLeftLabel = when (state) {
+                ObjectiveCardState.Expired -> text(R.string.saga_objective_expired)
+                ObjectiveCardState.Skipped -> text(R.string.saga_objective_skipped)
                 ObjectiveCardState.Upcoming -> text(R.string.lookout_starts_in, formatRemaining(window.startMs - nowMs))
                 ObjectiveCardState.InProgress -> text(R.string.lookout_time_left, formatRemaining(window.endMs - nowMs))
-                ObjectiveCardState.Completed -> if (kind == ObjectiveKind.Recurring) {
+                ObjectiveCardState.Completed -> if (kind == ObjectiveKind.Recurring && window.endMs > nowMs) {
                     text(R.string.lookout_completed_next_reset, formatResetDay(window.endMs))
                 } else {
                     text(R.string.lookout_completed)
                 }
             },
-            estimatedRewardLabel = completion?.let { plural(R.plurals.lookout_pearls_earned, it.finalRewardPearls) } ?: plural(R.plurals.lookout_pearls_value, targetPearls.toInt()),
+            estimatedRewardLabel = rewardLabel(completion ?: estimate.completion),
             isRecurring = kind == ObjectiveKind.Recurring,
             currentStreak = if (kind == ObjectiveKind.Recurring) effectiveCurrentStreak else null,
             maxStreak = if (kind == ObjectiveKind.Recurring) objective.maxStreak else null,
@@ -422,7 +474,25 @@ class LookoutViewModel @Inject constructor(
             rewardPearls = completion?.finalRewardPearls,
             completionId = completion?.id,
             pearlsClaimed = completion?.pearlsClaimed == true,
-            state = state
+            state = state,
+            flowMode = objective.flowMode,
+            cycleLabel = if (kind == ObjectiveKind.Recurring) {
+                val formatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+                val zone = ZoneId.systemDefault()
+                text(R.string.lookout_cycle_dates,
+                    formatter.format(Instant.ofEpochMilli(window.startMs).atZone(zone)),
+                    formatter.format(Instant.ofEpochMilli(window.endMs - 1).atZone(zone)))
+            } else null,
+            targetLabel = targetAt?.let {
+                val date = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).format(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()))
+                when {
+                    completion?.startedBeforeTarget == true -> text(R.string.lookout_early_start_earned, date)
+                    completion != null -> text(R.string.lookout_target_missed, date)
+                    firstStart != null && estimate.completion.startedBeforeTarget -> text(R.string.lookout_early_start_pending, date)
+                    nowMs >= it -> text(R.string.lookout_target_missed, date)
+                    else -> text(R.string.lookout_start_before_target, date)
+                }
+            }
         )
     }
 
@@ -438,8 +508,8 @@ class LookoutViewModel @Inject constructor(
                         val periodType = periodCompletions.first().periodType
                         val period = ObjectivePeriod.fromStorage(periodType)
                         val count = periodCompletions.size
-                        val waitingPearls = periodCompletions.filterNot { it.pearlsClaimed }.sumOf { it.finalRewardPearls }
-                        val earnedPearls = periodCompletions.sumOf { it.finalRewardPearls }
+                        val waitingPearls = periodCompletions.filterNot { it.pearlsClaimed }.sumOf { rewardTotal(it) }
+
                         val lastCompleted = periodCompletions.maxOf { it.completedAt }
                         CompletedObjectiveHistoryRowUiState(
                             achievementKey = badgeKey,
@@ -447,13 +517,14 @@ class LookoutViewModel @Inject constructor(
                             summary = text(
                                 R.string.lookout_history_summary_separator,
                                 plural(R.plurals.lookout_completion_count, count),
-                                plural(R.plurals.lookout_pearls_earned, earnedPearls)
+                                rewardLabel(periodCompletions)
                             ),
                             lastCompletedLabel = text(
                                 R.string.lookout_history_last_completed,
                                 dateFormatter.format(Instant.ofEpochMilli(lastCompleted).atZone(zone))
                             ),
                             unclaimedPearls = waitingPearls,
+                            unclaimedRewardLabel = rewardLabel(periodCompletions.filterNot { it.pearlsClaimed }),
                             periodOrder = period.ordinal
                         )
                     }
@@ -476,11 +547,11 @@ class LookoutViewModel @Inject constructor(
         }
     }
 
-    private fun hasDuplicateActiveObjective(journeyId: Long, period: ObjectivePeriod): Boolean {
+    private fun hasDuplicateActiveObjective(journeyId: Long, period: ObjectivePeriod, mode: FlowMode): Boolean {
         val now = Instant.now()
         val zone = ZoneId.systemDefault()
         return latestObjectives.any { objective ->
-            objective.journeyId == journeyId && objective.periodType == period.storageValue && !objective.isArchived &&
+            objective.flowMode == mode && objective.journeyId == journeyId && objective.periodType == period.storageValue && !objective.isArchived &&
                 (objective.objectiveType == ObjectiveKind.Recurring.storageValue || calculator.windowFor(objective, now, zone).endMs > now.toEpochMilli())
         }
     }
@@ -494,7 +565,24 @@ class LookoutViewModel @Inject constructor(
         }
     }
 
-    private fun SessionEntity.toObjectiveSourceFlow() = ObjectiveSourceFlow(id, tagId, startTime, endTime, durationMs, isSoftMode)
+    private fun SessionEntity.toObjectiveSourceFlow() = ObjectiveSourceFlow(id, tagId, startTime, endTime, durationMs, isSoftMode, mode)
+
+    private fun rewardTotal(reward: ObjectiveCompletionEntity): Int =
+        (reward.finalRewardPearls.toLong() + reward.finalRewardDrops + reward.finalRewardPebbles + reward.finalRewardPoints)
+            .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+
+    private fun rewardLabel(reward: ObjectiveCompletionEntity): String = rewardLabel(listOf(reward))
+
+    private fun rewardLabel(rewards: List<ObjectiveCompletionEntity>): String = buildList {
+        val pearls = rewards.sumOf { it.finalRewardPearls }
+        val drops = rewards.sumOf { it.finalRewardDrops }
+        val pebbles = rewards.sumOf { it.finalRewardPebbles }
+        val points = rewards.sumOf { it.finalRewardPoints }
+        if (points > 0) add(text(R.string.lookout_points_value, points))
+        if (pearls > 0) add(plural(R.plurals.lookout_pearls_value, pearls))
+        if (drops > 0) add(text(R.string.lookout_drops_value, drops))
+        if (pebbles > 0) add(text(R.string.lookout_pebbles_value, pebbles))
+    }.joinToString(" · ")
 
     private fun formatResetDay(endMs: Long): String =
         DateTimeFormatter.ofPattern("EEEE", Locale.getDefault()).format(Instant.ofEpochMilli(endMs).atZone(ZoneId.systemDefault()))

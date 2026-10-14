@@ -136,8 +136,7 @@
     <string name="land_no_longer_living">Ya no vive aquí. Su registro de por vida se conserva.</string>
     <string name="land_effort_value">Valor del esfuerzo</string>
     <string name="land_zone_waiting">Esta tierra tranquila espera nueva vida.</string>
-    <string name="land_stillwater_reward">Obtén una criatura que viva en %1$s.</string>
-    <string name="land_stillwater_category">Nivel %1$d · Stillwater: %2$s</string>
+
     <string name="land_realm_subtitle">Una Tierra llena de vida</string>
     <string name="land_realm_land_description">Praderas doradas, bosques ancestrales y naturaleza indómita.\nVida que se obtiene por la profundidad de tus Arcs.</string>
     <string name="land_realm_sea_description">Desde el arrecife soleado hasta el gran azul.\nVida que se obtiene por la duración de tus Flows.</string>

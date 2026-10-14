@@ -45,7 +45,9 @@ data class ArcPlanStepEntity(
     val launchWithSurgeSnapshot: Boolean = false,
     val linkState: String = LINK_STATE_LINKED,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    @androidx.room.ColumnInfo(defaultValue = "0")
+    val mode: com.kingkharnivore.skillz.model.FlowMode = com.kingkharnivore.skillz.model.FlowMode.fromSoft(isSoftModeSnapshot)
 ) {
     companion object {
         const val LINK_STATE_LINKED = "linked"

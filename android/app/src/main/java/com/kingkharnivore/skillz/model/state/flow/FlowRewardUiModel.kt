@@ -2,6 +2,8 @@ package com.kingkharnivore.skillz.model.state.flow
 
 data class FlowRewardUiModel(
     val minutes: Int,
+    val mode: com.kingkharnivore.skillz.model.FlowMode = com.kingkharnivore.skillz.model.FlowMode.FLOW,
+    val shellPebblesEarned: Int = 0,
     val baseScyraPoints: Int,
     val tenMinuteBonuses: Int,
     val thirtyMinuteBonuses: Int,

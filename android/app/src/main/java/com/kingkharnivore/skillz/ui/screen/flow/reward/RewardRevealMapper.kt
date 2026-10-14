@@ -11,6 +11,11 @@ import com.kingkharnivore.skillz.model.state.flow.RewardRevealCardType
 import com.kingkharnivore.skillz.model.state.flow.RewardRevealCardUiModel
 
 interface RewardRevealTextProvider {
+    fun powerMovement(points: Long): String = pointsDelta(points.toInt())
+    fun powerTime(points: Int): String = baseFlow(points)
+    fun powerCurrencies(pearls: Int, pebbles: Int): String = carriedAsPearls()
+    fun pebbles(points: Int): String = pointsDelta(points)
+    fun redHint(): String = shellHint()
     fun scyraPoints(points: Int): String
     fun pointsDelta(points: Int): String
     fun minutes(minutes: Int): String
@@ -78,6 +83,7 @@ fun buildSessionRewardCards(
     discoveryTitle: (String) -> String?
 ): List<RewardRevealCardUiModel> {
     val cards = mutableListOf<RewardRevealCardUiModel>()
+    val isPower = reward.mode == com.kingkharnivore.skillz.model.FlowMode.POWER
     val timeFirst = calmMode
     val scoreBody = buildList {
         if (timeFirst) {
@@ -85,20 +91,22 @@ fun buildSessionRewardCards(
             add(text.loggedStory())
         } else {
             add(text.scoreBuiltFrom())
-            add(text.baseFlow(reward.baseScyraPoints))
+            if (isPower) { add(text.minutes(reward.minutes)); add(text.powerTime(reward.baseScyraPoints)) }
+            else add(text.baseFlow(reward.baseScyraPoints))
             val totalTimeBonuses = reward.tenMinuteBonuses * 5 + reward.thirtyMinuteBonuses * 15 + reward.sixtyMinuteBonuses * 50
-            if (totalTimeBonuses > 0) add(text.timeBonuses(totalTimeBonuses))
+            if (!isPower && totalTimeBonuses > 0) add(text.timeBonuses(totalTimeBonuses))
             // The stored Surge score includes the minute-based Flow score, but not time
             // bonuses. Show only its extra points; leave awarded totals and stored data intact.
             val surgeBonusPoints = (reward.surgePoints - reward.minutes).coerceAtLeast(0)
-            if (surgeBonusPoints > 0) add(text.surge(surgeBonusPoints))
+            if (!isPower && surgeBonusPoints > 0) add(text.surge(surgeBonusPoints))
             if (reward.arcBonusPoints > 0) add(text.arcBonus(reward.arcBonusPoints))
             reward.arcMultiplierUsed?.let { add(text.arcMultiplier(it)) }
+            if (isPower && reward.movementPoints > 0) add(text.powerMovement(reward.movementPoints))
             add(text.swipeFlowHint())
         }
     }.joinToString("\n")
     val scoreTitle = if (timeFirst) text.timeLoggedTitle() else text.scyraPoints(reward.finalScyraPoints)
-    val scoreSubtitle = if (!timeFirst && reward.shellPearlsEarned > 0) text.carriedAsPearls() else text.loggedStory()
+    val scoreSubtitle = if (isPower && reward.shellPearlsEarned > 0) text.powerCurrencies(reward.shellPearlsEarned, reward.shellPebblesEarned) else if (!timeFirst && reward.shellPearlsEarned > 0) text.carriedAsPearls() else text.loggedStory()
     cards += RewardRevealCardUiModel(
         id = "session-score",
         type = RewardRevealCardType.SCORE_BREAKDOWN,
@@ -106,10 +114,20 @@ fun buildSessionRewardCards(
         subtitle = scoreSubtitle,
         body = scoreBody,
         amountText = if (timeFirst) text.minutes(reward.minutes) else text.scyraPoints(reward.finalScyraPoints),
-        iconKey = "score",
+        iconKey = if (isPower) "power" else "score",
         contentDescription = listOf(scoreTitle, scoreSubtitle, scoreBody).joinToString(". "),
         animationStyle = if (reward.shellPearlsEarned > 0) RewardRevealAnimationStyle.PEARL_GLOW else RewardRevealAnimationStyle.NONE
     )
+
+    if (isPower && reward.shellPebblesEarned > 0) {
+        val amount = text.pebbles(reward.shellPebblesEarned)
+        cards += RewardRevealCardUiModel(
+            id = "session-pebbles", type = RewardRevealCardType.SHELL_BRIDGE,
+            title = amount, body = text.powerCurrencies(reward.shellPearlsEarned, reward.shellPebblesEarned),
+            amountText = amount, iconKey = "pebbles", destinationHint = text.redHint(),
+            contentDescription = "$amount. ${text.redHint()}", animationStyle = RewardRevealAnimationStyle.PEARL_GLOW
+        )
+    }
 
     cards += buildShellRewardCards(
         reward = reward,
@@ -196,6 +214,16 @@ fun buildArcSummaryRewardCards(
     )
 
     val shell = arc.shellSummary
+    if (shell.pebblesCarried > 0) {
+        val amount = text.pebbles(shell.pebblesCarried)
+        cards += RewardRevealCardUiModel(
+            id = "arc-pebbles", type = RewardRevealCardType.SHELL_BRIDGE,
+            title = amount, amountText = amount, iconKey = "pebbles",
+            destinationHint = text.redHint(),
+            contentDescription = "$amount. ${text.redHint()}",
+            animationStyle = RewardRevealAnimationStyle.PEARL_GLOW
+        )
+    }
     val hasLandRewards = shell.animals.any {
         com.kingkharnivore.skillz.utils.shell.CreatureCatalog.get(it.id)?.sourceType ==
             com.kingkharnivore.skillz.utils.shell.CreatureSourceType.ARC_EARNED

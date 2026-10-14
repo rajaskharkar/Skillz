@@ -3,7 +3,7 @@ package com.kingkharnivore.skillz.data.model.shell
 import androidx.annotation.StringRes
 import com.kingkharnivore.skillz.R
 
-enum class ShellRoomId { HEART, FOCUS, STILLWATER, VOYAGE, THE_BLUE, IDEA_GROVE, LOOKOUT }
+enum class ShellRoomId { HEART, FOCUS, THE_GREEN, VOYAGE, THE_BLUE, IDEA_GROVE, LOOKOUT, THE_RED }
 
 data class ShellRoomDefinition(
     val roomId: ShellRoomId,
@@ -103,7 +103,7 @@ object ShellContentCatalog {
     val rooms = listOf(
         ShellRoomDefinition(ShellRoomId.HEART, R.string.shell_room_heart_title, R.string.shell_room_heart_description, "shell_heart", null, null),
         ShellRoomDefinition(ShellRoomId.FOCUS, R.string.shell_room_focus_title, R.string.shell_room_focus_description, "shell_focus", null, "focus_v1"),
-        ShellRoomDefinition(ShellRoomId.STILLWATER, R.string.shell_room_stillwater_title, R.string.shell_room_stillwater_description, "shell_stillwater", null, null),
+        ShellRoomDefinition(ShellRoomId.THE_GREEN, R.string.shell_room_stillwater_title, R.string.shell_room_stillwater_description, "shell_stillwater", null, null),
         ShellRoomDefinition(ShellRoomId.VOYAGE, R.string.shell_room_voyage_title, R.string.shell_room_voyage_description, "shell_voyage", null, null),
         ShellRoomDefinition(ShellRoomId.THE_BLUE, R.string.shell_room_the_blue_title, R.string.shell_room_the_blue_description, "shell_the_blue", null, null),
         ShellRoomDefinition(ShellRoomId.IDEA_GROVE, R.string.shell_room_idea_title, R.string.shell_room_idea_description, "shell_idea", null, null),
@@ -211,7 +211,7 @@ object ShellContentCatalog {
         ShellFindDefinition(FOCUS_PEBBLES, R.string.shell_object_pebbles_title, R.string.shell_object_pebbles_description, ShellFindCategory.CORAL, ShellRoomId.FOCUS, "pebbles", "pebbles", true, false, false, setOf(ShellSlotType.REEF_SHELF, ShellSlotType.MEMORY_NOOK), 60, true, ShellRewardKind.OBJECT),
         ShellFindDefinition(FOCUS_CURTAIN, R.string.shell_object_curtain_title, R.string.shell_object_curtain_description, ShellFindCategory.PLANTS, ShellRoomId.FOCUS, "curtain", "curtain", true, false, false, setOf(ShellSlotType.CORAL_BED, ShellSlotType.SHELL_WALL), 140, true, ShellRewardKind.OBJECT),
         ShellFindDefinition(FOCUS_BUBBLES, R.string.shell_object_bubbles_title, R.string.shell_object_bubbles_description, ShellFindCategory.CORAL, ShellRoomId.FOCUS, "bubbles", "bubbles", true, false, false, setOf(ShellSlotType.CURRENT_PATH, ShellSlotType.CENTERPIECE, ShellSlotType.MEMORY_NOOK), 100, true, ShellRewardKind.OBJECT)
-    ) + stillwaterFinds + LandShellFinds.all
+    ) + stillwaterFinds + LandShellFinds.all + com.kingkharnivore.skillz.utils.shell.RedCreatureCatalog.shellFinds
 
     val focusSlots = listOf(
         ShellSlotDefinition("left_reef_shelf", ShellRoomId.FOCUS, ShellSlotType.REEF_SHELF, R.string.shell_slot_left_reef_shelf, .18f, .34f, .28f, .14f, 2, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS, ShellFindCategory.CORAL)),
@@ -222,7 +222,7 @@ object ShellContentCatalog {
         ShellSlotDefinition("creature_perch_right", ShellRoomId.FOCUS, ShellSlotType.CREATURE_PERCH, R.string.shell_slot_creature_perch_right, .76f, .54f, .24f, .14f, 3, setOf(ShellFindCategory.CREATURES)),
         ShellSlotDefinition("center_focus_nook", ShellRoomId.FOCUS, ShellSlotType.CENTERPIECE, R.string.shell_slot_center_focus_nook, .50f, .58f, .32f, .18f, 5, setOf(ShellFindCategory.SHELLS, ShellFindCategory.CORAL, ShellFindCategory.CREATURES, ShellFindCategory.TROPHIES, ShellFindCategory.TRINKETS)),
         ShellSlotDefinition("surge_current_nook", ShellRoomId.FOCUS, ShellSlotType.SURGE_CURRENT, R.string.shell_slot_surge_current_nook, .74f, .72f, .30f, .16f, 6, setOf(ShellFindCategory.TROPHIES)),
-        ShellSlotDefinition("memory_nook", ShellRoomId.FOCUS, ShellSlotType.MEMORY_NOOK, R.string.shell_slot_memory_nook, .50f, .82f, .30f, .14f, 7, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS, ShellFindCategory.DISCOVERIES, ShellFindCategory.CREATURES))
+        ShellSlotDefinition("memory_nook", ShellRoomId.FOCUS, ShellSlotType.MEMORY_NOOK, R.string.shell_slot_memory_nook, .50f, .82f, .30f, .14f, 7, setOf(ShellFindCategory.SHELLS, ShellFindCategory.TRINKETS, ShellFindCategory.DISCOVERIES, ShellFindCategory.CREATURES, ShellFindCategory.CORAL))
     )
 
     val upgrades = listOf(
@@ -274,7 +274,9 @@ object ShellContentCatalog {
 
     fun isCompatibleWithSlot(slot: ShellSlotDefinition, definition: ShellFindDefinition): Boolean {
         if (slot.slotType == ShellSlotType.SURGE_CURRENT) return definition.findId in surgeRewardIds
-        if (slot.slotType !in definition.acceptedSlotTypes || definition.category !in slot.acceptsCategories) return false
+        if (slot.slotType !in definition.acceptedSlotTypes) return false
+        val currentPathObject = slot.slotType == ShellSlotType.CURRENT_PATH && definition.findId == FOCUS_BUBBLES
+        if (definition.category !in slot.acceptsCategories && !currentPathObject) return false
         return when (slot.slotType) {
             ShellSlotType.CREATURE_PERCH -> definition.kind == ShellRewardKind.ANIMAL || definition.findId == FOCUS_PERCH
             ShellSlotType.CURRENT_PATH -> definition.kind == ShellRewardKind.ANIMAL || definition.findId == FOCUS_BUBBLES

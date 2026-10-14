@@ -21,6 +21,28 @@ class SkillzMigrationTest {
         SkillzDatabase::class.java
     )
 
+    @Test fun migration48To49PreservesObjectiveRewardsAndDefaultsToUntimedRegularFlow() {
+        val name = "objective-target-migration"
+        helper.createDatabase(name, 48).apply {
+            execSQL("INSERT INTO objectives (id,journeyId,journeyNameSnapshot,periodType,objectiveType,targetDurationMs,startAtMs,weeklyBoundaryDay,currentStreak,maxStreak,totalCompletions,isArchived,createdAt,updatedAt) VALUES (1,1,'Practice','daily','recurring',60000,1,NULL,3,4,8,0,1,1)")
+            execSQL("INSERT INTO objective_completions (id,objectiveId,journeyId,journeyNameSnapshot,periodType,objectiveType,periodStartMs,periodEndMs,completedAt,achievedDurationMs,targetDurationMs,baseRewardPearls,streakBeforeCompletion,streakMultiplier,finalRewardPearls,badgeKey,badgeLabelSnapshot,pearlsGranted,pearlsClaimed,pearlsClaimedAt,badgeGranted) VALUES (1,1,1,'Practice','daily','recurring',1,100,50,60000,60000,10,3,1.3,13,'badge','Daily',0,0,NULL,1)")
+            close()
+        }
+        helper.runMigrationsAndValidate(name, 49, true, SkillzDatabaseMigrations.MIGRATION_48_49).apply {
+            query("SELECT currentStreak,flowMode,targetMinuteOfDay,targetDayOffset FROM objectives").use {
+                assertTrue(it.moveToFirst())
+                assertEquals(3, it.getInt(0)); assertEquals(0, it.getInt(1))
+                assertTrue(it.isNull(2)); assertEquals(0, it.getInt(3))
+            }
+            query("SELECT finalRewardPearls,pearlsClaimed,finalRewardDrops,finalRewardPebbles,finalRewardPoints FROM objective_completions").use {
+                assertTrue(it.moveToFirst())
+                assertEquals(13, it.getInt(0)); assertEquals(0, it.getInt(1))
+                assertEquals(0, it.getInt(2)); assertEquals(0, it.getInt(3)); assertEquals(0, it.getInt(4))
+            }
+            close()
+        }
+    }
+
     @Test fun migration41To42PreservesEveryExistingColumnAcrossAllTables() {
         val before = helper.createDatabase(TEST_DB, 41)
         val tables = before.query(
@@ -390,6 +412,34 @@ class SkillzMigrationTest {
         )
     }
 
+    @Test fun everyPreExportVersionCanUpgradeToGreenWithoutLosingExistingDrops() {
+        (1..30).forEach { version ->
+            val name = "$TEST_DB-green-$version"
+            createLegacyDatabase(name, version).apply {
+                if (version <= 12) {
+                    execSQL("CREATE TABLE skills (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, createdAt INTEGER NOT NULL)")
+                    execSQL("INSERT INTO skills VALUES (1, 'Preserved', 10)")
+                } else {
+                    createVersion13CoreTables()
+                    var current = 13
+                    while (current < version) {
+                        val migration = SkillzDatabaseMigrations.ALL_MIGRATIONS.first { it.startVersion == current && it.endVersion <= version }
+                        migration.migrate(this)
+                        current = migration.endVersion
+                    }
+                    if (version >= 14) execSQL("INSERT INTO stillwater_ledger VALUES ('preserve',98765,'soft_flow','old',100)")
+                }
+                close()
+            }
+            helper.runMigrationsAndValidate(name, 47, true, *SkillzDatabaseMigrations.ALL_MIGRATIONS).use { db ->
+                assertTrue(db.tableExists("green_specimen"))
+                if (version >= 14) db.query("SELECT SUM(units) FROM stillwater_ledger").use {
+                    assertTrue(it.moveToFirst()); assertEquals(98765L, it.getLong(0))
+                }
+            }
+        }
+    }
+
     private fun assertAchievementMigrationChain(startVersion: Int) {
         helper.createDatabase("$TEST_DB-$startVersion", startVersion).close()
         val db = helper.runMigrationsAndValidate(
@@ -539,7 +589,7 @@ class SkillzMigrationTest {
 
     private companion object {
         const val TEST_DB = "skillz-migration-test"
-        const val CURRENT_VERSION = 40
+        const val CURRENT_VERSION = 47
 
         val SHELL_TABLES = listOf(
             "pearl_ledger",

@@ -12,18 +12,20 @@ import org.junit.Test
 class MovementBonusCalculatorTest {
     private val calculator = MovementBonusCalculator()
 
-    @Test fun calculatesEveryTwentyFiveStepsUncapped() {
+    @Test fun calculatesEveryHundredStepsUncapped() {
+        // Match the shipped 100-step policy shown in the Movement Bonus UI.
         mapOf(
             0L to 0L,
-            24L to 0L,
-            25L to 1L,
-            49L to 1L,
-            50L to 2L,
-            99L to 3L,
-            100L to 4L,
-            342L to 13L,
-            1_000L to 40L,
-            10_000L to 400L,
+            25L to 0L,
+            99L to 0L,
+            100L to 1L,
+            199L to 1L,
+            200L to 2L,
+            342L to 3L,
+            1_000L to 10L,
+            10_000L to 100L,
+            10_000_000L to 100_000L,
+            Long.MAX_VALUE to 92_233_720_368_547_758L,
             -10L to 0L
         ).forEach { (steps, points) ->
             assertEquals(points, calculator.calculateMovementPoints(steps))

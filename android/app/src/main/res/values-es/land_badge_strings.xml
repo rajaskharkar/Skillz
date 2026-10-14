@@ -33,42 +33,38 @@
     <string name="badge_land_returning_title">Vuelta a lo silvestre</string>
     <string name="badge_land_returning_description">Finaliza 5, 10, 25, 50 y 100 Arcs que otorguen, cada uno, una recompensa de Tierra.</string>
     <string name="badge_land_stillwater_first_title">Compañía serena</string>
-    <string name="badge_land_stillwater_first_description">Obtén tu primera criatura restaurativa de Tierra en Stillwater.</string>
+
     <string name="badge_land_five_habitats_title">Cinco lugares tranquilos</string>
-    <string name="badge_land_five_habitats_description">Obtén criaturas al menos una vez en Pastizal, Claro, Oasis, Barranco y Santuario.</string>
+
     <string name="badge_land_stillwater_variety_title">Variedad restaurativa</string>
     <string name="badge_land_stillwater_variety_description">Descubre 5, 10, 25, 40 y 51 especies restaurativas de Tierra.</string>
-    <string name="badge_land_rare_first_title">Una visita rara</string>
-    <string name="badge_land_rare_first_description">Obtén una criatura de Tierra de rareza Rara en Stillwater.</string>
-    <string name="badge_land_mythic_first_title">Una llegada mítica</string>
-    <string name="badge_land_mythic_first_description">Obtén una criatura de Tierra de rareza Mítica en Stillwater.</string>
+
     <string name="badge_land_release_first_title">Espacio para explorar</string>
     <string name="badge_land_release_first_description">Libera una criatura de Tierra. Tus registros de descubrimiento y dominio de por vida se conservan.</string>
     <string name="badge_land_trade_first_title">Otro viaje</string>
     <string name="badge_land_trade_first_description">Aporta una criatura de Tierra en Encuentro más allá de The Blue. Tu dominio de por vida se conserva.</string>
     <string name="badge_keeper_of_the_land_title">Guardián de Tierra</string>
-    <string name="badge_keeper_of_the_land_description">Descubre las 63 especies principales de las cinco zonas de Tierra.</string>
+    <string name="badge_keeper_of_the_land_description">Descubre todas las especies de las cinco regiones de Tierra.</string>
     <string name="badge_one_from_every_land_title">Una de cada hábitat</string>
-    <string name="badge_one_from_every_land_description">Domina al menos una criatura principal de cada zona de Tierra y una restaurativa de cada recipiente de Tierra.</string>
+
     <string name="badge_land_mastery_circle_title">Círculo de dominio de Tierra</string>
     <string name="badge_land_mastery_circle_description">Cuenta cada criatura individual de Tierra que alcanzó el nivel 99, incluidas las liberadas o aportadas.</string>
     <string name="badge_land_mastery_variety_title">Variedad de dominio de Tierra</string>
     <string name="badge_land_mastery_variety_description">Domina 1, 5, 10, 25, 50, 100 y 114 especies distintas de Tierra.</string>
     <string name="badge_sea_variety_title">Variedad de Mar</string>
-    <string name="badge_sea_variety_description">Descubre 1, 5, 10, 25, 50 y 71 especies distintas de Mar, incluidas las de Stillwater de Mar.</string>
+
     <string name="badge_land_pasture_first_title">Hallazgo en Pastizal</string>
-    <string name="badge_land_pasture_first_description">Obtén tu primera criatura en Pastizal.</string>
+
     <string name="badge_land_glade_first_title">Hallazgo en Claro</string>
-    <string name="badge_land_glade_first_description">Obtén tu primera criatura en Claro.</string>
+
     <string name="badge_land_oasis_first_title">Hallazgo en Oasis</string>
-    <string name="badge_land_oasis_first_description">Obtén tu primera criatura en Oasis.</string>
+
     <string name="badge_land_ravine_first_title">Hallazgo en Barranco</string>
-    <string name="badge_land_ravine_first_description">Obtén tu primera criatura en Barranco.</string>
+
     <string name="badge_land_sanctuary_first_title">Hallazgo en Santuario</string>
-    <string name="badge_land_sanctuary_first_description">Obtén tu primera criatura en Santuario.</string>
+
     <string name="collection_land">Tierra</string>
-    <string name="collection_sea_stillwater">Stillwater de Mar</string>
-    <string name="collection_land_stillwater">Stillwater de Tierra</string>
+
     <string name="collection_all_land">Tierra y sus hábitats</string>
     <string name="collection_living_earth">La Tierra viva</string>
     <string name="level99_preview_completes_realm">Esto completará %1$s.</string>
