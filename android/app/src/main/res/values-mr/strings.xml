@@ -2391,6 +2391,12 @@
     <string name="lookout_early_start_pending">वेळेत सुरुवात · पूर्ण केल्यावर 2× बक्षिसे · लक्ष्य %1$s</string>
     <string name="lookout_enable_precise_reminders">अचूक वेळेची स्मरणपत्रे सुरू करा</string>
     <string name="saga_objectives_title">उद्दिष्टे</string>
+    <string name="saga_objectives_subtitle">दैनिक · साप्ताहिक · मासिक</string>
+    <string name="saga_objectives_expand">उद्दिष्टे दाखवा</string>
+    <string name="saga_objectives_collapse">उद्दिष्टे लपवा</string>
+    <string name="saga_objectives_total">एकूण</string>
+    <string name="saga_objectives_active">प्रगतीत</string>
+    <string name="saga_objectives_completed">पूर्ण</string>
     <string name="saga_pulse_show">दाखवा</string>
     <string name="saga_objective_expired">उद्दिष्टाचा कालावधी संपला</string>
     <string name="saga_objective_skipped">हे चक्र वगळले</string>

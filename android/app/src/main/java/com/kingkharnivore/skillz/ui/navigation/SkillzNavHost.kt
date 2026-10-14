@@ -64,7 +64,12 @@ fun SkillzNavHost(
                     ))
                 },
                 onLaunchObjectiveFlow = { journey, mode ->
-                    if (!ongoing.isMeaningfulActiveFlow()) navController.navigate(SkillzDestinations.addSkillRoute(prefillJourney = journey, prefillMode = mode))
+                    if (focusVm.ongoingSession.value.isMeaningfulActiveFlow()) {
+                        false
+                    } else {
+                        navController.navigate(SkillzDestinations.addSkillRoute(prefillJourney = journey, prefillMode = mode))
+                        true
+                    }
                 },
                 onOpenPlannedFlow = { plan ->
                     navController.navigate(

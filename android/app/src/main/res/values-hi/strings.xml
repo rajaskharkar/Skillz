@@ -2391,6 +2391,12 @@
     <string name="lookout_early_start_pending">समय पर शुरुआत · पूरा करने पर 2× पुरस्कार · लक्ष्य %1$s</string>
     <string name="lookout_enable_precise_reminders">सटीक समय पर रिमाइंडर चालू करें</string>
     <string name="saga_objectives_title">उद्देश्य</string>
+    <string name="saga_objectives_subtitle">दैनिक · साप्ताहिक · मासिक</string>
+    <string name="saga_objectives_expand">उद्देश्य दिखाएँ</string>
+    <string name="saga_objectives_collapse">उद्देश्य छिपाएँ</string>
+    <string name="saga_objectives_total">कुल</string>
+    <string name="saga_objectives_active">प्रगति में</string>
+    <string name="saga_objectives_completed">पूर्ण</string>
     <string name="saga_pulse_show">दिखाएँ</string>
     <string name="saga_objective_expired">उद्देश्य की अवधि समाप्त</string>
     <string name="saga_objective_skipped">यह चक्र छोड़ा गया</string>

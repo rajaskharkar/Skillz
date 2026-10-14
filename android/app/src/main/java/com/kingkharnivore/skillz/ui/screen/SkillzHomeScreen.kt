@@ -48,7 +48,7 @@ fun SkillzHomeScreen(
     onAddSessionClick: () -> Unit,
     onAddPulseClick: () -> Unit,
     onLaunchPulseFlow: (Long, String, String?) -> Unit = { _, _, _ -> },
-    onLaunchObjectiveFlow: (String, com.kingkharnivore.skillz.model.FlowMode) -> Unit = { _, _ -> },
+    onLaunchObjectiveFlow: (String, com.kingkharnivore.skillz.model.FlowMode) -> Boolean,
     onOpenPlannedFlow: (com.kingkharnivore.skillz.model.ui.FlowPlanListItemUiModel) -> Unit,
     onPlanArc: () -> Unit,
     onOpenArc: (Long) -> Unit,
