@@ -9,6 +9,9 @@ import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 import com.kingkharnivore.skillz.model.state.flow.RewardRevealAnimationStyle
 import com.kingkharnivore.skillz.model.state.flow.RewardRevealCardType
 import com.kingkharnivore.skillz.model.state.flow.RewardRevealCardUiModel
+import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
+import com.kingkharnivore.skillz.utils.shell.CreatureRealm
+import com.kingkharnivore.skillz.utils.shell.CreatureZone
 
 interface RewardRevealTextProvider {
     fun powerMovement(points: Long): String = pointsDelta(points.toInt())
@@ -16,6 +19,8 @@ interface RewardRevealTextProvider {
     fun powerCurrencies(pearls: Int, pebbles: Int): String = carriedAsPearls()
     fun pebbles(points: Int): String = pointsDelta(points)
     fun redHint(): String = shellHint()
+    fun redCreatureHint(): String = shellHint()
+    fun creatureZone(zone: CreatureZone): String = zone.displayName
     fun scyraPoints(points: Int): String
     fun pointsDelta(points: Int): String
     fun minutes(minutes: Int): String
@@ -224,20 +229,20 @@ fun buildArcSummaryRewardCards(
             animationStyle = RewardRevealAnimationStyle.PEARL_GLOW
         )
     }
-    val hasLandRewards = shell.animals.any {
-        com.kingkharnivore.skillz.utils.shell.CreatureCatalog.get(it.id)?.sourceType ==
-            com.kingkharnivore.skillz.utils.shell.CreatureSourceType.ARC_EARNED
-    }
-    val hasSeaRewards = shell.animals.any {
-        com.kingkharnivore.skillz.utils.shell.CreatureCatalog.get(it.id)?.realm ==
-            com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA
-    }
+    val hasArcRewards = shell.arcAnimals.isNotEmpty()
+    val hasFlowRewards = shell.animals.sumOf { it.count } > shell.arcAnimals.sumOf { it.count }
     val creatureReason = when {
-        hasLandRewards && hasSeaRewards -> text.mixedArcRewardReason()
-        hasLandRewards -> text.landArcRewardReason()
+        hasArcRewards && hasFlowRewards -> text.mixedArcRewardReason()
+        hasArcRewards -> text.landArcRewardReason()
         else -> text.flowMilestonesAcrossArc()
     }
-    cards += aggregateCountCard("arc-animals", RewardRevealCardType.ARC_ANIMALS, text.arcAnimalsTitle(), shell.animals, creatureReason, text.theBlueHint(), "animal", text, findTitle)
+    val hasRedRewards = shell.animals.any { CreatureCatalog.get(it.id)?.realm == CreatureRealm.RED }
+    val animalDestination = when {
+        !hasRedRewards -> text.theBlueHint()
+        shell.animals.all { CreatureCatalog.get(it.id)?.realm == CreatureRealm.RED } -> text.redCreatureHint()
+        else -> text.shellHint()
+    }
+    cards += aggregateCountCard("arc-animals", RewardRevealCardType.ARC_ANIMALS, text.arcAnimalsTitle(), shell.animals, creatureReason, animalDestination, "animal", text, findTitle)
     cards += aggregateCountCard("arc-badges", RewardRevealCardType.ARC_BADGES, text.arcBadgesTitle(), shell.badges, text.recordsUpdatedAcrossArc(), text.badgesHint(), "badge", text, badgeTitle)
 
     if (shell.stillwaterAdded > 0L) {
@@ -328,7 +333,11 @@ private fun buildShellRewardCards(
         val name = findTitle(findId) ?: text.shellRewardRecordedTitle()
         when (def?.kind) {
             ShellRewardKind.ANIMAL -> {
-                val depth = depthText(def.depthTier, text)
+                val creature = CreatureCatalog.get(findId)
+                val depth = if (creature != null && creature.realm != CreatureRealm.SEA) {
+                    text.creatureZone(creature.zone)
+                } else depthText(def.depthTier, text)
+                val destination = if (creature?.realm == CreatureRealm.RED) text.redCreatureHint() else text.theBlueHint()
                 val title = text.animalTitle(name)
                 val body = text.animalReason(findId)
                 cards += RewardRevealCardUiModel(
@@ -339,8 +348,8 @@ private fun buildShellRewardCards(
                     body = body,
                     chip = depth,
                     iconKey = def.iconKey,
-                    destinationHint = text.theBlueHint(),
-                    contentDescription = listOf(title, text.animalChip(depth), body, text.theBlueHint()).joinToString(". "),
+                    destinationHint = destination,
+                    contentDescription = listOf(title, text.animalChip(depth), body, destination).joinToString(". "),
                     animationStyle = animalAnimation(findId)
                 )
             }

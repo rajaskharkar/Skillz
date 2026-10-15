@@ -15,16 +15,16 @@ import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 import com.kingkharnivore.skillz.ui.health.MovementBonusRewardBlock
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.resolveBadgePresentation
 
 @Composable
 fun SessionRewardContent(
     r: FlowRewardUiModel,
     calmMode: Boolean
 ) {
-    val text = rememberRewardRevealTextProvider()
+    val text = rememberRewardRevealTextProvider(r.shellBadgeIds)
     val findTitles = ShellContentCatalog.finds.associate { it.findId to stringResource(it.titleRes) }
-    val badgeTitles = ShellContentCatalog.badges.associate { it.badgeId to stringResource(it.titleRes) } +
-        com.kingkharnivore.skillz.domain.achievement.RedBadgeCatalog.specs.associate { it.id to stringResource(it.titleRes) }
+    val badgeTitles = r.shellBadgeIds.distinct().associateWith { resolveBadgePresentation(it).title }
     val discoveryTitles = ShellContentCatalog.discoveries.associate { it.discoveryId to stringResource(it.titleRes) }
     val cards = buildSessionRewardCards(
         reward = r,

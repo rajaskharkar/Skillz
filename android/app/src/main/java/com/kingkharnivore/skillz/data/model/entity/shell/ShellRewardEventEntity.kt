@@ -9,6 +9,7 @@ object ShellRewardEventTypes {
     const val PEBBLES_CARRIED = "PEBBLES_CARRIED"
     const val STILLWATER_ADDED = "STILLWATER_ADDED"
     const val ANIMAL_GRANTED = "ANIMAL_GRANTED"
+    const val ARC_ANIMAL_GRANTED = "ARC_ANIMAL_GRANTED"
     const val OBJECT_GRANTED = "OBJECT_GRANTED"
     const val TRINKET_GRANTED = "TRINKET_GRANTED"
     const val DISCOVERY_RECORDED = "DISCOVERY_RECORDED"
@@ -33,3 +34,8 @@ data class ShellRewardEventEntity(
     val quantity: Long,
     val occurredAt: Long
 )
+
+/** Older Arc grants used the session event type, but always had this stable ID prefix. */
+val ShellRewardEventEntity.isArcAnimalGrant: Boolean
+    get() = rewardType == ShellRewardEventTypes.ARC_ANIMAL_GRANTED ||
+        (rewardType == ShellRewardEventTypes.ANIMAL_GRANTED && id.startsWith("arc_land:"))

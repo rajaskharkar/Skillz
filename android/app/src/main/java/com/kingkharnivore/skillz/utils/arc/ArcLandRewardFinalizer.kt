@@ -57,7 +57,7 @@ class ArcLandRewardFinalizer @Inject constructor(
                     db.shellRewardEventDao().insertAll(listOf(ShellRewardEventEntity(
                         id = "arc_land:${pending.arcId}:${reward.creatureId}",
                         sourceSessionId = last?.id ?: pending.finalSessionId,
-                        arcId = pending.arcId, rewardType = ShellRewardEventTypes.ANIMAL_GRANTED,
+                        arcId = pending.arcId, rewardType = ShellRewardEventTypes.ARC_ANIMAL_GRANTED,
                         rewardId = reward.creatureId, quantity = reward.quantity.toLong(), occurredAt = now
                     )))
                 }

@@ -4,6 +4,7 @@ import com.kingkharnivore.skillz.data.model.dao.shell.ShellRewardEventDao
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellRewardEventEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.ShellRewardEventTypes
+import com.kingkharnivore.skillz.data.model.entity.shell.isArcAnimalGrant
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
 import com.kingkharnivore.skillz.model.state.flow.ArcShellRewardCountUiModel
@@ -70,8 +71,8 @@ class ShellRewardEventRecorder @Inject constructor(
 
 object ShellRewardEventAggregator {
     fun aggregate(events: List<ShellRewardEventEntity>): ArcShellRewardSummaryUiModel {
-        fun countsFor(type: String): List<ArcShellRewardCountUiModel> = events
-            .filter { it.rewardType == type && it.rewardId != null }
+        fun countsFor(vararg types: String): List<ArcShellRewardCountUiModel> = events
+            .filter { it.rewardType in types && it.rewardId != null }
             .groupBy { it.rewardId.orEmpty() }
             .map { (id, grouped) -> ArcShellRewardCountUiModel(id, grouped.sumOf { it.quantity }.toInt()) }
             .filter { it.count > 0 }
@@ -82,6 +83,7 @@ object ShellRewardEventAggregator {
             ShellRewardEventTypes.PEBBLES_CARRIED,
             ShellRewardEventTypes.STILLWATER_ADDED,
             ShellRewardEventTypes.ANIMAL_GRANTED,
+            ShellRewardEventTypes.ARC_ANIMAL_GRANTED,
             ShellRewardEventTypes.OBJECT_GRANTED,
             ShellRewardEventTypes.TRINKET_GRANTED,
             ShellRewardEventTypes.DISCOVERY_RECORDED,
@@ -89,7 +91,11 @@ object ShellRewardEventAggregator {
         )
 
         return ArcShellRewardSummaryUiModel(
-            animals = countsFor(ShellRewardEventTypes.ANIMAL_GRANTED),
+            animals = countsFor(ShellRewardEventTypes.ANIMAL_GRANTED, ShellRewardEventTypes.ARC_ANIMAL_GRANTED),
+            arcAnimals = events.filter { it.isArcAnimalGrant && it.rewardId != null }
+                .groupBy { it.rewardId.orEmpty() }
+                .map { (id, grants) -> ArcShellRewardCountUiModel(id, grants.sumOf { it.quantity }.toInt()) }
+                .filter { it.count > 0 }.sortedBy { it.id },
             objects = countsFor(ShellRewardEventTypes.OBJECT_GRANTED),
             trinkets = countsFor(ShellRewardEventTypes.TRINKET_GRANTED),
             badges = countsFor(ShellRewardEventTypes.BADGE_UPDATED),

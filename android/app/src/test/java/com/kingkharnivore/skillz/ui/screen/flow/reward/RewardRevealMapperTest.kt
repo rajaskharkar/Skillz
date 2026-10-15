@@ -193,6 +193,25 @@ class RewardRevealMapperTest {
     }
 
     @Test
+    fun landAndDinosaurCardsShowTheirRegionsAndDestinations() {
+        val ids = listOf("creature_chicken", "creature_deer", "creature_camel", "creature_moose", "creature_tiger",
+            "triassic_saturnalia", "jurassic_stegosaurus", "cretaceous_triceratops")
+        val regions = listOf("Golden Fields", "Ancient Woods", "Open Sands", "High Peaks", "Great Wild",
+            "Triassic", "Jurassic", "Cretaceous")
+        val cards = buildSessionRewardCards(
+            reward = reward(shellGrantedFindIds = ids), calmMode = false, text = text,
+            findTitle = { it }, badgeTitle = ::badgeTitle, discoveryTitle = ::discoveryTitle
+        ).filter { it.type == RewardRevealCardType.ANIMAL }
+        assertEquals(ids.size, cards.size)
+        cards.forEachIndexed { index, card ->
+            assertEquals("Animal · ${regions[index]}", card.subtitle)
+            val destination = if (index < 5) "View later in The Blue." else "View later in The Red."
+            assertEquals(destination, card.destinationHint)
+            assertTrue(card.contentDescription.contains(destination))
+        }
+    }
+
+    @Test
     fun softFlowEmitsStillwaterWithoutScoreOrPearls() {
         val cards = buildSoftRewardCards(reward(minutes = 22, shellStillwaterUnits = 220), text)
 
@@ -409,6 +428,7 @@ class RewardRevealMapperTest {
 }
 
 private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
+    override fun redHint() = "View later in The Red."
     override fun scyraPoints(points: Int) = "$points Scyra Points"
     override fun pointsDelta(points: Int) = "+$points"
     override fun minutes(minutes: Int) = "$minutes min"

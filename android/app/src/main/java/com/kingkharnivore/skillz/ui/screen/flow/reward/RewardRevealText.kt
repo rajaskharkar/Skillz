@@ -4,15 +4,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
+import com.kingkharnivore.skillz.utils.shell.CreatureZone
+import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
+import com.kingkharnivore.skillz.utils.shell.CreatureRealm
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.resolveBadgePresentation
 
 @Composable
-fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
+fun rememberRewardRevealTextProvider(badgeIds: List<String> = emptyList()): RewardRevealTextProvider {
+    val earnedBadgeReasons = badgeIds.distinct().associateWith { resolveBadgePresentation(it).description }
     val powerTime = stringResource(R.string.power_reward_time)
     val powerMovement = stringResource(R.string.power_reward_movement)
     val powerBadgeReasons = com.kingkharnivore.skillz.domain.achievement.RedBadgeCatalog.specs.associate { it.id to stringResource(it.descriptionRes) }
     val powerCurrencies = stringResource(R.string.power_reward_currencies)
     val resources = androidx.compose.ui.platform.LocalContext.current.resources
     val redHint = stringResource(R.string.power_reward_red_hint)
+    val redCreatureHint = stringResource(R.string.reward_card_red_creature_hint)
+    val landFlowReason = stringResource(R.string.reward_card_land_flow_reason)
+    val redFlowReason = stringResource(R.string.reward_card_red_flow_reason)
     val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
     val scyraPointsTemplate = stringResource(R.string.reward_card_scyra_points_template)
     val pointsDeltaTemplate = stringResource(R.string.session_reward_points_value)
@@ -39,6 +47,16 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
     val deeperReef = stringResource(R.string.reward_card_depth_deeper_reef)
     val openBlue = stringResource(R.string.reward_card_depth_open_blue)
     val deepOcean = stringResource(R.string.reward_card_depth_deep_ocean)
+    val creatureZones = mapOf(
+        CreatureZone.GOLDEN_FIELDS to stringResource(R.string.land_zone_golden_fields),
+        CreatureZone.ANCIENT_WOODS to stringResource(R.string.land_zone_ancient_woods),
+        CreatureZone.OPEN_SANDS to stringResource(R.string.land_zone_open_sands),
+        CreatureZone.HIGH_PEAKS to stringResource(R.string.land_zone_high_peaks),
+        CreatureZone.GREAT_WILD to stringResource(R.string.land_zone_great_wild),
+        CreatureZone.TRIASSIC to stringResource(R.string.red_triassic),
+        CreatureZone.JURASSIC to stringResource(R.string.red_jurassic),
+        CreatureZone.CRETACEOUS to stringResource(R.string.red_cretaceous)
+    )
     val animalReasons = mapOf(
         ShellContentCatalog.FOCUS_MINNOW to stringResource(R.string.reward_card_animal_reason_minnow),
         ShellContentCatalog.FOCUS_SEAHORSE to stringResource(R.string.reward_card_animal_reason_seahorse),
@@ -90,6 +108,8 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
             resources.getQuantityString(R.plurals.power_pebbles_earned, pebbles, pebbles))
         override fun pebbles(points: Int) = resources.getQuantityString(R.plurals.power_pebbles_earned, points, points)
         override fun redHint() = redHint
+        override fun redCreatureHint() = redCreatureHint
+        override fun creatureZone(zone: CreatureZone) = creatureZones[zone] ?: zone.displayName
         override fun scyraPoints(points: Int) = scyraPointsTemplate.format(locale, points)
         override fun pointsDelta(points: Int) = pointsDeltaTemplate.format(locale, points)
         override fun minutes(minutes: Int) = minutesTemplate.format(locale, minutes)
@@ -115,8 +135,12 @@ fun rememberRewardRevealTextProvider(): RewardRevealTextProvider {
         override fun deeperReef() = deeperReef
         override fun openBlue() = openBlue
         override fun deepOcean() = deepOcean
-        override fun animalReason(findId: String) = animalReasons[findId] ?: shellRewardRecordedBody
-        override fun badgeReason(badgeId: String) = powerBadgeReasons[badgeId] ?: badgeReasons[badgeId] ?: shellRewardRecordedBody
+        override fun animalReason(findId: String) = animalReasons[findId] ?: when (CreatureCatalog.get(findId)?.realm) {
+            CreatureRealm.LAND -> landFlowReason
+            CreatureRealm.RED -> redFlowReason
+            else -> shellRewardRecordedBody
+        }
+        override fun badgeReason(badgeId: String) = earnedBadgeReasons[badgeId] ?: powerBadgeReasons[badgeId] ?: badgeReasons[badgeId] ?: shellRewardRecordedBody
         override fun landArcRewardReason() = landArcRewardReason
         override fun mixedArcRewardReason() = mixedArcRewardReason
         override fun theBlueHint() = theBlueHint
