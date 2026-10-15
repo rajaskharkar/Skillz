@@ -118,6 +118,45 @@ class PowerPersistenceTest {
         assertEquals(57,shell.getPearlBalance())
         assertEquals(57,db.powerRewardDao().balance())
     }
+    @Test fun randomFlowEncountersPersistAndReplayWithoutDrawingAgain() = runBlocking {
+        val samples = listOf(
+            Triple(FlowMode.FLOW, 45, CreatureZone.GOLDEN_FIELDS),
+            Triple(FlowMode.POWER, 75, CreatureZone.ANCIENT_WOODS),
+            Triple(FlowMode.FLOW, 105, CreatureZone.OPEN_SANDS),
+            Triple(FlowMode.POWER, 135, CreatureZone.HIGH_PEAKS),
+            Triple(FlowMode.FLOW, 150, CreatureZone.GREAT_WILD),
+            Triple(FlowMode.POWER, 30, CreatureZone.TRIASSIC),
+            Triple(FlowMode.POWER, 60, CreatureZone.JURASSIC),
+            Triple(FlowMode.POWER, 120, CreatureZone.CRETACEOUS)
+        )
+        val awarded = samples.map { (mode, minutes, zone) ->
+            // Completion uses whole elapsed minutes, including normal timer overshoot.
+            val duration = minutes * 60_000L + 750L
+            val flow = SessionEntity(title = "Encounter", description = "", tagId = 1,
+                startTime = 1, endTime = duration + 1, durationMs = duration,
+                scyraPoints = 100, mode = mode).let { it.copy(id = db.sessionDao().insertSession(it)) }
+            val results = coroutineScope { List(3) { async { rewards.onSessionCompleted(flow) } }.awaitAll() }
+            val reward = results.first()
+            val expected = reward.grantedFindIds.groupingBy { it }.eachCount()
+            results.forEach { assertEquals(expected, it.grantedFindIds.groupingBy { it }.eachCount()) }
+            assertEquals(1, reward.grantedFindIds.count { CreatureCatalog.require(it).zone == zone })
+            assertEquals(CreatureEconomy.creaturesForRegularFlowMinutes(minutes).sumOf { it.quantity } + 1,
+                reward.grantedFindIds.size)
+            assertEquals(expected, db.shellFindInstanceDao().getAll().filter { it.sourceId == flow.id.toString() }
+                .groupingBy { it.findId }.eachCount())
+            flow to expected
+        }
+        val owned = db.shellFindInstanceDao().getAll().toSet()
+        val discoveries = db.achievementDao().getDiscoveries().toSet()
+        db.close(); open()
+        awarded.forEach { (flow, expected) ->
+            assertEquals(expected, rewards.onSessionCompleted(flow).grantedFindIds.groupingBy { it }.eachCount())
+        }
+        assertEquals(owned, db.shellFindInstanceDao().getAll().toSet())
+        assertEquals(discoveries, db.achievementDao().getDiscoveries().toSet())
+        assertEquals(800, shell.getPearlBalance())
+        assertEquals(500, db.powerRewardDao().balance())
+    }
     @Test fun purchasesAreAtomicConcurrentReplaySafeAndPersist() = runBlocking {
         db.powerRewardDao().insert(PebbleLedgerEntity("seed",360,"test",1))
         val results = coroutineScope { List(4) { i -> async { runCatching { shell.purchaseRedCreature("triassic_saturnalia","buy-$i") } } }.awaitAll() }

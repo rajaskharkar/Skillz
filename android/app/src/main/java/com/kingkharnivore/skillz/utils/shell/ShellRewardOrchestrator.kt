@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.entity.shell.SessionShellRewardEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.PebbleLedgerEntity
+import com.kingkharnivore.skillz.data.model.entity.shell.isArcAnimalGrant
 import com.kingkharnivore.skillz.model.FlowMode
 
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
@@ -11,6 +12,7 @@ import com.kingkharnivore.skillz.data.repository.shell.ShellRepository
 import com.kingkharnivore.skillz.domain.lookout.ObjectiveCompletionProcessor
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.random.Random
 
 private const val MILLIS_PER_MINUTE = 60_000L
 private const val MILLIS_PER_SECOND = 1_000L
@@ -25,10 +27,40 @@ data class ShellRewardResult(
 )
 
 object ShellRewardPolicy {
-    fun milestoneFindsForMinutes(minutes: Int): List<String> =
-        CreatureEconomy.creaturesForRegularFlowMinutes(minutes).flatMap { reward ->
+    private val landZonesByMinutes = mapOf(
+        45 to CreatureZone.GOLDEN_FIELDS,
+        75 to CreatureZone.ANCIENT_WOODS,
+        105 to CreatureZone.OPEN_SANDS,
+        135 to CreatureZone.HIGH_PEAKS,
+        150 to CreatureZone.GREAT_WILD
+    )
+    private val redErasByMinutes = mapOf(
+        30 to RedEra.TRIASSIC,
+        60 to RedEra.JURASSIC,
+        120 to RedEra.CRETACEOUS
+    )
+
+    /** One encounter per category at its highest reached milestone, alongside sea rewards. */
+    fun milestoneFindsForMinutes(
+        minutes: Int,
+        mode: FlowMode = FlowMode.FLOW,
+        random: Random = Random.Default
+    ): List<String> = buildList {
+        if (mode == FlowMode.SOFT) return@buildList
+        addAll(CreatureEconomy.creaturesForRegularFlowMinutes(minutes).flatMap { reward ->
             List(reward.quantity) { reward.creatureId }
+        })
+        landZonesByMinutes.entries.lastOrNull { minutes >= it.key }?.value?.let { zone ->
+            LandCreatureCatalog.main.filter { it.zone == zone && it.isAvailable }
+                .randomOrNull(random)?.let { add(it.creatureId) }
         }
+        if (mode == FlowMode.POWER) {
+            redErasByMinutes.entries.lastOrNull { minutes >= it.key }?.value?.let { era ->
+                RedCreatureCatalog.entries.filter { it.era == era && it.active }
+                    .randomOrNull(random)?.let { add(it.id) }
+            }
+        }
+    }
 }
 
 @Singleton
@@ -62,7 +94,7 @@ class ShellRewardOrchestrator @Inject constructor(
         val ledger = db.powerRewardDao()
         val receipt = ledger.reward(session.id)
         if (receipt?.completed == true) {
-            val events = db.shellRewardEventDao().getEventsForSession(session.id)
+            val events = db.shellRewardEventDao().getEventsForSession(session.id).filterNot { it.isArcAnimalGrant }
             return@withTransaction ShellRewardResult(
                 pearlsEarned = receipt.pearls, pebblesEarned = receipt.pebbles,
                 stillwaterUnits = events.filter { it.rewardType == "STILLWATER_ADDED" }.sumOf { it.quantity },
@@ -72,7 +104,7 @@ class ShellRewardOrchestrator @Inject constructor(
             )
         }
 
-        val powerBadgesBefore = db.userBadgeDao().getAll().filter { it.badgeId.startsWith("power_") && it.count > 0 }.map { it.badgeId }.toSet()
+        val badgesBefore = db.userBadgeDao().getAll().filter { it.count > 0 }.map { it.badgeId }.toSet()
         val sourceId = session.id.toString()
         val minutes = (session.durationMs / MILLIS_PER_MINUTE).toInt().coerceAtLeast(0)
         val result = if (session.isSoftMode) {
@@ -109,7 +141,7 @@ class ShellRewardOrchestrator @Inject constructor(
                 }
 
                 // Include this Flow's milestone badges when reconciling badge-book collections.
-                val findIds = ShellRewardPolicy.milestoneFindsForMinutes(minutes)
+                val findIds = ShellRewardPolicy.milestoneFindsForMinutes(minutes, session.mode)
                 grantedFinds += shellRepository.grantFindCopies(findIds, "session", sourceId).map { it.findId }
                 ShellRewardResult(session.scyraPoints, 0, grantedFinds, badges, discoveries)
             }
@@ -119,10 +151,10 @@ class ShellRewardOrchestrator @Inject constructor(
         if (pebbles > 0) ledger.insert(PebbleLedgerEntity("power:${session.id}", pebbles, session.id.toString(), System.currentTimeMillis()))
         // A creature batch already reconciled session and collection badges atomically.
         if (result.grantedFindIds.isEmpty()) shellRepository.reconcilePowerBadges()
-        val newPowerBadges = db.userBadgeDao().getAll().filter {
-            it.badgeId.startsWith("power_") && it.count > 0 && it.badgeId !in powerBadgesBefore
+        val newBadges = db.userBadgeDao().getAll().filter {
+            it.count > 0 && it.badgeId !in badgesBefore
         }.map { it.badgeId }
-        val rewarded = result.copy(pebblesEarned = pebbles, badgeIds = result.badgeIds + newPowerBadges)
+        val rewarded = result.copy(pebblesEarned = pebbles, badgeIds = (result.badgeIds + newBadges).distinct())
         shellRewardEventRecorder.recordSessionRewards(session, rewarded)
         ledger.enqueue(SessionShellRewardEntity(sessionId = session.id, queuedAt = System.currentTimeMillis()))
         ledger.update(SessionShellRewardEntity(session.id, true, result.pearlsEarned, pebbles, receipt?.queuedAt ?: System.currentTimeMillis()))

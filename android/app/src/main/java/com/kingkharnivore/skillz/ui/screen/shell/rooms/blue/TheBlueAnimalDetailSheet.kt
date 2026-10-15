@@ -75,7 +75,12 @@ fun TheBlueAnimalDetailSheet(
     val name = findName(animal.findId)
     val zone = zoneTitle(animal.zoneId)
     val title = stringResource(R.string.the_blue_animal_count, name, animal.totalCount)
-    val source = theBlueEncounteredReason(animal.findId)
+    val source = buildList {
+        add(theBlueEncounteredReason(animal.findId))
+        if (com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.main.any { it.creatureId == animal.findId }) {
+            add(stringResource(R.string.land_flow_encounter_source))
+        }
+    }.joinToString("\n")
     val detailDescription = stringResource(R.string.the_blue_detail_a11y, title, zone, source)
     val growthInstanceId = animal.highestLevelActiveInstanceId ?: animal.firstRestingInstanceId ?: animal.firstActiveInstanceId
     val releaseInstanceId = animal.firstRestingInstanceId ?: animal.firstActiveInstanceId

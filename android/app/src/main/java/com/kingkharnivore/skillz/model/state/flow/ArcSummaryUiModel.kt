@@ -21,7 +21,9 @@ data class ArcShellRewardSummaryUiModel(
     val unknownRewards: List<ArcShellRewardCountUiModel> = emptyList(),
     val pearlsCarried: Int = 0,
     val stillwaterAdded: Long = 0L,
-    val pebblesCarried: Int = 0
+    val pebblesCarried: Int = 0,
+    /** Subset of animals granted for Arc depth, rather than individual Flow duration. */
+    val arcAnimals: List<ArcShellRewardCountUiModel> = emptyList()
 ) {
     val hasVisibleShellRewards: Boolean
         get() = animals.isNotEmpty() || objects.isNotEmpty() || trinkets.isNotEmpty() ||

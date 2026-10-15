@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.model.state.flow.ArcSummaryUiModel
+import com.kingkharnivore.skillz.ui.screen.shell.inventory.resolveBadgePresentation
 
 @Composable
 fun ArcSummaryContent(
@@ -40,13 +41,7 @@ fun ArcSummaryContent(
     val creatureTitles = rewardIds.distinct().mapNotNull { id ->
         com.kingkharnivore.skillz.utils.shell.CreatureCatalog.get(id)?.let { id to stringResource(it.titleRes) }
     }.toMap()
-    val badgeTitles = mapOf(
-        "badge_flow_10_min" to stringResource(R.string.shell_badge_flow_10_title),
-        "badge_flow_30_min" to stringResource(R.string.shell_badge_flow_30_title),
-        "badge_flow_60_min" to stringResource(R.string.shell_badge_flow_60_title),
-        "badge_flow_120_min" to stringResource(R.string.shell_badge_flow_120_title)
-    )
-    val powerBadgeTitles = com.kingkharnivore.skillz.domain.achievement.RedBadgeCatalog.specs.associate { it.id to stringResource(it.titleRes) }
+    val badgeTitles = arc.shellSummary.badges.associate { it.id to resolveBadgePresentation(it.id).title }
     val discoveryTitles = mapOf(
         "discovery_sea_glass_shard" to stringResource(R.string.shell_find_sea_glass_title),
         "discovery_glimmer" to stringResource(R.string.shell_find_glimmer_title),
@@ -58,10 +53,10 @@ fun ArcSummaryContent(
     val cards = buildArcSummaryRewardCards(
         arc = arc,
         calmMode = calmMode,
-        text = rememberRewardRevealTextProvider(),
+        text = rememberRewardRevealTextProvider(arc.shellSummary.badges.map { it.id }),
         durationText = duration,
         findTitle = { findTitles[it] ?: creatureTitles[it] },
-        badgeTitle = { powerBadgeTitles[it] ?: badgeTitles[it] },
+        badgeTitle = { badgeTitles[it] },
         discoveryTitle = { discoveryTitles[it] }
     )
 
