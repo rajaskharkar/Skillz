@@ -214,8 +214,8 @@ fun RedCreatureDetail(creature: RedCatalogEntry, state: RedUiState, busy: Boolea
                 Text(stringResource(if (state.pebbles < creature.pebbleCost) R.string.red_insufficient else if (copies.isEmpty()) R.string.red_purchase else R.string.red_purchase_copy))
             }
             growth?.let { instance ->
-                val cost = CreatureEconomy.growthCostPearls(creature.id, instance.animalLevel)
-                OutlinedButton(enabled = !busy && state.pearls >= cost, onClick = { action = "grow" }, modifier = Modifier.fillMaxWidth()) { Text(pluralStringResource(R.plurals.red_grow, cost, cost)) }
+                val cost = CreatureEconomy.growthCost(creature.id, instance.animalLevel).amount
+                OutlinedButton(enabled = !busy && state.pebbles >= cost, onClick = { action = "grow" }, modifier = Modifier.fillMaxWidth()) { Text(pluralStringResource(R.plurals.red_grow, cost, cost)) }
             }
             active.firstOrNull()?.let { instance ->
                 OutlinedButton(enabled = !busy, onClick = { action = "release" }, modifier = Modifier.fillMaxWidth()) { Text(pluralStringResource(R.plurals.red_release, CreatureEconomy.releaseValuePearls(creature.id, instance.animalLevel), CreatureEconomy.releaseValuePearls(creature.id, instance.animalLevel))) }
@@ -224,10 +224,14 @@ fun RedCreatureDetail(creature: RedCatalogEntry, state: RedUiState, busy: Boolea
         }
     }
     action?.let { pending ->
-        val amount = when(pending) { "grow" -> growth?.let { CreatureEconomy.growthCostPearls(creature.id, it.animalLevel) } ?: 0; "release" -> active.firstOrNull()?.let { CreatureEconomy.releaseValuePearls(creature.id, it.animalLevel) } ?: 0; else -> creature.pebbleCost }
+        val amount = when(pending) { "grow" -> growth?.let { CreatureEconomy.growthCost(creature.id, it.animalLevel).amount } ?: 0; "release" -> active.firstOrNull()?.let { CreatureEconomy.releaseValuePearls(creature.id, it.animalLevel) } ?: 0; else -> creature.pebbleCost }
         AlertDialog(onDismissRequest = { action = null }, title = { Text(stringResource(creature.nameRes)) },
             text = { Text(pluralStringResource(when(pending) { "grow" -> R.plurals.red_grow; "release" -> R.plurals.red_release; else -> R.plurals.red_price }, amount, amount)) },
-            confirmButton = { TextButton(onClick = {
+            confirmButton = { TextButton(enabled = !busy && when (pending) {
+                "grow" -> growth != null && state.pebbles >= amount
+                "purchase" -> state.pebbles >= amount
+                else -> active.isNotEmpty()
+            }, onClick = {
                 when(pending) { "purchase" -> { onPurchase(creature.id, purchaseId) }; "grow" -> growth?.let { onGrow(it.instanceId, it.animalLevel) }; "release" -> active.firstOrNull()?.let { onRelease(it.instanceId) } }
                 action = null
             }) { Text(stringResource(R.string.red_confirm)) } },
