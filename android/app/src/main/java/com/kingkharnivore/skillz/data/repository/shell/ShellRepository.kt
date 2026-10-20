@@ -8,6 +8,7 @@ import com.kingkharnivore.skillz.data.model.entity.shell.*
 import com.kingkharnivore.skillz.data.model.shell.*
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
+import com.kingkharnivore.skillz.utils.shell.CreatureGrowthCurrency
 import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
 import com.kingkharnivore.skillz.utils.shell.CreatureZone
 import com.kingkharnivore.skillz.utils.shell.CreatureStatus
@@ -569,7 +570,9 @@ class ShellRepository @Inject constructor(
     suspend fun growCreature(
         instanceId: String,
         transactionId: String,
-        originDestination: String = "CHEST"
+        originDestination: String = "CHEST",
+        levels: Int = 1,
+        expectedLevel: Int? = null
     ): AchievementResult = db.withTransaction {
         achievementDao.getEvent(transactionId)?.let { committed ->
             val level = findInstanceDao.getById(instanceId)?.animalLevel
@@ -577,11 +580,12 @@ class ShellRepository @Inject constructor(
             val legacy = committed.resultPayload.split('|')
             return@withTransaction AchievementResult(committed.eventId, false, emptyList(),
                 pearlCost = payload?.optInt("pearlCost") ?: legacy.getOrNull(0)?.toIntOrNull() ?: 0,
+                pebbleCost = payload?.optInt("pebbleCost") ?: 0,
                 resultingLevel = payload?.optInt("resultingLevel")?.takeIf { it > 0 }
                     ?: legacy.getOrNull(1)?.toIntOrNull() ?: level)
         }
         val instance = findInstanceDao.getById(instanceId) ?: error("Creature not found")
-        require(ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL) { "Only animals can grow with Pearls." }
+        require(ShellContentCatalog.find(instance.findId)?.kind == ShellRewardKind.ANIMAL) { "Only animals can grow." }
         require(instance.creatureStatus == CreatureStatus.ACTIVE) {
             "Only active creatures can grow."
         }
@@ -589,11 +593,19 @@ class ShellRepository @Inject constructor(
         require(currentLevel < CreatureEconomy.MAX_CREATURE_LEVEL) {
             "Mastered at Level 99."
         }
-        val cost = CreatureEconomy.growthCostPearls(instance.findId, currentLevel)
-        val balance = pearlLedgerDao.getBalance()
-        require(balance >= cost) { insufficientGrowthPearlsMessage(cost, balance) }
+        require(expectedLevel == null || currentLevel == expectedLevel) { "Creature level changed. Reopen its details." }
+        val quote = CreatureEconomy.growthCostForLevels(instance.findId, currentLevel, levels)
+        val cost = quote.amount
+        val usesPebbles = quote.currency == CreatureGrowthCurrency.PEBBLES
+        val balance = if (usesPebbles) db.powerRewardDao().balance() else pearlLedgerDao.getBalance()
+        require(balance >= cost) {
+            if (usesPebbles) "Level up requires $cost Pebbles. You need ${(cost - balance).coerceAtLeast(0)} more."
+            else insufficientGrowthPearlsMessage(cost, balance)
+        }
         val now = System.currentTimeMillis()
-        pearlLedgerDao.insert(
+        if (usesPebbles) {
+            db.powerRewardDao().insert(PebbleLedgerEntity("pebble:$transactionId", -cost, instanceId, now))
+        } else pearlLedgerDao.insert(
             PearlLedgerEntity(
                 "pearl:$transactionId",
                 -cost,
@@ -605,13 +617,15 @@ class ShellRepository @Inject constructor(
             )
         )
         reconcileGrowthBadges(now, AchievementReconciliationMode.HISTORICAL_IMPORT)
-        val resultingLevel = currentLevel + 1
+        val resultingLevel = currentLevel + levels
+        if (resultingLevel == CreatureEconomy.MAX_CREATURE_LEVEL) {
+            reconcileAchievementLedger(now, AchievementReconciliationMode.HISTORICAL_IMPORT)
+        }
         findInstanceDao.updateAnimalLevel(instanceId, resultingLevel)
         findInstanceDao.updateActivity(instanceId, now)
         achievementDao.recordDiscovery(CreatureDiscoveryEntity(instance.findId, instance.acquiredAt, instance.sourceType, instanceId, now))
         val changes = mutableListOf<AchievementChange>()
         if (resultingLevel == CreatureEconomy.MAX_CREATURE_LEVEL) {
-            reconcileAchievementLedger(now, AchievementReconciliationMode.HISTORICAL_IMPORT)
             val badgesBefore = badgeDao.getAll().associate { it.badgeId to it.count }
             val completionsBefore = achievementDao.getCompletions().map { it.completionId }.toSet()
             val inserted = achievementDao.recordMastery(CreatureMasteryEventEntity(
@@ -704,11 +718,13 @@ class ShellRepository @Inject constructor(
                 changes += AchievementChange(AchievementChangeType.BADGE_NEWLY_EARNED, badgeId = it.badgeId, exactCount = it.count)
             }
         }
-        val payload = JSONObject().put("schemaVersion", 1).put("pearlCost", cost)
+        val pearlCost = if (usesPebbles) 0 else cost
+        val pebbleCost = if (usesPebbles) cost else 0
+        val payload = JSONObject().put("schemaVersion", 2).put("pearlCost", pearlCost).put("pebbleCost", pebbleCost)
             .put("previousLevel", currentLevel).put("resultingLevel", resultingLevel)
             .put("speciesId", instance.findId).toString()
         achievementDao.recordEvent(AchievementEventEntity(transactionId, "CREATURE_LEVEL_UP", instanceId, instance.findId, now, payload))
-        AchievementResult(transactionId, true, changes, cost, resultingLevel)
+        AchievementResult(transactionId, true, changes, pearlCost, resultingLevel, pebbleCost)
     }
 
     private suspend fun setBadgeExact(id: String, count: Int, now: Long) {
@@ -1199,7 +1215,7 @@ class ShellRepository @Inject constructor(
 
     suspend fun growCreatureByLevel(findId: String, level: Int, originDestination: String = "CHEST"): AchievementResult = db.withTransaction {
         require(ShellContentCatalog.find(findId)?.kind == ShellRewardKind.ANIMAL) {
-            "Only animals can grow with Pearls."
+            "Only animals can grow."
         }
         val currentLevel = level.coerceAtLeast(1)
         require(currentLevel < CreatureEconomy.MAX_CREATURE_LEVEL) { "Mastered at Level 99." }

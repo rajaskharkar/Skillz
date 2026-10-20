@@ -111,7 +111,10 @@ class ChronicleStateHolder(
                         draft = if (draftGeneration == syncedGeneration) {
                             persisted
                         } else current.draft,
-                        draftField = if (draftGeneration == syncedGeneration) {
+                        // Autosave echoes must preserve the user's cursor, selection,
+                        // and IME composition. Only replace the field for different text.
+                        draftField = if (draftGeneration == syncedGeneration &&
+                            persisted != current.draftField.text) {
                             TextFieldValue(persisted, TextRange(persisted.length))
                         } else current.draftField,
                         moments = snapshot.moments

@@ -913,7 +913,7 @@
     <string name="shell_room_heart_title">Heart Room</string>
     <string name="shell_room_heart_description">A glowing chamber where Scyra rests inside The Shell.</string>
     <string name="shell_room_focus_title">Focus Room</string>
-    <string name="shell_room_focus_description">A calm study where regular Flows become displayed creatures.</string>
+    <string name="shell_room_focus_description">Un espacio tranquilo para centrar tu atención.</string>
 
     <string name="shell_room_voyage_title">Voyage Hall</string>
     <string name="shell_room_voyage_description">Quiet routes waiting for future Arcs.</string>
@@ -942,18 +942,11 @@
     <string name="the_blue_animal_zone">Animal · %1$s</string>
     <string name="the_blue_discovery_animal_zone">Animal · %1$s</string>
     <string name="the_blue_best_form">Nivel más alto: %1$s</string>
-    <string name="the_blue_displayed_in_focus">Mostrado en Focus: %1$d</string>
     <string name="the_blue_swimming_here">Nadando aquí</string>
-    <string name="the_blue_resting_in_chest">Descansando en The Chest: %1$d</string>
     <string name="the_blue_forms">Niveles</string>
     <string name="the_blue_form_count">%1$s ×%2$d</string>
-    <string name="the_blue_displayed_in_focus_heading">Mostrado en Focus</string>
-    <string name="the_blue_resting_in_chest_heading">Descansando en The Chest</string>
     <string name="the_blue_actions">Acciones</string>
-    <string name="the_blue_display_one_in_focus">Mostrar uno en Focus</string>
     <string name="the_blue_view_in_chest">Ver en The Chest</string>
-    <string name="the_blue_no_focus_slot">No hay un espacio Focus libre ahora. Devuelve algo de Focus para mostrar un %1$s.</string>
-    <string name="the_blue_no_resting_copy">No hay ninguna copia en reposo disponible en The Chest.</string>
     <string name="the_blue_all_first_form">Todos los %1$s están en nivel 1.</string>
     <string name="the_blue_forms_unavailable">La información de nivel aún no está disponible.</string>
     <string name="the_blue_source_minnow">De Flows regulares de 10 minutos o más.</string>
@@ -971,7 +964,6 @@
     <string name="the_blue_zone_scene_a11y">%1$s. %2$s. %3$s.</string>
     <string name="the_blue_animal_overlay_a11y">%1$s. Animal. %2$s. Cantidad %3$d. %4$s Abre detalles.</string>
     <string name="the_blue_tap_for_details">Toca para ver detalles</string>
-    <string name="the_blue_animal_card_a11y">%1$s. Animal. Cantidad %2$d. %3$s. %4$s Mostrados en Focus: %5$d.</string>
     <string name="the_blue_detail_a11y">%1$s. %2$s. %3$s</string>
     <string name="the_blue_depth_rail_a11y">Riel de profundidad: Sunlit Reef, Deeper Reef, Open Blue, Great Blue.</string>
     <string name="the_blue_depth_rail_go_to_zone_a11y">Ir a %1$s</string>
@@ -986,22 +978,13 @@
     <string name="shell_preview_lookout">Los planes de tu Horizon aparecerán aquí.</string>
     <string name="shell_welcome">Welcome inside The Shell.</string>
     <string name="shell_welcome_body">Scyra leaves the Shell to make progress. When Scyra returns, your effort becomes part of this world.</string>
-    <string name="shell_enter_focus">Enter the Focus Room</string>
     <string name="shell_pearl_basin_title">The Pearl Basin glows softly.</string>
     <string name="shell_pearl_basin_copy">Scyra returned with Pearls. Use them to shape what grows inside The Shell.</string>
-    <string name="shell_pearl_basin_suggestion">You have enough Pearls to brighten something in the Focus Room.</string>
     <string name="shell_pearl_basin_a11y">Pearl Basin. Suggestions for shaping The Shell with Pearls.</string>
     <string name="shell_room_entrances">Room entrances</string>
     <string name="shell_pulse_title">Shell Pulse</string>
     <string name="shell_pulse_recent">%1$d cosas y fragmentos descansan en The Chest.</string>
-    <string name="shell_pulse_mystery">Pista misteriosa: algo se mueve cuando una corriente se hace más profunda.</string>
-    <string name="shell_focus_body">Muestra Animales y Objetos propios en rincones Focus, luego da forma a sus formas con Pearls.</string>
-    <string name="shell_focus_summary">Mostrados: %1$d. En reposo en The Chest: %2$d.</string>
-    <string name="shell_empty_slot">Rincón vacío</string>
-    <string name="shell_empty_slot_title">Rincón vacío</string>
-    <string name="shell_place_something_here">Coloca algo aquí.</string>
-    <string name="shell_place_free">Muestra o coloca desde The Chest sin necesitar Pearls.</string>
-    <string name="shell_no_owned_finds_fit">Nada en reposo en The Chest encaja todavía en este rincón.</string>
+    <string name="shell_pulse_mystery">Tómate un momento de calma en Focus Room.</string>
     <string name="shell_shape_with_pearls">Dar forma a este espacio con Pearls</string>
     <string name="shell_contextual_invites_preview">Lámpara — 80 Pearls
 Percha — 120 Pearls
@@ -1074,8 +1057,6 @@ Piedritas — 60 Pearls</string>
     <string name="shell_creature_release_quantity_increase_level">Aumentar selección de Nivel %1$d %2$s</string>
     <string name="shell_creature_keep_swimming">Seguir nadando</string>
     <string name="shell_chest_item_status">Tipo: %1$s. Estado: %2$s.</string>
-    <string name="shell_status_placed">En exhibición</string>
-    <string name="shell_status_unplaced">En reposo</string>
     <string name="shell_badges_title">Insignias</string>
     <string name="shell_badges_body">Las insignias registran lo que pasó.</string>
     <string name="shell_badge_a11y">Insignia %1$s. Cantidad: %2$d.</string>
@@ -1112,7 +1093,6 @@ Piedritas — 60 Pearls</string>
     <string name="shell_slot_creature_perch_right">Percha derecha para criatura</string>
     <string name="shell_slot_center_focus_nook">Center Focus Nook</string>
     <string name="shell_slot_memory_nook">Memory Nook</string>
-    <string name="shell_slot_named_title">Space: %1$s</string>
     <string name="shell_shape_space_with_pearls">Dar forma a este espacio con Pearls</string>
     <string name="shell_invite_with_pearls">Invite with %1$d Pearls</string>
     <string name="shell_need_more_pearls">Necesitas %1$d Pearls más.</string>
@@ -1122,34 +1102,22 @@ Piedritas — 60 Pearls</string>
     <string name="shell_basin_brighten_suggestion">Brighten %1$s</string>
     <string name="shell_basin_invite_suggestion">Invite %1$s</string>
     <string name="shell_no_available_shapes">Nada está listo en este momento. Unas Pearls más despertarán una nueva forma.</string>
-    <string name="shell_empty_slot_a11y">%1$s. Espacio vacío de sala Focus. Abre opciones de colocación y modelado con Pearls.</string>
-    <string name="shell_placed_object_a11y">%1$s. Mostrado en la sala Focus. Abre los detalles del objeto.</string>
     <string name="shell_whisper_new_discovery">A Shell discovery is ready to view.</string>
     <string name="shell_whisper_upgrade_ready">%1$s can brighten — you have enough Pearls.</string>
     <string name="shell_whisper_chest_waiting">Criaturas en The Chest: %1$d.</string>
-    <string name="shell_whisper_empty_focus">Hay rincones vacíos en Focus Room.</string>
     <string name="shell_heart_detail_title">Corazón de The Shell</string>
     <string name="shell_heart_pearls_gathered">Pearls gathered: %1$d</string>
     <string name="shell_heart_finds_owned">Owned in The Shell: %1$d</string>
     <string name="shell_heart_discoveries_awakened">Badges awakened: %1$d</string>
-    <string name="shell_heart_focus_objects_placed">Focus objects displayed: %1$d</string>
     <string name="shell_pearl_basin_chip_a11y">Pearl Basin. %1$d Pearls. Abre sugerencias de creación.</string>
     <string name="shell_room_active_a11y">%1$s. Sala activa. Abre %1$s.</string>
     <string name="shell_room_preview_a11y">%1$s. Abre la vista previa.</string>
     <string name="shell_heart_center_a11y">Corazón de The Shell. Abre los detalles del corazón.</string>
-    <string name="shell_heart_objects_displayed_resting">Objetos mostrados: %1$d. En reposo en The Chest: %2$d.</string>
-    <string name="shell_all_nooks_holding">Todos los rincones sostienen algo. Cambia, ilumina o sigue reuniendo más en The Chest. En reposo en The Chest: %1$d.</string>
-    <string name="shell_empty_nook_choices">Elige cómo cambiará este rincón.</string>
     <string name="shell_leave_empty">Dejar vacío</string>
-    <string name="shell_no_resting_finds_fit">Nada en reposo en The Chest encaja todavía en este rincón.</string>
-    <string name="shell_status_displayed_focus">Mostrado en Focus</string>
     <string name="shell_status_resting">En reposo en The Chest</string>
     <string name="shell_chest_group_title">%1$s ×%2$d</string>
-    <string name="shell_chest_group_status">Categoría: %4$s · Nivel más alto: %1$s · Mostrados %2$d · En reposo %3$d.</string>
     <string name="shell_choose_something_to_swap">Elige algo para cambiar.</string>
     <string name="shell_swap_with">Cambiar por %1$s</string>
-    <string name="shell_no_compatible_nooks">Aún no hay rincones compatibles. Esta copia puede seguir descansando en The Chest.</string>
-    <string name="shell_place_in_focus">Colocar en Focus</string>
     <string name="reward_card_page_count">%1$d de %2$d</string>
     <string name="reward_card_page_announcement">Recompensa %1$d de %2$d</string>
     <string name="reward_card_scyra_points_template">%1$d puntos Scyra</string>
@@ -1323,11 +1291,8 @@ Piedritas — 60 Pearls</string>
     <string name="session_reward_shell_find">Shell reward</string>
     <string name="session_reward_shell_badges">Badges updated</string>
     <string name="session_reward_shell_badges_value">%1$d badge updates</string>
-    <string name="shell_feedback_place_success">Mostrado en Focus Room.</string>
     <string name="shell_feedback_upgrade_success">Tus Pearls añadieron calidez a su luz.</string>
     <string name="shell_feedback_return_success">Devuelto a The Chest.</string>
-    <string name="shell_place_in_slot">Colocar en %1$s</string>
-    <string name="shell_compatible_slots">Espacios compatibles de Focus Room</string>
     <string name="shell_object_lamp_title">Glow Coral</string>
     <string name="shell_object_lamp_description">Objeto de sala · Luz. Invitado con Pearls para iluminar un rincón tranquilo.</string>
     <string name="shell_object_perch_title">Percha</string>
@@ -1339,7 +1304,6 @@ Piedritas — 60 Pearls</string>
     <string name="shell_object_bubbles_title">Bubbles</string>
     <string name="shell_object_bubbles_description">Invitado con Pearls para un rincón con corriente.</string>
     <string name="shell_slot_surge_current_nook">Surge Current Nook</string>
-    <string name="shell_surge_current_reserved_body">Las recompensas de Surge pueden mostrarse aquí. Completa un Surge para traer una corriente a este rincón.</string>
     <string name="shell_basin_soon_upgrade">%1$s · %2$s</string>
     <string name="shell_badge_notification_title">Insignia: %1$s</string>
     <string name="shell_badge_notification_body">Cantidad: %1$d · %2$s</string>
@@ -1362,7 +1326,6 @@ Piedritas — 60 Pearls</string>
     <string name="shell_invite_confirm_body">Esto formará un nuevo %1$s y lo dejará en The Chest.</string>
     <string name="shell_invite_confirm_cta">Invitar con %1$d Pearls</string>
     <string name="shell_let_rest_in_chest">Dejar en reposo en The Chest</string>
-    <string name="shell_display_in_focus">Mostrar en Focus</string>
     <string name="shell_animal_no_more_forms">Este animal permanece en su nivel actual.</string>
     <string name="shell_object_no_more_forms">Esta criatura permanece en su forma actual.</string>
     <string name="shell_reward_no_more_forms">Esta recompensa descansa en su forma actual.</string>
@@ -1438,7 +1401,6 @@ Piedritas — 60 Pearls</string>
     <string name="shell_find_kraken_description">Encountered Beyond the Blue.</string>
     <string name="shell_find_leviathan_title">Leviathan</string>
     <string name="shell_find_leviathan_description">Encountered Beyond the Blue.</string>
-    <string name="the_blue_created_from_flow">Creado con tu tiempo de enfoque.</string>
     <string name="the_blue_swimming_chip">Nadando %1$d</string>
     <string name="the_blue_lifetime_chip">Total histórico %1$d</string>
     <string name="the_blue_highest_level_chip">Nivel máx. %1$d</string>
@@ -1465,7 +1427,6 @@ Piedritas — 60 Pearls</string>
     <string name="shell_creature_level_count_chip">Nv %1$d ×%2$d</string>
     <string name="beyond_blue_target_title_with_zone">%1$s · %2$s</string>
     <string name="shell_chest_lifetime_count">%1$d total histórico</string>
-    <string name="shell_chest_displayed_count">Mostrados %1$d</string>
     <string name="shell_chest_resting_count">En reposo %1$d</string>
     <string name="shell_creature_level_short">Nv %1$d</string>
     <string name="shell_collection_title">Colección de %1$s</string>
@@ -2091,11 +2052,8 @@ Puedes volver a activar Health más tarde.</string>
     <string name="shell_notification_fallback_title">Nueva recompensa de The Shell</string>
 
     <string name="the_blue_collection_progress">Descubiertas: %1$d de %2$d · Dominadas: %3$d</string>
-    <string name="shell_message_placed">Colocado en la Sala de concentración.</string>
-    <string name="shell_message_display_failed">No se pudo mostrar esa recompensa.</string>
     <string name="shell_message_returned">Devuelto a The Chest.</string>
     <string name="shell_message_return_failed">No se pudo devolver esa recompensa.</string>
-    <string name="shell_message_focus_shaped">Tus Pearls dieron forma a la Sala de concentración.</string>
     <string name="shell_message_shape_failed">No se pudo dar forma a ese espacio.</string>
     <string name="shell_message_creature_chest">Hay una criatura en The Chest.</string>
     <string name="shell_message_invite_failed">No se pudo invitar ese objeto.</string>
@@ -2425,4 +2383,6 @@ Puedes volver a activar Health más tarde.</string>
     <string name="lookout_reminder_due_body">Es la hora de %1$s.</string>
     <string name="lookout_claim_failed">No se pudieron reclamar las recompensas. Inténtalo de nuevo.</string>
     <string name="lookout_cycle_dates">Ciclo: %1$s – %2$s</string>
+    <string name="shell_enter_focus">Enter the Focus Room</string>
+    <string name="the_blue_created_from_flow">Creado con tu tiempo de enfoque.</string>
 </resources>

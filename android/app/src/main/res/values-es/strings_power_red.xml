@@ -108,9 +108,9 @@
     <string name="red_purchase">Adquirir dinosaurio</string>
     <string name="red_purchase_copy">Adquirir otro ejemplar</string>
     <plurals name="red_grow">
-        <item quantity="one">Subir de nivel · %1$,d perla</item>
-        <item quantity="other">Subir de nivel · %1$,d perlas</item>
-        <item quantity="many">Subir de nivel · %1$,d perlas</item>
+        <item quantity="one">Subir de nivel · %1$,d guijarro</item>
+        <item quantity="other">Subir de nivel · %1$,d guijarros</item>
+        <item quantity="many">Subir de nivel · %1$,d guijarros</item>
     </plurals>
     <plurals name="red_release">
         <item quantity="one">Liberar · recibir %1$,d perla</item>
@@ -121,7 +121,7 @@
     <string name="red_confirm">Confirmar</string>
     <string name="red_action_success">Colección actualizada</string>
     <string name="red_action_failed">No se pudo completar la acción. Revisa tu saldo e inténtalo de nuevo.</string>
-    <string name="red_progression_help">Sube de nivel con perlas. El dominio y el progreso total permanecen en tu colección.</string>
+    <string name="red_progression_help">Sube de nivel con guijarros. El dominio y el progreso total permanecen en tu colección.</string>
     <plurals name="red_scene_description">
         <item quantity="one">Paisaje de %1$s con %2$d dinosaurio adquirido. Solo ambientación.</item>
         <item quantity="other">Paisaje de %1$s con %2$d dinosaurios adquiridos. Solo ambientación.</item>
@@ -260,4 +260,11 @@
         <item quantity="many">%1$d / %2$d Journeys</item>
         <item quantity="other">%1$d / %2$d Journeys</item>
     </plurals>
+    <string name="shell_creature_level_up_cost_pebbles">Costo de subir nivel: %1$d guijarros</string>
+    <string name="shell_creature_level_up_unavailable_pebbles">Subir nivel requiere %1$d guijarros. Necesitas %2$d más.</string>
+    <string name="shell_creature_level_up_confirm_cost_pebbles">Costo: %1$d guijarros</string>
+    <string name="shell_creature_level_up_a11y_pebbles">Sube de nivel una criatura de nivel %1$d %2$s. Costo: %3$d guijarros.</string>
+    <string name="shell_creature_level_up_confirm_a11y_pebbles">Confirmar subida de nivel de una criatura de nivel %1$d %2$s por %3$d guijarros.</string>
+    <string name="level99_preview_balance_pebbles">Guijarros necesarios: %1$d · Disponibles: %2$d · Faltan: %3$d</string>
+    <string name="shell_upgrade_animal_a11y_pebbles">Haz crecer este animal con guijarros</string>
 </resources>

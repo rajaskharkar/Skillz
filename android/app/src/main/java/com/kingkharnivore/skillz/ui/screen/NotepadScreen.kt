@@ -781,23 +781,25 @@ fun NotepadScreen(
                                 backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
                             )
                         ) {
-                            RichTextEditor(
-                                state = state,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .focusRequester(focusRequester),
-                                singleLine = false,
-                                maxLines = Int.MAX_VALUE,
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.12f
-                                ),
-                                keyboardOptions = KeyboardOptions(
-                                    capitalization = KeyboardCapitalization.Sentences,
-                                    keyboardType = KeyboardType.Text,
-                                    autoCorrect = true
+                            NotepadKeyboard(state) {
+                                RichTextEditor(
+                                    state = state,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .focusRequester(focusRequester),
+                                    singleLine = false,
+                                    maxLines = Int.MAX_VALUE,
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        lineHeight = MaterialTheme.typography.bodyLarge.lineHeight * 1.12f
+                                    ),
+                                    keyboardOptions = KeyboardOptions(
+                                        capitalization = KeyboardCapitalization.Sentences,
+                                        keyboardType = KeyboardType.Text,
+                                        autoCorrect = true
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
                 }

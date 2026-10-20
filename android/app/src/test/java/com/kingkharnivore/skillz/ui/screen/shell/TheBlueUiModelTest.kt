@@ -1,9 +1,7 @@
 package com.kingkharnivore.skillz.ui.screen.shell
 
-import com.kingkharnivore.skillz.data.model.entity.shell.ShellPlacementEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
-import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
 import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
@@ -27,7 +25,7 @@ class TheBlueUiModelTest {
             find("traded", "creature_camel", status = CreatureStatus.USED_BEYOND_BLUE),
             find("restorative", "creature_peacock")
         )
-        val land = buildTheBlueUiState(finds, emptyList(), com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND)
+        val land = buildTheBlueUiState(finds, com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND)
         assertEquals(5, land.zones.size)
         assertEquals(3, land.totalAnimals)
         assertEquals(setOf("creature_tiger", "creature_peacock"), land.zones.flatMap { it.animals }.map { it.findId }.toSet())
@@ -37,8 +35,8 @@ class TheBlueUiModelTest {
         assertEquals(99, tiger.highestLevel)
         assertEquals(TheBlueZoneId.GOLDEN_FIELDS, zoneForFind("creature_peacock"))
         assertTrue(isBlueAcquisitionCreature("creature_peacock"))
-        assertEquals(1, buildTheBlueUiState(finds, emptyList()).totalAnimals)
-        assertTrue(buildTheBlueUiState(emptyList(), emptyList(), com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND).zones.all { it.animals.isEmpty() })
+        assertEquals(1, buildTheBlueUiState(finds).totalAnimals)
+        assertTrue(buildTheBlueUiState(emptyList(), com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND).zones.all { it.animals.isEmpty() })
     }
 
     @Test
@@ -70,8 +68,7 @@ class TheBlueUiModelTest {
                 find("whale-1", ShellContentCatalog.FOCUS_WHALE),
                 find("pebble-1", ShellContentCatalog.FOCUS_PEBBLE),
                 find("trinket-1", ShellContentCatalog.TRINKET_SEA_GLASS_SHARD)
-            ),
-            focusPlacements = listOf(placement("minnow-1"))
+            )
         )
 
         val minnow = state.zones.single { it.zoneId == TheBlueZoneId.SUNLIT_REEF }.animals.single()
@@ -79,8 +76,6 @@ class TheBlueUiModelTest {
         assertEquals(4, state.speciesCount)
         assertEquals(TheBlueZoneId.GREAT_BLUE, state.deepestZoneId)
         assertEquals(2, minnow.totalCount)
-        assertEquals(1, minnow.displayedInFocusCount)
-        assertEquals(1, minnow.restingCount)
         assertTrue(minnow.isNew)
         assertEquals("focus_minnow_luminous", minnow.bestFormStageId)
         assertEquals(TheBlueZoneId.OPEN_BLUE, state.zones.single { it.zoneId == TheBlueZoneId.OPEN_BLUE }.animals.single().zoneId)
@@ -99,8 +94,7 @@ class TheBlueUiModelTest {
                 find("clam-active", "stillwater_clam", isNew = true),
                 find("clam-released", "stillwater_clam", status = CreatureStatus.RELEASED),
                 find("minnow-active", ShellContentCatalog.FOCUS_MINNOW, isNew = true)
-            ),
-            focusPlacements = emptyList()
+            )
         )
 
         val reefAnimals = state.zones.single { it.zoneId == TheBlueZoneId.SUNLIT_REEF }.animals
@@ -115,8 +109,7 @@ class TheBlueUiModelTest {
     @Test
     fun releasedStillwaterCreaturesDoNotAppearInOwnedDisplay() {
         val state = buildTheBlueUiState(
-            finds = listOf(find("clam-released", "stillwater_clam", status = CreatureStatus.RELEASED)),
-            focusPlacements = emptyList()
+            finds = listOf(find("clam-released", "stillwater_clam", status = CreatureStatus.RELEASED))
         )
 
         assertFalse(state.zones.any { zone -> zone.animals.any { it.findId == "stillwater_clam" } })
@@ -129,8 +122,7 @@ class TheBlueUiModelTest {
                 find("manta-active", ShellContentCatalog.FOCUS_MANTA, level = 2),
                 find("manta-released", ShellContentCatalog.FOCUS_MANTA, status = CreatureStatus.RELEASED, level = 8),
                 find("manta-used", ShellContentCatalog.FOCUS_MANTA, status = CreatureStatus.USED_BEYOND_BLUE, level = 4)
-            ),
-            focusPlacements = listOf(placement("manta-active"))
+            )
         )
 
         val manta = state.zones.single { it.zoneId == TheBlueZoneId.OPEN_BLUE }.animals.single()
@@ -152,8 +144,7 @@ class TheBlueUiModelTest {
                 find("minnow-l1-b", ShellContentCatalog.FOCUS_MINNOW, level = 1),
                 find("minnow-l1-c", ShellContentCatalog.FOCUS_MINNOW, level = 1),
                 find("minnow-l1-d", ShellContentCatalog.FOCUS_MINNOW, level = 1)
-            ),
-            focusPlacements = emptyList()
+            )
         )
 
         val minnow = state.zones.single { it.zoneId == TheBlueZoneId.SUNLIT_REEF }.animals.single()
@@ -170,8 +161,7 @@ class TheBlueUiModelTest {
             finds = listOf(
                 find("seahorse-l4-a", ShellContentCatalog.FOCUS_SEAHORSE, level = 4),
                 find("seahorse-l4-b", ShellContentCatalog.FOCUS_SEAHORSE, level = 4)
-            ),
-            focusPlacements = emptyList()
+            )
         )
 
         val seahorse = state.zones.single { it.zoneId == TheBlueZoneId.DEEPER_REEF }.animals.single()
@@ -186,8 +176,7 @@ class TheBlueUiModelTest {
             finds = listOf(
                 find("seahorse-l1", ShellContentCatalog.FOCUS_SEAHORSE, level = 1),
                 find("seahorse-l20", ShellContentCatalog.FOCUS_SEAHORSE, level = 20)
-            ),
-            focusPlacements = emptyList()
+            )
         )
 
         val seahorse = state.zones.single { it.zoneId == TheBlueZoneId.DEEPER_REEF }.animals.single()
@@ -203,7 +192,7 @@ class TheBlueUiModelTest {
             find("pebble-1", ShellContentCatalog.FOCUS_PEBBLE, isNew = true)
         )
 
-        assertEquals(1, buildTheBlueUiState(finds, emptyList()).newAnimalCount)
+        assertEquals(1, buildTheBlueUiState(finds).newAnimalCount)
 
         val afterMark = finds.map { instance ->
             if (instance.findId in ShellContentCatalog.regularFlowAnimalFindIds) {
@@ -213,7 +202,7 @@ class TheBlueUiModelTest {
             }
         }
 
-        assertEquals(0, buildTheBlueUiState(afterMark, emptyList()).newAnimalCount)
+        assertEquals(0, buildTheBlueUiState(afterMark).newAnimalCount)
         assertFalse(afterMark.first { it.findId == ShellContentCatalog.FOCUS_MINNOW }.isNew)
         assertTrue(afterMark.first { it.findId == ShellContentCatalog.FOCUS_PEBBLE }.isNew)
     }
@@ -260,7 +249,7 @@ class TheBlueUiModelTest {
 
     @Test
     fun lifePresencePlanBoundsDirectCreaturesAndPreservesOverflowAccounting() {
-        val state = buildTheBlueUiState(List(100) { find("minnow-$it", ShellContentCatalog.FOCUS_MINNOW) }, emptyList())
+        val state = buildTheBlueUiState(List(100) { find("minnow-$it", ShellContentCatalog.FOCUS_MINNOW) })
         val animal = state.zones.first().animals.single()
         val plan = lifePresencePlan(animal, com.kingkharnivore.skillz.utils.shell.CreatureCatalog.require(animal.findId))
         assertEquals(8, plan.directIndividuals.size)
@@ -269,18 +258,9 @@ class TheBlueUiModelTest {
     }
 
     @Test
-    fun displayDisabledReasonDistinguishesNoSlotFromNoRestingCopy() {
-        assertEquals(TheBlueDisplayDisabledReason.NO_FOCUS_SLOT, theBlueDisplayDisabledReason(null, null))
-        assertEquals(TheBlueDisplayDisabledReason.NO_FOCUS_SLOT, theBlueDisplayDisabledReason(null, "copy-1"))
-        assertEquals(TheBlueDisplayDisabledReason.NO_RESTING_COPY, theBlueDisplayDisabledReason("slot-1", null))
-        assertNull(theBlueDisplayDisabledReason("slot-1", "copy-1"))
-    }
-
-    @Test
     fun emptyStateAppearsWhenNoAnimalsAreOwned() {
         val state = buildTheBlueUiState(
-            finds = listOf(find("pebble-1", ShellContentCatalog.FOCUS_PEBBLE)),
-            focusPlacements = emptyList()
+            finds = listOf(find("pebble-1", ShellContentCatalog.FOCUS_PEBBLE))
         )
 
         assertTrue(state.isEmpty)
@@ -296,7 +276,7 @@ class TheBlueUiModelTest {
         val count = 24
         val zone = "Sunlit Reef"
         val source = "From regular Flows lasting 10 minutes or more."
-        val contentDescription = "$name. Animal. Count $count. $zone. $source Displayed in Focus: 2."
+        val contentDescription = "$name. Animal. Count $count. $zone. $source"
 
         assertTrue(contentDescription.contains(name))
         assertTrue(contentDescription.contains(count.toString()))
@@ -325,11 +305,4 @@ class TheBlueUiModelTest {
         creatureStatus = status
     )
 
-    private fun placement(instanceId: String) = ShellPlacementEntity(
-        placementId = "placement-$instanceId",
-        roomId = ShellRoomId.FOCUS.name,
-        slotId = "left_creature_perch",
-        instanceId = instanceId,
-        placedAt = 1L
-    )
 }

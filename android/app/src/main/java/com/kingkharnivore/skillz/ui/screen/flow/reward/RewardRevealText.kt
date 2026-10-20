@@ -5,8 +5,6 @@ import androidx.compose.ui.res.stringResource
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureZone
-import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
-import com.kingkharnivore.skillz.utils.shell.CreatureRealm
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.resolveBadgePresentation
 
 @Composable
@@ -19,8 +17,6 @@ fun rememberRewardRevealTextProvider(badgeIds: List<String> = emptyList()): Rewa
     val resources = androidx.compose.ui.platform.LocalContext.current.resources
     val redHint = stringResource(R.string.power_reward_red_hint)
     val redCreatureHint = stringResource(R.string.reward_card_red_creature_hint)
-    val landFlowReason = stringResource(R.string.reward_card_land_flow_reason)
-    val redFlowReason = stringResource(R.string.reward_card_red_flow_reason)
     val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
     val scyraPointsTemplate = stringResource(R.string.reward_card_scyra_points_template)
     val pointsDeltaTemplate = stringResource(R.string.session_reward_points_value)
@@ -135,11 +131,7 @@ fun rememberRewardRevealTextProvider(badgeIds: List<String> = emptyList()): Rewa
         override fun deeperReef() = deeperReef
         override fun openBlue() = openBlue
         override fun deepOcean() = deepOcean
-        override fun animalReason(findId: String) = animalReasons[findId] ?: when (CreatureCatalog.get(findId)?.realm) {
-            CreatureRealm.LAND -> landFlowReason
-            CreatureRealm.RED -> redFlowReason
-            else -> shellRewardRecordedBody
-        }
+        override fun animalReason(findId: String) = animalReasons[findId] ?: shellRewardRecordedBody
         override fun badgeReason(badgeId: String) = earnedBadgeReasons[badgeId] ?: powerBadgeReasons[badgeId] ?: badgeReasons[badgeId] ?: shellRewardRecordedBody
         override fun landArcRewardReason() = landArcRewardReason
         override fun mixedArcRewardReason() = mixedArcRewardReason

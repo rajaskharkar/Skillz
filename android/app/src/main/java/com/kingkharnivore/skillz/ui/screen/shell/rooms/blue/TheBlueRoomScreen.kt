@@ -38,7 +38,6 @@ import com.kingkharnivore.skillz.ui.screen.shell.buildTheBlueUiState
 import com.kingkharnivore.skillz.ui.screen.shell.depthOrder
 import com.kingkharnivore.skillz.ui.screen.shell.theBlueSequentialNavigationPath
 import com.kingkharnivore.skillz.ui.screen.shell.theBlueZoneForPage
-import com.kingkharnivore.skillz.ui.screen.shell.ux.canDisplayInstance
 import com.kingkharnivore.skillz.utils.shell.shellBackground
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import com.kingkharnivore.skillz.ui.screen.shell.NavigationConsumptionResult
@@ -53,7 +52,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun TheBlueRoomScreen(
     uiState: ShellUiState,
-    onDisplayInFocus: (String, String) -> Unit,
     onGrowCreature: (String) -> Unit,
     onReleaseCreaturesByLevel: (String, Map<Int, Int>) -> Unit,
     onEncounterBeyondBlue: (String, List<String>) -> Unit,
@@ -75,14 +73,14 @@ fun TheBlueRoomScreen(
         }
     }
     if (!com.kingkharnivore.skillz.BuildConfig.LAND_ENABLED) {
-        BlueRealmRoomScreen(uiState,onDisplayInFocus,onGrowCreature,onReleaseCreaturesByLevel,
+        BlueRealmRoomScreen(uiState,onGrowCreature,onReleaseCreaturesByLevel,
             onEncounterBeyondBlue,onOpenChest,focusRequest,onFocusResult,CreatureRealm.SEA) {}
     } else if (realm == null) {
         BlueRealmSelector(onSelectRealm)
     } else {
         BackHandler { onSelectRealm(null) }
         androidx.compose.runtime.key(realm) {
-            BlueRealmRoomScreen(uiState, onDisplayInFocus, onGrowCreature, onReleaseCreaturesByLevel,
+            BlueRealmRoomScreen(uiState, onGrowCreature, onReleaseCreaturesByLevel,
                 onEncounterBeyondBlue, onOpenChest, focusRequest, onFocusResult, realm) { onSelectRealm(null) }
         }
     }
@@ -91,7 +89,6 @@ fun TheBlueRoomScreen(
 @Composable
 private fun BlueRealmRoomScreen(
     uiState: ShellUiState,
-    onDisplayInFocus: (String, String) -> Unit,
     onGrowCreature: (String) -> Unit,
     onReleaseCreaturesByLevel: (String, Map<Int, Int>) -> Unit,
     onEncounterBeyondBlue: (String, List<String>) -> Unit,
@@ -101,8 +98,8 @@ private fun BlueRealmRoomScreen(
     realm: CreatureRealm,
     onReturn: () -> Unit
 ) {
-    val theBlueState = remember(uiState.finds, uiState.focusPlacements) {
-        buildTheBlueUiState(uiState.finds, uiState.focusPlacements, realm)
+    val theBlueState = remember(uiState.finds, realm) {
+        buildTheBlueUiState(uiState.finds, realm)
     }
     val shownZones = theBlueState.zones
     var selectedAnimal by remember { mutableStateOf<TheBlueAnimalGroupUiModel?>(null) }
@@ -259,9 +256,6 @@ private fun BlueRealmRoomScreen(
     selectedAnimal?.let { animal ->
         TheBlueAnimalDetailSheet(
             animal = animal,
-            focusSlotId = remember(uiState.focusPlacements, animal.findId) {
-                firstOpenFocusSlotFor(animal.findId, uiState)
-            },
             pearlBalance = uiState.pearlBalance,
             onDismiss = { selectedAnimal = null },
             onGrow = { instanceId ->
@@ -278,16 +272,9 @@ private fun BlueRealmRoomScreen(
                 showBeyondBlue = true
                 selectedAnimal = null
             },
-            onDisplayInFocus = { instanceId, slotId ->
-                onDisplayInFocus(instanceId, slotId)
-                selectedAnimal = null
-            },
             onOpenChest = {
                 selectedAnimal = null
                 onOpenChest()
-            },
-            firstRestingInstanceId = remember(uiState.finds, uiState.focusPlacements, animal.findId) {
-                firstRestingInstanceId(animal.findId, uiState)
             },
             level99Preview = uiState.badgeDashboard?.level99Previews?.get(animal.findId)
                 ?.takeIf { animal.highestLevel == 98 }
@@ -320,19 +307,4 @@ private fun BlueRealmRoomScreen(
             }
         )
     }
-}
-
-private fun firstOpenFocusSlotFor(findId: String, uiState: ShellUiState): String? {
-    val definition = ShellContentCatalog.find(findId) ?: return null
-    val occupied = uiState.focusPlacements.map { it.slotId }.toSet()
-    return ShellContentCatalog.focusSlots.firstOrNull { slot ->
-        slot.slotId !in occupied && ShellContentCatalog.isCompatibleWithSlot(slot, definition)
-    }?.slotId
-}
-
-private fun firstRestingInstanceId(findId: String, uiState: ShellUiState): String? {
-    val displayed = uiState.focusPlacements.map { it.instanceId }.toSet()
-    return uiState.finds.firstOrNull { item ->
-        item.findId == findId && item.instanceId !in displayed && canDisplayInstance(item, ShellContentCatalog.find(item.findId))
-    }?.instanceId
 }

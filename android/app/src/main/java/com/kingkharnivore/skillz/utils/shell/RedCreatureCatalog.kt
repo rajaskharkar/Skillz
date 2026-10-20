@@ -15,7 +15,7 @@ data class RedCatalogEntry(val id: String, val nameRes: Int, val era: RedEra, va
         staticIconKey = assetId, animatedRendererKey = assetId, renderFamily = CreatureRenderFamily.DINOSAUR,
         sceneBehavior = if (id in RedCreatureCatalog.predators) CreatureSceneBehavior.PROWL else CreatureSceneBehavior.GRAZE,
         placementBand = CreaturePlacementBand.GROUND, scaleClass = if (pebbleCost >= 2000) CreatureScaleClass.GIANT else CreatureScaleClass.MEDIUM,
-        economicValuePearls = pebbleCost, baseGrowthCostPearls = pebbleCost, pebbleCost = pebbleCost
+        economicValuePearls = pebbleCost, pebbleCost = pebbleCost
     )
 }
 

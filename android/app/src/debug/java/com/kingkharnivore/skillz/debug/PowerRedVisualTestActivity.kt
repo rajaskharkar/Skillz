@@ -73,7 +73,7 @@ class PowerRedVisualTestActivity : ComponentActivity() {
                                 var chest by remember { mutableStateOf(com.kingkharnivore.skillz.viewmodel.shell.ShellUiState(
                                     finds = if(scenario == "chest-empty") emptyList() else ids.mapIndexed { i,id -> fixture(id,i,if(i%3 == 0)98 else 12) }, pearlBalance = 200_000,
                                     chestEnvironment = when(scenario) { "chest-land" -> ChestFilterOption.Land; "chest-red" -> ChestFilterOption.Red; else -> ChestFilterOption.All })) }
-                                ShellChestScreen(chest,{_,_->},{_,_->},{}, { chest=chest.copy(chestSortOption=it) }, { chest=chest.copy(chestFilter=it) },
+                                ShellChestScreen(chest,{_,_->},{_,_,_->},{}, { chest=chest.copy(chestSortOption=it) }, { chest=chest.copy(chestFilter=it) },
                                     focusSpeciesId=if(scenario == "chest-detail") "jurassic_stegosaurus" else null,
                                     onEnvironmentSelected={chest=chest.copy(chestEnvironment=it)},
                                     onClearFilters={chest=chest.copy(chestEnvironment=ChestFilterOption.All,chestFilter=ChestFilterOption.All)})

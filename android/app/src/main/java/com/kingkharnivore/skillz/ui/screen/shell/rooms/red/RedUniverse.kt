@@ -89,7 +89,7 @@ internal fun RedEraPage(era: RedEra,state: RedUiState,time: ()->Float,onCatalog:
         // This measured space is below all header text and above the owned-creature tray.
         // The drawing clips to it, so no body, tail or walking path can cross a text overlay.
         RedCreatureLanes(population,highestLevels,time,
-            Modifier.weight(1f).fillMaxWidth().graphicsLayer().testTag("red-animal-lanes").semantics { contentDescription=description })
+            Modifier.weight(1f).fillMaxWidth().graphicsLayer().testTag("red-animal-lanes").semantics { contentDescription=description }, onCreature = onCreature)
         if(owned.isEmpty()) {
             TheBlueOverlaySurface(Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.red_empty_world),style=MaterialTheme.typography.bodySmall)

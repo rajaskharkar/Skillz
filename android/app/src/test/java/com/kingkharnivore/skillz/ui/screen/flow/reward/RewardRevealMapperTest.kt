@@ -429,6 +429,7 @@ class RewardRevealMapperTest {
 
 private class FakeRewardRevealTextProvider : RewardRevealTextProvider {
     override fun redHint() = "View later in The Red."
+    override fun redCreatureHint() = "View later in The Red."
     override fun scyraPoints(points: Int) = "$points Scyra Points"
     override fun pointsDelta(points: Int) = "+$points"
     override fun minutes(minutes: Int) = "$minutes min"

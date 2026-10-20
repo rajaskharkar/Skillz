@@ -104,8 +104,8 @@
     <string name="red_purchase">Acquire dinosaur</string>
     <string name="red_purchase_copy">Acquire another copy</string>
     <plurals name="red_grow">
-        <item quantity="one">Level up · %1$,d Pearl</item>
-        <item quantity="other">Level up · %1$,d Pearls</item>
+        <item quantity="one">Level up · %1$,d Pebble</item>
+        <item quantity="other">Level up · %1$,d Pebbles</item>
     </plurals>
     <plurals name="red_release">
         <item quantity="one">Release · receive %1$,d Pearl</item>
@@ -115,7 +115,7 @@
     <string name="red_confirm">Confirm</string>
     <string name="red_action_success">Collection updated</string>
     <string name="red_action_failed">The action could not be completed. Check your balance and try again.</string>
-    <string name="red_progression_help">Level with Pearls. Mastery and lifetime progress remain with your collection.</string>
+    <string name="red_progression_help">Level with Pebbles. Mastery and lifetime progress remain with your collection.</string>
     <plurals name="red_scene_description">
         <item quantity="one">%1$s landscape with %2$d owned dinosaur. Atmospheric only.</item>
         <item quantity="other">%1$s landscape with %2$d owned dinosaurs. Atmospheric only.</item>
@@ -246,4 +246,11 @@
         <item quantity="one">%1$d / %2$d Journey</item>
         <item quantity="other">%1$d / %2$d Journeys</item>
     </plurals>
+    <string name="shell_creature_level_up_cost_pebbles">Level up cost: %1$d Pebbles</string>
+    <string name="shell_creature_level_up_unavailable_pebbles">Level up requires %1$d Pebbles. You need %2$d more.</string>
+    <string name="shell_creature_level_up_confirm_cost_pebbles">Cost: %1$d Pebbles</string>
+    <string name="shell_creature_level_up_a11y_pebbles">Level up one Level %1$d %2$s. Cost: %3$d Pebbles.</string>
+    <string name="shell_creature_level_up_confirm_a11y_pebbles">Confirm level up of one Level %1$d %2$s for %3$d Pebbles.</string>
+    <string name="level99_preview_balance_pebbles">Required Pebbles: %1$d · Owned: %2$d · Missing: %3$d</string>
+    <string name="shell_upgrade_animal_a11y_pebbles">Grow this animal with Pebbles</string>
 </resources>

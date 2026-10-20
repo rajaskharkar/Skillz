@@ -63,7 +63,7 @@ class LandVisualTestActivity : ComponentActivity() {
                             when(scenario) {
                                 "animal-art" -> LandArtworkPreview(zone,intent.getBooleanExtra("restorative",false),intent.getBooleanExtra("animate",false))
                                 "encounter", "affordable", "unaffordable" -> {
-                                    LandZonePage(buildTheBlueUiState(state.finds,emptyList(),CreatureRealm.LAND).zones.first { it.zoneId.creatureZone==zone },{0f},{},{},{})
+                                    LandZonePage(buildTheBlueUiState(state.finds,CreatureRealm.LAND).zones.first { it.zoneId.creatureZone==zone },{0f},{},{},{})
                                     if (encounterOpen) BeyondBlueEncounterSheet(pearlBalance=state.pearlBalance,initialZone=theBlueZoneFor(zone),
                                         activeAnimalInstances=state.finds,
                                         initialTargetSpeciesId=if(scenario=="encounter") null else "creature_duck",onDismiss={encounterOpen=false},
@@ -83,13 +83,13 @@ class LandVisualTestActivity : ComponentActivity() {
                                         onBadgeViewed={},onAcknowledgeBackfill={},onNavigate={},onOpenFlow={},onOpenArc={},
                                         pendingNavigation=request,onNavigationResult={_,_->request=null})
                                 }
-                                "chest" -> ShellChestScreen(state,{_,_->},{_,_->},{},{state=state.copy(chestSortOption=it)},{state=state.copy(chestFilter=it)})
+                                "chest" -> ShellChestScreen(state,{_,_->},{ _, _, _ -> },{},{state=state.copy(chestSortOption=it)},{state=state.copy(chestFilter=it)})
                                 "reward" -> Column(Modifier.fillMaxWidth().padding(20.dp)) {
                                     ArcSummaryContent(ArcSummaryUiModel(count,count*600_000L,100,0,1.3,
                                         shellSummary=ArcShellRewardSummaryUiModel(animals=LandArcRewards.forFlowCount(count).map { ArcShellRewardCountUiModel(it.creatureId,it.quantity) })),false)
                                 }
                                 "mastery" -> MasteryCelebrationScreen(event=mastery(),uiState=state,onBegin={},onAdvance={},onPrevious={},onComplete={},onPin={_,_->},onDismissPinReplacement={},onUnpin={},onTrack={},onUntrack={},onNavigate={})
-                                else -> TheBlueRoomScreen(state,{_,_->},{},{_,_->},{_,_->},{},request,{_,_->request=null},realm,{realm=it})
+                                else -> TheBlueRoomScreen(state,{},{_,_->},{_,_->},{},request,{_,_->request=null},realm,{realm=it})
                             }
                         }
                     }

@@ -71,7 +71,7 @@ class RedBadgeUiTest {
                 SkillzTheme(dynamicColor=false) {
                     ShellChestScreen(com.kingkharnivore.skillz.viewmodel.shell.ShellUiState(
                         finds=listOf(red,blue),chestFilter=com.kingkharnivore.skillz.utils.shell.ChestFilterOption.Red),
-                        {_,_->},{_,_->},{},{},{})
+                        {_,_->},{ _, _, _ ->},{},{},{})
                 }
             }
         }

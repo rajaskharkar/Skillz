@@ -1,6 +1,5 @@
 package com.kingkharnivore.skillz.ui.screen.shell.rooms.green
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,7 +38,6 @@ import com.kingkharnivore.skillz.viewmodel.green.*
 import java.text.DateFormat
 import java.util.Date
 import java.util.UUID
-import kotlinx.coroutines.delay
 
 @Composable
 fun GreenRoute(calmMode: Boolean = false, viewModel: GreenViewModel = hiltViewModel(),
@@ -234,10 +232,6 @@ internal fun SpecimenDialog(plant: PlantSpecimenEntity, state: GreenUiState, onW
     }
     val stage = PlantGrowthStageResolver.resolve(plant.level)
     val token = remember(plant.id, plant.level) { UUID.randomUUID().toString() }
-    val calmMode = LocalGreenCalmMode.current
-    var wet by remember { mutableStateOf(false) }
-    LaunchedEffect(plant.lastWateredAt) { if (plant.lastWateredAt != null && !calmMode) { wet = true; delay(650); wet = false } }
-    val soil by animateColorAsState(if(wet) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh, label = "water")
     // Keep the centered dialog anchored while feedback, dates and growth stages change.
     val contentHeight = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.55f).dp
     AlertDialog(onDismissRequest = onClose, modifier = Modifier.testTag("green-specimen-dialog"),
@@ -246,7 +240,7 @@ internal fun SpecimenDialog(plant: PlantSpecimenEntity, state: GreenUiState, onW
             GreenFeedbackMessage(state, plant.id)
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 PlantArtwork(species, plant.level, stringResource(R.string.green_plant_description, stringResource(species.nameRes), plant.level, stringResource(stage.nameRes)),
-                    Modifier.fillMaxWidth().height(if(species.landmark) 230.dp else 180.dp).clip(RoundedCornerShape(20.dp)).background(soil))
+                    Modifier.fillMaxWidth().height(if(species.landmark) 230.dp else 180.dp).clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh))
                 Text(stringResource(R.string.green_level_stage, plant.level, stringResource(stage.nameRes)), Modifier.semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.titleMedium)
                 if (plant.level == 99) Text(stringResource(R.string.green_stage_fully_grown))
                 PlantGrowthStageResolver.nextVisibleGrowth(plant.level)?.let { Text(stringResource(R.string.green_next_growth, it)) }

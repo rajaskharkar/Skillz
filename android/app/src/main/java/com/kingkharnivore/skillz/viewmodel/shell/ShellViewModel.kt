@@ -62,6 +62,7 @@ import kotlinx.coroutines.delay
 
 data class ShellUiState(
     val pearlBalance: Int = 0,
+    val pebbleBalance: Int = 0,
     val stillwaterClaimableDrops: Long = 0,
     val stillwaterLifetimeDrops: Long = 0,
     val unlockedBlueZones: Set<CreatureZone> = setOf(CreatureZone.SUNLIT_REEF),
@@ -91,6 +92,7 @@ sealed interface UiText {
 
 private data class ShellEconomyState(
     val pearlBalance: Int,
+    val pebbleBalance: Int,
     val stillwaterClaimableDrops: Long,
     val stillwaterLifetimeDrops: Long
 )
@@ -217,9 +219,10 @@ class ShellViewModel @Inject constructor(
 
     private val economy = combine(
         repository.observePearlBalance(),
+        repository.observePebbleBalance(),
         repository.observeStillwaterTotal(),
         repository.observeStillwaterLifetimeTotal()
-    ) { pearls, claimableDrops, lifetimeDrops -> ShellEconomyState(pearls, claimableDrops, lifetimeDrops) }
+    ) { pearls, pebbles, claimableDrops, lifetimeDrops -> ShellEconomyState(pearls, pebbles, claimableDrops, lifetimeDrops) }
 
     private val ownership = combine(
         repository.observeOwnedFinds(),
@@ -299,6 +302,7 @@ class ShellViewModel @Inject constructor(
     ) { economy, ownership, memoryAndPreferences, transient, dashboard ->
         ShellUiState(
             pearlBalance = economy.pearlBalance,
+            pebbleBalance = economy.pebbleBalance,
             stillwaterClaimableDrops = economy.stillwaterClaimableDrops,
             stillwaterLifetimeDrops = economy.stillwaterLifetimeDrops,
             unlockedBlueZones = deriveUnlockedBlueZonesFromHistoricalFinds(ownership.finds),
@@ -364,24 +368,6 @@ class ShellViewModel @Inject constructor(
         repository.markNotificationViewed("${ShellNotificationType.BADGE.name}:$badgeId")
     }
 
-    fun place(instanceId: String, slotId: String) = viewModelScope.launch {
-        runCatching { repository.placeInstance(instanceId, ShellRoomId.FOCUS, slotId) }
-            .onSuccess { _events.emit(UiText.Resource(R.string.shell_message_placed)) }
-            .onFailure { _events.emit(UiText.Resource(R.string.shell_message_display_failed)) }
-    }
-
-    fun returnToChest(instanceId: String) = viewModelScope.launch {
-        runCatching { repository.removePlacement(instanceId) }
-            .onSuccess { _events.emit(UiText.Resource(R.string.shell_message_returned)) }
-            .onFailure { _events.emit(UiText.Resource(R.string.shell_message_return_failed)) }
-    }
-
-    fun invitePearlObject(findId: String, slotId: String) = viewModelScope.launch {
-        runCatching { repository.invitePearlObject(findId, ShellRoomId.FOCUS, slotId) }
-            .onSuccess { _events.emit(UiText.Resource(R.string.shell_message_focus_shaped)) }
-            .onFailure { _events.emit(UiText.Resource(R.string.shell_message_shape_failed)) }
-    }
-
     fun invitePearlObjectToChest(findId: String) = viewModelScope.launch {
         runCatching { repository.invitePearlObjectToChest(findId) }
             .onSuccess { _events.emit(UiText.Resource(R.string.shell_message_creature_chest)) }
@@ -404,6 +390,15 @@ class ShellViewModel @Inject constructor(
 
     fun growCreatureByLevel(findId: String, level: Int, origin: String = "CHEST") = viewModelScope.launch {
         runCatching { repository.growCreatureByLevel(findId, level, origin) }
+            .onSuccess { _events.emit(UiText.Resource(R.string.shell_message_grew_chest)) }
+            .onFailure { _events.emit(UiText.Resource(R.string.shell_message_grow_failed)) }
+    }
+
+    fun growCreatureLevels(instanceId: String, currentLevel: Int, levels: Int) = viewModelScope.launch {
+        runCatching {
+            repository.growCreature(instanceId, "level_up:$instanceId:${currentLevel + levels}", "CHEST",
+                levels = levels, expectedLevel = currentLevel)
+        }
             .onSuccess { _events.emit(UiText.Resource(R.string.shell_message_grew_chest)) }
             .onFailure { _events.emit(UiText.Resource(R.string.shell_message_grow_failed)) }
     }

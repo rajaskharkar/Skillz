@@ -7,6 +7,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.dp
@@ -33,6 +35,49 @@ class StoryChronicleEditingTest {
     private val repository = ChronicleRepository(db, db.chronicleDao())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     @After fun close() { scope.cancel(); db.close() }
+
+    @Test fun draftAutosavePreservesCursorForContinuedMiddleEdits() {
+        val ownerKey = "cursor-draft"
+        runBlocking { repository.setDraft("SESSION", ownerKey, "one three") }
+        lateinit var editor: ChronicleStateHolder
+        compose.setContent {
+            SkillzTheme(darkTheme = false, dynamicColor = false) {
+                editor = remember { ChronicleStateHolder("SESSION", ownerKey, repository, scope) }
+                ChroniclePage(editor)
+            }
+        }
+        compose.waitUntil(5000) { editor.state.value.draft == "one three" }
+        val field = compose.onNode(hasSetTextAction())
+        field.performTextInputSelection(TextRange(4))
+        field.performTextInput("two")
+        awaitDraftSnapshot(editor, ownerKey, "one twothree", 1)
+        field.assert(SemanticsMatcher.expectValue(SemanticsProperties.TextSelectionRange, TextRange(7)))
+        field.performTextInput(" ")
+        awaitDraftSnapshot(editor, ownerKey, "one two three", 2)
+        field.assertTextEquals("one two three")
+        field.assert(SemanticsMatcher.expectValue(SemanticsProperties.TextSelectionRange, TextRange(8)))
+
+        field.performTextInputSelection(TextRange(4, 7))
+        field.performTextInput("lovely")
+        awaitDraftSnapshot(editor, ownerKey, "one lovely three", 3)
+        field.assert(SemanticsMatcher.expectValue(SemanticsProperties.TextSelectionRange, TextRange(10)))
+    }
+
+    private fun awaitDraftSnapshot(editor: ChronicleStateHolder, ownerKey: String, text: String, marker: Int) {
+        compose.waitUntil(5000) {
+            runBlocking { db.chronicleDao().find("SESSION", ownerKey)?.draftText == text }
+        }
+        // A subsequent moment snapshot confirms the holder has consumed the saved draft,
+        // not just the synchronous local edit that precedes the debounced write.
+        runBlocking {
+            val owner = db.chronicleDao().find("SESSION", ownerKey)!!
+            db.chronicleDao().insertMoment(com.kingkharnivore.skillz.data.model.entity.ChronicleMomentEntity(
+                id = "cursor-marker-$marker", chronicleId = owner.id, type = "TEXT",
+                position = marker, text = "Saved marker $marker", createdAt = 1, updatedAt = 1,
+            ))
+        }
+        compose.waitUntil(5000) { editor.state.value.moments.size == marker }
+    }
 
     @Test fun expandedFlowAndNestedPulseReadBeyondThePreviewAndExposeEdit() {
         val fullFlow = "Flow chronicle ".repeat(30) + "FLOW END"
