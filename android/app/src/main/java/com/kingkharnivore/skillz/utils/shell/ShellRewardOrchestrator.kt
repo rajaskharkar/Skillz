@@ -12,7 +12,6 @@ import com.kingkharnivore.skillz.data.repository.shell.ShellRepository
 import com.kingkharnivore.skillz.domain.lookout.ObjectiveCompletionProcessor
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.random.Random
 
 private const val MILLIS_PER_MINUTE = 60_000L
 private const val MILLIS_PER_SECOND = 1_000L
@@ -27,40 +26,12 @@ data class ShellRewardResult(
 )
 
 object ShellRewardPolicy {
-    private val landZonesByMinutes = mapOf(
-        45 to CreatureZone.GOLDEN_FIELDS,
-        75 to CreatureZone.ANCIENT_WOODS,
-        105 to CreatureZone.OPEN_SANDS,
-        135 to CreatureZone.HIGH_PEAKS,
-        150 to CreatureZone.GREAT_WILD
-    )
-    private val redErasByMinutes = mapOf(
-        30 to RedEra.TRIASSIC,
-        60 to RedEra.JURASSIC,
-        120 to RedEra.CRETACEOUS
-    )
-
-    /** One encounter per category at its highest reached milestone, alongside sea rewards. */
+    /** Flow duration grants sea creatures; land Arc rewards are handled separately. */
     fun milestoneFindsForMinutes(
         minutes: Int,
-        mode: FlowMode = FlowMode.FLOW,
-        random: Random = Random.Default
-    ): List<String> = buildList {
-        if (mode == FlowMode.SOFT) return@buildList
-        addAll(CreatureEconomy.creaturesForRegularFlowMinutes(minutes).flatMap { reward ->
-            List(reward.quantity) { reward.creatureId }
-        })
-        landZonesByMinutes.entries.lastOrNull { minutes >= it.key }?.value?.let { zone ->
-            LandCreatureCatalog.main.filter { it.zone == zone && it.isAvailable }
-                .randomOrNull(random)?.let { add(it.creatureId) }
-        }
-        if (mode == FlowMode.POWER) {
-            redErasByMinutes.entries.lastOrNull { minutes >= it.key }?.value?.let { era ->
-                RedCreatureCatalog.entries.filter { it.era == era && it.active }
-                    .randomOrNull(random)?.let { add(it.id) }
-            }
-        }
-    }
+        mode: FlowMode = FlowMode.FLOW
+    ): List<String> = CreatureEconomy.creaturesForRegularFlowMinutes(minutes, isSoftFlow = mode == FlowMode.SOFT)
+        .flatMap { reward -> List(reward.quantity) { reward.creatureId } }
 }
 
 @Singleton

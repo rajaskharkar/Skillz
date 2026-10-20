@@ -910,7 +910,7 @@
     <string name="shell_room_heart_title">हार्ट रूम</string>
     <string name="shell_room_heart_description">चमकता कक्ष जहाँ स्कायरा द शेल में विश्राम करता है।</string>
     <string name="shell_room_focus_title">फोकस रूम</string>
-    <string name="shell_room_focus_description">शांत अध्ययन-कक्ष जहाँ नियमित फ़्लो प्रदर्शित जीव बनते हैं।</string>
+    <string name="shell_room_focus_description">अपना ध्यान स्थिर करने के लिए एक शांत जगह।</string>
 
     <string name="shell_room_voyage_title">वोयेज हॉल</string>
     <string name="shell_room_voyage_description">भविष्य के आर्क के लिए शांत रास्ते।</string>
@@ -939,18 +939,11 @@
     <string name="the_blue_animal_zone">जीव · %1$s</string>
     <string name="the_blue_discovery_animal_zone">जीव · %1$s</string>
     <string name="the_blue_best_form">सर्वोच्च स्तर: %1$s</string>
-    <string name="the_blue_displayed_in_focus">फोकस में प्रदर्शित: %1$d</string>
     <string name="the_blue_swimming_here">यहाँ तैर रहे हैं</string>
-    <string name="the_blue_resting_in_chest">द चेस्ट में विश्राम: %1$d</string>
     <string name="the_blue_forms">स्तर</string>
     <string name="the_blue_form_count">%1$s ×%2$d</string>
-    <string name="the_blue_displayed_in_focus_heading">फोकस में प्रदर्शित</string>
-    <string name="the_blue_resting_in_chest_heading">द चेस्ट में विश्राम</string>
     <string name="the_blue_actions">कार्रवाइयाँ</string>
-    <string name="the_blue_display_one_in_focus">फोकस में एक दिखाएँ</string>
     <string name="the_blue_view_in_chest">द चेस्ट में देखें</string>
-    <string name="the_blue_no_focus_slot">अभी कोई खाली फोकस स्थान नहीं है। %1$s दिखाने के लिए फोकस से कुछ वापस लाएँ।</string>
-    <string name="the_blue_no_resting_copy">द चेस्ट में कोई विश्राम कॉपी उपलब्ध नहीं है।</string>
     <string name="the_blue_all_first_form">सभी %1$s स्तर 1 पर हैं।</string>
     <string name="the_blue_forms_unavailable">स्तर की जानकारी अभी उपलब्ध नहीं है।</string>
     <string name="the_blue_source_minnow">10 मिनट या अधिक के नियमित फ़्लो से।</string>
@@ -968,7 +961,6 @@
     <string name="the_blue_zone_scene_a11y">%1$s. %2$s. %3$s.</string>
     <string name="the_blue_animal_overlay_a11y">%1$s। जीव। %2$s। संख्या %3$d। %4$s विवरण खोलता है।</string>
     <string name="the_blue_tap_for_details">विवरण देखने के लिए टैप करें</string>
-    <string name="the_blue_animal_card_a11y">%1$s। जीव। संख्या %2$d। %3$s। %4$s फोकस में प्रदर्शित: %5$d।</string>
     <string name="the_blue_detail_a11y">%1$s. %2$s. %3$s</string>
     <string name="the_blue_depth_rail_a11y">गहराई रेल: सनलिट रीफ, डीपर रीफ, ओपन ब्लू, ग्रेट ब्लू.</string>
     <string name="the_blue_depth_rail_go_to_zone_a11y">%1$s पर जाएँ</string>
@@ -983,22 +975,13 @@
     <string name="shell_preview_lookout">आपके होराइजन की योजनाएँ यहाँ दिखाई देंगी।</string>
     <string name="shell_welcome">द शेल में आपका स्वागत है।</string>
     <string name="shell_welcome_body">स्कायरा प्रगति करने के लिए द शेल से बाहर जाता है। जब स्कायरा लौटता है, आपका प्रयास इस दुनिया का हिस्सा बनता है।</string>
-    <string name="shell_enter_focus">फोकस रूम में जाएँ</string>
     <string name="shell_pearl_basin_title">पर्ल बेसिन हल्के से चमक रहा है।</string>
     <string name="shell_pearl_basin_copy">स्कायरा पर्ल्स के साथ लौटा। उनसे द शेल के भीतर बढ़ने वाली चीज़ों को आकार दें।</string>
-    <string name="shell_pearl_basin_suggestion">आपके पास फोकस रूम में कुछ चमकाने के लिए पर्याप्त पर्ल्स हैं।</string>
     <string name="shell_pearl_basin_a11y">पर्ल बेसिन। पर्ल्स से द शेल को आकार देने के सुझाव।</string>
     <string name="shell_room_entrances">कमरों के प्रवेश</string>
     <string name="shell_pulse_title">शेल पल्स</string>
     <string name="shell_pulse_recent">द चेस्ट में %1$d जीव हैं।</string>
-    <string name="shell_pulse_mystery">रहस्य संकेत: धारा गहरी होने पर कुछ हलचल होती है।</string>
-    <string name="shell_focus_body">अपने जीवों और वस्तुओं को फोकस कोनों में दिखाएँ, फिर पर्ल्स से उनके रूप गढ़ें।</string>
-    <string name="shell_focus_summary">प्रदर्शित: %1$d। द चेस्ट में विश्रामरत: %2$d।</string>
-    <string name="shell_empty_slot">खाली कोना</string>
-    <string name="shell_empty_slot_title">खाली कोना</string>
-    <string name="shell_place_something_here">यहाँ कुछ रखें।</string>
-    <string name="shell_place_free">बिना पर्ल्स के द चेस्ट से दिखाएँ या रखें।</string>
-    <string name="shell_no_owned_finds_fit">द चेस्ट में विश्राम कर रही कोई चीज़ अभी इस कोने में फिट नहीं होती।</string>
+    <string name="shell_pulse_mystery">Focus Room में कुछ शांत पल बिताएँ।</string>
     <string name="shell_shape_with_pearls">इस जगह को पर्ल्स से आकार दें</string>
     <string name="shell_contextual_invites_preview">दीपक — 80 पर्ल्स
 आसन — 120 पर्ल्स
@@ -1056,8 +1039,6 @@
     <string name="shell_creature_release_quantity_increase_level">लेवल %1$d %2$s का चयन बढ़ाएँ</string>
     <string name="shell_creature_keep_swimming">तैरते रहने दें</string>
     <string name="shell_chest_item_status">प्रकार: %1$s. स्थिति: %2$s.</string>
-    <string name="shell_status_placed">प्रदर्शित</string>
-    <string name="shell_status_unplaced">विश्राम में</string>
     <string name="shell_badges_title">बैज</string>
     <string name="shell_badges_body">बैज हुए अनुभवों का रिकॉर्ड हैं।</string>
     <string name="shell_badge_a11y">%1$s बैज । संख्या: %2$d।</string>
@@ -1094,7 +1075,6 @@
     <string name="shell_slot_creature_perch_right">दायाँ जीव आसन</string>
     <string name="shell_slot_center_focus_nook">सेंटर फोकस नुक</string>
     <string name="shell_slot_memory_nook">मेमोरी नुक</string>
-    <string name="shell_slot_named_title">स्थान: %1$s</string>
     <string name="shell_shape_space_with_pearls">इस जगह को पर्ल्स से आकार दें</string>
     <string name="shell_invite_with_pearls">%1$d पर्ल्स से आमंत्रित करें</string>
     <string name="shell_need_more_pearls">%1$d और पर्ल्स चाहिए।</string>
@@ -1104,34 +1084,22 @@
     <string name="shell_basin_brighten_suggestion">चमकाएँ %1$s</string>
     <string name="shell_basin_invite_suggestion">%1$s को आमंत्रित करें</string>
     <string name="shell_no_available_shapes">इस समय कुछ भी तैयार नहीं है। कुछ और पर्ल्स एक नया रूप जगा देंगे।</string>
-    <string name="shell_empty_slot_a11y">%1$s। खाली फोकस रूम स्थान। रखने और पर्ल्स से आकार देने के विकल्प खोलता है।</string>
-    <string name="shell_placed_object_a11y">%1$s। फोकस रूम में प्रदर्शित। वस्तु विवरण खोलता है।</string>
     <string name="shell_whisper_new_discovery">एक शेल खोज देखने के लिए तैयार है.</string>
     <string name="shell_whisper_upgrade_ready">%1$s चमक सकता है — आपके पास पर्याप्त पर्ल्स हैं.</string>
     <string name="shell_whisper_chest_waiting">द चेस्ट में %1$d जीव हैं.</string>
-    <string name="shell_whisper_empty_focus">फोकस में खाली नुक हैं.</string>
     <string name="shell_heart_detail_title">द शेल का हृदय</string>
     <string name="shell_heart_pearls_gathered">पर्ल्स जुटाए: %1$d</string>
     <string name="shell_heart_finds_owned">द शेल में अपने पास: %1$d</string>
     <string name="shell_heart_discoveries_awakened">बैज जागा: %1$d</string>
-    <string name="shell_heart_focus_objects_placed">फोकस वस्तुएँ दिखाए गए: %1$d</string>
     <string name="shell_pearl_basin_chip_a11y">पर्ल बेसिन. %1$d पर्ल्स. आकार देने के सुझाव खोलता है.</string>
     <string name="shell_room_active_a11y">%1$s। सक्रिय कमरा। %1$s खोलता है।</string>
     <string name="shell_room_preview_a11y">%1$s। पूर्वावलोकन खोलता है।</string>
     <string name="shell_heart_center_a11y">द शेल का हृदय। हृदय विवरण खोलता है।</string>
-    <string name="shell_heart_objects_displayed_resting">प्रदर्शित वस्तुएँ: %1$d। द चेस्ट में विश्रामरत: %2$d।</string>
-    <string name="shell_all_nooks_holding">सभी कोने कुछ न कुछ थामे हुए हैं। बदलें, चमकाएँ, या द चेस्ट में और इकट्ठा करते रहें। द चेस्ट में विश्रामरत: %1$d।</string>
-    <string name="shell_empty_nook_choices">चुनें कि यह कोना कैसे बदले.</string>
     <string name="shell_leave_empty">खाली छोड़ें</string>
-    <string name="shell_no_resting_finds_fit">द चेस्ट में विश्राम कर रही कोई चीज़ अभी इस कोने में फिट नहीं होती।</string>
-    <string name="shell_status_displayed_focus">फोकस में प्रदर्शित</string>
     <string name="shell_status_resting">द चेस्ट में विश्रामरत</string>
     <string name="shell_chest_group_title">%1$s ×%2$d</string>
-    <string name="shell_chest_group_status">श्रेणी: %4$s · उच्चतम स्तर: %1$s · प्रदर्शित %2$d · विश्राम में %3$d।</string>
     <string name="shell_choose_something_to_swap">बदलने के लिए कुछ चुनें।</string>
     <string name="shell_swap_with">%1$s से बदलें</string>
-    <string name="shell_no_compatible_nooks">अभी कोई संगत कोना नहीं है। यह प्रति द चेस्ट में विश्राम कर सकती है।</string>
-    <string name="shell_place_in_focus">फोकस में रखें</string>
     <string name="reward_card_page_count">%2$d में से %1$d</string>
     <string name="reward_card_page_announcement">इनाम %2$d में से %1$d</string>
     <string name="reward_card_scyra_points_template">%1$d स्कायरा पॉइंट्स</string>
@@ -1305,11 +1273,8 @@
     <string name="session_reward_shell_find">शेल रिवॉर्ड</string>
     <string name="session_reward_shell_badges">बैज अपडेट हुए</string>
     <string name="session_reward_shell_badges_value">%1$d बैज अपडेट</string>
-    <string name="shell_feedback_place_success">फोकस रूम में दिखाया गया।</string>
     <string name="shell_feedback_upgrade_success">आपके पर्ल्स ने उसकी रोशनी में गर्माहट जोड़ी।</string>
     <string name="shell_feedback_return_success">द चेस्ट में वापस भेजा गया.</string>
-    <string name="shell_place_in_slot">%1$s में रखें</string>
-    <string name="shell_compatible_slots">फोकस रूम के संगत स्थान</string>
     <string name="shell_object_lamp_title">ग्लो कोरल</string>
     <string name="shell_object_lamp_description">वस्तु कक्ष · रोशनी. पर्ल्स से शांत कोना रोशन करने के लिए आमंत्रित करें.</string>
     <string name="shell_object_perch_title">आसन</string>
@@ -1321,7 +1286,6 @@
     <string name="shell_object_bubbles_title">बबल्स</string>
     <string name="shell_object_bubbles_description">पर्ल्स से धारा वाला कोना बनाने के लिए आमंत्रित करें.</string>
     <string name="shell_slot_surge_current_nook">सर्ज करंट नुक</string>
-    <string name="shell_surge_current_reserved_body">सर्ज रिवॉर्ड्स यहाँ दिखाए जा सकते हैं। इस कोने में करंट लाने के लिए सर्ज पूरा करें।</string>
     <string name="shell_basin_soon_upgrade">%1$s · %2$s</string>
     <string name="shell_badge_notification_title">%1$s बैज</string>
     <string name="shell_badge_notification_body">संख्या: %1$d · %2$s</string>
@@ -1344,7 +1308,6 @@
     <string name="shell_invite_confirm_body">इससे नया %1$s बनेगा और वह द चेस्ट में रहेगा.</string>
     <string name="shell_invite_confirm_cta">%1$d पर्ल्स से आमंत्रित करें</string>
     <string name="shell_let_rest_in_chest">द चेस्ट में आराम करने दें</string>
-    <string name="shell_display_in_focus">फोकस में दिखाएँ</string>
     <string name="shell_animal_no_more_forms">यह जीव अपने मौजूदा लेवल पर विश्राम कर रहा है।</string>
     <string name="shell_object_no_more_forms">यह वस्तु अपने मौजूदा रूप में विश्राम कर रही है.</string>
     <string name="shell_reward_no_more_forms">यह इनाम अपने वर्तमान रूप में विश्राम कर रहा है।</string>
@@ -1420,7 +1383,6 @@
     <string name="shell_find_kraken_description">बियॉन्ड ब्लू में मिला।</string>
     <string name="shell_find_leviathan_title">लेवायथन</string>
     <string name="shell_find_leviathan_description">बियॉन्ड ब्लू में मिला।</string>
-    <string name="the_blue_created_from_flow">आपके फ़ोकस समय से बना।</string>
     <string name="the_blue_swimming_chip">तैर रहे %1$d</string>
     <string name="the_blue_lifetime_chip">कुल अब तक %1$d</string>
     <string name="the_blue_highest_level_chip">उच्चतम लेवल %1$d</string>
@@ -1447,7 +1409,6 @@
     <string name="shell_creature_level_count_chip">लेवल %1$d ×%2$d</string>
     <string name="beyond_blue_target_title_with_zone">%1$s · %2$s</string>
     <string name="shell_chest_lifetime_count">कुल %1$d</string>
-    <string name="shell_chest_displayed_count">प्रदर्शित %1$d</string>
     <string name="shell_chest_resting_count">विश्राम में %1$d</string>
     <string name="shell_creature_level_short">लेवल %1$d</string>
     <string name="shell_collection_title">%1$s संग्रह</string>
@@ -2085,11 +2046,8 @@
     <string name="shell_notification_fallback_title">द शेल का नया पुरस्कार</string>
 
     <string name="the_blue_collection_progress">कुल %2$d में से %1$d खोजे गए · महारत प्राप्त: %3$d</string>
-    <string name="shell_message_placed">Focus Room में रखा गया।</string>
-    <string name="shell_message_display_failed">वह पुरस्कार दिखाया नहीं जा सका।</string>
     <string name="shell_message_returned">The Chest में वापस भेज दिया गया।</string>
     <string name="shell_message_return_failed">वह पुरस्कार वापस नहीं भेजा जा सका।</string>
-    <string name="shell_message_focus_shaped">आपके Pearls ने Focus Room को आकार दिया।</string>
     <string name="shell_message_shape_failed">उस स्थान को आकार नहीं दिया जा सका।</string>
     <string name="shell_message_creature_chest">एक जीव The Chest में है।</string>
     <string name="shell_message_invite_failed">उस वस्तु को बुलाया नहीं जा सका।</string>
@@ -2410,4 +2368,6 @@
     <string name="lookout_reminder_due_body">%1$s का समय हो गया है।</string>
     <string name="lookout_claim_failed">इनाम प्राप्त नहीं हो सके। कृपया फिर से प्रयास करें।</string>
     <string name="lookout_cycle_dates">चक्र: %1$s – %2$s</string>
+    <string name="shell_enter_focus">फोकस रूम में जाएँ</string>
+    <string name="the_blue_created_from_flow">आपके फ़ोकस समय से बना।</string>
 </resources>

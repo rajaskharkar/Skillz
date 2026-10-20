@@ -42,17 +42,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.creatureCompletionText
-import com.kingkharnivore.skillz.ui.screen.shell.inventory.localizedCreatureCount
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
 import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
 import com.kingkharnivore.skillz.ui.screen.shell.TheBlueAnimalGroupUiModel
-import com.kingkharnivore.skillz.ui.screen.shell.TheBlueDisplayDisabledReason
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellObjectIcon
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellMetricPill
-import com.kingkharnivore.skillz.ui.screen.shell.theBlueDisplayDisabledReason
 import com.kingkharnivore.skillz.domain.achievement.Level99AchievementPreview
 import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraParchmentSheet
 
@@ -60,14 +57,11 @@ import com.kingkharnivore.skillz.ui.screen.shell.ux.ScyraParchmentSheet
 @Composable
 fun TheBlueAnimalDetailSheet(
     animal: TheBlueAnimalGroupUiModel,
-    focusSlotId: String?,
-    firstRestingInstanceId: String?,
     pearlBalance: Int,
     onDismiss: () -> Unit,
     onGrow: (String) -> Unit,
     onRelease: () -> Unit,
     onBeyondBlue: () -> Unit,
-    onDisplayInFocus: (String, String) -> Unit,
     onOpenChest: () -> Unit,
     level99Preview: Level99AchievementPreview? = null
 ) {
@@ -75,15 +69,10 @@ fun TheBlueAnimalDetailSheet(
     val name = findName(animal.findId)
     val zone = zoneTitle(animal.zoneId)
     val title = stringResource(R.string.the_blue_animal_count, name, animal.totalCount)
-    val source = buildList {
-        add(theBlueEncounteredReason(animal.findId))
-        if (com.kingkharnivore.skillz.utils.shell.LandCreatureCatalog.main.any { it.creatureId == animal.findId }) {
-            add(stringResource(R.string.land_flow_encounter_source))
-        }
-    }.joinToString("\n")
+    val source = theBlueEncounteredReason(animal.findId)
     val detailDescription = stringResource(R.string.the_blue_detail_a11y, title, zone, source)
-    val growthInstanceId = animal.highestLevelActiveInstanceId ?: animal.firstRestingInstanceId ?: animal.firstActiveInstanceId
-    val releaseInstanceId = animal.firstRestingInstanceId ?: animal.firstActiveInstanceId
+    val growthInstanceId = animal.highestLevelActiveInstanceId ?: animal.firstActiveInstanceId
+    val releaseInstanceId = animal.firstActiveInstanceId
     val highestLevel = animal.highestLevel.coerceAtLeast(1)
     val growthCost = CreatureEconomy.growthCostPearls(animal.findId, highestLevel)
     val isMastered = highestLevel >= CreatureEconomy.MAX_CREATURE_LEVEL
@@ -177,11 +166,6 @@ fun TheBlueAnimalDetailSheet(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
             )
 
-            Text(stringResource(R.string.the_blue_displayed_in_focus_heading), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(localizedCreatureCount(animal.displayedInFocusCount))
-            Text(stringResource(R.string.the_blue_resting_in_chest_heading), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(localizedCreatureCount(animal.restingCount))
-
             Text(stringResource(R.string.the_blue_actions), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             if (canGrow) Button(onClick = { showGrowthConfirmation = true }, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.shell_creature_level_up))
@@ -205,19 +189,8 @@ fun TheBlueAnimalDetailSheet(
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.beyond_blue_encounter_cta))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = {
-                        if (firstRestingInstanceId != null && focusSlotId != null) {
-                            onDisplayInFocus(firstRestingInstanceId, focusSlotId)
-                        }
-                    },
-                    enabled = firstRestingInstanceId != null && focusSlotId != null,
-                    modifier = Modifier.weight(1f)
-                ) { Text(stringResource(R.string.the_blue_display_one_in_focus)) }
-                OutlinedButton(onClick = onOpenChest, modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.the_blue_view_in_chest))
-                }
+            OutlinedButton(onClick = onOpenChest, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.the_blue_view_in_chest))
             }
             OutlinedButton(
                 onClick = onRelease,
@@ -225,17 +198,6 @@ fun TheBlueAnimalDetailSheet(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.shell_creature_release_for_pearls))
-            }
-            when (theBlueDisplayDisabledReason(focusSlotId, firstRestingInstanceId)) {
-                TheBlueDisplayDisabledReason.NO_FOCUS_SLOT -> Text(
-                    stringResource(R.string.the_blue_no_focus_slot, name),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
-                )
-                TheBlueDisplayDisabledReason.NO_RESTING_COPY -> Text(
-                    stringResource(R.string.the_blue_no_resting_copy),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f)
-                )
-                null -> Unit
             }
             Spacer(Modifier.height(18.dp))
         }

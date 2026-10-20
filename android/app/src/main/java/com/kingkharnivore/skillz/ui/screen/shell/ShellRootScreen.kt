@@ -111,24 +111,6 @@ private fun hasAffordablePearlShape(uiState: ShellUiState): Boolean = false
 private fun unseenNotificationCount(uiState: ShellUiState): Int =
     unviewedShellNotifications(uiState).size
 
-internal fun hasAffordableFocusPearlAction(uiState: ShellUiState): Boolean {
-    val placements = uiState.focusPlacements.filter { it.roomId == ShellRoomId.FOCUS.name }
-    val displayed = placements.map { it.instanceId }.toSet()
-    val upgrade = uiState.finds.any { instance ->
-        instance.instanceId in displayed &&
-            ShellContentCatalog.nextUpgrade(instance.findId, instance.currentUpgradeStageId)
-                ?.let { it.pearlCost <= uiState.pearlBalance } == true
-    }
-    val occupied = placements.map { it.slotId }.toSet()
-    val purchase = ShellContentCatalog.focusPearlObjects.any { definition ->
-        definition.pearlCost?.let { it <= uiState.pearlBalance } == true && ShellContentCatalog.focusSlots.any { slot ->
-            slot.slotId !in occupied && ShellContentCatalog.isCompatibleWithSlot(slot, definition)
-        }
-    }
-    return upgrade || purchase
-}
-
-
 @Composable
 fun sourceReasonFor(def: ShellFindDefinition): String = when (def.findId) {
     ShellContentCatalog.FOCUS_MINNOW -> stringResource(R.string.shell_find_minnow_description)
@@ -337,7 +319,7 @@ fun ShellRootScreen(
                 ShellDestination.ShellChest -> ShellChestScreen(
                     uiState = uiState,
                     onReleaseCreaturesByLevel = viewModel::releaseCreaturesByLevel,
-                    onLevelUpCreatureByLevel = { id, level -> viewModel.growCreatureByLevel(id, level, "CHEST") },
+                    onLevelUpCreature = viewModel::growCreatureLevels,
                     onOpenBlue = { destination = ShellDestination.TheBluePreview },
                     onSortOptionSelected = viewModel::setChestSortOption,
                     onFilterSelected = viewModel::setChestFilter,
@@ -381,7 +363,6 @@ fun ShellRootScreen(
                     realm = blueRealm,
                     onSelectRealm = { blueRealm = it },
                     uiState = uiState,
-                    onDisplayInFocus = viewModel::place,
                     onGrowCreature = { id -> viewModel.growCreature(id, "BLUE") },
                     onReleaseCreaturesByLevel = viewModel::releaseCreaturesByLevel,
                     onEncounterBeyondBlue = viewModel::encounterBeyondBlue,
@@ -588,7 +569,7 @@ internal fun HeartRoomScreen(
                             labelRes = R.string.shell_room_the_blue_title,
                             icon = Icons.Outlined.FilterVintage,
                             dormant = false,
-                            hasIndicator = buildTheBlueUiState(uiState.finds, uiState.focusPlacements).newAnimalCount > 0,
+                            hasIndicator = buildTheBlueUiState(uiState.finds).newAnimalCount > 0,
                             nodeWidth = nodeWidth, nodeHeight = nodeHeight,
                             onClick = { onNavigate(ShellDestination.TheBluePreview) }
                         )
@@ -610,13 +591,7 @@ internal fun HeartRoomScreen(
                 uiState = uiState,
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
-                    val hasEmptyNook = uiState.focusPlacements.size < ShellContentCatalog.focusSlots.size
-                    when {
-                        hasAffordablePearlShape(uiState) -> onNavigate(ShellDestination.Focus)
-                        hasChestCreatures(uiState) -> onNavigate(ShellDestination.ShellChest)
-                        hasEmptyNook -> onNavigate(ShellDestination.Focus)
-                        else -> onNavigate(ShellDestination.Focus)
-                    }
+                    onNavigate(if (hasChestCreatures(uiState)) ShellDestination.ShellChest else ShellDestination.Focus)
                 }
             )
 
@@ -845,11 +820,9 @@ private fun ShellWhisperDock(
 ) {
     val scheme = MaterialTheme.colorScheme
     val restingCount = activeChestCreatureCount(uiState)
-    val hasEmptyNook = uiState.focusPlacements.size < ShellContentCatalog.focusSlots.size
 
     val text = when {
         restingCount > 0 -> stringResource(R.string.shell_whisper_chest_waiting, restingCount)
-        hasEmptyNook -> stringResource(R.string.shell_whisper_empty_focus)
         else -> stringResource(R.string.shell_pulse_mystery)
     }
 

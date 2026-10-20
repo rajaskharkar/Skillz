@@ -118,18 +118,11 @@ class PowerPersistenceTest {
         assertEquals(57,shell.getPearlBalance())
         assertEquals(57,db.powerRewardDao().balance())
     }
-    @Test fun randomFlowEncountersPersistAndReplayWithoutDrawingAgain() = runBlocking {
-        val samples = listOf(
-            Triple(FlowMode.FLOW, 45, CreatureZone.GOLDEN_FIELDS),
-            Triple(FlowMode.POWER, 75, CreatureZone.ANCIENT_WOODS),
-            Triple(FlowMode.FLOW, 105, CreatureZone.OPEN_SANDS),
-            Triple(FlowMode.POWER, 135, CreatureZone.HIGH_PEAKS),
-            Triple(FlowMode.FLOW, 150, CreatureZone.GREAT_WILD),
-            Triple(FlowMode.POWER, 30, CreatureZone.TRIASSIC),
-            Triple(FlowMode.POWER, 60, CreatureZone.JURASSIC),
-            Triple(FlowMode.POWER, 120, CreatureZone.CRETACEOUS)
-        )
-        val awarded = samples.map { (mode, minutes, zone) ->
+    @Test fun flowCompletionGrantsOnlySeaCreaturesAndPreservesCurrenciesOnReplay() = runBlocking {
+        val samples = listOf(FlowMode.FLOW, FlowMode.POWER).flatMap { mode ->
+            listOf(10, 30, 45, 60, 75, 105, 120, 135, 150).map { mode to it }
+        }
+        val awarded = samples.map { (mode, minutes) ->
             // Completion uses whole elapsed minutes, including normal timer overshoot.
             val duration = minutes * 60_000L + 750L
             val flow = SessionEntity(title = "Encounter", description = "", tagId = 1,
@@ -137,11 +130,10 @@ class PowerPersistenceTest {
                 scyraPoints = 100, mode = mode).let { it.copy(id = db.sessionDao().insertSession(it)) }
             val results = coroutineScope { List(3) { async { rewards.onSessionCompleted(flow) } }.awaitAll() }
             val reward = results.first()
-            val expected = reward.grantedFindIds.groupingBy { it }.eachCount()
+            val expected = CreatureEconomy.creaturesForRegularFlowMinutes(minutes)
+                .associate { it.creatureId to it.quantity }
             results.forEach { assertEquals(expected, it.grantedFindIds.groupingBy { it }.eachCount()) }
-            assertEquals(1, reward.grantedFindIds.count { CreatureCatalog.require(it).zone == zone })
-            assertEquals(CreatureEconomy.creaturesForRegularFlowMinutes(minutes).sumOf { it.quantity } + 1,
-                reward.grantedFindIds.size)
+            assertTrue(reward.grantedFindIds.all { CreatureCatalog.require(it).realm == CreatureRealm.SEA })
             assertEquals(expected, db.shellFindInstanceDao().getAll().filter { it.sourceId == flow.id.toString() }
                 .groupingBy { it.findId }.eachCount())
             flow to expected
@@ -154,9 +146,162 @@ class PowerPersistenceTest {
         }
         assertEquals(owned, db.shellFindInstanceDao().getAll().toSet())
         assertEquals(discoveries, db.achievementDao().getDiscoveries().toSet())
-        assertEquals(800, shell.getPearlBalance())
-        assertEquals(500, db.powerRewardDao().balance())
+        assertEquals(1800, shell.getPearlBalance())
+        assertEquals(900, db.powerRewardDao().balance())
     }
+    @Test fun previouslyGrantedRandomCreaturesRemainOwnedAndReplayWithoutNewGrants() = runBlocking {
+        val flow = session(FlowMode.POWER, 57)
+        val ids = listOf("focus_minnow", "creature_chicken", "triassic_saturnalia")
+        shell.addPearls(57, "flow_reward", "session", flow.id.toString())
+        db.powerRewardDao().insert(PebbleLedgerEntity("power:${flow.id}", 57, flow.id.toString(), 1))
+        shell.grantFindCopies(ids, "session", flow.id.toString())
+        ShellRewardEventRecorder(db.shellRewardEventDao()).recordSessionRewards(
+            flow, ShellRewardResult(pearlsEarned = 57, pebblesEarned = 57, grantedFindIds = ids)
+        )
+        db.powerRewardDao().enqueue(SessionShellRewardEntity(flow.id, true, 57, 57, 1))
+        val owned = db.shellFindInstanceDao().getAll().toSet()
+        db.close(); open()
+
+        repeat(2) {
+            assertEquals(ids.toSet(), rewards.onSessionCompleted(flow).grantedFindIds.toSet())
+        }
+        assertEquals(owned, db.shellFindInstanceDao().getAll().toSet())
+        assertEquals(57, shell.getPearlBalance())
+        assertEquals(57, db.powerRewardDao().balance())
+    }
+
+    @Test fun dinosaurGrowthRequiresPebblesAndChargesOnceAcrossChestRedAndRestart() = runBlocking {
+        val dinosaur = shell.grantFindCopy("triassic_saturnalia", "test", "growth")
+        shell.addPearls(100_000, "test", "test", "pearls")
+        assertTrue(runCatching { shell.growCreatureByLevel(dinosaur.findId, 1) }.isFailure)
+        assertEquals(1, db.shellFindInstanceDao().getById(dinosaur.instanceId)?.animalLevel)
+        assertEquals(100_000, shell.getPearlBalance())
+
+        db.powerRewardDao().insert(PebbleLedgerEntity("growth-budget", 70, "test", 1))
+        assertTrue(runCatching { shell.growCreatureByLevel(dinosaur.findId, 1) }.isFailure)
+        assertEquals(70, db.powerRewardDao().balance())
+        db.powerRewardDao().insert(PebbleLedgerEntity("growth-topup", 1, "test", 1))
+        val transactionId = "level_up:${dinosaur.instanceId}:2"
+        val first = shell.growCreatureByLevel(dinosaur.findId, 1, "CHEST")
+        val results = listOf(first) + coroutineScope {
+            listOf("CHEST", "RED").map { origin ->
+                async { shell.growCreature(dinosaur.instanceId, transactionId, origin) }
+            }.awaitAll()
+        }
+        assertEquals(1, results.count { it.committed })
+        assertTrue(results.all { it.pebbleCost == 71 && it.pearlCost == 0 && it.resultingLevel == 2 })
+        assertEquals(0, db.powerRewardDao().balance())
+        assertEquals(100_000, shell.getPearlBalance())
+        db.close(); open()
+        val replay = shell.growCreature(dinosaur.instanceId, transactionId, "CHEST")
+        assertFalse(replay.committed)
+        assertEquals(71, replay.pebbleCost)
+        assertEquals(0, replay.pearlCost)
+        assertEquals(2, db.shellFindInstanceDao().getById(dinosaur.instanceId)?.animalLevel)
+        assertEquals(0, db.powerRewardDao().balance())
+        assertEquals(100_000, shell.getPearlBalance())
+    }
+
+    @Test fun dinosaurGrowthRollsBackPebblesAndLevelWhenCommitFails() = runBlocking {
+        val dinosaur = shell.grantFindCopy("cretaceous_tyrannosaurus", "test", "growth")
+        db.powerRewardDao().insert(PebbleLedgerEntity("growth-budget", 2788, "test", 1))
+        db.openHelper.writableDatabase.execSQL("CREATE TRIGGER fail_growth BEFORE INSERT ON achievement_event BEGIN SELECT RAISE(ABORT, 'simulated'); END")
+        assertTrue(runCatching { shell.growCreature(dinosaur.instanceId, "growth") }.isFailure)
+        assertEquals(2788, db.powerRewardDao().balance())
+        assertEquals(1, db.shellFindInstanceDao().getById(dinosaur.instanceId)?.animalLevel)
+        assertNull(db.achievementDao().getEvent("growth"))
+        db.openHelper.writableDatabase.execSQL("DROP TRIGGER fail_growth")
+        val result = shell.growCreature(dinosaur.instanceId, "growth", "RED")
+        assertEquals(2788, result.pebbleCost)
+        assertEquals(0, result.pearlCost)
+        assertEquals(0, shell.getPearlBalance())
+        assertEquals(0, db.powerRewardDao().balance())
+    }
+
+    @Test fun historicalPearlGrowthReceiptReplaysWithoutChargingPebbles() = runBlocking {
+        val dinosaur = shell.grantFindCopy("triassic_saturnalia", "test", "legacy-growth")
+        db.shellFindInstanceDao().updateAnimalLevel(dinosaur.instanceId, 2)
+        db.achievementDao().recordEvent(AchievementEventEntity("legacy-growth", "CREATURE_LEVEL_UP",
+            dinosaur.instanceId, dinosaur.findId, 1, "{\"schemaVersion\":1,\"pearlCost\":28,\"resultingLevel\":2}"))
+        val replay = shell.growCreature(dinosaur.instanceId, "legacy-growth")
+        assertFalse(replay.committed)
+        assertEquals(28, replay.pearlCost)
+        assertEquals(0, replay.pebbleCost)
+        assertEquals(2, replay.resultingLevel)
+        assertEquals(0, db.powerRewardDao().balance())
+    }
+
+    @Test fun bulkGrowthChargesExactSumOnceAndRejectsStaleLevels() = runBlocking {
+        for (id in listOf("focus_minnow", "creature_tiger", "triassic_saturnalia")) {
+            val creature = shell.grantFindCopy(id, "test", id)
+            val quote = CreatureEconomy.growthCostForLevels(id, 1, 4)
+            val red = quote.currency == CreatureGrowthCurrency.PEBBLES
+            if (red) db.powerRewardDao().insert(PebbleLedgerEntity("seed-$id", quote.amount, "test", 1))
+            else shell.addPearls(quote.amount, "test", "test", "seed-$id")
+            val result = shell.growCreature(creature.instanceId, "bulk-$id", levels = 4, expectedLevel = 1)
+            assertEquals(5, result.resultingLevel)
+            assertEquals(if (red) 0 else quote.amount, result.pearlCost)
+            assertEquals(if (red) quote.amount else 0, result.pebbleCost)
+            db.close(); open()
+            assertFalse(shell.growCreature(creature.instanceId, "bulk-$id", levels = 4, expectedLevel = 1).committed)
+            assertTrue(runCatching { shell.growCreature(creature.instanceId, "stale-$id", levels = 2, expectedLevel = 1) }.isFailure)
+            assertEquals(5, db.shellFindInstanceDao().getById(creature.instanceId)?.animalLevel)
+            assertEquals(0, shell.getPearlBalance())
+            assertEquals(0, db.powerRewardDao().balance())
+        }
+    }
+
+    @Test fun bulkGrowthCannotPartiallyChargeOrExceedMastery() = runBlocking {
+        val creature = shell.grantFindCopy("triassic_saturnalia", "test", "bulk")
+        val cost = CreatureEconomy.growthCostForLevels(creature.findId, 1, 3).amount
+        db.powerRewardDao().insert(PebbleLedgerEntity("seed", cost - 1, "test", 1))
+        assertTrue(runCatching { shell.growCreature(creature.instanceId, "bulk", levels = 3) }.isFailure)
+        assertEquals(cost - 1, db.powerRewardDao().balance())
+        assertEquals(1, db.shellFindInstanceDao().getById(creature.instanceId)?.animalLevel)
+        db.powerRewardDao().insert(PebbleLedgerEntity("topup", 1, "test", 1))
+        db.openHelper.writableDatabase.execSQL("CREATE TRIGGER fail_bulk BEFORE INSERT ON achievement_event BEGIN SELECT RAISE(ABORT, 'simulated'); END")
+        assertTrue(runCatching { shell.growCreature(creature.instanceId, "bulk", levels = 3) }.isFailure)
+        assertEquals(cost, db.powerRewardDao().balance())
+        assertEquals(1, db.shellFindInstanceDao().getById(creature.instanceId)?.animalLevel)
+        db.openHelper.writableDatabase.execSQL("DROP TRIGGER fail_bulk")
+        assertTrue(runCatching { shell.growCreature(creature.instanceId, "too-many", levels = 99) }.isFailure)
+        assertNull(db.achievementDao().getEvent("bulk"))
+        assertEquals(4, shell.growCreature(creature.instanceId, "bulk", levels = 3).resultingLevel)
+        assertEquals(0, db.powerRewardDao().balance())
+    }
+
+    @Test fun bulkGrowthToMasteryCreatesOneCelebrationAndLeavesOtherCopiesAlone() = runBlocking {
+        val creature = shell.grantFindCopy("creature_tiger", "test", "bulk-mastery")
+        val other = shell.grantFindCopy("creature_tiger", "test", "other")
+        val cost = CreatureEconomy.growthCostForLevels(creature.findId, 1, 98).amount
+        shell.addPearls(cost, "test", "test", "mastery-budget")
+        val result = shell.growCreature(creature.instanceId, "bulk-mastery", levels = 98, expectedLevel = 1)
+        assertEquals(99, result.resultingLevel)
+        assertTrue(result.changes.any { it.badgeId == "growth_v1_land_hello" })
+        assertEquals(1, db.userBadgeDao().get("growth_v1_land_horizon")?.count)
+        assertEquals(1, db.shellFindInstanceDao().getById(other.instanceId)?.animalLevel)
+        assertEquals(1, db.achievementDao().getMasteries().count { it.creatureInstanceId == creature.instanceId })
+        val celebration = db.achievementDao().getCelebration("celebration:bulk-mastery")!!
+        assertEquals(1, celebration.previousLevel)
+        assertEquals(99, celebration.newLevel)
+        assertFalse(shell.growCreature(creature.instanceId, "bulk-mastery", levels = 98, expectedLevel = 1).committed)
+        assertEquals(0, shell.getPearlBalance())
+    }
+
+    @Test fun historicalPebbleGrowthReceiptKeepsItsPriceAfterDeflation() = runBlocking {
+        val dinosaur = shell.grantFindCopy("triassic_saturnalia", "test", "previous-growth")
+        db.shellFindInstanceDao().updateAnimalLevel(dinosaur.instanceId, 2)
+        db.achievementDao().recordEvent(AchievementEventEntity("previous-growth", "CREATURE_LEVEL_UP",
+            dinosaur.instanceId, dinosaur.findId, 1, "{\"schemaVersion\":2,\"pearlCost\":0,\"pebbleCost\":102,\"resultingLevel\":2}"))
+        db.close(); open()
+        val replay = shell.growCreature(dinosaur.instanceId, "previous-growth")
+        assertFalse(replay.committed)
+        assertEquals(102, replay.pebbleCost)
+        assertEquals(0, replay.pearlCost)
+        assertEquals(2, replay.resultingLevel)
+        assertEquals(0, db.powerRewardDao().balance())
+    }
+
     @Test fun purchasesAreAtomicConcurrentReplaySafeAndPersist() = runBlocking {
         db.powerRewardDao().insert(PebbleLedgerEntity("seed",360,"test",1))
         val results = coroutineScope { List(4) { i -> async { runCatching { shell.purchaseRedCreature("triassic_saturnalia","buy-$i") } } }.awaitAll() }
@@ -181,7 +326,7 @@ class PowerPersistenceTest {
         assertNull(db.userBadgeDao().get("red_first_footprint"))
         db.openHelper.writableDatabase.execSQL("DROP TRIGGER fail_purchase")
         val instance = shell.purchaseRedCreature("triassic_saturnalia","buy")
-        shell.addPearls(1_000_000,"test","test","growth")
+        db.powerRewardDao().insert(PebbleLedgerEntity("growth",1_000_000,"test",1))
         db.shellFindInstanceDao().updateAnimalLevel(instance.instanceId,98)
         shell.growCreature(instance.instanceId,"mastery")
         shell.growCreature(instance.instanceId,"mastery")

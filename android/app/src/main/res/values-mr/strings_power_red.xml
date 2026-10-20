@@ -104,8 +104,8 @@
     <string name="red_purchase">डायनासोर मिळवा</string>
     <string name="red_purchase_copy">आणखी एक मिळवा</string>
     <plurals name="red_grow">
-        <item quantity="one">पातळी वाढवा · %1$,d मोती</item>
-        <item quantity="other">पातळी वाढवा · %1$,d मोती</item>
+        <item quantity="one">पातळी वाढवा · %1$,d खडे</item>
+        <item quantity="other">पातळी वाढवा · %1$,d खडे</item>
     </plurals>
     <plurals name="red_release">
         <item quantity="one">मुक्त करा · %1$,d मोती मिळवा</item>
@@ -115,7 +115,7 @@
     <string name="red_confirm">पुष्टी करा</string>
     <string name="red_action_success">संग्रह अद्ययावत झाला</string>
     <string name="red_action_failed">कृती पूर्ण झाली नाही. शिल्लक तपासा आणि पुन्हा प्रयत्न करा.</string>
-    <string name="red_progression_help">मोत्यांनी पातळी वाढवा. प्रभुत्व आणि आजीवन प्रगती संग्रहात कायम राहतात.</string>
+    <string name="red_progression_help">खड्यांनी पातळी वाढवा. प्रभुत्व आणि आजीवन प्रगती संग्रहात कायम राहतात.</string>
     <plurals name="red_scene_description">
         <item quantity="one">%1$s परिसर. तुमच्या संग्रहातील %2$d डायनासोर. केवळ सजावटीचे दृश्य.</item>
         <item quantity="other">%1$s परिसर. तुमच्या संग्रहातील %2$d डायनासोर. केवळ सजावटीचे दृश्य.</item>
@@ -246,4 +246,11 @@
         <item quantity="one">%1$d / %2$d जर्नी</item>
         <item quantity="other">%1$d / %2$d जर्नी</item>
     </plurals>
+    <string name="shell_creature_level_up_cost_pebbles">लेवल वाढवण्याची किंमत: %1$d खडे</string>
+    <string name="shell_creature_level_up_unavailable_pebbles">लेवल अपसाठी %1$d खडे आवश्यक आहेत. तुम्हाला अजून %2$d आवश्यक आहेत.</string>
+    <string name="shell_creature_level_up_confirm_cost_pebbles">किंमत: %1$d खडे</string>
+    <string name="shell_creature_level_up_a11y_pebbles">एक लेवल %1$d %2$s चे लेवल वाढवा. किंमत: %3$d खडे.</string>
+    <string name="shell_creature_level_up_confirm_a11y_pebbles">एक लेवल %1$d %2$s चे लेवल वाढवणे %3$d खड्यांसाठी पुष्टी करा.</string>
+    <string name="level99_preview_balance_pebbles">आवश्यक खडे: %1$d · तुमच्याकडे: %2$d · कमी: %3$d</string>
+    <string name="shell_upgrade_animal_a11y_pebbles">खड्यांनी या प्राण्याची पातळी वाढवा</string>
 </resources>

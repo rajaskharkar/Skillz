@@ -47,7 +47,7 @@ class GreenReleaseUiTest {
         val selected = GreenPreviewFixtures.specimen(species, 99, 2)
         val state = mutableStateOf(GreenUiState(1000, listOf(first, selected)))
         compose.setContent { SkillzTheme { Surface {
-            ShellChestScreen(ShellUiState(), { _, _ -> }, { _, _ -> }, {}, {}, {}, greenState = state.value,
+            ShellChestScreen(ShellUiState(), { _, _ -> }, { _, _, _ -> }, {}, {}, {}, greenState = state.value,
                 focusPlantSpeciesId = species.id, focusPlantSpecimenId = selected.id,
                 onReleasePlant = { id, level, token ->
                     assertEquals(selected.id, id); assertEquals(99, level)

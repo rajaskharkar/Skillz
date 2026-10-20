@@ -1,10 +1,8 @@
 package com.kingkharnivore.skillz.ui.screen.shell
 
-import com.kingkharnivore.skillz.data.model.entity.shell.ShellPlacementEntity
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
-import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
 import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
 import com.kingkharnivore.skillz.utils.shell.CreatureSourceType
@@ -25,8 +23,6 @@ data class TheBlueAnimalGroupUiModel(
     val findId: String,
     val zoneId: TheBlueZoneId,
     val totalCount: Int,
-    val displayedInFocusCount: Int,
-    val restingCount: Int,
     val bestFormStageId: String?,
     val formCounts: List<FormCountUiModel>,
     val iconKey: String?,
@@ -40,7 +36,6 @@ data class TheBlueAnimalGroupUiModel(
     val releaseValuePearls: Int? = null,
     val releaseValueVariesByLevel: Boolean = false,
     val firstActiveInstanceId: String? = null,
-    val firstRestingInstanceId: String? = null,
     val highestLevelActiveInstanceId: String? = null
 )
 
@@ -48,17 +43,6 @@ data class TheBlueZoneUiModel(
     val zoneId: TheBlueZoneId,
     val animals: List<TheBlueAnimalGroupUiModel>
 )
-
-enum class TheBlueDisplayDisabledReason { NO_FOCUS_SLOT, NO_RESTING_COPY }
-
-internal fun theBlueDisplayDisabledReason(
-    focusSlotId: String?,
-    firstRestingInstanceId: String?
-): TheBlueDisplayDisabledReason? = when {
-    focusSlotId == null -> TheBlueDisplayDisabledReason.NO_FOCUS_SLOT
-    firstRestingInstanceId == null -> TheBlueDisplayDisabledReason.NO_RESTING_COPY
-    else -> null
-}
 
 data class TheBlueUiState(
     val totalAnimals: Int,
@@ -72,14 +56,8 @@ data class TheBlueUiState(
 
 internal fun buildTheBlueUiState(
     finds: List<UserShellFindInstanceEntity>,
-    focusPlacements: List<ShellPlacementEntity>,
     realm: com.kingkharnivore.skillz.utils.shell.CreatureRealm = com.kingkharnivore.skillz.utils.shell.CreatureRealm.SEA
 ): TheBlueUiState {
-    val displayedIds = focusPlacements
-        .filter { it.roomId == ShellRoomId.FOCUS.name }
-        .map { it.instanceId }
-        .toSet()
-
     val allAnimalFinds = finds.filter { instance -> isTheBlueOwnedDisplayCreature(instance.findId) && CreatureCatalog.get(instance.findId)?.realm == realm }
     val animalFinds = allAnimalFinds.filter { it.creatureStatus == CreatureStatus.ACTIVE }
 
@@ -90,8 +68,6 @@ internal fun buildTheBlueUiState(
             val definition = ShellContentCatalog.find(findId) ?: return@mapNotNull null
             val zoneId = zoneForFind(findId) ?: return@mapNotNull null
             val historicalInstances = historicalByFindId[findId].orEmpty()
-            val displayedCount = instances.count { it.instanceId in displayedIds }
-            val restingInstances = instances.filter { it.instanceId !in displayedIds }
             val highestLevelInstance = instances.maxWithOrNull(
                 compareBy<UserShellFindInstanceEntity> { it.animalLevel.coerceAtLeast(1) }.thenBy { it.acquiredAt }
             )
@@ -106,8 +82,6 @@ internal fun buildTheBlueUiState(
                 findId = findId,
                 zoneId = zoneId,
                 totalCount = instances.size,
-                displayedInFocusCount = displayedCount,
-                restingCount = instances.size - displayedCount,
                 bestFormStageId = instances.maxByOrNull { formOrder(findId, it.currentUpgradeStageId) }?.currentUpgradeStageId,
                 formCounts = formCounts,
                 iconKey = definition.iconKey,
@@ -125,7 +99,6 @@ internal fun buildTheBlueUiState(
                 },
                 releaseValueVariesByLevel = activeLevels.size > 1,
                 firstActiveInstanceId = instances.firstOrNull()?.instanceId,
-                firstRestingInstanceId = restingInstances.firstOrNull()?.instanceId,
                 highestLevelActiveInstanceId = highestLevelInstance?.instanceId
             )
         }

@@ -33,13 +33,82 @@ class ChestCollectionUiTest {
             SkillzTheme(dynamicColor=false) { content() }
         }
     }
+    @Test fun dinosaurLevelUpUsesPebbleBalanceAndPebbleConfirmation() {
+        var grew = false
+        val state = mutableStateOf(ShellUiState(finds = listOf(find("triassic_saturnalia")),
+            pearlBalance = 100_000, pebbleBalance = 70))
+        compose.setContent { Theme {
+            ShellChestScreen(state.value, { _, _ -> }, { _, _, _ -> grew = true }, {}, {}, {},
+                focusSpeciesId = "triassic_saturnalia")
+        } }
+        val shortfall = context.getString(R.string.shell_creature_level_up_unavailable_pebbles, 71, 1)
+        compose.onNodeWithText(shortfall).assertExists()
+        compose.onNodeWithContentDescription(shortfall).performScrollTo().performClick()
+        compose.onNodeWithText("Cost: 71 Pebbles").assertIsDisplayed()
+        compose.onNodeWithTag("chest-confirm-level-up").assertIsNotEnabled()
+        compose.runOnIdle { state.value = state.value.copy(pearlBalance = 0, pebbleBalance = 71) }
+        compose.onNodeWithTag("chest-confirm-level-up").assertIsEnabled().performClick()
+        compose.runOnIdle { assertTrue(grew) }
+    }
+
+    @Test fun bulkSliderDefaultsToOneUsesTotalCostAndRechecksBalanceAtConfirmation() {
+        val id = "focus_minnow"
+        val cost = CreatureEconomy.growthCostForLevels(id, 1, 3).amount
+        val state = mutableStateOf(ShellUiState(finds = listOf(find(id)), pearlBalance = cost))
+        var requested: Triple<String, Int, Int>? = null
+        compose.setContent { Theme {
+            ShellChestScreen(state.value, { _, _ -> }, { instance, level, count -> requested = Triple(instance, level, count) },
+                {}, {}, {}, focusSpeciesId = id)
+        } }
+        compose.onNodeWithTag("chest-growth-projection").assertTextContains("3 levels", substring = true)
+        compose.onNodeWithText("Levels to gain: 1").assertExists()
+        compose.onNodeWithTag("chest-growth-slider").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(3f) }
+        compose.onNodeWithTag("chest-growth-cost").assertTextEquals("Total: $cost Pearls")
+        compose.onNodeWithText("Level 1 → 4").assertExists()
+        compose.onNodeWithTag("chest-grow-selected").performScrollTo().performClick()
+        compose.runOnIdle { state.value = state.value.copy(pearlBalance = cost - 1) }
+        compose.onNodeWithTag("chest-confirm-level-up").assertIsNotEnabled()
+        compose.runOnIdle { state.value = state.value.copy(pearlBalance = cost) }
+        compose.onNodeWithTag("chest-confirm-level-up").assertIsEnabled().performClick()
+        compose.runOnIdle { assertEquals(Triple("$id-1", 1, 3), requested) }
+    }
+
+    @Test fun singleLevelButtonIgnoresBulkSelectionAndRedUsesOnlyPebbles() {
+        val id = "triassic_saturnalia"
+        val cost = CreatureEconomy.growthCostForLevels(id, 1, 3).amount
+        var requested = 0
+        compose.setContent { Theme {
+            ShellChestScreen(ShellUiState(finds = listOf(find(id)), pebbleBalance = cost, pearlBalance = 1_000_000),
+                { _, _ -> }, { _, _, count -> requested = count }, {}, {}, {}, focusSpeciesId = id)
+        } }
+        compose.onNodeWithTag("chest-growth-projection").assertTextContains("3 levels", substring = true)
+        compose.onNodeWithTag("chest-growth-slider").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(3f) }
+        compose.onNodeWithTag("chest-growth-cost").assertTextEquals("Total: $cost Pebbles")
+        compose.onNodeWithTag("chest-grow-one").performScrollTo().performClick()
+        compose.onNodeWithText("Cost: 71 Pebbles").assertIsDisplayed()
+        compose.onNodeWithTag("chest-confirm-level-up").performClick()
+        compose.runOnIdle { assertEquals(1, requested) }
+    }
+
+    @Test fun projectionStopsAtLevel99AndClampsWhenBalanceShrinks() {
+        val id = "focus_minnow"
+        val state = mutableStateOf(ShellUiState(finds = listOf(find(id, 97)), pearlBalance = 1_000_000))
+        compose.setContent { Theme { ShellChestScreen(state.value, { _, _ -> }, { _, _, _ -> }, {}, {}, {}, focusSpeciesId = id) } }
+        compose.onNodeWithTag("chest-growth-projection").assertTextContains("2 levels (up to Level 99)", substring = true)
+        compose.onNodeWithTag("chest-growth-slider").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(2f) }
+        compose.onNodeWithText("Level 97 → 99").assertExists()
+        compose.runOnIdle { state.value = state.value.copy(pearlBalance = CreatureEconomy.growthCost(id, 97).amount) }
+        compose.onNodeWithTag("chest-growth-slider").assertIsNotEnabled()
+        compose.onNodeWithText("Level 97 → 98").assertExists()
+    }
+
     @Test fun plantsUseTheExistingEnvironmentFilterAlongsideCreatures() {
         val state = mutableStateOf(ShellUiState(finds = listOf(find("triassic_saturnalia"))))
         val plants = com.kingkharnivore.skillz.domain.green.GreenEnvironment.entries.mapIndexed { index, env ->
             com.kingkharnivore.skillz.ui.screen.shell.rooms.green.GreenPreviewFixtures.specimen(
                 com.kingkharnivore.skillz.domain.green.GreenCatalogue.inEnvironment(env).first(), 1, (index + 1).toLong())
         }
-        compose.setContent { Theme { ShellChestScreen(state.value, { _, _ -> }, { _, _ -> }, {}, {}, {},
+        compose.setContent { Theme { ShellChestScreen(state.value, { _, _ -> }, { _, _, _ -> }, {}, {}, {},
             onEnvironmentSelected = { state.value = state.value.copy(chestEnvironment = it) },
             greenState = com.kingkharnivore.skillz.viewmodel.green.GreenUiState(specimens = plants)) } }
         compose.onNodeWithContentDescription("Saturnalia", substring = true).assertExists()
@@ -65,7 +134,7 @@ class ChestCollectionUiTest {
         val first = com.kingkharnivore.skillz.ui.screen.shell.rooms.green.GreenPreviewFixtures.specimen(species, 98, 1)
         val selected = com.kingkharnivore.skillz.ui.screen.shell.rooms.green.GreenPreviewFixtures.specimen(species, 98, 2)
         val green = mutableStateOf(com.kingkharnivore.skillz.viewmodel.green.GreenUiState(100000, listOf(first, selected)))
-        compose.setContent { Theme { ShellChestScreen(ShellUiState(), { _, _ -> }, { _, _ -> }, {}, {}, {},
+        compose.setContent { Theme { ShellChestScreen(ShellUiState(), { _, _ -> }, { _, _, _ -> }, {}, {}, {},
             greenState = green.value, focusPlantSpeciesId = "daisy", focusPlantSpecimenId = selected.id,
             onWaterPlant = { id, level, token ->
                 assertEquals(selected.id, id)
@@ -84,7 +153,7 @@ class ChestCollectionUiTest {
 
     @Test fun environmentSelectionPreservesProgressAndClearResetsBoth() {
         val state=mutableStateOf(ShellUiState(finds=listOf(find("triassic_saturnalia"),find("creature_chicken",99)),chestFilter=ChestFilterOption.NotMastered))
-        compose.setContent { Theme { ShellChestScreen(state.value,{_,_->},{_,_->},{},{},{state.value=state.value.copy(chestFilter=it)},
+        compose.setContent { Theme { ShellChestScreen(state.value,{_,_->},{ _, _, _ ->},{},{},{state.value=state.value.copy(chestFilter=it)},
             onEnvironmentSelected={state.value=state.value.copy(chestEnvironment=it)},
             onClearFilters={state.value=state.value.copy(chestEnvironment=ChestFilterOption.All,chestFilter=ChestFilterOption.All)}) } }
         compose.onNodeWithTag("chest-environment").performClick()
@@ -96,7 +165,7 @@ class ChestCollectionUiTest {
     }
     @Test fun focusedSpeciesOutsideFilterHasCorrectSourceAndStaleActionsDisappear() {
         val state=mutableStateOf(ShellUiState(finds=listOf(find("jurassic_stegosaurus")),chestEnvironment=ChestFilterOption.Land))
-        compose.setContent { Theme { ShellChestScreen(state.value,{_,_->},{_,_->},{},{},{},focusSpeciesId="jurassic_stegosaurus") } }
+        compose.setContent { Theme { ShellChestScreen(state.value,{_,_->},{ _, _, _ ->},{},{},{},focusSpeciesId="jurassic_stegosaurus") } }
         compose.onNodeWithText("The Red · Jurassic").assertIsDisplayed()
         compose.runOnIdle { state.value=state.value.copy(finds=emptyList()) }
         compose.onNodeWithText("The Red · Jurassic").assertDoesNotExist()
@@ -105,7 +174,7 @@ class ChestCollectionUiTest {
     @Test fun detailReleaseAndConfirmationRemainReachableAtLargeFont() {
         var released=false
         compose.setContent { Theme { CompositionLocalProvider(LocalDensity provides Density(context.resources.displayMetrics.density,1.5f)) {
-            ShellChestScreen(ShellUiState(finds=listOf(find("jurassic_stegosaurus",98)),pearlBalance=200_000),{_,_->released=true},{_,_->},{},{},{},focusSpeciesId="jurassic_stegosaurus")
+            ShellChestScreen(ShellUiState(finds=listOf(find("jurassic_stegosaurus",98)),pearlBalance=200_000),{_,_->released=true},{ _, _, _ ->},{},{},{},focusSpeciesId="jurassic_stegosaurus")
         } } }
         compose.onNodeWithContentDescription(context.getString(R.string.shell_chest_release_button_a11y)).performScrollTo().performClick()
         compose.onNodeWithTag("chest-confirm-release").assertIsDisplayed().performClick()
@@ -113,7 +182,7 @@ class ChestCollectionUiTest {
     }
     @Test fun emptyChestNavigatesToBothBlueAndRed() {
         var destination=""
-        compose.setContent { Theme { ShellChestScreen(ShellUiState(),{_,_->},{_,_->},{destination="blue"},{},{},onOpenRed={destination="red"}) } }
+        compose.setContent { Theme { ShellChestScreen(ShellUiState(),{_,_->},{ _, _, _ ->},{destination="blue"},{},{},onOpenRed={destination="red"}) } }
         compose.onNodeWithText(context.getString(R.string.shell_chest_empty_action)).performClick()
         compose.runOnIdle { assertEquals("blue",destination) }
         compose.onNodeWithText(context.getString(R.string.chest_open_red)).performClick()

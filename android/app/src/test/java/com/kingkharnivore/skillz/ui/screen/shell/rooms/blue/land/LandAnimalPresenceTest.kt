@@ -87,7 +87,7 @@ class LandAnimalPresenceTest {
 
     private fun group(id: String, count: Int) = TheBlueAnimalGroupUiModel(
         findId = id, zoneId = TheBlueZoneId.valueOf(CreatureCatalog.require(id).zone.name),
-        totalCount = count, displayedInFocusCount = 0, restingCount = count,
+        totalCount = count,
         bestFormStageId = null, formCounts = emptyList(), iconKey = null, isNew = false
     )
 }

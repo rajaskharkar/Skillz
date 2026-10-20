@@ -39,7 +39,7 @@ class LandPresenceRenderingTest {
 
     private fun showTigers(count: Int, onSelect: (TheBlueAnimalGroupUiModel) -> Unit) {
         val animal = TheBlueAnimalGroupUiModel("creature_tiger", TheBlueZoneId.GREAT_WILD,
-            count, 0, count, null, emptyList(), null, false)
+            count, null, emptyList(), null, false)
         compose.setContent {
             SkillzTheme(darkTheme = false, dynamicColor = false) {
                 Box(Modifier.size(390.dp, 750.dp)) {

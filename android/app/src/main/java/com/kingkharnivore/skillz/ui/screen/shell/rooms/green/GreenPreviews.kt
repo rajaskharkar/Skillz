@@ -65,7 +65,7 @@ object GreenPreviewFixtures {
 @Composable
 fun GreenChestPreviewContent(state: GreenUiState, onWater: (String, Int, String) -> Unit = { _, _, _ -> }) {
     com.kingkharnivore.skillz.ui.screen.shell.inventory.ShellChestScreen(
-        com.kingkharnivore.skillz.viewmodel.shell.ShellUiState(), { _, _ -> }, { _, _ -> }, {}, {}, {},
+        com.kingkharnivore.skillz.viewmodel.shell.ShellUiState(), { _, _ -> }, { _, _, _ -> }, {}, {}, {},
         greenState = state, showPlantsInitially = true, onWaterPlant = onWater)
 }
 @Composable

@@ -14,6 +14,47 @@ import org.junit.Test
 
 class PowerRedUiTest {
     @get:Rule val compose = createComposeRule()
+    @Test fun animatedDinosaursOpenTheirDetailsAcrossAllErasAndFollowTheirMovement() {
+        val ids = listOf("triassic_saturnalia", "jurassic_stegosaurus", "cretaceous_tyrannosaurus")
+        val creatures = ids.map { id ->
+            com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity(
+                id, id, 1, "test", null, null, null, false, true, animalLevel = 7)
+        }
+        val time = androidx.compose.runtime.mutableFloatStateOf(0f)
+        compose.setContent { SkillzTheme(dynamicColor = false) {
+            RedScreen(RedUiState(creatures = creatures), simulatedSceneTime = time.floatValue)
+        } }
+        val context = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
+        ids.forEach { id ->
+            val entry = com.kingkharnivore.skillz.utils.shell.RedCreatureCatalog.byId.getValue(id)
+            compose.onNodeWithTag("red-era-${entry.era.name}").performClick()
+            val dinosaur = compose.onNodeWithTag("red-scene-creature:$id:0")
+            dinosaur.assertIsDisplayed().assertHasClickAction().assertContentDescriptionEquals(context.getString(entry.nameRes))
+            compose.runOnIdle { time.floatValue = 0f }
+            val before = dinosaur.fetchSemanticsNode().boundsInRoot
+            compose.runOnIdle { time.floatValue = 10f }
+            val after = dinosaur.fetchSemanticsNode().boundsInRoot
+            assertTrue("Tap target must follow $id", before.left != after.left)
+            // Use a real coordinate tap, not the accessibility click action.
+            dinosaur.performTouchInput { click(center) }
+            val price = context.resources.getQuantityString(com.kingkharnivore.skillz.R.plurals.red_price, entry.pebbleCost, entry.pebbleCost)
+            compose.onNodeWithText(price).assertIsDisplayed()
+            compose.onNodeWithText("1 owned · Level 7").assertIsDisplayed()
+            androidx.test.espresso.Espresso.pressBack()
+            dinosaur.assertIsDisplayed()
+            compose.onNodeWithTag("red-catalog-sheet").assertDoesNotExist()
+        }
+        // A drag beginning on a dinosaur must still reach the era pager.
+        val dinosaur = compose.onNodeWithTag("red-scene-creature:cretaceous_tyrannosaurus:0").fetchSemanticsNode().boundsInRoot
+        val pager = compose.onNodeWithTag("red-era-pager")
+        val pagerBounds = pager.fetchSemanticsNode().boundsInRoot
+        pager.performTouchInput {
+            swipe(dinosaur.center - pagerBounds.topLeft, androidx.compose.ui.geometry.Offset(width - 1f, dinosaur.center.y - pagerBounds.top))
+        }
+        compose.onNodeWithTag("red-era-JURASSIC").assertIsSelected()
+        compose.onNodeWithText("1 owned · Level 7").assertDoesNotExist()
+    }
+
     @Test fun powerCanBeSelectedBeforeStarting() {
         var selected=false
         compose.setContent { SkillzTheme(dynamicColor=false) { SessionModeSelector(FlowMode.FLOW,{selected=true},false,{},{}) } }
@@ -27,6 +68,22 @@ class PowerRedUiTest {
         compose.onNodeWithText("Power",useUnmergedTree=true).assertIsDisplayed()
         compose.onNodeWithText("Soft",useUnmergedTree=true).assertDoesNotExist()
     }
+    @Test fun redGrowthChecksPebblesEvenWhenPearlsAreAvailable() {
+        var grew = false
+        val owned = com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity(
+            "saturnalia", "triassic_saturnalia", 1, "test", null, null, null, false, true)
+        val state = androidx.compose.runtime.mutableStateOf(RedUiState(pebbles = 70, pearls = 100_000, creatures = listOf(owned)))
+        compose.setContent { SkillzTheme(dynamicColor = false) {
+            RedScreen(state.value, onGrow = { _, _ -> grew = true }, simulatedSceneTime = 0f,
+                initialEra = RedEra.TRIASSIC, initialCreature = "triassic_saturnalia")
+        } }
+        compose.onNodeWithText("Level up · 71 Pebbles").assertIsNotEnabled()
+        compose.runOnIdle { state.value = state.value.copy(pebbles = 71, pearls = 0) }
+        compose.onNodeWithText("Level up · 71 Pebbles").assertIsEnabled().performClick()
+        compose.onNodeWithText("Confirm").performClick()
+        compose.runOnIdle { assertTrue(grew) }
+    }
+
     @Test fun redPurchaseConfirmsKnownDinosaurAndPrice() {
         var purchased: String?=null
         compose.setContent { SkillzTheme(dynamicColor=false) { RedScreen(RedUiState(pebbles=1000),onPurchase={id,_->purchased=id},simulatedSceneTime=0f,initialEra=RedEra.TRIASSIC,initialCreature="triassic_saturnalia") } }

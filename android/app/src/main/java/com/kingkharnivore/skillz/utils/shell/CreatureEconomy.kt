@@ -150,6 +150,10 @@ data class CreatureDefinition(
 
 data class CreatureReward(val creatureId: String, val quantity: Int)
 
+enum class CreatureGrowthCurrency { PEARLS, PEBBLES }
+
+data class CreatureGrowthCost(val amount: Int, val currency: CreatureGrowthCurrency)
+
 data class CreaturePaymentQuote(
     val targetRequirementMinutes: Int,
     val selectedCreatureMinutes: Int,
@@ -439,7 +443,10 @@ object CreatureEconomy {
         ShellContentCatalog.FOCUS_WHALE -> 600
         else -> {
             val definition = CreatureCatalog.require(creatureId)
-            if (definition.sourceType == CreatureSourceType.ARC_EARNED) {
+            if (definition.realm == CreatureRealm.RED) {
+                // Match purchasable Blue creatures: growth base is half the purchase price.
+                max(25, requireNotNull(definition.pebbleCost) / 2)
+            } else if (definition.sourceType == CreatureSourceType.ARC_EARNED) {
                 // Do not silently price an Arc flagship at the generic 25-Pearl minimum.
                 requireNotNull(definition.baseGrowthCostPearls) {
                     "Arc creature $creatureId requires an explicit growth cost."
@@ -454,9 +461,47 @@ object CreatureEconomy {
         }
     }
 
+    fun growthCost(creatureId: String, currentLevel: Int): CreatureGrowthCost {
+        val isRed = CreatureCatalog.require(creatureId).realm == CreatureRealm.RED
+        val curveCost = growthCostForBase(baseGrowthCost(creatureId), currentLevel)
+        return CreatureGrowthCost(
+            // Red upgrades cost 30% less than the Blue reference curve, rounded down.
+            amount = if (isRed) (curveCost.toLong() * 70 / 100).toInt().coerceAtLeast(1) else curveCost,
+            currency = if (isRed) CreatureGrowthCurrency.PEBBLES else CreatureGrowthCurrency.PEARLS
+        )
+    }
+
+    fun growthCostForLevels(creatureId: String, currentLevel: Int, levels: Int): CreatureGrowthCost {
+        require(currentLevel in 1 until MAX_CREATURE_LEVEL && levels in 1..(MAX_CREATURE_LEVEL - currentLevel)) {
+            "Growth must stay within Level 99."
+        }
+        val first = growthCost(creatureId, currentLevel)
+        val total = (currentLevel until currentLevel + levels).sumOf { growthCost(creatureId, it).amount.toLong() }
+        require(total <= Int.MAX_VALUE) { "Growth cost exceeds the wallet limit." }
+        return first.copy(amount = total.toInt())
+    }
+
+    fun affordableGrowthLevels(creatureId: String, currentLevel: Int, balance: Int): Int {
+        require(currentLevel in 1..MAX_CREATURE_LEVEL)
+        var remaining = balance.coerceAtLeast(0).toLong()
+        var levels = 0
+        for (level in currentLevel until MAX_CREATURE_LEVEL) {
+            val cost = growthCost(creatureId, level).amount
+            if (cost > remaining) break
+            remaining -= cost
+            levels++
+        }
+        return levels
+    }
+
     fun growthCostPearls(creatureId: String, currentLevel: Int): Int {
+        val quote = growthCost(creatureId, currentLevel)
+        require(quote.currency == CreatureGrowthCurrency.PEARLS) { "Red creatures grow with Pebbles." }
+        return quote.amount
+    }
+
+    private fun growthCostForBase(base: Int, currentLevel: Int): Int {
         val level = currentLevel.coerceIn(1, MAX_CREATURE_LEVEL - 1)
-        val base = baseGrowthCost(creatureId)
         val multiplier =
             1.0 +
                 (level * GROWTH_LINEAR_FACTOR) +
@@ -471,8 +516,11 @@ object CreatureEconomy {
     fun cumulativeGrowthCostPearls(creatureId: String, level: Int): Long {
         val safeLevel = level.coerceIn(1, MAX_CREATURE_LEVEL)
         if (safeLevel <= 1) return 0L
+        // Preserve existing Pearl release valuations for Red creatures. Their new Pebble
+        // growth costs must not be counted as Pearl investment or inflate Pearl payouts.
+        val pearlBase = if (CreatureCatalog.require(creatureId).realm == CreatureRealm.RED) 25 else baseGrowthCost(creatureId)
         return (1 until safeLevel).sumOf { currentLevel ->
-            growthCostPearls(creatureId, currentLevel).toLong()
+            growthCostForBase(pearlBase, currentLevel).toLong()
         }
     }
 

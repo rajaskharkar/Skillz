@@ -14,12 +14,8 @@ import androidx.compose.material.icons.outlined.Diamond
 import androidx.compose.material.icons.outlined.FilterVintage
 import androidx.compose.material.icons.outlined.Grass
 import androidx.compose.material.icons.outlined.Waves
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,12 +31,9 @@ import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
-import com.kingkharnivore.skillz.data.model.shell.ShellFindDefinition
 import com.kingkharnivore.skillz.data.model.shell.ShellRewardKind
-import com.kingkharnivore.skillz.utils.shell.CreatureEconomy
 import com.kingkharnivore.skillz.utils.shell.CreatureStatus
 import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellAnimalCanvasIcon
-import com.kingkharnivore.skillz.ui.screen.shell.sourceReasonFor
 import com.kingkharnivore.skillz.viewmodel.shell.ShellUiState
 import kotlin.math.pow
 
@@ -70,212 +63,6 @@ private fun contrastRatio(a: Color, b: Color): Float {
     val lighter = maxOf(l1, l2)
     val darker = minOf(l1, l2)
     return (lighter + 0.05f) / (darker + 0.05f)
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ObjectCopySheet(
-    item: UserShellFindInstanceEntity,
-    pearlBalance: Int,
-    displayed: Boolean,
-    onDismiss: () -> Unit,
-    onReturn: (String) -> Unit,
-    onUpgrade: (String) -> Unit,
-    onPlaceInFocus: (() -> Unit)?
-) {
-    val def = ShellContentCatalog.find(item.findId)
-    val isAnimal = def?.kind == ShellRewardKind.ANIMAL
-
-    val current = if (!isAnimal) {
-        def?.let {
-            ShellContentCatalog.upgradesFor(it.findId)
-                .firstOrNull { stage -> stage.upgradeStageId == item.currentUpgradeStageId }
-        }
-    } else {
-        null
-    }
-
-    val next = if (!isAnimal) {
-        def?.let { ShellContentCatalog.nextUpgrade(it.findId, item.currentUpgradeStageId) }
-    } else {
-        null
-    }
-
-    val findTitle = if (def != null) {
-        stringResource(def.titleRes)
-    } else {
-        item.findId
-    }
-
-    val currentTitle = if (current != null) {
-        stringResource(current.titleRes)
-    } else {
-        findTitle
-    }
-
-    val kindText = if (def != null) {
-        kindLabel(def.kind)
-    } else {
-        null
-    }
-
-    val sourceText = if (def != null) {
-        stringResource(R.string.shell_source_label, sourceReasonFor(def))
-    } else {
-        null
-    }
-
-    val statusText = when {
-        displayed -> stringResource(R.string.shell_status_displayed_focus)
-        isAnimal && item.creatureStatus != CreatureStatus.ACTIVE ->
-            "Lifetime record · ${item.creatureStatus.lowercase().replace('_', ' ')}"
-        else -> stringResource(R.string.shell_status_resting)
-    }
-
-    val animalUpgradeA11y = stringResource(R.string.shell_upgrade_animal_a11y)
-    val returnToChestText = returnToChestLabel(def)
-    val placeInFocusText = placeInFocusLabel(def)
-
-    ScyraParchmentSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = findTitle,
-                style = MaterialTheme.typography.titleLarge
-            )
-
-            if (kindText != null) {
-                Text(kindText)
-            }
-
-            Text(statusText)
-
-            if (isAnimal) {
-                Text(stringResource(R.string.shell_creature_level_value, item.animalLevel.coerceAtLeast(1)))
-
-                if (sourceText != null) {
-                    Text(sourceText)
-                }
-
-                if (item.creatureStatus == CreatureStatus.ACTIVE) {
-                    val currentLevel = item.animalLevel.coerceAtLeast(1)
-                    val cost = CreatureEconomy.growthCostPearls(
-                        item.findId,
-                        currentLevel
-                    )
-                    val isMastered = currentLevel >= CreatureEconomy.MAX_CREATURE_LEVEL
-                    val canAfford = pearlBalance >= cost
-
-                    Text(
-                        if (isMastered) {
-                            stringResource(R.string.shell_creature_level_up_unavailable_max)
-                        } else {
-                            stringResource(R.string.shell_creature_level_up_cost, cost)
-                        }
-                    )
-
-                    if (!isMastered && !canAfford) {
-                        Text(stringResource(R.string.shell_need_more_pearls, cost - pearlBalance))
-                    }
-
-                    Button(
-                        onClick = { onUpgrade(item.instanceId) },
-                        enabled = !isMastered && canAfford,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary,
-                            contentColor = MaterialTheme.colorScheme.onSecondary
-                        ),
-                        modifier = Modifier.semantics {
-                            contentDescription = animalUpgradeA11y
-                        }
-                    ) {
-                        Text(stringResource(R.string.shell_creature_level_up))
-                    }
-                } else {
-                    Text(stringResource(if (com.kingkharnivore.skillz.utils.shell.CreatureCatalog.get(item.findId)?.realm == com.kingkharnivore.skillz.utils.shell.CreatureRealm.LAND) R.string.land_no_longer_living else R.string.shell_creature_not_swimming_lifetime_remains))
-                }
-            } else {
-                Text(stringResource(R.string.shell_form_label, currentTitle))
-
-                if (sourceText != null) {
-                    Text(sourceText)
-                }
-
-                if (next != null && def != null) {
-                    val nextTitle = stringResource(next.titleRes)
-                    val upgradeVerb = stringResource(next.upgradeVerbRes)
-                    val upgradeDescription = upgradeA11yLabel(def)
-                    val canAfford = pearlBalance >= next.pearlCost
-
-                    Text(stringResource(R.string.shell_next_form, nextTitle))
-
-                    if (!canAfford) {
-                        Text(stringResource(R.string.shell_need_more_pearls, next.pearlCost - pearlBalance))
-                    }
-
-                    Button(
-                        onClick = { onUpgrade(item.instanceId) },
-                        enabled = canAfford,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary,
-                            contentColor = MaterialTheme.colorScheme.onSecondary
-                        ),
-                        modifier = Modifier.semantics {
-                            contentDescription = upgradeDescription
-                        }
-                    ) {
-                        Text(
-                            stringResource(
-                                R.string.shell_upgrade_with_pearls,
-                                upgradeVerb,
-                                next.pearlCost
-                            )
-                        )
-                    }
-                } else {
-                    Text(restingCurrentFormLabel(def))
-                }
-            }
-
-            if (displayed) {
-                OutlinedButton(onClick = { onReturn(item.instanceId) }) {
-                    Text(returnToChestText)
-                }
-            } else if (onPlaceInFocus != null && canDisplayInstance(item, def)) {
-                OutlinedButton(onClick = onPlaceInFocus) {
-                    Text(placeInFocusText)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun returnToChestLabel(def: ShellFindDefinition?): String = when (def?.kind) {
-    ShellRewardKind.ANIMAL -> stringResource(R.string.shell_let_rest_in_chest)
-    else -> stringResource(R.string.shell_return_to_chest)
-}
-
-@Composable
-private fun placeInFocusLabel(def: ShellFindDefinition?): String = when (def?.kind) {
-    ShellRewardKind.ANIMAL -> stringResource(R.string.shell_display_in_focus)
-    else -> stringResource(R.string.shell_place_in_focus)
-}
-
-@Composable
-private fun upgradeA11yLabel(def: ShellFindDefinition?): String = when (def?.kind) {
-    ShellRewardKind.ANIMAL -> stringResource(R.string.shell_upgrade_animal_a11y)
-    ShellRewardKind.OBJECT -> stringResource(R.string.shell_upgrade_object_a11y)
-    else -> stringResource(R.string.shell_upgrade_reward_a11y)
-}
-
-@Composable
-private fun restingCurrentFormLabel(def: ShellFindDefinition?): String = when (def?.kind) {
-    ShellRewardKind.ANIMAL -> stringResource(R.string.shell_animal_no_more_forms)
-    ShellRewardKind.OBJECT -> stringResource(R.string.shell_object_no_more_forms)
-    else -> stringResource(R.string.shell_reward_no_more_forms)
 }
 
 @Composable
@@ -357,21 +144,6 @@ fun activeChestCreatures(uiState: ShellUiState): List<UserShellFindInstanceEntit
     uiState.finds.filter(::isActiveChestCreature)
 
 fun activeChestCreatureCount(uiState: ShellUiState): Int = activeChestCreatures(uiState).size
-
-fun activeDisplayedCreatureCount(uiState: ShellUiState): Int {
-    val displayed = displayedInstanceIds(uiState)
-    return activeChestCreatures(uiState).count { it.instanceId in displayed }
-}
-
-fun canDisplayInstance(instance: UserShellFindInstanceEntity, def: ShellFindDefinition?): Boolean =
-    isUserVisibleShellFind(def) && (def?.kind != ShellRewardKind.ANIMAL || instance.creatureStatus == CreatureStatus.ACTIVE)
-
-fun isUserVisibleShellFind(def: ShellFindDefinition?): Boolean =
-    def != null && def.kind != ShellRewardKind.TRINKET
-
-
-fun displayedInstanceIds(uiState: ShellUiState): Set<String> =
-    uiState.focusPlacements.map { it.instanceId }.toSet()
 
 @Composable
 fun kindLabel(kind: ShellRewardKind): String = when (kind) {

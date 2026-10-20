@@ -56,6 +56,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -107,7 +108,7 @@ internal data class ChestInventoryStackUiModel(
 fun ShellChestScreen(
     uiState: ShellUiState,
     onReleaseCreaturesByLevel: (String, Map<Int, Int>) -> Unit,
-    onLevelUpCreatureByLevel: (String, Int) -> Unit,
+    onLevelUpCreature: (String, Int, Int) -> Unit,
     onOpenBlue: () -> Unit,
     onSortOptionSelected: (ChestSortOption) -> Unit,
     onFilterSelected: (ChestFilterOption) -> Unit,
@@ -260,13 +261,19 @@ fun ShellChestScreen(
             LaunchedEffect(selected) { selectedStack = null }
             return@let
         }
+        val growthInstanceId = remember(selected) {
+            uiState.finds.firstOrNull { it.findId == selected.creatureId && it.animalLevel == selected.level && isActiveChestCreature(it) }?.instanceId
+        }
         ChestStackDetailSheet(
             stack = stack,
             onDismiss = { selectedStack = null },
             pearlBalance = uiState.pearlBalance,
-            level99Preview = uiState.badgeDashboard?.level99Previews?.get(stack.creatureId)?.takeIf { stack.level == 98 },
-            onLevelUp = {
-                onLevelUpCreatureByLevel(stack.creatureId, stack.level)
+            pebbleBalance = uiState.pebbleBalance,
+            level99Preview = uiState.badgeDashboard?.level99Previews?.get(stack.creatureId),
+            onLevelUp = { levels ->
+                growthInstanceId?.let {
+                    onLevelUpCreature(it, stack.level, levels)
+                }
                 selectedStack = null
             },
             onRelease = { releaseCount ->
@@ -604,14 +611,17 @@ internal fun ChestBadge(text: String, modifier: Modifier = Modifier) {
 private fun ChestStackDetailSheet(
     stack: ChestInventoryStackUiModel,
     pearlBalance: Int,
+    pebbleBalance: Int,
     level99Preview: Level99AchievementPreview?,
     onDismiss: () -> Unit,
-    onLevelUp: () -> Unit,
+    onLevelUp: (Int) -> Unit,
     onRelease: (Int) -> Unit
 ) {
     var releaseCount by remember(stack.creatureId, stack.level, stack.count) { mutableIntStateOf(1) }
     var showReleaseConfirmation by remember(stack.creatureId, stack.level) { mutableStateOf(false) }
     var showLevelUpConfirmation by remember(stack.creatureId, stack.level) { mutableStateOf(false) }
+    var selectedLevels by remember(stack.creatureId, stack.level) { mutableIntStateOf(1) }
+    var confirmedLevels by remember(stack.creatureId, stack.level) { mutableIntStateOf(1) }
     val safeReleaseCount = releaseCount.coerceIn(1, stack.count.coerceAtLeast(1))
     val releaseRewardPearls = chestReleaseRewardPearls(stack, safeReleaseCount)
     val rewardPreviewDescription = stringResource(
@@ -623,31 +633,35 @@ private fun ChestStackDetailSheet(
         releaseRewardPearls
     )
     val releaseButtonDescription = stringResource(R.string.shell_chest_release_button_a11y)
-    val levelUpCost = CreatureEconomy.growthCostPearls(stack.creatureId, stack.level)
+    val growthQuote = CreatureEconomy.growthCost(stack.creatureId, stack.level)
+    val usesPebbles = growthQuote.currency == com.kingkharnivore.skillz.utils.shell.CreatureGrowthCurrency.PEBBLES
+    val levelUpCost = growthQuote.amount
+    val growthBalance = if (usesPebbles) pebbleBalance else pearlBalance
+    val affordableLevels = CreatureEconomy.affordableGrowthLevels(stack.creatureId, stack.level, growthBalance)
+    val safeLevels = selectedLevels.coerceIn(1, affordableLevels.coerceAtLeast(1))
     val isMaxLevel = stack.level >= CreatureEconomy.MAX_CREATURE_LEVEL
-    val levelUpShortfall = (levelUpCost - pearlBalance).coerceAtLeast(0)
-    val canAffordLevelUp = pearlBalance >= levelUpCost
+    val selectedCost = if (isMaxLevel) 0 else CreatureEconomy.growthCostForLevels(stack.creatureId, stack.level, safeLevels).amount
+    val levelUpShortfall = (levelUpCost - growthBalance).coerceAtLeast(0)
+    val canAffordLevelUp = growthBalance >= levelUpCost
     val levelUpStatus = when {
         isMaxLevel -> stringResource(R.string.shell_creature_level_up_unavailable_max)
         !canAffordLevelUp -> stringResource(
-            R.string.shell_creature_level_up_unavailable_pearls,
+            (if (usesPebbles) R.string.shell_creature_level_up_unavailable_pebbles else R.string.shell_creature_level_up_unavailable_pearls),
             levelUpCost,
             levelUpShortfall
         )
-        else -> stringResource(R.string.shell_creature_level_up_cost, levelUpCost)
+        else -> stringResource((if (usesPebbles) R.string.shell_creature_level_up_cost_pebbles else R.string.shell_creature_level_up_cost), levelUpCost)
     }
     val levelUpButtonDescription = when {
         isMaxLevel -> stringResource(R.string.shell_creature_level_up_mastered_a11y, stack.creatureName)
         !canAffordLevelUp -> stringResource(
-            R.string.shell_creature_level_up_unavailable_pearls,
+            (if (usesPebbles) R.string.shell_creature_level_up_unavailable_pebbles else R.string.shell_creature_level_up_unavailable_pearls),
             levelUpCost,
             levelUpShortfall
         )
         else -> stringResource(
-            R.string.shell_creature_level_up_a11y,
-            stack.level,
-            stack.creatureName,
-            levelUpCost
+            (if (usesPebbles) R.string.chest_growth_confirm_pebbles else R.string.chest_growth_confirm_pearls),
+            stack.creatureName, stack.level, stack.level + safeLevels, selectedCost
         )
     }
     ScyraParchmentSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
@@ -686,15 +700,39 @@ private fun ChestStackDetailSheet(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
-            Text(levelUpStatus, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (!isMaxLevel) {
+                Text(pluralStringResource(if (usesPebbles) R.plurals.chest_growth_projection_pebbles else R.plurals.chest_growth_projection_pearls,
+                    affordableLevels, growthBalance, affordableLevels, stack.level + affordableLevels), Modifier.testTag("chest-growth-projection"))
+                Text(stringResource(R.string.chest_growth_levels, safeLevels))
+                Slider(
+                    value = safeLevels.toFloat(),
+                    onValueChange = { selectedLevels = it.roundToInt() },
+                    valueRange = 1f..affordableLevels.coerceAtLeast(2).toFloat(),
+                    steps = (affordableLevels - 2).coerceAtLeast(0),
+                    enabled = affordableLevels > 1,
+                    modifier = Modifier.testTag("chest-growth-slider").semantics {
+                        contentDescription = stack.creatureName
+                    }
+                )
+                Text(stringResource(R.string.chest_growth_transition, stack.level, stack.level + safeLevels))
+                Text(stringResource(if (usesPebbles) R.string.chest_growth_total_pebbles else R.string.chest_growth_total_pearls,
+                    selectedCost), Modifier.testTag("chest-growth-cost"))
+            }
+            if (isMaxLevel || !canAffordLevelUp) Text(levelUpStatus, color = MaterialTheme.colorScheme.onSurfaceVariant)
             val levelButtonModifier = Modifier.fillMaxWidth().semantics { contentDescription = levelUpButtonDescription }
             if (canAffordLevelUp) {
-                Button(onClick = { showLevelUpConfirmation = true }, enabled = !isMaxLevel, modifier = levelButtonModifier) {
-                    Text(stringResource(R.string.shell_creature_level_up))
+                Button(onClick = { confirmedLevels = safeLevels; showLevelUpConfirmation = true }, enabled = !isMaxLevel, modifier = levelButtonModifier.testTag("chest-grow-selected")) {
+                    Text(if (safeLevels == 1) stringResource(R.string.shell_creature_level_up) else stringResource(R.string.chest_growth_action, safeLevels))
                 }
             } else {
-                OutlinedButton(onClick = { showLevelUpConfirmation = true }, enabled = !isMaxLevel, modifier = levelButtonModifier) {
+                OutlinedButton(onClick = { confirmedLevels = safeLevels; showLevelUpConfirmation = true }, enabled = !isMaxLevel, modifier = levelButtonModifier.testTag("chest-grow-selected")) {
                     Text(stringResource(R.string.shell_creature_view_requirements))
+                }
+            }
+            if (!isMaxLevel && canAffordLevelUp) {
+                OutlinedButton(onClick = { confirmedLevels = 1; showLevelUpConfirmation = true },
+                    modifier = Modifier.fillMaxWidth().testTag("chest-grow-one")) {
+                    Text(stringResource(R.string.chest_growth_one))
                 }
             }
             Text(
@@ -750,17 +788,20 @@ private fun ChestStackDetailSheet(
         }
     }
 
-    if (showLevelUpConfirmation) {
+    if (showLevelUpConfirmation && !isMaxLevel) {
+        val confirmedCost = CreatureEconomy.growthCostForLevels(stack.creatureId, stack.level, confirmedLevels).amount
         ChestLevelUpConfirmationDialog(
             stack = stack,
-            cost = levelUpCost,
-            pearlBalance = pearlBalance,
-            preview = level99Preview,
-            canAfford = canAffordLevelUp,
+            cost = confirmedCost,
+            levels = confirmedLevels,
+            balance = growthBalance,
+            usesPebbles = usesPebbles,
+            preview = level99Preview?.takeIf { stack.level + confirmedLevels == CreatureEconomy.MAX_CREATURE_LEVEL },
+            canAfford = growthBalance >= confirmedCost,
             onDismiss = { showLevelUpConfirmation = false },
             onConfirm = {
                 showLevelUpConfirmation = false
-                onLevelUp()
+                onLevelUp(confirmedLevels)
             }
         )
     }
@@ -783,17 +824,17 @@ private fun ChestStackDetailSheet(
 private fun ChestLevelUpConfirmationDialog(
     stack: ChestInventoryStackUiModel,
     cost: Int,
-    pearlBalance: Int,
+    levels: Int,
+    balance: Int,
+    usesPebbles: Boolean,
     preview: Level99AchievementPreview?,
     canAfford: Boolean,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
     val description = stringResource(
-        R.string.shell_creature_level_up_confirm_a11y,
-        stack.level,
-        stack.creatureName,
-        cost
+        (if (usesPebbles) R.string.chest_growth_confirm_pebbles else R.string.chest_growth_confirm_pearls),
+        stack.creatureName, stack.level, stack.level + levels, cost
     )
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -801,11 +842,11 @@ private fun ChestLevelUpConfirmationDialog(
         title = { Text(stringResource(R.string.shell_creature_level_up_confirm_title, stack.creatureName)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.shell_creature_level_up_confirm_body, stack.level, stack.creatureName))
-                Text(stringResource(R.string.shell_creature_level_up_confirm_cost, cost), fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.chest_growth_confirm_body, stack.creatureName, stack.level, stack.level + levels))
+                Text(stringResource((if (usesPebbles) R.string.shell_creature_level_up_confirm_cost_pebbles else R.string.shell_creature_level_up_confirm_cost), cost), fontWeight = FontWeight.SemiBold)
                 if (preview != null) {
-                    Text(stringResource(R.string.mastery_level_transition), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    Text(stringResource(R.string.level99_preview_balance, cost, pearlBalance, (cost - pearlBalance).coerceAtLeast(0)))
+                    Text(stringResource(R.string.chest_growth_transition, stack.level, stack.level + levels), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text(stringResource((if (usesPebbles) R.string.level99_preview_balance_pebbles else R.string.level99_preview_balance), cost, balance, (cost - balance).coerceAtLeast(0)))
                     Text(stringResource(R.string.level99_preview_species_count, preview.resultingSpeciesMasteryCount))
                     if (preview.firstSpeciesMastery) Text(stringResource(R.string.level99_preview_first_species))
                     Text(stringResource(R.string.level99_preview_region, preview.regionalMasteredAfter, preview.regionalTotal))
@@ -823,7 +864,9 @@ private fun ChestLevelUpConfirmationDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onConfirm, enabled = canAfford) { Text(stringResource(R.string.shell_creature_level_up)) }
+            Button(onClick = onConfirm, enabled = canAfford, modifier = Modifier.testTag("chest-confirm-level-up")) {
+                Text(stringResource(R.string.shell_creature_level_up))
+            }
         },
         dismissButton = {
             OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }

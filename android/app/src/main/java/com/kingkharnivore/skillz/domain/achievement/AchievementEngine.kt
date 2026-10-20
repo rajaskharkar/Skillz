@@ -514,4 +514,4 @@ object MilestoneEngine {
 
 enum class AchievementChangeType { BADGE_NEWLY_EARNED, COUNT_INCREASED, MILESTONE_REACHED, COLLECTION_PROGRESS_CHANGED, CURRENT_ROSTER_COMPLETED, SPECIES_MASTERY_RECORDED, REGIONAL_COMPLETIONIST_COMPLETED, BLUE_COMPLETIONIST_COMPLETED, ALL_WATERS_COMPLETIONIST_COMPLETED }
 data class AchievementChange(val type: AchievementChangeType, val badgeId: String? = null, val speciesId: String? = null, val collectionId: String? = null, val previousCount: Int = 0, val exactCount: Int = 0, val milestone: Int? = null)
-data class AchievementResult(val eventId: String, val committed: Boolean, val changes: List<AchievementChange>, val pearlCost: Int = 0, val resultingLevel: Int? = null)
+data class AchievementResult(val eventId: String, val committed: Boolean, val changes: List<AchievementChange>, val pearlCost: Int = 0, val resultingLevel: Int? = null, val pebbleCost: Int = 0)

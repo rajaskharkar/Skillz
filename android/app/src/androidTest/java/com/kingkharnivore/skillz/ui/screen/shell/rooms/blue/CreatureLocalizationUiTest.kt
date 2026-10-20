@@ -61,7 +61,7 @@ class CreatureLocalizationUiTest(private val language: String) {
 
     private fun checkRelease(count: Int) {
         val animal = TheBlueAnimalGroupUiModel("creature_tiger", TheBlueZoneId.GREAT_WILD,
-            count, 0, count, null, listOf(FormCountUiModel("Level 1", count)), null, false)
+            count, null, listOf(FormCountUiModel("Level 1", count)), null, false)
         compose.setContent {
             SkillzTheme(darkTheme = false, dynamicColor = false) {
                 ReleaseCreatureConfirmationSheet(animal, {}, { _, _ -> })
