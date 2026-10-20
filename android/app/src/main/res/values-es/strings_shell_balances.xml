@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shell_currency_pearls">Perlas</string>
+    <string name="shell_currency_pebbles">Guijarros</string>
+    <string name="shell_currency_drops">Gotas</string>
+</resources>

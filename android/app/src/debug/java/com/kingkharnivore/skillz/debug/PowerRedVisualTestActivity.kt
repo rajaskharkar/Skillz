@@ -78,7 +78,21 @@ class PowerRedVisualTestActivity : ComponentActivity() {
                                     onEnvironmentSelected={chest=chest.copy(chestEnvironment=it)},
                                     onClearFilters={chest=chest.copy(chestEnvironment=ChestFilterOption.All,chestFilter=ChestFilterOption.All)})
                             }
-                            "shell" -> com.kingkharnivore.skillz.ui.screen.shell.HeartRoomScreen(com.kingkharnivore.skillz.viewmodel.shell.ShellUiState()) {}
+                            "shell" -> {
+                                val shellState = com.kingkharnivore.skillz.viewmodel.shell.ShellUiState(
+                                    pearlBalance = intent.getIntExtra("pearls", 12450), pebbleBalance = intent.getIntExtra("pebbles", 8640))
+                                val drops = intent.getLongExtra("drops", 250000)
+                                Scaffold(topBar = {
+                                    com.kingkharnivore.skillz.ui.screen.shell.ShellTopBar(
+                                        com.kingkharnivore.skillz.ui.screen.shell.ShellDestination.Heart,
+                                        shellState.pearlBalance, false, 2, {}, {},
+                                        pebbleBalance = shellState.pebbleBalance, dropBalance = drops)
+                                }) { padding ->
+                                    Box(Modifier.padding(padding)) {
+                                        com.kingkharnivore.skillz.ui.screen.shell.HeartRoomScreen(shellState, drops) {}
+                                    }
+                                }
+                            }
                             "selector" -> Column(Modifier.padding(24.dp)) { SessionModeSelector(FlowMode.POWER,{},false,{},{}) }
                             "active" -> Column(Modifier.padding(24.dp),verticalArrangement=Arrangement.spacedBy(32.dp)) {
                                 SessionModeSelector(FlowMode.POWER,{},true,{},{})

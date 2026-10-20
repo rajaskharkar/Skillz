@@ -33,7 +33,7 @@ import com.kingkharnivore.skillz.domain.green.*
 @Composable
 internal fun GreenWorld(environment: GreenEnvironment, plants: List<PlantSpecimenEntity>,
     onEnvironment: (GreenEnvironment) -> Unit, onSelect: (String) -> Unit,
-    onPlant: () -> Unit, onOpenChest: () -> Unit, onOpenBadges: () -> Unit,
+    onPlant: () -> Unit, onOpenChest: () -> Unit,
     topOverlayHeight: Dp) {
     val pager = rememberPagerState(initialPage = environment.ordinal, pageCount = { GreenEnvironment.entries.size })
     var lastReported by remember { mutableIntStateOf(environment.ordinal) }
@@ -97,9 +97,8 @@ internal fun GreenWorld(environment: GreenEnvironment, plants: List<PlantSpecime
                             }
                         }
                     }
-                    Row {
-                        TextButton(onClick = onOpenChest, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.green_open_chest), style = MaterialTheme.typography.labelMedium) }
-                        TextButton(onClick = onOpenBadges, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.green_open_badges), style = MaterialTheme.typography.labelMedium) }
+                    TextButton(onClick = onOpenChest, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.green_open_chest), style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }

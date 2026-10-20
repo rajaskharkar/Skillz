@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shell_currency_pearls">Pearls</string>
+    <string name="shell_currency_pebbles">Pebbles</string>
+    <string name="shell_currency_drops">Drops</string>
+</resources>

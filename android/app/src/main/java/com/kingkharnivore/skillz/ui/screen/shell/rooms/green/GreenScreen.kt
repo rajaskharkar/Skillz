@@ -1,5 +1,6 @@
 package com.kingkharnivore.skillz.ui.screen.shell.rooms.green
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.MilitaryTech
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -93,6 +95,10 @@ fun GreenScreen(
     }
     val feedback = greenFeedbackText(state)
     val modalVisible = seedId != null || state.specimens.any { it.id == specimenId } || help || mastery != null
+    // Both system Back and the Shell toolbar dispatch here before leaving The Green.
+    BackHandler(enabled = section == GreenSection.CATALOGUE && !modalVisible) {
+        section = GreenSection.WORLD
+    }
     LaunchedEffect(state.action?.id, state.specimens.any { it.id == state.action?.specimenId }) {
         val action = state.action ?: return@LaunchedEffect
         if (action.kind == "plant_seed_planted" && state.specimens.any { it.id == action.specimenId }) {
@@ -105,7 +111,7 @@ fun GreenScreen(
     Box(Modifier.fillMaxSize()) {
         if (section == GreenSection.WORLD) {
             GreenWorld(environment, state.specimens, { environment = it }, { specimenId = it },
-                { section = GreenSection.CATALOGUE }, onOpenChest, onOpenBadges, controlsHeightDp)
+                { section = GreenSection.CATALOGUE }, onOpenChest, controlsHeightDp)
         }
         Column(Modifier.fillMaxSize()) {
             GreenSceneOverlay(Modifier.fillMaxWidth().onSizeChanged { controlsHeight = it.height }.padding(12.dp).testTag("green-controls")) {
@@ -114,11 +120,17 @@ fun GreenScreen(
                         Column(Modifier.weight(1f)) {
                             Text(stringResource(R.string.green_title), style = MaterialTheme.typography.labelMedium)
                             Text(stringResource(environment.nameRes), style = MaterialTheme.typography.titleLarge)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                com.kingkharnivore.skillz.ui.screen.shell.icons.ShellDropIcon(Modifier.size(20.dp))
+                                Text(stringResource(R.string.green_drop_balance, state.drops), style = MaterialTheme.typography.labelLarge)
+                            }
                         }
-                        Text(stringResource(R.string.green_drop_balance, state.drops), style = MaterialTheme.typography.labelLarge)
+                        IconButton(onClick = onOpenBadges, modifier = Modifier.testTag("green-open-badges")) {
+                            Icon(Icons.Outlined.MilitaryTech, stringResource(R.string.green_open_badges))
+                        }
                         IconButton(onClick = { help = true }) { Icon(Icons.Outlined.HelpOutline, stringResource(R.string.green_help_title)) }
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         GreenSection.entries.forEach { tab -> FilterChip(section == tab, { section = tab },
                             { Text(stringResource(tab.titleRes)) }, colors = greenPrimarySelectionColors()) }
                     }

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="chest_growth_projection_pearls">
+        <item quantity="one">With %1$,d Pearls, you can gain %2$d level (up to Level %3$d).</item>
+        <item quantity="other">With %1$,d Pearls, you can gain %2$d levels (up to Level %3$d).</item>
+    </plurals>
+    <plurals name="chest_growth_projection_pebbles">
+        <item quantity="one">With %1$,d Pebbles, you can gain %2$d level (up to Level %3$d).</item>
+        <item quantity="other">With %1$,d Pebbles, you can gain %2$d levels (up to Level %3$d).</item>
+    </plurals>
+    <string name="chest_growth_levels">Levels to gain: %1$d</string>
+    <string name="chest_growth_transition">Level %1$d → %2$d</string>
+    <string name="chest_growth_action">Increase %1$d levels</string>
+    <string name="chest_growth_one">Increase 1 level</string>
+    <string name="chest_growth_confirm_body">Raise one %1$s from Level %2$d to Level %3$d?</string>
+    <string name="chest_growth_confirm_pearls">Raise one %1$s from Level %2$d to Level %3$d for %4$,d Pearls.</string>
+    <string name="chest_growth_confirm_pebbles">Raise one %1$s from Level %2$d to Level %3$d for %4$,d Pebbles.</string>
+    <string name="chest_growth_total_pearls">Total: %1$,d Pearls</string>
+    <string name="chest_growth_total_pebbles">Total: %1$,d Pebbles</string>
+</resources>
