@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="chest_growth_projection_pearls">
+        <item quantity="one">%1$,d मोतियों से आप %2$d स्तर बढ़ा सकते हैं (स्तर %3$d तक)।</item>
+        <item quantity="other">%1$,d मोतियों से आप %2$d स्तर बढ़ा सकते हैं (स्तर %3$d तक)।</item>
+    </plurals>
+    <plurals name="chest_growth_projection_pebbles">
+        <item quantity="one">%1$,d कंकड़ों से आप %2$d स्तर बढ़ा सकते हैं (स्तर %3$d तक)।</item>
+        <item quantity="other">%1$,d कंकड़ों से आप %2$d स्तर बढ़ा सकते हैं (स्तर %3$d तक)।</item>
+    </plurals>
+    <string name="chest_growth_levels">बढ़ाने के स्तर: %1$d</string>
+    <string name="chest_growth_transition">स्तर %1$d → %2$d</string>
+    <string name="chest_growth_action">%1$d स्तर बढ़ाएँ</string>
+    <string name="chest_growth_one">1 स्तर बढ़ाएँ</string>
+    <string name="chest_growth_confirm_body">एक %1$s को स्तर %2$d से स्तर %3$d तक बढ़ाएँ?</string>
+    <string name="chest_growth_confirm_pearls">%4$,d मोतियों से एक %1$s को स्तर %2$d से स्तर %3$d तक बढ़ाएँ।</string>
+    <string name="chest_growth_confirm_pebbles">%4$,d कंकड़ों से एक %1$s को स्तर %2$d से स्तर %3$d तक बढ़ाएँ।</string>
+    <string name="chest_growth_total_pearls">कुल: %1$,d मोती</string>
+    <string name="chest_growth_total_pebbles">कुल: %1$,d कंकड़</string>
+</resources>

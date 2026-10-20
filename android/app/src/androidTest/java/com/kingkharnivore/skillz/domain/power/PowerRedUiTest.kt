@@ -121,14 +121,19 @@ class PowerRedUiTest {
         compose.onNode(hasText("Choose a dinosaur to join this world.") and hasAnyAncestor(hasTestTag("red-catalog-sheet"))).assertIsDisplayed()
     }
 
-    @Test fun blueAndRedHaveEqualShellTileBounds() {
+    @Test fun blueRedAndGreenHaveEqualShellTileBounds() {
         compose.setContent { SkillzTheme(dynamicColor=false) {
             com.kingkharnivore.skillz.ui.screen.shell.HeartRoomScreen(com.kingkharnivore.skillz.viewmodel.shell.ShellUiState()) {}
         } }
         val blue=compose.onNodeWithText("The Blue").fetchSemanticsNode().boundsInRoot
         val red=compose.onNodeWithText("The Red").fetchSemanticsNode().boundsInRoot
+        val green=compose.onNodeWithText("The Green").fetchSemanticsNode().boundsInRoot
         assertEquals(blue.top,red.top,1f)
         assertEquals(blue.height,red.height,1f)
+        assertEquals(blue.top,green.top,1f)
+        assertEquals(blue.height,green.height,1f)
+        assertEquals(blue.width,green.width,1f)
+        assertEquals(blue.width,red.width,1f)
     }
     @Test fun returningToRedRestoresTheLastSettledEra() {
         val visible=androidx.compose.runtime.mutableStateOf(true)

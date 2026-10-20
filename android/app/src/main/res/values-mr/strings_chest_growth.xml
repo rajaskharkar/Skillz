@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="chest_growth_projection_pearls">
+        <item quantity="one">%1$,d मोत्यांनी तुम्ही %2$d स्तर वाढवू शकता (स्तर %3$d पर्यंत).</item>
+        <item quantity="other">%1$,d मोत्यांनी तुम्ही %2$d स्तर वाढवू शकता (स्तर %3$d पर्यंत).</item>
+    </plurals>
+    <plurals name="chest_growth_projection_pebbles">
+        <item quantity="one">%1$,d खड्यांनी तुम्ही %2$d स्तर वाढवू शकता (स्तर %3$d पर्यंत).</item>
+        <item quantity="other">%1$,d खड्यांनी तुम्ही %2$d स्तर वाढवू शकता (स्तर %3$d पर्यंत).</item>
+    </plurals>
+    <string name="chest_growth_levels">वाढवायचे स्तर: %1$d</string>
+    <string name="chest_growth_transition">स्तर %1$d → %2$d</string>
+    <string name="chest_growth_action">%1$d स्तर वाढवा</string>
+    <string name="chest_growth_one">1 स्तर वाढवा</string>
+    <string name="chest_growth_confirm_body">एका %1$s ला स्तर %2$d वरून स्तर %3$d पर्यंत वाढवायचे?</string>
+    <string name="chest_growth_confirm_pearls">%4$,d मोत्यांनी एका %1$s ला स्तर %2$d वरून स्तर %3$d पर्यंत वाढवा.</string>
+    <string name="chest_growth_confirm_pebbles">%4$,d खड्यांनी एका %1$s ला स्तर %2$d वरून स्तर %3$d पर्यंत वाढवा.</string>
+    <string name="chest_growth_total_pearls">एकूण: %1$,d मोती</string>
+    <string name="chest_growth_total_pebbles">एकूण: %1$,d खडे</string>
+</resources>

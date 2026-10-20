@@ -1,14 +1,26 @@
 package com.kingkharnivore.skillz.ui.screen.shell
 
-sealed class ShellDestination {
-    data object TheRed : ShellDestination()
-    data object Heart : ShellDestination()
-    data object Focus : ShellDestination()
-    data object TheGreen : ShellDestination()
-    data object ShellChest : ShellDestination()
-    data object Badges : ShellDestination()
-    data object VoyagePreview : ShellDestination()
-    data object TheBluePreview : ShellDestination()
-    data object IdeaGrovePreview : ShellDestination()
-    data object LookoutPreview : ShellDestination()
+import androidx.compose.runtime.saveable.Saver
+
+sealed class ShellDestination(val savedKey: String) {
+    data object TheRed : ShellDestination("red")
+    data object Heart : ShellDestination("heart")
+    data object Focus : ShellDestination("focus")
+    data object TheGreen : ShellDestination("green")
+    data object ShellChest : ShellDestination("chest")
+    data object Badges : ShellDestination("badges")
+    data object VoyagePreview : ShellDestination("voyage")
+    data object TheBluePreview : ShellDestination("blue")
+    data object IdeaGrovePreview : ShellDestination("idea")
+    data object LookoutPreview : ShellDestination("lookout")
+
+    companion object {
+        val StateSaver = Saver<ShellDestination, String>(
+            save = { it.savedKey },
+            restore = { key ->
+                listOf(TheRed, Heart, Focus, TheGreen, ShellChest, Badges, VoyagePreview,
+                    TheBluePreview, IdeaGrovePreview, LookoutPreview).firstOrNull { it.savedKey == key } ?: Heart
+            }
+        )
+    }
 }

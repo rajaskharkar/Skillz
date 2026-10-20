@@ -6,23 +6,24 @@ import com.kingkharnivore.skillz.domain.achievement.BadgeActionDestination
 import android.util.Log
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.outlined.Terrain
@@ -36,12 +37,10 @@ import androidx.compose.material.icons.outlined.PsychologyAlt
 import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -54,6 +53,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -63,8 +64,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -73,7 +72,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -82,7 +80,6 @@ import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.shell.ShellContentCatalog
 import com.kingkharnivore.skillz.data.model.shell.ShellFindDefinition
 import com.kingkharnivore.skillz.data.model.shell.ShellRoomId
-import com.kingkharnivore.skillz.ui.screen.shell.icons.ShellPearlMiniIcon
 import com.kingkharnivore.skillz.ui.screen.shell.icons.draw.TurtleShellInteriorBackground
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.BadgesScreen
 import com.kingkharnivore.skillz.ui.screen.shell.inventory.MasteryCelebrationScreen
@@ -143,9 +140,12 @@ fun ShellRootScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val greenViewModel: com.kingkharnivore.skillz.viewmodel.green.GreenViewModel = hiltViewModel()
     val greenState by greenViewModel.state.collectAsStateWithLifecycle()
-    var greenSeedId by remember { mutableStateOf<String?>(null) }
-    var greenEnvironment by remember { mutableStateOf(com.kingkharnivore.skillz.domain.green.GreenEnvironment.GARDEN) }
-    var greenBadgesRequested by remember { mutableStateOf(false) }
+    var greenSeedId by rememberSaveable { mutableStateOf<String?>(null) }
+    var greenEnvironment by rememberSaveable { mutableStateOf(com.kingkharnivore.skillz.domain.green.GreenEnvironment.GARDEN) }
+    val greenRoomState = rememberSaveableStateHolder()
+    var greenVisitId by rememberSaveable { mutableStateOf(0) }
+    var greenBadgesRequested by rememberSaveable { mutableStateOf(false) }
+    var badgeReturnDestination by rememberSaveable(stateSaver = ShellDestination.StateSaver) { mutableStateOf<ShellDestination>(ShellDestination.Heart) }
     var chestPlants by remember { mutableStateOf(false) }
     var chestPlantFocus by remember { mutableStateOf<String?>(null) }
     var chestSpecimenFocus by remember { mutableStateOf<String?>(null) }
@@ -155,10 +155,13 @@ fun ShellRootScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val activeFlowMessage = stringResource(R.string.lookout_flow_already_active)
-    var destination by remember { mutableStateOf<ShellDestination>(ShellDestination.Heart) }
+    var destination by rememberSaveable(stateSaver = ShellDestination.StateSaver) { mutableStateOf<ShellDestination>(ShellDestination.Heart) }
     LaunchedEffect(destination) {
         if (destination != ShellDestination.TheGreen) greenSeedId = null
-        if (destination != ShellDestination.Badges) greenBadgesRequested = false
+        if (destination != ShellDestination.Badges) {
+            greenBadgesRequested = false
+            badgeReturnDestination = ShellDestination.Heart
+        }
         if (destination != ShellDestination.ShellChest) { chestPlants = false; chestPlantFocus = null; chestSpecimenFocus = null }
     }
     var redSpecies by remember { mutableStateOf<String?>(null) }
@@ -197,6 +200,9 @@ fun ShellRootScreen(
             if (!request.plantSeed && greenState.specimens.any { it.speciesId == request.speciesId }) {
                 chestPlants = true; chestPlantFocus = request.speciesId; chestSpecimenFocus = request.specimenId; destination = ShellDestination.ShellChest
             } else {
+                // A new explicit destination overrides any previously retained Green view.
+                greenRoomState.removeState(greenVisitId)
+                greenVisitId++
                 greenEnvironment = species?.environment ?: com.kingkharnivore.skillz.domain.green.GreenEnvironment.entries.firstOrNull { it.id == request.environmentId }
                     ?: com.kingkharnivore.skillz.domain.green.GreenEnvironment.GARDEN
                 greenSeedId = species?.id; destination = ShellDestination.TheGreen
@@ -216,6 +222,9 @@ fun ShellRootScreen(
         }
         val dispatch = ShellNavigationCoordinator.dispatch(request, notificationId)
         if (dispatch != null) {
+            if (dispatch.destination == ShellDestination.Badges && destination != ShellDestination.Badges) {
+                badgeReturnDestination = destination
+            }
             pendingNavigation = dispatch.pending
             destination = dispatch.destination
             return NavigationConsumptionResult.Pending
@@ -259,12 +268,18 @@ fun ShellRootScreen(
         }
     }
 
-    BackHandler(enabled = showNotifications || destination != ShellDestination.Heart) {
+    fun leaveCurrentShellScreen() {
         when {
             showNotifications -> showNotifications = false
             destination == ShellDestination.TheBluePreview && blueRealm != null -> blueRealm = null
+            destination == ShellDestination.Badges -> destination = badgeReturnDestination
+            destination == ShellDestination.Heart -> onBack()
             else -> destination = ShellDestination.Heart
         }
+    }
+
+    BackHandler(enabled = showNotifications || destination != ShellDestination.Heart) {
+        leaveCurrentShellScreen()
     }
 
     Scaffold(
@@ -273,18 +288,18 @@ fun ShellRootScreen(
             ShellTopBar(
                 destination = destination,
                 pearlBalance = uiState.pearlBalance,
+                pebbleBalance = uiState.pebbleBalance,
+                dropBalance = greenState.drops,
                 pearlBasinHasIndicator = hasAffordablePearlShape(uiState),
                 notificationCount = notificationCount,
                 blueRealm = blueRealm,
                 onBack = {
-                    if (destination == ShellDestination.TheRed) {
-                        backDispatcher?.onBackPressed()
-                    } else if (destination == ShellDestination.TheBluePreview && blueRealm != null) {
-                        blueRealm = null
-                    } else if (destination == ShellDestination.Heart) {
-                        onBack()
+                    // Use the same dispatcher as system Back so overlays and nested rooms
+                    // get first refusal before the Shell changes its destination.
+                    if (backDispatcher != null && (showNotifications || destination != ShellDestination.Heart)) {
+                        backDispatcher.onBackPressed()
                     } else {
-                        destination = ShellDestination.Heart
+                        leaveCurrentShellScreen()
                     }
                 },
                 onNotifications = { showNotifications = !showNotifications }
@@ -300,20 +315,21 @@ fun ShellRootScreen(
         ) {
             when (destination) {
                 ShellDestination.TheRed -> com.kingkharnivore.skillz.ui.screen.shell.rooms.red.RedRoute(
-                    onBadges = { destination = ShellDestination.Badges }, onTrade = { showRedTrade = true }, initialCreature = redSpecies,
+                    onBadges = { badgeReturnDestination = ShellDestination.TheRed; destination = ShellDestination.Badges }, onTrade = { showRedTrade = true }, initialCreature = redSpecies,
                     onCreatureOpened = { redSpecies = null })
                 ShellDestination.Heart -> HeartRoomScreen(
                     uiState = uiState,
+                    dropBalance = greenState.drops,
                     onNavigate = { destination = it }
                 )
 
                 ShellDestination.Focus -> FocusRoomScreen()
 
-                ShellDestination.TheGreen -> androidx.compose.runtime.key(greenSeedId, greenEnvironment) {
+                ShellDestination.TheGreen -> greenRoomState.SaveableStateProvider(greenVisitId) {
                     com.kingkharnivore.skillz.ui.screen.shell.rooms.green.GreenRoute(calmMode = uiState.calmMode,
                         viewModel = greenViewModel, initialEnvironment = greenEnvironment, initialSeedId = greenSeedId,
                         onOpenChest = { chestPlants = true; destination = ShellDestination.ShellChest },
-                        onOpenBadges = { greenBadgesRequested = true; viewModel.setBadgeCategory(com.kingkharnivore.skillz.domain.achievement.BadgeUiCategory.GREEN); destination = ShellDestination.Badges })
+                        onOpenBadges = { badgeReturnDestination = ShellDestination.TheGreen; greenBadgesRequested = true; viewModel.setBadgeCategory(com.kingkharnivore.skillz.domain.achievement.BadgeUiCategory.GREEN); destination = ShellDestination.Badges })
                 }
 
                 ShellDestination.ShellChest -> ShellChestScreen(
@@ -430,29 +446,31 @@ fun ShellRootScreen(
         }
 
         uiState.masteryCelebration?.let { celebration ->
-            MasteryCelebrationScreen(
-                event = celebration,
-                uiState = uiState,
-                onBegin = { viewModel.beginCelebration() },
-                onAdvance = { reduced -> viewModel.advanceCelebration(reduced) },
-                onPrevious = { viewModel.previousCelebration() },
-                onComplete = { origin ->
-                    viewModel.completeCelebration {
-                        destination = when (origin) {
-                            "RED" -> ShellDestination.TheRed
-                            "BLUE" -> ShellDestination.TheBluePreview
-                            "STILLWATER" -> ShellDestination.TheBluePreview
-                            else -> ShellDestination.ShellChest
+            Box(Modifier.padding(padding)) {
+                MasteryCelebrationScreen(
+                    event = celebration,
+                    uiState = uiState,
+                    onBegin = { viewModel.beginCelebration() },
+                    onAdvance = { reduced -> viewModel.advanceCelebration(reduced) },
+                    onPrevious = { viewModel.previousCelebration() },
+                    onComplete = { origin ->
+                        viewModel.completeCelebration {
+                            destination = when (origin) {
+                                "RED" -> ShellDestination.TheRed
+                                "BLUE" -> ShellDestination.TheBluePreview
+                                "STILLWATER" -> ShellDestination.TheBluePreview
+                                else -> ShellDestination.ShellChest
+                            }
                         }
-                    }
-                },
-                onPin = { badgeId, replacementId -> viewModel.pinBadge(badgeId, replacementId) },
-                onDismissPinReplacement = viewModel::dismissPinReplacement,
-                onUnpin = viewModel::unpinBadge,
-                onTrack = viewModel::trackBadge,
-                onUntrack = viewModel::untrackBadge,
-                onNavigate = { dispatchBadgeDestination(it) }
-            )
+                    },
+                    onPin = { badgeId, replacementId -> viewModel.pinBadge(badgeId, replacementId) },
+                    onDismissPinReplacement = viewModel::dismissPinReplacement,
+                    onUnpin = viewModel::unpinBadge,
+                    onTrack = viewModel::trackBadge,
+                    onUntrack = viewModel::untrackBadge,
+                    onNavigate = { dispatchBadgeDestination(it) }
+                )
+            }
         }
 
     }
@@ -461,149 +479,56 @@ fun ShellRootScreen(
 @Composable
 internal fun HeartRoomScreen(
     uiState: ShellUiState,
+    dropBalance: Long = 0,
     onNavigate: (ShellDestination) -> Unit
 ) {
     val chestHasIndicator = activeChestCreatures(uiState).any { it.isNew }
-    val focusChanged = false
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        HeartShellBackground(
-            modifier = Modifier.matchParentSize()
-        )
-
+    Box(Modifier.fillMaxSize().padding(16.dp)) {
+        HeartShellBackground(Modifier.matchParentSize())
         Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                val nodeWidth = if (maxWidth < 360.dp) 96.dp else 108.dp
-                val nodeHeight = if (maxHeight < 440.dp) 76.dp else 84.dp
-
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                RoomOrbitNode(R.string.shell_room_lookout_title, Icons.Outlined.Visibility, true,
+                    modifier = Modifier.weight(1f), onClick = { onNavigate(ShellDestination.LookoutPreview) })
+                RoomOrbitNode(R.string.shell_room_focus_title, Icons.Outlined.CenterFocusStrong, false,
+                    modifier = Modifier.weight(1f), onClick = { onNavigate(ShellDestination.Focus) })
+            }
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                RoomOrbitNode(R.string.shell_room_voyage_title, Icons.Outlined.Route, false,
+                    modifier = Modifier.weight(1f), onClick = { onNavigate(ShellDestination.VoyagePreview) })
+                RoomOrbitNode(R.string.shell_room_idea_title, Icons.Outlined.PsychologyAlt, true,
+                    modifier = Modifier.weight(1f), onClick = { onNavigate(ShellDestination.IdeaGrovePreview) })
+            }
+            HeartCenter(uiState, dropBalance, Modifier.fillMaxWidth())
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 RoomOrbitNode(
-                    labelRes = R.string.shell_room_lookout_title,
-                    icon = Icons.Outlined.Visibility,
-                    dormant = true,
-                    nodeWidth = nodeWidth,
-                    nodeHeight = nodeHeight,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = 4.dp),
-                    onClick = { onNavigate(ShellDestination.LookoutPreview) }
+                    R.string.red_title, Icons.Outlined.Terrain, false,
+                    hasIndicator = uiState.finds.any { it.isNew && it.findId in com.kingkharnivore.skillz.utils.shell.RedCreatureCatalog.byId },
+                    modifier = Modifier.weight(1f),
+                    onClick = { onNavigate(ShellDestination.TheRed) }
                 )
-
-                RoomOrbitPair(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = maxHeight * 0.17f),
-                    nodeWidth = nodeWidth,
-                    left = {
-                        RoomOrbitNode(
-                            labelRes = R.string.shell_room_voyage_title,
-                            icon = Icons.Outlined.Route,
-                            dormant = false,
-                            nodeWidth = nodeWidth,
-                            nodeHeight = nodeHeight,
-                            onClick = { onNavigate(ShellDestination.VoyagePreview) }
-                        )
-                    },
-                    right = {
-                        RoomOrbitNode(
-                            labelRes = R.string.shell_room_idea_title,
-                            icon = Icons.Outlined.PsychologyAlt,
-                            dormant = true,
-                            nodeWidth = nodeWidth,
-                            nodeHeight = nodeHeight,
-                            onClick = { onNavigate(ShellDestination.IdeaGrovePreview) }
-                        )
-                    }
+                RoomOrbitNode(
+                    R.string.shell_room_the_blue_title, Icons.Outlined.FilterVintage, false,
+                    hasIndicator = buildTheBlueUiState(uiState.finds).newAnimalCount > 0,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onNavigate(ShellDestination.TheBluePreview) }
                 )
-
-                HeartCenter(
-                    uiState = uiState,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = maxHeight * 0.36f)
-                )
-
-                RoomOrbitPair(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .offset(y = maxHeight * 0.61f),
-                    nodeWidth = nodeWidth,
-                    left = {
-                        RoomOrbitNode(
-                            labelRes = R.string.shell_room_focus_title,
-                            icon = Icons.Outlined.CenterFocusStrong,
-                            dormant = false,
-                            hasIndicator = focusChanged,
-                            nodeWidth = nodeWidth,
-                            nodeHeight = nodeHeight,
-                            onClick = { onNavigate(ShellDestination.Focus) }
-                        )
-                    },
-                    right = {
-                        RoomOrbitNode(
-                            labelRes = R.string.shell_room_stillwater_title,
-                            icon = Icons.Outlined.WaterDrop,
-                            dormant = false,
-                            nodeWidth = nodeWidth,
-                            nodeHeight = nodeHeight,
-                            onClick = { onNavigate(ShellDestination.TheGreen) }
-                        )
-                    }
-                )
-
-                RoomOrbitPair(
-                    modifier = Modifier.align(Alignment.TopCenter).offset(y = maxHeight * 0.80f),
-                    nodeWidth = nodeWidth,
-                    left = {
-                        RoomOrbitNode(
-                            labelRes = R.string.shell_room_the_blue_title,
-                            icon = Icons.Outlined.FilterVintage,
-                            dormant = false,
-                            hasIndicator = buildTheBlueUiState(uiState.finds).newAnimalCount > 0,
-                            nodeWidth = nodeWidth, nodeHeight = nodeHeight,
-                            onClick = { onNavigate(ShellDestination.TheBluePreview) }
-                        )
-                    },
-                    right = {
-                        RoomOrbitNode(
-                            labelRes = R.string.red_title,
-                            icon = Icons.Outlined.Terrain,
-                            dormant = false,
-                            hasIndicator = uiState.finds.any { it.isNew && it.findId in com.kingkharnivore.skillz.utils.shell.RedCreatureCatalog.byId },
-                            nodeWidth = nodeWidth, nodeHeight = nodeHeight,
-                            onClick = { onNavigate(ShellDestination.TheRed) }
-                        )
-                    }
+                RoomOrbitNode(
+                    R.string.shell_room_stillwater_title, Icons.Outlined.Spa, false,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onNavigate(ShellDestination.TheGreen) }
                 )
             }
-
-            ShellWhisperDock(
-                uiState = uiState,
-                modifier = Modifier.fillMaxWidth(),
-                onClick = {
-                    onNavigate(if (hasChestCreatures(uiState)) ShellDestination.ShellChest else ShellDestination.Focus)
-                }
-            )
-
-            HeartShortcutDock(
-                chestHasIndicator = chestHasIndicator,
-                onChest = { onNavigate(ShellDestination.ShellChest) },
-                onBadges = { onNavigate(ShellDestination.Badges) },
-                modifier = Modifier.fillMaxWidth()
-            )
+            ShellWhisperDock(uiState, Modifier.fillMaxWidth()) {
+                onNavigate(if (hasChestCreatures(uiState)) ShellDestination.ShellChest else ShellDestination.Focus)
+            }
+            HeartShortcutDock(chestHasIndicator, { onNavigate(ShellDestination.ShellChest) },
+                { onNavigate(ShellDestination.Badges) }, Modifier.fillMaxWidth())
         }
     }
-
 }
 
 @Composable
@@ -621,35 +546,11 @@ private fun HeartShellBackground(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun RoomOrbitPair(
-    modifier: Modifier = Modifier,
-    nodeWidth: Dp,
-    left: @Composable () -> Unit,
-    right: @Composable () -> Unit
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(0.92f),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(Modifier.width(nodeWidth)) {
-            left()
-        }
-
-        Box(Modifier.width(nodeWidth)) {
-            right()
-        }
-    }
-}
-
-@Composable
 private fun RoomOrbitNode(
     labelRes: Int,
     icon: ImageVector,
     dormant: Boolean,
     hasIndicator: Boolean = false,
-    nodeWidth: Dp,
-    nodeHeight: Dp,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
@@ -672,8 +573,8 @@ private fun RoomOrbitNode(
             }
         ),
         modifier = modifier
-            .width(nodeWidth)
-            .height(nodeHeight)
+            .heightIn(min = 84.dp)
+            .fillMaxHeight()
             .semantics {
                 contentDescription = nodeDescription
                 role = Role.Button
@@ -681,7 +582,7 @@ private fun RoomOrbitNode(
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.TopCenter
         ) {
             TurtleShellCardPattern(Modifier.matchParentSize())
 
@@ -700,7 +601,7 @@ private fun RoomOrbitNode(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(5.dp),
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp)
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 12.dp)
             ) {
                 Surface(
                     shape = CircleShape,
@@ -730,8 +631,7 @@ private fun RoomOrbitNode(
                     } else {
                         scheme.onSurface
                     },
-                    textAlign = TextAlign.Center,
-                    maxLines = 2
+                    textAlign = TextAlign.Center
                 )
             }
         }
@@ -741,22 +641,22 @@ private fun RoomOrbitNode(
 @Composable
 private fun HeartCenter(
     uiState: ShellUiState,
+    dropBalance: Long,
     modifier: Modifier = Modifier
 ) {
     val scheme = MaterialTheme.colorScheme
-    val pearlBalanceDescription = stringResource(R.string.shell_pearl_basin_chip_a11y, uiState.pearlBalance)
 
     ElevatedCard(
         shape = RoundedCornerShape(34.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = scheme.surface
         ),
-        modifier = modifier.width(214.dp)
+        modifier = modifier
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp, vertical = 16.dp),
+                .padding(horizontal = 10.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(9.dp)
         ) {
@@ -784,30 +684,7 @@ private fun HeartCenter(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Surface(
-                shape = CircleShape,
-                color = scheme.background,
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = scheme.secondary.copy(alpha = 0.55f)
-                ),
-                modifier = Modifier.semantics {
-                    contentDescription = pearlBalanceDescription
-                }
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ShellPearlMiniIcon(Modifier.size(18.dp))
-                    Text(
-                        text = stringResource(R.string.shell_pearl_balance, uiState.pearlBalance),
-                        color = scheme.onBackground,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
+            ShellBalances(uiState.pearlBalance, uiState.pebbleBalance, dropBalance)
         }
     }
 }
@@ -849,8 +726,7 @@ private fun ShellWhisperDock(
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodySmall,
-                color = scheme.onSurface.copy(alpha = 0.82f),
-                maxLines = 1
+                color = scheme.onSurface.copy(alpha = 0.82f)
             )
         }
     }

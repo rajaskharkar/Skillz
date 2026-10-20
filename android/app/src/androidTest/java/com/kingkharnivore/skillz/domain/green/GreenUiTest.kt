@@ -1,6 +1,9 @@
 package com.kingkharnivore.skillz.domain.green
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.kingkharnivore.skillz.ui.screen.shell.rooms.green.*
@@ -12,6 +15,80 @@ import org.junit.Assert.*
 
 class GreenUiTest {
     @get:Rule val compose=createComposeRule()
+    @Test fun beyondGreenReturnsToWorldForSystemAndToolbarBack() {
+        var exited = 0
+        compose.setContent {
+            val dispatcher = androidx.activity.compose.LocalOnBackPressedDispatcherOwner.current!!.onBackPressedDispatcher
+            androidx.activity.compose.BackHandler { exited++ }
+            SkillzTheme {
+                androidx.compose.material3.Scaffold(topBar = {
+                    com.kingkharnivore.skillz.ui.screen.shell.ShellTopBar(
+                        com.kingkharnivore.skillz.ui.screen.shell.ShellDestination.TheGreen,
+                        0, false, 0, { dispatcher.onBackPressed() }, {})
+                }) { padding ->
+                    androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.padding(padding)) {
+                        GreenScreen(GreenUiState())
+                    }
+                }
+            }
+        }
+        compose.onNodeWithText("Beyond The Green").performClick()
+        compose.onNodeWithText("Daisy").assertIsDisplayed()
+        androidx.test.espresso.Espresso.pressBack()
+        compose.onNodeWithText("World").assertIsSelected()
+        compose.onNodeWithTag("green-environments").assertIsDisplayed()
+        compose.onNodeWithText("Beyond The Green").performClick()
+        val back = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
+            .getString(com.kingkharnivore.skillz.R.string.common_back)
+        compose.onNodeWithContentDescription(back).performClick()
+        compose.onNodeWithText("World").assertIsSelected()
+        compose.runOnIdle { assertEquals(0, exited) }
+        androidx.test.espresso.Espresso.pressBack()
+        compose.runOnIdle { assertEquals(1, exited) }
+    }
+
+    @Test fun badgeIconReplacesFooterButtonInWorldAndBeyondGreen() {
+        var opens = 0
+        compose.setContent { SkillzTheme { Surface {
+            GreenScreen(GreenUiState(), onOpenBadges = { opens++ })
+        } } }
+        compose.onNodeWithText("View Green Badges").assertDoesNotExist()
+        compose.onNodeWithTag("green-open-badges").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Beyond The Green").performClick()
+        compose.onNodeWithTag("green-open-badges").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(2, opens) }
+    }
+
+    @Test fun roomStateSurvivesBadgeVisitAndRecreationWhileNewDeepLinkOverridesIt() {
+        val restoration = androidx.compose.ui.test.junit4.StateRestorationTester(compose)
+        lateinit var returnFromBadges: () -> Unit
+        lateinit var openDeepLink: () -> Unit
+        restoration.setContent {
+            val holder = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+            var visible by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(true) }
+            var visit by androidx.compose.runtime.saveable.rememberSaveable { androidx.compose.runtime.mutableStateOf(0) }
+            returnFromBadges = { visible = true }
+            openDeepLink = { holder.removeState(visit); visit++; visible = true }
+            SkillzTheme { Surface {
+                if (visible) holder.SaveableStateProvider(visit) {
+                    GreenScreen(GreenUiState(), onOpenBadges = { visible = false },
+                        initialEnvironment = if (visit == 0) GreenEnvironment.GARDEN else GreenEnvironment.HIGHLANDS,
+                        initialSection = if (visit == 0) GreenSection.WORLD else GreenSection.CATALOGUE)
+                }
+            } }
+        }
+        compose.onNodeWithText("Beyond The Green").performClick()
+        compose.onNodeWithText("Rainforest").performClick()
+        compose.onNodeWithTag("green-open-badges").performClick()
+        restoration.emulateSavedInstanceStateRestore()
+        compose.runOnIdle { returnFromBadges() }
+        compose.onNodeWithText("Beyond The Green").assertIsSelected()
+        compose.onNode(hasText("Rainforest") and isSelectable()).assertIsSelected()
+        compose.onNodeWithTag("green-open-badges").performClick()
+        compose.runOnIdle { openDeepLink() }
+        compose.onNode(hasText("Highlands") and isSelectable()).assertIsSelected()
+    }
+
     @Test fun wateringDoesNotMoveTheDialogOrItsButtonsDuringFeedbackAndGrowth() {
         val original = GreenPreviewFixtures.specimen(GreenCatalogue.byId.getValue("magnolia"), 89, 1)
         val state = androidx.compose.runtime.mutableStateOf(GreenUiState(1000000, listOf(original)))

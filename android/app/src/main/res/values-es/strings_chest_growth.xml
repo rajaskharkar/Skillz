@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="chest_growth_projection_pearls">
+        <item quantity="one">Con %1$,d perlas, puedes subir %2$d nivel (hasta el nivel %3$d).</item>
+        <item quantity="other">Con %1$,d perlas, puedes subir %2$d niveles (hasta el nivel %3$d).</item>
+    </plurals>
+    <plurals name="chest_growth_projection_pebbles">
+        <item quantity="one">Con %1$,d guijarros, puedes subir %2$d nivel (hasta el nivel %3$d).</item>
+        <item quantity="other">Con %1$,d guijarros, puedes subir %2$d niveles (hasta el nivel %3$d).</item>
+    </plurals>
+    <string name="chest_growth_levels">Niveles que subir: %1$d</string>
+    <string name="chest_growth_transition">Nivel %1$d → %2$d</string>
+    <string name="chest_growth_action">Subir %1$d niveles</string>
+    <string name="chest_growth_one">Subir 1 nivel</string>
+    <string name="chest_growth_confirm_body">¿Subir un ejemplar de %1$s del nivel %2$d al nivel %3$d?</string>
+    <string name="chest_growth_confirm_pearls">Subir un ejemplar de %1$s del nivel %2$d al nivel %3$d por %4$,d perlas.</string>
+    <string name="chest_growth_confirm_pebbles">Subir un ejemplar de %1$s del nivel %2$d al nivel %3$d por %4$,d guijarros.</string>
+    <string name="chest_growth_total_pearls">Total: %1$,d perlas</string>
+    <string name="chest_growth_total_pebbles">Total: %1$,d guijarros</string>
+</resources>
