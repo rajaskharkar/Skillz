@@ -8,7 +8,7 @@ import com.kingkharnivore.skillz.domain.green.GreenEnvironment
 import kotlin.math.*
 
 /** Layered, deterministic landscape art; ornament is never selectable or counted as a specimen. */
-internal fun DrawScope.drawGreenLandscape(environment: GreenEnvironment, dark: Boolean, continuation: Boolean = false) {
+internal fun DrawScope.drawGreenLandscape(environment: GreenEnvironment, dark: Boolean, continuation: Boolean = false, groundLine: Float = .34f) {
     val w=size.width; val h=size.height
     val palette=when(environment) {
         GreenEnvironment.GARDEN -> listOf(Color(0xFFF8DEB7),Color(0xFFC6DCB4),Color(0xFF6EAA85),Color(0xFF365F61))
@@ -38,7 +38,7 @@ internal fun DrawScope.drawGreenLandscape(environment: GreenEnvironment, dark: B
             }
         }
     } else {
-        hill(h*.34f,palette[2].copy(alpha=.3f),h*.08f)
+        hill(h*groundLine,palette[2].copy(alpha=.3f),h*.08f)
         hill(h*.47f,palette[2].copy(alpha=.5f),-h*.08f)
     }
     when(environment) {
@@ -76,7 +76,8 @@ internal fun DrawScope.drawGreenLandscape(environment: GreenEnvironment, dark: B
             }
         }
         GreenEnvironment.WETLANDS -> {
-            drawRect(Brush.verticalGradient(listOf(Color.Transparent,Color(0xFF598DAD).copy(alpha=.55f))),topLeft=Offset(0f,h*.38f),size=Size(w,h*.62f))
+            val waterLine = minOf(.38f, groundLine)
+            drawRect(Brush.verticalGradient(listOf(Color.Transparent,Color(0xFF598DAD).copy(alpha=.55f))),topLeft=Offset(0f,h*waterLine),size=Size(w,h*(1f-waterLine)))
             repeat(33) { n ->val x=w*(n*37%100)/100;val y=h*(.40f+(n*17%59)/100f)
                 drawOval(Color(0xFFE8E6D8).copy(alpha=.22f),Offset(x-w*.1f,y),Size(w*(.09f+n%4*.035f),h*.009f),style=Stroke(1.1f)) }
             repeat(5) { n ->drawOval(Color(0xFF70A596).copy(alpha=.72f),Offset(w*(if(n%2==0) -.25f else .69f),h*(.49f+n*.11f)),Size(w*.6f,h*.09f)) }

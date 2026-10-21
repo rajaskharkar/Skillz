@@ -3,6 +3,7 @@ package com.kingkharnivore.skillz.domain.green
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -142,7 +143,6 @@ class GreenUiTest {
     @Test fun mixedWorldContainsIndependentDuplicatesAndAccessibleStagesInDarkMode() {
         compose.setContent { SkillzTheme(darkTheme=true) { Surface { GreenScreen(GreenPreviewFixtures.mixed(GreenEnvironment.GARDEN)) } } }
         compose.onNodeWithContentDescription("Daisy, Level 1, Sprout").assertExists()
-        compose.onNodeWithTag("green-specimens:garden").performScrollToIndex(1)
         compose.onNodeWithContentDescription("Daisy, Level 90, Fully Grown").assertExists()
         compose.onNodeWithContentDescription("Peony, Level 99, Mastered").performClick()
         compose.onNodeWithText("Level 99 · Mastered").assertExists()
@@ -250,7 +250,7 @@ class GreenUiTest {
         } } }
         compose.onNodeWithText("Collection").assertDoesNotExist()
         compose.onNodeWithText("View Plants in The Chest").performClick()
-        compose.onNodeWithText("View Green Badges").performClick()
+        compose.onNodeWithTag("green-open-badges").performClick()
         compose.runOnIdle { assertTrue(chest);assertTrue(badges) }
     }
     @Test fun singleSpeciesBadgeUsesItsNameAndSmallCollectionsUseTheirActualTarget() {
@@ -316,7 +316,7 @@ class GreenUiTest {
             compose.onNodeWithTag("green-specimens:${environment.id}").assertIsDisplayed()
             compose.onNodeWithText("World").assertIsSelected()
             compose.onNodeWithText("View Plants in The Chest").assertIsDisplayed()
-            compose.onNodeWithText("View Green Badges").assertIsDisplayed()
+            compose.onNodeWithTag("green-open-badges").assertIsDisplayed()
         }
     }
 
@@ -331,10 +331,10 @@ class GreenUiTest {
         compose.onNodeWithTag("green-specimens:rainforest").performTouchInput { swipeDown() }
         compose.onNodeWithTag("green-specimens:woodlands").assertIsDisplayed()
         compose.onNodeWithText("World").assertIsDisplayed()
-        compose.onNode(hasText("View Green Badges") and hasAnyAncestor(hasTestTag("green-footer:woodlands"))).assertIsDisplayed()
+        compose.onNodeWithTag("green-open-badges").assertIsDisplayed()
     }
 
-    @Test fun everyPlantPlotStaysOutsidePersistentTextAndControlsAtLargeFontSize() {
+    @Test fun everyPlantStaysInOnePlotOutsidePersistentTextAndControlsAtLargeFontSize() {
         val state = GreenPreviewFixtures.mixed(GreenEnvironment.GARDEN)
         compose.setContent {
             val density = androidx.compose.ui.platform.LocalDensity.current
@@ -349,32 +349,43 @@ class GreenUiTest {
                 .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) { it(layouts) }
             assertEquals("Environment label must fit at large text size: $name", 1, layouts.single().lineCount)
         }
-        val visited = mutableSetOf<String>()
-        do {
-            val header = compose.onNodeWithTag("green-controls").fetchSemanticsNode().boundsInRoot
-            val footer = compose.onNodeWithTag("green-footer:garden").fetchSemanticsNode().boundsInRoot
-            val rail = compose.onNodeWithTag("green-rail:garden").fetchSemanticsNode().boundsInRoot
-            val plot = compose.onNodeWithTag("green-specimens:garden").fetchSemanticsNode().boundsInRoot
-            state.specimens.forEach { plant ->
-                val nodes = compose.onAllNodesWithTag("green-plant:${plant.id}").fetchSemanticsNodes()
-                nodes.filter { it.boundsInRoot.width > 0 && it.boundsInRoot.height > 0 }.forEach { node ->
-                    val bounds = node.boundsInRoot
-                    if (bounds.left >= plot.left && bounds.right <= plot.right) {
-                        assertTrue("Plant under header: ${plant.id}", bounds.top >= header.bottom)
-                        assertTrue("Plant under footer: ${plant.id}", bounds.bottom <= footer.top)
-                        assertTrue("Plant under rail: ${plant.id}", bounds.right <= rail.left)
-                        visited += plant.id
-                    }
-                }
+        val header = compose.onNodeWithTag("green-controls").fetchSemanticsNode().boundsInRoot
+        val footer = compose.onNodeWithTag("green-footer:garden").fetchSemanticsNode().boundsInRoot
+        val rail = compose.onNodeWithTag("green-rail:garden").fetchSemanticsNode().boundsInRoot
+        val plot = compose.onNodeWithTag("green-specimens:garden").fetchSemanticsNode().boundsInRoot
+        state.specimens.forEach { plant ->
+            val bounds = compose.onNodeWithTag("green-plant:${plant.id}").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+            assertTrue("Plant under header: ${plant.id}", bounds.top >= header.bottom)
+            assertTrue("Plant under footer: ${plant.id}", bounds.bottom <= footer.top)
+            assertTrue("Plant under rail: ${plant.id}", bounds.right <= rail.left)
+            assertTrue("Plant outside plot: ${plant.id}", bounds.left >= plot.left && bounds.right <= plot.right)
+        }
+        compose.onNodeWithContentDescription("Next plot").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Previous plot").assertDoesNotExist()
+    }
+
+    @Test fun addingPlantsRefitsOnePlotAndKeepsEverySpecimenSelectable() {
+        val plants = (1..40).map { index ->
+            GreenPreviewFixtures.specimen(GreenCatalogue.inEnvironment(GreenEnvironment.GARDEN)[(index - 1) % 10],
+                if (index % 2 == 0) 90 else 1, index.toLong())
+        }
+        val population = androidx.compose.runtime.mutableStateOf(plants.take(1))
+        var selected: String? = null
+        compose.setContent { SkillzTheme { Surface {
+            GreenEnvironmentScene(GreenEnvironment.GARDEN, population.value, { selected = it },
+                androidx.compose.ui.Modifier.fillMaxSize())
+        } } }
+        val initial = compose.onNodeWithTag("green-plant:${plants.first().id}").fetchSemanticsNode().boundsInRoot
+        listOf(2, 7, 10, 20, 40).forEach { count ->
+            compose.runOnIdle { population.value = plants.take(count) }
+            population.value.forEach { plant ->
+                compose.onNodeWithTag("green-plant:${plant.id}").assertIsDisplayed()
+                    .performTouchInput { click(center) }
+                compose.runOnIdle { assertEquals(plant.id, selected) }
             }
-            compose.onNodeWithText("World").assertIsDisplayed()
-            compose.onNodeWithText("View Green Badges").assertIsDisplayed()
-            val next = compose.onNodeWithContentDescription("Next plot")
-            val enabled = !next.fetchSemanticsNode().config.contains(androidx.compose.ui.semantics.SemanticsProperties.Disabled)
-            if (!enabled) break
-            next.performClick()
-        } while (true)
-        assertEquals(state.specimens.map { it.id }.toSet(), visited)
+        }
+        val final = compose.onNodeWithTag("green-plant:${plants.first().id}").fetchSemanticsNode().boundsInRoot
+        assertTrue("The view must pull back as the garden fills", final.width < initial.width)
     }
 
     @Test fun badgeDeepLinkOpensAndWatersTheExactUnfinishedCopyInChest() {

@@ -21,12 +21,23 @@ import com.kingkharnivore.skillz.viewmodel.green.GreenUiState
 class GreenVisualTestActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (intent.getBooleanExtra("landscape", false)) {
+            requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        }
         val dark = intent.getBooleanExtra("dark", false)
         val barStyle = if (dark) SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
             else SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
         enableEdgeToEdge(statusBarStyle = barStyle, navigationBarStyle = barStyle)
         val environment=GreenEnvironment.entries.firstOrNull { it.id==intent.getStringExtra("environment") } ?: GreenEnvironment.GARDEN
         val scenario=intent.getStringExtra("scenario") ?: "world"
+        val plantCount = intent.getIntExtra("plant_count", -1)
+        val population = if (plantCount >= 0) {
+            val species = GreenCatalogue.inEnvironment(environment)
+            GreenUiState(250_000, (1..plantCount).map { index ->
+                GreenPreviewFixtures.specimen(species[(index - 1) % species.size],
+                    intent.getIntExtra("plant_level", -1).takeIf { it in 1..99 } ?: GreenPreviewFixtures.levels[(index - 1) % GreenPreviewFixtures.levels.size], index.toLong())
+            })
+        } else null
         val failActions = intent.getBooleanExtra("fail_actions", false)
         val level = scenario.removePrefix("level").toIntOrNull()
         val milestonePlant = level?.let { GreenPreviewFixtures.specimen(GreenCatalogue.inEnvironment(environment).last(), it, 1) }
@@ -34,7 +45,7 @@ class GreenVisualTestActivity : ComponentActivity() {
         setContent {
             val density = androidx.compose.ui.platform.LocalDensity.current
             CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides
-                androidx.compose.ui.unit.Density(density.density, if (scenario == "large-text") 1.3f else density.fontScale)) {
+                androidx.compose.ui.unit.Density(density.density, if (intent.hasExtra("font_percent")) intent.getIntExtra("font_percent", 100) / 100f else if (scenario == "large-text") 1.3f else density.fontScale)) {
             SkillzTheme(darkTheme=dark,dynamicColor=false) {
                 Surface(Modifier.fillMaxSize()) {
                     Box(Modifier.fillMaxSize().systemBarsPadding()) {
@@ -45,7 +56,7 @@ class GreenVisualTestActivity : ComponentActivity() {
                     else if (scenario=="collection") GreenChestPreviewContent(GreenPreviewFixtures.mixed(environment))
                     else if (scenario=="badges") GreenBadgePreviewContent(GreenPreviewFixtures.mixed(environment))
                     else {
-                        var state by remember { mutableStateOf(if(scenario=="empty") GreenUiState() else if(milestonePlant != null) GreenUiState(250_000, listOf(milestonePlant)) else GreenPreviewFixtures.mixed(environment).copy(drops=intent.getLongExtra("drops",250_000))) }
+                        var state by remember { mutableStateOf(if(population != null) population else if(scenario=="empty") GreenUiState() else if(milestonePlant != null) GreenUiState(250_000, listOf(milestonePlant)) else GreenPreviewFixtures.mixed(environment).copy(drops=intent.getLongExtra("drops",250_000))) }
                         GreenScreen(state,onPlant=plant@{ id,token ->
                             if (failActions) { state=state.copy(messageRes=com.kingkharnivore.skillz.R.string.green_error); return@plant }
                             val species=GreenCatalogue.byId.getValue(id);val cost=GreenEconomy.seedCost(species.tier)

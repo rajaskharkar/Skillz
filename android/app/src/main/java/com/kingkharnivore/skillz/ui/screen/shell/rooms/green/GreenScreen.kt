@@ -108,12 +108,19 @@ fun GreenScreen(
     LaunchedEffect(state.feedbackId, feedback, modalVisible) {
         if (!modalVisible && feedback != null) { snackbar.showSnackbar(feedback); onDismissFeedback() }
     }
-    Box(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val compactWorld = section == GreenSection.WORLD && maxWidth > maxHeight
+        val sidebarWidth = if (compactWorld) (maxWidth * .36f).coerceAtMost(280.dp) else 0.dp
         if (section == GreenSection.WORLD) {
-            GreenWorld(environment, state.specimens, { environment = it }, { specimenId = it },
-                { section = GreenSection.CATALOGUE }, onOpenChest, controlsHeightDp)
+            Box(Modifier.fillMaxSize().padding(start = sidebarWidth)) {
+                GreenWorld(environment, state.specimens, { environment = it }, { specimenId = it },
+                    { section = GreenSection.CATALOGUE }, onOpenChest,
+                    if (compactWorld) 0.dp else controlsHeightDp, compact = compactWorld,
+                    controlsReady = controlsHeight > 0)
+            }
         }
-        Column(Modifier.fillMaxSize()) {
+        Column(if (compactWorld) Modifier.width(sidebarWidth).fillMaxHeight().verticalScroll(rememberScrollState())
+            else Modifier.fillMaxSize()) {
             GreenSceneOverlay(Modifier.fillMaxWidth().onSizeChanged { controlsHeight = it.height }.padding(12.dp).testTag("green-controls")) {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -134,6 +141,7 @@ fun GreenScreen(
                         GreenSection.entries.forEach { tab -> FilterChip(section == tab, { section = tab },
                             { Text(stringResource(tab.titleRes)) }, colors = greenPrimarySelectionColors()) }
                     }
+                    if (compactWorld) GreenPopulationSummary(environment, plants)
                     if (section == GreenSection.CATALOGUE) FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         GreenEnvironment.entries.forEach { env -> FilterChip(environment == env, { environment = env },
                             { Text(stringResource(env.nameRes)) }, colors = greenSecondarySelectionColors()) }
