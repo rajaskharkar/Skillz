@@ -1,17 +1,18 @@
 package com.kingkharnivore.skillz.ui.screen.shell.rooms.green
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.*
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,21 +21,24 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.text.rememberTextMeasurer
-import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.*
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.green.PlantSpecimenEntity
 import com.kingkharnivore.skillz.domain.green.*
 
-/** Vertical gestures always change environments; extra planting plots use horizontal paging. */
+/** Each environment has one automatically fitted plot; vertical gestures change environments. */
 @Composable
 internal fun GreenWorld(environment: GreenEnvironment, plants: List<PlantSpecimenEntity>,
     onEnvironment: (GreenEnvironment) -> Unit, onSelect: (String) -> Unit,
     onPlant: () -> Unit, onOpenChest: () -> Unit,
-    topOverlayHeight: Dp) {
+    topOverlayHeight: Dp, compact: Boolean = false, controlsReady: Boolean = true) {
     val pager = rememberPagerState(initialPage = environment.ordinal, pageCount = { GreenEnvironment.entries.size })
     var lastReported by remember { mutableIntStateOf(environment.ordinal) }
     LaunchedEffect(environment) {
@@ -43,7 +47,7 @@ internal fun GreenWorld(environment: GreenEnvironment, plants: List<PlantSpecime
     LaunchedEffect(pager.settledPage) {
         if (pager.settledPage != lastReported) { lastReported = pager.settledPage; onEnvironment(GreenEnvironment.entries[pager.settledPage]) }
     }
-    VerticalPager(state = pager, modifier = Modifier.fillMaxSize().testTag("green-environments"), key = { GreenEnvironment.entries[it].id }) { page ->
+    VerticalPager(state = pager, modifier = Modifier.fillMaxSize().clipToBounds().testTag("green-environments"), key = { GreenEnvironment.entries[it].id }) { page ->
         val env = GreenEnvironment.entries[page]
         val specimens = remember(plants, env) { plants.filter { GreenCatalogue.byId[it.speciesId]?.environment == env }.sortedBy { it.createdOrder } }
         val density = LocalDensity.current
@@ -57,19 +61,16 @@ internal fun GreenWorld(environment: GreenEnvironment, plants: List<PlantSpecime
         val footerHeight = with(density) { footerPixels.toDp() }
         val dark = MaterialTheme.colorScheme.surface.luminance() < .3f
         BoxWithConstraints(Modifier.fillMaxSize()) {
-            Canvas(Modifier.matchParentSize()) { drawGreenLandscape(env, dark) }
+            val groundLine = if (maxHeight > 0.dp) ((topOverlayHeight + 12.dp) / maxHeight).coerceIn(.08f, .34f) else .34f
+            Canvas(Modifier.matchParentSize()) { drawGreenLandscape(env, dark, groundLine = groundLine) }
             val railWidth = (labelWidth + 16.dp).coerceAtLeast(86.dp).coerceAtMost(maxWidth * .45f)
             val safeHeight = (maxHeight - topOverlayHeight - footerHeight - 24.dp).coerceAtLeast(0.dp)
-            val rows = (safeHeight / 120.dp).toInt().coerceIn(1, 3)
-            val plots = specimens.chunked(rows * 2).ifEmpty { listOf(emptyList()) }
-            val plotPager = rememberPagerState(pageCount = { plots.size })
-            val scope = rememberCoroutineScope()
             Box(Modifier.fillMaxSize().padding(top = topOverlayHeight + 12.dp, bottom = footerHeight + 12.dp)) {
-                HorizontalPager(state = plotPager,
-                    modifier = Modifier.fillMaxSize().padding(start = 12.dp, end = railWidth + 20.dp).testTag("green-specimens:${env.id}")) { plot ->
+                Box(Modifier.fillMaxSize().padding(start = 12.dp, end = railWidth + 20.dp)
+                    .testTag("green-specimens:${env.id}")) {
                     // Wait for both overlays to be measured: no frame can plant underneath them.
-                    if (topOverlayHeight > 0.dp && footerPixels > 0) {
-                        GreenEnvironmentScene(env, plots[plot], onSelect, Modifier.fillMaxSize(), rows = rows, drawBackground = false)
+                    if (controlsReady && footerPixels > 0) {
+                        GreenEnvironmentScene(env, specimens, onSelect, Modifier.fillMaxSize(), drawBackground = false)
                     }
                 }
                 GreenEnvironmentRail(env, onEnvironment, railWidth,
@@ -78,27 +79,17 @@ internal fun GreenWorld(environment: GreenEnvironment, plants: List<PlantSpecime
             GreenSceneOverlay(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                 .onSizeChanged { footerPixels = it.height }.padding(12.dp).testTag("green-footer:${env.id}")) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    if (specimens.isEmpty()) Text(stringResource(R.string.green_empty), style = MaterialTheme.typography.bodySmall)
-                    Text(stringResource(R.string.green_environment_progress,
-                        specimens.map { it.speciesId }.distinct().size,
-                        specimens.filter { it.level >= 90 }.map { it.speciesId }.distinct().size,
-                        specimens.filter { it.level == 99 }.map { it.speciesId }.distinct().size,
-                        GreenCatalogue.inEnvironment(env).size, specimens.size), style = MaterialTheme.typography.bodySmall)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = onPlant) { Text(stringResource(R.string.green_choose_seed)) }
-                        Spacer(Modifier.weight(1f))
-                        if (plots.size > 1) {
-                            IconButton(onClick = { scope.launch { plotPager.animateScrollToPage(plotPager.currentPage - 1) } }, enabled = plotPager.currentPage > 0) {
-                                Icon(androidx.compose.material.icons.Icons.AutoMirrored.Outlined.KeyboardArrowLeft, stringResource(R.string.green_previous_plot))
-                            }
-                            Text(stringResource(R.string.green_plot_position, plotPager.currentPage + 1, plots.size), style = MaterialTheme.typography.labelSmall)
-                            IconButton(onClick = { scope.launch { plotPager.animateScrollToPage(plotPager.currentPage + 1) } }, enabled = plotPager.currentPage < plots.lastIndex) {
-                                Icon(androidx.compose.material.icons.Icons.AutoMirrored.Outlined.KeyboardArrowRight, stringResource(R.string.green_next_plot))
-                            }
+                    if (!compact) GreenPopulationSummary(env, specimens)
+                    if (compact) {
+                        Row(Modifier.horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
+                            TextButton(onClick = onPlant) { Text(stringResource(R.string.green_choose_seed)) }
+                            TextButton(onClick = onOpenChest) { Text(stringResource(R.string.green_open_chest)) }
                         }
-                    }
-                    TextButton(onClick = onOpenChest, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.green_open_chest), style = MaterialTheme.typography.labelMedium)
+                    } else {
+                        TextButton(onClick = onPlant) { Text(stringResource(R.string.green_choose_seed)) }
+                        TextButton(onClick = onOpenChest, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.green_open_chest), style = MaterialTheme.typography.labelMedium)
+                        }
                     }
                 }
             }
@@ -114,33 +105,90 @@ internal fun GreenSceneOverlay(modifier: Modifier=Modifier, content: @Composable
     }
 }
 
-/** Each complete plant fits in a cell entirely outside the measured text and navigation zones. */
+/** Refit all specimens whenever the population, growth footprints, or available view changes. */
 @Composable
 fun GreenEnvironmentScene(environment: GreenEnvironment, plants: List<PlantSpecimenEntity>, onSelect: (String) -> Unit,
-    modifier: Modifier = Modifier, rows: Int = 3, drawBackground: Boolean = true) {
+    modifier: Modifier = Modifier, drawBackground: Boolean = true) {
     val dark = MaterialTheme.colorScheme.surface.luminance() < .3f
-    BoxWithConstraints(modifier) {
+    val calm = LocalGreenCalmMode.current
+    BoxWithConstraints(modifier.clipToBounds()) {
         if (drawBackground) Canvas(Modifier.matchParentSize()) { drawGreenLandscape(environment, dark) }
-        val cellWidth = maxWidth / 2
-        val cellHeight = maxHeight / rows
-        plants.forEachIndexed { index, plant ->
-            val species = GreenCatalogue.byId[plant.speciesId] ?: return@forEachIndexed
-            val naturalExtent = when (species.footprint(plant.level)) {
-                PlantFootprint.TINY -> 70.dp; PlantFootprint.SMALL -> 88.dp; PlantFootprint.MEDIUM -> 110.dp
-                PlantFootprint.LARGE -> 136.dp; PlantFootprint.XL -> 155.dp; PlantFootprint.LANDMARK -> 180.dp
+        val placements = remember(plants, maxWidth, maxHeight) {
+            layoutGreenPlants(plants, maxWidth.value, maxHeight.value)
+        }
+        // A resize must fit immediately, including while a previous reflow is running.
+        key(environment, maxWidth, maxHeight) {
+            GreenPlantArrangement(placements, plants, calm, onSelect)
+        }
+    }
+}
+
+@Composable
+private fun GreenPlantArrangement(target: List<GreenPlantPlacement>, plants: List<PlantSpecimenEntity>,
+    calm: Boolean, onSelect: (String) -> Unit) {
+    var displayed by remember { mutableStateOf(target) }
+    val opacity = remember { Animatable(1f) }
+    val plantsById = remember(plants) { plants.associateBy { it.id } }
+    LaunchedEffect(target, calm) {
+        if (calm) {
+            displayed = target
+            opacity.snapTo(1f)
+        } else {
+            if (displayed != target) {
+                // Fade between compositions; organic foliage overlap is intentional.
+                // Rapid updates cancel and adopt the latest fit.
+                opacity.animateTo(0f, tween(120))
+                displayed = target
             }
-            val extent = minOf(naturalExtent, cellHeight - 8.dp, cellWidth / .82f).coerceAtLeast(0.dp)
-            val name = stringResource(species.nameRes)
-            Box(Modifier.offset(x = cellWidth * (index % 2), y = cellHeight * (index / 2))
-                .width(cellWidth).height(cellHeight).testTag("green-plant:${plant.id}")
-                .clickable(role = Role.Button, onClickLabel = stringResource(R.string.green_inspect, name)) { onSelect(plant.id) },
-                contentAlignment = Alignment.BottomCenter) {
-                PlantArtwork(species, plant.level, stringResource(R.string.green_plant_description, name, plant.level,
-                    stringResource(PlantGrowthStageResolver.resolve(plant.level).nameRes)),
-                    Modifier.padding(bottom = 4.dp).width(extent * .82f).height(extent))
+            opacity.animateTo(1f, tween(180))
+        }
+    }
+    val density = LocalDensity.current
+    val direction = LocalLayoutDirection.current
+    val latestOnSelect by rememberUpdatedState(onSelect)
+    val opaque by remember { derivedStateOf { !opacity.isRunning && opacity.value == 1f } }
+    val selectable = displayed == target && opaque
+    Box(Modifier.fillMaxSize().graphicsLayer { alpha = opacity.value }
+        .pointerInput(displayed, selectable, density, direction) {
+            detectTapGestures { point ->
+                if (selectable) {
+                    val x = if (direction == LayoutDirection.Rtl) size.width - point.x else point.x
+                    pickGreenPlant(displayed, x / density.density, point.y / density.density)?.let(latestOnSelect)
+                }
+            }
+        }) {
+        displayed.forEach { placement ->
+            val plant = plantsById[placement.plantId] ?: return@forEach
+            key(plant.id) {
+                val species = GreenCatalogue.byId.getValue(plant.speciesId)
+                val extent = placement.artworkHeight.dp
+                val name = stringResource(species.nameRes)
+                val inspect = stringResource(R.string.green_inspect, name)
+                Box(Modifier.offset(x = placement.x.dp, y = placement.y.dp)
+                    .width(placement.width.dp).height(placement.height.dp)
+                    .testTag("green-plant:${plant.id}")
+                    .semantics(mergeDescendants = true) {
+                        role = Role.Button
+                        if (selectable) onClick(inspect) { latestOnSelect(plant.id); true } else disabled()
+                    },
+                    contentAlignment = Alignment.BottomCenter) {
+                    PlantArtwork(species, plant.level, stringResource(R.string.green_plant_description, name, plant.level,
+                        stringResource(PlantGrowthStageResolver.resolve(plant.level).nameRes)),
+                        Modifier.padding(bottom = extent * .05f).width(extent * .82f).height(extent))
+                }
             }
         }
     }
+}
+
+@Composable
+internal fun GreenPopulationSummary(environment: GreenEnvironment, specimens: List<PlantSpecimenEntity>) {
+    if (specimens.isEmpty()) Text(stringResource(R.string.green_empty), style = MaterialTheme.typography.bodySmall)
+    Text(stringResource(R.string.green_environment_progress,
+        specimens.map { it.speciesId }.distinct().size,
+        specimens.filter { it.level >= 90 }.map { it.speciesId }.distinct().size,
+        specimens.filter { it.level == 99 }.map { it.speciesId }.distinct().size,
+        GreenCatalogue.inEnvironment(environment).size, specimens.size), style = MaterialTheme.typography.bodySmall)
 }
 
 @Composable
