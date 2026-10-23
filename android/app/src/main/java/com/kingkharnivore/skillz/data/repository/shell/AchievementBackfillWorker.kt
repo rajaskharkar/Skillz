@@ -69,8 +69,8 @@ class AchievementBackfillWorker(
     }
 
     companion object {
-        const val BACKFILL_VERSION = 2
-        const val UNIQUE_WORK_NAME = "scyra_achievement_backfill_v2"
+        const val BACKFILL_VERSION = 3
+        const val UNIQUE_WORK_NAME = "scyra_achievement_backfill_v3"
         const val MAX_ATTEMPTS = 3
 
         fun enqueue(context: Context) {

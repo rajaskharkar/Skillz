@@ -271,6 +271,7 @@ object AchievementBadgeCatalog {
         addAll(BadgeBookCollections.newAwards.map { it.definition })
         addAll(LandBadgeCatalog.specs.map { it.definition })
         addAll(RedBadgeCatalog.specs.map { it.definition })
+        addAll(LifetimePointsBadges.specs.map { it.definition })
         addAll(CreatureGrowthBadges.specs.map { it.definition })
         addAll(com.kingkharnivore.skillz.domain.green.GreenBadgeEvaluator.definitions.map { it.achievementDefinition() })
         CreatureCatalog.all.forEach { creature ->

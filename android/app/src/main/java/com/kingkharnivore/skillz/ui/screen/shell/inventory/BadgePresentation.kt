@@ -37,6 +37,15 @@ fun resolveBadgePresentation(
     badgeId: String,
     objectiveMetadata: ObjectiveBadgePresentationMetadata? = null
 ): BadgePresentation {
+    LifetimePointsBadges.byId[badgeId]?.let { badge ->
+        val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+        val target = java.text.NumberFormat.getIntegerInstance(locale).format(badge.target)
+        return BadgePresentation(
+            badgeId, stringResource(R.string.lifetime_points_badge_title, target),
+            stringResource(R.string.lifetime_points_badge_description, target),
+            BadgeArtworkKind.SPECIAL, centerLabel = badge.label
+        )
+    }
     GreenBadgeEvaluator.byId[badgeId]?.let { badge ->
         val names = badge.requiredSpecies.mapNotNull(GreenCatalogue.byId::get).map { stringResource(it.nameRes) }.joinToString(", ")
         val tier = stringResource(when (badge.requiredLevel) { 99 -> R.string.green_mastery_badge; 90 -> R.string.green_flourish; 15 -> R.string.green_stage_seedling; 45 -> R.string.green_stage_rooted; 60 -> R.string.green_stage_thriving; else -> R.string.green_catalogue })

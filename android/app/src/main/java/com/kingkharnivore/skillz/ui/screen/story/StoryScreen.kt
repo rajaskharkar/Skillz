@@ -181,6 +181,7 @@ fun StoryScreen(
                 onDeletePulse = viewModel::deletePulse,
                 onCreatePulseForSession = viewModel::createPulseForSession,
                 onOpenViewJourneys = viewModel::openViewJourneys,
+                onCloseViewJourneys = viewModel::closeViewJourneys,
                 onEditArc = viewModel::openArcEditor,
                 createChronicleEditor = viewModel::createChronicleEditor,
                 onSaveEntry = viewModel::saveEntryDetails,

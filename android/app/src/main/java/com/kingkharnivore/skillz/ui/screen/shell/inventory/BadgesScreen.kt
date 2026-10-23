@@ -666,7 +666,7 @@ internal fun collectionSpeciesDestination(action: CollectionSpeciesAction): Badg
     else -> R.string.badge_open_action
 })
 @Composable internal fun recommendationText(badge: BadgeProgressModel): String = when {
-    badge.badgeId in RedBadgeCatalog.byId -> badgeObjectiveProgressText(badge.badgeId, badge.progress, badge.target, badge.remaining)
+    badge.badgeId in LifetimePointsBadges.byId || badge.badgeId in RedBadgeCatalog.byId -> badgeObjectiveProgressText(badge.badgeId, badge.progress, badge.target, badge.remaining)
     badge.highestCreatureLevel != null -> stringResource(R.string.badge_next_mastery_step, badge.highestCreatureLevel, (99 - badge.highestCreatureLevel).coerceAtLeast(0))
     BadgeDefinitionResolver.resolve(badge.badgeId).requirement == BadgeRequirement.COLLECTOR -> stringResource(R.string.badge_next_discovery_step, badge.remaining)
     BadgeDefinitionResolver.resolve(badge.badgeId).requirement == BadgeRequirement.COMPLETIONIST -> stringResource(R.string.badge_next_completionist_step, badge.remaining)
@@ -697,6 +697,8 @@ private fun navigateFor(
 internal fun badgeObjectiveProgressText(badgeId: String, progress: Int, target: Int, remaining: Int): String {
     val spec = RedBadgeCatalog.byId[badgeId]
     return when {
+        badgeId in LifetimePointsBadges.byId -> stringResource(R.string.lifetime_points_badge_progress,
+            localizedBadgeCount(progress), localizedBadgeCount(target))
         badgeId in com.kingkharnivore.skillz.domain.green.GreenBadgeEvaluator.byId -> stringResource(R.string.green_badge_progress_units, progress, target, remaining)
         badgeId in setOf("power_pressure", "power_bedrock", "power_unyielding") ->
             stringResource(R.string.power_badge_time_progress, progress / 60, progress % 60, target / 60)

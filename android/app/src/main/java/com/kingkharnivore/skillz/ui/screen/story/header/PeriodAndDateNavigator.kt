@@ -103,10 +103,16 @@ fun PeriodAndDateNavigator(
                     contentDescription = filtersA11yLabel
                 }
         ) {
-            listOf(StoryPeriod.DAY, StoryPeriod.WEEK, StoryPeriod.MONTH).forEach { p ->
+            StoryPeriod.entries.forEach { p ->
+                val label = stringResource(when (p) {
+                    StoryPeriod.DAY -> R.string.lifetime_period_day
+                    StoryPeriod.WEEK -> R.string.lifetime_period_week
+                    StoryPeriod.MONTH -> R.string.lifetime_period_month
+                    StoryPeriod.LIFETIME -> R.string.lifetime_period
+                })
                 val chipState = stringResource(
                     R.string.period_navigator_filter_state,
-                    p.label,
+                    label,
                     if (p == period) selectedLabel else notSelectedLabel
                 )
 
@@ -115,24 +121,30 @@ fun PeriodAndDateNavigator(
                     onClick = { onPeriodSelected(p) },
                     label = {
                         Text(
-                            text = p.label,
+                            text = label,
                             style = MaterialTheme.typography.labelLarge
                         )
                     },
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.18f),
-                        selectedLabelColor = MaterialTheme.colorScheme.secondary,
+                        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
                         containerColor = MaterialTheme.colorScheme.surface,
                         labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                     ),
                     modifier = Modifier
                         .padding(end = 8.dp)
                         .semantics {
-                            contentDescription = p.label
+                            contentDescription = label
                             stateDescription = chipState
                         }
                 )
             }
+        }
+
+        if (period == StoryPeriod.LIFETIME) {
+            Text(stringResource(R.string.lifetime_all_history), style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            return@Column
         }
 
         Row(
@@ -207,6 +219,7 @@ fun PeriodAndDateNavigator(
                 horizontalArrangement = Arrangement.Center
             ) {
                 val label = when (period) {
+                    StoryPeriod.LIFETIME -> stringResource(R.string.lifetime_period)
                     StoryPeriod.DAY -> stringResource(R.string.period_navigator_back_to_today)
                     StoryPeriod.WEEK -> stringResource(R.string.period_navigator_back_to_this_week)
                     StoryPeriod.MONTH -> stringResource(R.string.period_navigator_back_to_this_month)

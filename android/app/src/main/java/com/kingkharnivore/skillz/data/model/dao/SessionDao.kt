@@ -8,8 +8,22 @@ import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.entity.SessionCreationEntity
 import kotlinx.coroutines.flow.Flow
 
+// Matches Story: saved Flow/Soft/Power points plus claimed objectives with a retained source Flow.
+// Separate sums avoid multiplying a Flow's points when it has several objective receipts.
+private const val LIFETIME_POINTS_QUERY = """
+    SELECT (SELECT COALESCE(SUM(scyraPoints), 0) FROM sessions) +
+        (SELECT COALESCE(SUM(o.finalRewardPoints), 0) FROM objective_completions o
+         INNER JOIN sessions s ON s.id = o.sourceSessionId WHERE o.pearlsClaimed = 1)
+"""
+
 @Dao
 interface SessionDao {
+    @Query(LIFETIME_POINTS_QUERY)
+    suspend fun lifetimeScyraPoints(): Long
+
+    @Query(LIFETIME_POINTS_QUERY)
+    fun observeLifetimeScyraPoints(): Flow<Long>
+
     @Query("SELECT * FROM sessions WHERE durationMs > 0 ORDER BY endTime, id")
     suspend fun completedSessions(): List<SessionEntity>
 

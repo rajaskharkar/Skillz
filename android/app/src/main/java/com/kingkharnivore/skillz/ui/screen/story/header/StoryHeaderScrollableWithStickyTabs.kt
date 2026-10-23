@@ -5,32 +5,31 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Timeline
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.MenuBook
-import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.isTraversalGroup
+import com.kingkharnivore.skillz.ui.screen.story.data.lifetimeDataItems
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.kingkharnivore.skillz.R
@@ -48,7 +47,7 @@ import com.kingkharnivore.skillz.ui.screen.story.saga.SagasCard
 import com.kingkharnivore.skillz.ui.screen.story.saga.SagaObjectivesCard
 import com.kingkharnivore.skillz.utils.time.StoryPeriod
 
-private enum class StoryTab { SAGAS, CHRONICLES }
+private enum class StoryTab { SAGAS, CHRONICLES, DATA }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -62,6 +61,7 @@ fun StoryHeaderScrollableWithStickyTabs(
     onNext: () -> Unit,
     onToday: () -> Unit,
     onOpenViewJourneys: (Long) -> Unit,
+    onCloseViewJourneys: () -> Unit = {},
     onSessionClick: (Long) -> Unit,
     onDeleteSession: (Long) -> Unit,
     onDeletePulse: (Long) -> Unit,
@@ -81,6 +81,8 @@ fun StoryHeaderScrollableWithStickyTabs(
 ) {
     var tab by rememberSaveable { mutableStateOf(StoryTab.CHRONICLES) }
 
+    val visibleTab = if (tab == StoryTab.DATA && uiState.period != StoryPeriod.LIFETIME) StoryTab.CHRONICLES else tab
+    val dataLabel = stringResource(R.string.lifetime_tab)
     val sagasLabel = stringResource(R.string.story_tab_sagas)
     val chroniclesLabel = stringResource(R.string.story_tab_chronicles)
 
@@ -89,6 +91,18 @@ fun StoryHeaderScrollableWithStickyTabs(
     val editState = rememberSessionEditState()
     val pulseEditState = rememberPulseEditState()
     var expandedPulseIds by rememberSaveable { mutableStateOf(setOf<Long>()) }
+
+    if (uiState.period == StoryPeriod.LIFETIME && uiState.isViewJourneysOpen) {
+        com.kingkharnivore.skillz.ui.screen.story.data.LifetimeJourneySheet(
+            uiState = uiState,
+            onClose = onCloseViewJourneys,
+            onSessionClick = onSessionClick,
+            onDeleteSession = onDeleteSession,
+            onEditSession = editState::startEditing,
+            onEditPulse = pulseEditState::startEditing,
+            onDeletePulse = onDeletePulse
+        )
+    }
 
     val editingFlow = editState.editingSession.value
     if (editingFlow != null) {
@@ -133,6 +147,7 @@ fun StoryHeaderScrollableWithStickyTabs(
                 onToday = onToday,
                 onOpenViewJourneys = onOpenViewJourneys,
                 extraTopContent = extraTopContent,
+                showTagFilters = visibleTab != StoryTab.DATA,
             )
         }
 
@@ -166,7 +181,7 @@ fun StoryHeaderScrollableWithStickyTabs(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             SegmentedIconTab(
-                                selected = tab == StoryTab.SAGAS,
+                                selected = visibleTab == StoryTab.SAGAS,
                                 onClick = { tab = StoryTab.SAGAS },
                                 selectedBg = selectedBg,
                                 selectedFg = selectedFg,
@@ -176,7 +191,7 @@ fun StoryHeaderScrollableWithStickyTabs(
                             )
 
                             SegmentedIconTab(
-                                selected = tab == StoryTab.CHRONICLES,
+                                selected = visibleTab == StoryTab.CHRONICLES,
                                 onClick = { tab = StoryTab.CHRONICLES },
                                 selectedBg = selectedBg,
                                 selectedFg = selectedFg,
@@ -184,13 +199,28 @@ fun StoryHeaderScrollableWithStickyTabs(
                                 icon = Icons.Outlined.Timeline,
                                 contentDescription = chroniclesLabel,
                             )
+
+                            if (uiState.period == StoryPeriod.LIFETIME) {
+                                SegmentedIconTab(
+                                    selected = visibleTab == StoryTab.DATA,
+                                    onClick = { tab = StoryTab.DATA },
+                                    selectedBg = selectedBg,
+                                    selectedFg = selectedFg,
+                                    unselectedFg = unselectedFg,
+                                    icon = Icons.Outlined.BarChart,
+                                    contentDescription = dataLabel
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
-        when (tab) {
+        when (visibleTab) {
+            StoryTab.DATA -> lifetimeDataItems(
+                uiState.lifetimeStats, onOpenViewJourneys
+            )
             StoryTab.SAGAS -> {
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -72,6 +72,7 @@ class ShellRepository @Inject constructor(
     private val achievementDao: AchievementDao
 ) {
     fun observeSessions() = sessionDao.getAllSessions()
+    fun observeLifetimeScyraPoints() = sessionDao.observeLifetimeScyraPoints()
     suspend fun reconcilePowerBadges() = db.withTransaction { reconcileAchievementLedger(System.currentTimeMillis(), AchievementReconciliationMode.RUNTIME) }
 
     fun observePebbleBalance(): Flow<Int> = db.powerRewardDao().observeBalance()
@@ -174,7 +175,7 @@ class ShellRepository @Inject constructor(
             pins = achievementDao.getPins(),
             tracking = achievementDao.getTracking(),
             countFloors = achievementDao.getCountFloors(),
-            accessState = accessState, sessions = sessionDao.completedSessions(), greenPlants = db.greenDao().specimens(), greenAwards = db.greenDao().awards()
+            accessState = accessState, sessions = sessionDao.completedSessions(), greenPlants = db.greenDao().specimens(), greenAwards = db.greenDao().awards(), lifetimeScyraPoints = sessionDao.lifetimeScyraPoints()
         ).badges.firstOrNull { it.badgeId == badgeId }
         require(dashboardBadge?.canTrack == true) { "This achievement has no current objective to track." }
         val current = achievementDao.getTracking()
@@ -191,7 +192,7 @@ class ShellRepository @Inject constructor(
         earned = badgeDao.getAll(), instances = findInstanceDao.getAll(),
         discoveries = achievementDao.getDiscoveries(), masteries = achievementDao.getMasteries(),
         completions = achievementDao.getCompletions(), pins = achievementDao.getPins(),
-        tracking = achievementDao.getTracking(), countFloors = achievementDao.getCountFloors(), sessions = sessionDao.completedSessions(), greenPlants = db.greenDao().specimens(), greenAwards = db.greenDao().awards()
+        tracking = achievementDao.getTracking(), countFloors = achievementDao.getCountFloors(), sessions = sessionDao.completedSessions(), greenPlants = db.greenDao().specimens(), greenAwards = db.greenDao().awards(), lifetimeScyraPoints = sessionDao.lifetimeScyraPoints()
     )
 
     private suspend fun currentCollectionProgress(collectionId: String): CollectionProgress? {
@@ -753,6 +754,7 @@ class ShellRepository @Inject constructor(
 
     /** Reconciles the persistent earned ledger without reducing reliable legacy totals. */
     private suspend fun reconcileAchievementLedger(now: Long, mode: AchievementReconciliationMode) {
+        LifetimePointsBadgeRecorder.reconcile(db, now, mode)
         com.kingkharnivore.skillz.data.repository.green.GreenRepository(db).reconcileBadges(now)
         val discoveryRows = achievementDao.getDiscoveries()
         val discoveries = discoveryRows.map { it.speciesId }.toSet()

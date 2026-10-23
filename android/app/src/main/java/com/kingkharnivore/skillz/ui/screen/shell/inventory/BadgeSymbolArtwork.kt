@@ -29,6 +29,17 @@ internal fun BadgeCoreArtwork(presentation: BadgePresentation, diameter: Dp) {
         val plant = com.kingkharnivore.skillz.domain.green.GreenBadgeEvaluator.byId[presentation.badgeId]?.speciesId
             ?.let(com.kingkharnivore.skillz.domain.green.GreenCatalogue.byId::get)
         when {
+            presentation.badgeId in com.kingkharnivore.skillz.domain.achievement.LifetimePointsBadges.byId -> {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Outlined.AutoAwesome, contentDescription = null,
+                        modifier = Modifier.size(diameter * .36f), tint = MaterialTheme.colorScheme.primary)
+                    // The medallion is a fixed-size illustration; its parent announces the full title.
+                    Text(presentation.centerLabel.orEmpty(), maxLines = 1,
+                        fontSize = with(androidx.compose.ui.platform.LocalDensity.current) { (diameter * .22f).toSp() },
+                        lineHeight = with(androidx.compose.ui.platform.LocalDensity.current) { (diameter * .26f).toSp() },
+                        style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black)
+                }
+            }
             plant != null -> com.kingkharnivore.skillz.ui.screen.shell.rooms.green.PlantArtwork(
                 plant, 99, presentation.title, Modifier.size(diameter * .85f))
             com.kingkharnivore.skillz.domain.achievement.RedBadgeCatalog.byId.containsKey(presentation.badgeId) ->

@@ -47,7 +47,7 @@ fun ViewJourneysBottomSheet(
     onClose: () -> Unit,
     onSessionClick: (Long) -> Unit
 ) {
-    if (!uiState.isViewJourneysOpen) return
+    if (!uiState.isViewJourneysOpen || uiState.period == com.kingkharnivore.skillz.utils.time.StoryPeriod.LIFETIME) return
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 

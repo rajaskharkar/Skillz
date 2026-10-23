@@ -95,7 +95,9 @@ class LookoutRepository @Inject constructor(
         if (completion.pearlsClaimed) return@withTransaction 0
         val now = System.currentTimeMillis()
         if (completionDao.markPearlsClaimed(completion.id, now) != 1) return@withTransaction 0
-        creditClaim(completion, now)
+        val reward = creditClaim(completion, now)
+        LifetimePointsBadgeRecorder.reconcile(db, now)
+        reward
     }
 
     /** Claims every outstanding occurrence for one Objective definition atomically. */
@@ -110,9 +112,11 @@ class LookoutRepository @Inject constructor(
 
     private suspend fun claimCompletions(completions: List<ObjectiveCompletionEntity>): Int {
         val now = System.currentTimeMillis()
-        return completions.sumOf { completion ->
+        val reward = completions.sumOf { completion ->
             if (completionDao.markPearlsClaimed(completion.id, now) == 1) creditClaim(completion, now) else 0
         }
+        LifetimePointsBadgeRecorder.reconcile(db, now)
+        return reward
     }
 
     suspend fun updateRecurringStats(objectiveId: Long, stats: RecurringObjectiveStats, updatedAtMs: Long) {
