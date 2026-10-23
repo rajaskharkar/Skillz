@@ -35,6 +35,8 @@ import com.kingkharnivore.skillz.utils.time.StorySessionWindow
 import com.kingkharnivore.skillz.utils.user.UserPrefs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -94,6 +96,7 @@ class StoryViewModel @Inject constructor(
     private val userPrefs: UserPrefs,
     private val arcMetadataRepository: ArcMetadataRepository,
     private val chronicleRepository: ChronicleRepository,
+    private val analyticsRepository: com.kingkharnivore.skillz.data.repository.LifetimeAnalyticsRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -465,7 +468,8 @@ class StoryViewModel @Inject constructor(
                 calmModeFlow,
                 appLanguageTagFlow,
                 arcMetadataFlow,
-                chroniclePreviewsFlow
+                chroniclePreviewsFlow,
+                analyticsRepository.observe()
             ) { arr: Array<Any?> ->
                 val chronicleTexts = (arr[13] as List<com.kingkharnivore.skillz.data.model.dao.ChronicleSummary>)
                     .associate { (it.ownerType + "/" + it.ownerKey) to listOfNotNull(it.excerpt) }
@@ -532,39 +536,29 @@ class StoryViewModel @Inject constructor(
                 val window = TimeWindowUtils
                     .windowFor(normalizedAnchor, currentPeriod)
 
-                val sessionsInWindow = StorySessionWindow.project(sessions, window)
+                val sessionsInWindow = if (currentPeriod == StoryPeriod.LIFETIME) sessions
+                    else StorySessionWindow.project(sessions, window)
                 val visibleSessions = if (effectiveSelectedTagIds.isEmpty()) sessionsInWindow
                     else sessionsInWindow.filter { it.tagId in effectiveSelectedTagIds }
 
                 val visiblePulses =
                     pulsesForTags.filter { it.createdAt in window.startMs until window.endMs }
 
-                val visibleJourneyIdsInPriorityOrder: List<Long> =
-                    buildList {
-                        addAll(visibleSessions.map { it.tagId })
-                        addAll(visiblePulses.mapNotNull { it.tagId })
-                    }
-                        .groupingBy { it }
-                        .eachCount()
-                        .entries
-                        .sortedWith(
-                            compareByDescending<Map.Entry<Long, Int>> { it.value }
-                                .thenByDescending { entry ->
-                                    val latestSession = visibleSessions
-                                        .filter { it.tagId == entry.key }
-                                        .maxOfOrNull { it.createdAt } ?: 0L
-
-                                    val latestPulse = visiblePulses
-                                        .filter { it.tagId == entry.key }
-                                        .maxOfOrNull { it.createdAt } ?: 0L
-
-                                    maxOf(latestSession, latestPulse)
-                                }
-                        )
-                        .map { it.key }
+                val latestByTag = mutableMapOf<Long, Long>()
+                visibleSessions.forEach { latestByTag[it.tagId] = maxOf(latestByTag[it.tagId] ?: Long.MIN_VALUE, it.createdAt) }
+                visiblePulses.forEach { pulse -> pulse.tagId?.let { id ->
+                    latestByTag[id] = maxOf(latestByTag[id] ?: Long.MIN_VALUE, pulse.createdAt)
+                } }
+                val visibleJourneyIdsInPriorityOrder = buildList {
+                    addAll(visibleSessions.map { it.tagId })
+                    addAll(visiblePulses.mapNotNull { it.tagId })
+                }.groupingBy { it }.eachCount().entries.sortedWith(
+                    compareByDescending<Map.Entry<Long, Int>> { it.value }
+                        .thenByDescending { latestByTag[it.key] ?: Long.MIN_VALUE }
+                ).map { it.key }
 
                 val journeyColors = getOrCreateJourneyColors(
-                    visibleJourneyIdsInPriorityOrder
+                    if (currentPeriod == StoryPeriod.LIFETIME) tags.map { it.id } else visibleJourneyIdsInPriorityOrder
                 )
 
                 val chronicleItems = buildChronicleItems(
@@ -648,7 +642,7 @@ class StoryViewModel @Inject constructor(
                     if (viewOpen && viewTagId != null) tagNameById[viewTagId].orEmpty() else ""
 
                 val pulsesBySessionId: Map<Long, List<PulseListItemUiModel>> =
-                    visiblePulses
+                    (if (currentPeriod == StoryPeriod.LIFETIME) pulses else visiblePulses)
                         .filter { it.parentSessionId != null }
                         .groupBy { it.parentSessionId!! }
                         .mapValues { (_, grouped) ->
@@ -658,11 +652,12 @@ class StoryViewModel @Inject constructor(
                         }
 
                 val totalDurationMs = visibleSessions.sumOf { it.durationMs }
-                val totalScore = visibleSessions.sumOf { it.scyraPoints }
-                val currentSurgeScore = visibleSessions.sumOf { it.surgePoints }
+                val totalScore = visibleSessions.sumOf { it.scyraPoints.toLong() }
+                val currentSurgeScore = visibleSessions.sumOf { it.surgePoints.toLong() }
 
                 FlowListUiState(
                     isLoading = false,
+                    lifetimeStats = arr[14] as com.kingkharnivore.skillz.domain.analytics.LifetimeStats,
                     sessions = visibleSessions.toUiModels(tags, journeyColors, healthSnapshots),
                     pulses = visiblePulses.toUiModels(tags),
                     chronicleItems = chronicleItems,
@@ -691,6 +686,7 @@ class StoryViewModel @Inject constructor(
                     appLanguageTag = appLanguageTag
                 )
             }
+                .flowOn(Dispatchers.Default)
                 .catch { e ->
                     uiState.value = uiState.value.copy(
                         isLoading = false,

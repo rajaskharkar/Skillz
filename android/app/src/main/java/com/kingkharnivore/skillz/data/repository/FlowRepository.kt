@@ -6,6 +6,7 @@ import com.kingkharnivore.skillz.data.model.dao.TagDao
 import com.kingkharnivore.skillz.data.model.dao.ArcMetadataDao
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import androidx.room.withTransaction
+import com.kingkharnivore.skillz.data.repository.shell.LifetimePointsBadgeRecorder
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
 import com.kingkharnivore.skillz.data.model.entity.FlowPlanEntity
 import com.kingkharnivore.skillz.data.model.entity.HorizonKind
@@ -46,6 +47,7 @@ class FlowRepository @Inject constructor(
           database.withTransaction {
             sessionDao.findCreatedSession(flowInstanceId)?.let { return@withTransaction it }
             val id = sessionDao.insertSession(session)
+            LifetimePointsBadgeRecorder.reconcile(database)
             database.powerRewardDao().enqueue(com.kingkharnivore.skillz.data.model.entity.shell.SessionShellRewardEntity(sessionId = id, queuedAt = System.currentTimeMillis()))
             session.arcId?.let { com.kingkharnivore.skillz.utils.arc.ArcLandRewardJournal.record(database, it) }
             pulseDao.attachLivePulsesToSession(flowInstanceId, id, session.arcId)
@@ -162,6 +164,7 @@ class FlowRepository @Inject constructor(
             arcBonusPoints = arcBonusPoints,
             finalScyraPoints = finalScyraPoints
         )
+        LifetimePointsBadgeRecorder.reconcile(database)
         database.horizonMemoryDao().updateArc(sessionId, arcId, arcMultiplierUsed, finalScyraPoints)
         com.kingkharnivore.skillz.utils.arc.ArcLandRewardJournal.record(database, arcId)
     }

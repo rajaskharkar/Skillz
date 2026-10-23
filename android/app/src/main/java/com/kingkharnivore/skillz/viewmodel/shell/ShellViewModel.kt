@@ -275,8 +275,9 @@ class ShellViewModel @Inject constructor(
         ownership.map { it.finds }.distinctUntilChanged(),
         memoryAndPreferences.map { it.memory.badges to it.achievements.copy(backfill = null, celebration = null) }
             .distinctUntilChanged(),
-        combine(repository.observeSessions(), repository.observeGreenPlants(), repository.observeGreenAwards()) { sessions, plants, awards -> Triple(sessions, plants, awards) }.distinctUntilChanged()
-    ) { finds, achievementInput, green ->
+        combine(repository.observeSessions(), repository.observeGreenPlants(), repository.observeGreenAwards()) { sessions, plants, awards -> Triple(sessions, plants, awards) }.distinctUntilChanged(),
+        repository.observeLifetimeScyraPoints().distinctUntilChanged()
+    ) { finds, achievementInput, green, lifetimePoints ->
         val unlockedZones = deriveUnlockedBlueZonesFromHistoricalFinds(finds)
         BadgeDashboardCalculator.calculate(
             achievementInput.first, finds,
@@ -289,7 +290,8 @@ class ShellViewModel @Inject constructor(
                 unlockedStillwaterVessels = (StillwaterVessel.entries + com.kingkharnivore.skillz.utils.shell.LandStillwaterHabitat.entries).filterTo(mutableSetOf()) {
                     it.zone in unlockedZones
                 }
-            ), sessions = green.first, greenPlants = green.second, greenAwards = green.third
+            ), sessions = green.first, greenPlants = green.second, greenAwards = green.third,
+            lifetimeScyraPoints = lifetimePoints
         )
     }.flowOn(Dispatchers.Default)
 

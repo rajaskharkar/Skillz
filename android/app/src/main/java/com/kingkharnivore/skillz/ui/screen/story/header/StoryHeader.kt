@@ -27,14 +27,15 @@ fun StoryHeader(
     onNext: () -> Unit,
     onToday: () -> Unit,
     onOpenViewJourneys: (Long) -> Unit,
-    extraTopContent: (@Composable () -> Unit)? = null
+    extraTopContent: (@Composable () -> Unit)? = null,
+    showTagFilters: Boolean = true
 ) {
     val selectedJourneysSubtitle = stringResource(R.string.story_header_time_in_selected_journeys)
 
     Box(
         modifier = Modifier.semantics { isTraversalGroup = true }
     ) {
-        TagFilterRow(
+        if (showTagFilters) TagFilterRow(
             tags = uiState.tags,
             selectedTagIds = uiState.selectedTagIds,
             onTagToggled = onTagToggled,
@@ -63,7 +64,7 @@ fun StoryHeader(
     extraTopContent?.invoke()
 
     when {
-        uiState.selectedTagIds.isNotEmpty() -> {
+        showTagFilters && uiState.selectedTagIds.isNotEmpty() -> {
             Box(
                 modifier = Modifier.semantics { heading() }
             ) {
@@ -75,7 +76,7 @@ fun StoryHeader(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        uiState.totalDurationMs > 0L -> {
+        showTagFilters && uiState.totalDurationMs > 0L -> {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

@@ -27,12 +27,14 @@ fun journeySessionMeta(session: FlowListItemUiModel): String {
 
 @Composable
 fun formatPeriodTitle(period: StoryPeriod, anchorDayStartMs: Long): String {
+    if (period == StoryPeriod.LIFETIME) return stringResource(R.string.lifetime_all_history)
     val zone = ZoneId.systemDefault()
     val locale = Locale.getDefault()
     val window = TimeWindowUtils.windowFor(anchorDayStartMs, period)
     val start = Instant.ofEpochMilli(window.startMs).atZone(zone).toLocalDate()
 
     return when (period) {
+        StoryPeriod.LIFETIME -> stringResource(R.string.lifetime_all_history)
         StoryPeriod.DAY -> start.format(DateTimeFormatter.ofPattern("EEE, MMM d", locale))
         StoryPeriod.WEEK -> stringResource(
             R.string.story_helpers_period_title_week_of,
@@ -44,6 +46,7 @@ fun formatPeriodTitle(period: StoryPeriod, anchorDayStartMs: Long): String {
 
 @Composable
 fun formatPeriodSubtitle(period: StoryPeriod, anchorDayStartMs: Long): String {
+    if (period == StoryPeriod.LIFETIME) return stringResource(R.string.lifetime_all_history)
     val zone = ZoneId.systemDefault()
     val locale = Locale.getDefault()
     val window = TimeWindowUtils.windowFor(anchorDayStartMs, period)
@@ -52,6 +55,7 @@ fun formatPeriodSubtitle(period: StoryPeriod, anchorDayStartMs: Long): String {
     val end = endExclusive.minusDays(1)
 
     return when (period) {
+        StoryPeriod.LIFETIME -> stringResource(R.string.lifetime_all_history)
         StoryPeriod.DAY -> stringResource(R.string.story_helpers_period_subtitle_day)
         StoryPeriod.WEEK -> stringResource(
             R.string.story_helpers_period_subtitle_week,
@@ -73,6 +77,7 @@ fun sagaSubtitle(
     val isCurrent = normalizedAnchor == currentPeriodStart
 
     return when (period) {
+        StoryPeriod.LIFETIME -> stringResource(R.string.lifetime_all_history)
         StoryPeriod.DAY -> {
             if (isCurrent) {
                 stringResource(R.string.story_helpers_saga_subtitle_day_current)

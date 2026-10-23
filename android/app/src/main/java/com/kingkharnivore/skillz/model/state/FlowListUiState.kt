@@ -10,6 +10,7 @@ import com.kingkharnivore.skillz.viewmodel.TagUiModel
 
 data class FlowListUiState(
     val isLoading: Boolean = true,
+    val lifetimeStats: com.kingkharnivore.skillz.domain.analytics.LifetimeStats? = null,
     val sessions: List<FlowListItemUiModel> = emptyList(),
     val pulses: List<PulseListItemUiModel> = emptyList(),
     val chronicleItems: List<ChronicleUiModel> = emptyList(),
@@ -20,8 +21,8 @@ data class FlowListUiState(
     val errorMessage: String? = null,
     val period: StoryPeriod = StoryPeriod.DAY,
     val anchorDayStartMs: Long = 0L,
-    val currentScore: Int = 0,
-    val currentSurgeScore: Int = 0,
+    val currentScore: Long = 0,
+    val currentSurgeScore: Long = 0,
     val topJourneysLast7d: List<Journey7dStatUiModel> = emptyList(),
     val firstSessionStartMs: Long? = null,
     val isCurrentPeriod: Boolean = true,

@@ -115,7 +115,8 @@ object BadgeDashboardCalculator {
         accessState: AchievementAccessState = AchievementAccessState(),
         sessions: List<com.kingkharnivore.skillz.data.model.entity.SessionEntity> = emptyList(),
         greenPlants: List<com.kingkharnivore.skillz.data.model.entity.green.PlantSpecimenEntity> = emptyList(),
-        greenAwards: List<com.kingkharnivore.skillz.data.model.entity.green.GreenBadgeAwardEntity> = emptyList()
+        greenAwards: List<com.kingkharnivore.skillz.data.model.entity.green.GreenBadgeAwardEntity> = emptyList(),
+        lifetimeScyraPoints: Long = 0L
     ): BadgeDashboard {
         val earnedById = earned.associateBy { it.badgeId }
         val pinOrder = pins.associate { it.badgeId to it.pinOrder }
@@ -163,6 +164,7 @@ object BadgeDashboardCalculator {
                 return@map green.dashboardModel(greenPlants, greenAwards.firstOrNull { it.id == green.id }, stored,
                     pinOrder[green.id], green.id in tracked)
             }
+            val pointsSpec = LifetimePointsBadges.byId[definition.badgeId]
             val landSpec = LandBadgeCatalog.byId[definition.badgeId]
             val redSpec = RedBadgeCatalog.byId[definition.badgeId]
             val growthSpec = CreatureGrowthBadges.byId[definition.badgeId]
@@ -172,7 +174,7 @@ object BadgeDashboardCalculator {
                     .minWithOrNull(compareBy<CollectionCompletionEntity> { it.completedAt == null }.thenBy { it.completedAt })
             }
             val speciesLevels = definition.speciesId?.let { activeLevels[it].orEmpty() }.orEmpty()
-            val currentVerified = growthSpec?.let { CreatureGrowthBadges.progress(it, growthEvidence) } ?: redSpec?.let { RedBadgeCatalog.progress(it, discovered + instances.map { c -> c.findId }, mastered, sessions) } ?: landSpec?.let(landEvidence::count) ?: when (definition.requirement) {
+            val currentVerified = pointsSpec?.let { if ((stored?.count ?: 0) > 0) it.target else it.progress(lifetimeScyraPoints) } ?: growthSpec?.let { CreatureGrowthBadges.progress(it, growthEvidence) } ?: redSpec?.let { RedBadgeCatalog.progress(it, discovered + instances.map { c -> c.findId }, mastered, sessions) } ?: landSpec?.let(landEvidence::count) ?: when (definition.requirement) {
                 BadgeRequirement.COLLECTOR -> if (collection?.collectorEarned == true) 1 else 0
                 BadgeRequirement.CURATOR -> if (collection?.curatorEarned == true) 1 else 0
                 BadgeRequirement.COMPLETIONIST -> if (collection?.completionistEarned == true) 1 else 0
@@ -207,7 +209,7 @@ object BadgeDashboardCalculator {
                 }
                 else -> currentVerified
             }
-            val lifetimeCount = if ((landSpec != null || redSpec != null || growthSpec != null) && definition.countType == BadgeCountType.ONE_TIME) {
+            val lifetimeCount = if ((landSpec != null || redSpec != null || growthSpec != null || pointsSpec != null) && definition.countType == BadgeCountType.ONE_TIME) {
                 maxOf(if (currentVerified >= definition.milestones.first()) 1 else 0, stored?.count ?: 0)
             } else if (boundedRosterBadge || definition.badgeId == "mastery_circle" || definition.speciesId != null || definition.badgeId == "stillwater_mastery") {
                 maxOf(historicalVerified, stored?.count ?: 0)
@@ -220,7 +222,7 @@ object BadgeDashboardCalculator {
                 BadgeRequirement.COMPLETIONIST -> collection?.totalCompletionistSpecies ?: 1
                 BadgeRequirement.EXACT_COUNT -> if (definition.goalType == BadgeGoalType.HISTORICAL_COUNT_ONLY) 0
                     else MilestoneEngine.evaluate(currentVerified, thresholds = definition.milestones).nextThreshold
-                        ?: if (landSpec != null || redSpec != null || growthSpec != null) definition.milestones.last() else currentVerified.coerceAtLeast(1)
+                        ?: if (landSpec != null || redSpec != null || growthSpec != null || pointsSpec != null) definition.milestones.last() else currentVerified.coerceAtLeast(1)
             }
             val progress = when (definition.requirement) {
                 BadgeRequirement.COLLECTOR -> collection?.discoveredSpeciesCount ?: 0
@@ -242,7 +244,7 @@ object BadgeDashboardCalculator {
             }
             val everEarned = (stored?.count ?: 0) > 0 || historicalCompletion != null || evidenceProvesCurrentCompletion
             val terminal = definition.countType == BadgeCountType.ONE_TIME && everEarned && !currentRosterIncomplete
-            val milestoneCount = if (boundedRosterBadge || landSpec != null || growthSpec != null) currentVerified else lifetimeCount
+            val milestoneCount = if (boundedRosterBadge || landSpec != null || growthSpec != null || pointsSpec != null) currentVerified else lifetimeCount
             val hasNextMilestone = definition.countType == BadgeCountType.REPEATABLE &&
                 definition.milestones.any { it > milestoneCount }
             val nonEmptyRoster = collection == null || when (definition.requirement) {

@@ -1,6 +1,7 @@
 package com.kingkharnivore.skillz.data.repository.health
 
 import androidx.room.withTransaction
+import com.kingkharnivore.skillz.data.repository.shell.LifetimePointsBadgeRecorder
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.dao.SessionDao
 import com.kingkharnivore.skillz.data.model.dao.health.FlowHealthDao
@@ -74,6 +75,7 @@ class FlowHealthRepository @Inject constructor(
         ) else snapshot)
         dao.upsertRewardBreakdown(if (power) breakdown.copy(arcBonusPoints = preservedArcBonus.toLong()) else breakdown)
         sessionDao.updateRewardPoints(snapshot.sessionId, finalScyraPoints, preservedArcBonus)
+        LifetimePointsBadgeRecorder.reconcile(db)
         if (actualDelta > 0 && stablePearlReason != null) {
             val sourceId = snapshot.sessionId.toString()
             val alreadyAwarded = pearlLedgerDao.sourceRewardCount("session", sourceId, stablePearlReason) > 0

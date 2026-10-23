@@ -16,7 +16,7 @@ android {
         applicationId = "com.kingkharnivore.skillz"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
+        versionCode = 7
         versionName = "1.2.1"
 
         buildConfigField("boolean", "SHOW_SCORE", "true")

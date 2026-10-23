@@ -34,7 +34,8 @@ fun formatDuration(durationMs: Long): String {
 enum class StoryPeriod(val label: String) {
     DAY("Day"),
     WEEK("Week"),
-    MONTH("Month")
+    MONTH("Month"),
+    LIFETIME("Lifetime")
 }
 
 data class TimeWindow(
@@ -64,10 +65,12 @@ object TimeWindowUtils {
      * - MONTH: first of month
      */
     fun startOfPeriodMs(timeMs: Long, period: StoryPeriod): Long {
+        if (period == StoryPeriod.LIFETIME) return 0L
         val z = zone()
         val d = toLocalDate(timeMs)
 
         val startDate = when (period) {
+            StoryPeriod.LIFETIME -> d
             StoryPeriod.DAY -> d
             StoryPeriod.WEEK -> d.with(DayOfWeek.MONDAY)
             StoryPeriod.MONTH -> d.withDayOfMonth(1)
@@ -85,10 +88,12 @@ object TimeWindowUtils {
     }
 
     fun windowFor(anchorStartMs: Long, period: StoryPeriod): TimeWindow {
+        if (period == StoryPeriod.LIFETIME) return TimeWindow(Long.MIN_VALUE, Long.MAX_VALUE)
         val z = zone()
         val startDate = toLocalDate(anchorStartMs)
 
         val endDate = when (period) {
+            StoryPeriod.LIFETIME -> startDate
             StoryPeriod.DAY -> startDate.plusDays(1)
             StoryPeriod.WEEK -> startDate.plusDays(7)
             StoryPeriod.MONTH -> startDate.withDayOfMonth(1).plusMonths(1)
@@ -101,10 +106,12 @@ object TimeWindowUtils {
     }
 
     fun shiftAnchor(anchorStartMs: Long, period: StoryPeriod, dir: Int): Long {
+        if (period == StoryPeriod.LIFETIME) return 0L
         val z = zone()
         val date = toLocalDate(anchorStartMs)
 
         val shifted = when (period) {
+            StoryPeriod.LIFETIME -> date
             StoryPeriod.DAY -> date.plusDays(dir.toLong())
             StoryPeriod.WEEK -> date.plusWeeks(dir.toLong())
             StoryPeriod.MONTH -> date.plusMonths(dir.toLong()).withDayOfMonth(1)

@@ -22,13 +22,14 @@ import com.kingkharnivore.skillz.utils.time.StoryPeriod
 
 @Composable
 fun ScoreDisplay(
-    score: Int,
-    surgeScore: Int,
+    score: Long,
+    surgeScore: Long,
     period: StoryPeriod,
     modifier: Modifier = Modifier,
     calmMode: Boolean = false
 ) {
     val periodLabel = when (period) {
+        StoryPeriod.LIFETIME -> stringResource(R.string.lifetime_score)
         StoryPeriod.DAY -> stringResource(R.string.score_display_label_day)
         StoryPeriod.WEEK -> stringResource(R.string.score_display_label_week)
         StoryPeriod.MONTH -> stringResource(R.string.score_display_label_month)
@@ -53,7 +54,7 @@ fun ScoreDisplay(
 
     Box(
         modifier = modifier
-            .padding(80.dp)
+            .padding(horizontal = 16.dp, vertical = 32.dp)
             .clearAndSetSemantics {
                 contentDescription = a11yLabel
             },

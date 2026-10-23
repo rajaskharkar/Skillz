@@ -39,6 +39,7 @@ fun EmptyChroniclesState(
     }
 
     val subtitle = when (period) {
+        StoryPeriod.LIFETIME -> stringResource(R.string.lifetime_empty)
         StoryPeriod.DAY -> {
             if (isCurrentPeriod) {
                 stringResource(R.string.empty_chronicles_day_current)
