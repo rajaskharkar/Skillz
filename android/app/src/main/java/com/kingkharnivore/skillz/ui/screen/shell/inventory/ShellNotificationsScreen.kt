@@ -333,17 +333,12 @@ internal fun formatNotificationDeliveredAt(
 ): String {
     val deliveredAt = Instant.ofEpochMilli(createdAt).atZone(zoneId)
     val nowAtZone = Instant.ofEpochMilli(now).atZone(zoneId)
-    return when {
-        deliveredAt.toLocalDate() == nowAtZone.toLocalDate() -> deliveredAt.format(
-            DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale)
-        ).replace('\u202f', ' ').replace('\u00a0', ' ')
-        deliveredAt.year == nowAtZone.year -> deliveredAt.format(
-            DateTimeFormatter.ofPattern("MMM d", locale)
-        )
-        else -> deliveredAt.format(
-            DateTimeFormatter.ofPattern("MMM d, yyyy", locale)
-        )
-    }
+    val datePattern = if (deliveredAt.year == nowAtZone.year) "MMM d" else "MMM d, yyyy"
+    val date = deliveredAt.format(DateTimeFormatter.ofPattern(datePattern, locale))
+    val time = deliveredAt.format(
+        DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale)
+    ).replace('\u202f', ' ').replace('\u00a0', ' ')
+    return "$date · $time"
 }
 
 @Composable
