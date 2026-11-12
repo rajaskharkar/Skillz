@@ -78,49 +78,49 @@ class ShellNotificationInlayMapperTest {
     }
 
     @Test
-    fun deliveredAtLabelShowsOnlyTimeForTodayInUserTimezone() {
+    fun deliveredAtLabelShowsDateAndTimeForTodayInUserTimezone() {
         val zoneId = ZoneId.of("America/New_York")
         val now = millis(2026, 6, 12, 22, 0, zoneId)
         val createdAt = millis(2026, 6, 12, 20, 42, zoneId)
 
         assertEquals(
-            "8:42 PM",
+            "Jun 12 · 8:42 PM",
             formatNotificationDeliveredAt(createdAt, now, zoneId, Locale.US)
         )
     }
 
     @Test
-    fun deliveredAtLabelShowsMonthDayForEarlierDateInCurrentYear() {
+    fun deliveredAtLabelShowsMonthDayAndTimeForEarlierDateInCurrentYear() {
         val zoneId = ZoneId.of("America/New_York")
         val now = millis(2026, 6, 12, 22, 0, zoneId)
         val createdAt = millis(2026, 6, 10, 20, 42, zoneId)
 
         assertEquals(
-            "Jun 10",
+            "Jun 10 · 8:42 PM",
             formatNotificationDeliveredAt(createdAt, now, zoneId, Locale.US)
         )
     }
 
     @Test
-    fun deliveredAtLabelShowsMonthDayYearForPreviousYear() {
+    fun deliveredAtLabelShowsMonthDayYearAndTimeForPreviousYear() {
         val zoneId = ZoneId.of("America/New_York")
         val now = millis(2026, 6, 12, 22, 0, zoneId)
         val createdAt = millis(2025, 6, 10, 20, 42, zoneId)
 
         assertEquals(
-            "Jun 10, 2025",
+            "Jun 10, 2025 · 8:42 PM",
             formatNotificationDeliveredAt(createdAt, now, zoneId, Locale.US)
         )
     }
 
     @Test
-    fun deliveredAtLabelUsesUserTimezoneToDecideToday() {
+    fun deliveredAtLabelUsesUserTimezoneForDateAndTime() {
         val zoneId = ZoneId.of("America/Los_Angeles")
         val now = millis(2026, 6, 12, 1, 30, zoneId)
         val createdAt = millis(2026, 6, 12, 0, 15, zoneId)
 
         assertEquals(
-            "12:15 AM",
+            "Jun 12 · 12:15 AM",
             formatNotificationDeliveredAt(createdAt, now, zoneId, Locale.US)
         )
     }
