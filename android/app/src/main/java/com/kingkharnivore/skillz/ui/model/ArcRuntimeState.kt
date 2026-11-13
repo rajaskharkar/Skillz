@@ -1,5 +1,7 @@
 package com.kingkharnivore.skillz.ui.model
 
+import com.kingkharnivore.skillz.utils.arc.ArcRules
+
 data class ArcRuntimeState(
     val arcId: Long,
     val isPending: Boolean,
@@ -14,6 +16,21 @@ data class ArcRuntimeState(
 ) {
     companion object {
         const val BASE_MULTIPLIER = 1.0
+
+        fun afterFirstFlow(
+            arcId: Long,
+            startedAtMs: Long,
+            endedAtMs: Long,
+            isSoftFlow: Boolean
+        ) = ArcRuntimeState(
+            arcId = arcId,
+            isPending = true,
+            multiplier = if (isSoftFlow) BASE_MULTIPLIER else ArcRules.START_MULTIPLIER,
+            progressMs = 0L,
+            lastSessionEndTimeMs = endedAtMs,
+            sessionCountInArc = 1,
+            startedAtMs = startedAtMs
+        )
     }
 
     /** Resets reward momentum without changing any Arc-continuity state. */

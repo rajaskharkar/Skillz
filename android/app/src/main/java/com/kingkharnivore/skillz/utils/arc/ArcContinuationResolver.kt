@@ -24,6 +24,15 @@ object ArcContinuationResolver {
 
     fun isWithinContinuationWindow(arc: ArcRuntimeState, flowStartTimeMs: Long): Boolean {
         val gapMs = flowStartTimeMs - arc.lastSessionEndTimeMs
-        return gapMs >= 0L && gapMs <= ArcRules.GRACE_WINDOW_MS
+        return arc.sessionCountInArc > 0 && gapMs >= 0L && gapMs <= graceWindowMs(arc)
     }
+
+    // Lock the tier when the previous Flow ends; waiting cannot extend or revive it.
+    fun graceWindowMs(arc: ArcRuntimeState): Long = ArcRules.graceWindowMs(
+        arc.lastSessionEndTimeMs - (arc.startedAtMs ?: arc.lastSessionEndTimeMs)
+    )
+
+    fun remainingMs(arc: ArcRuntimeState, nowMs: Long): Long =
+        (graceWindowMs(arc) - (nowMs - arc.lastSessionEndTimeMs).coerceAtLeast(0L))
+            .coerceAtLeast(0L)
 }

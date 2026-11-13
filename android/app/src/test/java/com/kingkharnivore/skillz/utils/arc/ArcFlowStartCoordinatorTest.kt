@@ -10,6 +10,21 @@ class ArcFlowStartCoordinatorTest {
     private val end = 1_000_000L
 
     @Test
+    fun `longer grace tiers reserve Arc at Start even if later work crosses deadline`() = runBlocking {
+        val hour = 60 * 60_000L
+        for ((age, minutes) in listOf(24 * hour to 30L, 72 * hour to 60L)) {
+            val deadline = end + minutes * 60_000L
+            var now = deadline
+            val store = Store(recent = arc().copy(startedAtMs = end - age))
+            val coordinator = ArcFlowStartCoordinator(ArcContinuationLifecycle(store)) { now }
+            val start = coordinator.start(false) { now += 1_000L }
+            assertEquals(deadline, start.startedAtMs)
+            assertEquals(42L, start.arc?.arcId)
+            assertEquals(start.arc, store.active)
+        }
+    }
+
+    @Test
     fun `exact boundary remains resumed when internal start work crosses boundary`() = runBlocking {
         assertAcceptedAfterInternalWork(ArcRules.GRACE_WINDOW_MS, internalWorkMs = 500L)
     }

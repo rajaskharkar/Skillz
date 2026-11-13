@@ -12,6 +12,64 @@ class ArcContinuationLifecycleTest {
     private val end = 10_000_000L
 
     @Test
+    fun `first saved Flow automatically seeds second Flow through five minute boundary`() = runBlocking {
+        for (firstIsSoft in listOf(false, true)) {
+            for (nextIsSoft in listOf(false, true)) {
+                for (gap in listOf(0L, 4 * 60_000L, 5 * 60_000L)) {
+                    val first = ArcRuntimeState.afterFirstFlow(123L, end - 600_000L, end, firstIsSoft)
+                    val store = FakeStore()
+                    ArcContinuationLifecycle(store).completeArc(first, end)
+                    assertNull(store.active)
+
+                    // Recreate the lifecycle just as a new screen/process would.
+                    val next = ArcContinuationLifecycle(store)
+                        .resolveForFlowStart(end + gap, nextIsSoft)!!
+                    assertEquals(123L, next.arcId)
+                    assertEquals(2, next.sessionCountInArc + 1)
+                    assertEquals(first.startedAtMs, next.startedAtMs)
+                    assertEquals(
+                        if (firstIsSoft || nextIsSoft) ArcRuntimeState.BASE_MULTIPLIER else ArcRules.START_MULTIPLIER,
+                        next.multiplier, 0.0
+                    )
+                    assertNull(store.recent)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `first saved Flow cannot seed a second Flow after deadline`() = runBlocking {
+        val store = FakeStore()
+        val lifecycle = ArcContinuationLifecycle(store)
+        lifecycle.completeArc(ArcRuntimeState.afterFirstFlow(123L, end - 600_000L, end, false), end)
+        assertNull(lifecycle.resolveForFlowStart(end + 5 * 60_000L + 1, false))
+        assertNull(store.recent)
+        assertNull(store.active)
+    }
+
+    @Test
+    fun `legacy age is restored before checking longer grace deadlines`() = runBlocking {
+        val hour = 60 * 60_000L
+        for ((age, budget) in listOf(24 * hour to 30 * 60_000L, 72 * hour to 60 * 60_000L)) {
+            for (recent in listOf(false, true)) {
+                for (overDeadline in listOf(0L, 1L)) {
+                    val store = if (recent) FakeStore(recent = finalArc()) else FakeStore(active = finalArc())
+                    val lifecycle = ArcContinuationLifecycle(store) { end - age }
+                    val next = lifecycle.resolveForFlowStart(end + budget + overDeadline, false)
+                    if (overDeadline == 0L) {
+                        assertEquals(end - age, next!!.startedAtMs)
+                        assertEquals(123L, next.arcId)
+                    } else {
+                        assertNull(next)
+                        assertNull(store.active)
+                        assertNull(store.recent)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     fun `planned Arc clock starts with first Flow and is preserved on subsequent starts`() = runBlocking {
         val store = FakeStore(active = finalArc().copy(sessionCountInArc = 0))
         val lifecycle = ArcContinuationLifecycle(store)

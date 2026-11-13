@@ -319,7 +319,7 @@
     <string name="help_page_arc_kicker">Arc</string>
     <string name="help_page_arc_title">Arcs reward continuity.</string>
     <string name="help_page_arc_subtitle">An Arc forms when you continue your momentum across consecutive Flows.</string>
-    <string name="help_page_arc_body">Keep going and your Arc grows. After each completed Flow of 10 minutes or more, the Arc multiplier increases by +0.1. You have a short grace window between Flows, so continuing quickly helps preserve the chain.</string>
+    <string name="help_page_arc_body">Keep going and your Arc grows. After each completed Flow of 10 minutes or more, the Arc multiplier increases by +0.1. Starting another Flow within the grace period automatically continues the Arc, even after your first saved Flow. Between Flows, you have 5 minutes while the Arc is under 24 hours old, 30 minutes from 24 to 72 hours, and 60 minutes from 72 hours onward. The allowance is set when the previous Flow ends and counts down before you start the next Flow.</string>
     <string name="help_page_arc_tip">Think of an Arc as momentum across sessions. Save Flow, continue, and keep the chain alive.</string>
     <string name="help_page_surge_kicker">Surge</string>
     <string name="help_page_surge_title">Surge rewards precision.</string>

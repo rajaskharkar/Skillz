@@ -319,7 +319,7 @@
     <string name="help_page_arc_kicker">Arc</string>
     <string name="help_page_arc_title">Los Arcs recompensan la continuidad.</string>
     <string name="help_page_arc_subtitle">Un Arc se forma cuando mantienes tu impulso a lo largo de Flows consecutivos.</string>
-    <string name="help_page_arc_body">Sigue adelante y tu Arc crecerá. Después de cada Flow completado de 10 minutos o más, el multiplicador del Arc aumenta +0.1. Tienes una breve ventana de gracia entre Flows, así que continuar rápido ayuda a preservar la cadena.</string>
+    <string name="help_page_arc_body">Sigue adelante y tu Arc crecerá. Después de cada Flow completado de 10 minutos o más, el multiplicador del Arc aumenta +0.1. Iniciar otro Flow dentro del período de gracia continúa el Arc automáticamente, incluso después de tu primer Flow guardado. Entre Flows tienes 5 minutos si el Arc tiene menos de 24 horas, 30 minutos desde las 24 hasta las 72 horas y 60 minutos a partir de las 72 horas. El plazo se fija cuando termina el Flow anterior y comienza a descontarse antes de iniciar el siguiente.</string>
     <string name="help_page_arc_tip">Piensa en un Arc como el impulso a través de sesiones. Guarda el Flow, continúa y mantén viva la cadena.</string>
     <string name="help_page_surge_kicker">Surge</string>
     <string name="help_page_surge_title">Surge recompensa la precisión.</string>

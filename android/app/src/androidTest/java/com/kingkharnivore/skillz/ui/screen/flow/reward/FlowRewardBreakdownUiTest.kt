@@ -19,6 +19,40 @@ import org.junit.Test
 class FlowRewardBreakdownUiTest {
     @get:Rule val compose = createComposeRule()
 
+    @Test fun softFlowShowsEarnedDrops() {
+        showSoftReward(drops = 125L)
+
+        compose.onNodeWithText("+125 Drops").assertIsDisplayed()
+    }
+
+    @Test fun softFlowShowsZeroDrops() {
+        showSoftReward(drops = 0L)
+
+        compose.onNodeWithText("+0 Drops").assertIsDisplayed()
+    }
+
+    private fun showSoftReward(drops: Long) {
+        compose.setContent {
+            SkillzTheme(darkTheme = false, dynamicColor = false) {
+                Surface(Modifier.width(360.dp).padding(16.dp)) {
+                    SoftSessionRewardContent(
+                        r = FlowRewardUiModel(
+                            minutes = 2,
+                            baseScyraPoints = 0,
+                            tenMinuteBonuses = 0,
+                            thirtyMinuteBonuses = 0,
+                            sixtyMinuteBonuses = 0,
+                            finalScyraPoints = 0,
+                            surgePoints = 0,
+                            shellStillwaterUnits = drops,
+                            isSoftSession = true
+                        )
+                    )
+                }
+            }
+        }
+    }
+
     @Test fun surgeRowShowsBonusWhileTotalRemainsFour() {
         compose.setContent {
             SkillzTheme(darkTheme = false, dynamicColor = false) {

@@ -12,4 +12,10 @@ object ArcRules {
     const val PAUSE_BUDGET_DEFAULT_MS = 5 * 60_000L
     const val PAUSE_BUDGET_LONG_MS = 30 * 60_000L
     const val PAUSE_BUDGET_EXTENDED_MS = 60 * 60_000L
+
+    fun graceWindowMs(ageMs: Long): Long = when {
+        ageMs >= EXTENDED_PAUSE_THRESHOLD_MS -> PAUSE_BUDGET_EXTENDED_MS
+        ageMs >= LONG_PAUSE_THRESHOLD_MS -> PAUSE_BUDGET_LONG_MS
+        else -> GRACE_WINDOW_MS
+    }
 }

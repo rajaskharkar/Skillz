@@ -464,17 +464,6 @@ class FlowViewModel @Inject constructor(
         return next to leveledUp
     }
 
-    private fun refreshArcGraceWindowNowIfValid() {
-        val s = arcState ?: return
-        val now = System.currentTimeMillis()
-        if (isArcExpired(now, s)) return
-
-        val refreshed = s.copy(lastSessionEndTimeMs = now)
-        arcState = refreshed
-        viewModelScope.launch { arcPrefs.save(refreshed) }
-        syncArcUi()
-    }
-
     private fun syncArcUi() {
         val s = arcState
         val now = System.currentTimeMillis()
@@ -519,9 +508,7 @@ class FlowViewModel @Inject constructor(
         s: ArcRuntimeState
     ): Long {
         if (s.sessionCountInArc == 0) return ArcRules.GRACE_WINDOW_MS
-        val elapsedSinceLastEnd = now - s.lastSessionEndTimeMs
-        val remaining = ArcRules.GRACE_WINDOW_MS - elapsedSinceLastEnd
-        return remaining.coerceAtLeast(0L)
+        return ArcContinuationResolver.remainingMs(s, now)
     }
 
     private fun computePauseRemainingMs(
@@ -566,7 +553,7 @@ class FlowViewModel @Inject constructor(
                 arcState = ArcPauseTiming.restore(savedArc, ongoing, firstFlowStartedAt)
                 arcPrefs.save(arcState!!)
             } else if (activePlannedRun != null && isPlannedArcLaunch()) {
-                arcState = arcPrefs.load()
+                arcState = arcContinuationLifecycle.restoreStartTime(arcPrefs.load())
             } else {
                 arcState = loadActiveArc(ongoing)
             }
@@ -1574,14 +1561,11 @@ class FlowViewModel @Inject constructor(
                 )
                 }.getOrDefault(ShellRewardResult())
 
-                arcState = ArcRuntimeState(
+                arcState = ArcRuntimeState.afterFirstFlow(
                     arcId = arcId,
-                    isPending = true,
-                    multiplier = ArcRules.START_MULTIPLIER,
-                    progressMs = 0L,
-                    lastSessionEndTimeMs = sessionEnd,
-                    sessionCountInArc = 1,
-                    startedAtMs = sessionStart
+                    startedAtMs = sessionStart,
+                    endedAtMs = sessionEnd,
+                    isSoftFlow = false
                 )
                 arcPrefs.save(arcState!!)
                 syncArcUi()
@@ -1688,10 +1672,31 @@ class FlowViewModel @Inject constructor(
             _completionState.value = FlowCompletionState.CoreCommitted(insertedId)
             queuePlanCompletionQuestion(insertedId)
 
+            // Saving the very first Flow must leave the same continuation candidate
+            // as explicitly choosing Continue Arc. Its reward remains a standalone reward.
+            val firstCompletedArc = if (!isInExistingArc) {
+                ArcRuntimeState.afterFirstFlow(
+                    arcId = System.currentTimeMillis(),
+                    startedAtMs = sessionStart,
+                    endedAtMs = sessionEnd,
+                    isSoftFlow = isSoft
+                ).also { candidate ->
+                    sessionRepository.updateArcFields(
+                        sessionId = insertedId,
+                        arcId = candidate.arcId,
+                        arcIndex = 1,
+                        arcMultiplierUsed = ArcRuntimeState.BASE_MULTIPLIER,
+                        arcBonusPoints = 0,
+                        finalScyraPoints = finalScyra
+                    )
+                    arcContinuationLifecycle.completeArc(candidate, sessionEnd)
+                }
+            } else null
+
             pulseRepository.attachLivePulsesToSession(
                 flowInstanceId = currentFlowInstanceId,
                 sessionId = insertedId,
-                arcId = localArc?.arcId
+                arcId = localArc?.arcId ?: firstCompletedArc?.arcId
             )
             // TODO(Idea Grove): move Session insert and optional PulseFlowLink creation into
             // one transaction-safe Flow completion use case. linkCompletedFlowToPulse is
@@ -1771,8 +1776,8 @@ class FlowViewModel @Inject constructor(
                     surgePoints = surgePoints,
                     scyraPoints = finalScyra,
                     mode = state.mode,
-                    arcId = localArc?.arcId,
-                    arcIndex = arcIndex,
+                    arcId = localArc?.arcId ?: firstCompletedArc?.arcId,
+                    arcIndex = arcIndex ?: firstCompletedArc?.sessionCountInArc,
                     arcMultiplierUsed = arcMultiplierUsed,
                     arcBonusPoints = arcBonusPoints
                 )
@@ -2127,7 +2132,7 @@ class FlowViewModel @Inject constructor(
     ): ArcRuntimeState? {
         val now = System.currentTimeMillis()
 
-        val active = arcPrefs.load()
+        val active = arcContinuationLifecycle.restoreStartTime(arcPrefs.load())
         if (active != null) {
             if (ongoing == null && isArcExpired(now, active)) {
                 arcPrefs.clear()
@@ -2137,7 +2142,10 @@ class FlowViewModel @Inject constructor(
             return active
         }
 
-        return null
+        // Preview the saved candidate and its deadline before Start. Resolution at
+        // Start still uses persisted timestamps and never renews the grace period.
+        return arcContinuationLifecycle.restoreStartTime(arcPrefs.loadRecentlyEnded())
+            ?.takeIf { !isArcExpired(now, it) }
     }
 
     private suspend fun saveRecentlyEndedArcSnapshot(
