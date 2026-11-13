@@ -42,13 +42,17 @@ class ArcLandRewardFinalizer @Inject constructor(
         db.withTransaction {
             db.arcLandRewardDao().pending(now - ArcRules.GRACE_WINDOW_MS).forEach { pending ->
                 if (pending.arcId == startingArcId || pending.arcId == ongoingArc) return@forEach
-                // Arc may have refreshed its grace window without creating another Flow.
+                // Use the same age-based deadline as Flow start and the countdown.
                 val runtime = listOfNotNull(active, recent).filter { it.arcId == pending.arcId }
                 if (runtime.any { ArcContinuationResolver.isWithinContinuationWindow(it, now) }) return@forEach
                 val sessions = db.sessionDao().getSessionsForArc(pending.arcId)
                 val finalCount = sessions.size
                 val last = sessions.maxByOrNull { it.endTime }
-                if (last != null && now - last.endTime <= ArcRules.GRACE_WINDOW_MS) return@forEach
+                if (last != null) {
+                    val firstStart = sessions.minOf { it.startTime }
+                    val graceMs = ArcRules.graceWindowMs(last.endTime - firstStart)
+                    if (now - last.endTime <= graceMs) return@forEach
+                }
                 val rewards = LandArcRewards.forFlowCount(finalCount)
                 rewards.forEach { reward ->
                     repeat(reward.quantity) {

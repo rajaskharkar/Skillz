@@ -10,6 +10,41 @@ class ArcContinuationResolverTest {
     private val end = 1_000_000L
 
     @Test
+    fun `between Flow countdown and start eligibility share all age tier boundaries`() {
+        val hour = 60 * 60_000L
+        listOf(
+            0L to 5L, 24 * hour - 1 to 5L, 24 * hour to 30L,
+            72 * hour - 1 to 30L, 72 * hour to 60L, 100 * hour to 60L
+        ).forEach { (age, minutes) ->
+            val candidate = arc().copy(startedAtMs = end - age, pauseUsedMs = hour)
+            val budget = minutes * 60_000L
+            assertEquals(budget, ArcContinuationResolver.remainingMs(candidate, end))
+            assertEquals(1L, ArcContinuationResolver.remainingMs(candidate, end + budget - 1))
+            assertSame(candidate, resolve(candidate, end + budget))
+            assertSame(candidate, ArcContinuationResolver.resolveArcForNewFlow(candidate, null, end + budget))
+            assertEquals(0L, ArcContinuationResolver.remainingMs(candidate, end + budget))
+            assertNull(resolve(candidate, end + budget + 1))
+            assertNull(ArcContinuationResolver.resolveArcForNewFlow(candidate, null, end + budget + 1))
+        }
+    }
+
+    @Test
+    fun `waiting across an age threshold cannot extend or revive between Flow grace`() {
+        val hour = 60 * 60_000L
+        listOf(24 * hour to 5L, 72 * hour to 30L).forEach { (threshold, minutes) ->
+            val candidate = arc().copy(startedAtMs = end - threshold + 60_000L)
+            assertEquals((minutes - 2) * 60_000L, ArcContinuationResolver.remainingMs(candidate, end + 120_000L))
+            assertNull(resolve(candidate, end + minutes * 60_000L + 1))
+            assertNull(resolve(candidate, end + 3 * hour))
+        }
+    }
+
+    @Test
+    fun `empty recently ended Arc cannot continue without a completed Flow`() {
+        assertNull(resolve(arc().copy(sessionCountInArc = 0), end))
+    }
+
+    @Test
     fun `regular Flow resumes same Arc through inclusive five minute boundary`() {
         val arc = arc()
         listOf(0L, 1_000L, 2 * 60_000L, 4 * 60_000L + 59_000L, 5 * 60_000L)

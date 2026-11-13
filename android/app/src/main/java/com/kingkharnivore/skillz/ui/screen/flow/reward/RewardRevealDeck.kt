@@ -163,6 +163,14 @@ private fun RewardRevealCard(
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold
                 )
+                card.amountText?.takeIf { it != card.title && it != card.subtitle }?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
                 card.subtitle?.let {
                     Text(
                         text = it,

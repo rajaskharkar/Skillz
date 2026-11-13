@@ -9,11 +9,8 @@ object ArcPauseTiming {
         ((state.pauseStartedAtMs ?: nowMs) - (state.startedAtMs ?: nowMs)).coerceAtLeast(0L)
 
     // Lock the tier at pause start so crossing a threshold cannot revive an expired pause.
-    fun budgetMs(state: ArcRuntimeState, nowMs: Long): Long = when {
-        ageAtPauseMs(state, nowMs) >= ArcRules.EXTENDED_PAUSE_THRESHOLD_MS -> ArcRules.PAUSE_BUDGET_EXTENDED_MS
-        ageAtPauseMs(state, nowMs) >= ArcRules.LONG_PAUSE_THRESHOLD_MS -> ArcRules.PAUSE_BUDGET_LONG_MS
-        else -> ArcRules.PAUSE_BUDGET_DEFAULT_MS
-    }
+    fun budgetMs(state: ArcRuntimeState, nowMs: Long): Long =
+        ArcRules.graceWindowMs(ageAtPauseMs(state, nowMs))
 
     fun remainingMs(state: ArcRuntimeState, nowMs: Long): Long {
         val activePause = state.pauseStartedAtMs?.let { (nowMs - it).coerceAtLeast(0L) } ?: 0L

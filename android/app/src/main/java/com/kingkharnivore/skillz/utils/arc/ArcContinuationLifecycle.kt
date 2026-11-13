@@ -19,6 +19,10 @@ class ArcContinuationLifecycle(
     private val store: ArcContinuationStore,
     private val firstFlowStartedAtMs: suspend (Long) -> Long? = { null }
 ) {
+    suspend fun restoreStartTime(state: ArcRuntimeState?): ArcRuntimeState? = state?.let {
+        if (it.startedAtMs != null) it else it.copy(startedAtMs = firstFlowStartedAtMs(it.arcId))
+    }
+
     suspend fun completeArc(finalState: ArcRuntimeState, flowEndTimeMs: Long) {
         store.saveRecentlyEnded(
             state = finalState.copy(lastSessionEndTimeMs = flowEndTimeMs),
@@ -29,8 +33,8 @@ class ArcContinuationLifecycle(
 
     suspend fun resolveForFlowStart(flowStartTimeMs: Long, isSoftFlow: Boolean): ArcRuntimeState? {
         val resolved = ArcContinuationResolver.resolveArcForNewFlow(
-            activeArc = store.loadActive(),
-            recentlyEndedArc = store.loadRecentlyEnded(),
+            activeArc = restoreStartTime(store.loadActive()),
+            recentlyEndedArc = restoreStartTime(store.loadRecentlyEnded()),
             flowStartTimeMs = flowStartTimeMs
         )
 
@@ -44,7 +48,7 @@ class ArcContinuationLifecycle(
         val freshFlow = resolved.copy(
             pauseUsedMs = 0L,
             pauseStartedAtMs = null,
-            startedAtMs = resolved.startedAtMs ?: firstFlowStartedAtMs(resolved.arcId) ?: flowStartTimeMs
+            startedAtMs = resolved.startedAtMs ?: flowStartTimeMs
         )
         val started = if (isSoftFlow) freshFlow.resetMultiplierForSoftFlow() else freshFlow
         store.saveActive(started)

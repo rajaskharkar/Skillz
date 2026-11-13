@@ -21,6 +21,26 @@ class ArcPauseTimingTest {
     private val arc = ArcRuntimeState(42, false, 1.6, 0, pauseStart - minute, 9,
         pauseUsedMs = minute, pauseStartedAtMs = pauseStart, startedAtMs = pauseStart - 4 * hour)
 
+    @Test fun firstSavedFlowCandidateSurvivesPreferenceAndLifecycleRecreation() = runBlocking {
+        for ((age, minutes) in listOf(hour to 5L, 24 * hour to 30L, 72 * hour to 60L)) {
+            val store = MemoryPreferences()
+            val first = ArcRuntimeState.afterFirstFlow(42, pauseStart - age, pauseStart, false)
+            ArcContinuationLifecycle(ArcPrefs(store)).completeArc(first, pauseStart)
+            assertNull(ArcPrefs(store).loadActive())
+
+            val restored = ArcPrefs(store).loadRecentlyEnded()!!
+            assertEquals(first, restored)
+            assertEquals(minutes * minute, ArcContinuationResolver.remainingMs(restored, pauseStart))
+            val started = ArcContinuationLifecycle(ArcPrefs(store))
+                .resolveForFlowStart(pauseStart + minutes * minute, false)!!
+            assertEquals(42L, started.arcId)
+            assertEquals(1, started.sessionCountInArc)
+            assertEquals(first.startedAtMs, started.startedAtMs)
+            assertEquals(started, ArcPrefs(store).loadActive())
+            assertNull(ArcPrefs(store).loadRecentlyEnded())
+        }
+    }
+
     @Test fun timerPersistencePreservesOtherPreferencesAndCompletedArcHistory() = runBlocking {
         val store = MemoryPreferences()
         val language = stringPreferencesKey("app_language_tag")
