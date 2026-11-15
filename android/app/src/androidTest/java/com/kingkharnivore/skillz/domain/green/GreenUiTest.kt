@@ -99,10 +99,12 @@ class GreenUiTest {
         } } }
         val initial = compose.onNodeWithTag("green-specimen-dialog").fetchSemanticsNode().boundsInRoot
         val water = compose.onNodeWithText("Water").fetchSemanticsNode().boundsInRoot
+        val levelText = compose.onNodeWithTag("green-level-stage").fetchSemanticsNode().boundsInRoot.topLeft
         fun assertAnchored() {
             compose.waitForIdle()
             assertEquals(initial, compose.onNodeWithTag("green-specimen-dialog").fetchSemanticsNode().boundsInRoot)
             assertEquals(water, compose.onNodeWithText("Water").fetchSemanticsNode().boundsInRoot)
+            assertEquals(levelText, compose.onNodeWithTag("green-level-stage").fetchSemanticsNode().boundsInRoot.topLeft)
         }
         repeat(3) { iteration ->
             compose.onNodeWithText("Water").performClick()

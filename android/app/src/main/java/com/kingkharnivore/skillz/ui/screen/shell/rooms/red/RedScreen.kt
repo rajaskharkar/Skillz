@@ -52,6 +52,9 @@ import com.kingkharnivore.skillz.utils.shell.*
 import com.kingkharnivore.skillz.viewmodel.shell.RedUiState
 import com.kingkharnivore.skillz.viewmodel.shell.RedViewModel
 import java.util.UUID
+import kotlin.math.roundToInt
+
+private data class RedGrowthSelection(val instanceId: String, val level: Int, val levels: Int, val cost: Int)
 
 @Composable
 fun RedRoute(onBadges: () -> Unit, onTrade: () -> Unit, initialCreature: String? = null,
@@ -75,7 +78,7 @@ fun RedRoute(onBadges: () -> Unit, onTrade: () -> Unit, initialCreature: String?
 @Composable
 fun RedScreen(
     state: RedUiState, busy: Boolean = false, onBadges: () -> Unit = {}, onTrade: () -> Unit = {},
-    onPurchase: (String, String) -> Unit = { _, _ -> }, onGrow: (String, Int) -> Unit = { _, _ -> },
+    onPurchase: (String, String) -> Unit = { _, _ -> }, onGrow: (String, Int, Int) -> Unit = { _, _, _ -> },
     onRelease: (String) -> Unit = {}, initialEra: RedEra? = null, initialCatalog: Boolean = false,
     initialCreature: String? = null, simulatedSceneTime: Float? = null, initialPageOffsetFraction: Float = 0f,
     onEraChanged: (RedEra) -> Unit = {}, onInitialCreatureOpened: () -> Unit = {}
@@ -191,12 +194,14 @@ private fun BeyondRedSheet(state: RedUiState, initialEra: RedEra, onDismiss: ()-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RedCreatureDetail(creature: RedCatalogEntry, state: RedUiState, busy: Boolean, onDismiss: () -> Unit,
-    onPurchase: (String, String) -> Unit, onGrow: (String, Int) -> Unit, onRelease: (String) -> Unit, onTrade: () -> Unit) {
+    onPurchase: (String, String) -> Unit, onGrow: (String, Int, Int) -> Unit, onRelease: (String) -> Unit, onTrade: () -> Unit) {
     val copies = state.creatures.filter { it.findId == creature.id }
     val active = copies.filter { it.creatureStatus == CreatureStatus.ACTIVE }
     val growth = active.filter { it.animalLevel < 99 }.maxByOrNull { it.animalLevel }
     val masteryCount = maxOf(state.masteries[creature.id] ?: 0, copies.count { it.animalLevel >= 99 })
-    var action by remember { mutableStateOf<String?>(null) }
+    var action by remember(creature.id) { mutableStateOf<String?>(null) }
+    var selectedLevels by rememberSaveable(growth?.instanceId, growth?.animalLevel) { mutableIntStateOf(1) }
+    var pendingGrowth by remember(creature.id) { mutableStateOf<RedGrowthSelection?>(null) }
     var purchaseId by rememberSaveable(creature.id) { mutableStateOf(UUID.randomUUID().toString()) }
     LaunchedEffect(copies.size) { purchaseId = UUID.randomUUID().toString() }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
@@ -214,8 +219,26 @@ fun RedCreatureDetail(creature: RedCatalogEntry, state: RedUiState, busy: Boolea
                 Text(stringResource(if (state.pebbles < creature.pebbleCost) R.string.red_insufficient else if (copies.isEmpty()) R.string.red_purchase else R.string.red_purchase_copy))
             }
             growth?.let { instance ->
-                val cost = CreatureEconomy.growthCost(creature.id, instance.animalLevel).amount
-                OutlinedButton(enabled = !busy && state.pebbles >= cost, onClick = { action = "grow" }, modifier = Modifier.fillMaxWidth()) { Text(pluralStringResource(R.plurals.red_grow, cost, cost)) }
+                val affordableLevels = CreatureEconomy.affordableGrowthLevels(creature.id, instance.animalLevel, state.pebbles)
+                val levels = selectedLevels.coerceIn(1, affordableLevels.coerceAtLeast(1))
+                val cost = CreatureEconomy.growthCostForLevels(creature.id, instance.animalLevel, levels).amount
+                val creatureName = stringResource(creature.nameRes)
+                Text(pluralStringResource(R.plurals.chest_growth_projection_pebbles, affordableLevels,
+                    state.pebbles, affordableLevels, instance.animalLevel + affordableLevels), Modifier.testTag("red-growth-projection"))
+                Text(stringResource(R.string.chest_growth_levels, levels))
+                Slider(value = levels.toFloat(), onValueChange = { selectedLevels = it.roundToInt() },
+                    valueRange = 1f..affordableLevels.coerceAtLeast(2).toFloat(),
+                    steps = (affordableLevels - 2).coerceAtLeast(0), enabled = !busy && affordableLevels > 1,
+                    modifier = Modifier.testTag("red-growth-slider").semantics { contentDescription = creatureName })
+                Text(stringResource(R.string.chest_growth_transition, instance.animalLevel, instance.animalLevel + levels))
+                Text(stringResource(R.string.chest_growth_total_pebbles, cost), Modifier.testTag("red-growth-cost"))
+                OutlinedButton(enabled = !busy && affordableLevels > 0, onClick = {
+                    pendingGrowth = RedGrowthSelection(instance.instanceId, instance.animalLevel, levels, cost)
+                    action = "grow"
+                }, modifier = Modifier.fillMaxWidth().testTag("red-grow-selected")) {
+                    Text(if (levels == 1) pluralStringResource(R.plurals.red_grow, cost, cost)
+                        else stringResource(R.string.chest_growth_action, levels))
+                }
             }
             active.firstOrNull()?.let { instance ->
                 OutlinedButton(enabled = !busy, onClick = { action = "release" }, modifier = Modifier.fillMaxWidth()) { Text(pluralStringResource(R.plurals.red_release, CreatureEconomy.releaseValuePearls(creature.id, instance.animalLevel), CreatureEconomy.releaseValuePearls(creature.id, instance.animalLevel))) }
@@ -224,15 +247,21 @@ fun RedCreatureDetail(creature: RedCatalogEntry, state: RedUiState, busy: Boolea
         }
     }
     action?.let { pending ->
-        val amount = when(pending) { "grow" -> growth?.let { CreatureEconomy.growthCost(creature.id, it.animalLevel).amount } ?: 0; "release" -> active.firstOrNull()?.let { CreatureEconomy.releaseValuePearls(creature.id, it.animalLevel) } ?: 0; else -> creature.pebbleCost }
+        val amount = when(pending) { "grow" -> pendingGrowth?.cost ?: 0; "release" -> active.firstOrNull()?.let { CreatureEconomy.releaseValuePearls(creature.id, it.animalLevel) } ?: 0; else -> creature.pebbleCost }
         AlertDialog(onDismissRequest = { action = null }, title = { Text(stringResource(creature.nameRes)) },
-            text = { Text(pluralStringResource(when(pending) { "grow" -> R.plurals.red_grow; "release" -> R.plurals.red_release; else -> R.plurals.red_price }, amount, amount)) },
+            text = {
+                if (pending == "grow") pendingGrowth?.let { selection ->
+                    Text(stringResource(R.string.chest_growth_confirm_pebbles, stringResource(creature.nameRes),
+                        selection.level, selection.level + selection.levels, selection.cost))
+                } else Text(pluralStringResource(if (pending == "release") R.plurals.red_release else R.plurals.red_price, amount, amount))
+            },
             confirmButton = { TextButton(enabled = !busy && when (pending) {
-                "grow" -> growth != null && state.pebbles >= amount
+                "grow" -> pendingGrowth?.let { selection -> state.pebbles >= selection.cost &&
+                    active.any { it.instanceId == selection.instanceId && it.animalLevel == selection.level } } == true
                 "purchase" -> state.pebbles >= amount
                 else -> active.isNotEmpty()
             }, onClick = {
-                when(pending) { "purchase" -> { onPurchase(creature.id, purchaseId) }; "grow" -> growth?.let { onGrow(it.instanceId, it.animalLevel) }; "release" -> active.firstOrNull()?.let { onRelease(it.instanceId) } }
+                when(pending) { "purchase" -> { onPurchase(creature.id, purchaseId) }; "grow" -> pendingGrowth?.let { onGrow(it.instanceId, it.level, it.levels) }; "release" -> active.firstOrNull()?.let { onRelease(it.instanceId) } }
                 action = null
             }) { Text(stringResource(R.string.red_confirm)) } },
             dismissButton = { TextButton(onClick = { action = null }) { Text(stringResource(R.string.common_cancel)) } })

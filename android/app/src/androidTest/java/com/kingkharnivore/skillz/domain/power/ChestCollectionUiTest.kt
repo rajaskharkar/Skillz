@@ -90,6 +90,26 @@ class ChestCollectionUiTest {
         compose.runOnIdle { assertEquals(1, requested) }
     }
 
+    @Test fun chestConfirmsMultipleRedLevelsUsingOnlyPebbles() {
+        val id = "triassic_saturnalia"
+        val cost = CreatureEconomy.growthCostForLevels(id, 1, 3).amount
+        val state = mutableStateOf(ShellUiState(finds = listOf(find(id)), pebbleBalance = cost))
+        var requested: Triple<String, Int, Int>? = null
+        compose.setContent { Theme {
+            ShellChestScreen(state.value, { _, _ -> }, { instance, level, count -> requested = Triple(instance, level, count) },
+                {}, {}, {}, focusSpeciesId = id)
+        } }
+        compose.onNodeWithTag("chest-growth-slider").performScrollTo()
+            .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(3f) }
+        compose.onNodeWithTag("chest-growth-cost").assertTextEquals("Total: $cost Pebbles")
+        compose.onNodeWithTag("chest-grow-selected").performScrollTo().performClick()
+        compose.runOnIdle { state.value = state.value.copy(pebbleBalance = cost - 1, pearlBalance = 1_000_000) }
+        compose.onNodeWithTag("chest-confirm-level-up").assertIsNotEnabled()
+        compose.runOnIdle { state.value = state.value.copy(pebbleBalance = cost) }
+        compose.onNodeWithTag("chest-confirm-level-up").performClick()
+        compose.runOnIdle { assertEquals(Triple("$id-1", 1, 3), requested) }
+    }
+
     @Test fun projectionStopsAtLevel99AndClampsWhenBalanceShrinks() {
         val id = "focus_minnow"
         val state = mutableStateOf(ShellUiState(finds = listOf(find(id, 97)), pearlBalance = 1_000_000))

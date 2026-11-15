@@ -27,7 +27,10 @@ class RedViewModel @Inject constructor(private val repository: ShellRepository, 
     val message = _message.asStateFlow()
     fun clearMessage() { _message.value = null }
     fun purchase(id: String, transactionId: String) = mutate { repository.purchaseRedCreature(id, transactionId) }
-    fun grow(instanceId: String, level: Int) = mutate { repository.growCreature(instanceId, "level_up:$instanceId:${level + 1}", "RED") }
+    fun grow(instanceId: String, level: Int, levels: Int) = mutate {
+        repository.growCreature(instanceId, "level_up:$instanceId:${level + levels}", "RED",
+            levels = levels, expectedLevel = level)
+    }
     fun release(instanceId: String) = mutate { repository.releaseCreature(instanceId) }
     private fun mutate(block: suspend () -> Any) {
         if (_busy.value) return

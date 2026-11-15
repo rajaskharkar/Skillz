@@ -74,12 +74,12 @@ class PowerRedUiTest {
             "saturnalia", "triassic_saturnalia", 1, "test", null, null, null, false, true)
         val state = androidx.compose.runtime.mutableStateOf(RedUiState(pebbles = 70, pearls = 100_000, creatures = listOf(owned)))
         compose.setContent { SkillzTheme(dynamicColor = false) {
-            RedScreen(state.value, onGrow = { _, _ -> grew = true }, simulatedSceneTime = 0f,
+            RedScreen(state.value, onGrow = { _, _, _ -> grew = true }, simulatedSceneTime = 0f,
                 initialEra = RedEra.TRIASSIC, initialCreature = "triassic_saturnalia")
         } }
         compose.onNodeWithText("Level up · 71 Pebbles").assertIsNotEnabled()
         compose.runOnIdle { state.value = state.value.copy(pebbles = 71, pearls = 0) }
-        compose.onNodeWithText("Level up · 71 Pebbles").assertIsEnabled().performClick()
+        compose.onNodeWithText("Level up · 71 Pebbles").performScrollTo().assertIsEnabled().performClick()
         compose.onNodeWithText("Confirm").performClick()
         compose.runOnIdle { assertTrue(grew) }
     }
@@ -90,6 +90,32 @@ class PowerRedUiTest {
         compose.onNodeWithText("Acquire dinosaur").performClick()
         compose.onNodeWithText("Confirm").performClick()
         compose.runOnIdle { assertEquals("triassic_saturnalia",purchased) }
+    }
+
+    @Test fun redBulkGrowthCapsAtMasteryAndKeepsTheConfirmedQuoteWhenStateChanges() {
+        val id = "triassic_saturnalia"
+        val owned = com.kingkharnivore.skillz.data.model.entity.shell.UserShellFindInstanceEntity(
+            "saturnalia", id, 1, "test", null, null, null, false, true, animalLevel = 96)
+        val cost = com.kingkharnivore.skillz.utils.shell.CreatureEconomy.growthCostForLevels(id, 96, 3).amount
+        val state = androidx.compose.runtime.mutableStateOf(RedUiState(pebbles = cost, creatures = listOf(owned)))
+        var requested: Triple<String, Int, Int>? = null
+        compose.setContent { SkillzTheme(dynamicColor = false) {
+            RedScreen(state.value, onGrow = { instance, level, levels -> requested = Triple(instance, level, levels) },
+                simulatedSceneTime = 0f, initialCreature = id)
+        } }
+        compose.onNodeWithTag("red-growth-projection").assertTextContains("3 levels (up to Level 99)", substring = true)
+        compose.onNodeWithText("Levels to gain: 1").assertExists()
+        compose.onNodeWithTag("red-growth-slider").performScrollTo()
+            .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(3f) }
+        compose.onNodeWithText("Level 96 → 99").assertExists()
+        compose.onNodeWithTag("red-grow-selected").performScrollTo().performClick()
+        compose.runOnIdle { state.value = state.value.copy(pebbles = cost - 1, pearls = 1_000_000) }
+        compose.onNodeWithText("Confirm").assertIsNotEnabled()
+        compose.runOnIdle { state.value = state.value.copy(pebbles = cost, creatures = listOf(owned.copy(animalLevel = 97))) }
+        compose.onNodeWithText("Confirm").assertIsNotEnabled()
+        compose.runOnIdle { state.value = state.value.copy(creatures = listOf(owned)) }
+        compose.onNodeWithText("Confirm").assertIsEnabled().performClick()
+        compose.runOnIdle { assertEquals(Triple(owned.instanceId, 96, 3), requested) }
     }
     @Test fun insufficientBalanceDisablesPurchase() {
         compose.setContent { SkillzTheme(dynamicColor=false) { RedScreen(RedUiState(pebbles=0),simulatedSceneTime=0f,initialEra=RedEra.TRIASSIC,initialCreature="triassic_saturnalia") } }
