@@ -1,8 +1,8 @@
 package com.kingkharnivore.skillz.domain.green
 
-import androidx.room.Room
 import androidx.room.testing.MigrationTestHelper
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.room.Room
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.migration.SkillzDatabaseMigrations
 import com.kingkharnivore.skillz.utils.shell.CreatureCatalog
@@ -40,7 +40,7 @@ class GreenMigrationTest {
             db.query("SELECT COUNT(*) FROM green_specimen WHERE releasedAt IS NULL").use { assertTrue(it.moveToFirst()); assertEquals(2, it.getInt(0)) }
         }
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val reopened = Room.databaseBuilder(context, SkillzDatabase::class.java, name).build()
+        val reopened = Room.databaseBuilder(context, SkillzDatabase::class.java, name).addMigrations(*SkillzDatabaseMigrations.ALL_MIGRATIONS).build()
         try { assertTrue(reopened.openHelper.writableDatabase.isOpen) } finally { reopened.close() }
         context.deleteDatabase(name)
     }
@@ -78,7 +78,7 @@ class GreenMigrationTest {
                 db.query("SELECT perspective FROM stillwater_preference").use { assertTrue(it.moveToFirst());assertEquals("LAND",it.getString(0)) }
             }
             val context=InstrumentationRegistry.getInstrumentation().targetContext
-            val reopened = Room.databaseBuilder(context,SkillzDatabase::class.java,name).addMigrations(*SkillzDatabaseMigrations.ALL_MIGRATIONS).build()
+            val reopened = Room.databaseBuilder(context, SkillzDatabase::class.java, name).addMigrations(*SkillzDatabaseMigrations.ALL_MIGRATIONS).build()
             try { assertTrue(reopened.openHelper.writableDatabase.isOpen) } finally { reopened.close() }
             context.deleteDatabase(name)
         }

@@ -2288,9 +2288,9 @@
     <string name="horizon_habits">आदतें</string>
     <string name="horizon_plans">योजनाएँ</string>
     <string name="horizon_memories">यादें</string>
-    <string name="horizon_memories_hint">आपकी पूरी हुई गतिविधियाँ, सबसे हाल की पहले।</string>
+    <string name="horizon_memories_hint">आपकी आदतों, योजनाओं और विचारों की यात्राएँ, सबसे हाल के Flow पहले।</string>
     <string name="horizon_empty_memories">यादें एक Flow से शुरू होती हैं</string>
-    <string name="horizon_empty_memories_body">किसी आदत या योजना को पूरा करें और उसके Flow का विवरण यहाँ पाएँ।</string>
+    <string name="horizon_empty_memories_body">किसी आदत, योजना या विचार के लिए Flow रिकॉर्ड करें और उसकी यात्रा यहाँ देखें।</string>
     <string name="horizon_habits_hint">बार-बार लौटें। हर Flow के बाद आदतें यहीं रहेंगी।</string>
     <string name="horizon_plans_hint">एक योजना पर कई Flow में काम करें। हर Flow के बाद चुनें कि योजना पूरी हुई या नहीं। आपकी प्रगति यादों में रहेगी।</string>
     <string name="horizon_empty_habits">आप क्या बार-बार करना चाहेंगे?</string>
@@ -2370,4 +2370,9 @@
     <string name="lookout_cycle_dates">चक्र: %1$s – %2$s</string>
     <string name="shell_enter_focus">फोकस रूम में जाएँ</string>
     <string name="the_blue_created_from_flow">आपके फ़ोकस समय से बना।</string>
+    <string name="horizon_idea">विचार</string>
+    <string name="horizon_ideas_hint">Idea Grove में एक विचार सहेजें। उससे Flow रिकॉर्ड करें ताकि उसकी यात्रा आगे बढ़े और वह यादों में दिखे।</string>
+    <string name="horizon_save_idea">Idea Grove में सहेजें</string>
+    <string name="horizon_idea_saved">Idea Grove में सहेजा गया</string>
+    <string name="horizon_new_idea">नया विचार</string>
 </resources>

@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.Role
 
 import com.kingkharnivore.skillz.model.FlowMode
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kingkharnivore.skillz.model.state.flow.ActivityTitleSuggestion
 import com.kingkharnivore.skillz.model.state.flow.requiresSoftArcConfirmation
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -131,7 +132,7 @@ fun FlowScreen(
     val isSaving by viewModel.isSaving.collectAsState()
     val error by viewModel.error.collectAsState()
     val tags by viewModel.suggestedTags.collectAsState()
-    val suggestedActivities by viewModel.suggestedActivities.collectAsState()
+    val suggestedActivities by viewModel.suggestedActivities.collectAsStateWithLifecycle()
     val reward by viewModel.lastReward.collectAsState()
     val pendingPlanCompletion by viewModel.pendingPlanCompletion.collectAsState()
     val isAnsweringPlanCompletion by viewModel.isAnsweringPlanCompletion.collectAsState()

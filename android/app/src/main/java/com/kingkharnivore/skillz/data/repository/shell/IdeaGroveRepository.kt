@@ -11,6 +11,7 @@ import com.kingkharnivore.skillz.data.model.dao.shell.IdeaGroveDao
 import com.kingkharnivore.skillz.data.model.entity.ChronicleMomentType
 import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
 import com.kingkharnivore.skillz.data.model.entity.PulseEntity
+import com.kingkharnivore.skillz.data.model.entity.PulseCreationEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseFlowLinkEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseGroveStatusValues
 import com.kingkharnivore.skillz.data.model.entity.SessionEntity
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.util.UUID
 
 @Singleton
 class IdeaGroveRepository @Inject constructor(
@@ -45,8 +47,25 @@ class IdeaGroveRepository @Inject constructor(
         mapItems(pulses, links, sessions, tags, texts)
     }
 
-    suspend fun markPulseAsInsight(pulseId: Long) {
-        if (ideaGroveDao.getLinkedFlowCount(pulseId) > 0) return
+    /** A new Idea starts as an alive Pulse; its first recorded Flow grows its journey. */
+    suspend fun createIdea(
+        title: String,
+        journeyName: String,
+        creationKey: String = UUID.randomUUID().toString()
+    ): Long = database.withTransaction {
+        require(creationKey.isNotBlank())
+        pulseDao.findCreatedPulse(creationKey)?.let { return@withTransaction it }
+        require(title.isNotBlank())
+        val tagId = journeyName.trim().takeIf(String::isNotEmpty)?.let { name ->
+            tagDao.getTagByName(name)?.id ?: tagDao.insertTag(TagEntity(name = name))
+        }
+        val id = pulseRepository.addPulse(title.trim(), "", tagId, null, null, null)
+        pulseDao.insertCreation(PulseCreationEntity(creationKey, id, System.currentTimeMillis()))
+        id
+    }
+
+    suspend fun markPulseAsInsight(pulseId: Long) = database.withTransaction {
+        if (ideaGroveDao.getLinkedFlowCount(pulseId) > 0) return@withTransaction
         ideaGroveDao.updatePulseGroveStatus(
             pulseId = pulseId,
             status = PulseGroveStatusValues.INSIGHT,
@@ -54,8 +73,8 @@ class IdeaGroveRepository @Inject constructor(
         )
     }
 
-    suspend fun markPulseCompleted(pulseId: Long) {
-        if (ideaGroveDao.getLinkedFlowCount(pulseId) <= 0) return
+    suspend fun markPulseCompleted(pulseId: Long) = database.withTransaction {
+        if (ideaGroveDao.getLinkedFlowCount(pulseId) <= 0) return@withTransaction
         ideaGroveDao.updatePulseGroveStatus(
             pulseId = pulseId,
             status = PulseGroveStatusValues.COMPLETED,
@@ -106,30 +125,6 @@ class IdeaGroveRepository @Inject constructor(
         )
     }
 
-    suspend fun linkCompletedFlowToPulse(pulseId: Long, sessionId: Long) {
-        runCatching {
-            database.withTransaction {
-                val pulse = ideaGroveDao.getPulse(pulseId) ?: return@withTransaction
-                if (sessionDao.getSessionById(sessionId) == null) return@withTransaction
-                val now = System.currentTimeMillis()
-                ideaGroveDao.insertPulseFlowLink(
-                    PulseFlowLinkEntity(
-                        pulseId = pulseId,
-                        sessionId = sessionId,
-                        linkedAt = now
-                    )
-                )
-                if (pulse.groveStatus == PulseGroveStatusValues.INSIGHT) {
-                    ideaGroveDao.updatePulseGroveStatus(
-                        pulseId = pulseId,
-                        status = PulseGroveStatusValues.ALIVE,
-                        changedAt = now
-                    )
-                }
-            }
-        }
-    }
-
     private fun mapItems(
         pulses: List<PulseEntity>,
         links: List<PulseFlowLinkEntity>,
@@ -150,7 +145,7 @@ class IdeaGroveRepository @Inject constructor(
                     IdeaGroveFlowUiModel(
                         sessionId = session.id,
                         title = session.title,
-                        description = previews["SESSION/${session.id}"].orEmpty(),
+                        description = previews["SESSION/${session.id}"] ?: session.description,
                         journeyName = tagsById[session.tagId]?.name,
                         durationMs = session.durationMs,
                         startTime = session.startTime,
@@ -160,12 +155,11 @@ class IdeaGroveRepository @Inject constructor(
                 .sortedByDescending { it.endTime ?: it.startTime }
 
             val flowCount = flows.size
-            val effectiveStatus = if (
-                pulse.groveStatus == PulseGroveStatusValues.COMPLETED && flowCount == 0
-            ) {
-                PulseGroveStatusValues.ALIVE
-            } else {
-                pulse.groveStatus
+            val effectiveStatus = when {
+                pulse.groveStatus == PulseGroveStatusValues.COMPLETED && flowCount == 0 -> PulseGroveStatusValues.ALIVE
+                // Old racing status updates must not hide a recorded journey as an Insight.
+                pulse.groveStatus == PulseGroveStatusValues.INSIGHT && flowCount > 0 -> PulseGroveStatusValues.ALIVE
+                else -> pulse.groveStatus
             }
             val type = when {
                 effectiveStatus == PulseGroveStatusValues.INSIGHT -> IdeaGroveItemType.INSIGHT
@@ -179,7 +173,7 @@ class IdeaGroveRepository @Inject constructor(
                 pulseId = pulse.id,
                 type = type,
                 title = pulse.title,
-                description = previews["PULSE/${pulse.id}"].orEmpty(),
+                description = previews["PULSE/${pulse.id}"] ?: pulse.description,
                 journeyName = pulse.tagId?.let { tagsById[it]?.name },
                 createdAt = pulse.createdAt,
                 updatedAt = pulse.updatedAt,

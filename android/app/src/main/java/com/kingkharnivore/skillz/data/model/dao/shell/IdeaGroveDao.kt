@@ -10,6 +10,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface IdeaGroveDao {
+    @Query("SELECT pulses.* FROM pulses INNER JOIN pulse_flow_links ON pulses.id = pulse_flow_links.pulseId WHERE pulse_flow_links.sessionId = :sessionId")
+    suspend fun getIdeasForSession(sessionId: Long): List<PulseEntity>
+
+    @Query("SELECT * FROM pulses WHERE tagId = :tagId")
+    suspend fun getCompletionCandidates(tagId: Long): List<PulseEntity>
+
     @Query("SELECT * FROM pulse_flow_links ORDER BY linkedAt DESC")
     fun observePulseFlowLinks(): Flow<List<PulseFlowLinkEntity>>
 

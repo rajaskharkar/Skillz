@@ -13,6 +13,9 @@ import com.kingkharnivore.skillz.data.model.entity.HorizonKind
 import com.kingkharnivore.skillz.data.model.dao.ChronicleDao
 import com.kingkharnivore.skillz.data.model.entity.ChronicleOwnerType
 import com.kingkharnivore.skillz.data.model.entity.SessionCreationEntity
+import com.kingkharnivore.skillz.data.model.entity.PulseEntity
+import com.kingkharnivore.skillz.data.model.entity.PulseFlowLinkEntity
+import com.kingkharnivore.skillz.data.model.entity.PulseGroveStatusValues
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
@@ -42,37 +45,77 @@ class FlowRepository @Inject constructor(
             rows.map { it.copy(scyraPoints = it.scyraPoints + (points[it.id] ?: 0)) }
         }
 
-    suspend fun addSessionAndPromoteChronicle(flowInstanceId: String, session: SessionEntity): Long =
+    suspend fun addSessionAndPromoteChronicle(
+        flowInstanceId: String,
+        session: SessionEntity,
+        originPulseId: Long? = null
+    ): Long =
         chronicleRepository.finalizeOwner(ChronicleOwnerType.ACTIVE_FLOW, flowInstanceId) {
           database.withTransaction {
             sessionDao.findCreatedSession(flowInstanceId)?.let { return@withTransaction it }
-            val id = sessionDao.insertSession(session)
+            // Resolve using final values, including restored drafts with stale launch IDs.
+            // Keep this read and all resulting writes in the same transaction.
+            val association = if (session.durationMs > 0) resolveActivity(session, originPulseId) else null
+            val id = sessionDao.insertSession(session.copy(originPlanId = association?.plan?.id))
+            // Commit the Idea journey with the Flow and its creation receipt. Retrying is idempotent.
+            association?.pulse?.let { pulse ->
+                val grove = database.ideaGroveDao()
+                val now = System.currentTimeMillis()
+                val shouldRevive = pulse.groveStatus == PulseGroveStatusValues.INSIGHT ||
+                    (pulse.groveStatus == PulseGroveStatusValues.COMPLETED && grove.getLinkedFlowCount(pulse.id) == 0)
+                grove.insertPulseFlowLink(PulseFlowLinkEntity(pulseId = pulse.id, sessionId = id, linkedAt = now))
+                if (shouldRevive) {
+                    grove.updatePulseGroveStatus(pulse.id, PulseGroveStatusValues.ALIVE, now)
+                }
+            }
             LifetimePointsBadgeRecorder.reconcile(database)
             database.powerRewardDao().enqueue(com.kingkharnivore.skillz.data.model.entity.shell.SessionShellRewardEntity(sessionId = id, queuedAt = System.currentTimeMillis()))
             session.arcId?.let { com.kingkharnivore.skillz.utils.arc.ArcLandRewardJournal.record(database, it) }
             pulseDao.attachLivePulsesToSession(flowInstanceId, id, session.arcId)
             chronicleDao.promote(ChronicleOwnerType.ACTIVE_FLOW, flowInstanceId,
                 ChronicleOwnerType.SESSION, id.toString(), System.currentTimeMillis())
-            session.originPlanId?.let { sourceId ->
-                val plan = database.flowPlanDao().getFlowPlanById(sourceId)
-                // A timer must have accumulated time. Opening / zero-time Continue Arc is not completion.
-                // Habits retain their tag requirement. Plan attempts stay linked even if the user changes the tag.
-                if (plan != null && (plan.kind == HorizonKind.PLAN || plan.tagId == null || plan.tagId == session.tagId) && session.durationMs > 0 &&
-                    (plan.kind == HorizonKind.HABIT || plan.completedAt == null)) {
-                    val tagName = database.tagDao().getAllTagsSnapshot().firstOrNull { it.id == session.tagId }?.name.orEmpty()
-                    database.horizonMemoryDao().insert(com.kingkharnivore.skillz.data.model.entity.HorizonMemoryEntity(
-                        flowInstanceId = flowInstanceId, sourcePlanId = sourceId, kind = plan.kind,
-                        activityTitle = plan.title, sessionId = id, title = session.title, tagName = tagName,
-                        mode = session.mode, durationMs = session.durationMs, score = session.scyraPoints,
-                        surgePoints = session.surgePoints, surgePlannedMs = session.surgePlannedMs,
-                        arcId = session.arcId, arcMultiplier = session.arcMultiplierUsed, completedAt = session.endTime
-                    ))
-                }
+            association?.plan?.let { plan ->
+                val tagName = tagDao.getAllTagsSnapshot().firstOrNull { it.id == session.tagId }?.name.orEmpty()
+                database.horizonMemoryDao().insert(com.kingkharnivore.skillz.data.model.entity.HorizonMemoryEntity(
+                    flowInstanceId = flowInstanceId, sourcePlanId = plan.id, kind = plan.kind,
+                    activityTitle = plan.title, sessionId = id, title = session.title, tagName = tagName,
+                    mode = session.mode, durationMs = session.durationMs, score = session.scyraPoints,
+                    surgePoints = session.surgePoints, surgePlannedMs = session.surgePlannedMs,
+                    arcId = session.arcId, arcMultiplier = session.arcMultiplierUsed, completedAt = session.endTime
+                ))
             }
             sessionDao.insertCreation(SessionCreationEntity(flowInstanceId, id, System.currentTimeMillis()))
             id
           }
         }
+
+    private data class ActivityAssociation(val plan: FlowPlanEntity? = null, val pulse: PulseEntity? = null)
+
+    /** A selected ID only breaks ties when its current title AND journey still match. */
+    private suspend fun resolveActivity(session: SessionEntity, selectedPulseId: Long?): ActivityAssociation? {
+        fun matches(title: String) = title.trim().equals(session.title.trim(), ignoreCase = true)
+        val plans = database.flowPlanDao().getCompletionCandidates(session.tagId).filter { matches(it.title) }
+        val grove = database.ideaGroveDao()
+        val ideas = grove.getCompletionCandidates(session.tagId).filter { pulse ->
+            matches(pulse.title) && when (pulse.groveStatus) {
+                PulseGroveStatusValues.ALIVE -> true
+                PulseGroveStatusValues.COMPLETED -> grove.getLinkedFlowCount(pulse.id) == 0
+                // A selected Idea may have become an Insight while its Flow was running.
+                PulseGroveStatusValues.INSIGHT -> pulse.id == selectedPulseId || grove.getLinkedFlowCount(pulse.id) > 0
+                else -> false
+            }
+        }
+        val candidates = plans.map { ActivityAssociation(plan = it) } + ideas.map { ActivityAssociation(pulse = it) }
+        val selected = candidates.filter {
+            (it.plan != null && it.plan.id == session.originPlanId) ||
+                (it.pulse != null && it.pulse.id == selectedPulseId)
+        }
+        // Never guess between duplicate titles/tags or attach one Flow to multiple activities.
+        return selected.singleOrNull() ?: candidates.singleOrNull()
+    }
+
+    suspend fun ideaForSession(sessionId: Long): PulseEntity? =
+        database.ideaGroveDao().getIdeasForSession(sessionId).singleOrNull()
 
     suspend fun planAwaitingCompletion(sessionId: Long): FlowPlanEntity? {
         val memory = database.horizonMemoryDao().getBySessionId(sessionId) ?: return null

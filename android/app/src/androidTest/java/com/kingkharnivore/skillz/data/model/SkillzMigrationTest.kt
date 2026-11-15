@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kingkharnivore.skillz.data.model.migration.SkillzDatabaseMigrations
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -412,15 +413,16 @@ class SkillzMigrationTest {
         )
     }
 
-    @Test fun everyPreExportVersionCanUpgradeToGreenWithoutLosingExistingDrops() {
+    @Test fun everyPreExportVersionCanUpgradeToCurrentWithoutLosingExistingData() {
         (1..30).forEach { version ->
-            val name = "$TEST_DB-green-$version"
+            val name = "$TEST_DB-current-$version"
             createLegacyDatabase(name, version).apply {
                 if (version <= 12) {
                     execSQL("CREATE TABLE skills (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL, createdAt INTEGER NOT NULL)")
                     execSQL("INSERT INTO skills VALUES (1, 'Preserved', 10)")
                 } else {
                     createVersion13CoreTables()
+                    insertMigrationSession()
                     var current = 13
                     while (current < version) {
                         val migration = SkillzDatabaseMigrations.ALL_MIGRATIONS.first { it.startVersion == current && it.endVersion <= version }
@@ -431,8 +433,19 @@ class SkillzMigrationTest {
                 }
                 close()
             }
-            helper.runMigrationsAndValidate(name, 47, true, *SkillzDatabaseMigrations.ALL_MIGRATIONS).use { db ->
+            helper.runMigrationsAndValidate(name, 49, true, *SkillzDatabaseMigrations.ALL_MIGRATIONS).use { db ->
                 assertTrue(db.tableExists("green_specimen"))
+                if (version <= 12) db.query("SELECT name, createdAt FROM tags WHERE id=1").use {
+                    assertTrue("Legacy journey missing for v$version", it.moveToFirst())
+                    assertEquals("Preserved", it.getString(0))
+                    assertEquals(10L, it.getLong(1))
+                } else db.query("SELECT title, tagId, durationMs FROM sessions WHERE id=99").use {
+                    assertTrue("Flow missing for v$version", it.moveToFirst())
+                    assertEquals("Migration Flow", it.getString(0))
+                    assertEquals(42L, it.getLong(1))
+                    assertEquals(60_000L, it.getLong(2))
+                }
+                db.query("PRAGMA foreign_key_check").use { assertFalse(it.moveToFirst()) }
                 if (version >= 14) db.query("SELECT SUM(units) FROM stillwater_ledger").use {
                     assertTrue(it.moveToFirst()); assertEquals(98765L, it.getLong(0))
                 }

@@ -18,11 +18,10 @@ class IdeaGroveActiveFlowStateTest {
     }
 
     @Test
-    fun zeroTimePulseOriginDraftIsNotActiveAndIsAbandoned() {
+    fun zeroTimePulseOriginDraftDoesNotBlockStartingAnotherFlow() {
         val ongoing = draft(originPulseId = 42L)
 
         assertFalse(ongoing.isMeaningfulActiveFlow())
-        assertTrue(ongoing.isAbandonedPulseOriginDraft())
     }
 
     @Test

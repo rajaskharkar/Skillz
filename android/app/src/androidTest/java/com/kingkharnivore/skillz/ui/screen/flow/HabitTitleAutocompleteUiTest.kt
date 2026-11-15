@@ -18,6 +18,29 @@ import org.junit.Test
 class HabitTitleAutocompleteUiTest {
     @get:Rule val compose = createComposeRule()
 
+    @Test fun ideaSuggestionIsLabeledAndPreservesTheCurrentFlowMode() {
+        val state = mutableStateOf(FlowUiState(mode = FlowMode.POWER))
+        compose.setContent { SkillzTheme {
+            GrandTitleField(
+                value = state.value.title,
+                onValueChange = { state.value = state.value.withEditedTitle(it) },
+                activitySuggestions = if (state.value.title == "lamp") listOf(
+                    ActivityTitleSuggestion(7, "Design lamp", "Workshop", HorizonKind.IDEA, FlowMode.POWER)) else emptyList(),
+                onActivitySelected = { state.value = state.value.withActivityTitle(it) }
+            )
+        } }
+        compose.onNode(hasSetTextAction()).performTextInput("lamp")
+        compose.onNodeWithText("Idea · Idea Grove · Workshop").assertIsDisplayed()
+        compose.onNodeWithText("Design lamp").performClick()
+        compose.runOnIdle {
+            assertEquals(7L, state.value.originPulseId)
+            assertEquals(null, state.value.originPlanId)
+            assertEquals(FlowMode.POWER, state.value.mode)
+            assertEquals("Workshop", state.value.tagName)
+        }
+        compose.onNodeWithText("Idea · Idea Grove · Workshop").assertDoesNotExist()
+    }
+
     @Test fun planSuggestionSelectsItsSavedTypeTagAndPlanLink() {
         val state = mutableStateOf(FlowUiState(mode = FlowMode.SOFT))
         compose.setContent { SkillzTheme {

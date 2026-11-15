@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.kingkharnivore.skillz.data.model.SkillzDatabase
 import com.kingkharnivore.skillz.data.model.entity.*
 import com.kingkharnivore.skillz.data.repository.*
+import com.kingkharnivore.skillz.data.repository.shell.IdeaGroveRepository
 import com.kingkharnivore.skillz.model.state.paths.*
 import com.kingkharnivore.skillz.model.ui.FlowPlanListItemUiModel
 import com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleReadState
@@ -24,6 +25,7 @@ class PathsViewModel @Inject constructor(
     private val database: SkillzDatabase,
     private val chronicleRepository: ChronicleRepository,
     private val aliveFlowRepository: AliveFlowRepository,
+    private val ideaGroveRepository: IdeaGroveRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val selected = savedStateHandle.getStateFlow("horizonTab", PathsPrimaryTab.HABITS.name)
@@ -33,7 +35,7 @@ class PathsViewModel @Inject constructor(
         val sessions: List<SessionEntity>, val tags: List<TagEntity>, val ongoing: OngoingSessionEntity?)
     private val data = combine(flowPlanRepository.observeAll(), database.horizonMemoryDao().observeAll(),
         database.sessionDao().getAllSessions(), journeyRepository.getAllTags(), aliveFlowRepository.getOngoingSession(), ::Data)
-    val uiState: StateFlow<PathsUiState> = combine(data, selected, saving, error) { data, tab, saving, error ->
+    val uiState: StateFlow<PathsUiState> = combine(data, selected, saving, error, ideaGroveRepository.observeIdeaGroveItems()) { data, tab, saving, error, ideas ->
         val tags = data.tags.associate { it.id to it.name }
         val counts = data.memories.filter { it.kind == HorizonKind.HABIT }.groupBy { it.sourcePlanId }
         fun model(p: FlowPlanEntity) = FlowPlanListItemUiModel(p.id, p.title, p.tagId, tags[p.tagId].orEmpty(),
@@ -44,6 +46,7 @@ class PathsViewModel @Inject constructor(
             flowPlans = data.plans.filter { !it.archived && it.completedAt == null }.map(::model),
             dreamFlowPlans = data.plans.filter { it.archived && it.completedAt == null }.map(::model),
             memories = groupHorizonMemories(data.memories, data.sessions, tags),
+            ideaMemories = ideas.filter { it.flows.isNotEmpty() },
             tags = data.tags.map { TagUiModel(it.id, it.name) }, ongoing = data.ongoing)
     }.catch { emit(PathsUiState(isLoading = false, errorMessage = it.message)) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PathsUiState())
@@ -73,12 +76,18 @@ class PathsViewModel @Inject constructor(
         }
     }
     fun saveActivity(id: Long?, title: String, tagName: String, kind: String, mode: FlowMode,
-        minutes: Int?, surge: Boolean, onSaved: () -> Unit) {
+        minutes: Int?, surge: Boolean, creationKey: String? = null, onSaved: () -> Unit) {
         if (saving.value) return
         saving.value = true
         mutate {
             try {
                 require(title.isNotBlank())
+                if (kind == HorizonKind.IDEA) {
+                    require(id == null)
+                    ideaGroveRepository.createIdea(title, tagName, requireNotNull(creationKey))
+                    onSaved()
+                    return@mutate
+                }
                 require(kind == HorizonKind.HABIT || kind == HorizonKind.PLAN)
                 require(!surge || (mode != FlowMode.SOFT && minutes != null && minutes > 0))
                 val tagId = tagName.trim().takeIf(String::isNotEmpty)?.let { journeyRepository.getOrCreateTagId(it) }

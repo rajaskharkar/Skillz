@@ -13,7 +13,7 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class HabitAutocompletePersistenceTest {
-    @Test fun editedOrResetHabitSelectionStaysDetachedAfterDraftRestoreAndSave() = runBlocking {
+    @Test fun finalValuesDetermineHabitAssociationAfterDraftRestore() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), SkillzDatabase::class.java).build()
         try {
             val ready = db.tagDao().insertTag(TagEntity(name = "ready"))
@@ -49,9 +49,12 @@ class HabitAutocompletePersistenceTest {
                     originPlanId = restored.originPlanId, startTime = 60_001, endTime = 120_001, durationMs = 60_000
                 ))
                 assertNotNull(db.sessionDao().getSessionById(id))
-                assertNull(db.horizonMemoryDao().getBySessionId(id))
+                if (restored.title == "Brush teeth" && restored.tagName == "ready") {
+                    assertEquals(habit, db.horizonMemoryDao().getBySessionId(id)!!.sourcePlanId)
+                } else assertNull(db.horizonMemoryDao().getBySessionId(id))
             }
-            assertEquals(listOf(previousMemory), db.horizonMemoryDao().observeAll().first())
+            assertEquals(previousMemory, db.horizonMemoryDao().getBySessionId(previous))
+            assertEquals(4, db.horizonMemoryDao().observeAll().first().size)
             assertEquals(7, db.sessionDao().getAllSessions().first().size)
         } finally {
             db.close()
@@ -74,7 +77,7 @@ class HabitAutocompletePersistenceTest {
             val habitId = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Brush teeth", tagId = tagId))
             db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Archived habit", archived = true, tagId = tagId))
             db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Finished plan", kind = HorizonKind.PLAN, completedAt = 42, tagId = tagId))
-            val oldFlow = SessionEntity(title = "Previous brushing", description = "Keep this description", tagId = tagId,
+            val oldFlow = SessionEntity(title = "Brush teeth", description = "Keep this description", tagId = tagId,
                 startTime = 1, endTime = 60_001, durationMs = 60_000, originPlanId = habitId, arcId = 8, arcIndex = 1)
             ChronicleRepository(db, db.chronicleDao()).addText("ACTIVE_FLOW", "previous", "Keep this chronicle")
             val oldId = repository().addSessionAndPromoteChronicle("previous", oldFlow)

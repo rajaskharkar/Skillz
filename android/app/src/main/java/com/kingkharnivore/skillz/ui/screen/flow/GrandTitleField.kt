@@ -124,8 +124,13 @@ fun GrandTitleField(
                         headlineContent = { Text(activity.title) },
                         supportingContent = {
                             Text(listOfNotNull(
-                                stringResource(if (activity.kind == HorizonKind.PLAN) R.string.horizon_plan else R.string.horizon_habit),
-                                stringResource(flowModeLabel(activity.mode)),
+                                stringResource(when (activity.kind) {
+                                    HorizonKind.IDEA -> R.string.horizon_idea
+                                    HorizonKind.PLAN -> R.string.horizon_plan
+                                    else -> R.string.horizon_habit
+                                }),
+                                if (activity.kind == HorizonKind.IDEA) stringResource(R.string.idea_grove_title)
+                                else stringResource(flowModeLabel(activity.mode)),
                                 activity.tagName
                             ).joinToString(" · "))
                         },

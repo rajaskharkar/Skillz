@@ -2,6 +2,7 @@ package com.kingkharnivore.skillz.model.state.paths
 
 import com.kingkharnivore.skillz.data.model.entity.*
 import com.kingkharnivore.skillz.model.ui.FlowPlanListItemUiModel
+import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemUiModel
 import com.kingkharnivore.skillz.viewmodel.TagUiModel
 
 enum class HorizonSection { PLANS, PLANNED_ARCS }
@@ -14,6 +15,26 @@ data class MemoryGroupUi(val sourcePlanId: Long, val kind: String, val title: St
     val latest get() = flows.first()
 }
 
+/** Ideas retain their Grove identity and live history instead of duplicating memory receipts. */
+sealed interface MemoryTimelineItem {
+    val key: String
+    val lastWorkedAt: Long
+
+    data class Activity(val memory: MemoryGroupUi) : MemoryTimelineItem {
+        override val key get() = memory.key
+        override val lastWorkedAt get() = memory.latest.receipt.completedAt
+    }
+    data class Idea(val idea: IdeaGroveItemUiModel) : MemoryTimelineItem {
+        override val key get() = "IDEA:${idea.pulseId}"
+        override val lastWorkedAt get() = idea.lastWorkedAt ?: idea.createdAt
+    }
+}
+
+internal fun memoryTimeline(memories: List<MemoryGroupUi>, ideas: List<IdeaGroveItemUiModel>): List<MemoryTimelineItem> =
+    (memories.map { MemoryTimelineItem.Activity(it) } +
+        ideas.filter { it.flows.isNotEmpty() }.map { MemoryTimelineItem.Idea(it) })
+        .sortedWith(compareByDescending<MemoryTimelineItem> { it.lastWorkedAt }.thenBy { it.key })
+
 data class PathsUiState(
     val isLoading: Boolean = true,
     val selectedSection: HorizonSection = HorizonSection.PLANS,
@@ -24,6 +45,7 @@ data class PathsUiState(
     val flowPlans: List<FlowPlanListItemUiModel> = emptyList(),
     val dreamFlowPlans: List<FlowPlanListItemUiModel> = emptyList(),
     val memories: List<MemoryGroupUi> = emptyList(),
+    val ideaMemories: List<IdeaGroveItemUiModel> = emptyList(),
     val tags: List<TagUiModel> = emptyList(),
     val ongoing: OngoingSessionEntity? = null
 )

@@ -24,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Eco
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -38,10 +40,13 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -58,6 +63,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kingkharnivore.skillz.R
+import com.kingkharnivore.skillz.ui.screen.chronicle.ExpandedChronicle
+import com.kingkharnivore.skillz.ui.screen.chronicle.LocalChronicleReaderFactory
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveFlowUiModel
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemType
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemUiModel
@@ -96,18 +103,22 @@ fun IdeaGroveRoute(
         }
     }
 
-    IdeaGroveScreen(
-        state = state,
-        onPulseClicked = viewModel::onPulseClicked,
-        onSortChanged = viewModel::onSortChanged,
-        onFlowClicked = viewModel::onFlowClicked,
-        onMarkAsInsightClicked = viewModel::onMarkAsInsightClicked,
-        onMarkCompletedClicked = viewModel::onMarkCompletedClicked,
-        onReviveClicked = viewModel::onReviveClicked,
-        onDeletePulseClicked = viewModel::onDeletePulseClicked,
-        onConfirmDeletePulse = viewModel::onConfirmDeletePulse,
-        onDismissDeletePulse = viewModel::onDismissDeletePulse
-    )
+    CompositionLocalProvider(
+        LocalChronicleReaderFactory provides remember(viewModel) { viewModel::createHistoricalChronicle }
+    ) {
+        IdeaGroveScreen(
+            state = state,
+            onPulseClicked = viewModel::onPulseClicked,
+            onSortChanged = viewModel::onSortChanged,
+            onFlowClicked = viewModel::onFlowClicked,
+            onMarkAsInsightClicked = viewModel::onMarkAsInsightClicked,
+            onMarkCompletedClicked = viewModel::onMarkCompletedClicked,
+            onReviveClicked = viewModel::onReviveClicked,
+            onDeletePulseClicked = viewModel::onDeletePulseClicked,
+            onConfirmDeletePulse = viewModel::onConfirmDeletePulse,
+            onDismissDeletePulse = viewModel::onDismissDeletePulse
+        )
+    }
 }
 
 @Composable
@@ -285,15 +296,17 @@ private fun IdeaGroveSortControl(sort: IdeaGroveSort, onSortChanged: (IdeaGroveS
 }
 
 @Composable
-private fun IdeaPulseCard(
+internal fun IdeaPulseCard(
     item: IdeaGroveItemUiModel,
     expanded: Boolean,
     onClick: () -> Unit,
-    onFlow: () -> Unit,
-    onMarkAsInsight: () -> Unit,
-    onMarkCompleted: () -> Unit,
-    onRevive: () -> Unit,
-    onDelete: () -> Unit
+    onFlow: () -> Unit = {},
+    onMarkAsInsight: () -> Unit = {},
+    onMarkCompleted: () -> Unit = {},
+    onRevive: () -> Unit = {},
+    onDelete: () -> Unit = {},
+    showActions: Boolean = true,
+    categoryLabel: String? = null
 ) {
     val displayTitle = item.title.ifBlank { stringResource(R.string.idea_grove_untitled_pulse) }
     val cardDescription = cardA11y(item, expanded, displayTitle)
@@ -313,18 +326,22 @@ private fun IdeaPulseCard(
         }
     ) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(displayTitle, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            categoryLabel?.let { Text(it, style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(displayTitle, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Icon(if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    stringResource(if (expanded) R.string.flow_card_collapse else R.string.flow_card_expand))
+            }
             item.journeyName?.takeIf { it.isNotBlank() }?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
             }
-            if (expanded && item.description.isNotBlank()) {
-                Text(item.description, style = MaterialTheme.typography.bodyMedium)
-            }
+            if (expanded) ExpandedChronicle("PULSE", item.pulseId, item.description)
             Text(primarySummary(item), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
             Text(dateSummary(item), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             if (expanded) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (showActions) FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     when (item.type) {
                         IdeaGroveItemType.RAW_PULSE -> {
                             Button(onClick = onFlow, modifier = Modifier.semantics { contentDescription = startFlowA11y }) {
@@ -377,11 +394,11 @@ private fun IdeaPulseCard(
 
 @Composable
 internal fun IdeaFlowHistorySection(flows: List<IdeaGroveFlowUiModel>) {
-    var showAll by remember { mutableStateOf(false) }
+    var showAll by rememberSaveable { mutableStateOf(false) }
     val visible = if (showAll || flows.size <= 5) flows else flows.take(5)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.idea_grove_flow_history), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-        visible.forEach { IdeaFlowHistoryRow(it) }
+        visible.forEach { flow -> key(flow.sessionId) { IdeaFlowHistoryRow(flow) } }
         if (flows.size > 5) {
             OutlinedButton(onClick = { showAll = !showAll }) {
                 Text(if (showAll) stringResource(R.string.idea_grove_show_less) else stringResource(R.string.idea_grove_show_more))
@@ -392,22 +409,26 @@ internal fun IdeaFlowHistorySection(flows: List<IdeaGroveFlowUiModel>) {
 
 @Composable
 private fun IdeaFlowHistoryRow(flow: IdeaGroveFlowUiModel) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(flow.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-        Text(
-            listOfNotNull(flow.journeyName, formatIdeaGroveDuration(flow.durationMs), shortDate(flow.endTime ?: flow.startTime)).joinToString(" · "),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        if (flow.description.isNotBlank()) {
+    var expanded by rememberSaveable(flow.sessionId) { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.fillMaxWidth().clickable(role = Role.Button) { expanded = !expanded },
+            verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(flow.title, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Icon(if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    stringResource(if (expanded) R.string.flow_card_collapse else R.string.flow_card_expand))
+            }
             Text(
-                text = flow.description,
+                listOfNotNull(flow.journeyName, formatIdeaGroveDuration(flow.durationMs), shortDate(flow.endTime ?: flow.startTime)).joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (!expanded && flow.description.isNotBlank()) {
+                Text(flow.description, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            }
         }
+        if (expanded) ExpandedChronicle("SESSION", flow.sessionId, flow.description)
     }
 }
 

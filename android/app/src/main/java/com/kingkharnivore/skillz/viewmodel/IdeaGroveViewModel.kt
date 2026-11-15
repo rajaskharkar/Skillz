@@ -7,6 +7,8 @@ import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.OngoingSessionEntity
 import com.kingkharnivore.skillz.data.model.entity.PulseGroveStatusValues
 import com.kingkharnivore.skillz.data.repository.AliveFlowRepository
+import com.kingkharnivore.skillz.data.repository.ChronicleRepository
+import com.kingkharnivore.skillz.ui.screen.chronicle.ChronicleReadState
 import com.kingkharnivore.skillz.data.repository.shell.IdeaGroveRepository
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemType
 import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemUiModel
@@ -20,7 +22,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -33,11 +34,6 @@ internal fun OngoingSessionEntity?.isMeaningfulActiveFlow(): Boolean {
             isInFlowMode ||
             accumulatedBeforeStartMs > 0L ||
             baseStartTimeMs != null
-}
-
-internal fun OngoingSessionEntity?.isAbandonedPulseOriginDraft(): Boolean {
-    if (this == null) return false
-    return originPulseId != null && !isMeaningfulActiveFlow()
 }
 
 sealed interface IdeaGroveEvent {
@@ -58,7 +54,8 @@ sealed interface IdeaGroveEvent {
 @HiltViewModel
 class IdeaGroveViewModel @Inject constructor(
     private val repository: IdeaGroveRepository,
-    private val aliveFlowRepository: AliveFlowRepository
+    private val aliveFlowRepository: AliveFlowRepository,
+    private val chronicleRepository: ChronicleRepository
 ) : ViewModel() {
     private val sort = MutableStateFlow(IdeaGroveSort.Recents)
     private val expandedPulseId = MutableStateFlow<Long?>(null)
@@ -104,17 +101,10 @@ class IdeaGroveViewModel @Inject constructor(
         viewModelScope.launch {
             repository.repairCompletedPulsesWithoutFlows()
         }
-
-        viewModelScope.launch {
-            aliveFlowRepository.getOngoingSession()
-                .distinctUntilChanged()
-                .collect { ongoing ->
-                    if (ongoing.isAbandonedPulseOriginDraft()) {
-                        aliveFlowRepository.clearOngoingSession()
-                    }
-                }
-        }
     }
+
+    fun createHistoricalChronicle(type: String, key: String) =
+        ChronicleReadState(type, key, chronicleRepository, viewModelScope)
 
     fun onPulseClicked(pulseId: Long) {
         expandedPulseId.update { current -> if (current == pulseId) null else pulseId }
