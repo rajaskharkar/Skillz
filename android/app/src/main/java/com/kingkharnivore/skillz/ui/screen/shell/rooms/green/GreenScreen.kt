@@ -254,14 +254,19 @@ internal fun SpecimenDialog(plant: PlantSpecimenEntity, state: GreenUiState, onW
     val token = remember(plant.id, plant.level) { UUID.randomUUID().toString() }
     // Keep the centered dialog anchored while feedback, dates and growth stages change.
     val contentHeight = (androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.55f).dp
+    // Feedback is cleared while watering and restored on completion. Reserve its space
+    // so the artwork and level text do not jump on either update. Long messages scroll.
+    val feedbackHeight = with(LocalDensity.current) { (MaterialTheme.typography.bodyLarge.lineHeight * 3).toDp() }
     AlertDialog(onDismissRequest = onClose, modifier = Modifier.testTag("green-specimen-dialog"),
         title = { Text(stringResource(species.nameRes)) }, text = {
         Column(Modifier.height(contentHeight), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            GreenFeedbackMessage(state, plant.id)
+            Box(Modifier.fillMaxWidth().height(feedbackHeight).verticalScroll(rememberScrollState())) {
+                GreenFeedbackMessage(state, plant.id)
+            }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 PlantArtwork(species, plant.level, stringResource(R.string.green_plant_description, stringResource(species.nameRes), plant.level, stringResource(stage.nameRes)),
                     Modifier.fillMaxWidth().height(if(species.landmark) 230.dp else 180.dp).clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh))
-                Text(stringResource(R.string.green_level_stage, plant.level, stringResource(stage.nameRes)), Modifier.semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.green_level_stage, plant.level, stringResource(stage.nameRes)), Modifier.testTag("green-level-stage").semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.titleMedium)
                 if (plant.level == 99) Text(stringResource(R.string.green_stage_fully_grown))
                 PlantGrowthStageResolver.nextVisibleGrowth(plant.level)?.let { Text(stringResource(R.string.green_next_growth, it)) }
                 LinearProgressIndicator(progress = { plant.level / 99f }, modifier = Modifier.fillMaxWidth())
