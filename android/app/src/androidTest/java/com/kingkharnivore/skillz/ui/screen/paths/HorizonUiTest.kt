@@ -52,6 +52,84 @@ class HorizonUiTest {
         compose.runOnIdle { assertEquals(FlowMode.POWER,savedMode) }
     }
 
+    @Test fun newIdeaEditorSavesToGroveWithoutTimerSettings() {
+        var savedKind: String? = null
+        compose.setContent { SkillzTheme(darkTheme=false, dynamicColor=false) {
+            ActivityEditor(null, PathsPrimaryTab.MEMORIES, emptyList(), false, null, onClose={},
+                onSave={ _, _, kind, _, minutes, surge ->
+                    savedKind=kind
+                    assertEquals(null, minutes)
+                    assertEquals(false, surge)
+                })
+        } }
+        compose.onNodeWithText("Idea").performClick()
+        compose.onNodeWithText("New idea").assertExists()
+        compose.onNodeWithText("Power Flow").assertDoesNotExist()
+        compose.onNodeWithText("Title").performTextInput("Design lamp")
+        compose.onNodeWithText("Save to Idea Grove").performScrollTo().assertIsEnabled()
+            .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick) { it() }
+        compose.runOnIdle { assertEquals(HorizonKind.IDEA, savedKind) }
+    }
+
+    @Test fun ideaMemoryExpandsTheSharedGroveJourneyIncludingOlderFlows() {
+        val idea = com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemUiModel(
+            1, com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemType.COMPLETED_IDEA,
+            "Design lamp", "Original spark", "Workshop", 1, 1, "COMPLETED", 2, 6, 360_000, 60_000,
+            (6 downTo 1).map { com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveFlowUiModel(
+                it.toLong(), "Prototype $it", "Notes $it", "Workshop", 60_000, 1, it * 60_000L) }, false)
+        compose.setContent { SkillzTheme(darkTheme=false, dynamicColor=false) { Surface {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+                IdeaMemoryCard(idea)
+            }
+        } } }
+        // The category belongs to the clickable Idea card, not a heading for following memories.
+        compose.onNode(hasClickAction() and hasAnyDescendant(hasText("Design lamp")) and
+            hasAnyDescendant(hasText("Idea")), useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Design lamp").performClick()
+        compose.onNodeWithText("Original spark").assertExists()
+        compose.onNodeWithText("Prototype 6").assertExists()
+        compose.onNodeWithText("Prototype 1").assertDoesNotExist()
+        compose.onNodeWithText("Show more").performScrollTo().performClick()
+        compose.onNodeWithText("Prototype 1").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Notes 1").assertExists()
+        compose.onNodeWithText("Revive").assertDoesNotExist()
+    }
+
+    @Test fun ideaJourneyReadsFullPulseAndFlowChroniclesIncludingVoiceMoments() {
+        val pulseText = "The original idea. ".repeat(20) + "PULSE END"
+        val flowText = "Progress on the prototype. ".repeat(20) + "FLOW END"
+        runBlocking {
+            repository.addText("PULSE", "71", pulseText)
+            repository.addText("PULSE", "71", "Second idea moment")
+            repository.addText("SESSION", "72", flowText)
+            repository.addText("SESSION", "72", "Second Flow moment")
+            val chronicle = db.chronicleDao().find("SESSION", "72")!!
+            db.chronicleDao().insertMoment(ChronicleMomentEntity("voice-idea", chronicle.id, ChronicleMomentType.VOICE,
+                2, audioPath = "missing.m4a", originalTranscript = "A spoken reflection", createdAt = 1, updatedAt = 1))
+        }
+        val idea = com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemUiModel(
+            71, com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemType.IDEA,
+            "Lamp journey", pulseText.take(240), "Workshop", 1, 1, "ALIVE", null, 1, 60_000, 60_000,
+            listOf(com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveFlowUiModel(
+                72, "First prototype", flowText.take(240), "Workshop", 60_000, 1, 60_000)), false)
+        compose.setContent { SkillzTheme(darkTheme=false, dynamicColor=false) {
+            CompositionLocalProvider(LocalChronicleReaderFactory provides { type, key -> ChronicleReadState(type, key, repository, scope) }) {
+                Surface { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+                    IdeaMemoryCard(idea)
+                } }
+            }
+        } }
+        compose.onNodeWithText("Lamp journey").performClick()
+        compose.waitUntil(5000) { compose.onAllNodesWithText(pulseText).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Second idea moment").assertExists()
+        compose.onNodeWithText("First prototype").performScrollTo().performClick()
+        compose.waitUntil(5000) { compose.onAllNodesWithText(flowText).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Second Flow moment").assertExists()
+        compose.onNodeWithText("A spoken reflection").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("First prototype").performScrollTo().performClick()
+        compose.onNodeWithText("Second Flow moment").assertDoesNotExist()
+    }
+
     @Test fun horizonSeparatesPlansAndPlannedArcsAndRestoresArcActions() {
         var created = false
         var opened: Long? = null

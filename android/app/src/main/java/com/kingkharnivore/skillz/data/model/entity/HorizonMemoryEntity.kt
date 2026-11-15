@@ -32,4 +32,6 @@ data class HorizonMemoryEntity(
 object HorizonKind {
     const val HABIT = "HABIT"
     const val PLAN = "PLAN"
+    // UI destination only: Ideas are stored as Pulses and pulse_flow_links in Idea Grove.
+    const val IDEA = "IDEA"
 }

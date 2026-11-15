@@ -2303,9 +2303,9 @@ Puedes volver a activar Health más tarde.</string>
     <string name="horizon_habits">Hábitos</string>
     <string name="horizon_plans">Planes</string>
     <string name="horizon_memories">Recuerdos</string>
-    <string name="horizon_memories_hint">Tus actividades completadas, de más reciente a más antigua.</string>
+    <string name="horizon_memories_hint">Los recorridos de tus hábitos, planes e ideas, con el Flow más reciente primero.</string>
     <string name="horizon_empty_memories">Los recuerdos empiezan con un Flow</string>
-    <string name="horizon_empty_memories_body">Completa un hábito o plan para guardar aquí los detalles de su Flow.</string>
+    <string name="horizon_empty_memories_body">Registra un Flow de un hábito, plan o idea para ver su recorrido aquí.</string>
     <string name="horizon_habits_hint">Vuelve cuando quieras. Los hábitos permanecen aquí después de cada Flow.</string>
     <string name="horizon_plans_hint">Trabaja en un plan a lo largo de varios Flows. Después de cada Flow, decide si el plan está completo. Tu progreso se guarda en Recuerdos.</string>
     <string name="horizon_empty_habits">¿A qué te gustaría volver?</string>
@@ -2385,4 +2385,9 @@ Puedes volver a activar Health más tarde.</string>
     <string name="lookout_cycle_dates">Ciclo: %1$s – %2$s</string>
     <string name="shell_enter_focus">Enter the Focus Room</string>
     <string name="the_blue_created_from_flow">Creado con tu tiempo de enfoque.</string>
+    <string name="horizon_idea">Idea</string>
+    <string name="horizon_ideas_hint">Guarda una chispa en Idea Grove. Registra un Flow a partir de ella para desarrollar su recorrido y verla en Recuerdos.</string>
+    <string name="horizon_save_idea">Guardar en Idea Grove</string>
+    <string name="horizon_idea_saved">Guardado en Idea Grove</string>
+    <string name="horizon_new_idea">Nueva idea</string>
 </resources>

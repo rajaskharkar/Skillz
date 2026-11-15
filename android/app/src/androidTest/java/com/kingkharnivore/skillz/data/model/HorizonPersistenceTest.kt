@@ -25,8 +25,8 @@ class HorizonPersistenceTest {
         runBlocking { db.tagDao().insertTag(TagEntity(id = 1, name = "Outdoors")) }
     }
     @After fun close() { db.close() }
-    private fun session(plan: Long?, end: Long = 60_000, duration: Long = 60_000) = SessionEntity(
-        title = "An evening walk", description = "", tagId = 1, startTime = end-duration, endTime = end,
+    private suspend fun session(plan: Long?, end: Long = 60_000, duration: Long = 60_000) = SessionEntity(
+        title = plan?.let { db.flowPlanDao().getFlowPlanById(it)?.title } ?: "An evening walk", description = "", tagId = 1, startTime = end-duration, endTime = end,
         durationMs = duration, mode = FlowMode.SOFT, originPlanId = plan)
 
     @Test fun autocompleteLinksAllHabitAndPlanModesToTheirOwnMemories() = runBlocking {
@@ -89,10 +89,10 @@ class HorizonPersistenceTest {
     }
 
     @Test fun completionQuestionRequiresASuccessfullySavedPlanFlowAndNeverCompletesHabits() = runBlocking {
-        val habit = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Walk"))
+        val habit = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Walk", tagId = 1))
         val habitFlow = flows.addSessionAndPromoteChronicle("habit", session(habit))
         val standalone = flows.addSessionAndPromoteChronicle("standalone", session(null))
-        val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Read", kind = HorizonKind.PLAN))
+        val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Read", tagId = 1, kind = HorizonKind.PLAN))
         val zero = flows.addSessionAndPromoteChronicle("zero-plan", session(plan, duration = 0))
         listOf(habitFlow, standalone, zero, Long.MAX_VALUE).forEach {
             assertNull(flows.planAwaitingCompletion(it))
@@ -103,7 +103,7 @@ class HorizonPersistenceTest {
     }
 
     @Test fun failedPlanAnswerKeepsSavedFlowMemoryAndPlanAvailableForRetry() = runBlocking {
-        val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Read", kind = HorizonKind.PLAN))
+        val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Read", tagId = 1, kind = HorizonKind.PLAN))
         val id = flows.addSessionAndPromoteChronicle("answer-retry", session(plan))
         val before = snapshotOutsideMemories()
         val memory = db.horizonMemoryDao().getBySessionId(id)
@@ -117,7 +117,7 @@ class HorizonPersistenceTest {
         assertNotNull(db.flowPlanDao().getFlowPlanById(plan)!!.completedAt)
     }
 
-    @Test fun changedTagKeepsPlanAttemptButDoesNotCreditHabitOrAutomaticallyCompletePlan() = runBlocking {
+    @Test fun changedTitleOrTagDoesNotCreditHabitOrPlanOrAskForCompletion() = runBlocking {
         db.tagDao().insertTag(TagEntity(id=2, name="Reading"))
         for (kind in listOf(HorizonKind.HABIT, HorizonKind.PLAN)) {
             val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title="Walk", tagId=1, kind=kind))
@@ -126,15 +126,12 @@ class HorizonPersistenceTest {
             assertEquals(id, flows.addSessionAndPromoteChronicle("changed-$kind", changed))
             assertEquals(2L, db.sessionDao().getSessionById(id)!!.tagId)
             assertNull(db.flowPlanDao().getFlowPlanById(plan)!!.completedAt)
-            if (kind == HorizonKind.HABIT) {
-                assertNull(db.horizonMemoryDao().getBySessionId(id))
-                assertNull(flows.planAwaitingCompletion(id))
-            } else {
-                assertEquals("Reading", db.horizonMemoryDao().getBySessionId(id)!!.tagName)
-                assertEquals(plan, flows.planAwaitingCompletion(id)!!.id)
-            }
-            flows.addSessionAndPromoteChronicle("renamed-$kind", session(plan).copy(title="A different title"))
-            assertEquals("A different title", db.horizonMemoryDao().getByFlowInstanceId("renamed-$kind")!!.title)
+            assertNull(db.sessionDao().getSessionById(id)!!.originPlanId)
+            assertNull(db.horizonMemoryDao().getBySessionId(id))
+            assertNull(flows.planAwaitingCompletion(id))
+            val renamed = flows.addSessionAndPromoteChronicle("renamed-$kind", session(plan).copy(title="A different title"))
+            assertNull(db.horizonMemoryDao().getByFlowInstanceId("renamed-$kind"))
+            assertNull(flows.planAwaitingCompletion(renamed))
             assertNull(db.flowPlanDao().getFlowPlanById(plan)!!.completedAt)
         }
     }
@@ -252,7 +249,7 @@ class HorizonPersistenceTest {
         assertEquals(listOf("second", "first"), groups.single().flows.map { it.receipt.flowInstanceId })
     }
     @Test fun oneTimePlanMovesOnlyAfterSuccessfulTimedSaveAndContinuationIsIndependent() = runBlocking {
-        val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Sort photos", kind = HorizonKind.PLAN))
+        val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Sort photos", tagId = 1, kind = HorizonKind.PLAN))
         flows.addSessionAndPromoteChronicle("zero", session(plan, duration = 0))
         assertNull(db.flowPlanDao().getFlowPlanById(plan)!!.completedAt)
         assertTrue(db.horizonMemoryDao().observeAll().first().isEmpty())
@@ -271,7 +268,7 @@ class HorizonPersistenceTest {
         assertEquals("A complete chronicle", db.chronicleDao().moments(db.chronicleDao().find("SESSION", id.toString())!!.id).single().text)
     }
     @Test fun failedSaveRollsBackPlanAndMemoryAndCanBeRetried() = runBlocking {
-        val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Read", kind = HorizonKind.PLAN))
+        val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Read", tagId = 1, kind = HorizonKind.PLAN))
         db.openHelper.writableDatabase.execSQL("CREATE TRIGGER fail_memory BEFORE INSERT ON horizon_memories BEGIN SELECT RAISE(ABORT,'test failure'); END")
         try { flows.addSessionAndPromoteChronicle("retry", session(plan)); fail("Expected failure") } catch (_: android.database.sqlite.SQLiteException) { }
         assertTrue(db.sessionDao().getAllSessions().first().isEmpty())
@@ -307,8 +304,8 @@ class HorizonPersistenceTest {
         assertEquals(60_000L, receipt.durationMs)
     }
     @Test fun memoriesSortByLatestCompletionAndUseCurrentFlowDetails() = runBlocking {
-        val habit = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Walk"))
-        val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Read", kind = HorizonKind.PLAN))
+        val habit = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Walk", tagId = 1))
+        val plan = db.flowPlanDao().insertFlowPlan(FlowPlanEntity(title = "Read", tagId = 1, kind = HorizonKind.PLAN))
         flows.addSessionAndPromoteChronicle("habit-old", session(habit, 1))
         flows.addSessionAndPromoteChronicle("plan", session(plan, 2))
         val latest = flows.addSessionAndPromoteChronicle("habit-new", session(habit, 3))

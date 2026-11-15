@@ -41,6 +41,7 @@ import com.kingkharnivore.skillz.model.state.flow.ArcSummaryUiModel
 import com.kingkharnivore.skillz.model.state.flow.FlowRewardUiModel
 import com.kingkharnivore.skillz.model.state.flow.FlowUiState
 import com.kingkharnivore.skillz.model.state.flow.ActivityTitleSuggestion
+import com.kingkharnivore.skillz.model.state.flow.shouldApplyLaunchToDraft
 import com.kingkharnivore.skillz.model.state.flow.activityTitleSuggestions
 import com.kingkharnivore.skillz.model.state.flow.withActivityTitle
 import com.kingkharnivore.skillz.model.state.flow.withEditedTitle
@@ -253,17 +254,6 @@ class FlowViewModel @Inject constructor(
         )
     }
 
-    private fun shouldTreatOngoingAsDraft(entity: OngoingSessionEntity): Boolean {
-        return !entity.isInFlowMode &&
-                !entity.isRunning &&
-                entity.accumulatedBeforeStartMs == 0L &&
-                entity.baseStartTimeMs == null
-    }
-
-    private fun isAbandonedPulseOriginDraft(entity: OngoingSessionEntity?): Boolean {
-        return entity?.originPulseId != null && shouldTreatOngoingAsDraft(entity)
-    }
-
     val ongoingSession: StateFlow<OngoingSessionEntity?> =
         focusSessionRepository.getOngoingSession()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -326,9 +316,10 @@ class FlowViewModel @Inject constructor(
     val suggestedActivities: StateFlow<List<ActivityTitleSuggestion>> = combine(
         flowPlanRepository.getActiveFlowPlans(),
         tagRepository.getAllTags(),
-        uiState
-    ) { plans, tags, state ->
-        activityTitleSuggestions(plans, tags, state)
+        uiState,
+        ideaGroveRepository.observeIdeaGroveItems()
+    ) { plans, tags, state, ideas ->
+        activityTitleSuggestions(plans, tags, state, ideas)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val suggestedTags = combine(
@@ -533,13 +524,9 @@ class FlowViewModel @Inject constructor(
 
         viewModelScope.launch {
             originPlanKindOverride = originPlanIdOverride?.let { flowPlanRepository.getFlowPlanById(it)?.kind }
-            val storedOngoing = focusSessionRepository.getOngoingSession().firstOrNull()
-            val ongoing = if (isAbandonedPulseOriginDraft(storedOngoing)) {
-                clearOngoing()
-                null
-            } else {
-                storedOngoing
-            }
+            // An idle Idea draft may contain a deliberate selection and Chronicle work.
+            // Only an explicit discard or a new launch may replace it.
+            val ongoing = focusSessionRepository.getOngoingSession().firstOrNull()
             val activePlannedRun = activeArcRunRepository.getActiveArcRunOnce()
             val plannedHandoff = arcPrefs.loadPlannedFlowHandoff()
 
@@ -620,7 +607,8 @@ class FlowViewModel @Inject constructor(
                     }
                     return@launch
                 }
-                val shouldOverrideDraft = hasLaunchOverrides && shouldTreatOngoingAsDraft(entity)
+                val shouldOverrideDraft = shouldApplyLaunchToDraft(entity, hasLaunchOverrides,
+                    launchAlreadyApplied = savedStateHandle.get<Boolean>("flowLaunchOverridesApplied") == true)
 
                 if (shouldOverrideDraft) {
                     currentFlowInstanceId = UUID.randomUUID().toString()
@@ -657,7 +645,7 @@ class FlowViewModel @Inject constructor(
                     }
 
                     clearOngoing()
-                    saveOngoing()
+                    saveOngoingNow()
                 } else {
                     val restoredPlannedRun = activePlannedRun.takeIf { isPlannedArcLaunch() }
                     currentFlowInstanceId = entity.flowInstanceId
@@ -731,7 +719,7 @@ class FlowViewModel @Inject constructor(
                         cleared
                     }
                 }
-                if (hasLaunchOverrides && !_uiState.value.isSoftMode) saveOngoing()
+                if (hasLaunchOverrides && !_uiState.value.isSoftMode) saveOngoingNow()
             }
 
             if (
@@ -748,6 +736,7 @@ class FlowViewModel @Inject constructor(
                 arcPrefs.clearPlannedFlowHandoff()
             }
 
+            savedStateHandle["flowLaunchOverridesApplied"] = true
             if (_uiState.value.isSoftMode) enterSoftModePreservingArc(persistSnapshotIfAlreadyApplied = true)
             expirePausedArcIfNeeded(System.currentTimeMillis())
             syncArcUi()
@@ -765,7 +754,7 @@ class FlowViewModel @Inject constructor(
 
     fun onActivityTitleSelected(activity: ActivityTitleSuggestion) {
         if (_isSaving.value) return
-        val current = suggestedActivities.value.firstOrNull { it.id == activity.id } ?: return
+        val current = suggestedActivities.value.firstOrNull { it.key == activity.key } ?: return
         _uiState.update { it.withActivityTitle(current) }
         viewModelScope.launch {
             if (_uiState.value.isSoftMode) enterSoftModePreservingArc(persistSnapshotIfAlreadyApplied = true)
@@ -1298,12 +1287,12 @@ class FlowViewModel @Inject constructor(
         }
     }
 
-    private fun queueArcIdeaContinuationPromptIfNeeded(state: FlowUiState) {
-        _pendingArcIdeaContinuation.value = state.originPulseId?.let { pulseId ->
+    private suspend fun queueArcIdeaContinuationPromptIfNeeded(sessionId: Long, state: FlowUiState) {
+        _pendingArcIdeaContinuation.value = sessionRepository.ideaForSession(sessionId)?.let { idea ->
             PendingArcIdeaContinuation(
-                pulseId = pulseId,
-                pulseTitle = state.originPulseTitle,
-                pulseJourneyName = state.originPulseJourneyName
+                pulseId = idea.id,
+                pulseTitle = idea.title,
+                pulseJourneyName = state.tagName.trim()
             )
         }
     }
@@ -1495,7 +1484,8 @@ class FlowViewModel @Inject constructor(
                         startTime = sessionStart, endTime = sessionEnd, durationMs = realDurationMs,
                         activeIntervalJson = activeIntervalJson,
                         surgePlannedMs = state.surgePlannedMs, surgePoints = surgePoints,
-                        scyraPoints = beforeArc, mode = state.mode)
+                        scyraPoints = beforeArc, mode = state.mode),
+                    originPulseId = state.originPulseId
                 )
                 committedSessionId = firstSessionId
                 _completionState.value = FlowCompletionState.CoreCommitted(firstSessionId)
@@ -1533,12 +1523,6 @@ class FlowViewModel @Inject constructor(
                     sessionId = firstSessionId,
                     arcId = arcId
                 )
-                // TODO(Idea Grove): move Session insert, Arc field updates, and optional
-                // PulseFlowLink creation into one transaction-safe Flow completion use case.
-                // linkCompletedFlowToPulse is best-effort and must never fail the saved Flow.
-                state.originPulseId?.let { pulseId ->
-                    ideaGroveRepository.linkCompletedFlowToPulse(pulseId, firstSessionId)
-                }
 
 
                 val shellReward = runCatching { shellRewardOrchestrator.onSessionCompleted(
@@ -1590,7 +1574,7 @@ class FlowViewModel @Inject constructor(
                 ).withShellReward(shellReward)
 
                 _awaitingNextFlowAfterContinue.value = true
-                queueArcIdeaContinuationPromptIfNeeded(state)
+                queueArcIdeaContinuationPromptIfNeeded(firstSessionId, state)
 
                 baseStartTimeMs = null
                 accumulatedBeforeStartMs = 0L
@@ -1666,7 +1650,8 @@ class FlowViewModel @Inject constructor(
                     startTime = sessionStart, endTime = sessionEnd, durationMs = realDurationMs,
                     activeIntervalJson = activeIntervalJson,
                     surgePlannedMs = state.surgePlannedMs, surgePoints = surgePoints,
-                    scyraPoints = finalScyra, mode = state.mode)
+                    scyraPoints = finalScyra, mode = state.mode),
+                originPulseId = state.originPulseId
             )
             committedSessionId = insertedId
             _completionState.value = FlowCompletionState.CoreCommitted(insertedId)
@@ -1698,12 +1683,6 @@ class FlowViewModel @Inject constructor(
                 sessionId = insertedId,
                 arcId = localArc?.arcId ?: firstCompletedArc?.arcId
             )
-            // TODO(Idea Grove): move Session insert and optional PulseFlowLink creation into
-            // one transaction-safe Flow completion use case. linkCompletedFlowToPulse is
-            // best-effort and must never fail the saved Flow.
-            state.originPulseId?.let { pulseId ->
-                ideaGroveRepository.linkCompletedFlowToPulse(pulseId, insertedId)
-            }
 
             if (isInExistingArc) {
                 // Completion ends the pause; between-Flow grace has its own deadline.
@@ -1946,7 +1925,7 @@ class FlowViewModel @Inject constructor(
                     _lastReward.value = baseReward
                     _awaitingNextFlowAfterContinue.value = true
                     _exitAfterReward.value = false
-                    queueArcIdeaContinuationPromptIfNeeded(state)
+                    queueArcIdeaContinuationPromptIfNeeded(insertedId, state)
 
                     baseStartTimeMs = null
                     accumulatedBeforeStartMs = 0L

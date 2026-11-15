@@ -37,6 +37,10 @@ import com.kingkharnivore.skillz.viewmodel.TagUiModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
+import kotlinx.coroutines.launch
+import com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemUiModel
+import com.kingkharnivore.skillz.ui.screen.shell.rooms.ideagrove.IdeaPulseCard
 
 @Composable
 fun PathsScreen(viewModel: PathsViewModel, onOpenFlowPlan: (FlowPlanListItemUiModel) -> Unit,
@@ -46,9 +50,13 @@ fun PathsScreen(viewModel: PathsViewModel, onOpenFlowPlan: (FlowPlanListItemUiMo
     val arcs by viewModel.arcPlans.collectAsStateWithLifecycle()
     var section by rememberSaveable { mutableStateOf(HorizonSection.PLANS) }
     var showEditor by rememberSaveable { mutableStateOf(false) }
+    var editorCreationKey by rememberSaveable { mutableStateOf(UUID.randomUUID().toString()) }
     var editId by rememberSaveable { mutableStateOf<Long?>(null) }
     var showDreams by rememberSaveable { mutableStateOf(false) }
     var showOtherFlow by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val ideaSavedMessage = stringResource(R.string.horizon_idea_saved)
     val edited = (state.flowPlans + state.dreamFlowPlans).firstOrNull { it.id == editId }
     fun launch(plan: FlowPlanListItemUiModel) {
         val ongoing = state.ongoing
@@ -60,20 +68,26 @@ fun PathsScreen(viewModel: PathsViewModel, onOpenFlowPlan: (FlowPlanListItemUiMo
         viewModel.launched(plan.id)
         onOpenFlowPlan(plan)
     }
-    CompositionLocalProvider(LocalChronicleReaderFactory provides remember(viewModel) { viewModel::createHistoricalChronicle }) {
-        HorizonContent(state.copy(selectedSection = section, arcPlans = arcs), showDreams, { showDreams = !showDreams }, viewModel::onPrimaryTabSelected,
-            onNew = { editId = null; viewModel.clearError(); showEditor = true },
-            onEdit = { editId = it.id; viewModel.clearError(); showEditor = true },
-            onLaunch = ::launch, onPin = viewModel::pin, onArchive = viewModel::archive,
-            onDelete = viewModel::delete, onPlanArc = onPlanArc, onOpenArc = onOpenArc,
-            onDeleteArc = viewModel::deleteArcPlan, onOpenSuggestedRoute = onOpenSuggestedRoute,
-            onSection = { section = it },
-            onRemoveMemory = viewModel::removeMemory,
-            onPlanAgain = { viewModel.planAgain(it) {} })
+    Box(Modifier.fillMaxSize()) {
+        CompositionLocalProvider(LocalChronicleReaderFactory provides remember(viewModel) { viewModel::createHistoricalChronicle }) {
+            HorizonContent(state.copy(selectedSection = section, arcPlans = arcs), showDreams, { showDreams = !showDreams }, viewModel::onPrimaryTabSelected,
+                onNew = { editId = null; editorCreationKey = UUID.randomUUID().toString(); viewModel.clearError(); showEditor = true },
+                onEdit = { editId = it.id; viewModel.clearError(); showEditor = true },
+                onLaunch = ::launch, onPin = viewModel::pin, onArchive = viewModel::archive,
+                onDelete = viewModel::delete, onPlanArc = onPlanArc, onOpenArc = onOpenArc,
+                onDeleteArc = viewModel::deleteArcPlan, onOpenSuggestedRoute = onOpenSuggestedRoute,
+                onSection = { section = it },
+                onRemoveMemory = viewModel::removeMemory,
+                onPlanAgain = { viewModel.planAgain(it) {} })
+        }
+        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
     if (showEditor) ActivityEditor(edited, state.selectedPrimaryTab, state.tags, state.isSaving,
         state.errorMessage, onClose = { showEditor = false }, onSave = { title, tag, kind, mode, minutes, surge ->
-            viewModel.saveActivity(editId, title, tag, kind, mode, minutes, surge) { showEditor = false }
+            viewModel.saveActivity(editId, title, tag, kind, mode, minutes, surge, creationKey = editorCreationKey) {
+                showEditor = false
+                if (kind == HorizonKind.IDEA) scope.launch { snackbarHostState.showSnackbar(ideaSavedMessage) }
+            }
         })
     if (showOtherFlow) AlertDialog(onDismissRequest = { showOtherFlow = false },
         title = { Text(stringResource(R.string.horizon_active_flow)) },
@@ -92,6 +106,7 @@ internal fun HorizonContent(state: PathsUiState, showDreams: Boolean, onToggleDr
     onRemoveMemory: (MemoryFlowUi) -> Unit = {},
     onPlanAgain: (MemoryGroupUi) -> Unit) {
     val kind = if (state.selectedPrimaryTab == PathsPrimaryTab.PLANS) HorizonKind.PLAN else HorizonKind.HABIT
+    val timeline = remember(state.memories, state.ideaMemories) { memoryTimeline(state.memories, state.ideaMemories) }
     val activities = state.flowPlans.filter { it.kind == kind }
     val dreams = state.dreamFlowPlans.filter { it.kind == kind }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -153,8 +168,13 @@ internal fun HorizonContent(state: PathsUiState, showDreams: Boolean, onToggleDr
             }
             state.selectedPrimaryTab == PathsPrimaryTab.MEMORIES -> {
                 item { Text(stringResource(R.string.horizon_memories_hint), style = MaterialTheme.typography.bodyMedium) }
-                if (state.memories.isEmpty()) item { HorizonEmpty(R.string.horizon_empty_memories, R.string.horizon_empty_memories_body) }
-                items(state.memories, key = { it.key }) { memory -> MemoryCard(memory, onRemoveMemory, onPlanAgain) }
+                if (timeline.isEmpty()) item { HorizonEmpty(R.string.horizon_empty_memories, R.string.horizon_empty_memories_body) }
+                items(timeline, key = { it.key }, contentType = { it::class }) { entry ->
+                    when (entry) {
+                        is MemoryTimelineItem.Activity -> MemoryCard(entry.memory, onRemoveMemory, onPlanAgain)
+                        is MemoryTimelineItem.Idea -> IdeaMemoryCard(entry.idea)
+                    }
+                }
             }
             else -> {
                 item { Text(stringResource(if (kind == HorizonKind.HABIT) R.string.horizon_habits_hint else R.string.horizon_plans_hint),
@@ -242,6 +262,13 @@ private fun ActivityCard(activity: FlowPlanListItemUiModel, inProgress: Boolean,
         text = { Text(stringResource(R.string.horizon_delete_body)) },
         confirmButton = { TextButton(onClick = { deleting = false; onDelete() }) { Text(stringResource(R.string.common_delete)) } },
         dismissButton = { TextButton(onClick = { deleting = false }) { Text(stringResource(R.string.common_cancel)) } })
+}
+
+@Composable
+internal fun IdeaMemoryCard(idea: IdeaGroveItemUiModel) {
+    var expanded by rememberSaveable(idea.pulseId) { mutableStateOf(false) }
+    IdeaPulseCard(idea, expanded, onClick = { expanded = !expanded }, showActions = false,
+        categoryLabel = stringResource(R.string.horizon_idea))
 }
 
 @Composable
@@ -349,38 +376,45 @@ internal fun ActivityEditor(activity: FlowPlanListItemUiModel?, tab: PathsPrimar
     var minutes by rememberSaveable { mutableStateOf(activity?.targetMinutes?.toString().orEmpty()) }
     ModalBottomSheet(onDismissRequest = { if (!saving) onClose() }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).imePadding().padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(stringResource(if (activity == null) R.string.horizon_new_activity else R.string.horizon_edit), style = MaterialTheme.typography.titleLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(if (activity != null) R.string.horizon_edit else if (kind == HorizonKind.IDEA) R.string.horizon_new_idea else R.string.horizon_new_activity), style = MaterialTheme.typography.titleLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 FilterChip(kind == HorizonKind.HABIT, onClick = { kind = HorizonKind.HABIT }, enabled = !saving, label = { Text(stringResource(R.string.horizon_habit)) })
                 FilterChip(kind == HorizonKind.PLAN, onClick = { kind = HorizonKind.PLAN }, enabled = !saving, label = { Text(stringResource(R.string.horizon_plan)) })
+                if (activity == null) FilterChip(kind == HorizonKind.IDEA, onClick = { kind = HorizonKind.IDEA }, enabled = !saving, label = { Text(stringResource(R.string.horizon_idea)) })
             }
-            Text(stringResource(if (kind == HorizonKind.HABIT) R.string.horizon_habits_hint else R.string.horizon_plans_hint), style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(when (kind) {
+                HorizonKind.IDEA -> R.string.horizon_ideas_hint
+                HorizonKind.HABIT -> R.string.horizon_habits_hint
+                else -> R.string.horizon_plans_hint
+            }), style = MaterialTheme.typography.bodySmall)
             OutlinedTextField(title, { title = it.take(100) }, label = { Text(stringResource(R.string.paths_title_label)) }, modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving)
             OutlinedTextField(tag, { tag = it }, label = { Text(stringResource(R.string.pulse_edit_journey_field_label)) }, modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving)
             if (tags.isNotEmpty()) LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(tags, key = { it.id }) { item -> SuggestionChip(onClick = { tag = item.name }, enabled = !saving, label = { Text(item.name) }) }
             }
-            Text(stringResource(R.string.flow_screen_mode_label), style = MaterialTheme.typography.labelLarge)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FlowMode.entries.forEach { option ->
-                    FilterChip(selected = mode == option, onClick = {
-                        mode = option
-                        if (option == FlowMode.SOFT) surge = false
-                    }, enabled = !saving, label = { Text(stringResource(flowModeLabel(option))) })
+            if (kind != HorizonKind.IDEA) {
+                Text(stringResource(R.string.flow_screen_mode_label), style = MaterialTheme.typography.labelLarge)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowMode.entries.forEach { option ->
+                        FilterChip(selected = mode == option, onClick = {
+                            mode = option
+                            if (option == FlowMode.SOFT) surge = false
+                        }, enabled = !saving, label = { Text(stringResource(flowModeLabel(option))) })
+                    }
                 }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.paths_surge), Modifier.weight(1f))
+                    Switch(surge, onCheckedChange = { surge = it }, enabled = mode != FlowMode.SOFT && !saving)
+                }
+                if (surge) OutlinedTextField(minutes, { minutes = it.filter(Char::isDigit).take(3) }, label = { Text(stringResource(R.string.horizon_target_minutes)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, enabled = !saving)
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.paths_surge), Modifier.weight(1f))
-                Switch(surge, onCheckedChange = { surge = it }, enabled = mode != FlowMode.SOFT && !saving)
-            }
-            if (surge) OutlinedTextField(minutes, { minutes = it.filter(Char::isDigit).take(3) }, label = { Text(stringResource(R.string.horizon_target_minutes)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, enabled = !saving)
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TextButton(onClick = onClose, enabled = !saving, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.common_cancel)) }
-                Button(onClick = { onSave(title.trim(), tag.trim(), kind, mode, minutes.toIntOrNull(), surge) },
-                    enabled = !saving && title.isNotBlank() && (!surge || (minutes.toIntOrNull() ?: 0) > 0), modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.common_save))
+                Button(onClick = { onSave(title.trim(), tag.trim(), kind, mode, if (kind == HorizonKind.IDEA) null else minutes.toIntOrNull(), kind != HorizonKind.IDEA && surge) },
+                    enabled = !saving && title.isNotBlank() && (kind == HorizonKind.IDEA || !surge || (minutes.toIntOrNull() ?: 0) > 0), modifier = Modifier.weight(1f)) {
+                    Text(stringResource(if (kind == HorizonKind.IDEA) R.string.horizon_save_idea else R.string.common_save))
                 }
             }
         }

@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface FlowPlanDao {
 
+    @Query("SELECT * FROM flow_plans WHERE tagId = :tagId AND archived = 0 AND completedAt IS NULL AND kind IN ('HABIT', 'PLAN')")
+    suspend fun getCompletionCandidates(tagId: Long): List<FlowPlanEntity>
+
     @Query("SELECT * FROM flow_plans ORDER BY pinned DESC, updatedAt DESC, id DESC")
     fun observeAll(): Flow<List<FlowPlanEntity>>
 

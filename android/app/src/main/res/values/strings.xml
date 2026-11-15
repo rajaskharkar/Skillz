@@ -2296,9 +2296,9 @@ You can turn Health back on later.</string>
     <string name="horizon_habits">Habits</string>
     <string name="horizon_plans">Plans</string>
     <string name="horizon_memories">Memories</string>
-    <string name="horizon_memories_hint">Your completed activities, most recent first.</string>
+    <string name="horizon_memories_hint">Your Habit, Plan, and Idea journeys, most recent Flow first.</string>
     <string name="horizon_empty_memories">Memories begin with a Flow</string>
-    <string name="horizon_empty_memories_body">Complete a Habit or Plan to keep its Flow details here.</string>
+    <string name="horizon_empty_memories_body">Record a Flow for a Habit, Plan, or Idea to see its journey here.</string>
     <string name="horizon_habits_hint">Return as often as you like. Habits stay here after each Flow.</string>
     <string name="horizon_plans_hint">Work on a Plan across Flows. After each Flow, choose whether the Plan is complete. Your progress stays in Memories.</string>
     <string name="flow_plan_completion_question">Was this Plan successfully completed?</string>
@@ -2378,4 +2378,9 @@ You can turn Health back on later.</string>
     <string name="lookout_cycle_dates">Cycle: %1$s – %2$s</string>
     <string name="shell_enter_focus">Enter the Focus Room</string>
     <string name="the_blue_created_from_flow">Created from your focused time.</string>
+    <string name="horizon_idea">Idea</string>
+    <string name="horizon_ideas_hint">Save a spark to Idea Grove. Record a Flow from it to grow its journey and see it in Memories.</string>
+    <string name="horizon_save_idea">Save to Idea Grove</string>
+    <string name="horizon_idea_saved">Saved to Idea Grove</string>
+    <string name="horizon_new_idea">New idea</string>
 </resources>

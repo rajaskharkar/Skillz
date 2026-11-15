@@ -80,7 +80,7 @@ class ActivityTitleSuggestionTest {
         assertNull(reset.withEditedTitle("Brush teeth").withEditedTagName("ready").originPlanId)
     }
 
-    @Test fun unchangedValuesRetainSelectionButReselectingIsRequiredAfterAnEdit() {
+    @Test fun unchangedValuesRetainSelectionAndExplicitSelectionReplacesIt() {
         val unchanged = selected().withEditedTitle("Brush teeth").withEditedTagName("ready")
         assertEquals(7L, unchanged.originPlanId)
         val reselected = unchanged.withEditedTitle("Read").withActivityTitle(ActivityTitleSuggestion(8, "Reading", "study"))
@@ -95,11 +95,12 @@ class ActivityTitleSuggestionTest {
         assertNull(restored.withResetStopwatch().originPlanId)
     }
 
-    @Test fun planJourneyLinkSurvivesEditsAndTimerReset() {
+    @Test fun planJourneyLinkDetachesOnEitherEditOrTimerReset() {
         val plan = FlowUiState(title = "Sort photos", tagName = "home", originPlanId = 9, originPlanKind = HorizonKind.PLAN)
-        val changed = plan.withEditedTitle("Sorted first album").withEditedTagName("photos").withResetStopwatch()
-        assertEquals(9L, changed.originPlanId)
-        assertEquals(HorizonKind.PLAN, changed.originPlanKind)
+        for (changed in listOf(plan.withEditedTitle("Sorted first album"), plan.withEditedTagName("photos"), plan.withResetStopwatch())) {
+            assertNull(changed.originPlanId)
+            assertNull(changed.originPlanKind)
+        }
     }
 
     @Test fun typingFindsHabitsIgnoringCaseAndWhitespaceWithoutLinkingThem() {
@@ -151,4 +152,60 @@ class ActivityTitleSuggestionTest {
         assertEquals(listOf(7L, 8L), suggestions.map { it.id })
         assertEquals("", state.withActivityTitle(suggestions.first()).tagName)
     }
+    private fun idea(id: Long = 7, status: String = "ALIVE") =
+        com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemUiModel(
+            pulseId = id, type = com.kingkharnivore.skillz.model.state.ideagrove.IdeaGroveItemType.RAW_PULSE,
+            title = "Brush design", description = "", journeyName = "design", createdAt = 1, updatedAt = 1,
+            groveStatus = status, groveStatusChangedAt = null, flowCount = 0, totalFlowDurationMs = 0,
+            lastWorkedAt = null, flows = emptyList(), wasCapturedDuringFlow = false
+        )
+
+    @Test fun ideasShareAutocompleteWithoutCollidingWithPlanIdsOrIncludingInactiveIdeas() {
+        val state = FlowUiState(title = " BRU ")
+        val suggestions = activityTitleSuggestions(listOf(habit), tags, state,
+            listOf(idea(), idea(8, "COMPLETED"), idea(9, "INSIGHT")))
+        assertEquals(listOf("HABIT:7", "IDEA:7"), suggestions.map { it.key })
+        val selected = state.withActivityTitle(suggestions.last())
+        assertEquals(7L, selected.originPulseId)
+        assertEquals("Brush design", selected.originPulseTitle)
+        assertEquals("design", selected.originPulseJourneyName)
+        assertNull(selected.originPlanId)
+        assertTrue(activityTitleSuggestions(emptyList(), tags, selected, listOf(idea())).isEmpty())
+    }
+
+    @Test fun ideaSelectionPreservesEveryRunningModeAndReplacesTheActivityOrigin() {
+        for (mode in FlowMode.entries) {
+            val state = FlowUiState(title = "bru", mode = mode, originPlanId = 7, originPlanKind = HorizonKind.HABIT,
+                isInArc = true, isSurgeOn = mode != FlowMode.SOFT, surgePlannedMs = 120_000,
+                stopwatch = StopwatchState(isRunning = true, elapsedMs = 60_000))
+            // A stale suggestion cannot change an Idea Flow's mode.
+            val selected = state.withActivityTitle(ActivityTitleSuggestion(7, "Brush design", "design", HorizonKind.IDEA))
+            assertEquals(mode, selected.mode)
+            assertEquals(state.stopwatch, selected.stopwatch)
+            assertEquals(state.isSurgeOn, selected.isSurgeOn)
+            assertEquals(state.surgePlannedMs, selected.surgePlannedMs)
+            assertTrue(selected.isInArc)
+            assertNull(selected.originPlanId)
+            assertNull(selected.originPlanKind)
+            assertEquals(7L, selected.originPulseId)
+        }
+    }
+
+    @Test fun editingEitherIdeaFieldClearsOriginAndExplicitSelectionSetsNewOrigin() {
+        val selected = FlowUiState().withActivityTitle(ActivityTitleSuggestion(7, "Brush design", "design", HorizonKind.IDEA))
+        val edited = selected.withEditedTitle("Prototype handle").withEditedTagName("workshop").withResetStopwatch()
+        for (changed in listOf(selected.withEditedTitle("Prototype handle"), selected.withEditedTagName("workshop"), edited)) {
+            assertNull(changed.originPulseId)
+            assertNull(changed.originPulseTitle)
+            assertNull(changed.originPulseJourneyName)
+        }
+        for (kind in listOf(HorizonKind.HABIT, HorizonKind.PLAN)) {
+            val changed = edited.withActivityTitle(ActivityTitleSuggestion(7, "Brush teeth", "ready", kind))
+            assertEquals(7L, changed.originPlanId)
+            assertNull(changed.originPulseId)
+            assertNull(changed.originPulseTitle)
+            assertNull(changed.originPulseJourneyName)
+        }
+    }
+
 }
