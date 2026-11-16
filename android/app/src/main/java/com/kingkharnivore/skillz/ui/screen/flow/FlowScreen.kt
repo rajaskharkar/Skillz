@@ -137,6 +137,9 @@ fun FlowScreen(
     val pendingPlanCompletion by viewModel.pendingPlanCompletion.collectAsState()
     val isAnsweringPlanCompletion by viewModel.isAnsweringPlanCompletion.collectAsState()
     val planCompletionError by viewModel.planCompletionError.collectAsState()
+    val pendingRepeatedFlow by viewModel.pendingRepeatedFlow.collectAsStateWithLifecycle()
+    val isAnsweringRepeatedFlow by viewModel.isAnsweringRepeatedFlow.collectAsStateWithLifecycle()
+    val repeatedFlowError by viewModel.repeatedFlowError.collectAsStateWithLifecycle()
     val exitAfterReward by viewModel.exitAfterReward.collectAsState()
     val awaitingNextFlow by viewModel.awaitingNextFlowAfterContinue.collectAsState()
     val pendingArcIdeaContinuation by viewModel.pendingArcIdeaContinuation.collectAsState()
@@ -195,7 +198,15 @@ fun FlowScreen(
         )
     }
 
-    val isRecoveringTerminalExit = pendingPlanCompletion == null && shouldRecoverTerminalExit(
+    if (pendingRepeatedFlow != null) {
+        RepeatedFlowDialog(
+            saving = isSaving || isAnsweringRepeatedFlow,
+            hasError = repeatedFlowError,
+            onAnswer = viewModel::answerRepeatedFlow
+        )
+    }
+
+    val isRecoveringTerminalExit = pendingPlanCompletion == null && pendingRepeatedFlow == null && shouldRecoverTerminalExit(
         exitAfterReward = exitAfterReward,
         hasReward = reward != null
     )
@@ -693,7 +704,7 @@ fun FlowScreen(
         )
     }
 
-    if (showPointsDialog && reward != null && pendingPlanCompletion == null && !isSaving) {
+    if (showPointsDialog && reward != null && pendingPlanCompletion == null && pendingRepeatedFlow == null && !isSaving) {
         val r = reward!!
         var showArcSummary by remember(r) { mutableStateOf(r.isArcOnlySummary) }
 

@@ -117,6 +117,60 @@ class FlowRepository @Inject constructor(
     suspend fun ideaForSession(sessionId: Long): PulseEntity? =
         database.ideaGroveDao().getIdeasForSession(sessionId).singleOrNull()
 
+    /** Count real completions, including the Flow just saved. Existing activities need no offer. */
+    suspend fun shouldOfferRepeatedFlow(sessionId: Long): Boolean = database.withTransaction {
+        repeatedFlowSessions(sessionId) != null
+    }
+
+    private suspend fun repeatedFlowSessions(sessionId: Long): List<SessionEntity>? {
+        val current = sessionDao.getSessionById(sessionId) ?: return null
+        if (current.durationMs <= 0 || current.title.isBlank() || current.originPlanId != null ||
+            database.horizonMemoryDao().getBySessionId(sessionId) != null ||
+            database.ideaGroveDao().getIdeasForSession(sessionId).isNotEmpty()) return null
+        // Do not create another activity when a matching active Habit or Plan already exists,
+        // including ambiguous duplicate titles that the normal completion resolver cannot choose.
+        if (database.flowPlanDao().getCompletionCandidates(current.tagId).any {
+                it.title.trim().equals(current.title.trim(), ignoreCase = true)
+            }) return null
+        return sessionDao.completedSessionsForTag(current.tagId).filter {
+            it.title.trim().equals(current.title.trim(), ignoreCase = true)
+        }.takeIf { it.size >= 3 }
+    }
+
+    /** Creation and historical Memories commit together. A retried answer cannot create duplicates. */
+    suspend fun createActivityFromRepeatedFlow(sessionId: Long, kind: String): Long = database.withTransaction {
+        require(kind == HorizonKind.HABIT || kind == HorizonKind.PLAN)
+        val memories = database.horizonMemoryDao()
+        memories.getBySessionId(sessionId)?.let { return@withTransaction it.sourcePlanId }
+        val sessions = checkNotNull(repeatedFlowSessions(sessionId)) { "This Flow is no longer eligible." }
+        val current = sessions.single { it.id == sessionId }
+        val targetMinutes = current.surgePlannedMs?.div(60_000L)?.toInt()?.takeIf { it > 0 }
+        val planId = database.flowPlanDao().insertFlowPlan(FlowPlanEntity(
+            title = current.title.trim(), tagId = current.tagId, kind = kind,
+            mode = current.mode, isSoftMode = current.isSoftMode,
+            targetMinutes = targetMinutes,
+            launchWithSurge = !current.isSoftMode && targetMinutes != null
+        ))
+        val tagName = tagDao.getAllTagsSnapshot().firstOrNull { it.id == current.tagId }?.name.orEmpty()
+        for (session in sessions) {
+            // Preserve explicit links (including memories of removed activities) and Idea history.
+            if (session.originPlanId != null || memories.getBySessionId(session.id) != null ||
+                database.ideaGroveDao().getIdeasForSession(session.id).isNotEmpty()) continue
+            val flowInstanceId = sessionDao.flowInstanceIdForSession(session.id)
+                ?: "repeated-flow:session:${session.id}" // Older Flows predate creation receipts.
+            memories.insert(com.kingkharnivore.skillz.data.model.entity.HorizonMemoryEntity(
+                flowInstanceId = flowInstanceId, sourcePlanId = planId, kind = kind,
+                activityTitle = current.title.trim(), sessionId = session.id, title = session.title,
+                tagName = tagName, mode = session.mode, durationMs = session.durationMs,
+                score = session.scyraPoints, surgePoints = session.surgePoints,
+                surgePlannedMs = session.surgePlannedMs, arcId = session.arcId,
+                arcMultiplier = session.arcMultiplierUsed, completedAt = session.endTime
+            ))
+            sessionDao.attachToPlan(session.id, planId)
+        }
+        planId
+    }
+
     suspend fun planAwaitingCompletion(sessionId: Long): FlowPlanEntity? {
         val memory = database.horizonMemoryDao().getBySessionId(sessionId) ?: return null
         if (memory.kind != HorizonKind.PLAN) return null
