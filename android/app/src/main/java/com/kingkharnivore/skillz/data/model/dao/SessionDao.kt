@@ -18,6 +18,16 @@ private const val LIFETIME_POINTS_QUERY = """
 
 @Dao
 interface SessionDao {
+    // Bound by Journey; Kotlin applies the same Unicode-aware title matching as activity resolution.
+    @Query("SELECT * FROM sessions WHERE tagId = :tagId AND durationMs > 0 ORDER BY endTime, id")
+    suspend fun completedSessionsForTag(tagId: Long): List<SessionEntity>
+
+    @Query("SELECT flowInstanceId FROM session_creations WHERE sessionId = :sessionId")
+    suspend fun flowInstanceIdForSession(sessionId: Long): String?
+
+    @Query("UPDATE sessions SET originPlanId = :planId WHERE id = :sessionId")
+    suspend fun attachToPlan(sessionId: Long, planId: Long)
+
     @Query(LIFETIME_POINTS_QUERY)
     suspend fun lifetimeScyraPoints(): Long
 

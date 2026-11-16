@@ -275,10 +275,58 @@ class FlowViewModel @Inject constructor(
     private val _planCompletionError = MutableStateFlow<String?>(null)
     val planCompletionError = _planCompletionError.asStateFlow()
 
-    private suspend fun queuePlanCompletionQuestion(sessionId: Long) {
+    private val repeatedFlowPrompt = RepeatedFlowPromptState(savedStateHandle, sessionRepository, viewModelScope)
+    val pendingRepeatedFlow = repeatedFlowPrompt.pendingSession
+    val isAnsweringRepeatedFlow = repeatedFlowPrompt.isWorking
+    val repeatedFlowError = repeatedFlowPrompt.hasError
+
+    private suspend fun queueCompletionQuestions(sessionId: Long, continueArc: Boolean) {
         if (sessionRepository.planAwaitingCompletion(sessionId) != null) {
             savedStateHandle["pendingPlanCompletionSession"] = sessionId
+        } else if (sessionRepository.shouldOfferRepeatedFlow(sessionId)) {
+            repeatedFlowPrompt.queue(sessionId, continueArc)
         }
+    }
+
+    fun answerRepeatedFlow(kind: String?) {
+        if (_isSaving.value) return
+        repeatedFlowPrompt.answer(kind, ::restoreRepeatedFlowCompletion)
+    }
+
+    private suspend fun restoreRepeatedFlowCompletion(sessionId: Long, continueArc: Boolean) {
+        val session = sessionRepository.getSessionById(sessionId)
+        val draft = focusSessionRepository.getOngoingSession().firstOrNull()
+        val nextDraft = draft?.takeIf { sessionRepository.findCreatedSession(it.flowInstanceId) == null }
+        // A restoration retry may already have prepared the next draft. Keep it, especially
+        // after a planned step was advanced, rather than advancing the Arc a second time.
+        if (draft != null && nextDraft == null) clearOngoing()
+
+        if (!continueArc || session == null) {
+            _completionState.value = FlowCompletionState.Completed(sessionId)
+            _exitAfterReward.value = true
+            syncArcUi()
+            return
+        }
+
+        _completionState.value = FlowCompletionState.Idle
+        val handoff = arcPrefs.loadPlannedFlowHandoff()
+        if (handoff == ArcPrefs.PlannedFlowHandoff.BLANK_ARC_CONTINUATION) activeArcRunRepository.clear()
+        val run = activeArcRunRepository.getActiveArcRunOnce()
+        if (nextDraft != null) {
+            restoreOngoingDraft(nextDraft, run)
+        } else if (run != null && handoff == ArcPrefs.PlannedFlowHandoff.NEXT_PLANNED_STEP) {
+            advancePlannedArcAfterCompletedSession(continuationOrigin = null)
+        } else {
+            currentFlowInstanceId = UUID.randomUUID().toString()
+            ongoingCreatedAtMs = System.currentTimeMillis()
+            _uiState.value = FlowUiState(
+                showScoreUi = _uiState.value.showScoreUi, calmMode = _uiState.value.calmMode,
+                tagName = tagRepository.getAllTags().first().firstOrNull { it.id == session.tagId }?.name.orEmpty()
+            )
+            saveOngoingNow()
+        }
+        arcPrefs.clearPlannedFlowHandoff()
+        syncArcUi()
     }
 
     fun answerPlanCompletion(completed: Boolean) {
@@ -557,6 +605,8 @@ class FlowViewModel @Inject constructor(
                 arcPrefs.save(arcState!!)
             }
 
+            if (repeatedFlowPrompt.restoreIfNeeded(::restoreRepeatedFlowCompletion)) return@launch
+
             // Restore the stopwatch before starting Arc countdown/expiry checks.
 
             if (plannedHandoff == ArcPrefs.PlannedFlowHandoff.BLANK_ARC_CONTINUATION) {
@@ -648,53 +698,7 @@ class FlowViewModel @Inject constructor(
                     saveOngoingNow()
                 } else {
                     val restoredPlannedRun = activePlannedRun.takeIf { isPlannedArcLaunch() }
-                    currentFlowInstanceId = entity.flowInstanceId
-                    ongoingCreatedAtMs = entity.createdAt
-                    baseStartTimeMs = entity.baseStartTimeMs
-                    accumulatedBeforeStartMs = entity.accumulatedBeforeStartMs
-                    activeIntervals.clear()
-                    activeIntervals += FlowActiveIntervalCodec.decode(entity.activeIntervalJson)
-                    activeIntervalStartMs = if (entity.isRunning) entity.baseStartTimeMs else null
-
-                    val elapsed = if (entity.isRunning && baseStartTimeMs != null) {
-                        accumulatedBeforeStartMs +
-                                (System.currentTimeMillis() - baseStartTimeMs!!).coerceAtLeast(0L)
-                    } else {
-                        accumulatedBeforeStartMs
-                    }
-
-                    val restoredOriginKind = entity.originPlanId?.let { flowPlanRepository.getFlowPlanById(it)?.kind }
-                    _uiState.update { old ->
-                        old.copy(
-                            title = entity.title,
-                            description = "",
-                            tagName = entity.tagName,
-                            isInFlowMode = entity.isInFlowMode,
-                            mode = entity.mode,
-                            isSurgeOn = entity.isSurgeOn,
-                            surgePlannedMs = entity.surgePlannedMs,
-                            plannedArcTitle = restoredPlannedRun?.arcTitle
-                                ?: old.plannedArcTitle,
-                            plannedArcStepIndex = restoredPlannedRun?.currentStepIndex
-                                ?: old.plannedArcStepIndex,
-                            plannedArcTotalSteps = restoredPlannedRun?.totalSteps
-                                ?: old.plannedArcTotalSteps,
-                            originPlanId = entity.originPlanId,
-                            originPlanKind = restoredOriginKind,
-                            originPulseId = entity.originPulseId,
-                            originPulseTitle = entity.originPulseTitleSnapshot,
-                            originPulseJourneyName = entity.originPulseJourneyNameSnapshot,
-                            healthEnabledAtStart = entity.healthEnabledAtStart,
-                            healthPermissionGrantedAtStart = entity.healthPermissionGrantedAtStart,
-                            movementBonusEligibleAtStart = entity.movementBonusEligibleAtStart,
-                            stopwatch = StopwatchState(
-                                isRunning = entity.isRunning,
-                                elapsedMs = elapsed
-                            )
-                        )
-                    }
-
-                    if (entity.isRunning) startTicker()
+                    restoreOngoingDraft(entity, restoredPlannedRun)
                 }
             } ?: run {
                 currentFlowInstanceId = UUID.randomUUID().toString()
@@ -741,6 +745,59 @@ class FlowViewModel @Inject constructor(
             expirePausedArcIfNeeded(System.currentTimeMillis())
             syncArcUi()
         }
+    }
+
+    private suspend fun restoreOngoingDraft(
+        entity: OngoingSessionEntity,
+        restoredPlannedRun: com.kingkharnivore.skillz.data.model.entity.ActiveArcRunEntity?
+    ) {
+        currentFlowInstanceId = entity.flowInstanceId
+        ongoingCreatedAtMs = entity.createdAt
+        baseStartTimeMs = entity.baseStartTimeMs
+        accumulatedBeforeStartMs = entity.accumulatedBeforeStartMs
+        activeIntervals.clear()
+        activeIntervals += FlowActiveIntervalCodec.decode(entity.activeIntervalJson)
+        activeIntervalStartMs = if (entity.isRunning) entity.baseStartTimeMs else null
+
+        val elapsed = if (entity.isRunning && baseStartTimeMs != null) {
+            accumulatedBeforeStartMs +
+                    (System.currentTimeMillis() - baseStartTimeMs!!).coerceAtLeast(0L)
+        } else {
+            accumulatedBeforeStartMs
+        }
+
+        val restoredOriginKind = entity.originPlanId?.let { flowPlanRepository.getFlowPlanById(it)?.kind }
+        _uiState.update { old ->
+            old.copy(
+                title = entity.title,
+                description = "",
+                tagName = entity.tagName,
+                isInFlowMode = entity.isInFlowMode,
+                mode = entity.mode,
+                isSurgeOn = entity.isSurgeOn,
+                surgePlannedMs = entity.surgePlannedMs,
+                plannedArcTitle = restoredPlannedRun?.arcTitle
+                    ?: old.plannedArcTitle,
+                plannedArcStepIndex = restoredPlannedRun?.currentStepIndex
+                    ?: old.plannedArcStepIndex,
+                plannedArcTotalSteps = restoredPlannedRun?.totalSteps
+                    ?: old.plannedArcTotalSteps,
+                originPlanId = entity.originPlanId,
+                originPlanKind = restoredOriginKind,
+                originPulseId = entity.originPulseId,
+                originPulseTitle = entity.originPulseTitleSnapshot,
+                originPulseJourneyName = entity.originPulseJourneyNameSnapshot,
+                healthEnabledAtStart = entity.healthEnabledAtStart,
+                healthPermissionGrantedAtStart = entity.healthPermissionGrantedAtStart,
+                movementBonusEligibleAtStart = entity.movementBonusEligibleAtStart,
+                stopwatch = StopwatchState(
+                    isRunning = entity.isRunning,
+                    elapsedMs = elapsed
+                )
+            )
+        }
+
+        if (entity.isRunning) startTicker()
     }
 
     fun clearLastReward() {
@@ -1298,10 +1355,22 @@ class FlowViewModel @Inject constructor(
     }
 
     fun onEndFlowClicked(action: FlowEndAction) {
-        if (_isSaving.value) return
+        if (_isSaving.value || _completionState.value is FlowCompletionState.Completed ||
+            pendingRepeatedFlow.value != null || pendingPlanCompletion.value != null) return
+        // Reserve completion before the first suspend (including Arc expiry reads).
+        _isSaving.value = true
         _completionState.value = FlowCompletionState.Preparing
         viewModelScope.launch {
-            saveWithArcBehavior(endMode = action)
+            try {
+                saveWithArcBehavior(endMode = action)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Failed to prepare Flow completion"
+                _completionState.value = FlowCompletionState.PreCommitFailure
+            } finally {
+                _isSaving.value = false
+            }
         }
     }
 
@@ -1424,7 +1493,6 @@ class FlowViewModel @Inject constructor(
             return
         }
 
-        _isSaving.value = true
         _error.value = null
         if (endMode != FlowEndAction.CONTINUE_ARC) {
             _pendingArcIdeaContinuation.value = null
@@ -1489,7 +1557,6 @@ class FlowViewModel @Inject constructor(
                 )
                 committedSessionId = firstSessionId
                 _completionState.value = FlowCompletionState.CoreCommitted(firstSessionId)
-                queuePlanCompletionQuestion(firstSessionId)
 
                 val arcId = System.currentTimeMillis()
 
@@ -1584,6 +1651,7 @@ class FlowViewModel @Inject constructor(
                 aliveFlowServiceController.stop()
                 clearOngoing()
 
+                queueCompletionQuestions(firstSessionId, continueArc = true)
                 _completionState.value = FlowCompletionState.Completed(firstSessionId)
                 return
             }
@@ -1655,7 +1723,6 @@ class FlowViewModel @Inject constructor(
             )
             committedSessionId = insertedId
             _completionState.value = FlowCompletionState.CoreCommitted(insertedId)
-            queuePlanCompletionQuestion(insertedId)
 
             // Saving the very first Flow must leave the same continuation candidate
             // as explicitly choosing Continue Arc. Its reward remains a standalone reward.
@@ -1947,15 +2014,16 @@ class FlowViewModel @Inject constructor(
                     clearOngoing()
                 }
             }
+            queueCompletionQuestions(insertedId, continueArc = resolvedEndMode == FlowEndAction.CONTINUE_ARC)
             _completionState.value = FlowCompletionState.Completed(insertedId)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             _error.value = e.message ?: "Failed to save session"
             val durableSessionId = committedSessionId
                 ?: sessionRepository.findCreatedSession(completingFlowInstanceId)
             _completionState.value = durableSessionId?.let(FlowCompletionState::CoreCommitted)
                 ?: FlowCompletionState.PreCommitFailure
-        } finally {
-            _isSaving.value = false
         }
     }
 
