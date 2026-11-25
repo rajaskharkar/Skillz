@@ -26,6 +26,7 @@ class PathsViewModel @Inject constructor(
     private val chronicleRepository: ChronicleRepository,
     private val aliveFlowRepository: AliveFlowRepository,
     private val ideaGroveRepository: IdeaGroveRepository,
+    private val reminderScheduler: com.kingkharnivore.skillz.domain.reminders.ActivityReminderScheduler,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val selected = savedStateHandle.getStateFlow("horizonTab", PathsPrimaryTab.HABITS.name)
@@ -40,7 +41,7 @@ class PathsViewModel @Inject constructor(
         val counts = data.memories.filter { it.kind == HorizonKind.HABIT }.groupBy { it.sourcePlanId }
         fun model(p: FlowPlanEntity) = FlowPlanListItemUiModel(p.id, p.title, p.tagId, tags[p.tagId].orEmpty(),
             p.isSoftMode, p.targetMinutes, p.launchWithSurge, p.pinned, p.launchCount, p.lastLaunchedAt,
-            p.kind, counts[p.id].orEmpty().size, counts[p.id]?.maxOfOrNull { it.completedAt }, p.mode)
+            p.kind, counts[p.id].orEmpty().size, counts[p.id]?.maxOfOrNull { it.completedAt }, p.mode, p.reminder)
         PathsUiState(isLoading = false, isSaving = saving, errorMessage = error,
             selectedPrimaryTab = runCatching { PathsPrimaryTab.valueOf(tab) }.getOrDefault(PathsPrimaryTab.HABITS),
             flowPlans = data.plans.filter { !it.archived && it.completedAt == null }.map(::model),
@@ -76,7 +77,7 @@ class PathsViewModel @Inject constructor(
         }
     }
     fun saveActivity(id: Long?, title: String, tagName: String, kind: String, mode: FlowMode,
-        minutes: Int?, surge: Boolean, creationKey: String? = null, onSaved: () -> Unit) {
+        minutes: Int?, surge: Boolean, creationKey: String? = null, reminder: com.kingkharnivore.skillz.domain.reminders.ActivityReminder = com.kingkharnivore.skillz.domain.reminders.ActivityReminder(), onSaved: () -> Unit) {
         if (saving.value) return
         saving.value = true
         mutate {
@@ -91,15 +92,18 @@ class PathsViewModel @Inject constructor(
                 require(kind == HorizonKind.HABIT || kind == HorizonKind.PLAN)
                 require(!surge || (mode != FlowMode.SOFT && minutes != null && minutes > 0))
                 val tagId = tagName.trim().takeIf(String::isNotEmpty)?.let { journeyRepository.getOrCreateTagId(it) }
-                if (id == null) flowPlanRepository.createFlowPlan(title, tagId, mode == FlowMode.SOFT, minutes, surge, kind, mode)
+                val savedId = if (id == null) flowPlanRepository.createFlowPlan(title, tagId, mode == FlowMode.SOFT, minutes, surge, kind, mode, reminder)
                 else {
                     val old = checkNotNull(flowPlanRepository.getFlowPlanById(id))
                     check(old.completedAt == null)
                     val ongoing = aliveFlowRepository.getOngoingSession().first()
                     check(ongoing?.originPlanId != id) { "Finish or leave the current Flow before editing this activity." }
                     flowPlanRepository.updateFlowPlan(old.copy(title = title.trim(), tagId = tagId, kind = kind,
-                        isSoftMode = mode == FlowMode.SOFT, mode = mode, targetMinutes = minutes, launchWithSurge = surge))
+                        isSoftMode = mode == FlowMode.SOFT, mode = mode, targetMinutes = minutes, launchWithSurge = surge, reminder = reminder))
+                    id
                 }
+                // Finish cancellation/rescheduling before closing the editor.
+                reminderScheduler.schedule(savedId)
                 onPrimaryTabSelected(if (kind == HorizonKind.HABIT) PathsPrimaryTab.HABITS else PathsPrimaryTab.PLANS)
                 onSaved()
             } finally { saving.value = false }

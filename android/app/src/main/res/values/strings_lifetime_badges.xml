@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lifetime_points_badge_title">%1$s Lifetime Scyra Points</string>
+    <string name="lifetime_points_badge_description">Reach %1$s Lifetime Scyra Points across all your Flows. Includes claimed objective points. Earned once and kept forever.</string>
+    <string name="lifetime_points_badge_progress">%1$s / %2$s Lifetime Scyra Points</string>
+</resources>

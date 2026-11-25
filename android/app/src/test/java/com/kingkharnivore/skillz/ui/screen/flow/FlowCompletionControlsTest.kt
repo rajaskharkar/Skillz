@@ -40,6 +40,11 @@ class FlowCompletionControlsTest {
         assertEquals(false, shouldRecoverTerminalExit(exitAfterReward = true, hasReward = true))
     }
 
+    @Test fun acceptedReminderKeepsRecoveredTerminalFlowOpenForHandoff() {
+        assertEquals(false, shouldRecoverTerminalExit(
+            exitAfterReward = true, hasReward = false, reminderAccepted = true))
+    }
+
     @Test fun terminalShellEntryConsumesExit() {
         assertEquals(
             RewardShellEntry.ConsumeTerminalExit,

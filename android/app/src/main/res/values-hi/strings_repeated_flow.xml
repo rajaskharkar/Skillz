@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="flow_repeat_title">इसे जारी रखें</string>
+    <string name="flow_repeat_question">आप यह Flow कई बार कर चुके हैं। क्या आप इसे आदत या योजना के रूप में जोड़ना चाहेंगे?</string>
+    <string name="flow_repeat_add_habit">हाँ, नई आदत जोड़ें</string>
+    <string name="flow_repeat_add_plan">हाँ, नई योजना जोड़ें</string>
+    <string name="flow_repeat_skip">छोड़ें</string>
+    <string name="flow_repeat_error">यह गतिविधि नहीं बन सकी। आपका Flow सहेजा गया है। फिर से कोशिश करें या यह चरण छोड़ें।</string>
+</resources>

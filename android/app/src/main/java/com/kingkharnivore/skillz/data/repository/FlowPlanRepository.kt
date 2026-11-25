@@ -30,8 +30,10 @@ class FlowPlanRepository @Inject constructor(
         targetMinutes: Int?,
         launchWithSurge: Boolean,
         kind: String = com.kingkharnivore.skillz.data.model.entity.HorizonKind.HABIT,
-        mode: FlowMode = FlowMode.fromSoft(isSoftMode)
+        mode: FlowMode = FlowMode.fromSoft(isSoftMode),
+        reminder: com.kingkharnivore.skillz.domain.reminders.ActivityReminder = com.kingkharnivore.skillz.domain.reminders.ActivityReminder()
     ): Long {
+        require(reminder.canSave()) { "Choose a future date and time for the one-time reminder." }
         val normalizedTargetMinutes = targetMinutes?.takeIf { it > 0 }
         val normalizedLaunchWithSurge =
             mode != FlowMode.SOFT && normalizedTargetMinutes != null && launchWithSurge
@@ -39,6 +41,7 @@ class FlowPlanRepository @Inject constructor(
         return flowPlanDao.insertFlowPlan(
             FlowPlanEntity(
                 kind = kind,
+                reminder = reminder.copy(oneTimeConsumedAt = null),
                 title = title.trim(),
                 tagId = tagId,
                 isSoftMode = mode == FlowMode.SOFT,
@@ -50,13 +53,17 @@ class FlowPlanRepository @Inject constructor(
     }
 
     suspend fun updateFlowPlan(plan: FlowPlanEntity) {
+        require(plan.reminder.canSave(flowPlanDao.getFlowPlanById(plan.id)?.reminder)) {
+            "Choose a future date and time for the one-time reminder."
+        }
         val normalizedTargetMinutes = plan.targetMinutes?.takeIf { it > 0 }
         val normalizedLaunchWithSurge =
             plan.mode != FlowMode.SOFT && normalizedTargetMinutes != null && plan.launchWithSurge
 
         check(flowPlanDao.updateDetails(plan.id, plan.title.trim(), plan.tagId, plan.kind,
             plan.mode == FlowMode.SOFT, plan.mode, normalizedTargetMinutes, normalizedLaunchWithSurge,
-            System.currentTimeMillis()) == 1) { "This activity has already been completed or removed." }
+            System.currentTimeMillis(), plan.reminder.enabled, plan.reminder.frequency, plan.reminder.minuteOfDay,
+            plan.reminder.weekDays, plan.reminder.monthDays, plan.reminder.oneTimeDateEpochDay) == 1) { "This activity has already been completed or removed." }
     }
 
     suspend fun setPinned(id: Long, pinned: Boolean) {

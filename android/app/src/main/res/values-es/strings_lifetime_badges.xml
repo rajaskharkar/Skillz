@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lifetime_points_badge_title">%1$s puntos Scyra de por vida</string>
+    <string name="lifetime_points_badge_description">Alcanza %1$s puntos Scyra de por vida entre todos tus Flows. Incluye puntos de objetivos reclamados. Se obtiene una sola vez y se conserva para siempre.</string>
+    <string name="lifetime_points_badge_progress">%1$s / %2$s puntos Scyra de por vida</string>
+</resources>

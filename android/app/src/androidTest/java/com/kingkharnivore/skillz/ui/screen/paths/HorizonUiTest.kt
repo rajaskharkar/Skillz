@@ -38,7 +38,7 @@ class HorizonUiTest {
         var savedMode: FlowMode? = null
         compose.setContent { SkillzTheme(darkTheme=false,dynamicColor=false) {
             ActivityEditor(null, PathsPrimaryTab.PLANS, emptyList(), false, null, onClose={},
-                onSave={ _, _, _, mode, _, _ -> savedMode=mode })
+                onSave={ _, _, _, mode, _, _, _ -> savedMode=mode })
         } }
         compose.onNodeWithText("New flow").assertExists()
         compose.onNodeWithText("Title").performTextInput("Power writing")
@@ -56,7 +56,7 @@ class HorizonUiTest {
         var savedKind: String? = null
         compose.setContent { SkillzTheme(darkTheme=false, dynamicColor=false) {
             ActivityEditor(null, PathsPrimaryTab.MEMORIES, emptyList(), false, null, onClose={},
-                onSave={ _, _, kind, _, minutes, surge ->
+                onSave={ _, _, kind, _, minutes, surge, _ ->
                     savedKind=kind
                     assertEquals(null, minutes)
                     assertEquals(false, surge)
@@ -180,6 +180,7 @@ class HorizonUiTest {
         compose.onNodeWithText("Latest walk").performClick()
         compose.waitUntil(5000) { compose.onAllNodesWithText(longText).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText(longText).assertExists()
+        compose.onNodeWithText("Hide Habit Journey").assertIsDisplayed()
         compose.onNodeWithText("First walk").performScrollTo().assertIsDisplayed().performClick()
         compose.onNodeWithText("The earlier walk").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Plan again").assertDoesNotExist()
@@ -254,6 +255,7 @@ class HorizonUiTest {
         compose.onNodeWithText("Finished sorting").assertIsDisplayed()
         compose.onNodeWithText("Started sorting").assertDoesNotExist()
         compose.onNodeWithText("Show Plan Journey").performScrollTo().performClick()
+        compose.onNodeWithText("Hide Plan Journey").assertIsDisplayed()
         compose.onNodeWithText("Started sorting").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Hide Plan Journey").performScrollTo().performClick()
         compose.onNodeWithText("Started sorting").assertDoesNotExist()

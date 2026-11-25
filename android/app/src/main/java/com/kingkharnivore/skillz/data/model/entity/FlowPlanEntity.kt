@@ -34,5 +34,7 @@ data class FlowPlanEntity(
     val kind: String = HorizonKind.HABIT,
     val completedAt: Long? = null,
     @androidx.room.ColumnInfo(defaultValue = "0")
-    val mode: com.kingkharnivore.skillz.model.FlowMode = com.kingkharnivore.skillz.model.FlowMode.fromSoft(isSoftMode)
+    val mode: com.kingkharnivore.skillz.model.FlowMode = com.kingkharnivore.skillz.model.FlowMode.fromSoft(isSoftMode),
+    @androidx.room.Embedded(prefix = "reminder_")
+    val reminder: com.kingkharnivore.skillz.domain.reminders.ActivityReminder = com.kingkharnivore.skillz.domain.reminders.ActivityReminder()
 )

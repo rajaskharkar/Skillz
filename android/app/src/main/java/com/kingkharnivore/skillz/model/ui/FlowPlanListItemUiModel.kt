@@ -14,5 +14,6 @@ data class FlowPlanListItemUiModel(
     val kind: String = com.kingkharnivore.skillz.data.model.entity.HorizonKind.HABIT,
     val completionCount: Int = 0,
     val lastCompletedAt: Long? = null,
-    val mode: com.kingkharnivore.skillz.model.FlowMode = com.kingkharnivore.skillz.model.FlowMode.fromSoft(isSoftMode)
+    val mode: com.kingkharnivore.skillz.model.FlowMode = com.kingkharnivore.skillz.model.FlowMode.fromSoft(isSoftMode),
+    val reminder: com.kingkharnivore.skillz.domain.reminders.ActivityReminder = com.kingkharnivore.skillz.domain.reminders.ActivityReminder()
 )

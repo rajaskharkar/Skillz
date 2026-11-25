@@ -61,6 +61,9 @@ import com.kingkharnivore.skillz.utils.arc.ArcRules
 import com.kingkharnivore.skillz.utils.score.ScoreCalculator
 import com.kingkharnivore.skillz.utils.user.UserPrefs
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CompletableDeferred
+import com.kingkharnivore.skillz.data.model.entity.FlowPlanEntity
+import com.kingkharnivore.skillz.data.model.entity.HorizonKind
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -117,7 +120,18 @@ internal fun isPlannedRunAlreadyAdvanced(
     displayedStepIndex: Int?,
     plannedHandoff: ArcPrefs.PlannedFlowHandoff?
 ): Boolean = plannedHandoff == ArcPrefs.PlannedFlowHandoff.NEXT_PLANNED_STEP ||
+        plannedHandoff == ArcPrefs.PlannedFlowHandoff.REMINDER_DETOUR ||
         (displayedStepIndex != null && activeStepIndex > displayedStepIndex)
+
+internal fun shouldRestoreNextPlannedStep(
+    activeStepIndex: Int?,
+    launchStepIndex: Int?,
+    plannedHandoff: ArcPrefs.PlannedFlowHandoff?,
+    reminderAccepted: Boolean
+): Boolean = activeStepIndex != null && !reminderAccepted &&
+        plannedHandoff != ArcPrefs.PlannedFlowHandoff.REMINDER_DETOUR &&
+        (plannedHandoff == ArcPrefs.PlannedFlowHandoff.NEXT_PLANNED_STEP ||
+            (launchStepIndex != null && activeStepIndex > launchStepIndex))
 
 internal fun resolveFlowEndMode(
     requested: FlowEndAction,
@@ -193,6 +207,203 @@ class FlowViewModel @Inject constructor(
         savedStateHandle
             .get<String>(SkillzDestinations.ADD_SKILL_ARG_PREFILL_JOURNEY)
             ?.takeIf { it.isNotBlank() }
+
+    private val initialized = CompletableDeferred<Unit>()
+    private val reminderRequest = ReminderFlowRequest(savedStateHandle)
+    val pendingReminderId = reminderRequest.activityId
+    val reminderAccepted = reminderRequest.accepted
+    private val _reminderPrompt = MutableStateFlow<ReminderFlowPrompt?>(null)
+    val reminderPrompt = _reminderPrompt.asStateFlow()
+    private val _reminderUnavailable = MutableStateFlow(false)
+    val reminderUnavailable = _reminderUnavailable.asStateFlow()
+    private val reminderMutex = Mutex()
+    private val _reminderLaunchFailed = MutableStateFlow(false)
+    val reminderLaunchFailed = _reminderLaunchFailed.asStateFlow()
+
+    suspend fun retryReminderLaunch() {
+        _reminderLaunchFailed.value = false
+        if (reminderRequest.accepted.value && _awaitingNextFlowAfterContinue.value) beginNextFlowAfterContinue()
+        else openReminder()
+    }
+
+    private fun hasActiveReminderFlow(): Boolean = _uiState.value.let {
+        it.stopwatch.isRunning || it.stopwatch.elapsedMs > 0 || it.isInFlowMode
+    }
+
+    private suspend fun availableReminderActivity(id: Long): FlowPlanEntity? =
+        flowPlanRepository.getFlowPlanById(id)?.takeIf {
+            !it.archived && it.completedAt == null && it.kind in listOf(HorizonKind.HABIT, HorizonKind.PLAN)
+        }
+
+    fun openReminder(id: Long? = null) {
+        // Save delivery before the Activity acknowledges it. Processing belongs to the
+        // ViewModel so a new Intent or screen recreation cannot cancel persistence midway.
+        if (id != null) {
+            if (reminderRequest.accepted.value) return
+            if (reminderRequest.request(id)) _reminderPrompt.value = null
+        }
+        viewModelScope.launch { processReminder() }
+    }
+
+    private suspend fun processReminder() {
+        try {
+            initialized.await()
+            reminderMutex.withLock {
+                val targetId = reminderRequest.activityId.value ?: return
+                if (reminderRequest.accepted.value) {
+                    val source = reminderRequest.sourceFlowId
+                    if (_uiState.value.originPlanId == targetId && currentFlowInstanceId != source) {
+                        reminderRequest.clear()
+                        return
+                    }
+                    val completed = source?.let { sessionRepository.findCreatedSession(it) }
+                    if (completed != null && _lastReward.value == null && !_isSaving.value) {
+                        // Recovery after process recreation: never save the source Flow twice.
+                        queueCompletionQuestions(completed, continueArc = true)
+                        _completionState.value = FlowCompletionState.Completed(completed)
+                        _awaitingNextFlowAfterContinue.value = true
+                        _exitAfterReward.value = false
+                    } else if (completed == null && !_isSaving.value) {
+                        showReminderPrompt(targetId)
+                    }
+                    return
+                }
+                if (_uiState.value.originPlanId == targetId) {
+                    reminderRequest.clear()
+                    return
+                }
+                val plan = availableReminderActivity(targetId)
+                if (reminderRequest.activityId.value != targetId) return
+                if (plan == null) {
+                    reminderRequest.clear()
+                    _reminderUnavailable.value = true
+                    return
+                }
+                val chronicle = chronicleRepository.observe(ChronicleOwnerType.ACTIVE_FLOW, currentFlowInstanceId).first()
+                if (reminderRequest.activityId.value != targetId) return
+                val state = _uiState.value
+                val hasChronicle = chronicle.moments.isNotEmpty() || !chronicle.chronicle?.draftText.isNullOrBlank()
+                if (_lastReward.value != null || _awaitingNextFlowAfterContinue.value || hasChronicle || hasActiveReminderFlow() || state.title.isNotBlank() || state.tagName.isNotBlank() ||
+                    state.description.isNotBlank() || state.originPulseId != null || state.plannedArcStepIndex != null) {
+                    showReminderPrompt(targetId)
+                } else {
+                    prepareReminderFlow(plan)
+                }
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            _error.value = e.message ?: "Unable to open reminder. Please try again."
+            _reminderLaunchFailed.value = true
+        }
+    }
+
+    private suspend fun showReminderPrompt(id: Long) {
+        val plan = availableReminderActivity(id)
+        if (reminderRequest.activityId.value != id) return
+        if (plan == null) {
+            cancelReminder()
+            _reminderUnavailable.value = true
+        } else {
+            _reminderPrompt.value = ReminderFlowPrompt(id, currentFlowInstanceId,
+                plan.title, plan.kind, _uiState.value.title, hasActiveReminderFlow())
+        }
+    }
+
+    fun dismissReminderUnavailable() { _reminderUnavailable.value = false }
+
+    fun cancelReminder(prompt: ReminderFlowPrompt? = null) {
+        if (prompt != null && _reminderPrompt.value !== prompt) return
+        if (_isSaving.value) return
+        reminderRequest.clear()
+        _reminderPrompt.value = null
+    }
+
+    /** Returns true only when the screen should run its normal Chronicle-aware Continue Arc action. */
+    suspend fun confirmReminder(prompt: ReminderFlowPrompt): Boolean = try { reminderMutex.withLock {
+        if (_reminderPrompt.value !== prompt) return false
+        val id = reminderRequest.activityId.value ?: return false
+        if (id != prompt.activityId) return false
+        val plan = availableReminderActivity(id)
+        if (_isSaving.value || reminderRequest.activityId.value != id || _reminderPrompt.value !== prompt) return false
+        if (plan == null) {
+            cancelReminder()
+            _reminderUnavailable.value = true
+            return false
+        }
+        if (currentFlowInstanceId != prompt.sourceFlowId || hasActiveReminderFlow() != prompt.hasActiveFlow ||
+            _uiState.value.title != prompt.currentTitle || plan.title != prompt.title || plan.kind != prompt.kind) {
+            showReminderPrompt(id)
+            return false
+        }
+        _reminderPrompt.value = null
+        if (hasActiveReminderFlow()) {
+            reminderRequest.accept(currentFlowInstanceId)
+            true
+        } else {
+            prepareReminderFlow(plan)
+            false
+        }
+    } } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        _error.value = e.message ?: "Unable to prepare reminder. Please try again."
+        _reminderLaunchFailed.value = true
+        false
+    }
+
+    private suspend fun prepareReminderFlow(plan: FlowPlanEntity) {
+        val tagName = tagRepository.getAllTags().first().firstOrNull { it.id == plan.tagId }?.name.orEmpty()
+        val previousState = _uiState.value
+        val previousCompletion = _completionState.value
+        val previousInstance = currentFlowInstanceId
+        val previousCreatedAt = ongoingCreatedAtMs
+        val previousHandoff = arcPrefs.loadPlannedFlowHandoff()
+        // A newer notification can replace an unaccepted request while these reads suspend.
+        if (reminderRequest.activityId.value != plan.id) return
+        if (!reminderRequest.accepted.value) reminderRequest.accept(currentFlowInstanceId)
+        // The planned run already points at the next uncompleted step. The reminder is a detour.
+        if (activeArcRunRepository.getActiveArcRunOnce() != null) {
+            arcPrefs.savePlannedFlowHandoff(ArcPrefs.PlannedFlowHandoff.REMINDER_DETOUR)
+        } else {
+            arcPrefs.clearPlannedFlowHandoff()
+        }
+        currentFlowInstanceId = UUID.randomUUID().toString()
+        ongoingCreatedAtMs = System.currentTimeMillis()
+        baseStartTimeMs = null
+        accumulatedBeforeStartMs = 0L
+        activeIntervals.clear()
+        activeIntervalStartMs = null
+        stopTicker()
+        aliveFlowServiceController.stop()
+        _completionState.value = FlowCompletionState.Idle
+        _uiState.value = FlowUiState(
+            title = plan.title, tagName = tagName, mode = plan.mode,
+            originPlanId = plan.id, originPlanKind = plan.kind,
+            isSurgeOn = plan.mode != FlowMode.SOFT && plan.launchWithSurge,
+            surgePlannedMs = plan.targetMinutes?.takeIf { plan.mode != FlowMode.SOFT && plan.launchWithSurge }?.times(60_000L),
+            showScoreUi = _uiState.value.showScoreUi, calmMode = _uiState.value.calmMode
+        )
+        try {
+            syncArcUi()
+            if (plan.mode == FlowMode.SOFT) enterSoftModePreservingArc(persistSnapshotIfAlreadyApplied = true)
+            else saveOngoingNow()
+        } catch (e: Exception) {
+            _uiState.value = previousState
+            _completionState.value = previousCompletion
+            currentFlowInstanceId = previousInstance
+            ongoingCreatedAtMs = previousCreatedAt
+            if (previousHandoff == null) arcPrefs.clearPlannedFlowHandoff()
+            else arcPrefs.savePlannedFlowHandoff(previousHandoff)
+            throw e
+        }
+        _pendingArcIdeaContinuation.value = null
+        _lastReward.value = null
+        _awaitingNextFlowAfterContinue.value = false
+        _exitAfterReward.value = false
+        reminderRequest.clear()
+        _reminderPrompt.value = null
+    }
 
     private val prefillTitleOverride: String? =
         savedStateHandle
@@ -301,6 +512,12 @@ class FlowViewModel @Inject constructor(
         // after a planned step was advanced, rather than advancing the Arc a second time.
         if (draft != null && nextDraft == null) clearOngoing()
 
+        if (reminderRequest.accepted.value) {
+            _completionState.value = FlowCompletionState.Completed(sessionId)
+            _exitAfterReward.value = false
+            _awaitingNextFlowAfterContinue.value = true
+            return
+        }
         if (!continueArc || session == null) {
             _completionState.value = FlowCompletionState.Completed(sessionId)
             _exitAfterReward.value = true
@@ -313,7 +530,7 @@ class FlowViewModel @Inject constructor(
         if (handoff == ArcPrefs.PlannedFlowHandoff.BLANK_ARC_CONTINUATION) activeArcRunRepository.clear()
         val run = activeArcRunRepository.getActiveArcRunOnce()
         if (nextDraft != null) {
-            restoreOngoingDraft(nextDraft, run)
+            restoreOngoingDraft(nextDraft, run.takeUnless { handoff == ArcPrefs.PlannedFlowHandoff.REMINDER_DETOUR })
         } else if (run != null && handoff == ArcPrefs.PlannedFlowHandoff.NEXT_PLANNED_STEP) {
             advancePlannedArcAfterCompletedSession(continuationOrigin = null)
         } else {
@@ -325,7 +542,7 @@ class FlowViewModel @Inject constructor(
             )
             saveOngoingNow()
         }
-        arcPrefs.clearPlannedFlowHandoff()
+        if (handoff != ArcPrefs.PlannedFlowHandoff.REMINDER_DETOUR) arcPrefs.clearPlannedFlowHandoff()
         syncArcUi()
     }
 
@@ -650,7 +867,8 @@ class FlowViewModel @Inject constructor(
                     syncArcUi()
                     if (
                         activePlannedRun != null &&
-                        plannedHandoff == ArcPrefs.PlannedFlowHandoff.NEXT_PLANNED_STEP
+                        plannedHandoff == ArcPrefs.PlannedFlowHandoff.NEXT_PLANNED_STEP &&
+                        !reminderRequest.accepted.value
                     ) {
                         advancePlannedArcAfterCompletedSession(continuationOrigin = null)
                         arcPrefs.clearPlannedFlowHandoff()
@@ -697,7 +915,10 @@ class FlowViewModel @Inject constructor(
                     clearOngoing()
                     saveOngoingNow()
                 } else {
-                    val restoredPlannedRun = activePlannedRun.takeIf { isPlannedArcLaunch() }
+                    val restoredPlannedRun = activePlannedRun.takeIf {
+                        plannedHandoff != ArcPrefs.PlannedFlowHandoff.REMINDER_DETOUR &&
+                            (isPlannedArcLaunch() || entity.arcId != null)
+                    }
                     restoreOngoingDraft(entity, restoredPlannedRun)
                 }
             } ?: run {
@@ -726,16 +947,8 @@ class FlowViewModel @Inject constructor(
                 if (hasLaunchOverrides && !_uiState.value.isSoftMode) saveOngoingNow()
             }
 
-            if (
-                activePlannedRun != null &&
-                (
-                    plannedHandoff == ArcPrefs.PlannedFlowHandoff.NEXT_PLANNED_STEP ||
-                        (
-                            plannedArcStepIndexOverride != null &&
-                                activePlannedRun.currentStepIndex > plannedArcStepIndexOverride
-                            )
-                    )
-            ) {
+            if (shouldRestoreNextPlannedStep(activePlannedRun?.currentStepIndex, plannedArcStepIndexOverride,
+                    plannedHandoff, reminderRequest.accepted.value)) {
                 advancePlannedArcAfterCompletedSession(continuationOrigin = null)
                 arcPrefs.clearPlannedFlowHandoff()
             }
@@ -744,6 +957,8 @@ class FlowViewModel @Inject constructor(
             if (_uiState.value.isSoftMode) enterSoftModePreservingArc(persistSnapshotIfAlreadyApplied = true)
             expirePausedArcIfNeeded(System.currentTimeMillis())
             syncArcUi()
+        }.invokeOnCompletion { failure ->
+            if (failure == null) initialized.complete(Unit) else initialized.completeExceptionally(failure)
         }
     }
 
@@ -1279,6 +1494,17 @@ class FlowViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                if (reminderRequest.accepted.value) {
+                    if (pendingPlanCompletion.value != null || pendingRepeatedFlow.value != null) return@launch
+                    val target = reminderRequest.activityId.value?.let { availableReminderActivity(it) }
+                    if (target != null) {
+                        prepareReminderFlow(target)
+                        onPrepared()
+                        return@launch
+                    }
+                    cancelReminder()
+                    _reminderUnavailable.value = true
+                }
                 // The previous owner is complete, but the next owner must start mutable.
                 // Leaving this as Completed caused the new Chronicle holder to close as
                 // soon as Compose observed its new owner key.
@@ -1338,6 +1564,7 @@ class FlowViewModel @Inject constructor(
                 onPrepared()
             } catch (e: Exception) {
                 _error.value = e.message ?: "Failed to prepare Arc continuation"
+                if (reminderRequest.accepted.value) _reminderLaunchFailed.value = true
             } finally {
                 isPreparingShellContinuation = false
             }
@@ -1345,6 +1572,10 @@ class FlowViewModel @Inject constructor(
     }
 
     private suspend fun queueArcIdeaContinuationPromptIfNeeded(sessionId: Long, state: FlowUiState) {
+        if (reminderRequest.accepted.value) {
+            _pendingArcIdeaContinuation.value = null
+            return
+        }
         _pendingArcIdeaContinuation.value = sessionRepository.ideaForSession(sessionId)?.let { idea ->
             PendingArcIdeaContinuation(
                 pulseId = idea.id,
@@ -1939,8 +2170,8 @@ class FlowViewModel @Inject constructor(
                     }
 
                     _lastReward.value = baseReward
-                    _exitAfterReward.value = true
-                    _awaitingNextFlowAfterContinue.value = false
+                    _exitAfterReward.value = !reminderRequest.accepted.value
+                    _awaitingNextFlowAfterContinue.value = reminderRequest.accepted.value
 
                     if (!state.isSoftMode && arcState != null) {
                         saveRecentlyEndedArcSnapshot(
@@ -2014,7 +2245,8 @@ class FlowViewModel @Inject constructor(
                     clearOngoing()
                 }
             }
-            queueCompletionQuestions(insertedId, continueArc = resolvedEndMode == FlowEndAction.CONTINUE_ARC)
+            queueCompletionQuestions(insertedId,
+                continueArc = reminderRequest.accepted.value || resolvedEndMode == FlowEndAction.CONTINUE_ARC)
             _completionState.value = FlowCompletionState.Completed(insertedId)
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
@@ -2143,6 +2375,9 @@ class FlowViewModel @Inject constructor(
     private suspend fun persistPlannedStepAdvanceAfterSave(): PlannedArcAdvanceResult {
         val activeRun = activeArcRunRepository.getActiveArcRunOnce()
             ?: return PlannedArcAdvanceResult.NotPlannedArc
+        if (arcPrefs.loadPlannedFlowHandoff() == ArcPrefs.PlannedFlowHandoff.REMINDER_DETOUR) {
+            return PlannedArcAdvanceResult.Advanced
+        }
         val nextIndex = activeRun.currentStepIndex + 1
         if (nextIndex >= activeRun.totalSteps) {
             activeArcRunRepository.clear()

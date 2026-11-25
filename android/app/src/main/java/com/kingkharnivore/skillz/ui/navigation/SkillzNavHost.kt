@@ -1,6 +1,7 @@
 package com.kingkharnivore.skillz.ui.navigation
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -35,7 +36,9 @@ import com.kingkharnivore.skillz.viewmodel.SuggestedRouteDetailViewModel
 @Composable
 fun SkillzNavHost(
     navController: NavHostController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    reminderActivityId: Long? = null,
+    onReminderHandled: () -> Unit = {}
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val focusVm: FlowViewModel = hiltViewModel()
@@ -43,6 +46,14 @@ fun SkillzNavHost(
     val ongoing by focusVm.ongoingSession.collectAsState()
     val isFocusModeOn = ongoing?.isInFlowMode == true
     val hasOngoingFlow = ongoing != null
+
+    LaunchedEffect(reminderActivityId) {
+        if (reminderActivityId != null && navController.currentDestination?.route != SkillzDestinations.ADD_SKILL_ROUTE) {
+            if (!navController.popBackStack(SkillzDestinations.ADD_SKILL_ROUTE, inclusive = false)) {
+                navController.navigate(SkillzDestinations.addSkillRoute()) { launchSingleTop = true }
+            }
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -143,6 +154,8 @@ fun SkillzNavHost(
 
             FlowScreen(
                 viewModel = addSessionViewModel,
+                reminderActivityId = reminderActivityId,
+                onReminderHandled = onReminderHandled,
                 onRecordPulse = { navController.navigate(SkillzDestinations.addPulseRoute(fromFlow = true)) },
                 onDone = { popToHome(navController) },
                 onCancel = { popToHome(navController) },

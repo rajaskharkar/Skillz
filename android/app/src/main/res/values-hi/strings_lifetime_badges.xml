@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lifetime_points_badge_title">%1$s लाइफ़टाइम Scyra पॉइंट्स</string>
+    <string name="lifetime_points_badge_description">अपने सभी Flows में कुल %1$s लाइफ़टाइम Scyra पॉइंट्स पाएँ। इसमें क्लेम किए गए लक्ष्य पॉइंट्स शामिल हैं। एक बार मिलने पर यह बैज हमेशा आपका रहेगा।</string>
+    <string name="lifetime_points_badge_progress">%1$s / %2$s लाइफ़टाइम Scyra पॉइंट्स</string>
+</resources>

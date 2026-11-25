@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="flow_repeat_title">Keep it going</string>
+    <string name="flow_repeat_question">You have been doing this Flow multiple times, would you like to add this as a Habit or a Plan?</string>
+    <string name="flow_repeat_add_habit">Yes, add a new Habit</string>
+    <string name="flow_repeat_add_plan">Yes, add a new Plan</string>
+    <string name="flow_repeat_skip">Skip</string>
+    <string name="flow_repeat_error">Unable to create this activity. Your Flow is saved. Please try again or skip.</string>
+</resources>
