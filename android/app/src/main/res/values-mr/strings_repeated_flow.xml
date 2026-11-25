@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="flow_repeat_title">हे सुरू ठेवा</string>
+    <string name="flow_repeat_question">तुम्ही हा Flow अनेक वेळा केला आहे. तुम्हाला तो सवय किंवा योजना म्हणून जोडायचा आहे का?</string>
+    <string name="flow_repeat_add_habit">हो, नवीन सवय जोडा</string>
+    <string name="flow_repeat_add_plan">हो, नवीन योजना जोडा</string>
+    <string name="flow_repeat_skip">वगळा</string>
+    <string name="flow_repeat_error">ही कृती तयार करता आली नाही. तुमचा Flow जतन केला आहे. पुन्हा प्रयत्न करा किंवा हा टप्पा वगळा.</string>
+</resources>

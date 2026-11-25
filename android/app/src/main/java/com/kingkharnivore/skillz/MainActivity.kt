@@ -1,5 +1,8 @@
 package com.kingkharnivore.skillz
 
+import android.content.Intent
+import androidx.compose.runtime.mutableStateOf
+import com.kingkharnivore.skillz.domain.reminders.reminderActivityId
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -39,10 +42,26 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var healthRefreshUseCase: HealthRefreshUseCase
 
+    private val reminderRequest = mutableStateOf<Long?>(null)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        reminderRequest.value = intent.reminderActivityId()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        reminderRequest.value?.let { outState.putLong("reminderRequest", it) }
+        super.onSaveInstanceState(outState)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        reminderRequest.value = if (savedInstanceState != null) {
+            savedInstanceState.getLong("reminderRequest").takeIf { it > 0 }
+        } else intent.reminderActivityId()
 
         maybeReinstateFlowNotification()
 
@@ -53,7 +72,9 @@ class MainActivity : AppCompatActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     SkillzApp(
-                        onPermissionGranted = { maybeReinstateFlowNotification() }
+                        onPermissionGranted = { maybeReinstateFlowNotification() },
+                        reminderActivityId = reminderRequest.value,
+                        onReminderHandled = { reminderRequest.value = null }
                     )
                 }
             }
@@ -87,7 +108,9 @@ class MainActivity : AppCompatActivity() {
 
 @Composable
 fun SkillzApp(
-    onPermissionGranted: () -> Unit
+    onPermissionGranted: () -> Unit,
+    reminderActivityId: Long? = null,
+    onReminderHandled: () -> Unit = {}
 ) {
     val navController = rememberNavController()
 
@@ -96,6 +119,6 @@ fun SkillzApp(
         color = MaterialTheme.colorScheme.background
     ) {
         NotificationPermissionGate(onGranted = onPermissionGranted)
-        SkillzNavHost(navController = navController)
+        SkillzNavHost(navController = navController, reminderActivityId = reminderActivityId, onReminderHandled = onReminderHandled)
     }
 }

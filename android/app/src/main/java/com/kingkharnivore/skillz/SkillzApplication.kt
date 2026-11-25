@@ -23,6 +23,7 @@ class SkillzApplication : Application() {
     @Inject
     lateinit var userPrefs: UserPrefs
 
+    @Inject lateinit var activityReminderScheduler: com.kingkharnivore.skillz.domain.reminders.ActivityReminderScheduler
     @Inject lateinit var objectiveReminderScheduler: com.kingkharnivore.skillz.domain.lookout.ObjectiveReminderScheduler
     @Inject lateinit var objectiveCompletionProcessor: ObjectiveCompletionProcessor
     @Inject lateinit var shellRewardOrchestrator: com.kingkharnivore.skillz.utils.shell.ShellRewardOrchestrator
@@ -37,6 +38,7 @@ class SkillzApplication : Application() {
             val savedTag = userPrefs.appLanguageTag.first()
             AppLocaleManager.applyLanguage(savedTag)
         }
+        applicationScope.launch { activityReminderScheduler.observeChanges() }
         launchObjectiveReconciliation("startup")
         applicationScope.launch {
             while (true) {
@@ -66,6 +68,7 @@ class SkillzApplication : Application() {
             runCatching {
                 objectiveCompletionProcessor.reconcileUnprocessedSessions()
                 objectiveReminderScheduler.rescheduleAll()
+                activityReminderScheduler.rescheduleAll()
             }
                 .onFailure { error -> Log.e("ObjectiveReconciliation", "$trigger reconciliation failed", error) }
         }

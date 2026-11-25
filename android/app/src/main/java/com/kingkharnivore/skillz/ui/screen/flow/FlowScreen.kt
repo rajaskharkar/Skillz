@@ -104,8 +104,11 @@ internal fun flowCompletionControls(isSoftMode: Boolean, isArcLinked: Boolean): 
         else -> FlowCompletionControls.RegularActions
     }
 
-internal fun shouldRecoverTerminalExit(exitAfterReward: Boolean, hasReward: Boolean): Boolean =
-    exitAfterReward && !hasReward
+internal fun shouldRecoverTerminalExit(
+    exitAfterReward: Boolean,
+    hasReward: Boolean,
+    reminderAccepted: Boolean = false
+): Boolean = exitAfterReward && !hasReward && !reminderAccepted
 
 internal fun rewardShellEntry(exitAfterReward: Boolean): RewardShellEntry =
     if (exitAfterReward) RewardShellEntry.ConsumeTerminalExit
@@ -126,7 +129,9 @@ fun FlowScreen(
     onRecordPulse: () -> Unit,
     onDone: () -> Unit,
     onCancel: () -> Unit,
-    onOpenShell: (ShellNavigationMode) -> Unit = {}
+    onOpenShell: (ShellNavigationMode) -> Unit = {},
+    reminderActivityId: Long? = null,
+    onReminderHandled: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
@@ -143,6 +148,28 @@ fun FlowScreen(
     val exitAfterReward by viewModel.exitAfterReward.collectAsState()
     val awaitingNextFlow by viewModel.awaitingNextFlowAfterContinue.collectAsState()
     val pendingArcIdeaContinuation by viewModel.pendingArcIdeaContinuation.collectAsState()
+    val reminderPrompt by viewModel.reminderPrompt.collectAsState()
+    val reminderUnavailable by viewModel.reminderUnavailable.collectAsState()
+    val reminderLaunchFailed by viewModel.reminderLaunchFailed.collectAsState()
+    val pendingReminderId by viewModel.pendingReminderId.collectAsState()
+    val reminderAccepted by viewModel.reminderAccepted.collectAsState()
+
+    LaunchedEffect(Unit) {
+        // Restore an accepted handoff even when the Activity also redelivers its Intent.
+        viewModel.openReminder()
+    }
+    LaunchedEffect(reminderActivityId) {
+        if (reminderActivityId != null) {
+            viewModel.openReminder(reminderActivityId)
+            onReminderHandled()
+        }
+    }
+    // A restored handoff may have no reward dialog left to dismiss.
+    LaunchedEffect(pendingReminderId, reminderAccepted, awaitingNextFlow, reward, pendingPlanCompletion, pendingRepeatedFlow) {
+        if (reminderAccepted && awaitingNextFlow && reward == null && pendingPlanCompletion == null && pendingRepeatedFlow == null) {
+            viewModel.beginNextFlowAfterContinue()
+        }
+    }
 
     var showSurgeDialog by remember { mutableStateOf(false) }
     var showEndDialog by remember { mutableStateOf(false) }
@@ -186,6 +213,33 @@ fun FlowScreen(
         else viewModel.onEndFlowClicked(action)
     }
 
+    if (reminderPrompt != null && !isSaving && pendingPlanCompletion == null && pendingRepeatedFlow == null && reward == null) {
+        val displayedPrompt = reminderPrompt!!
+        ReminderFlowDialog(
+            prompt = displayedPrompt,
+            onCancel = { viewModel.cancelReminder(displayedPrompt) },
+            onConfirm = {
+                pagerScope.launch {
+                    if (viewModel.confirmReminder(displayedPrompt)) requestEnd(FlowEndAction.CONTINUE_ARC)
+                }
+            }
+        )
+    }
+    if (reminderLaunchFailed) AlertDialog(
+        onDismissRequest = {},
+        title = { Text(stringResource(R.string.reminder_launch_retry_title)) },
+        text = { Text(stringResource(R.string.reminder_launch_retry_body)) },
+        confirmButton = { TextButton(onClick = { pagerScope.launch { viewModel.retryReminderLaunch() } }) {
+            Text(stringResource(R.string.common_retry))
+        } }
+    )
+    if (reminderUnavailable) AlertDialog(
+        onDismissRequest = viewModel::dismissReminderUnavailable,
+        title = { Text(stringResource(R.string.reminder_launch_unavailable_title)) },
+        text = { Text(stringResource(R.string.reminder_launch_unavailable_body)) },
+        confirmButton = { TextButton(onClick = viewModel::dismissReminderUnavailable) { Text(stringResource(R.string.common_done)) } }
+    )
+
     LaunchedEffect(reward) {
         if (reward != null) showPointsDialog = true
     }
@@ -208,7 +262,8 @@ fun FlowScreen(
 
     val isRecoveringTerminalExit = pendingPlanCompletion == null && pendingRepeatedFlow == null && shouldRecoverTerminalExit(
         exitAfterReward = exitAfterReward,
-        hasReward = reward != null
+        hasReward = reward != null,
+        reminderAccepted = reminderAccepted
     )
     LaunchedEffect(isRecoveringTerminalExit) {
         if (isRecoveringTerminalExit) {
@@ -632,7 +687,7 @@ fun FlowScreen(
     pendingChronicleEnd?.let { action ->
         val chronicle = chronicleHolder.state.value
         AlertDialog(
-            onDismissRequest = { pendingChronicleEnd = null },
+            onDismissRequest = { pendingChronicleEnd = null; viewModel.cancelReminder() },
             title = { Text(stringResource(if (chronicle.blocksCompletion) R.string.chronicle_finish_edit else R.string.chronicle_unfinished)) },
             confirmButton = {
                 if (!chronicle.blocksCompletion && chronicle.draft.isNotBlank()) TextButton(onClick = {
@@ -648,7 +703,7 @@ fun FlowScreen(
                             chronicleHolder.quiesce { pendingChronicleEnd = null; viewModel.onEndFlowClicked(action) }
                         }
                     }) { Text(stringResource(R.string.chronicle_discard)) }
-                    TextButton(onClick = { pendingChronicleEnd = null }) { Text(stringResource(R.string.common_cancel)) }
+                    TextButton(onClick = { pendingChronicleEnd = null; viewModel.cancelReminder() }) { Text(stringResource(R.string.common_cancel)) }
                 }
             }
         )
@@ -781,7 +836,7 @@ fun FlowScreen(
                 }
             },
             dismissButton = {
-                if (r.hasShellReward()) {
+                if (r.hasShellReward() && !reminderAccepted) {
                     TextButton(
                         onClick = {
                             if (rewardShellEntry(exitAfterReward) ==

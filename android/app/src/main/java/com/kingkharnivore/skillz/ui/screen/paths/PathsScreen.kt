@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kingkharnivore.skillz.domain.reminders.ActivityReminder
 import com.kingkharnivore.skillz.R
 import com.kingkharnivore.skillz.data.model.entity.HorizonKind
 import com.kingkharnivore.skillz.model.FlowMode
@@ -83,8 +84,8 @@ fun PathsScreen(viewModel: PathsViewModel, onOpenFlowPlan: (FlowPlanListItemUiMo
         SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
     if (showEditor) ActivityEditor(edited, state.selectedPrimaryTab, state.tags, state.isSaving,
-        state.errorMessage, onClose = { showEditor = false }, onSave = { title, tag, kind, mode, minutes, surge ->
-            viewModel.saveActivity(editId, title, tag, kind, mode, minutes, surge, creationKey = editorCreationKey) {
+        state.errorMessage, onClose = { showEditor = false }, onSave = { title, tag, kind, mode, minutes, surge, reminder ->
+            viewModel.saveActivity(editId, title, tag, kind, mode, minutes, surge, creationKey = editorCreationKey, reminder = reminder) {
                 showEditor = false
                 if (kind == HorizonKind.IDEA) scope.launch { snackbarHostState.showSnackbar(ideaSavedMessage) }
             }
@@ -217,7 +218,7 @@ private fun HorizonEmpty(title: Int, body: Int) {
 }
 
 @Composable
-private fun ActivityCard(activity: FlowPlanListItemUiModel, inProgress: Boolean, archived: Boolean,
+internal fun ActivityCard(activity: FlowPlanListItemUiModel, inProgress: Boolean, archived: Boolean,
     onLaunch: () -> Unit, onEdit: () -> Unit, onPin: () -> Unit, onArchive: () -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf(false) }
@@ -248,6 +249,18 @@ private fun ActivityCard(activity: FlowPlanListItemUiModel, inProgress: Boolean,
                 add(stringResource(flowModeLabel(activity.mode)))
                 if (activity.launchWithSurge) add(stringResource(R.string.horizon_surge_minutes, activity.targetMinutes ?: 0))
             }.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
+            if (activity.reminder.enabled) Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = LocalContentColor.current.copy(alpha = 0.06f),
+                contentColor = LocalContentColor.current
+            ) {
+                Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(if (!archived && !activity.reminder.isPastOneTime()) Icons.Outlined.NotificationsActive else Icons.Outlined.NotificationsOff,
+                        contentDescription = null, modifier = Modifier.size(18.dp))
+                    Text(activityReminderSummary(activity.reminder, archived), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
             if (activity.kind == HorizonKind.HABIT && activity.completionCount > 0) {
                 Text(pluralStringResource(R.plurals.horizon_completion_count, activity.completionCount, activity.completionCount), style = MaterialTheme.typography.labelLarge)
                 activity.lastCompletedAt?.let { Text(stringResource(R.string.horizon_last_completed, dateLabel(it)), style = MaterialTheme.typography.bodySmall) }
@@ -271,6 +284,7 @@ internal fun IdeaMemoryCard(idea: IdeaGroveItemUiModel) {
         categoryLabel = stringResource(R.string.horizon_idea))
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun MemoryCard(memory: MemoryGroupUi, onRemoveMemory: (MemoryFlowUi) -> Unit = {},
     onPlanAgain: (MemoryGroupUi) -> Unit) {
@@ -288,8 +302,25 @@ internal fun MemoryCard(memory: MemoryGroupUi, onRemoveMemory: (MemoryFlowUi) ->
                 Text(stringResource(if (memory.kind == HorizonKind.HABIT) R.string.horizon_habit else R.string.horizon_plan),
                     style = MaterialTheme.typography.labelMedium)
             }
-            Text(pluralStringResource(R.plurals.horizon_completion_count, memory.flows.size, memory.flows.size),
-                color = flowCardAccent(memory.latest.session?.mode ?: memory.latest.receipt.mode), style = MaterialTheme.typography.labelLarge)
+            val actionColors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = LocalContentColor.current
+            )
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(pluralStringResource(R.plurals.horizon_completion_count, memory.flows.size, memory.flows.size),
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                    color = flowCardAccent(memory.latest.session?.mode ?: memory.latest.receipt.mode), style = MaterialTheme.typography.labelLarge)
+                if (memory.flows.size > 1) Button(
+                    onClick = { showJourney = !showJourney },
+                    colors = actionColors,
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                ) {
+                    Text(stringResource(if (showJourney && memory.kind == HorizonKind.PLAN) R.string.horizon_hide_plan_journey
+                        else if (showJourney) R.string.horizon_hide_flows
+                        else if (memory.kind == HorizonKind.PLAN) R.string.horizon_show_plan_journey
+                        else R.string.horizon_show_flows))
+                }
+            }
             val visibleFlows = if (showJourney) memory.flows else listOf(memory.latest)
             visibleFlows.forEachIndexed { index, flow ->
                 key(flow.receipt.flowInstanceId) {
@@ -297,19 +328,6 @@ internal fun MemoryCard(memory: MemoryGroupUi, onRemoveMemory: (MemoryFlowUi) ->
                     MemoryFlowDetails(flow, expanded = flow.receipt.flowInstanceId in expandedFlows,
                         onToggle = { toggle(flow) }, onDelete = { onRemoveMemory(flow) })
                 }
-            }
-            val actionColors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = LocalContentColor.current
-            )
-            if (memory.flows.size > 1) Button(
-                onClick = { showJourney = !showJourney },
-                colors = actionColors
-            ) {
-                Text(stringResource(if (showJourney && memory.kind == HorizonKind.PLAN) R.string.horizon_hide_plan_journey
-                    else if (showJourney) R.string.horizon_hide_flows
-                    else if (memory.kind == HorizonKind.PLAN) R.string.horizon_show_plan_journey
-                    else R.string.horizon_show_flows))
             }
             if (memory.kind == HorizonKind.PLAN) Button(
                 onClick = { onPlanAgain(memory) },
@@ -367,7 +385,8 @@ private fun MemoryFlowDetails(flow: MemoryFlowUi, expanded: Boolean, onToggle: (
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun ActivityEditor(activity: FlowPlanListItemUiModel?, tab: PathsPrimaryTab, tags: List<TagUiModel>, saving: Boolean,
-    error: String?, onClose: () -> Unit, onSave: (String, String, String, FlowMode, Int?, Boolean) -> Unit) {
+    error: String?, onClose: () -> Unit, onSave: (String, String, String, FlowMode, Int?, Boolean, ActivityReminder) -> Unit) {
+    var reminder by rememberSaveable(stateSaver = ActivityReminderSaver) { mutableStateOf(activity?.reminder ?: ActivityReminder()) }
     var title by rememberSaveable { mutableStateOf(activity?.title.orEmpty()) }
     var tag by rememberSaveable { mutableStateOf(activity?.tagName.orEmpty()) }
     var kind by rememberSaveable { mutableStateOf(activity?.kind ?: if (tab == PathsPrimaryTab.HABITS) HorizonKind.HABIT else HorizonKind.PLAN) }
@@ -409,11 +428,12 @@ internal fun ActivityEditor(activity: FlowPlanListItemUiModel?, tab: PathsPrimar
                 if (surge) OutlinedTextField(minutes, { minutes = it.filter(Char::isDigit).take(3) }, label = { Text(stringResource(R.string.horizon_target_minutes)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, enabled = !saving)
             }
+            if (kind != HorizonKind.IDEA) ActivityReminderSection(reminder, saving, activity?.reminder) { reminder = it }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TextButton(onClick = onClose, enabled = !saving, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.common_cancel)) }
-                Button(onClick = { onSave(title.trim(), tag.trim(), kind, mode, if (kind == HorizonKind.IDEA) null else minutes.toIntOrNull(), kind != HorizonKind.IDEA && surge) },
-                    enabled = !saving && title.isNotBlank() && (kind == HorizonKind.IDEA || !surge || (minutes.toIntOrNull() ?: 0) > 0), modifier = Modifier.weight(1f)) {
+                Button(onClick = { onSave(title.trim(), tag.trim(), kind, mode, if (kind == HorizonKind.IDEA) null else minutes.toIntOrNull(), kind != HorizonKind.IDEA && surge, reminder) },
+                    enabled = !saving && title.isNotBlank() && (kind == HorizonKind.IDEA || reminder.canSave(activity?.reminder)) && (kind == HorizonKind.IDEA || !surge || (minutes.toIntOrNull() ?: 0) > 0), modifier = Modifier.weight(1f)) {
                     Text(stringResource(if (kind == HorizonKind.IDEA) R.string.horizon_save_idea else R.string.common_save))
                 }
             }

@@ -7,6 +7,25 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PlannedArcAdvanceTest {
+    @Test fun stalePlannedLaunchArgumentsCannotReplaceReminderDetour() {
+        assertFalse(shouldRestoreNextPlannedStep(1, 0,
+            ArcPrefs.PlannedFlowHandoff.REMINDER_DETOUR, reminderAccepted = false))
+    }
+
+    @Test fun acceptedReminderTakesPriorityOverPendingNextPlannedStep() {
+        assertFalse(shouldRestoreNextPlannedStep(1, 0,
+            ArcPrefs.PlannedFlowHandoff.NEXT_PLANNED_STEP, reminderAccepted = true))
+    }
+
+    @Test fun normalPlannedContinuationStillRestoresWaitingStep() {
+        assertTrue(shouldRestoreNextPlannedStep(1, 0, null, reminderAccepted = false))
+        assertTrue(shouldRestoreNextPlannedStep(1, null,
+            ArcPrefs.PlannedFlowHandoff.NEXT_PLANNED_STEP, reminderAccepted = false))
+        assertFalse(shouldRestoreNextPlannedStep(0, 0, null, reminderAccepted = false))
+        assertFalse(shouldRestoreNextPlannedStep(null, 0,
+            ArcPrefs.PlannedFlowHandoff.NEXT_PLANNED_STEP, reminderAccepted = false))
+    }
+
     @Test
     fun durableNextStepHandoffPreventsDoubleAdvanceWhenDisplayedStepIsMissing() {
         assertTrue(

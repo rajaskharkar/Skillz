@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="lifetime_period">Historial completo</string>
+    <string name="lifetime_period_day">Día</string>
+    <string name="lifetime_period_week">Semana</string>
+    <string name="lifetime_period_month">Mes</string>
+    <string name="lifetime_all_history">Todo el historial registrado</string>
+    <string name="lifetime_score">Puntuación Scyra de siempre</string>
+    <string name="lifetime_tab">Datos</string>
+    <string name="lifetime_data_title">Tu tiempo total en Flow</string>
+    <string name="lifetime_scope">Todos los Journeys · Todos los modos Flow</string>
+    <string name="lifetime_empty">Registra un Flow para empezar a ver tus estadísticas.</string>
+    <string name="lifetime_since">Desde %1$s</string>
+    <string name="lifetime_total_hours">Tiempo registrado</string>
+    <string name="lifetime_total_flows">Flows totales</string>
+    <string name="lifetime_active_days">Días activos</string>
+    <string name="lifetime_hours_value">%1$s h</string>
+    <string name="lifetime_minutes_value">%1$s min</string>
+    <string name="lifetime_averages">Tus promedios de calendario</string>
+    <string name="lifetime_daily">Horas diarias de promedio</string>
+    <string name="lifetime_weekly">Horas semanales de promedio</string>
+    <string name="lifetime_monthly">Horas mensuales de promedio</string>
+    <string name="lifetime_average_definition">Incluye días, semanas y meses sin actividad desde tu primer Flow. El primer período y el actual cuentan una vez, aunque estén incompletos. Las semanas empiezan el lunes.</string>
+    <string name="lifetime_period_counts">Períodos: Días %1$s · Semanas %2$s · Meses %3$s</string>
+    <string name="lifetime_modes">Cómo usas Flow</string>
+    <string name="lifetime_mode_summary">%1$s Flows · %2$s · %3$s</string>
+    <string name="lifetime_journeys">Tiempo por Journey</string>
+    <string name="lifetime_journeys_hint">Orden alfabético. Desliza de lado y toca una barra para abrir el Journey completo.</string>
+    <string name="lifetime_journey_bar">%1$s, %2$s registrados</string>
+    <string name="lifetime_open_journey">Abrir Journey completo</string>
+    <string name="lifetime_length">Duración de tus Flows</string>
+    <string name="lifetime_average_length">Flow promedio</string>
+    <string name="lifetime_typical_length">Flow habitual (mediana)</string>
+    <string name="lifetime_length_hint">Incluye todos los modos y excluye las pausas. La mediana es la duración central de las sesiones.</string>
+    <string name="lifetime_rhythm">Cuándo encuentras tiempo</string>
+    <string name="lifetime_starts">Inicios de Flow</string>
+    <string name="lifetime_active_time">Horas activas</string>
+    <string name="lifetime_rhythm_hint">Día de la semana y hora (formato de 24 horas). Todo el historial se muestra en %1$s. Desliza de lado para ver más horas.</string>
+    <string name="lifetime_rhythm_cell">%1$s, de %2$d:00 a %3$d:00, %4$s</string>
+    <string name="lifetime_starts_value">%1$s inicios de Flow</string>
+    <string name="lifetime_estimated">El horario de %1$s Flows es estimado porque no hay intervalos de pausa disponibles. Se conserva la duración registrada.</string>
+</resources>

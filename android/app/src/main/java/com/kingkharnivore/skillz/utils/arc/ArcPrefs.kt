@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.first
 
 class ArcPrefs(private val ds: DataStore<Preferences>) : ArcContinuationStore {
 
-    enum class PlannedFlowHandoff { NEXT_PLANNED_STEP, BLANK_ARC_CONTINUATION, COMPLETED_ARC_EXIT }
+    enum class PlannedFlowHandoff { NEXT_PLANNED_STEP, BLANK_ARC_CONTINUATION, COMPLETED_ARC_EXIT, REMINDER_DETOUR }
 
     private val K_ARC_ID = longPreferencesKey("arc_id")
     private val K_PENDING = booleanPreferencesKey("arc_pending")

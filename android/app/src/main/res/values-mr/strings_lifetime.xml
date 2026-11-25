@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="lifetime_period">आजवर</string>
+    <string name="lifetime_period_day">दिवस</string>
+    <string name="lifetime_period_week">आठवडा</string>
+    <string name="lifetime_period_month">महिना</string>
+    <string name="lifetime_all_history">संपूर्ण नोंदवलेला इतिहास</string>
+    <string name="lifetime_score">आजवरचा Scyra स्कोअर</string>
+    <string name="lifetime_tab">डेटा</string>
+    <string name="lifetime_data_title">Flow मधील तुमचा एकूण वेळ</string>
+    <string name="lifetime_scope">सर्व Journeys · सर्व Flow मोड</string>
+    <string name="lifetime_empty">तुमची एकूण आकडेवारी पाहण्यासाठी एक Flow नोंदवा.</string>
+    <string name="lifetime_since">%1$s पासून</string>
+    <string name="lifetime_total_hours">नोंदवलेला वेळ</string>
+    <string name="lifetime_total_flows">एकूण Flows</string>
+    <string name="lifetime_active_days">सक्रिय दिवस</string>
+    <string name="lifetime_hours_value">%1$s तास</string>
+    <string name="lifetime_minutes_value">%1$s मि.</string>
+    <string name="lifetime_averages">तुमची कॅलेंडर सरासरी</string>
+    <string name="lifetime_daily">दररोजचे सरासरी तास</string>
+    <string name="lifetime_weekly">दर आठवड्याचे सरासरी तास</string>
+    <string name="lifetime_monthly">दर महिन्याचे सरासरी तास</string>
+    <string name="lifetime_average_definition">पहिल्या Flow पासून निष्क्रिय दिवस, आठवडे आणि महिने समाविष्ट आहेत. पहिला आणि सध्याचा अपूर्ण कालावधी प्रत्येकी एकदा मोजला जातो. आठवडे सोमवारपासून सुरू होतात.</string>
+    <string name="lifetime_period_counts">%1$s दिवस · %2$s आठवडे · %3$s महिने</string>
+    <string name="lifetime_modes">तुम्ही Flow कसा करता</string>
+    <string name="lifetime_mode_summary">%1$s Flows · %2$s · %3$s</string>
+    <string name="lifetime_journeys">Journeys मधील वेळ</string>
+    <string name="lifetime_journeys_hint">वर्णक्रमानुसार. बाजूला स्क्रोल करा आणि संपूर्ण Journey उघडण्यासाठी बारवर टॅप करा.</string>
+    <string name="lifetime_journey_bar">%1$s, %2$s नोंदवलेले</string>
+    <string name="lifetime_open_journey">संपूर्ण Journey उघडा</string>
+    <string name="lifetime_length">तुमच्या Flow ची लांबी</string>
+    <string name="lifetime_average_length">सरासरी Flow</string>
+    <string name="lifetime_typical_length">नेहमीचा Flow (मध्यक)</string>
+    <string name="lifetime_length_hint">सर्व मोड समाविष्ट आहेत. विरामाचा वेळ वगळला आहे. मध्यक म्हणजे सत्रांच्या लांबीतील मधले मूल्य.</string>
+    <string name="lifetime_rhythm">तुम्ही कधी वेळ काढता</string>
+    <string name="lifetime_starts">Flow ची सुरुवात</string>
+    <string name="lifetime_active_time">सक्रिय तास</string>
+    <string name="lifetime_rhythm_hint">आठवड्याचा दिवस आणि वेळ (24 तासांचे घड्याळ). संपूर्ण इतिहास %1$s मध्ये दाखवला आहे. पुढील तास पाहण्यासाठी बाजूला स्क्रोल करा.</string>
+    <string name="lifetime_rhythm_cell">%1$s, %2$d:00 ते %3$d:00, %4$s</string>
+    <string name="lifetime_starts_value">%1$s Flow सुरुवाती</string>
+    <string name="lifetime_estimated">%1$s Flows च्या वेळेचा अंदाज घेतला आहे कारण विरामांचे अंतराल उपलब्ध नाहीत. नोंदवलेली लांबी कायम आहे.</string>
+</resources>

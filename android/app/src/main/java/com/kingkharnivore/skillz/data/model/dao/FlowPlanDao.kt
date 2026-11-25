@@ -29,10 +29,25 @@ interface FlowPlanDao {
     suspend fun insertFlowPlan(plan: FlowPlanEntity): Long
 
     @Query("""UPDATE flow_plans SET title=:title, tagId=:tagId, kind=:kind,
-        isSoftMode=:soft, mode=:mode, targetMinutes=:minutes, launchWithSurge=:surge, updatedAt=:at
+        isSoftMode=:soft, mode=:mode, targetMinutes=:minutes, launchWithSurge=:surge, updatedAt=:at,
+        reminder_enabled=:reminderEnabled, reminder_frequency=:reminderFrequency,
+        reminder_minuteOfDay=:reminderMinute, reminder_weekDays=:reminderWeekDays, reminder_monthDays=:reminderMonthDays,
+        reminder_oneTimeDateEpochDay=:reminderDate,
+        reminder_oneTimeConsumedAt=CASE WHEN reminder_frequency=:reminderFrequency
+            AND reminder_oneTimeDateEpochDay IS :reminderDate AND reminder_minuteOfDay=:reminderMinute
+            THEN reminder_oneTimeConsumedAt ELSE NULL END
         WHERE id=:id AND completedAt IS NULL""")
     suspend fun updateDetails(id: Long, title: String, tagId: Long?, kind: String,
-        soft: Boolean, mode: com.kingkharnivore.skillz.model.FlowMode, minutes: Int?, surge: Boolean, at: Long): Int
+        soft: Boolean, mode: com.kingkharnivore.skillz.model.FlowMode, minutes: Int?, surge: Boolean, at: Long,
+        reminderEnabled: Boolean, reminderFrequency: String, reminderMinute: Int,
+        reminderWeekDays: Int, reminderMonthDays: Long, reminderDate: Long?): Int
+
+    // Claim a one-time delivery atomically, so duplicate broadcasts and clock changes cannot resend it.
+    @Query("""UPDATE flow_plans SET reminder_oneTimeConsumedAt=:at
+        WHERE id=:id AND reminder_enabled=1 AND reminder_frequency='ONE_TIME'
+        AND reminder_oneTimeDateEpochDay=:date AND reminder_minuteOfDay=:minute
+        AND reminder_oneTimeConsumedAt IS NULL AND archived=0 AND completedAt IS NULL AND kind IN ('HABIT','PLAN')""")
+    suspend fun consumeOneTimeReminder(id: Long, date: Long, minute: Int, at: Long): Int
 
     @Query("SELECT * FROM flow_plans WHERE id = :id LIMIT 1")
     suspend fun getFlowPlanById(id: Long): FlowPlanEntity?

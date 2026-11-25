@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="flow_repeat_title">Sigue adelante</string>
+    <string name="flow_repeat_question">Has realizado este Flow varias veces. ¿Quieres añadirlo como Hábito o Plan?</string>
+    <string name="flow_repeat_add_habit">Sí, añadir un nuevo Hábito</string>
+    <string name="flow_repeat_add_plan">Sí, añadir un nuevo Plan</string>
+    <string name="flow_repeat_skip">Omitir</string>
+    <string name="flow_repeat_error">No se pudo crear esta actividad. Tu Flow está guardado. Inténtalo de nuevo u omite este paso.</string>
+</resources>

@@ -591,6 +591,23 @@ object SkillzDatabaseMigrations {
         }
     }
 
+    val MIGRATION_49_50 = object : Migration(49, 50) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE flow_plans ADD COLUMN reminder_enabled INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE flow_plans ADD COLUMN reminder_frequency TEXT NOT NULL DEFAULT 'DAILY'")
+            db.execSQL("ALTER TABLE flow_plans ADD COLUMN reminder_minuteOfDay INTEGER NOT NULL DEFAULT 540")
+            db.execSQL("ALTER TABLE flow_plans ADD COLUMN reminder_weekDays INTEGER NOT NULL DEFAULT 127")
+            db.execSQL("ALTER TABLE flow_plans ADD COLUMN reminder_monthDays INTEGER NOT NULL DEFAULT 2")
+        }
+    }
+
+    val MIGRATION_50_51 = object : Migration(50, 51) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE flow_plans ADD COLUMN reminder_oneTimeDateEpochDay INTEGER")
+            db.execSQL("ALTER TABLE flow_plans ADD COLUMN reminder_oneTimeConsumedAt INTEGER")
+        }
+    }
+
     val ALL_MIGRATIONS: Array<Migration> =
         LEGACY_TO_15_MIGRATIONS +
                 MIGRATION_13_14 +
@@ -622,7 +639,7 @@ object SkillzDatabaseMigrations {
                 MIGRATION_39_40 +
                 MIGRATION_40_41 +
                 MIGRATION_41_42 +
-                MIGRATION_42_44 + MIGRATION_43_44 + MIGRATION_44_45 + MIGRATION_45_46 + MIGRATION_46_47 + MIGRATION_47_48 + MIGRATION_48_49
+                MIGRATION_42_44 + MIGRATION_43_44 + MIGRATION_44_45 + MIGRATION_45_46 + MIGRATION_46_47 + MIGRATION_47_48 + MIGRATION_48_49 + MIGRATION_49_50 + MIGRATION_50_51
 
     private fun addNotificationViewedAtColumns(db: SupportSQLiteDatabase) {
         listOf(
